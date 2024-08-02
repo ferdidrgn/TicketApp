@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final Function(ThemeMode) onThemeChanged;
 
   const ProfilePage({super.key, required this.onThemeChanged});
 
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,32 +93,33 @@ class ProfilePage extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Tema Seçimi'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text('Sistem Teması'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onThemeChanged(ThemeMode.system);
-                },
-              ),
-              ListTile(
-                title: const Text('Açık Tema'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onThemeChanged(ThemeMode.light);
-                },
-              ),
-              ListTile(
-                title: const Text('Koyu Tema'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onThemeChanged(ThemeMode.dark);
-                },
-              ),
-            ],
+          title: const Text('Select Theme'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                ListTile(
+                  title: const Text('Light Theme'),
+                  onTap: () {
+                    widget.onThemeChanged(ThemeMode.light);
+                    Navigator.of(context).pop();
+                  },
+                ),
+                ListTile(
+                  title: const Text('Dark Theme'),
+                  onTap: () {
+                    widget.onThemeChanged(ThemeMode.dark);
+                    Navigator.of(context).pop();
+                  },
+                ),
+                ListTile(
+                  title: const Text('System Default'),
+                  onTap: () {
+                    widget.onThemeChanged(ThemeMode.system);
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },

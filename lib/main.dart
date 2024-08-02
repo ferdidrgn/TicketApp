@@ -13,13 +13,13 @@ Future<ThemeMode> getThemeMode() async {
   final prefs = await SharedPreferences.getInstance();
   final themeString = prefs.getString('themeMode') ?? 'system';
   switch (themeString) {
-     case 'light':
+    case 'light':
       return ThemeMode.light;
     case 'dark':
       return ThemeMode.dark;
     default:
       return ThemeMode.system;
-      }
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -51,13 +51,14 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-     title: 'Bilet Satış Uygulaması',
+      title: 'Bilet Satış Uygulaması',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: _themeMode, // Burada themeMode kullanılıyor
       home: HomePage(
         onThemeChanged: _changeTheme,
       ),
     );
   }
 }
+
