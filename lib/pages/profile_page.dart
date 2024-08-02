@@ -23,11 +23,15 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 20),
           _buildElevatedButton(context, 'Profil Düzenleme', Icons.edit, () {}),
           _buildElevatedButton(context, 'Biletlerim', Icons.theaters_rounded, () {}),
-          _buildElevatedButton(context, 'Bilgi Ayarları', Icons.info, () {}),
           _buildElevatedButton(context, 'Favorilerim', Icons.favorite, () {}),
-          _buildElevatedButton(context, 'Bağış Yap', Icons.coffee, () {}),
+           const SizedBox(height: 20),
+          _buildElevatedButton(context, 'Bildirim Ayarları', Icons.info, () {}),
+          _buildElevatedButton(context, 'Uygulama Ayarları', Icons.info, () {}),
+           const SizedBox(height: 20),
           _buildElevatedButton(context, 'Gizlilik Sözleşmeleri', Icons.privacy_tip, () {}),
           _buildElevatedButton(context, 'Sıkça Sorulan Sorular', Icons.question_answer, () {}),
+           const SizedBox(height: 20),
+          _buildElevatedButton(context, 'Bağış Yap', Icons.coffee, () {}),
           const SizedBox(height: 20),
           _buildThemeSelectorButton(context),
         ],
@@ -45,7 +49,8 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             CircleAvatar(
               radius: 50,
-              backgroundImage: NetworkImage('https://via.placeholder.com/150'), // Profil fotoğrafı URL'si
+              backgroundImage: NetworkImage(
+                  'https://via.placeholder.com/150'), // Profil fotoğrafı URL'si
             ),
             SizedBox(height: 10),
             Text(
@@ -53,14 +58,16 @@ class _ProfilePageState extends State<ProfilePage> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 5),
-            Text('user@example.com', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            Text('user@example.com',
+                style: TextStyle(fontSize: 16, color: Colors.grey)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildElevatedButton(BuildContext context, String text, IconData icon, VoidCallback onPressed) {
+  Widget _buildElevatedButton(BuildContext context, String text, IconData icon,
+      VoidCallback onPressed) {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
