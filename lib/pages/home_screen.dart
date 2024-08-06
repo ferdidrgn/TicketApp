@@ -10,8 +10,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  static const int autoScrollDurationSeconds = 15;
 
-  // Geçici kampanya verileri
   final List<String> _campaigns = [
     "Kampanya 1: %50 indirim!",
     "Kampanya 2: Üç al, bir bedava!",
@@ -31,11 +31,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startAutoScroll() {
-    Future.delayed(const Duration(seconds: 15)).then((_) {
-      _currentPage = (_currentPage < _campaigns.length - 1) ? _currentPage + 1 : 0;
+    Future.delayed(const Duration(seconds: autoScrollDurationSeconds))
+        .then((_) {
+      setState(() {
+        _currentPage = (_currentPage + 1) % _campaigns.length;
+      });
       _pageController.animateToPage(
         _currentPage,
-        duration: const Duration(seconds: 15),
+        duration: const Duration(seconds: autoScrollDurationSeconds),
         curve: Curves.easeInOut,
       );
       _startAutoScroll();
@@ -48,36 +51,42 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(20.0),
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height * 0.3,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: _campaigns.length,
-                      itemBuilder: (context, index) {
-                        return CampaignPage(campaignText: _campaigns[index]);
-                      },
-                    ),
-                  ),
-                  DotsIndicator(
-                    controller: _pageController,
-                    itemCount: _campaigns.length,
-                    onPageSelected: (int page) {
-                      setState(() {
-                        _currentPage = page;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const DiscoverPage(), // Add the DiscoverPage here
+            _buildCampaignSlider(),
+            const SizedBox(height: 20),
+            const BodySideScreen(),
+            const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCampaignSlider() {
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      width: double.infinity,
+      height: MediaQuery.of(context).size.height * 0.3,
+      child: Column(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _campaigns.length,
+              itemBuilder: (context, index) {
+                return CampaignPage(campaignText: _campaigns[index]);
+              },
+            ),
+          ),
+          DotsIndicator(
+            controller: _pageController,
+            itemCount: _campaigns.length,
+            onPageSelected: (page) {
+              setState(() {
+                _currentPage = page;
+              });
+            },
+          ),
+        ],
       ),
     );
   }
@@ -93,21 +102,18 @@ class CampaignPage extends StatelessWidget {
     return Container(
       color: Colors.blue,
       child: Stack(
+        alignment: Alignment.center,
         children: [
-          Center(
-            child: Image.network(
-              "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
-              width: 200,
-              height: 80,
-              fit: BoxFit.cover,
-            ),
+          Image.network(
+            "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
+            width: 200,
+            height: 80,
+            fit: BoxFit.cover,
           ),
-          Center(
-            child: Text(
-              campaignText,
-              style: const TextStyle(fontSize: 24, color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
+          Text(
+            campaignText,
+            style: const TextStyle(fontSize: 24, color: Colors.white),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -132,77 +138,89 @@ class DotsIndicator extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(itemCount, (index) {
-        return GestureDetector(
-          onTap: () {
-            controller.animateToPage(
-              index,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-            onPageSelected(index);
-          },
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4.0),
-            width: 8.0,
-            height: 8.0,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: controller.page?.round() == index ? Colors.red : Colors.grey,
-            ),
-          ),
-        );
+        return _buildDot(index);
       }),
+    );
+  }
+
+  Widget _buildDot(int index) {
+    return GestureDetector(
+      onTap: () {
+        controller.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+        onPageSelected(index);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4.0),
+        width: 8.0,
+        height: 8.0,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: controller.page?.round() == index ? Colors.red : Colors.grey,
+        ),
+      ),
     );
   }
 }
 
-// DiscoverPage widget starts here
-class DiscoverPage extends StatelessWidget {
-  const DiscoverPage({super.key});
+class BodySideScreen extends StatelessWidget {
+  const BodySideScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Kategoriler',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
+        _buildSectionTitle('Kategoriler'),
         _buildCategoryCards(context),
-        const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Yeni Gösteriler',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
+        _buildSectionTitle('Yeni Gösteriler'),
         _buildNewShows(),
-        const SizedBox(height: 20)
+        _buildSectionTitle('Sahneler'),
+        _buildSceneSection(),
+        _buildSectionTitle('Oyundan Kareler'),
+        _buildGamesPhotoSection(),
       ],
     );
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
   Widget _buildCategoryCards(BuildContext context) {
+    final categories = [
+      {'title': 'Tümünü Keşfet', 'icon': Icons.explore},
+      {'title': 'Trendler', 'icon': Icons.trending_up},
+      {'title': 'Tiyatro', 'icon': Icons.theater_comedy},
+      {'title': 'Konser/Müzik', 'icon': Icons.library_music},
+      {'title': 'Stand Up', 'icon': Icons.event_seat_rounded},
+      {'title': 'Festival', 'icon': Icons.festival_rounded},
+      {'title': 'Sinema', 'icon': Icons.movie_filter_rounded},
+      {'title': 'Çocuk', 'icon': Icons.family_restroom},
+      {'title': 'Spor', 'icon': Icons.sports_baseball},
+      {'title': 'Etkinlik', 'icon': Icons.event},
+    ];
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        children: [
-          _buildCategoryCard(context, 'Tümünü Keşfet', Icons.explore),
-          _buildCategoryCard(context, 'Trendler', Icons.trending_up),
-          _buildCategoryCard(context, 'Tiyatro', Icons.theater_comedy),
-          _buildCategoryCard(context, 'Konser/Müzik', Icons.library_music),
-          _buildCategoryCard(context, 'Stand Up', Icons.event_seat_rounded),
-          _buildCategoryCard(context, 'Festival', Icons.festival_rounded),
-          _buildCategoryCard(context, 'Sinema', Icons.movie_filter_rounded),
-          _buildCategoryCard(context, 'Çocuk', Icons.family_restroom),
-          _buildCategoryCard(context, 'Spor', Icons.sports_baseball),
-          _buildCategoryCard(context, 'Etkinlik', Icons.event),
-        ],
+        children: categories.map((category) {
+          return _buildCategoryCard(
+            context,
+            category['title'].toString(),
+            category['icon'] as IconData,
+          );
+        }).toList(),
       ),
     );
   }
@@ -216,16 +234,19 @@ class DiscoverPage extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 50, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 10),
-            Text(
-              title,style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
-            ),
-          ],
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon,
+                  size: 50, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.normal),
+              ),
+            ],
+          ),
         ),
-        )
       ),
     );
   }
@@ -260,11 +281,111 @@ class DiscoverPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Show $index', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
+              'Show $index',
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+Widget _buildSceneSection() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(
+        height: 140,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: 6,
+          itemBuilder: (context, index) {
+            return _buildSceneCard(index);
+          },
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _buildSceneCard(int index) {
+  return Container(
+    width: 100,
+    margin: const EdgeInsets.only(right: 16),
+    child: Card(
+      elevation: 8,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(50)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          ClipOval(
+            child: Image.network(
+              'https://via.placeholder.com/100',
+              width: 100,
+              height: 100,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Text(
+            'Sahne $index',
+            style: const TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildGamesPhotoSection() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(
+        height: 200,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: 6,
+          itemBuilder: (context, index) {
+            return _buildGameCard(index);
+          },
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _buildGameCard(int index) {
+  return Container(
+    width: 150,
+    margin: const EdgeInsets.only(right: 16),
+    child: Card(
+      elevation: 8,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.network(
+            'https://via.placeholder.com/150',
+            height: 120,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Oyun $index',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
