@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'search_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -46,18 +47,49 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _navigateToSearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SearchPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
           children: [
+            _buildSearchBar(),
             _buildCampaignSlider(),
             const SizedBox(height: 20),
             const BodySideScreen(),
             const SizedBox(height: 50),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Etkinlikleri Ara...',
+              ),
+              onTap: _navigateToSearch,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: _navigateToSearch,
+          ),
+        ],
       ),
     );
   }
@@ -152,7 +184,7 @@ class DotsIndicator extends StatelessWidget {
       onTap: () {
         controller.animateToPage(
           index,
-          duration: const Duration(seconds: 15),
+          duration: const Duration(seconds: 1),
           curve: Curves.easeInOut,
         );
         onPageSelected(index);
