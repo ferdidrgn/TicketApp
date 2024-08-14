@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
-import 'pages/home_page.dart';
+import 'pages/main/home_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -54,11 +54,10 @@ class _MyAppState extends State<MyApp> {
       title: 'Bilet Satış Uygulaması',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode, // Burada themeMode kullanılıyor
-      home: HomePage(
+      themeMode: _themeMode,
+      home: BottomNavBar(
         onThemeChanged: _changeTheme,
       ),
     );
   }
 }
-
