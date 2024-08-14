@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  static const int autoScrollDurationSeconds = 15;
+  Timer? _timer;
 
   final List<String> _campaigns = [
     "Kampanya 1: %50 indirim!",
@@ -26,22 +28,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _timer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
   void _startAutoScroll() {
-    Future.delayed(const Duration(seconds: autoScrollDurationSeconds))
-        .then((_) {
+    _timer = Timer.periodic(const Duration(seconds: 15), (timer) {
       setState(() {
         _currentPage = (_currentPage + 1) % _campaigns.length;
       });
       _pageController.animateToPage(
         _currentPage,
-        duration: const Duration(seconds: autoScrollDurationSeconds),
+        duration: const Duration(seconds: 1),
         curve: Curves.easeInOut,
       );
-      _startAutoScroll();
     });
   }
 
@@ -54,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildCampaignSlider(),
             const SizedBox(height: 20),
             const BodySideScreen(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 50),
           ],
         ),
       ),
@@ -104,11 +105,14 @@ class CampaignPage extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Image.network(
-            "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
+          CachedNetworkImage(
+            imageUrl:
+                "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
             width: 200,
             height: 80,
             fit: BoxFit.cover,
+            placeholder: (context, url) => const CircularProgressIndicator(),
+            errorWidget: (context, url, error) => const Icon(Icons.error),
           ),
           Text(
             campaignText,
@@ -148,7 +152,7 @@ class DotsIndicator extends StatelessWidget {
       onTap: () {
         controller.animateToPage(
           index,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(seconds: 15),
           curve: Curves.easeInOut,
         );
         onPageSelected(index);
@@ -274,10 +278,13 @@ class BodySideScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.network(
-              'https://via.placeholder.com/150',
+            CachedNetworkImage(
+              imageUrl: 'https://via.placeholder.com/150',
               width: 100,
               height: 100,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => const CircularProgressIndicator(),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
             ),
             const SizedBox(height: 16),
             Text(
@@ -290,102 +297,107 @@ class BodySideScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-Widget _buildSceneSection() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(
-        height: 140,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: 6,
-          itemBuilder: (context, index) {
-            return _buildSceneCard(index);
-          },
+  Widget _buildSceneSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 140,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: 6,
+            itemBuilder: (context, index) {
+              return _buildSceneCard(index);
+            },
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
-Widget _buildSceneCard(int index) {
-  return Container(
-    width: 100,
-    margin: const EdgeInsets.only(right: 16),
-    child: Card(
-      elevation: 8,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(50)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          ClipOval(
-            child: Image.network(
-              'https://via.placeholder.com/100',
-              width: 100,
-              height: 100,
-              fit: BoxFit.cover,
+  Widget _buildSceneCard(int index) {
+    return Container(
+      width: 100,
+      margin: const EdgeInsets.only(right: 16),
+      child: Card(
+        elevation: 8,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(50)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: 'https://via.placeholder.com/100',
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    const CircularProgressIndicator(),
+                errorWidget: (context, url, error) => const Icon(Icons.error),
+              ),
             ),
-          ),
-          Text(
-            'Sahne $index',
-            style: const TextStyle(fontSize: 16),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _buildGamesPhotoSection() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(
-        height: 200,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: 6,
-          itemBuilder: (context, index) {
-            return _buildGameCard(index);
-          },
-        ),
-      ),
-    ],
-  );
-}
-
-Widget _buildGameCard(int index) {
-  return Container(
-    width: 150,
-    margin: const EdgeInsets.only(right: 16),
-    child: Card(
-      elevation: 8,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Image.network(
-            'https://via.placeholder.com/150',
-            height: 120,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Oyun $index',
+            Text(
+              'Sahne $index',
               style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  Widget _buildGamesPhotoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: 6,
+            itemBuilder: (context, index) {
+              return _buildGameCard(index);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGameCard(int index) {
+    return Container(
+      width: 150,
+      margin: const EdgeInsets.only(right: 16),
+      child: Card(
+        elevation: 8,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CachedNetworkImage(
+              imageUrl: 'https://via.placeholder.com/150',
+              height: 120,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => const CircularProgressIndicator(),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'Oyun $index',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
