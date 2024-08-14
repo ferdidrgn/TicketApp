@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class CartPage extends StatelessWidget {
-
   CartPage({super.key});
-  
-  final List<Ticket> tickets = [];  // Bu listeyi doldurarak sepetin dolu ya da boş olmasını simüle edebilirsiniz.
+
+  final List<Ticket> tickets =
+      []; // Bu listeyi doldurarak sepetin dolu ya da boş olmasını simüle edebilirsiniz.
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +12,8 @@ class CartPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Sepetim'),
       ),
-      body: tickets.isEmpty ? _buildEmptyCart(context) : _buildCartList(context),
+      body:
+          tickets.isEmpty ? _buildEmptyCart(context) : _buildCartList(context),
     );
   }
 
@@ -41,7 +42,8 @@ class CartPage extends StatelessWidget {
             },
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Text('Gösterileri Görüntüle', style: TextStyle(fontSize: 18)),
+              child:
+                  Text('Gösterileri Görüntüle', style: TextStyle(fontSize: 18)),
             ),
           ),
         ],
@@ -56,18 +58,22 @@ class CartPage extends StatelessWidget {
         return Card(
           margin: const EdgeInsets.all(10),
           elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: Padding(
             padding: const EdgeInsets.all(15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(tickets[index].name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(tickets[index].name,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 Text('Yaş Sınırı: ${tickets[index].ageRestriction}'),
                 Text('Fiyat: ${tickets[index].price} TL'),
                 Text('Adet: ${tickets[index].quantity}'),
-                Text('Koltuk Numaraları: ${tickets[index].seatNumbers.join(', ')}'),
+                Text(
+                    'Koltuk Numaraları: ${tickets[index].seatNumbers.join(', ')}'),
               ],
             ),
           ),
@@ -84,5 +90,10 @@ class Ticket {
   final int quantity;
   final List<String> seatNumbers;
 
-  Ticket({required this.name, required this.ageRestriction, required this.price, required this.quantity, required this.seatNumbers});
+  Ticket(
+      {required this.name,
+      required this.ageRestriction,
+      required this.price,
+      required this.quantity,
+      required this.seatNumbers});
 }
