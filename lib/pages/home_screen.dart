@@ -11,8 +11,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
+  final PageController _pageController = PageController(initialPage: 1);
+  int _currentPage = 1;
   Timer? _timer;
 
   final List<String> _campaigns = [
@@ -25,6 +25,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _startAutoScroll();
+    _pageController.addListener(() {
+      setState(() {
+        _currentPage = _pageController.page?.round() ?? 0;
+      });
+    });
   }
 
   @override
@@ -117,6 +122,11 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {
                 _currentPage = page;
               });
+              _pageController.animateToPage(
+                page,
+                duration: const Duration(seconds: 1),
+                curve: Curves.easeInOut,
+              );
             },
           ),
         ],
@@ -139,7 +149,7 @@ class CampaignPage extends StatelessWidget {
         children: [
           CachedNetworkImage(
             imageUrl:
-                "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
+            "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
             width: 200,
             height: 80,
             fit: BoxFit.cover,
@@ -182,11 +192,6 @@ class DotsIndicator extends StatelessWidget {
   Widget _buildDot(int index) {
     return GestureDetector(
       onTap: () {
-        controller.animateToPage(
-          index,
-          duration: const Duration(seconds: 1),
-          curve: Curves.easeInOut,
-        );
         onPageSelected(index);
       },
       child: Container(
@@ -322,7 +327,7 @@ class BodySideScreen extends StatelessWidget {
             Text(
               'Show $index',
               style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
+              const TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
             ),
           ],
         ),
@@ -368,7 +373,7 @@ class BodySideScreen extends StatelessWidget {
                 height: 100,
                 fit: BoxFit.cover,
                 placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
+                const CircularProgressIndicator(),
                 errorWidget: (context, url, error) => const Icon(Icons.error),
               ),
             ),

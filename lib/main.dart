@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'app_theme.dart';
-import 'pages/home_page.dart';
+import 'package:ticketapp/login/login.dart';
+import 'package:ticketapp/pages/home_pages_container.dart';
+import 'package:ticketapp/splash/splash_screen.dart';
+import 'onboarding/onboarding_container.dart';
+import 'util/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -55,9 +58,15 @@ class _MyAppState extends State<MyApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      home: BottomNavBar(
-        onThemeChanged: _changeTheme,
-      ),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => SplashScreen(),
+        '/login': (context) => LoginScreen(),
+        '/onboarding': (context) => OnboardingContainer(),
+        '/home': (context) => HomePageContainer(
+              onThemeChanged: _changeTheme,
+            ),
+      },
     );
   }
 }

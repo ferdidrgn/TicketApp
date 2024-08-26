@@ -9,9 +9,6 @@ class CartPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sepetim'),
-      ),
       body:
           tickets.isEmpty ? _buildEmptyCart(context) : _buildCartList(context),
     );

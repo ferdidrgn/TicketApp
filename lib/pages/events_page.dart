@@ -4,7 +4,7 @@ class EventsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text('Etkinlikler Sayfası'),
+      child: Text('Yakınımda'),
     );
   }
 }

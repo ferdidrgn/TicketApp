@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'cart_page.dart';
-import 'events_page.dart';
-import 'profile_page.dart';
-import 'home_screen.dart';
+import '../pages/cart_page.dart';
+import '../pages/events_page.dart';
+import '../pages/profile_page.dart';
+import '../pages/home_screen.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
 class BottomNavBar extends StatefulWidget {
@@ -57,7 +57,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
               items: const <Widget>[
                 Icon(Icons.home, size: 30),
                 Icon(Icons.shopping_cart, size: 30),
-                Icon(Icons.event, size: 30),
+                Icon(Icons.location_city, size: 30),
                 Icon(Icons.people, size: 30),
               ],
               animationCurve: Curves.easeInOut,
