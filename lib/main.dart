@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
-import 'pages/main/home_page.dart';
+import 'pages/home_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {

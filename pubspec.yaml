@@ -38,6 +38,7 @@ dependencies:
   
   curved_navigation_bar: ^1.0.6 #latest version
   shared_preferences: ^2.0.13
+  cached_network_image: ^3.2.3
 
 
 dev_dependencies:

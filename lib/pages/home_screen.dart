@@ -216,7 +216,7 @@ class BodySideScreen extends StatelessWidget {
         _buildNewShows(),
         _buildSectionTitle('Sahneler'),
         _buildSceneSection(),
-        _buildSectionTitle('Oyundan Kareler'),
+        _buildSectionTitle('Oyunlardan Kareler'),
         _buildGamesPhotoSection(),
       ],
     );
