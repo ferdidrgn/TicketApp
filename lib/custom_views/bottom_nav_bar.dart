@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main_pages//cart_page.dart';
-import '../main_pages/events_page.dart';
+import '../main_pages/nearby_events.dart';
 import '../main_pages/profile_page.dart';
 import '../main_pages/home_screen.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
@@ -25,7 +25,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _pages = <Widget>[
       const HomeScreen(),
       CartPage(),
-      EventsPage(),
+      NearbyEventsPage(),
       ProfilePage(onThemeChanged: widget.onThemeChanged),
     ];
   }

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/favorites/favorite_screen.dart';
+import 'package:ticketapp/my_ticket/my_ticket_screen.dart';
+import 'package:ticketapp/settings/app_settings.dart';
 import 'package:ticketapp/settings/permission_settings.dart';
 
 import '../profile_edit/user_profile_edit.dart';
@@ -23,19 +26,41 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 20),
           _buildElevatedButton(context, 'Profil Düzenleme', Icons.edit, () {
             Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => UserProfileEditScreen(),
-                ),);
+              MaterialPageRoute(
+                builder: (context) => UserProfileEditScreen(),
+              ),
+            );
           }),
-          _buildElevatedButton(
-              context, 'Biletlerim', Icons.theaters_rounded, () {}),
-          _buildElevatedButton(context, 'Favorilerim', Icons.favorite, () {}),
+          _buildElevatedButton(context, 'Biletlerim', Icons.theaters_rounded,
+              () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => MyTicketPage(),
+              ),
+            );
+          }),
+          _buildElevatedButton(context, 'Favorilerim', Icons.favorite, () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => FavoritesPage(),
+              ),
+            );
+          }),
           const SizedBox(height: 20),
-          _buildElevatedButton(context, 'Bildirim Ayarları', Icons.info, () {Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const PermissionSettingsScreen(),
-            ),);}),
-          _buildElevatedButton(context, 'Uygulama Ayarları', Icons.info, () {}),
+          _buildElevatedButton(context, 'Bildirim Ayarları', Icons.info, () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const PermissionSettingsScreen(),
+              ),
+            );
+          }),
+          _buildElevatedButton(context, 'Uygulama Ayarları', Icons.info, () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const AppSettingsPage(),
+              ),
+            );
+          }),
           const SizedBox(height: 20),
           _buildElevatedButton(
               context, 'Gizlilik Sözleşmeleri', Icons.privacy_tip, () {}),
