@@ -128,7 +128,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
         initialValue: initialValue,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(),
+          border: const OutlineInputBorder(),
         ),
         onChanged: onChanged,
         keyboardType: keyboardType,

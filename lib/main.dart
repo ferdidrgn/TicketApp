@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/login/login.dart';
-import 'package:ticketapp/pages/home_pages_container.dart';
+import 'package:ticketapp/main_pages/main_pages_container.dart';
 import 'package:ticketapp/splash/splash_screen.dart';
 import 'onboarding/onboarding_container.dart';
 import 'util/app_theme.dart';

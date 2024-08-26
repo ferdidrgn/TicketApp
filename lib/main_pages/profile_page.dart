@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/settings/permission_settings.dart';
+
+import '../profile_edit/user_profile_edit.dart';
 
 class ProfilePage extends StatefulWidget {
   final Function(ThemeMode) onThemeChanged;
@@ -18,12 +21,20 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           _buildProfileCard(context),
           const SizedBox(height: 20),
-          _buildElevatedButton(context, 'Profil Düzenleme', Icons.edit, () {}),
+          _buildElevatedButton(context, 'Profil Düzenleme', Icons.edit, () {
+            Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => UserProfileEditScreen(),
+                ),);
+          }),
           _buildElevatedButton(
               context, 'Biletlerim', Icons.theaters_rounded, () {}),
           _buildElevatedButton(context, 'Favorilerim', Icons.favorite, () {}),
           const SizedBox(height: 20),
-          _buildElevatedButton(context, 'Bildirim Ayarları', Icons.info, () {}),
+          _buildElevatedButton(context, 'Bildirim Ayarları', Icons.info, () {Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const PermissionSettingsScreen(),
+            ),);}),
           _buildElevatedButton(context, 'Uygulama Ayarları', Icons.info, () {}),
           const SizedBox(height: 20),
           _buildElevatedButton(
