@@ -360,7 +360,7 @@ class BodySideScreen extends StatelessWidget {
       width: 100,
       margin: const EdgeInsets.only(right: 16),
       child: Card(
-        elevation: 8,
+        elevation: 3,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(50)),
         ),

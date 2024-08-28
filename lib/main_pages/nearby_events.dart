@@ -8,7 +8,6 @@ class NearbyEventsPage extends StatefulWidget {
 }
 
 class _NearbyEventsPageState extends State<NearbyEventsPage> {
-  // Filtreleme seçenekleri
   final List<String> _categories = [
     'Müzikal',
     'Tiyatro',
@@ -17,8 +16,8 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
     'Opera',
     'Bale'
   ];
-  List<String> _selectedCategories = [];
-  RangeValues _priceRange = RangeValues(0, 1000);
+  final List<String> _selectedCategories = [];
+  RangeValues _priceRange = const RangeValues(0, 1000);
 
   void _showFilterDialog() {
     showDialog(
@@ -33,19 +32,18 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
                 const Text('Kategoriler:'),
                 ..._categories
                     .map((category) => CheckboxListTile(
-                          title: Text(category),
-                          value: _selectedCategories.contains(category),
-                          onChanged: (bool? checked) {
-                            setState(() {
-                              if (checked == true) {
-                                _selectedCategories.add(category);
-                              } else {
-                                _selectedCategories.remove(category);
-                              }
-                            });
-                          },
-                        ))
-                    .toList(),
+                  title: Text(category),
+                  value: _selectedCategories.contains(category),
+                  onChanged: (bool? checked) {
+                    setState(() {
+                      if (checked == true) {
+                        _selectedCategories.add(category);
+                      } else {
+                        _selectedCategories.remove(category);
+                      }
+                    });
+                  },
+                )),
                 const SizedBox(height: 20),
                 const Text('Fiyat Aralığı:'),
                 RangeSlider(
@@ -82,33 +80,51 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Yakınımdaki Etkinlikler'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
-          ),
-        ],
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Etkinlikler başlığı
-            const Text(
-              'Yakınınızdaki Etkinlikler',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Yakınınızdaki Etkinlikler',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: _showFilterDialog,
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            // Etkinlikler listesi (Örnek veri)
             Expanded(
               child: ListView(
                 children: [
-                  _buildEventCard('Müzikal Etkinlik 1', '12 Eylül 2024', 150.0),
-                  _buildEventCard('Tiyatro Etkinlik 2', '15 Eylül 2024', 100.0),
-                  _buildEventCard('Sinema Etkinlik 3', '20 Eylül 2024', 80.0),
+                  _buildEventCard(
+                    imageUrl: 'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
+                    title: 'Müzikal',
+                    date: '12 Eylül 2024',
+                    location: 'İstanbul',
+                    price: 150.0,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildEventCard(
+                    imageUrl: 'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
+                    title: 'Tiyatro',
+                    date: '15 Eylül 2024',
+                    location: 'Ankara',
+                    price: 100.0,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildEventCard(
+                    imageUrl: 'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
+                    title: 'Sinema',
+                    date: '20 Eylül 2024',
+                    location: 'İzmir',
+                    price: 80.0,
+                  ),
                 ],
               ),
             ),
@@ -118,15 +134,59 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
     );
   }
 
-  Widget _buildEventCard(String title, String date, double price) {
+  Widget _buildEventCard({
+    required String imageUrl,
+    required String title,
+    required String date,
+    required String location,
+    required double price,
+  }) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
       elevation: 4,
-      child: ListTile(
-        title: Text(title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        subtitle: Text(date),
-        trailing: Text('$price₺'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              height: 120,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Tarih: $date',
+                    style: const TextStyle(fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Fiyat: $price₺',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
