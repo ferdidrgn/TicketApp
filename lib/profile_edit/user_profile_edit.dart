@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/custom_views/custom_text_field.dart';
+import 'package:ticketapp/custom_views/custom_button.dart'; // Yeni dosyayı import edin
 
 class UserProfileEditScreen extends StatefulWidget {
+  const UserProfileEditScreen({super.key});
+
   @override
   _UserProfileEditScreenState createState() => _UserProfileEditScreenState();
 }
@@ -54,29 +58,60 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildTextField('Ad', _firstName, (value) {
-                        setState(() => _firstName = value);
-                      }),
-                      _buildTextField('Soyad', _lastName, (value) {
-                        setState(() => _lastName = value);
-                      }),
-                      _buildTextField('Telefon No', _phoneNumber, (value) {
-                        setState(() => _phoneNumber = value);
-                      }, keyboardType: TextInputType.phone),
-                      _buildTextField('E-posta', _email, (value) {
-                        setState(() => _email = value);
-                      }, keyboardType: TextInputType.emailAddress),
-                      _buildTextField('Yaş', _age.toString(), (value) {
-                        setState(() => _age = int.tryParse(value) ?? 0);
-                      }, keyboardType: TextInputType.number),
-                      _buildTextField('Lokasyon', _location, (value) {
-                        setState(() => _location = value);
-                      }),
+                      CustomTextField(
+                        label: 'Ad',
+                        initialValue: _firstName,
+                        onChanged: (value) {
+                          setState(() => _firstName = value);
+                        },
+                      ),
+                      CustomTextField(
+                        label: 'Soyad',
+                        initialValue: _lastName,
+                        onChanged: (value) {
+                          setState(() => _lastName = value);
+                        },
+                      ),
+                      CustomTextField(
+                        label: 'Telefon No',
+                        initialValue: _phoneNumber,
+                        onChanged: (value) {
+                          setState(() => _phoneNumber = value);
+                        },
+                        keyboardType: TextInputType.phone,
+                      ),
+                      CustomTextField(
+                        label: 'E-posta',
+                        initialValue: _email,
+                        isRequired: false,
+                        onChanged: (value) {
+                          setState(() => _email = value);
+                        },
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      CustomTextField(
+                        label: 'Yaş',
+                        initialValue: _age.toString(),
+                        onChanged: (value) {
+                          setState(() => _age = int.tryParse(value) ?? 0);
+                        },
+                        keyboardType: TextInputType.number,
+                      ),
+                      CustomTextField(
+                        label: 'Lokasyon',
+                        initialValue: _location,
+                        isRequired: false,
+                        onChanged: (value) {
+                          setState(() => _location = value);
+                        },
+                      ),
                       const SizedBox(height: 20),
                       Center(
-                        child: ElevatedButton(
+                        child: CustomButton(
+                          text: 'Güncelle',
                           onPressed: _updateProfile,
-                          child: const Text('Güncelle'),
+                          backgroundColor: Theme.of(context).primaryColor,
+                          textColor: Colors.white,
                         ),
                       ),
                     ],
@@ -98,46 +133,44 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
           CircleAvatar(
             radius: 60,
             backgroundImage: NetworkImage(_profileImageUrl),
-            child: GestureDetector(
-              onTap: _handleProfileImageChange,
-              child: Container(
-                alignment: Alignment.bottomRight,
-                child: const Icon(Icons.camera_alt, color: Colors.white, size: 30),
+            child: Align(
+              alignment: Alignment.topRight,
+              child: GestureDetector(
+                onTap: _handleProfileImageChange,
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Theme.of(context)
+                      .bottomNavigationBarTheme
+                      .selectedItemColor,
+                  child: const Icon(Icons.camera_alt,
+                      color: Colors.white, size: 20),
+                ),
               ),
             ),
           ),
           Positioned(
             bottom: -10,
             right: -10,
-            child: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: _handleProfileImageDelete,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: _handleProfileImageDelete,
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-      String label, String initialValue, ValueChanged<String> onChanged,
-      {TextInputType keyboardType = TextInputType.text}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextFormField(
-        initialValue: initialValue,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-        onChanged: onChanged,
-        keyboardType: keyboardType,
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Bu alan boş olamaz';
-          }
-          return null;
-        },
       ),
     );
   }
