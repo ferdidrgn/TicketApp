@@ -18,7 +18,7 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = Theme.of(context).colorScheme.onPrimary; // Tıklanmadığında renk
+    final borderColor = Theme.of(context).colorScheme.primary; // Tıklanmadığında renk
     const focusedBorderColor = Colors.purple; // Tıklandığında renk
 
     return Padding(

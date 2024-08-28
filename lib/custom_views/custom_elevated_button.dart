@@ -23,29 +23,7 @@ class CustomElevatedButton extends StatelessWidget {
         title: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         trailing: const Icon(Icons.arrow_forward_ios, size: 20),
         onTap: onPressed,
-      ),
-    );
-  }
-}
-
-class CustomThemeSelectorButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const CustomThemeSelectorButton({
-    super.key,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        title: const Text('Tema Seçimi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 20),
-        onTap: onTap,
+        tileColor: Colors.black.withOpacity(0.7),
       ),
     );
   }

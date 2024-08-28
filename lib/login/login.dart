@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../custom_views/custom_elevated_button.dart';
 import '../util/google_sign_in_service.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -9,71 +10,92 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Sanata Doymaya Hoş Geldiniz',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      body: Stack(
+        children: [
+          _buildBackgroundImage(),
+          _buildContent(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackgroundImage() {
+    return Positioned.fill(
+      child: Image.asset(
+        'assets/images/art_background.jpg', // Arka plan görselinizin yolu
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(15),
             ),
-            const SizedBox(height: 20),
-            _buildGoogleSignInButton(context),
-            const SizedBox(height: 20),
-            _buildPhoneLogIn(),
-          ],
-        ),
+            child: Column(
+              children: [
+                const Text(
+                  'Sanata Doymaya Hoş Geldiniz',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                _buildGoogleSignInButton(context),
+                const SizedBox(height: 20),
+                _buildPhoneLogIn(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildGoogleSignInButton(BuildContext context) {
-    return ElevatedButton.icon(
-      icon: const Icon(Icons.login),
-      label: const Text('Google ile Giriş Yap'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.redAccent,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        elevation: 5,
-      ),
-        onPressed: () async {
-          try {
-            final account = await _googleSignInService.signInWithGoogle();
-            if (account != null) {
-              Navigator.pushReplacementNamed(context, '/home');
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Google Girişi Başarısız Oldu. TEST için girildi.')),
-              );
-              Navigator.pushReplacementNamed(context, '/home');
-            }
-          } catch (error) {
+    return CustomElevatedButton(
+      text: 'Google ile Giriş Yap',
+      icon: Icons.abc,
+      onPressed: () async {
+        try {
+          final account = await _googleSignInService.signInWithGoogle();
+          if (account != null) {
+            Navigator.pushReplacementNamed(context, '/home');
+          } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Hata: $error  TEST için girildi.')),
+              const SnackBar(
+                  content:
+                      Text('Google Girişi Başarısız Oldu. TEST için girildi.')),
             );
             Navigator.pushReplacementNamed(context, '/home');
           }
+        } catch (error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Hata: $error  TEST için girildi.')),
+          );
+          Navigator.pushReplacementNamed(context, '/home');
         }
+      },
     );
   }
 
   Widget _buildPhoneLogIn() {
-    return ElevatedButton.icon(
-        icon: const Icon(Icons.phone),
-        label: const Text('Tel No İle Giriş Yap'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blueAccent,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          elevation: 5,
-        ),
-        onPressed: () async {});
+    return CustomElevatedButton(
+      text: 'Tel No İle Giriş Yap',
+      icon: Icons.phone,
+      onPressed: () async {
+        // Telefonla giriş işlemlerini burada gerçekleştirin
+      },
+    );
   }
 }

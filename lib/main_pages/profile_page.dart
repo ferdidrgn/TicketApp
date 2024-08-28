@@ -98,11 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () {},
           ),
           const SizedBox(height: 20),
-          CustomThemeSelectorButton(
-            onTap: () {
-              _showThemeSelectionDialog(context);
-            },
-          ),
+          _buildThemeSelectorCard(context),
           const SizedBox(height: 50),
         ],
       ),
@@ -171,6 +167,23 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildThemeSelectorCard(BuildContext context) {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        title: const Text('Tema Seçimi',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 20),
+        onTap: () {
+          _showThemeSelectionDialog(context);
+        },
+      ),
     );
   }
 }
