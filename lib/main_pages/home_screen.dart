@@ -11,8 +11,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final PageController _pageController = PageController(initialPage: 1);
-  int _currentPage = 1;
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
   Timer? _timer;
 
   final List<String> _campaigns = [
@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startAutoScroll() {
-    _timer = Timer.periodic(const Duration(seconds: 15), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       setState(() {
         _currentPage = (_currentPage + 1) % _campaigns.length;
       });
@@ -115,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
+          const SizedBox(height: 10),
           DotsIndicator(
             controller: _pageController,
             itemCount: _campaigns.length,
