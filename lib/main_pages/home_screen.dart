@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../custom_views/custom_stage_card.dart';
 import 'search_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -27,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _startAutoScroll();
     _pageController.addListener(() {
       setState(() {
-        _currentPage = _pageController.page?.round() ?? 0;
+        _currentPage = _pageController.page?.round() ?? 1;
       });
     });
   }
@@ -150,7 +151,7 @@ class CampaignPage extends StatelessWidget {
         children: [
           CachedNetworkImage(
             imageUrl:
-            "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
+                "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
             width: 200,
             height: 80,
             fit: BoxFit.cover,
@@ -279,7 +280,7 @@ class BodySideScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon,
-                  size: 50, color: Theme.of(context).colorScheme.primary),
+                  size: 50, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.red),
               const SizedBox(height: 10),
               Text(
                 title,
@@ -328,7 +329,7 @@ class BodySideScreen extends StatelessWidget {
             Text(
               'Show $index',
               style:
-              const TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
             ),
           ],
         ),
@@ -337,6 +338,23 @@ class BodySideScreen extends StatelessWidget {
   }
 
   Widget _buildStageSection() {
+    final List<String> _venues = [
+      'Sahne 1 dmslks lsşdjsdl sldsdd',
+      'Sahne 2',
+      'Sahne 3',
+      'Sahne 4',
+      'Sahne 5',
+      'Sahne 6',
+      'Sahne 7',
+      'Sahne 8',
+      'Sahne 9',
+      'Sahne 10',
+      'Sahne 11',
+      'Sahne 12',
+      'Sahne 13',
+      'Sahne 14',
+      'Sahne 15'
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -345,47 +363,18 @@ class BodySideScreen extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: 6,
+            itemCount: _venues.length,
             itemBuilder: (context, index) {
-              return _buildStageCard(index);
+              return CustomStageCard(
+                  text: _venues[index],
+                  imageUrl: 'https://via.placeholder.com/120',
+                  onPressed: () {
+                    // Mekan detay sayfasına yönlendirme işlevi
+                  });
             },
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildStageCard(int index) {
-    return Container(
-      width: 100,
-      margin: const EdgeInsets.only(right: 16),
-      child: Card(
-        elevation: 3,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(50)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: 'https://via.placeholder.com/100',
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
-                placeholder: (context, url) =>
-                const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-              ),
-            ),
-            Text(
-              'Sahne $index',
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 

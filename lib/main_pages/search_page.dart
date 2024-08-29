@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../custom_views/custom_stage_card.dart';
+
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -10,22 +12,63 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final List<String> _categories = [
-    'Müzikal', 'Tiyatro', 'Sinema', 'Dans', 'Opera', 'Bale'
+    'Müzikal',
+    'Tiyatro',
+    'Sinema',
+    'Dans',
+    'Opera',
+    'Bale'
   ];
   final List<String> _venues = [
-    'Sahne 1 dmslks lsşdjsdl sldsdd', 'Sahne 2', 'Sahne 3', 'Sahne 4', 'Sahne 5',
-    'Sahne 6', 'Sahne 7', 'Sahne 8', 'Sahne 9', 'Sahne 10',
-    'Sahne 11', 'Sahne 12', 'Sahne 13', 'Sahne 14', 'Sahne 15'
+    'Sahne 1 dmslks lsşdjsdl sldsdd',
+    'Sahne 2',
+    'Sahne 3',
+    'Sahne 4',
+    'Sahne 5',
+    'Sahne 6',
+    'Sahne 7',
+    'Sahne 8',
+    'Sahne 9',
+    'Sahne 10',
+    'Sahne 11',
+    'Sahne 12',
+    'Sahne 13',
+    'Sahne 14',
+    'Sahne 15'
   ];
   final List<String> _players = [
-    'Oyuncu 1', 'Oyuncu 2', 'Oyuncu 3', 'Oyuncu 4', 'Oyuncu 5',
-    'Oyuncu 6', 'Oyuncu 7', 'Oyuncu 8', 'Oyuncu 9', 'Oyuncu 10',
-    'Oyuncu 11', 'Oyuncu 12', 'Oyuncu 13', 'Oyuncu 14', 'Oyuncu 15'
+    'Oyuncu 1',
+    'Oyuncu 2',
+    'Oyuncu 3',
+    'Oyuncu 4',
+    'Oyuncu 5',
+    'Oyuncu 6',
+    'Oyuncu 7',
+    'Oyuncu 8',
+    'Oyuncu 9',
+    'Oyuncu 10',
+    'Oyuncu 11',
+    'Oyuncu 12',
+    'Oyuncu 13',
+    'Oyuncu 14',
+    'Oyuncu 15'
   ];
   final List<String> _events = [
-    'Etkinlik 1', 'Etkinlik 2', 'Etkinlik 3', 'Etkinlik 4', 'Etkinlik 5',
-    'Etkinlik 6', 'Etkinlik 7', 'Etkinlik 8', 'Etkinlik 9', 'Etkinlik 10',
-    'Etkinlik 11', 'Etkinlik 12', 'Etkinlik 13', 'Etkinlik 14', 'Etkinlik 15'
+    'Etkinlik 1',
+    'Etkinlik 2',
+    'Etkinlik 3',
+    'Etkinlik 4',
+    'Etkinlik 5',
+    'Etkinlik 6',
+    'Etkinlik 7',
+    'Etkinlik 8',
+    'Etkinlik 9',
+    'Etkinlik 10',
+    'Etkinlik 11',
+    'Etkinlik 12',
+    'Etkinlik 13',
+    'Etkinlik 14',
+    'Etkinlik 15'
   ];
 
   List<String> _filteredEvents = [];
@@ -56,7 +99,8 @@ class _SearchPageState extends State<SearchPage> {
           .where((player) => player.toLowerCase().contains(query.toLowerCase()))
           .toList();
       _filteredCategories = _categories
-          .where((category) => category.toLowerCase().contains(query.toLowerCase()))
+          .where((category) =>
+              category.toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -100,14 +144,13 @@ class _SearchPageState extends State<SearchPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Kategoriler:'),
-                ..._categories
-                    .map((category) => CheckboxListTile(
-                  title: Text(category),
-                  value: false,
-                  onChanged: (bool? checked) {
-                    // Kategori seçimi işlevi
-                  },
-                )),
+                ..._categories.map((category) => CheckboxListTile(
+                      title: Text(category),
+                      value: false,
+                      onChanged: (bool? checked) {
+                        // Kategori seçimi işlevi
+                      },
+                    )),
                 const SizedBox(height: 20),
                 const Text('Fiyat Aralığı:'),
                 RangeSlider(
@@ -145,7 +188,8 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Yakınınızdaki Etkinlikler', style: TextStyle(fontSize: 20)),
+        title: const Text('Yakınınızdaki Etkinlikler',
+            style: TextStyle(fontSize: 20)),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -170,24 +214,26 @@ class _SearchPageState extends State<SearchPage> {
             const SizedBox(height: 16),
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
-            else Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_filteredEvents.isNotEmpty) _buildEventList(),
-                    if (_filteredEvents.isNotEmpty) const SizedBox(height: 16),
-                    if (_filteredEvents.isNotEmpty) _buildShowAllButton(),
-                    const SizedBox(height: 16),
-                    if (_filteredVenues.isNotEmpty) _buildVenueSection(),
-                    const SizedBox(height: 16),
-                    if (_filteredPlayers.isNotEmpty) _buildPlayers(),
-                    const SizedBox(height: 16),
-                    if (_filteredCategories.isNotEmpty) _buildCategories(),
-                  ],
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_filteredEvents.isNotEmpty) _buildEventList(),
+                      if (_filteredEvents.isNotEmpty)
+                        const SizedBox(height: 16),
+                      if (_filteredEvents.isNotEmpty) _buildShowAllButton(),
+                      const SizedBox(height: 16),
+                      if (_filteredVenues.isNotEmpty) _buildVenueSection(),
+                      const SizedBox(height: 16),
+                      if (_filteredPlayers.isNotEmpty) _buildPlayers(),
+                      const SizedBox(height: 16),
+                      if (_filteredCategories.isNotEmpty) _buildCategories(),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -210,7 +256,8 @@ class _SearchPageState extends State<SearchPage> {
             itemBuilder: (context, index) {
               return Card(
                 elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15)),
                 child: Container(
                   width: 120,
                   padding: const EdgeInsets.all(8.0),
@@ -220,11 +267,12 @@ class _SearchPageState extends State<SearchPage> {
                       Expanded(
                         child: Container(
                           color: Colors.grey[300],
-                          child: Center(child: Text('Etkinlik Görseli')),
+                          child: const Center(child: Text('Etkinlik Görseli')),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(_filteredEvents[index], style: const TextStyle(fontSize: 14)),
+                      Text(_filteredEvents[index],
+                          style: const TextStyle(fontSize: 14)),
                     ],
                   ),
                 ),
@@ -260,44 +308,16 @@ class _SearchPageState extends State<SearchPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: _filteredVenues.length,
             itemBuilder: (context, index) {
-              return _buildVenueCard(index);
+              return CustomStageCard(
+                  text: _filteredVenues[index],
+                  imageUrl: 'https://via.placeholder.com/120',
+                  onPressed: () {
+                    // Mekan detay sayfasına yönlendirme işlevi
+                  });
             },
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildVenueCard(int index) {
-    return Container(
-      width: 115,
-      margin: const EdgeInsets.only(right: 10),
-      child: Card(
-        elevation: 3,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(50)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: 'https://via.placeholder.com/120',
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-              ),
-            ),
-            Text(
-              _filteredVenues[index],
-              style: const TextStyle(fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -322,7 +342,9 @@ class _SearchPageState extends State<SearchPage> {
                   shape: BoxShape.circle,
                   color: Colors.grey[300],
                 ),
-                child: Center(child: Text(_filteredPlayers[index], style: const TextStyle(fontSize: 14))),
+                child: Center(
+                    child: Text(_filteredPlayers[index],
+                        style: const TextStyle(fontSize: 14))),
               );
             },
           ),
@@ -346,7 +368,8 @@ class _SearchPageState extends State<SearchPage> {
             itemCount: _filteredCategories.length,
             itemBuilder: (context, index) {
               return ListTile(
-                title: Text(_filteredCategories[index], style: const TextStyle(fontSize: 14)),
+                title: Text(_filteredCategories[index],
+                    style: const TextStyle(fontSize: 14)),
                 leading: Checkbox(
                   value: false,
                   onChanged: (bool? checked) {

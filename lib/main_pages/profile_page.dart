@@ -174,17 +174,27 @@ class _ProfilePageState extends State<ProfilePage> {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        iconColor: Colors.blue,
-        leading: const Icon(Icons.color_lens),
-        title: const Text('Tema Seçimi',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: () {
           _showThemeSelectionDialog(context);
         },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(Icons.color_lens, color: Colors.blue),
+              SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Tema Seçimi',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }
