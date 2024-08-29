@@ -13,7 +13,7 @@ class _SearchPageState extends State<SearchPage> {
     'Müzikal', 'Tiyatro', 'Sinema', 'Dans', 'Opera', 'Bale'
   ];
   final List<String> _venues = [
-    'Sahne 1', 'Sahne 2', 'Sahne 3', 'Sahne 4', 'Sahne 5',
+    'Sahne 1 dmslks lsşdjsdl sldsdd', 'Sahne 2', 'Sahne 3', 'Sahne 4', 'Sahne 5',
     'Sahne 6', 'Sahne 7', 'Sahne 8', 'Sahne 9', 'Sahne 10',
     'Sahne 11', 'Sahne 12', 'Sahne 13', 'Sahne 14', 'Sahne 15'
   ];

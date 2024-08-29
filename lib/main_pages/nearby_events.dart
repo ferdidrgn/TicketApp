@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../custom_views/custom_event_card.dart';
+
 class NearbyEventsPage extends StatefulWidget {
   const NearbyEventsPage({super.key});
 
@@ -101,92 +103,39 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
             const SizedBox(height: 16),
             Expanded(
               child: ListView(
-                children: [
-                  _buildEventCard(
+                children: const [
+                  EventCard(
                     imageUrl: 'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
-                    title: 'Müzikal',
+                    showName: 'Cimri',
+                    category: 'Müzikal',
                     date: '12 Eylül 2024',
-                    location: 'İstanbul',
+                    stage: 'Harbiye',
                     price: 150.0,
                   ),
-                  const SizedBox(height: 16),
-                  _buildEventCard(
+                  SizedBox(height: 16),
+                  EventCard(
                     imageUrl: 'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
-                    title: 'Tiyatro',
+                    showName: 'Hamlet',
+                    category: 'Tiyatro',
                     date: '15 Eylül 2024',
-                    location: 'Ankara',
+                    stage: 'Zoru',
                     price: 100.0,
                   ),
-                  const SizedBox(height: 16),
-                  _buildEventCard(
+                  SizedBox(height: 16),
+                  EventCard(
                     imageUrl: 'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
-                    title: 'Sinema',
+                    showName: 'Gözlerimi Kaparım Vazifemi Yaparım',
+                    category: 'Sinema',
                     date: '20 Eylül 2024',
-                    location: 'İzmir',
+                    stage: 'Göztepe',
                     price: 80.0,
                   ),
+                  SizedBox(height: 50),
                 ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEventCard({
-    required String imageUrl,
-    required String title,
-    required String date,
-    required String location,
-    required double price,
-  }) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              height: 120,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Tarih: $date',
-                    style: const TextStyle(fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Fiyat: $price₺',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

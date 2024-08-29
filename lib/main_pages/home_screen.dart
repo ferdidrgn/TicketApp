@@ -221,7 +221,7 @@ class BodySideScreen extends StatelessWidget {
         _buildSectionTitle('Yeni Gösteriler'),
         _buildNewShows(),
         _buildSectionTitle('Sahneler'),
-        _buildSceneSection(),
+        _buildStageSection(),
         _buildSectionTitle('Oyunlardan Kareler'),
         _buildGamesPhotoSection(),
       ],
@@ -336,7 +336,7 @@ class BodySideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSceneSection() {
+  Widget _buildStageSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -347,7 +347,7 @@ class BodySideScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: 6,
             itemBuilder: (context, index) {
-              return _buildSceneCard(index);
+              return _buildStageCard(index);
             },
           ),
         ),
@@ -355,7 +355,7 @@ class BodySideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSceneCard(int index) {
+  Widget _buildStageCard(int index) {
     return Container(
       width: 100,
       margin: const EdgeInsets.only(right: 16),
