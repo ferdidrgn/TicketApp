@@ -177,6 +177,8 @@ class _ProfilePageState extends State<ProfilePage> {
       child: ListTile(
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        iconColor: Colors.blue,
+        leading: const Icon(Icons.color_lens),
         title: const Text('Tema Seçimi',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         trailing: const Icon(Icons.arrow_forward_ios, size: 20),

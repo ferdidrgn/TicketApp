@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+class AppDarkColors {
+  static const Color primary = Color(0xFF343541);
+  static const Color primaryVariant = Color(0xFF3C3E4A);
+  static const Color secondary = Color(0xFF444653);
+  static const Color secondaryVariant = Color(0xFF565864);
+  static const Color error = Color(0xFFCF6679);
+  static const Color onPrimary = Color(0xFFFFFFFF);
+  static const Color onError = Color(0xFF000000);
+}
+
 class AppTheme {
   static final lightTheme = ThemeData(
     brightness: Brightness.light,
@@ -15,8 +25,10 @@ class AppTheme {
       onSurface: Colors.black,
     ),
     appBarTheme: const AppBarTheme(
+      centerTitle: true,
+      iconTheme: IconThemeData(color: Colors.white, size: 30),
       backgroundColor: Colors.red,
-      titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
+      titleTextStyle: TextStyle( color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
       systemOverlayStyle: SystemUiOverlayStyle(
         statusBarColor: Colors.red,
         statusBarIconBrightness: Brightness.light,
@@ -35,39 +47,46 @@ class AppTheme {
   static final darkTheme = ThemeData(
     brightness: Brightness.dark,
     primarySwatch: Colors.grey,
-    colorScheme: ColorScheme.dark(
-      primary: Colors.redAccent,
-      primaryContainer: Colors.grey.shade800,
-      secondary: Colors.redAccent,
-      surface: Colors.black,
-      onPrimary: Colors.black,
-      onSecondary: Colors.white,
-      onSurface: Colors.white,
+    colorScheme: const ColorScheme.dark(
+      primary: AppDarkColors.secondary,
+      primaryContainer: AppDarkColors.primaryVariant,
+      secondary: AppDarkColors.primaryVariant,
+      secondaryContainer: AppDarkColors.secondaryVariant,
+      surface: AppDarkColors.secondary,
+      background: AppDarkColors.primaryVariant,
+      error: AppDarkColors.error,
+      onPrimary: AppDarkColors.onPrimary,
+      onSecondary: AppDarkColors.onPrimary,
+      onSurface: AppDarkColors.onPrimary,
+      onBackground: AppDarkColors.onPrimary,
+      onError: AppDarkColors.onError,
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.black,
-      titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
+      centerTitle: true,
+      iconTheme: IconThemeData(color: Colors.white, size: 30),
+      backgroundColor: AppDarkColors.primary,
+      titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
       systemOverlayStyle: SystemUiOverlayStyle(
-        statusBarColor: Colors.black,
+        statusBarColor: AppDarkColors.primary,
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.black,
+        systemNavigationBarColor: AppDarkColors.primary,
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: Colors.grey,
-      selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.grey,
+      selectedItemColor: AppDarkColors.primary,
+      unselectedItemColor: Colors.white,
     ),
     textTheme: _darkTextTheme,
   );
 
-  static final _baseLightTextStyle = const TextStyle(
+  static const _baseLightTextStyle = TextStyle(
     fontFamily: 'Roboto',
     color: Colors.black,
   );
 
-  static final _baseDarkTextStyle = const TextStyle(
+  static const _baseDarkTextStyle = TextStyle(
     fontFamily: 'Roboto',
     color: Colors.white,
   );
