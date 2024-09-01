@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
+import '../custom_views/custom_category_card.dart';
 import '../custom_views/custom_stage_card.dart';
 
 class SearchPage extends StatefulWidget {
@@ -11,13 +11,17 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final List<String> _categories = [
-    'Müzikal',
-    'Tiyatro',
-    'Sinema',
-    'Dans',
-    'Opera',
-    'Bale'
+  final List<Map<String, Object>> _categories = [
+    {'title': 'Tümünü Keşfet', 'icon': Icons.explore},
+    {'title': 'Trendler', 'icon': Icons.trending_up},
+    {'title': 'Tiyatro', 'icon': Icons.theater_comedy},
+    {'title': 'Konser/Müzik', 'icon': Icons.library_music},
+    {'title': 'Stand Up', 'icon': Icons.event_seat_rounded},
+    {'title': 'Festival', 'icon': Icons.festival_rounded},
+    {'title': 'Sinema', 'icon': Icons.movie_filter_rounded},
+    {'title': 'Çocuk', 'icon': Icons.family_restroom},
+    {'title': 'Spor', 'icon': Icons.sports_baseball},
+    {'title': 'Etkinlik', 'icon': Icons.event},
   ];
   final List<String> _venues = [
     'Sahne 1 dmslks lsşdjsdl sldsdd',
@@ -74,7 +78,7 @@ class _SearchPageState extends State<SearchPage> {
   List<String> _filteredEvents = [];
   List<String> _filteredVenues = [];
   List<String> _filteredPlayers = [];
-  List<String> _filteredCategories = [];
+  List<Map<String, Object>> _filteredCategories = [];
   RangeValues _priceRange = const RangeValues(0, 1000);
   bool _isLoading = false;
 
@@ -100,7 +104,7 @@ class _SearchPageState extends State<SearchPage> {
           .toList();
       _filteredCategories = _categories
           .where((category) =>
-              category.toLowerCase().contains(query.toLowerCase()))
+          (category['title'] as String).toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -145,7 +149,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 const Text('Kategoriler:'),
                 ..._categories.map((category) => CheckboxListTile(
-                      title: Text(category),
+                      title: Text(category['title'].toString()),
                       value: false,
                       onChanged: (bool? checked) {
                         // Kategori seçimi işlevi
@@ -361,25 +365,7 @@ class _SearchPageState extends State<SearchPage> {
           'Kategoriler',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.vertical,
-            itemCount: _filteredCategories.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(_filteredCategories[index],
-                    style: const TextStyle(fontSize: 14)),
-                leading: Checkbox(
-                  value: false,
-                  onChanged: (bool? checked) {
-                    // Kategori seçimi işlevi
-                  },
-                ),
-              );
-            },
-          ),
-        ),
+        CategoryCardBuilder(categories: _filteredCategories),
       ],
     );
   }

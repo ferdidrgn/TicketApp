@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../custom_views/custom_category_card.dart';
 import '../custom_views/custom_stage_card.dart';
 import 'search_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -218,7 +219,7 @@ class BodySideScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('Kategoriler'),
-        _buildCategoryCards(context),
+        const CategoryCardBuilder(),
         _buildSectionTitle('Yeni Gösteriler'),
         _buildNewShows(),
         _buildSectionTitle('Sahneler'),
@@ -235,61 +236,6 @@ class BodySideScreen extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildCategoryCards(BuildContext context) {
-    final categories = [
-      {'title': 'Tümünü Keşfet', 'icon': Icons.explore},
-      {'title': 'Trendler', 'icon': Icons.trending_up},
-      {'title': 'Tiyatro', 'icon': Icons.theater_comedy},
-      {'title': 'Konser/Müzik', 'icon': Icons.library_music},
-      {'title': 'Stand Up', 'icon': Icons.event_seat_rounded},
-      {'title': 'Festival', 'icon': Icons.festival_rounded},
-      {'title': 'Sinema', 'icon': Icons.movie_filter_rounded},
-      {'title': 'Çocuk', 'icon': Icons.family_restroom},
-      {'title': 'Spor', 'icon': Icons.sports_baseball},
-      {'title': 'Etkinlik', 'icon': Icons.event},
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: categories.map((category) {
-          return _buildCategoryCard(
-            context,
-            category['title'].toString(),
-            category['icon'] as IconData,
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildCategoryCard(BuildContext context, String title, IconData icon) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 16),
-      child: Card(
-        elevation: 8,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon,
-                  size: 50, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.red),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.normal),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
