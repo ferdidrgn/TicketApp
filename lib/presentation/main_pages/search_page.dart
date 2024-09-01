@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/custom_views/custom_event_card.dart';
-import 'package:ticketapp/details_pages/stage_details.dart';
+import 'package:ticketapp/presentation//details_pages/stage_details.dart';
 import 'package:ticketapp/model/player_details_games.dart';
-import '../custom_views/custom_category_card.dart';
-import '../custom_views/custom_stage_card.dart';
+import '../../custom_views/custom_category_card.dart';
+import '../../custom_views/custom_stage_card.dart';
 import '../details_pages/player_details.dart';
 
 class SearchPage extends StatefulWidget {

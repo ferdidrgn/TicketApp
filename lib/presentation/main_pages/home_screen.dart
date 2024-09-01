@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../custom_views/custom_category_card.dart';
-import '../custom_views/custom_stage_card.dart';
+import '../../custom_views/custom_category_card.dart';
+import '../../custom_views/custom_stage_card.dart';
 import 'search_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 

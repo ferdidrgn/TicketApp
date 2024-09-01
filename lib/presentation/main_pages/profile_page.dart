@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/my_favorites/favorite_screen.dart';
-import 'package:ticketapp/my_ticket/my_ticket_screen.dart';
-import 'package:ticketapp/settings/app_settings.dart';
-import 'package:ticketapp/settings/permission_settings.dart';
-import '../custom_views/custom_elevated_button.dart';
-import '../profile_edit/user_profile_edit.dart';
+import '../../custom_views/custom_elevated_button.dart';
+import '../../presentation/profile_edit/user_profile_edit.dart';
+import '../my_favorites/favorite_screen.dart';
+import '../my_ticket/my_ticket_screen.dart';
+import '../settings/app_settings.dart';
+import '../settings/permission_settings.dart';
 
 class ProfilePage extends StatefulWidget {
   final Function(ThemeMode) onThemeChanged;
