@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/favorites/favorite_screen.dart';
+import 'package:ticketapp/my_favorites/favorite_screen.dart';
 import 'package:ticketapp/my_ticket/my_ticket_screen.dart';
 import 'package:ticketapp/settings/app_settings.dart';
 import 'package:ticketapp/settings/permission_settings.dart';

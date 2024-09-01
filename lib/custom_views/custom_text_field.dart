@@ -18,7 +18,9 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = Theme.of(context).colorScheme.primary; // Tıklanmadığında renk
+    final borderColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.red; // Tıklanmadığında renk
     const focusedBorderColor = Colors.purple; // Tıklandığında renk
 
     return Padding(
@@ -39,7 +41,8 @@ class CustomTextField extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: focusedBorderColor, width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           filled: true,
           fillColor: Theme.of(context).colorScheme.background,
           hintStyle: TextStyle(color: Colors.grey[600]),

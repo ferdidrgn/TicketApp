@@ -17,12 +17,17 @@ class AppTheme {
     primarySwatch: Colors.red,
     colorScheme: ColorScheme.light(
       primary: Colors.red,
-      primaryContainer: Colors.red.shade200,
-      secondary: Colors.amber,
+      primaryContainer: Colors.redAccent,
+      secondary: Colors.red.shade200,
+      secondaryContainer: Colors.red.shade100,
       surface: Colors.white,
+      background: Colors.white,
+      error: Colors.red,
       onPrimary: Colors.white,
       onSecondary: Colors.black,
       onSurface: Colors.black,
+      onBackground: Colors.white,
+      onError: Colors.black,
     ),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
@@ -43,6 +48,7 @@ class AppTheme {
     ),
     textTheme: _lightTextTheme,
   );
+
 
   static final darkTheme = ThemeData(
     brightness: Brightness.dark,
