@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-
+import 'package:ticketapp/custom_views/custom_event_card.dart';
+import 'package:ticketapp/details_pages/stage_details.dart';
+import 'package:ticketapp/model/player_details_games.dart';
 import '../custom_views/custom_category_card.dart';
 import '../custom_views/custom_stage_card.dart';
+import '../details_pages/player_details.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -79,7 +82,6 @@ class _SearchPageState extends State<SearchPage> {
   List<String> _filteredVenues = [];
   List<String> _filteredPlayers = [];
   List<Map<String, Object>> _filteredCategories = [];
-  RangeValues _priceRange = const RangeValues(0, 1000);
   bool _isLoading = false;
 
   @override
@@ -103,8 +105,9 @@ class _SearchPageState extends State<SearchPage> {
           .where((player) => player.toLowerCase().contains(query.toLowerCase()))
           .toList();
       _filteredCategories = _categories
-          .where((category) =>
-          (category['title'] as String).toLowerCase().contains(query.toLowerCase()))
+          .where((category) => (category['title'] as String)
+              .toLowerCase()
+              .contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -137,69 +140,11 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-  void _showFilterDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Filtreler'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Kategoriler:'),
-                ..._categories.map((category) => CheckboxListTile(
-                      title: Text(category['title'].toString()),
-                      value: false,
-                      onChanged: (bool? checked) {
-                        // Kategori seçimi işlevi
-                      },
-                    )),
-                const SizedBox(height: 20),
-                const Text('Fiyat Aralığı:'),
-                RangeSlider(
-                  values: _priceRange,
-                  min: 0,
-                  max: 1000,
-                  divisions: 10,
-                  labels: RangeLabels(
-                    '${_priceRange.start.round()}₺',
-                    '${_priceRange.end.round()}₺',
-                  ),
-                  onChanged: (RangeValues values) {
-                    setState(() {
-                      _priceRange = values;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Uygula'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Yakınınızdaki Etkinlikler',
-            style: TextStyle(fontSize: 20)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
-          ),
-        ],
+        title: const Text('Arama', style: TextStyle(fontSize: 20)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -252,39 +197,51 @@ class _SearchPageState extends State<SearchPage> {
           'Eşleşen Etkinlikler',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 8),
         SizedBox(
           height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _filteredEvents.length,
-            itemBuilder: (context, index) {
-              return Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15)),
-                child: Container(
-                  width: 120,
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          color: Colors.grey[300],
-                          child: const Center(child: Text('Etkinlik Görseli')),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(_filteredEvents[index],
-                          style: const TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                ),
-              );
-            },
+            itemBuilder: (context, index) => _buildEventCard(context, index),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEventCard(BuildContext context, int index) {
+    return GestureDetector(
+      onTap: () => (),
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Container(
+          width: 120,
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(child: Text('Etkinlik Görseli')),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _filteredEvents[index],
+                style: const TextStyle(fontSize: 14),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -313,11 +270,26 @@ class _SearchPageState extends State<SearchPage> {
             itemCount: _filteredVenues.length,
             itemBuilder: (context, index) {
               return CustomStageCard(
-                  text: _filteredVenues[index],
-                  imageUrl: 'https://via.placeholder.com/120',
-                  onPressed: () {
-                    // Mekan detay sayfasına yönlendirme işlevi
-                  });
+                text: _filteredVenues[index],
+                imageUrl: 'https://via.placeholder.com/120',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StageDetailPage(
+                        stage: Stage(
+                          name: _filteredVenues[index],
+                          description: 'Açıklama',
+                          address: 'Adres',
+                          contactInfo: 'İletişim Bilgisi',
+                          mapUrl: 'https://www.google.com/maps',
+                          imageUrl: 'https://via.placeholder.com/120',
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
             },
           ),
         ),
@@ -339,16 +311,47 @@ class _SearchPageState extends State<SearchPage> {
             scrollDirection: Axis.horizontal,
             itemCount: _filteredPlayers.length,
             itemBuilder: (context, index) {
-              return Container(
-                width: 120,
-                margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey[300],
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PlayerDetails(
+                          playerName: _filteredEvents[index],
+                          playerSurname: 'Soyadı',
+                          playerImage: 'https://via.placeholder.com/120',
+                          biography: 'Oyuncu Açıklaması',
+                          games: [
+                            Game(
+                                name: 'Göz',
+                                imageUrl: 'https://via.placeholder.com/120',
+                                isActive: true),
+                            Game(
+                                name: 'Alis',
+                                imageUrl: 'https://via.placeholder.com/120',
+                                isActive: true),
+                            Game(
+                                name: 'Gelincik',
+                                imageUrl: 'https://via.placeholder.com/120',
+                                isActive: false)
+                          ]),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 120,
+                  margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey[300],
+                  ),
+                  child: Center(
+                    child: Text(
+                      _filteredPlayers[index],
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
                 ),
-                child: Center(
-                    child: Text(_filteredPlayers[index],
-                        style: const TextStyle(fontSize: 14))),
               );
             },
           ),

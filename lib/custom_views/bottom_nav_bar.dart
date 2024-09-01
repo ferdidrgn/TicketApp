@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../main_pages//cart_page.dart';
+import '../main_pages//discovery.dart';
 import '../main_pages/nearby_events.dart';
 import '../main_pages/profile_page.dart';
 import '../main_pages/home_screen.dart';
@@ -24,7 +24,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     super.initState();
     _pages = <Widget>[
       const HomeScreen(),
-      CartPage(),
+      DiscoveryPage(),
       const NearbyEventsPage(),
       ProfilePage(onThemeChanged: widget.onThemeChanged),
     ];
@@ -56,7 +56,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
               height: 50,
               items: const <Widget>[
                 Icon(Icons.home, size: 30),
-                Icon(Icons.shopping_cart, size: 30),
+                Icon(Icons.event_seat_sharp, size: 30),
                 Icon(Icons.location_city, size: 30),
                 Icon(Icons.people, size: 30),
               ],
