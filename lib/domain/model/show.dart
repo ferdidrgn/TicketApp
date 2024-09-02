@@ -5,6 +5,7 @@ class Show {
   final String id;
   final String name;
   final String desc;
+  final String? imageUrl;
   final String ageRule;
   final String eventRule;
   final List<Player> players;
@@ -14,6 +15,7 @@ class Show {
     required this.id,
     required this.name,
     required this.desc,
+    this.imageUrl,
     required this.ageRule,
     required this.eventRule,
     required this.players,
