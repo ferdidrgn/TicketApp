@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../custom_views/custom_elevated_button.dart';
+import '../../util/custom_views/custom_elevated_button.dart';
 import '../../presentation/profile_edit/user_profile_edit.dart';
 import '../my_favorites/favorite_screen.dart';
 import '../my_ticket/my_ticket_screen.dart';

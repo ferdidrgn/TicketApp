@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/custom_views/bottom_nav_bar.dart';
+import 'package:ticketapp/util/custom_views/bottom_nav_bar.dart';
 
 class HomePageContainer extends StatefulWidget {
   final Function(ThemeMode) onThemeChanged;

@@ -1,165 +1,144 @@
 import 'package:flutter/material.dart';
 
-import '../../model/player_details_games.dart';
+class PlayerDetailPage extends StatelessWidget {
+  final player = {
+    'name': 'Alex',
+    'surname': 'Johnson',
+    'bio': 'Professional gamer with a passion for strategy and FPS games. Known for quick reflexes and tactical thinking.',
+    'image': 'https://example.com/player_image.jpg',
+    'games': [
+      {'id': 1, 'name': 'Cosmic Clash', 'active': true},
+      {'id': 2, 'name': 'Neon Nights', 'active': true},
+      {'id': 3, 'name': 'Pixel Legends', 'active': false},
+      {'id': 4, 'name': 'Quantum Quest', 'active': true},
+      {'id': 5, 'name': 'Retro Rumble', 'active': false},
+    ]
+  };
 
-class PlayerDetails extends StatelessWidget {
-  final String playerName;
-  final String playerSurname;
-  final String playerImage;
-  final String biography;
-  final List<Game> games;
-
-  const PlayerDetails({
-    Key? key,
-    required this.playerName,
-    required this.playerSurname,
-    required this.playerImage,
-    required this.biography,
-    required this.games,
-  }) : super(key: key);
+  PlayerDetailPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildPlayerProfile(),
-              _buildGamesList(),
-              _buildBiography(),
-            ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.purple[900]!, Colors.indigo[900]!],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildPlayerImage(),
+                const SizedBox(height: 16),
+                _buildPlayerName(),
+                const SizedBox(height: 8),
+                _buildPlayerBio(),
+                const SizedBox(height: 24),
+                _buildGamesSection(),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPlayerProfile() {
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                image: DecorationImage(
-                  image: NetworkImage(playerImage),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    playerName,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    playerSurname,
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGamesList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildPlayerImage() {
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Oynadığı Oyunlar',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Container(
+          width: 150,
+          height: 150,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.pink[500]!, width: 4),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
+          ),
+          child: ClipOval(
+            child: Image.network(player['image'].toString(), fit: BoxFit.cover),
           ),
         ),
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: games.length,
-            itemBuilder: (context, index) => _buildGameItem(games[index]),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.pink[500],
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildGameItem(Game game) {
-    return GestureDetector(
-      onTap: game.isActive ? () {
-        // Aktif oyun için tıklama işlemi
-      } : null,
-      child: Card(
-        elevation: 3,
-        margin: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: SizedBox(
-          width: 120,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                child: Image.network(
-                  game.imageUrl,
-                  height: 140,
-                  width: 120,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  game.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: game.isActive ? Colors.blue : Colors.grey,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  Widget _buildPlayerName() {
+    return Text(
+      '${player['name']} ${player['surname']}',
+      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+      textAlign: TextAlign.center,
     );
   }
 
-  Widget _buildBiography() {
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Biyografi',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(biography),
-          ],
+  Widget _buildPlayerBio() {
+    return Text(
+      player['bio'].toString(),
+      style: TextStyle(fontSize: 16, color: Colors.grey[300]),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildGamesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Games',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 150,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: (player['games'] as List).map((game) => _buildGameCard(game)).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGameCard(Map<String, dynamic> game) {
+    return Container(
+      width: 120,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: game['active']
+              ? [Colors.pink[500]!, Colors.purple[600]!]
+              : [Colors.grey[700]!, Colors.grey[800]!],
+        ),
+      ),
+      child: Center(
+        child: Text(
+          game['name'],
+          style: TextStyle(
+            color: game['active'] ? Colors.white : Colors.grey[400],
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );

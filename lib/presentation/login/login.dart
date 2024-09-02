@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../custom_views/custom_elevated_button.dart';
+import '../../util/custom_views/custom_elevated_button.dart';
 import '../../util/google_sign_in_service.dart';
 
 class LoginScreen extends StatelessWidget {

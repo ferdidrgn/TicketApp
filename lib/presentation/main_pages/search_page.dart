@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/presentation//details_pages/stage_details.dart';
-import 'package:ticketapp/model/player_details_games.dart';
-import '../../custom_views/custom_category_card.dart';
-import '../../custom_views/custom_stage_card.dart';
+import '../../util/custom_views/custom_category_card.dart';
+import '../../util/custom_views/custom_stage_card.dart';
 import '../details_pages/player_details.dart';
+import '../details_pages/show_details.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -247,7 +247,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildShowAllButton() {
     return TextButton(
       onPressed: () {
-        // Tüm etkinlikleri gösterme işlevi
+        ShowDetailPage();
       },
       child: const Text('Tümünü Göster', style: TextStyle(fontSize: 16)),
     );
@@ -315,27 +315,8 @@ class _SearchPageState extends State<SearchPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PlayerDetails(
-                          playerName: _filteredEvents[index],
-                          playerSurname: 'Soyadı',
-                          playerImage: 'https://via.placeholder.com/120',
-                          biography: 'Oyuncu Açıklaması',
-                          games: [
-                            Game(
-                                name: 'Göz',
-                                imageUrl: 'https://via.placeholder.com/120',
-                                isActive: true),
-                            Game(
-                                name: 'Alis',
-                                imageUrl: 'https://via.placeholder.com/120',
-                                isActive: true),
-                            Game(
-                                name: 'Gelincik',
-                                imageUrl: 'https://via.placeholder.com/120',
-                                isActive: false)
-                          ]),
-                    ),
-                  );
+                      builder: (context) => PlayerDetailPage(),
+                  ));
                 },
                 child: Container(
                   width: 120,

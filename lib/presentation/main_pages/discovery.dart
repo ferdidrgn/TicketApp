@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/custom_views/custom_event_card.dart';
+import 'package:ticketapp/util/custom_views/custom_event_card.dart';
 
 class DiscoveryPage extends StatefulWidget {
   const DiscoveryPage({super.key});

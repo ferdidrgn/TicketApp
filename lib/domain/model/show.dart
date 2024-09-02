@@ -1,0 +1,22 @@
+import 'package:ticketapp/domain/model/player.dart';
+import '../../presentation/main_pages/discovery.dart';
+
+class Show {
+  final String id;
+  final String name;
+  final String desc;
+  final String ageRule;
+  final String eventRule;
+  final List<Player> players;
+  final List<Event> events;
+
+  Show({
+    required this.id,
+    required this.name,
+    required this.desc,
+    required this.ageRule,
+    required this.eventRule,
+    required this.players,
+    required this.events,
+  });
+}
