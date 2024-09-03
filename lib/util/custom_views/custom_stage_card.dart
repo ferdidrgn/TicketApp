@@ -33,14 +33,22 @@ class CustomStageCard extends StatelessWidget {
                 height: 100,
                 fit: BoxFit.cover,
                 placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
+                const CircularProgressIndicator(),
                 errorWidget: (context, url, error) => const Icon(Icons.error),
               ),
             ),
-            Text(
-              text,
-              style: const TextStyle(fontSize: 14),
-              textAlign: TextAlign.center,
+            const SizedBox(height: 8),  // Add some spacing between image and text
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(
+                  text,
+                  style: const TextStyle(fontSize: 14),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ],
         ),

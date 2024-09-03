@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -33,7 +35,8 @@ class AppTheme {
       centerTitle: true,
       iconTheme: IconThemeData(color: Colors.white, size: 30),
       backgroundColor: Colors.red,
-      titleTextStyle: TextStyle( color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+      titleTextStyle: TextStyle(
+          color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
       systemOverlayStyle: SystemUiOverlayStyle(
         statusBarColor: Colors.red,
         statusBarIconBrightness: Brightness.light,
@@ -48,7 +51,6 @@ class AppTheme {
     ),
     textTheme: _lightTextTheme,
   );
-
 
   static final darkTheme = ThemeData(
     brightness: Brightness.dark,
@@ -71,7 +73,8 @@ class AppTheme {
       centerTitle: true,
       iconTheme: IconThemeData(color: Colors.white, size: 30),
       backgroundColor: AppDarkColors.primary,
-      titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+      titleTextStyle: TextStyle(
+          color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
       systemOverlayStyle: SystemUiOverlayStyle(
         statusBarColor: AppDarkColors.primary,
         statusBarIconBrightness: Brightness.light,
@@ -162,4 +165,12 @@ class AppTheme {
     labelSmall: _baseDarkTextStyle.copyWith(
         fontSize: 11.0, fontWeight: FontWeight.w400),
   );
+}
+
+List<Color> gradientColors(BuildContext context, bool isTrue) {
+  return isTrue
+      ? (Theme.of(context).brightness == Brightness.light
+          ? [Colors.red.shade300, Colors.red.shade900]
+          : [Colors.pink[500]!, Colors.purple[600]!])
+      : [Colors.grey[500]!, Colors.grey[800]!];
 }

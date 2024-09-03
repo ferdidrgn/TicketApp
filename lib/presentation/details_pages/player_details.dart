@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/util/app_theme.dart';
+
+import '../../util/custom_views/custom_show_card.dart';
 
 class PlayerDetailPage extends StatelessWidget {
   final player = {
     'name': 'Alex',
     'surname': 'Johnson',
-    'bio': 'Professional gamer with a passion for strategy and FPS games. Known for quick reflexes and tactical thinking.',
+    'bio':
+        'Professional gamer with a passion for strategy and FPS games. Known for quick reflexes and tactical thinking.',
     'image': 'https://example.com/player_image.jpg',
     'games': [
       {'id': 1, 'name': 'Cosmic Clash', 'active': true},
@@ -17,129 +21,141 @@ class PlayerDetailPage extends StatelessWidget {
 
   PlayerDetailPage({super.key});
 
+  final BorderRadius _cardBorderRadius = const BorderRadius.only(
+    topLeft: Radius.circular(75),
+    bottomRight: Radius.circular(30),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.purple[900]!, Colors.indigo[900]!],
+      body: Column(
+        children: [
+          Expanded(
+            flex: 4, // %40
+            child: _buildTopSection(context),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildPlayerImage(),
-                const SizedBox(height: 16),
-                _buildPlayerName(),
-                const SizedBox(height: 8),
-                _buildPlayerBio(),
-                const SizedBox(height: 24),
-                _buildGamesSection(),
-              ],
+          Expanded(
+            flex: 6, // %60
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              child: _buildBottomSection(context),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopSection(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildPlayerImage(context),
+        const SizedBox(height: 16),
+        _buildPlayerName(),
+      ],
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(top: 20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(50),
+          topRight: Radius.circular(50),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildPlayerBio(),
+            const SizedBox(height: 24),
+            _buildGamesHeader(),
+            const SizedBox(height: 16),
+            _buildGamesSection(),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildPlayerImage() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          width: 150,
-          height: 150,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.pink[500]!, width: 4),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
-          ),
-          child: ClipOval(
-            child: Image.network(player['image'].toString(), fit: BoxFit.cover),
-          ),
+  Widget _buildPlayerImage(BuildContext context) {
+    return Container(
+      width: 150,
+      height: 150,
+      decoration: BoxDecoration(
+        borderRadius: _cardBorderRadius,
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary,
+          width: 2,
         ),
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.pink[500],
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
-          ),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
+      ),
+      child: ClipRRect(
+        borderRadius: _cardBorderRadius,
+        child: Image.network(
+          player['image'].toString(),
+          fit: BoxFit.cover,
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildPlayerName() {
     return Text(
       '${player['name']} ${player['surname']}',
-      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
       textAlign: TextAlign.center,
     );
   }
 
   Widget _buildPlayerBio() {
-    return Text(
-      player['bio'].toString(),
-      style: TextStyle(fontSize: 16, color: Colors.grey[300]),
-      textAlign: TextAlign.center,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Text(
+        player['bio'].toString(),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildGamesHeader() {
+    return const Text(
+      'Gösterileri',
+      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
     );
   }
 
   Widget _buildGamesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Games',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 150,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: (player['games'] as List).map((game) => _buildGameCard(game)).toList(),
-          ),
-        ),
-      ],
-    );
-  }
+    final games = player['games'] as List<Map<String, dynamic>>;
 
-  Widget _buildGameCard(Map<String, dynamic> game) {
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: game['active']
-              ? [Colors.pink[500]!, Colors.purple[600]!]
-              : [Colors.grey[700]!, Colors.grey[800]!],
-        ),
-      ),
-      child: Center(
-        child: Text(
-          game['name'],
-          style: TextStyle(
-            color: game['active'] ? Colors.white : Colors.grey[400],
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-        ),
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: games.length,
+        itemBuilder: (context, index) {
+          final game = games[index];
+          return GameCard(
+            imageUrl: 'https://cdn.assets.lomography.com/6b/0c7b6e26087d03b91910e9f374a02b45591a7f/256x256x1.jpg?auth=2b45b894a7e2a4ed23eb76da171c4d77cfed0a15',
+            gameName: game['name'],
+            width: 120,
+            height: 200,
+          );
+        },
       ),
     );
   }

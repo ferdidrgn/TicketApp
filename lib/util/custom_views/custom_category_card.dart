@@ -8,20 +8,21 @@ class CategoryCardBuilder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Use default categories if the provided list is null
-    final List<Map<String, Object>> effectiveCategories = categories?.isNotEmpty == true
-        ? categories!
-        : [
-      {'title': 'Tümünü Keşfet', 'icon': Icons.explore},
-      {'title': 'Trendler', 'icon': Icons.trending_up},
-      {'title': 'Tiyatro', 'icon': Icons.theater_comedy},
-      {'title': 'Konser/Müzik', 'icon': Icons.library_music},
-      {'title': 'Stand Up', 'icon': Icons.event_seat_rounded},
-      {'title': 'Festival', 'icon': Icons.festival_rounded},
-      {'title': 'Sinema', 'icon': Icons.movie_filter_rounded},
-      {'title': 'Çocuk', 'icon': Icons.family_restroom},
-      {'title': 'Spor', 'icon': Icons.sports_baseball},
-      {'title': 'Etkinlik', 'icon': Icons.event},
-    ];
+    final List<Map<String, Object>> effectiveCategories =
+        categories?.isNotEmpty == true
+            ? categories!
+            : [
+                {'title': 'Tümünü Keşfet', 'icon': Icons.explore},
+                {'title': 'Trendler', 'icon': Icons.trending_up},
+                {'title': 'Tiyatro', 'icon': Icons.theater_comedy},
+                {'title': 'Konser/Müzik', 'icon': Icons.library_music},
+                {'title': 'Stand Up', 'icon': Icons.event_seat_rounded},
+                {'title': 'Festival', 'icon': Icons.festival_rounded},
+                {'title': 'Sinema', 'icon': Icons.movie_filter_rounded},
+                {'title': 'Çocuk', 'icon': Icons.family_restroom},
+                {'title': 'Spor', 'icon': Icons.sports_baseball},
+                {'title': 'Etkinlik', 'icon': Icons.event},
+              ];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
