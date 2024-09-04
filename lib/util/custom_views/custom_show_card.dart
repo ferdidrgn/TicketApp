@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'custom_gradient_background_image.dart';
 
-class CustomVerticalGameCard extends StatelessWidget {
+class CustomVerticalShowCard extends StatelessWidget {
   final String imageUrl;
   final String gameName;
   final double width;
@@ -8,7 +9,7 @@ class CustomVerticalGameCard extends StatelessWidget {
   final BorderRadius borderRadius;
   final VoidCallback onTap;
 
-  const CustomVerticalGameCard({
+  const CustomVerticalShowCard({
     super.key,
     required this.imageUrl,
     required this.gameName,
@@ -57,10 +58,10 @@ class CustomVerticalGameCard extends StatelessWidget {
                 },
               ),
             ),
-            _buildGradientStrip(
+            const GradientStrip(
               isAlignmentCenterLeft: true,
             ),
-            _buildGradientStrip(
+            const GradientStrip(
               isAlignmentCenterLeft: false,
             ),
             // Oyun adı overlay'i
@@ -86,33 +87,6 @@ class CustomVerticalGameCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGradientStrip({
-    required bool isAlignmentCenterLeft,
-  }) {
-    return Positioned.fill(
-      child: Align(
-        alignment: isAlignmentCenterLeft
-            ? Alignment.centerLeft
-            : Alignment.centerRight,
-        child: Container(
-          width: 10,
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.transparent, Colors.black.withOpacity(0.3)],
-              begin: isAlignmentCenterLeft
-                  ? Alignment.centerLeft
-                  : Alignment.centerRight,
-              end: isAlignmentCenterLeft
-                  ? Alignment.centerRight
-                  : Alignment.centerLeft,
-            ),
-          ),
         ),
       ),
     );

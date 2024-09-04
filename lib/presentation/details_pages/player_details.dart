@@ -147,7 +147,7 @@ class PlayerDetailPage extends StatelessWidget {
         itemCount: games.length,
         itemBuilder: (context, index) {
           final game = games[index];
-          return CustomVerticalGameCard(
+          return CustomVerticalShowCard(
             imageUrl: 'https://cdn.assets.lomography.com/6b/0c7b6e26087d03b91910e9f374a02b45591a7f/256x256x1.jpg?auth=2b45b894a7e2a4ed23eb76da171c4d77cfed0a15',
             gameName: game['name'],
             borderRadius: const BorderRadius.all(Radius.circular(20)),

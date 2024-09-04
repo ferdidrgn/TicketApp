@@ -213,7 +213,7 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildEventCard(BuildContext context, int index) {
     return GestureDetector(
-      child: CustomVerticalGameCard(
+      child: CustomVerticalShowCard(
         imageUrl: 'https://via.placeholder.com/120',
         gameName: _filteredEvents[index],
         onTap: () {
