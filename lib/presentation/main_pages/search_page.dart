@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/presentation//details_pages/stage_details.dart';
 import '../../util/custom_views/custom_category_card.dart';
+import '../../util/custom_views/custom_show_card.dart';
 import '../../util/custom_views/custom_stage_card.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
@@ -104,7 +105,8 @@ class _SearchPageState extends State<SearchPage> {
           .where((player) => player.toLowerCase().contains(query.toLowerCase()))
           .toList();
       _filteredCategories = _categories
-          .where((category) => (category['title'] as String)
+          .where((category) =>
+          (category['title'] as String)
               .toLowerCase()
               .contains(query.toLowerCase()))
           .toList();
@@ -198,7 +200,7 @@ class _SearchPageState extends State<SearchPage> {
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: 120,
+          height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _filteredEvents.length,
@@ -211,43 +213,30 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildEventCard(BuildContext context, int index) {
     return GestureDetector(
-      onTap: () => (),
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Container(
-          width: 120,
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(child: Text('Etkinlik Görseli')),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _filteredEvents[index],
-                style: const TextStyle(fontSize: 14),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
+      child: CustomVerticalGameCard(
+        imageUrl: 'https://via.placeholder.com/120',
+        gameName: _filteredEvents[index],
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ShowDetailPage(),
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildShowAllButton() {
-    return TextButton(
+    return ElevatedButton(
       onPressed: () {
-        ShowDetailPage();
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+            builder: (context)=>ShowDetailPage(),
+            ),
+        );
       },
       child: const Text('Tümünü Göster', style: TextStyle(fontSize: 16)),
     );
@@ -275,16 +264,17 @@ class _SearchPageState extends State<SearchPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => StageDetailPage(
-                        stage: Stage(
-                          name: _filteredVenues[index],
-                          description: 'Açıklama',
-                          address: 'Adres',
-                          contactInfo: 'İletişim Bilgisi',
-                          mapUrl: 'https://www.google.com/maps',
-                          imageUrl: 'https://via.placeholder.com/120',
-                        ),
-                      ),
+                      builder: (context) =>
+                          StageDetailPage(
+                            stage: Stage(
+                              name: _filteredVenues[index],
+                              description: 'Açıklama',
+                              address: 'Adres',
+                              contactInfo: 'İletişim Bilgisi',
+                              mapUrl: 'https://www.google.com/maps',
+                              imageUrl: 'https://via.placeholder.com/120',
+                            ),
+                          ),
                     ),
                   );
                 },
@@ -313,10 +303,10 @@ class _SearchPageState extends State<SearchPage> {
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PlayerDetailPage(),
-                  ));
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlayerDetailPage(),
+                      ));
                 },
                 child: Container(
                   width: 120,

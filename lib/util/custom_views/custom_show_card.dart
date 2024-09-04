@@ -30,14 +30,14 @@ class CustomVerticalGameCard extends StatelessWidget {
       child: Container(
         width: width,
         height: height,
-        margin: const EdgeInsets.only(right: 16, bottom: 20),
+        margin: const EdgeInsets.only(right: 16, left: 5, bottom: 20),
         decoration: BoxDecoration(
           borderRadius: borderRadius,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(0.8),
+              blurRadius: 5,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -50,6 +50,16 @@ class CustomVerticalGameCard extends StatelessWidget {
               child: Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) {
+                    return child;
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                      child: Icon(Icons.error, color: Colors.red));
+                },
               ),
             ),
             _buildGradientStrip(
@@ -68,10 +78,10 @@ class CustomVerticalGameCard extends StatelessWidget {
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(16)),
                   color: Colors.black.withOpacity(0.5),
                 ),
                 child: Text(
@@ -102,6 +112,7 @@ class CustomVerticalGameCard extends StatelessWidget {
             : Alignment.centerRight,
         child: Container(
           width: width,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: gradientColors,

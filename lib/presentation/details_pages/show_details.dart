@@ -14,6 +14,8 @@ class ShowDetailPage extends StatelessWidget {
     ]
   };
 
+  ShowDetailPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
