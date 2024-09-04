@@ -20,11 +20,6 @@ class CustomVerticalGameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Color> gradientOpacityColors = [
-      Colors.transparent,
-      Colors.black.withOpacity(0.3),
-    ];
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -64,13 +59,9 @@ class CustomVerticalGameCard extends StatelessWidget {
             ),
             _buildGradientStrip(
               isAlignmentCenterLeft: true,
-              gradientColors: gradientOpacityColors,
-              width: 10,
             ),
             _buildGradientStrip(
               isAlignmentCenterLeft: false,
-              gradientColors: gradientOpacityColors,
-              width: 10,
             ),
             // Oyun adı overlay'i
             Positioned(
@@ -80,8 +71,8 @@ class CustomVerticalGameCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(16)),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(16)),
                   color: Colors.black.withOpacity(0.5),
                 ),
                 child: Text(
@@ -102,8 +93,6 @@ class CustomVerticalGameCard extends StatelessWidget {
 
   Widget _buildGradientStrip({
     required bool isAlignmentCenterLeft,
-    required List<Color> gradientColors,
-    required double width,
   }) {
     return Positioned.fill(
       child: Align(
@@ -111,11 +100,11 @@ class CustomVerticalGameCard extends StatelessWidget {
             ? Alignment.centerLeft
             : Alignment.centerRight,
         child: Container(
-          width: width,
+          width: 10,
           margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: gradientColors,
+              colors: [Colors.transparent, Colors.black.withOpacity(0.3)],
               begin: isAlignmentCenterLeft
                   ? Alignment.centerLeft
                   : Alignment.centerRight,
