@@ -174,3 +174,7 @@ List<Color> gradientColors(BuildContext context, bool isTrue) {
           : [Colors.pink[500]!, Colors.purple[600]!])
       : [Colors.grey[500]!, Colors.grey[800]!];
 }
+
+List<Color> gradientOpacityColors() {
+  return [Colors.transparent, Colors.black.withOpacity(0.3)];
+}
