@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../util/custom_views/custom_event_card.dart';
 import '../../util/custom_views/custom_gradient_background_image.dart';
@@ -45,9 +46,7 @@ class ShowDetailPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                  padding: const EdgeInsets.all(16),
-                  child: _buildGameImage()
-              ),
+                  padding: const EdgeInsets.all(16), child: _buildGameImage()),
               const SizedBox(height: 16),
               _buildGameTitle(),
               const SizedBox(height: 16),
@@ -135,11 +134,7 @@ class ShowDetailPage extends StatelessWidget {
   Widget _buildGameTitle() {
     return Text(
       game['title'].toString(),
-      style: const TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-      ),
+      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
       textAlign: TextAlign.center,
     );
   }
@@ -166,42 +161,37 @@ class ShowDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              game['description'].toString(),
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
-            ),
+            Text(game['description'].toString(),
+                style: const TextStyle(
+                    fontSize: 16, height: 1.1, fontWeight: FontWeight.w300)),
             const SizedBox(height: 20),
-            const Text(
-              'Events',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
+            _buildSectionTitle('Etkinlik Takvimi'),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: ListView.builder(
-                itemCount: (game['events'] as List).length,
-                itemBuilder: (context, index) {
+            Column(
+              children: List.generate(
+                (game['events'] as List).length,
+                (index) {
                   final events = game['events'] as List? ?? [];
                   if (index >= 0 && index < events.length) {
                     final event = events[index] as Map<String, dynamic>?;
 
                     if (event != null) {
                       return _buildEventCard(
-                        event['date'].toString() ?? "",
-                        event['month'].toString() ?? "",
-                        event['eventName'].toString() ?? "",
-                        event['city'].toString() ?? "",
+                        event['date'].toString(),
+                        event['month'].toString(),
+                        event['eventName'].toString(),
+                        event['city'].toString(),
                       );
                     }
                   }
                   return const SizedBox.shrink();
+                  // Eğer geçersiz bir event varsa boş bir widget döndür
                 },
               ),
             ),
+            const SizedBox(height: 20),
+            _buildSectionTitle('Oyundan Kareler'),
+            _buildGamesPhotoSection(),
           ],
         ),
       ),
@@ -212,16 +202,14 @@ class ShowDetailPage extends StatelessWidget {
       String date, String month, String eventName, String city) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(1, 3)),
         ],
       ),
       child: Row(
@@ -237,22 +225,16 @@ class ShowDetailPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  month,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                Text(date,
+                    style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
+                Text(month,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
               ],
             ),
           ),
@@ -262,22 +244,73 @@ class ShowDetailPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  eventName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
+                Text(eventName,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black)),
                 Text(
                   city,
                   style: const TextStyle(fontSize: 14),
-                ),
+                )
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(title,
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800));
+  }
+
+  Widget _buildGamesPhotoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: 6,
+            itemBuilder: (context, index) {
+              return _buildGameCard(index);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGameCard(int index) {
+    return Container(
+      width: 150,
+      margin: const EdgeInsets.symmetric(horizontal: 7),
+      child: Card(
+        elevation: 8,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CachedNetworkImage(
+              imageUrl: 'https://via.placeholder.com/150',
+              height: 120,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => const CircularProgressIndicator(),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'Oyun $index',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
