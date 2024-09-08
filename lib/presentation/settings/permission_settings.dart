@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class PermissionSettingsScreen extends StatefulWidget {
+import '../../util/custom_views/custom_art_words_card.dart';
+
+class PermissionSettingsScreen extends StatelessWidget {
   const PermissionSettingsScreen({super.key});
 
-  @override
-  _PermissionSettingsScreenState createState() => _PermissionSettingsScreenState();
-}
-
-class _PermissionSettingsScreenState extends State<PermissionSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,10 +16,14 @@ class _PermissionSettingsScreenState extends State<PermissionSettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            const CustomArtWordsCard(
+                word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
+            const SizedBox(height: 30),
             _buildPermissionCard(
               title: 'Konum İzni',
               description: 'Uygulamanızın konum özelliklerini kullanabilmesi için konum izni vermeniz gerekmektedir.',
               permission: Permission.location,
+              context: context,
               onTap: () async {
                 if (await Permission.location.isDenied) {
                   await Permission.location.request();
@@ -35,6 +36,7 @@ class _PermissionSettingsScreenState extends State<PermissionSettingsScreen> {
               title: 'Bildirim İzni',
               description: 'Uygulamanız bildirimleri gösterebilmesi için bildirim izni vermeniz gerekmektedir.',
               permission: Permission.notification,
+              context: context,
               onTap: () async {
                 if (await Permission.notification.isDenied) {
                   await Permission.notification.request();
@@ -52,6 +54,7 @@ class _PermissionSettingsScreenState extends State<PermissionSettingsScreen> {
     required String title,
     required String description,
     required Permission permission,
+    required BuildContext context,
     required VoidCallback onTap,
   }) {
     return Card(

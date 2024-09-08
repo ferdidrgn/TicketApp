@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/util/custom_views/custom_art_words_card.dart';
 import '../details_pages/ticket_details.dart';
 
 class Ticket {
@@ -18,6 +19,8 @@ class Ticket {
 }
 
 class MyTicketPage extends StatelessWidget {
+  MyTicketPage({super.key});
+
   // Örnek bilet verileri
   final List<Ticket> tickets = [
     Ticket(
@@ -106,7 +109,7 @@ class MyTicketPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildQuoteSection(),
+            const CustomArtWordsCard(word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
             const SizedBox(height: 20),
             if (upcomingTickets.isNotEmpty) ...[
               _buildSectionTitle('Gelecek Biletler'),
@@ -124,46 +127,6 @@ class MyTicketPage extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildQuoteSection() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2), // changes position of shadow
-          ),
-        ],
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '“Sanat, ruhun en derin yerlerine dokunan bir dil konuşur.”',
-            style: TextStyle(
-              fontSize: 18,
-              fontStyle: FontStyle.italic,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            '- Pablo Picasso',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black54,
-            ),
-          ),
-        ],
       ),
     );
   }

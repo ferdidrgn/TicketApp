@@ -28,6 +28,10 @@ class PlayerDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('${player['name']} ${player['surname']}'),
+        centerTitle: true,
+      ),
       body: Column(
         children: [
           Expanded(
@@ -133,7 +137,8 @@ class PlayerDetailPage extends StatelessWidget {
 
   Widget _buildGamesHeader() {
     return const Text(
-      'Gösterileri', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      'Gösterileri',
+      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
     );
   }
 
@@ -148,7 +153,8 @@ class PlayerDetailPage extends StatelessWidget {
         itemBuilder: (context, index) {
           final game = games[index];
           return CustomVerticalShowCard(
-            imageUrl: 'https://cdn.assets.lomography.com/6b/0c7b6e26087d03b91910e9f374a02b45591a7f/256x256x1.jpg?auth=2b45b894a7e2a4ed23eb76da171c4d77cfed0a15',
+            imageUrl:
+                'https://cdn.assets.lomography.com/6b/0c7b6e26087d03b91910e9f374a02b45591a7f/256x256x1.jpg?auth=2b45b894a7e2a4ed23eb76da171c4d77cfed0a15',
             gameName: game['name'],
             borderRadius: const BorderRadius.all(Radius.circular(20)),
             onTap: () {

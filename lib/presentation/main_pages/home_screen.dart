@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../util/custom_views/custom_category_card.dart';
 import '../../util/custom_views/custom_show_card.dart';
 import '../../util/custom_views/custom_stage_card.dart';
+import '../../util/custom_views/custom_title.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 import 'search_page.dart';
@@ -221,26 +222,16 @@ class BodySideScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Kategoriler'),
+        const SectionTitle(title: 'Kategoriler'),
         const CategoryCardBuilder(),
-        _buildSectionTitle('Yeni Gösteriler'),
+        const SectionTitle(title: 'Yeni Gösteriler'),
         _buildNewShows(),
-        _buildSectionTitle('Sahneler'),
+        const SectionTitle(title: 'Sahneler'),
         _buildStageSection(),
-        _buildSectionTitle('Oyunlardan Kareler'),
+        const SectionTitle(title: 'Oyunlardan Kareler'),
         _buildGamesPhotoSection(),
         const SizedBox(height: 20)
       ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
     );
   }
 
@@ -248,53 +239,30 @@ class BodySideScreen extends StatelessWidget {
     return SizedBox(
       height: 200,
       child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: 10,
-        itemBuilder: (context, index) {
-          return _buildEventCard(context, index);
-        },
-      ),
-    );
-  }
-
-  Widget _buildEventCard(BuildContext context, int index) {
-    final List<String> events = [
-      'Etkinlik 1',
-      'Etkinlik 2',
-      'Etkinlik 3',
-      'Etkinlik 4',
-      'Etkinlik 5',
-      'Etkinlik 6',
-      'Etkinlik 7',
-      'Etkinlik 8',
-      'Etkinlik 9',
-      'Etkinlik 10',
-      'Etkinlik 11',
-      'Etkinlik 12',
-      'Etkinlik 13',
-      'Etkinlik 14',
-      'Etkinlik 15'
-    ];
-    return GestureDetector(
-      child: CustomVerticalShowCard(
-        imageUrl:
-            'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
-        gameName: events[index],
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ShowDetailPage(),
-            ),
-          );
-        },
-      ),
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: 10,
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              child: CustomVerticalShowCard(
+                imageUrl: 'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
+                gameName: 'Gözlerimi Kaparım Vazifemi Yaparım',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ShowDetailPage(),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
     );
   }
 
   Widget _buildStageSection() {
-    final List<String> _venues = [
+    final List<String> venues = [
       'Halit Akçatepe Sahnesi',
       'Sahne 2',
       'Sahne 3',
@@ -319,10 +287,10 @@ class BodySideScreen extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _venues.length,
+            itemCount: venues.length,
             itemBuilder: (context, index) {
               return CustomStageCard(
-                text: _venues[index],
+                text: venues[index],
                 imageUrl:
                     'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
                 onPressed: () {
@@ -372,7 +340,8 @@ class BodySideScreen extends StatelessWidget {
             Padding(
                 padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                 child: CachedNetworkImage(
-                  imageUrl: 'https://via.placeholder.com/150',
+                  imageUrl:
+                      'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
                   height: 150,
                   width: double.infinity,
                   fit: BoxFit.cover,

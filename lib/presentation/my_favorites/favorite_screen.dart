@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../util/custom_views/custom_show_card.dart';
+import '../../util/custom_views/custom_stage_card.dart';
+import '../../util/custom_views/custom_title.dart';
+import '../details_pages/player_details.dart';
+import '../details_pages/show_details.dart';
+import '../details_pages/stage_details.dart';
+
 class Favorite {
   final String title;
   final String description;
@@ -13,6 +20,8 @@ class Favorite {
 }
 
 class FavoritesPage extends StatelessWidget {
+  FavoritesPage({super.key});
+
   // Örnek favori oyunlar, oyuncular ve sahneler verileri
   final List<Favorite> favoriteGames = [
     Favorite(
@@ -66,33 +75,110 @@ class FavoritesPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            _buildSection('Favori Oyunlar', favoriteGames),
+            const SectionTitle(title: 'Favori Oyunlar'),
+            _buildShows(),
             const SizedBox(height: 20),
-            _buildSection('Favori Oyuncular', favoritePlayers),
+            const SectionTitle(title: 'Favori Sahneler'),
+            _buildStageSection(),
             const SizedBox(height: 20),
-            _buildSection('Favori Sahneler', favoriteScenes),
+            const SectionTitle(title: 'Favori Oyuncular'),
+            _buildPlayers(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSection(String title, List<Favorite> favorites) {
+  Widget _buildShows() {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: 10,
+        itemBuilder: (context, index) {
+          return _buildEventCard(context, index);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEventCard(BuildContext context, int index) {
+    final List<String> events = [
+      'Etkinlik 1',
+      'Etkinlik 2',
+      'Etkinlik 3',
+      'Etkinlik 4',
+      'Etkinlik 5',
+      'Etkinlik 6',
+      'Etkinlik 7',
+      'Etkinlik 8',
+      'Etkinlik 9',
+      'Etkinlik 10',
+      'Etkinlik 11',
+      'Etkinlik 12',
+      'Etkinlik 13',
+      'Etkinlik 14',
+      'Etkinlik 15'
+    ];
+    return GestureDetector(
+      child: CustomVerticalShowCard(
+        imageUrl:
+            'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
+        gameName: events[index],
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ShowDetailPage(),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStageSection() {
+    final List<String> _venues = [
+      'Halit Akçatepe Sahnesi',
+      'Sahne 2',
+      'Sahne 3',
+      'Sahne 4',
+      'Sahne 5',
+      'Sahne 6',
+      'Sahne 7',
+      'Sahne 8',
+      'Sahne 9',
+      'Sahne 10',
+      'Sahne 11',
+      'Sahne 12',
+      'Sahne 13',
+      'Sahne 14',
+      'Sahne 15'
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
         SizedBox(
-          height: 200, // Her bir yatay scroll olan bölümün yüksekliği
+          height: 185,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: favorites.length,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _venues.length,
             itemBuilder: (context, index) {
-              return _buildFavoriteCard(favorites[index]);
+              return CustomStageCard(
+                text: _venues[index],
+                imageUrl:
+                    'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StageDetailPage(),
+                    ),
+                  );
+                },
+              );
             },
           ),
         ),
@@ -100,43 +186,44 @@ class FavoritesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFavoriteCard(Favorite favorite) {
-    return Card(
-      elevation: 5,
-      margin: const EdgeInsets.symmetric(horizontal: 8.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: SizedBox(
-        width: 150, // Kart genişliği
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Image.network(
-                  favorite.imageUrl,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                favorite.title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                favorite.description,
-                style: const TextStyle(fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
+  Widget _buildPlayers() {
+    final List<String> _players = [
+      'Oyuncu 1',
+      'Oyuncu 2',
+      'Oyuncu 3',
+      'Oyuncu 4',
+      'Oyuncu 5',
+      'Oyuncu 6',
+      'Oyuncu 7',
+      'Oyuncu 8',
+      'Oyuncu 9',
+      'Oyuncu 10',
+      'Oyuncu 11',
+      'Oyuncu 12',
+      'Oyuncu 13',
+      'Oyuncu 14',
+      'Oyuncu 15'
+    ];
+
+    return SizedBox(
+      height: 185,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _players.length,
+        itemBuilder: (context, index) {
+          return CustomStageCard(
+            text: _players[index],
+            imageUrl:
+                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-cV2ZIk5Wi_uoyY1PdDVM2vFzuSMQATw7iw&s',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PlayerDetailPage()),
+              );
+            },
+          );
+        },
       ),
     );
   }
