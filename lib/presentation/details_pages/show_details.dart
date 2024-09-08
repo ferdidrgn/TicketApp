@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../util/custom_views/custom_event_card.dart';
 import '../../util/custom_views/custom_gradient_background_image.dart';
 
 class ShowDetailPage extends StatelessWidget {
@@ -50,8 +49,7 @@ class ShowDetailPage extends StatelessWidget {
               const SizedBox(height: 16),
               _buildGameTitle(),
               const SizedBox(height: 16),
-              _buildBottomSheetCard(context),
-              const SizedBox(height: 24),
+              _buildBottomSheetCard(context)
             ],
           ),
         ),

@@ -238,7 +238,7 @@ class _SearchPageState extends State<SearchPage> {
             ),
         );
       },
-      child: const Text('Tümünü Göster', style: TextStyle(fontSize: 16)),
+      child: const Text('Tümünü Göster', style: TextStyle(fontSize: 16, color: Colors.red)),
     );
   }
 
