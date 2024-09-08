@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../util/custom_views/custom_category_card.dart';
+import '../../util/custom_views/custom_show_card.dart';
 import '../../util/custom_views/custom_stage_card.dart';
+import '../details_pages/show_details.dart';
+import '../details_pages/stage_details.dart';
 import 'search_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -226,6 +229,7 @@ class BodySideScreen extends StatelessWidget {
         _buildStageSection(),
         _buildSectionTitle('Oyunlardan Kareler'),
         _buildGamesPhotoSection(),
+        const SizedBox(height: 20)
       ],
     );
   }
@@ -248,44 +252,50 @@ class BodySideScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: 10,
         itemBuilder: (context, index) {
-          return _buildShowCard(index);
+          return _buildEventCard(context, index);
         },
       ),
     );
   }
 
-  Widget _buildShowCard(int index) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 16),
-      child: Card(
-        elevation: 8,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CachedNetworkImage(
-              imageUrl: 'https://via.placeholder.com/150',
-              width: 100,
-              height: 100,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => const CircularProgressIndicator(),
-              errorWidget: (context, url, error) => const Icon(Icons.error),
+  Widget _buildEventCard(BuildContext context, int index) {
+    final List<String> events = [
+      'Etkinlik 1',
+      'Etkinlik 2',
+      'Etkinlik 3',
+      'Etkinlik 4',
+      'Etkinlik 5',
+      'Etkinlik 6',
+      'Etkinlik 7',
+      'Etkinlik 8',
+      'Etkinlik 9',
+      'Etkinlik 10',
+      'Etkinlik 11',
+      'Etkinlik 12',
+      'Etkinlik 13',
+      'Etkinlik 14',
+      'Etkinlik 15'
+    ];
+    return GestureDetector(
+      child: CustomVerticalShowCard(
+        imageUrl:
+            'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
+        gameName: events[index],
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ShowDetailPage(),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Show $index',
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildStageSection() {
     final List<String> _venues = [
-      'Sahne 1 dmslks lsşdjsdl sldsdd',
+      'Halit Akçatepe Sahnesi',
       'Sahne 2',
       'Sahne 3',
       'Sahne 4',
@@ -305,18 +315,25 @@ class BodySideScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 140,
+          height: 185,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: _venues.length,
             itemBuilder: (context, index) {
               return CustomStageCard(
-                  text: _venues[index],
-                  imageUrl: 'https://via.placeholder.com/120',
-                  onPressed: () {
-                    // Mekan detay sayfasına yönlendirme işlevi
-                  });
+                text: _venues[index],
+                imageUrl:
+                    'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StageDetailPage(),
+                    ),
+                  );
+                },
+              );
             },
           ),
         ),
@@ -329,7 +346,7 @@ class BodySideScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 200,
+          height: 210,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -345,24 +362,27 @@ class BodySideScreen extends StatelessWidget {
 
   Widget _buildGameCard(int index) {
     return Container(
-      width: 150,
+      width: 160,
       margin: const EdgeInsets.only(right: 16),
       child: Card(
         elevation: 8,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CachedNetworkImage(
-              imageUrl: 'https://via.placeholder.com/150',
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => const CircularProgressIndicator(),
-              errorWidget: (context, url, error) => const Icon(Icons.error),
-            ),
-            const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                child: CachedNetworkImage(
+                  imageUrl: 'https://via.placeholder.com/150',
+                  height: 150,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) =>
+                      const CircularProgressIndicator(),
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                )),
+            const SizedBox(height: 5),
+            Padding(
+              padding: const EdgeInsets.all(8),
               child: Text(
                 'Oyun $index',
                 style: const TextStyle(fontSize: 16),

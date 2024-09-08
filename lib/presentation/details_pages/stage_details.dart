@@ -19,12 +19,20 @@ class Stage {
 }
 
 class StageDetailPage extends StatelessWidget {
-  final Stage stage;
-
-  const StageDetailPage({super.key, required this.stage});
+  const StageDetailPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+
+    final Stage stage = Stage(
+      name: 'Grand Theater',
+      imageUrl: 'https://tiyatrolar.com.tr/files/location/o/ortaoyuncular-tiyatrosu/gallery/19/ortaoyuncular-tiyatrosu-19.jpg',
+      description: 'The Grand Theater is one of the most iconic venues, offering a variety of cultural performances and events.',
+      address: '123 Theater St, Cityville',
+      contactInfo: 'Phone: (123) 456-7890 | Email: info@theater.com',
+      mapUrl: 'https://maps.google.com/?q=123+Theater+St+Cityville',
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(stage.name),

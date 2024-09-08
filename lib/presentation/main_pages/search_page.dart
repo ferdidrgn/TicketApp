@@ -27,7 +27,7 @@ class _SearchPageState extends State<SearchPage> {
     {'title': 'Etkinlik', 'icon': Icons.event},
   ];
   final List<String> _venues = [
-    'Sahne 1 dmslks lsşdjsdl sldsdd',
+    'Halit Akçatepe Sahnesi',
     'Sahne 2',
     'Sahne 3',
     'Sahne 4',
@@ -214,7 +214,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildEventCard(BuildContext context, int index) {
     return GestureDetector(
       child: CustomVerticalShowCard(
-        imageUrl: 'https://via.placeholder.com/120',
+        imageUrl: 'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
         gameName: _filteredEvents[index],
         onTap: () {
           Navigator.push(
@@ -251,7 +251,7 @@ class _SearchPageState extends State<SearchPage> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(
-          height: 140,
+          height: 185,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -259,22 +259,13 @@ class _SearchPageState extends State<SearchPage> {
             itemBuilder: (context, index) {
               return CustomStageCard(
                 text: _filteredVenues[index],
-                imageUrl: 'https://via.placeholder.com/120',
+                imageUrl: 'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          StageDetailPage(
-                            stage: Stage(
-                              name: _filteredVenues[index],
-                              description: 'Açıklama',
-                              address: 'Adres',
-                              contactInfo: 'İletişim Bilgisi',
-                              mapUrl: 'https://www.google.com/maps',
-                              imageUrl: 'https://via.placeholder.com/120',
-                            ),
-                          ),
+                          const StageDetailPage(),
                     ),
                   );
                 },
@@ -291,37 +282,27 @@ class _SearchPageState extends State<SearchPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Oyuncular',
+          'Gösteri Mekanları',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(
-          height: 120,
+          height: 185,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: _filteredPlayers.length,
             itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () {
+              return CustomStageCard(
+                text: _filteredPlayers[index],
+                imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-cV2ZIk5Wi_uoyY1PdDVM2vFzuSMQATw7iw&s',
+                onPressed: () {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlayerDetailPage(),
-                      ));
-                },
-                child: Container(
-                  width: 120,
-                  margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.grey[300],
-                  ),
-                  child: Center(
-                    child: Text(
-                      _filteredPlayers[index],
-                      style: const TextStyle(fontSize: 14),
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PlayerDetailPage()
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),
