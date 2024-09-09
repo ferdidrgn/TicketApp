@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/presentation/login/login.dart';
-import 'package:ticketapp/presentation/main_pages/main_pages_container.dart';
-import 'package:ticketapp/presentation/splash/splash_screen.dart';
-import 'presentation/onboarding/onboarding_container.dart';
-import 'util/app_theme.dart';
+import 'package:ticketapp/presentation/pages/login/login.dart';
+import 'package:ticketapp/presentation/pages/main_pages/main_pages_container.dart';
+import 'package:ticketapp/presentation/pages/onboarding/onboarding_container.dart';
+import 'package:ticketapp/presentation/pages/splash/splash_screen.dart';
+import 'core/util/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -64,9 +64,9 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       initialRoute: '/',
       routes: {
-        '/': (context) => SplashScreen(),
+        '/': (context) => const SplashScreen(),
         '/login': (context) => LoginScreen(),
-        '/onboarding': (context) => OnboardingContainer(),
+        '/onboarding': (context) => const OnboardingContainer(),
         '/home': (context) => HomePageContainer(
               onThemeChanged: _changeTheme,
             ),
