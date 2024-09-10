@@ -4,6 +4,9 @@ import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
 import '../../../core/custom_views/custom_show_card.dart';
 
 class PlayerDetailPage extends StatelessWidget {
+  final String playerId;
+
+  PlayerDetailPage({super.key, required this.playerId});
   final player = {
     'name': 'Alex',
     'surname': 'Johnson',
@@ -18,8 +21,6 @@ class PlayerDetailPage extends StatelessWidget {
       {'id': 5, 'name': 'Retro Rumble', 'active': false},
     ]
   };
-
-  PlayerDetailPage({super.key});
 
   final BorderRadius _cardBorderRadius = const BorderRadius.only(
     topLeft: Radius.circular(75),

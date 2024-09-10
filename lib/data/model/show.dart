@@ -1,24 +1,25 @@
-import 'package:ticketapp/data/model/player.dart';
-import '../../presentation/pages/main_pages/discovery.dart';
-
 class Show {
+  final String createdAt;
+  final String updateAt;
   final String id;
+  final String imageUrl;
   final String name;
-  final String desc;
-  final String? imageUrl;
-  final String ageRule;
+  final String description;
+  final String ageLimit;
   final String eventRule;
-  final List<Player> players;
-  final List<Event> events;
+  final List<String> playersId;
+  final List<String> eventsId;
 
   Show({
+    required this.createdAt,
+    required this.updateAt,
     required this.id,
+    required this.imageUrl,
     required this.name,
-    required this.desc,
-    this.imageUrl,
-    required this.ageRule,
+    required this.description,
+    required this.ageLimit,
     required this.eventRule,
-    required this.players,
-    required this.events,
+    required this.playersId,
+    required this.eventsId,
   });
 }

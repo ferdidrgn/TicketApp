@@ -75,13 +75,13 @@ class FavoritesPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            const SectionTitle(title: 'Favori Oyunlar'),
+            const CustomSectionTitle(title: 'Favori Oyunlar'),
             _buildShows(),
             const SizedBox(height: 20),
-            const SectionTitle(title: 'Favori Sahneler'),
+            const CustomSectionTitle(title: 'Favori Sahneler'),
             _buildStageSection(),
             const SizedBox(height: 20),
-            const SectionTitle(title: 'Favori Oyuncular'),
+            const CustomSectionTitle(title: 'Favori Oyuncular'),
             _buildPlayers(),
           ],
         ),
@@ -219,7 +219,7 @@ class FavoritesPage extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => PlayerDetailPage()),
+                MaterialPageRoute(builder: (context) => PlayerDetailPage(playerId: "0")),
               );
             },
           );

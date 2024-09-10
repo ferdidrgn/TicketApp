@@ -148,7 +148,7 @@ class _SearchPageState extends State<SearchPage> {
         title: const Text('Arama', style: TextStyle(fontSize: 20)),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -180,6 +180,7 @@ class _SearchPageState extends State<SearchPage> {
                       if (_filteredPlayers.isNotEmpty) _buildPlayers(),
                       const SizedBox(height: 16),
                       if (_filteredCategories.isNotEmpty) _buildCategories(),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -282,7 +283,7 @@ class _SearchPageState extends State<SearchPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Gösteri Mekanları',
+          'Oyuncular',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(
@@ -299,7 +300,7 @@ class _SearchPageState extends State<SearchPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PlayerDetailPage()
+                      builder: (context) => PlayerDetailPage(playerId: '0')
                     ),
                   );
                 },

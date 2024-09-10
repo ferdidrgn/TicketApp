@@ -1,14 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../model/show.dart';
 
 class ShowService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CollectionReference _showCollection = FirebaseFirestore.instance.collection('Show');
+  final CollectionReference _showCollection =
+      FirebaseFirestore.instance.collection('Show');
 
   // Oyunları getiren fonksiyon
   Future<List<Map<String, dynamic>>> getShows() async {
     List<Map<String, dynamic>> shows = [];
     try {
-      QuerySnapshot snapshot = await _firestore.collection('Show').get();
+      QuerySnapshot snapshot = await _showCollection.get();
       for (var doc in snapshot.docs) {
         shows.add(doc.data() as Map<String, dynamic>);
       }
@@ -19,50 +20,90 @@ class ShowService {
   }
 
   // Show ID ile gösterileri getiren fonksiyon
-  Future<Map<String, dynamic>?> getShowById(String showId) async {
+  Future<Show?> getShowById(String showId) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('Show').doc(showId).get();
-      return doc.data() as Map<String, dynamic>?;
-    } catch (e) {
-      print('Error getting game: $e');
+      QuerySnapshot result =
+          await _showCollection.where('_id', isEqualTo: showId).get();
+
+      if (result.docs.isEmpty) {
+        return null;
+      } else {
+        return getAllHashMap(result);
+      }
+    } catch (error) {
       return null;
     }
   }
 
-  // Show kaydetme fonksiyonu
-  Future<void> saveShow(
-      String title,
-      String description,
-      String imageUrl,
-      String ageRule,
-      String eventRule,
-      List<String> playerIds,
-      List<Map<String, dynamic>> events,
-      List<String> gamePhotos) async {
+// Show kaydetme fonksiyonu
+  Future<void> saveShow(Show show) async {
 
     // Firestore'da otomatik bir ID ile bir belge referansı oluştur
     DocumentReference docRef = _showCollection.doc();
 
     await docRef.set({
-      'id': docRef.id, // Otomatik ID ekleniyor
-      'title': title,
-      'description': description,
-      'imageUrl': imageUrl,
-      'ageRule': ageRule,
-      'eventRule': eventRule,
-      'players': playerIds,
-      'events': events,
-      'gamePhotos': gamePhotos,
-      'createdAt': FieldValue.serverTimestamp(), // Sunucu zamanı kullanılarak oluşturulma zamanı
-      'updatedAt': FieldValue.serverTimestamp(), // İlk başta createdAt ile aynı olacak
+      '_id': docRef.id,
+      // Otomatik ID ekleniyor
+      '_createdAt': FieldValue.serverTimestamp(),
+      '_updatedAt': FieldValue.serverTimestamp(),
+      'name': show.name,
+      'description': show.description,
+      'imageUrl': show.imageUrl,
+      'ageLimit': show.ageLimit,
+      'eventRule': show.eventRule,
+      'players': show.playersId,
+      'events': show.eventsId,
+      //'gamePhotos': show.gamePhotos,
     });
   }
 
-  // Show güncelleme fonksiyonu
-  Future<void> updateShow(String showId, Map<String, dynamic> updatedData) async {
+// Show güncelleme fonksiyonu
+  Future<void> updateShow(
+      String showId, Map<String, dynamic> updatedData) async {
     await _showCollection.doc(showId).update({
       ...updatedData, // Güncellenen veriler
-      'updatedAt': FieldValue.serverTimestamp(), // Güncelleme zamanı
+      '_updatedAt': FieldValue.serverTimestamp(), // Güncelleme zamanı
     });
+  }
+
+  Show? getAllHashMap(QuerySnapshot result) {
+    final document = result.docs.first;
+    String createdAt =
+        document['_createdAt'] != null ? document['_createdAt'].toString() : '';
+    String updateAt =
+        document['_updateAt'] != null ? document['_updateAt'].toString() : '';
+    String id = document['_id'] != null ? document['_id'] as String : '';
+    String imgUrl =
+        document['imageUrl'] != null ? document['imageUrl'] as String : '';
+    String name = document['name'] != null ? document['name'] as String : '';
+    String description = document['description'] != null
+        ? document['description'] as String: '';
+    String ageLimit =
+        document['ageLimit'] != null ? document['ageLimit'] as String : '';
+    String eventRule =
+        document['eventRule'] != null ? document['eventRule'] as String : '';
+
+    List<dynamic> playerIdRaw = document['playersId'] != null
+        ? document['playersId'] as List<dynamic>: [];
+    List<String> playerId =
+        playerIdRaw.isNotEmpty ? List<String>.from(playerIdRaw) : [];
+
+    List<dynamic> eventsIdRaw = document['eventsId'] != null
+        ? document['eventsId'] as List<dynamic>: [];
+    List<String> eventsId =
+        eventsIdRaw.isNotEmpty ? List<String>.from(eventsIdRaw) : [];
+
+    return Show(
+      createdAt: createdAt,
+      updateAt: updateAt,
+      id: id,
+      imageUrl: imgUrl,
+      name: name,
+      description: description,
+      ageLimit: ageLimit,
+      eventRule: eventRule,
+      playersId: playerId,
+      eventsId: eventsId,
+    );
   }
 }

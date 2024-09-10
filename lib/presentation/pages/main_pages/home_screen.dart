@@ -222,13 +222,13 @@ class BodySideScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(title: 'Kategoriler'),
+        const CustomSectionTitle(title: 'Kategoriler'),
         const CategoryCardBuilder(),
-        const SectionTitle(title: 'Yeni Gösteriler'),
+        const CustomSectionTitle(title: 'Yeni Gösteriler'),
         _buildNewShows(),
-        const SectionTitle(title: 'Sahneler'),
+        const CustomSectionTitle(title: 'Sahneler'),
         _buildStageSection(),
-        const SectionTitle(title: 'Oyunlardan Kareler'),
+        const CustomSectionTitle(title: 'Oyunlardan Kareler'),
         _buildGamesPhotoSection(),
         const SizedBox(height: 20)
       ],

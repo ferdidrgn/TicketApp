@@ -1,5 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/custom_views/custom_title.dart';
+import 'package:ticketapp/presentation/pages/details_pages/player_details.dart';
+import '../../../core/custom_views/custom_stage_card.dart';
+import '../../../data/model/player.dart';
+import '../../../data/model/show.dart';
 import '../../../data/repository/player_service.dart';
 import '../../../data/repository/show_service.dart';
 
@@ -15,8 +20,9 @@ class ShowDetailPage extends StatefulWidget {
 class _ShowDetailPageState extends State<ShowDetailPage> {
   final ShowService showService = ShowService();
   final PlayerService playerService = PlayerService();
-  Map<String, dynamic>? showData;
-  List<Map<String, dynamic>> playerDataList = [];
+  Show? showData;
+  List<Player?> playerDataList = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -31,61 +37,68 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         setState(() {
           showData = show;
         });
-
-        // Oyuncuları çekiyoruz
-        List<String> playerIds = List<String>.from(show['players']);
-        List<Map<String, dynamic>> players = await _fetchPlayers(playerIds);
-        setState(() {
-          playerDataList = players;
-        });
+        _fetchPlayers(show.playersId);
       }
     } catch (error) {
-      // Hata durumunda kullanıcıyı bilgilendirme
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')),
       );
+    } finally {
+      setState(() {
+        isLoading = false; // Yükleme tamamlandı
+      });
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchPlayers(List<String> playerIds) async {
-    List<Map<String, dynamic>> players = [];
-    for (String playerId in playerIds) {
+  Future<void> _fetchPlayers(List<String> playersId) async {
+    for (String playerId in playersId) {
       try {
         var player = await playerService.getPlayerById(playerId);
         if (player != null) {
-          players.add(player);
+          setState(() {
+            playerDataList.add(player);
+          });
         }
       } catch (error) {
-        print('Oyuncu verisi alınırken bir hata oluştu: $error');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')),
+        );
       }
     }
-    return players;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(showData?['title'] ?? 'Show Title'),
+        title: Text(showData?.name ?? 'Show Detail'),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (showData != null) ...[
-                Container(
-                    padding: const EdgeInsets.all(16), child: _buildShowImage()),
-                const SizedBox(height: 16),
-                _buildShowTitle(),
-                const SizedBox(height: 16),
-                _buildBottomSheetCard(context)
-              ] else
-                const Center(child: CircularProgressIndicator()),
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator())
+          : _buildShowDetails(),
+    );
+  }
+
+  Widget _buildShowDetails() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: _buildShowImage(),
+              ),
+              const SizedBox(height: 16),
+              _buildShowTitle(),
+              const SizedBox(height: 16),
+              _buildBottomSheetCard(context),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -107,10 +120,12 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           ],
         ),
         child: CachedNetworkImage(
-          imageUrl: showData?['imageUrl'] ?? '',
+          imageUrl: showData?.imageUrl ?? '',
           fit: BoxFit.cover,
-          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-          errorWidget: (context, url, error) => const Center(child: Icon(Icons.error, color: Colors.red)),
+          placeholder: (context, url) =>
+              const Center(child: CircularProgressIndicator()),
+          errorWidget: (context, url, error) =>
+              const Center(child: Icon(Icons.error, color: Colors.red)),
         ),
       ),
     );
@@ -118,7 +133,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
 
   Widget _buildShowTitle() {
     return Text(
-      showData?['title'] ?? 'Show Title',
+      showData?.name ?? 'Show Title',
       style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
       textAlign: TextAlign.center,
     );
@@ -127,6 +142,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Widget _buildBottomSheetCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(top: 20),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.only(
@@ -142,17 +158,17 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(showData?['description'] ?? 'No description available',
+            Text(showData?.description ?? 'No description available',
                 style: const TextStyle(
                     fontSize: 16, height: 1.1, fontWeight: FontWeight.w300)),
             const SizedBox(height: 20),
-            _buildSectionTitle('Etkinlik Takvimi'),
+            const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
             const SizedBox(height: 16),
-            Column(
+            /*Column(
               children: List.generate(
                 (showData?['events'] as List).length,
                     (index) {
@@ -172,17 +188,20 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                   return const SizedBox.shrink();
                 },
               ),
-            ),
+            ),*/
             const SizedBox(height: 20),
-            _buildSectionTitle('Oyundan Kareler'),
-            _buildGamePhotosSection(),
+            _buildPlayers(),
+            const SizedBox(height: 20),
+            const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 20),
+            //_buildGamePhotosSection(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEventCard(String date, String month, String eventName, String city) {
+  Widget _buildEventCard(
+      String date, String month, String eventName, String city) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(10),
@@ -244,11 +263,46 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(title,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800));
+  Widget _buildPlayers() {
+    return playerDataList.isNotEmpty
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Oyuncular',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(
+                height: 185,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: playerDataList.length,
+                  itemBuilder: (context, index) {
+                    return CustomStageCard(
+                      text:
+                          '${playerDataList[index]?.name ?? ''} ${playerDataList[index]?.surname ?? ''}',
+                      imageUrl: playerDataList[index]?.imageUrl ?? '',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => PlayerDetailPage(
+                                  playerId: playerDataList[index]?.id ?? '')),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          )
+        : const Center(
+            child: Text('Oyuncu bilgisi mevcut değil.'),
+          );
   }
 
+/*
   Widget _buildGamePhotosSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,5 +351,5 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         ),
       ),
     );
-  }
+  }*/
 }
