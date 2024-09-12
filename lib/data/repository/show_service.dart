@@ -17,7 +17,7 @@ class ShowService {
         shows.add(doc.data() as Map<String, dynamic>);
       }
     } catch (e) {
-      print('Error getting games: $e');
+      SnackBar(content: Text('Oyunlar getirilirken bir hata oluştu: $e'));
     }
     return shows;
   }
@@ -28,12 +28,11 @@ class ShowService {
       QuerySnapshot result =
           await _showCollection.where('_id', isEqualTo: showId).get();
 
-      if (result.docs.isEmpty) {
-        return null;
-      } else {
-        return getHashMap(result);
-      }
+      if (result.docs.isEmpty) return null;
+
+      return _mapDocumentToShow(result.docs.first);
     } catch (error) {
+      SnackBar(content: Text('Error fetching players: $error'));
       return null;
     }
   }
@@ -119,7 +118,7 @@ class ShowService {
     try {
       await imagesRef.delete(); // Resmi silme
     } catch (e) {
-      print('Hata oluştu: $e');
+      SnackBar(content: Text('Görsel Silme işleminde bir hata oluştu: $e'));
     }
   }
 
@@ -129,10 +128,9 @@ class ShowService {
 
     if (!isUpdate) {
       showMap['_createdAt'] = DateTime.now().toIso8601String();
-    } else {
-      showMap['_updatedAt'] = DateTime.now().toIso8601String();
     }
 
+    showMap['_updatedAt'] = DateTime.now().toIso8601String();
     showMap['_id'] = show?.id ?? '';
     showMap['name'] = show?.name ?? '';
     showMap['imageUrl'] = downloadUrl;
@@ -164,54 +162,30 @@ class ShowService {
     return showMap;
   }
 
-  Show? getHashMap(QuerySnapshot result) {
-    final document = result.docs.first;
-    String createdAt =
-        document['_createdAt'] != null ? document['_createdAt'].toString() : '';
-    String updateAt =
-        document['_updateAt'] != null ? document['_updateAt'].toString() : '';
-    String id = document['_id'] != null ? document['_id'] as String : '';
-    String imgUrl =
-        document['imageUrl'] != null ? document['imageUrl'] as String : '';
-    String name = document['name'] != null ? document['name'] as String : '';
-    String description = document['description'] != null
-        ? document['description'] as String
-        : '';
-    String ageLimit =
-        document['ageLimit'] != null ? document['ageLimit'] as String : '';
-    String eventRule =
-        document['eventRule'] != null ? document['eventRule'] as String : '';
-
-    List<dynamic> playerIdRaw = document['playersId'] != null
-        ? document['playersId'] as List<dynamic>
-        : [];
-    List<String> playerId =
-        playerIdRaw.isNotEmpty ? List<String>.from(playerIdRaw) : [];
-
-    List<dynamic> eventsIdRaw = document['eventsId'] != null
-        ? document['eventsId'] as List<dynamic>
-        : [];
-    List<String> eventsId =
-        eventsIdRaw.isNotEmpty ? List<String>.from(eventsIdRaw) : [];
-
-    List<dynamic> photosStageIdRaw = document['photosStageId'] != null
-        ? document['photosStageId'] as List<dynamic>
-        : [];
-    List<String> photosStageId =
-        photosStageIdRaw.isNotEmpty ? List<String>.from(photosStageIdRaw) : [];
-
+  Show _mapDocumentToShow(DocumentSnapshot document) {
     return Show(
-      createdAt: createdAt,
-      updateAt: updateAt,
-      id: id,
-      imageUrl: imgUrl,
-      name: name,
-      description: description,
-      ageLimit: ageLimit,
-      eventRule: eventRule,
-      playersId: playerId,
-      eventsId: eventsId,
-      photosStageId: photosStageId,
+      createdAt: _getFieldAsString(document, '_createdAt'),
+      updateAt: _getFieldAsString(document, '_updateAt'),
+      id: _getFieldAsString(document, '_id'),
+      imageUrl: _getFieldAsString(document, 'imageUrl'),
+      name: _getFieldAsString(document, 'name'),
+      description: _getFieldAsString(document, 'description'),
+      ageLimit: _getFieldAsString(document, 'ageLimit'),
+      eventRule: _getFieldAsString(document, 'eventRule'),
+      playersId: _getListAsString(document, 'playersId'),
+      eventsId: _getListAsString(document, 'eventsId'),
+      photosStageId: _getListAsString(document, 'photosStageId'),
     );
+  }
+
+// Helper to get field as a string
+  String _getFieldAsString(DocumentSnapshot document, String fieldName) {
+    return document[fieldName].toString() ?? '';
+  }
+
+// Helper to get a list of strings
+  List<String> _getListAsString(DocumentSnapshot document, String fieldName) {
+    List<dynamic> rawList = document[fieldName] as List<dynamic> ?? [];
+    return rawList.isNotEmpty ? List<String>.from(rawList) : [];
   }
 }

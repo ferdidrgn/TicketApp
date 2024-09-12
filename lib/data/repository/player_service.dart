@@ -1,70 +1,56 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:flutter/material.dart';
 import '../model/player.dart';
 
 class PlayerService {
   final CollectionReference _playerCollection =
       FirebaseFirestore.instance.collection('Player');
 
-  // Oyuncuları getiren fonksiyon
-  Future<List<Map<String, dynamic>>> getPlayers() async {
-    List<Map<String, dynamic>> players = [];
+  //all players
+  Future<List<Player>> getPlayers() async {
     try {
       QuerySnapshot snapshot = await _playerCollection.get();
-      for (var doc in snapshot.docs) {
-        players.add(doc.data() as Map<String, dynamic>);
-      }
+      return snapshot.docs.map((doc) => _mapDocumentToPlayer(doc)).toList();
     } catch (e) {
-      print('Error getting games: $e');
+      SnackBar(content: Text('Error fetching players: $e'));
     }
-    return players;
+    return [];
   }
 
-  // Oyuncu ID ile getiren fonksiyon
+  // player by ID
   Future<Player?> getPlayerById(String playerId) async {
     try {
       QuerySnapshot result =
           await _playerCollection.where('_id', isEqualTo: playerId).get();
 
-      if (result.docs.isEmpty) {
-        return null;
-      } else {
-        return getAllHashMap(result);
-      }
+      if (result.docs.isEmpty) return null;
+
+      return _mapDocumentToPlayer(result.docs.first);
     } catch (error) {
+      SnackBar(content: Text('Error fetching players: $error'));
       return null;
     }
   }
 
-  // Map Firestore document to Player model
-  Player? getAllHashMap(QuerySnapshot result) {
-    var document = result.docs.first;
-    String createdAt =
-        document['_createdAt'] != null ? document['_createdAt'].toString() : '';
-    String updateAt =
-        document['_updateAt'] != null ? document['_updateAt'].toString() : '';
-    String id = document['_id'] != null ? document['_id'] as String : '';
-    String name = document['name'] != null ? document['name'] as String : '';
-    String surname =
-        document['surname'] != null ? document['surname'] as String : '';
-    String bio = document['bio'] != null ? document['bio'] as String : '';
-    String? imageUrl =
-        document['imageUrl'] != null ? document['imageUrl'] as String : null;
-
-    List<dynamic> showIdRaw =
-        document['showsId'] != null ? document['showsId'] as List<dynamic> : [];
-    List<String> showsId =
-        showIdRaw.isNotEmpty ? List<String>.from(showIdRaw) : [];
-
+  // Convert Firestore document to Player model
+  Player _mapDocumentToPlayer(DocumentSnapshot document) {
     return Player(
-      createdAt: createdAt,
-      updateAt: updateAt,
-      id: id,
-      name: name,
-      surname: surname,
-      bio: bio,
-      imageUrl: imageUrl,
-      showsId: showsId,
+      createdAt: _getStringField(document, '_createdAt'),
+      updateAt: _getStringField(document, '_updateAt'),
+      id: _getStringField(document, '_id'),
+      name: _getStringField(document, 'name'),
+      surname: _getStringField(document, 'surname'),
+      bio: _getStringField(document, 'bio'),
+      imageUrl: _getStringField(document, 'imageUrl'),
+      showsId: _getListField(document, 'showsId'),
     );
+  }
+
+  String _getStringField(DocumentSnapshot document, String fieldName) {
+    return document[fieldName]?.toString() ?? '';
+  }
+
+  List<String> _getListField(DocumentSnapshot document, String fieldName) {
+    return List<String>.from(document[fieldName] ?? []);
   }
 }

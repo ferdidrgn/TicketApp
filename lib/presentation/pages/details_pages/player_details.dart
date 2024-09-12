@@ -1,69 +1,111 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
+import 'package:ticketapp/core/custom_views/custom_show_card.dart';
+import '../../../data/repository/player_service.dart';
+import '../../../data/repository/show_service.dart';
+import '../../../data/model/player.dart';
+import '../../../data/model/show.dart';
 
-import '../../../core/custom_views/custom_show_card.dart';
-
-class PlayerDetailPage extends StatelessWidget {
+class PlayerDetailPage extends StatefulWidget {
   final String playerId;
 
-  PlayerDetailPage({super.key, required this.playerId});
-  final player = {
-    'name': 'Alex',
-    'surname': 'Johnson',
-    'bio':
-        'Professional gamer with a passion for strategy and FPS games. Known for quick reflexes and tactical thinking.',
-    'image': 'https://example.com/player_image.jpg',
-    'games': [
-      {'id': 1, 'name': 'Cosmic Clash', 'active': true},
-      {'id': 2, 'name': 'Neon Nights', 'active': true},
-      {'id': 3, 'name': 'Pixel Legends', 'active': false},
-      {'id': 4, 'name': 'Quantum Quest', 'active': true},
-      {'id': 5, 'name': 'Retro Rumble', 'active': false},
-    ]
-  };
+  const PlayerDetailPage({super.key, required this.playerId});
 
-  final BorderRadius _cardBorderRadius = const BorderRadius.only(
-    topLeft: Radius.circular(75),
-    bottomRight: Radius.circular(30),
-  );
+  @override
+  _PlayerDetailPageState createState() => _PlayerDetailPageState();
+}
+
+class _PlayerDetailPageState extends State<PlayerDetailPage> {
+  Player? player;
+  List<Show?> showsDataList = [];
+  bool isLoading = true;
+
+  final PlayerService _playerService = PlayerService();
+  final ShowService _showService = ShowService();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPlayerData();
+  }
+
+  Future<void> _fetchPlayerData() async {
+    try {
+      final Player? fetchedPlayer =
+          await _playerService.getPlayerById(widget.playerId);
+
+      if (fetchedPlayer?.showsId != null) {
+        setState(() {
+          player = fetchedPlayer;
+        });
+        _fetchShows(player?.showsId ?? []);
+      }
+    } catch (error) {
+      SnackBar(content: Text('Veri alınırken bir hata oluştu: $error'));
+    } finally {
+      setState(() {
+        isLoading = false; // Yükleme tamamlandı
+      });
+    }
+  }
+
+  Future<void> _fetchShows(List<String> showsId) async {
+    for (String showId in showsId) {
+      try {
+        var show = await _showService.getShowById(showId);
+        if (show != null) {
+          setState(() {
+            showsDataList.add(show);
+          });
+        }
+      } catch (error) {
+        SnackBar(
+            content: Text('Gösteri verisi alınırken bir hata oluştu: $error'));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${player['name']} ${player['surname']}'),
+        title: Text(player != null
+            ? '${player?.name} ${player?.surname}'
+            : 'Player Details'),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 4, // %40
-            child: _buildTopSection(context),
-          ),
-          Expanded(
-            flex: 6, // %60
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: _buildBottomSection(context),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(
+                  flex: 4, // %40
+                  child: _buildTopSection(),
+                ),
+                Expanded(
+                  flex: 6, // %60
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: _buildBottomSection(),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _buildTopSection(BuildContext context) {
+  Widget _buildTopSection() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildPlayerImage(context),
+        _buildPlayerImage(),
         const SizedBox(height: 16),
         _buildPlayerName(),
       ],
     );
   }
 
-  Widget _buildBottomSection(BuildContext context) {
+  Widget _buildBottomSection() {
     return Container(
       padding: const EdgeInsets.only(top: 20),
       decoration: BoxDecoration(
@@ -96,12 +138,12 @@ class PlayerDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPlayerImage(BuildContext context) {
+  Widget _buildPlayerImage() {
     return Container(
       width: 150,
       height: 150,
       decoration: BoxDecoration(
-        borderRadius: _cardBorderRadius,
+        borderRadius: const BorderRadius.all(Radius.circular(75)),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary,
           width: 2,
@@ -109,18 +151,20 @@ class PlayerDetailPage extends StatelessWidget {
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
       ),
       child: ClipRRect(
-        borderRadius: _cardBorderRadius,
-        child: Image.network(
-          player['image'].toString(),
-          fit: BoxFit.cover,
-        ),
+        borderRadius: const BorderRadius.all(Radius.circular(75)),
+        child: player?.imageUrl != null
+            ? Image.network(
+                player!.imageUrl!,
+                fit: BoxFit.cover,
+              )
+            : const Icon(Icons.person, size: 50), // Placeholder for no image
       ),
     );
   }
 
   Widget _buildPlayerName() {
     return Text(
-      '${player['name']} ${player['surname']}',
+      '${player!.name} ${player!.surname}',
       style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
       textAlign: TextAlign.center,
     );
@@ -130,7 +174,7 @@ class PlayerDetailPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Text(
-        player['bio'].toString(),
+        player!.bio,
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400),
         textAlign: TextAlign.center,
       ),
@@ -145,26 +189,23 @@ class PlayerDetailPage extends StatelessWidget {
   }
 
   Widget _buildGamesSection() {
-    final games = player['games'] as List<Map<String, dynamic>>;
-
     return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: games.length,
+        itemCount: showsDataList.length,
         itemBuilder: (context, index) {
-          final game = games[index];
+          final show = showsDataList[index];
           return CustomVerticalShowCard(
-            imageUrl:
-                'https://cdn.assets.lomography.com/6b/0c7b6e26087d03b91910e9f374a02b45591a7f/256x256x1.jpg?auth=2b45b894a7e2a4ed23eb76da171c4d77cfed0a15',
-            gameName: game['name'],
+            imageUrl: show?.imageUrl ?? '',
+            gameName: show?.name ?? '',
             borderRadius: const BorderRadius.all(Radius.circular(20)),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ShowDetailPage(showId: '0')
-                ),
+                    builder: (context) =>
+                        ShowDetailPage(showId: show?.id ?? '')),
               );
             },
           );

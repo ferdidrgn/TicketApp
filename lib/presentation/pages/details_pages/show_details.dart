@@ -18,21 +18,22 @@ class ShowDetailPage extends StatefulWidget {
 }
 
 class _ShowDetailPageState extends State<ShowDetailPage> {
-  final ShowService showService = ShowService();
-  final PlayerService playerService = PlayerService();
   Show? showData;
   List<Player?> playerDataList = [];
   bool isLoading = true;
 
+  final ShowService showService = ShowService();
+  final PlayerService playerService = PlayerService();
+
   @override
   void initState() {
     super.initState();
-    _fetchShowData(widget.showId);
+    _fetchShowData();
   }
 
-  Future<void> _fetchShowData(String showId) async {
+  Future<void> _fetchShowData() async {
     try {
-      final show = await showService.getShowById(showId);
+      final show = await showService.getShowById(widget.showId);
       if (show != null) {
         setState(() {
           showData = show;
@@ -40,9 +41,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         _fetchPlayers(show.playersId);
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')),
-      );
+        SnackBar(content: Text('Veri alınırken bir hata oluştu: $error'));
     } finally {
       setState(() {
         isLoading = false; // Yükleme tamamlandı
@@ -60,9 +59,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           });
         }
       } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')),
-        );
+          SnackBar(content: Text('Oyuncu verisi alınırken bir hata oluştu: $error'));
       }
     }
   }
@@ -280,8 +277,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                   itemCount: playerDataList.length,
                   itemBuilder: (context, index) {
                     return CustomStageCard(
-                      text:
-                          '${playerDataList[index]?.name ?? ''} ${playerDataList[index]?.surname ?? ''}',
+                      text: '${playerDataList[index]?.name ?? ''} ${playerDataList[index]?.surname ?? ''}',
                       imageUrl: playerDataList[index]?.imageUrl ?? '',
                       onPressed: () {
                         Navigator.push(
