@@ -25,9 +25,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
   void _updateProfile() {
     if (_formKey.currentState?.validate() ?? false) {
       // Profil güncelleme işlemleri
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil güncellendi')),
-      );
+        const SnackBar(content: Text('Profil güncellendi'));
     }
   }
 

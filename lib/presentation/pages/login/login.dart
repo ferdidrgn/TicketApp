@@ -72,17 +72,13 @@ class LoginScreen extends StatelessWidget {
           if (account != null) {
             Navigator.pushReplacementNamed(context, '/home');
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content:
-                      Text('Google Girişi Başarısız Oldu. TEST için girildi.')),
-            );
+            const SnackBar(
+                content:
+                    Text('Google Girişi Başarısız Oldu. TEST için girildi.'));
             Navigator.pushReplacementNamed(context, '/home');
           }
         } catch (error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hata: $error  TEST için girildi.')),
-          );
+          SnackBar(content: Text('Hata: $error  TEST için girildi.'));
           Navigator.pushReplacementNamed(context, '/home');
         }
       },

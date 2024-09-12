@@ -9,6 +9,7 @@ class Show {
   final String eventRule;
   final List<String> playersId;
   final List<String> eventsId;
+  final List<String> photosStageId;
 
   Show({
     required this.createdAt,
@@ -21,5 +22,6 @@ class Show {
     required this.eventRule,
     required this.playersId,
     required this.eventsId,
+    required this.photosStageId,
   });
 }

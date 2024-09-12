@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 import '../model/show.dart';
 
 class ShowService {
@@ -28,7 +31,7 @@ class ShowService {
       if (result.docs.isEmpty) {
         return null;
       } else {
-        return getAllHashMap(result);
+        return getHashMap(result);
       }
     } catch (error) {
       return null;
@@ -36,25 +39,47 @@ class ShowService {
   }
 
 // Show kaydetme fonksiyonu
-  Future<void> saveShow(Show show) async {
+  Future<void> addShow(Show show, Uri? showIdAddOrUpdateImgUrl) async {
+    String downloadUrl = await putStorageImage(
+      show.id ?? '',
+      showIdAddOrUpdateImgUrl,
+      show.imageUrl ?? '',
+    );
 
-    // Firestore'da otomatik bir ID ile bir belge referansı oluştur
-    DocumentReference docRef = _showCollection.doc();
+    Map<String, dynamic> showMap = putHashMap(show, downloadUrl, false);
 
-    await docRef.set({
-      '_id': docRef.id,
-      // Otomatik ID ekleniyor
-      '_createdAt': FieldValue.serverTimestamp(),
-      '_updatedAt': FieldValue.serverTimestamp(),
-      'name': show.name,
-      'description': show.description,
-      'imageUrl': show.imageUrl,
-      'ageLimit': show.ageLimit,
-      'eventRule': show.eventRule,
-      'players': show.playersId,
-      'events': show.eventsId,
-      //'gamePhotos': show.gamePhotos,
+    _showCollection.add(showMap).then((value) {
+      true;
+    }).catchError((error) {
+      SnackBar(content: Text('Görsel işleminde bir hata oluştu: $error'));
     });
+  }
+
+  // Show silme fonksiyonu
+  Future<void> deleteShow(String? showId) async {
+    try {
+      QuerySnapshot showQuery =
+          await _showCollection.where('_id', isEqualTo: showId).get();
+
+      if (showQuery.docs.isNotEmpty) {
+        for (var document in showQuery.docs) {
+          try {
+            await _showCollection.doc(document.id).delete();
+
+            // Storage'daki resmi sil
+            await deleteStorageImage(showId ?? '');
+            true;
+          } catch (e) {
+            SnackBar(
+                content: Text('Görsel Silme işleminde bir hata oluştu: $e'));
+          }
+        }
+      } else {
+        false;
+      }
+    } catch (e) {
+      SnackBar(content: Text('Silme işleminde bir hata oluştu: $e'));
+    }
   }
 
 // Show güncelleme fonksiyonu
@@ -66,7 +91,80 @@ class ShowService {
     });
   }
 
-  Show? getAllHashMap(QuerySnapshot result) {
+  Future<String> putStorageImage(
+    String showId,
+    Uri? showIdAddOrUpdateImgUrl,
+    String showIdImgUrl,
+  ) async {
+    final String imageName = "ShowImages/$showId.jpg";
+    final Reference imagesRef = FirebaseStorage.instance.ref().child(imageName);
+    String downloadUrl = '';
+
+    if (showIdAddOrUpdateImgUrl != null) {
+      // Dosyayı Firebase Storage'a yükleme
+      await imagesRef.putFile(File.fromUri(showIdAddOrUpdateImgUrl));
+
+      // Yüklenen dosyanın indirme URL'sini alma
+      downloadUrl = await imagesRef.getDownloadURL();
+    }
+
+    // Eğer yeni URL alınmadıysa eski URL'yi kullan
+    return downloadUrl.isEmpty ? showIdImgUrl : downloadUrl;
+  }
+
+  Future<void> deleteStorageImage(String stageId) async {
+    final String imageName = "ShowImages/$stageId.jpg";
+    final Reference imagesRef = FirebaseStorage.instance.ref().child(imageName);
+
+    try {
+      await imagesRef.delete(); // Resmi silme
+    } catch (e) {
+      print('Hata oluştu: $e');
+    }
+  }
+
+  Map<String, dynamic> putHashMap(
+      Show? show, String downloadUrl, bool isUpdate) {
+    final Map<String, dynamic> showMap = {};
+
+    if (!isUpdate) {
+      showMap['_createdAt'] = DateTime.now().toIso8601String();
+    } else {
+      showMap['_updatedAt'] = DateTime.now().toIso8601String();
+    }
+
+    showMap['_id'] = show?.id ?? '';
+    showMap['name'] = show?.name ?? '';
+    showMap['imageUrl'] = downloadUrl;
+    showMap['ageLimit'] = show?.ageLimit ?? '';
+    showMap['description'] = show?.description ?? '';
+    showMap['eventRule'] = show?.eventRule ?? '';
+
+    // playersId listesi
+    List<String> playersIdList = [];
+    if (show?.playersId != null) {
+      playersIdList = show!.playersId.map((e) => e.toString()).toList();
+    }
+    showMap['players'] = playersIdList;
+
+    // eventsId listesi
+    List<String> eventsIdList = [];
+    if (show?.eventsId != null) {
+      eventsIdList = show!.eventsId.map((e) => e.toString()).toList();
+    }
+    showMap['events'] = eventsIdList;
+
+    // photosStageId listesi
+    List<String> photosStageIdList = [];
+    if (show?.photosStageId != null) {
+      photosStageIdList = show!.photosStageId.map((e) => e.toString()).toList();
+    }
+    showMap['photosStageId'] = photosStageIdList;
+
+    return showMap;
+  }
+
+  Show? getHashMap(QuerySnapshot result) {
     final document = result.docs.first;
     String createdAt =
         document['_createdAt'] != null ? document['_createdAt'].toString() : '';
@@ -77,21 +175,30 @@ class ShowService {
         document['imageUrl'] != null ? document['imageUrl'] as String : '';
     String name = document['name'] != null ? document['name'] as String : '';
     String description = document['description'] != null
-        ? document['description'] as String: '';
+        ? document['description'] as String
+        : '';
     String ageLimit =
         document['ageLimit'] != null ? document['ageLimit'] as String : '';
     String eventRule =
         document['eventRule'] != null ? document['eventRule'] as String : '';
 
     List<dynamic> playerIdRaw = document['playersId'] != null
-        ? document['playersId'] as List<dynamic>: [];
+        ? document['playersId'] as List<dynamic>
+        : [];
     List<String> playerId =
         playerIdRaw.isNotEmpty ? List<String>.from(playerIdRaw) : [];
 
     List<dynamic> eventsIdRaw = document['eventsId'] != null
-        ? document['eventsId'] as List<dynamic>: [];
+        ? document['eventsId'] as List<dynamic>
+        : [];
     List<String> eventsId =
         eventsIdRaw.isNotEmpty ? List<String>.from(eventsIdRaw) : [];
+
+    List<dynamic> photosStageIdRaw = document['photosStageId'] != null
+        ? document['photosStageId'] as List<dynamic>
+        : [];
+    List<String> photosStageId =
+        photosStageIdRaw.isNotEmpty ? List<String>.from(photosStageIdRaw) : [];
 
     return Show(
       createdAt: createdAt,
@@ -104,6 +211,7 @@ class ShowService {
       eventRule: eventRule,
       playersId: playerId,
       eventsId: eventsId,
+      photosStageId: photosStageId,
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/presentation/pages/contracts/contracts.dart';
 import '../../../core/custom_views/custom_elevated_button.dart';
 import '../profile_edit/user_profile_edit.dart';
 import '../my_favorites/favorite_screen.dart';
@@ -70,22 +71,26 @@ class _ProfilePageState extends State<ProfilePage> {
             },
           ),
           CustomElevatedButton(
-            text: 'Uygulama Ayarları',
-            icon: Icons.settings,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const AppSettingsPage(),
-                ),
-              );
-            },
-          ),
+              text: 'Uygulama Ayarları',
+              icon: Icons.settings,
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AppSettingsPage(),
+                  ),
+                );
+              }),
           const SizedBox(height: 20),
           CustomElevatedButton(
-            text: 'Gizlilik ve Güvenlik',
-            icon: Icons.privacy_tip,
-            onPressed: () {},
-          ),
+              text: 'Gizlilik ve Güvenlik',
+              icon: Icons.privacy_tip,
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ContractsPage(),
+                  ),
+                );
+              }),
           CustomElevatedButton(
             text: 'Sıkça Sorulan Sorular',
             icon: Icons.help,
