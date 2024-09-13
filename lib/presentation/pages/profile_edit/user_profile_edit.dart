@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
 import '../../../core/custom_views/custom_art_words_card.dart';
 import '../../../core/custom_views/custom_button.dart';
 import '../../../core/custom_views/custom_text_field.dart';
+import '../../../data/model/user.dart';
+import '../../../data/repository/user_service.dart';
 
 class UserProfileEditScreen extends StatefulWidget {
   const UserProfileEditScreen({super.key});
@@ -13,19 +15,65 @@ class UserProfileEditScreen extends StatefulWidget {
 
 class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
+  final UserService _userService = UserService();
 
   String _firstName = '';
   String _lastName = '';
   String _phoneNumber = '';
   String _email = '';
   int _age = 0;
-  String _location = '';
+  String _city = '';
   String _profileImageUrl = 'https://via.placeholder.com/150';
+  User? _currentUser;
 
-  void _updateProfile() {
+  @override
+  void initState() {
+    super.initState();
+    _getUserData();
+  }
+
+  Future<void> _getUserData() async {
+    String userId = 'mevcutKullaniciId'; // Mevcut kullanıcı ID'sini belirleyin
+    User? user = await _userService.getUserById(userId);
+    if (user != null) {
+      setState(() {
+        _currentUser = user;
+        _firstName = user.firstName;
+        _lastName = user.lastName;
+        _phoneNumber = user.phone;
+        _email = user.mail ?? '';
+        _age = int.tryParse(user.age as String) ?? 0;
+        _city = user.city ?? '';
+        _profileImageUrl = user.imageUrl ?? 'https://via.placeholder.com/150';
+      });
+    }
+  }
+
+  void _updateProfile() async {
     if (_formKey.currentState?.validate() ?? false) {
-      // Profil güncelleme işlemleri
-        const SnackBar(content: Text('Profil güncellendi'));
+      DateTime now = DateTime.now();
+      Timestamp timestamp = Timestamp.fromDate(now);
+      User updatedUser = User(
+        id: _currentUser?.id ?? '',
+        createdAt: _currentUser?.createdAt ?? '',
+        updatedAt: timestamp.toString() ?? '',
+        firstName: _firstName,
+        lastName: _lastName,
+        phone: _phoneNumber,
+        mail: _email,
+        age: _age.toInt(),
+        city: _city,
+        imageUrl: _profileImageUrl,
+      );
+
+      // Profil güncelleme işlemi
+      await _userService.saveUser(updatedUser, _profileImageUrl,
+          isUpdate: true);
+
+      // Başarı mesajı
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil başarıyla güncellendi!')),
+      );
     }
   }
 
@@ -101,10 +149,10 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
                     ),
                     CustomTextField(
                       label: 'Lokasyon',
-                      initialValue: _location,
+                      initialValue: _city,
                       isRequired: false,
                       onChanged: (value) {
-                        setState(() => _location = value);
+                        setState(() => _city = value);
                       },
                     ),
                     const SizedBox(height: 20),

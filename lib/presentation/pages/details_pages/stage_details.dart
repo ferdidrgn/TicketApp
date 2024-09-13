@@ -1,64 +1,99 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
-
 import '../../../core/custom_views/custom_show_card.dart';
+import '../../../data/model/show.dart';
+import '../../../data/model/stage.dart';
+import '../../../data/repository/show_service.dart';
+import '../../../data/repository/stage_service.dart';
 
-class Stage {
-  final String name;
-  final String imageUrl;
-  final String description;
-  final String address;
-  final String contactInfo;
-  final String mapUrl;
+class StageDetailPage extends StatefulWidget {
+  final String stageId;
 
-  Stage({
-    required this.name,
-    required this.imageUrl,
-    required this.description,
-    required this.address,
-    required this.contactInfo,
-    required this.mapUrl,
-  });
+  const StageDetailPage({super.key, required this.stageId});
+
+  @override
+  _StageDetailPageState createState() => _StageDetailPageState();
 }
 
-class StageDetailPage extends StatelessWidget {
-  const StageDetailPage({super.key});
+class _StageDetailPageState extends State<StageDetailPage> {
+  late Stage _stage;
+  final List<Show> _showsDataList = [];
+  bool _isLoading = true;
+
+  final StageService _stageService = StageService();
+  final ShowService _showService = ShowService();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStageData();
+  }
+
+  Future<void> _fetchStageData() async {
+    try {
+      final Stage? fetchedStage =
+          await _stageService.getStageById(widget.stageId);
+
+      if (fetchedStage != null) {
+        setState(() {
+          _stage = fetchedStage;
+        });
+        _fetchShows(fetchedStage.showsId ?? []);
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
+    } finally {
+      setState(() {
+        _isLoading = false; // Yükleme tamamlandı
+      });
+    }
+  }
+
+  Future<void> _fetchShows(List<String> showsId) async {
+    for (String showId in showsId) {
+      try {
+        final Show? show = await _showService.getShowById(showId);
+        if (show != null) {
+          setState(() {
+            _showsDataList.add(show);
+          });
+        }
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final Stage stage = Stage(
-      name: 'Grand Theater',
-      imageUrl:
-          'https://tiyatrolar.com.tr/files/location/o/ortaoyuncular-tiyatrosu/gallery/19/ortaoyuncular-tiyatrosu-19.jpg',
-      description:
-          'The Grand Theater is one of the most iconic venues, offering a variety of cultural performances and events.',
-      address: '123 Theater St, Cityville',
-      contactInfo: 'Phone: (123) 456-7890 \nEmail: info@theater.com',
-      mapUrl: 'https://maps.google.com/?q=123+Theater+St+Cityville',
-    );
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(stage.name.toString()),
         centerTitle: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: _buildStageImage(stage),
-              ),
-              const SizedBox(height: 16),
-              _buildStageTitle(stage),
-              const SizedBox(height: 16),
-              _buildBottomSheet(context, stage)
-            ],
-          ),
-        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _buildStageContent(context),
+      ),
+    );
+  }
+
+  Widget _buildStageContent(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildStageImage(_stage),
+          const SizedBox(height: 16),
+          _buildStageTitle(_stage),
+          const SizedBox(height: 16),
+          _buildBottomSheet(context),
+        ],
       ),
     );
   }
@@ -78,101 +113,72 @@ class StageDetailPage extends StatelessWidget {
             ),
           ],
         ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                stage.imageUrl,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) {
-                    return child;
-                  }
-                  return const Center(child: CircularProgressIndicator());
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                      child: Icon(Icons.error, color: Colors.red));
-                },
-              ),
-            ),
-          ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: CachedNetworkImage(
+            imageUrl: stage.imageUrl ?? '',
+            fit: BoxFit.cover,
+            placeholder: (context, url) =>
+                const Center(child: CircularProgressIndicator()),
+            errorWidget: (context, url, error) =>
+                const Center(child: Icon(Icons.error, color: Colors.red)),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBottomSheet(BuildContext context, Stage stage) {
-    return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(50),
-            topRight: Radius.circular(50),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            _buildStageInfo(stage),
-            const SizedBox(height: 16),
-            _buildShowList(stage),
-            const SizedBox(height: 16),
-            _buildStageMap(stage),
-            const SizedBox(height: 16),
-            _buildStageAddress(context, stage)
-          ],
-        ));
-  }
-
   Widget _buildStageTitle(Stage stage) {
     return Text(
-      stage.name,
+      stage.name ?? '',
       style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
       textAlign: TextAlign.center,
     );
   }
 
-  Widget _buildStageInfo(Stage stage) {
-    return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(stage.description,
-                style: const TextStyle(
-                    fontSize: 16, height: 1.1, fontWeight: FontWeight.w300))
-          ],
-        ));
+  Widget _buildBottomSheet(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(50),
+          topRight: Radius.circular(50),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildStageInfo(_stage),
+          const SizedBox(height: 16),
+          _buildShowList(),
+          const SizedBox(height: 16),
+          _buildStageMap(_stage),
+          const SizedBox(height: 16),
+          _buildStageAddress(context, _stage),
+        ],
+      ),
+    );
   }
 
-  Widget _buildShowList(Stage stage) {
-    final List<String> _events = [
-      'Etkinlik 1',
-      'Etkinlik 2',
-      'Etkinlik 3',
-      'Etkinlik 4',
-      'Etkinlik 5',
-      'Etkinlik 6',
-      'Etkinlik 7',
-      'Etkinlik 8',
-      'Etkinlik 9',
-      'Etkinlik 10',
-      'Etkinlik 11',
-      'Etkinlik 12',
-      'Etkinlik 13',
-      'Etkinlik 14',
-      'Etkinlik 15'
-    ];
+  Widget _buildStageInfo(Stage stage) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        stage.description ?? '',
+        style: const TextStyle(
+            fontSize: 16, height: 1.1, fontWeight: FontWeight.w300),
+      ),
+    );
+  }
+
+  Widget _buildShowList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -185,42 +191,25 @@ class StageDetailPage extends StatelessWidget {
           height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _events.length,
-            itemBuilder: (context, index) => _buildEventCard(context, index),
+            itemCount: _showsDataList.length,
+            itemBuilder: (context, index) =>
+                _buildEventCard(context, _showsDataList[index]),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildEventCard(BuildContext context, int index) {
-    final List<String> _events = [
-      'Etkinlik 1',
-      'Etkinlik 2',
-      'Etkinlik 3',
-      'Etkinlik 4',
-      'Etkinlik 5',
-      'Etkinlik 6',
-      'Etkinlik 7',
-      'Etkinlik 8',
-      'Etkinlik 9',
-      'Etkinlik 10',
-      'Etkinlik 11',
-      'Etkinlik 12',
-      'Etkinlik 13',
-      'Etkinlik 14',
-      'Etkinlik 15'
-    ];
+  Widget _buildEventCard(BuildContext context, Show show) {
     return GestureDetector(
       child: CustomVerticalShowCard(
-        imageUrl:
-            'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
-        gameName: _events[index],
+        imageUrl: show.imageUrl ?? 'https://via.placeholder.com/150',
+        gameName: show.name ?? 'No Name',
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ShowDetailPage(showId: '0')
+              builder: (context) => ShowDetailPage(showId: show.id),
             ),
           );
         },
@@ -229,41 +218,27 @@ class StageDetailPage extends StatelessWidget {
   }
 
   Widget _buildStageMap(Stage stage) {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.8),
-            blurRadius: 5,
-            offset: const Offset(0, 8),
+    // Ensure latitude and longitude are not null before using them
+    if (stage.locationLat != null && stage.locationLng != null) {
+      final LatLng position = LatLng(stage.locationLat!, stage.locationLng!);
+      return SizedBox(
+        height: 200,
+        child: GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: position,
+            zoom: 15,
           ),
-        ],
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.network(
-              stage.mapUrl,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) {
-                  return child;
-                }
-                return const Center(child: CircularProgressIndicator());
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                    child: Icon(Icons.error, color: Colors.red));
-              },
+          markers: {
+            Marker(
+              markerId: const MarkerId('stage-location'),
+              position: position,
             ),
-          ),
-        ],
-      ),
-    );
+          },
+        ),
+      );
+    } else {
+      return const Center(child: Text('Konum bilgisi mevcut değil.'));
+    }
   }
 
   Widget _buildStageAddress(BuildContext context, Stage stage) {
@@ -278,7 +253,7 @@ class StageDetailPage extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Text(stage.address,
+              Text(stage.address ?? '',
                   style: const TextStyle(
                       fontSize: 16, height: 1.1, fontWeight: FontWeight.w300)),
             ],
@@ -294,7 +269,7 @@ class StageDetailPage extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Text(stage.contactInfo,
+              Text(stage.communication ?? '',
                   style: const TextStyle(
                       fontSize: 16, height: 1.1, fontWeight: FontWeight.w300)),
             ],

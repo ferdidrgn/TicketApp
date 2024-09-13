@@ -7,7 +7,7 @@ class PlayerService {
       FirebaseFirestore.instance.collection('Player');
 
   //all players
-  Future<List<Player>> getPlayers() async {
+  Future<List<Player?>> getPlayers() async {
     try {
       QuerySnapshot snapshot = await _playerCollection.get();
       return snapshot.docs.map((doc) => _mapDocumentToPlayer(doc)).toList();

@@ -1,25 +1,29 @@
-import 'package:ticketapp/data/model/show.dart';
-
 class Stage {
-  final String id;
-  final String name;
-  final String desc;
-  final String? capacity;
-  final double? lat;
-  final double? long;
-  final String address;
+  final String? id;
+  final String? name;
   final String? imageUrl;
-  final List<Show> shows;
+  final int? capacity;
+  final String? description;
+  final String? communication;
+  final String? address;
+  final double? locationLat;
+  final double? locationLng;
+  final String? createdAt;
+  final String? updatedAt;
+  final List<String>? showsId;
 
   Stage({
-    required this.id,
-    required this.name,
-    required this.desc,
-    this.capacity,
-    this.lat,
-    this.long,
-    required this.address,
+    this.id,
+    this.name,
     this.imageUrl,
-    required this.shows,
+    this.capacity,
+    this.description,
+    this.communication,
+    this.address,
+    this.locationLat,
+    this.locationLng,
+    this.createdAt,
+    this.updatedAt,
+    this.showsId,
   });
 }

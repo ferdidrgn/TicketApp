@@ -1,26 +1,30 @@
 class User {
   final String id;
-  final String name;
-  final String surname;
+  final String createdAt;
+  final String updatedAt;
+  final String firstName;
+  final String lastName;
   final String? imageUrl;
   final String phone;
-  final String? age;
+  final int? age;
   final String? mail;
   final String? city;
-  final bool isPhoneActive;
+  final bool? isPhoneActive;
   final String? fcmToken;
   final String? role;
 
   User({
     required this.id,
-    required this.name,
-    required this.surname,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.firstName,
+    required this.lastName,
     this.imageUrl,
     required this.phone,
     this.age,
     this.mail,
     this.city,
-    required this.isPhoneActive,
+    this.isPhoneActive,
     this.fcmToken,
     this.role,
   });

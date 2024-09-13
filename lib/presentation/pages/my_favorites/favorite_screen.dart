@@ -174,7 +174,7 @@ class FavoritesPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const StageDetailPage(),
+                      builder: (context) => const StageDetailPage(stageId: '0')
                     ),
                   );
                 },

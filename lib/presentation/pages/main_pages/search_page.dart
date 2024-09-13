@@ -265,8 +265,7 @@ class _SearchPageState extends State<SearchPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          const StageDetailPage(),
+                      builder: (context) => const StageDetailPage(stageId: '0')
                     ),
                   );
                 },
