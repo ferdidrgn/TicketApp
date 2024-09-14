@@ -12,6 +12,9 @@ class User {
   final bool? isPhoneActive;
   final String? fcmToken;
   final String? role;
+  final List<String>? favoriteShows;
+  final List<String>? favoriteStages;
+  final List<String>? favoritePlayesrs;
 
   User({
     required this.id,
@@ -27,5 +30,8 @@ class User {
     this.isPhoneActive,
     this.fcmToken,
     this.role,
+    this.favoriteShows,
+    this.favoriteStages,
+    this.favoritePlayesrs
   });
 }

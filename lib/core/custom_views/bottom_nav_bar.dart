@@ -24,7 +24,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     super.initState();
     _pages = <Widget>[
       const HomeScreen(),
-      DiscoveryPage(),
+      const DiscoveryPage(),
       const NearbyEventsPage(),
       ProfilePage(onThemeChanged: widget.onThemeChanged),
     ];

@@ -8,18 +8,28 @@ class ShowService {
   final CollectionReference _showCollection =
       FirebaseFirestore.instance.collection('Show');
 
+  Future<List<Show?>> getSearchShow(String query) async {
+    try {
+      QuerySnapshot result = await _showCollection
+          .where('name', isGreaterThanOrEqualTo: query)
+          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
+          .get();
+
+      return result.docs.map((e) => _mapDocumentToShow(e)).toList();
+    } catch (e) {
+      throw Exception('Arama Hatası: $e');
+    }
+  }
+
   // Oyunları getiren fonksiyon
-  Future<List<Map<String, dynamic>>> getShows() async {
+  Future<List<Show?>> getShows() async {
     List<Map<String, dynamic>> shows = [];
     try {
       QuerySnapshot snapshot = await _showCollection.get();
-      for (var doc in snapshot.docs) {
-        shows.add(doc.data() as Map<String, dynamic>);
-      }
+      return snapshot.docs.map((doc) => _mapDocumentToShow(doc)).toList();
     } catch (e) {
-      SnackBar(content: Text('Oyunlar getirilirken bir hata oluştu: $e'));
+      throw Exception('Oyunları Getirme Hatası: $e');
     }
-    return shows;
   }
 
   // Show ID ile gösterileri getiren fonksiyon
@@ -32,8 +42,7 @@ class ShowService {
 
       return _mapDocumentToShow(result.docs.first);
     } catch (error) {
-      SnackBar(content: Text('Error fetching players: $error'));
-      return null;
+      throw Exception('Gösterileri Getirme Hatası: $error');
     }
   }
 
@@ -50,7 +59,7 @@ class ShowService {
     _showCollection.add(showMap).then((value) {
       true;
     }).catchError((error) {
-      SnackBar(content: Text('Görsel işleminde bir hata oluştu: $error'));
+      throw Exception('Show Ekleme Hatası: $error');
     });
   }
 
@@ -69,15 +78,14 @@ class ShowService {
             await deleteStorageImage(showId ?? '');
             true;
           } catch (e) {
-            SnackBar(
-                content: Text('Görsel Silme işleminde bir hata oluştu: $e'));
+            throw Exception('Silme işleminde bir hata oluştu: $e');
           }
         }
       } else {
         false;
       }
     } catch (e) {
-      SnackBar(content: Text('Silme işleminde bir hata oluştu: $e'));
+      throw Exception('Silme işleminde bir hata oluştu: $e');
     }
   }
 
@@ -118,7 +126,7 @@ class ShowService {
     try {
       await imagesRef.delete(); // Resmi silme
     } catch (e) {
-      SnackBar(content: Text('Görsel Silme işleminde bir hata oluştu: $e'));
+      throw Exception('Resim silinirken bir hata oluştu: $e');
     }
   }
 
@@ -136,6 +144,7 @@ class ShowService {
     showMap['imageUrl'] = downloadUrl;
     showMap['ageLimit'] = show?.ageLimit ?? '';
     showMap['description'] = show?.description ?? '';
+    showMap['category'] = show?.category ?? '';
     showMap['eventRule'] = show?.eventRule ?? '';
 
     // playersId listesi
@@ -170,6 +179,7 @@ class ShowService {
       imageUrl: _getFieldAsString(document, 'imageUrl'),
       name: _getFieldAsString(document, 'name'),
       description: _getFieldAsString(document, 'description'),
+      category: _getFieldAsString(document, 'category'),
       ageLimit: _getFieldAsString(document, 'ageLimit'),
       eventRule: _getFieldAsString(document, 'eventRule'),
       playersId: _getListAsString(document, 'playersId'),
@@ -185,7 +195,6 @@ class ShowService {
 
 // Helper to get a list of strings
   List<String> _getListAsString(DocumentSnapshot document, String fieldName) {
-    List<dynamic> rawList = document[fieldName] as List<dynamic> ?? [];
-    return rawList.isNotEmpty ? List<String>.from(rawList) : [];
+    return List<String>.from(document[fieldName] ?? []);
   }
 }

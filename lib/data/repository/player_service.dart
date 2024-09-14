@@ -1,10 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../model/player.dart';
 
 class PlayerService {
   final CollectionReference _playerCollection =
       FirebaseFirestore.instance.collection('Player');
+
+  Future<List<Player?>> getSearchPlayer(String query) async {
+    try {
+      QuerySnapshot result = await _playerCollection
+          .where('firstName', isGreaterThanOrEqualTo: query)
+          .where('firstName', isLessThanOrEqualTo: '$query\uf8ff')
+          .get();
+
+      return result.docs.map((e) => _mapDocumentToPlayer(e)).toList();
+    } catch (e) {
+      throw Exception('Search Error: $e');
+    }
+  }
 
   //all players
   Future<List<Player?>> getPlayers() async {
@@ -12,9 +24,8 @@ class PlayerService {
       QuerySnapshot snapshot = await _playerCollection.get();
       return snapshot.docs.map((doc) => _mapDocumentToPlayer(doc)).toList();
     } catch (e) {
-      SnackBar(content: Text('Error fetching players: $e'));
+      throw Exception('Error fetching players: $e');
     }
-    return [];
   }
 
   // player by ID
@@ -27,19 +38,18 @@ class PlayerService {
 
       return _mapDocumentToPlayer(result.docs.first);
     } catch (error) {
-      SnackBar(content: Text('Error fetching players: $error'));
-      return null;
+      throw Exception('Error fetching players: $error');
     }
   }
 
-  // Convert Firestore document to Player model
+// Convert Firestore document to Player model
   Player _mapDocumentToPlayer(DocumentSnapshot document) {
     return Player(
       createdAt: _getStringField(document, '_createdAt'),
       updateAt: _getStringField(document, '_updateAt'),
       id: _getStringField(document, '_id'),
-      name: _getStringField(document, 'name'),
-      surname: _getStringField(document, 'surname'),
+      firstName: _getStringField(document, 'firstName'),
+      lastName: _getStringField(document, 'lastName'),
       bio: _getStringField(document, 'bio'),
       imageUrl: _getStringField(document, 'imageUrl'),
       showsId: _getListField(document, 'showsId'),

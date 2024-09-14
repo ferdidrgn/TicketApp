@@ -41,7 +41,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         _fetchPlayers(show.playersId);
       }
     } catch (error) {
-        SnackBar(content: Text('Veri alınırken bir hata oluştu: $error'));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
     } finally {
       setState(() {
         isLoading = false; // Yükleme tamamlandı
@@ -59,7 +59,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           });
         }
       } catch (error) {
-          SnackBar(content: Text('Oyuncu verisi alınırken bir hata oluştu: $error'));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')));
       }
     }
   }
@@ -277,7 +277,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                   itemCount: playerDataList.length,
                   itemBuilder: (context, index) {
                     return CustomStageCard(
-                      text: '${playerDataList[index]?.name ?? ''} ${playerDataList[index]?.surname ?? ''}',
+                      text: '${playerDataList[index]?.firstName ?? ''} ${playerDataList[index]?.lastName ?? ''}',
                       imageUrl: playerDataList[index]?.imageUrl ?? '',
                       onPressed: () {
                         Navigator.push(

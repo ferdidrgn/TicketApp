@@ -1,10 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../model/stage.dart';
 
 class StageService {
   final CollectionReference _stageCollection =
       FirebaseFirestore.instance.collection('Stage');
+
+  Future<List<Stage?>> getSearchStage(String query) async {
+    try {
+      QuerySnapshot snapshot = await _stageCollection
+          .where('name', isGreaterThanOrEqualTo: query)
+          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
+          .get();
+
+      return snapshot.docs.map((doc) => _mapDocumentToStage(doc)).toList();
+    } catch (e) {
+      throw Exception('Error fetching stages: $e');
+    }
+  }
 
   // Fetch all stages
   Future<List<Stage?>> getStages() async {
@@ -12,23 +24,23 @@ class StageService {
       QuerySnapshot snapshot = await _stageCollection.get();
       return snapshot.docs.map((doc) => _mapDocumentToStage(doc)).toList();
     } catch (e) {
-      SnackBar(content: Text('Error fetching stages: $e'));
-      return [];
+      throw Exception('Error fetching stages: $e');
     }
   }
 
   // Fetch a stage by ID
   Future<Stage?> getStageById(String stageId) async {
     try {
-      QuerySnapshot result =
-          await _stageCollection.where('_id', isEqualTo: stageId).limit(1).get();
+      QuerySnapshot result = await _stageCollection
+          .where('_id', isEqualTo: stageId)
+          .limit(1)
+          .get();
 
       if (result.docs.isEmpty) return null;
 
       return _mapDocumentToStage(result.docs.first);
     } catch (error) {
-      SnackBar(content: Text('Error fetching stage: $error'));
-      return null;
+      throw Exception('Error fetching stage: $error');
     }
   }
 
@@ -58,5 +70,4 @@ class StageService {
   List<String> _getListField(DocumentSnapshot document, String fieldName) {
     return List<String>.from(document[fieldName] ?? []);
   }
-
 }

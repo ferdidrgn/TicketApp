@@ -1,11 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
-import 'package:flutter/material.dart';
 import '../model/user.dart';
 
 class UserService {
   final CollectionReference _userCollection =
-  FirebaseFirestore.instance.collection('User');
+      FirebaseFirestore.instance.collection('User');
   final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;
 
   // Create or update user
@@ -19,7 +18,7 @@ class UserService {
         await _userCollection.doc(user.id).set(userMap);
       }
     } catch (e) {
-      SnackBar(content: Text('Error saving user: $e'));
+      throw Exception('Error saving user: $e');
     }
   }
 
@@ -30,7 +29,7 @@ class UserService {
       if (!doc.exists) return null;
       return _mapDocumentToUser(doc);
     } catch (e) {
-      SnackBar(content: Text('Error fetching user: $e'));
+      throw Exception('Error fetching user: $e');
       return null;
     }
   }
@@ -40,37 +39,46 @@ class UserService {
     try {
       await _userCollection.doc(userId).delete();
     } catch (e) {
-      SnackBar(content: Text('Error deleting user: $e'));
+      throw Exception('Error deleting user: $e');
     }
   }
 
   // Map Firestore document to User model
   User _mapDocumentToUser(DocumentSnapshot document) {
     return User(
-      id: _getStringField(document, '_id'),
-      createdAt: _getStringField(document, '_createdAt'),
-      updatedAt: _getStringField(document, '_updatedAt'),
-      firstName: _getStringField(document, 'firstName'),
-      lastName: _getStringField(document, 'lastName'),
-      imageUrl: _getStringField(document, 'photoUrl'),
-      phone: _getStringField(document, 'phoneNumber'),
-      age: int.tryParse(_getStringField(document, 'age')) ?? 0,
-      mail: _getStringField(document, 'eMail'),
-      city: _getStringField(document, 'city'),
-      isPhoneActive: document['isActivite'],
-      fcmToken: _getStringField(document, 'fcmToken'),
-      role: _getStringField(document, 'role'),
-    );
+        id: _getStringField(document, '_id'),
+        createdAt: _getStringField(document, '_createdAt'),
+        updatedAt: _getStringField(document, '_updatedAt'),
+        firstName: _getStringField(document, 'firstName'),
+        lastName: _getStringField(document, 'lastName'),
+        imageUrl: _getStringField(document, 'photoUrl'),
+        phone: _getStringField(document, 'phoneNumber'),
+        age: int.tryParse(_getStringField(document, 'age')) ?? 0,
+        mail: _getStringField(document, 'eMail'),
+        city: _getStringField(document, 'city'),
+        isPhoneActive: document['isActivite'],
+        fcmToken: _getStringField(document, 'fcmToken'),
+        role: _getStringField(document, 'role'),
+        favoriteShows: _getListField(document, 'favoriteShows'),
+        favoriteStages: _getListField(document, 'favoriteStages'),
+        favoritePlayesrs: _getListField(document, 'favoritePlayers'));
   }
 
   String _getStringField(DocumentSnapshot document, String fieldName) {
     return document[fieldName]?.toString() ?? '';
   }
 
+  List<String> _getListField(DocumentSnapshot document, String fieldName) {
+    return List<String>.from(document[fieldName] ?? []);
+  }
+
   // Map User model to Firestore data
   Map<String, dynamic> _mapUserToFirestore(
       User user, String downloadUrl, bool isUpdate) {
     final userMap = <String, dynamic>{
+
+      if (!isUpdate) '_createdAt': Timestamp.now(),
+      '_updatedAt': Timestamp.now(),
       '_id': user.id,
       'firstName': user.firstName,
       'lastName': user.lastName,
@@ -82,8 +90,10 @@ class UserService {
       'eMail': user.mail,
       'fcmToken': user.fcmToken,
       'role': user.role,
-      if (!isUpdate) '_createdAt': Timestamp.now(),
-      '_updatedAt': Timestamp.now(),
+      'city': user.city,
+      'favoriteShows': user.favoriteShows,
+      'favoriteStages': user.favoriteStages,
+      'favoritePlayers': user.favoritePlayesrs,
     };
     return userMap;
   }
@@ -92,11 +102,11 @@ class UserService {
   Future<auth.User?> signInWithEmailAndPassword(
       String email, String password) async {
     try {
-      auth.UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-          email: email, password: password);
+      auth.UserCredential userCredential = await _auth
+          .signInWithEmailAndPassword(email: email, password: password);
       return userCredential.user; // Oturum açan kullanıcıyı döner
     } catch (e) {
-      SnackBar(content: Text('Error signing in: $e'));
+      throw Exception('Error signing in: $e');
       return null;
     }
   }
@@ -106,7 +116,7 @@ class UserService {
     try {
       await _auth.signOut();
     } catch (e) {
-      SnackBar(content: Text('Error signing out: $e'));
+      throw Exception('Error signing out: $e');
     }
   }
 
@@ -118,13 +128,17 @@ class UserService {
           .createUserWithEmailAndPassword(email: email, password: password);
       return userCredential.user;
     } catch (e) {
-      SnackBar(content: Text('Error creating user: $e'));
+      throw Exception('Error signing up: $e');
       return null;
     }
   }
+
+  // Açık oturumdaki user bilgileri
+  get currentUser => _auth.currentUser;
 
   // Kullanıcının Oturum Açmış mı Kontrol Etme
   bool isUserLoggedIn() {
     return _auth.currentUser != null;
   }
+
 }

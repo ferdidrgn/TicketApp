@@ -41,7 +41,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
         _fetchShows(player?.showsId ?? []);
       }
     } catch (error) {
-      SnackBar(content: Text('Veri alınırken bir hata oluştu: $error'));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
     } finally {
       setState(() {
         isLoading = false; // Yükleme tamamlandı
@@ -59,8 +59,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
           });
         }
       } catch (error) {
-        SnackBar(
-            content: Text('Gösteri verisi alınırken bir hata oluştu: $error'));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
       }
     }
   }
@@ -70,7 +70,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(player != null
-            ? '${player?.name} ${player?.surname}'
+            ? '${player?.firstName} ${player?.lastName}'
             : 'Player Details'),
         centerTitle: true,
       ),
@@ -164,7 +164,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Widget _buildPlayerName() {
     return Text(
-      '${player!.name} ${player!.surname}',
+      '${player?.firstName} ${player?.lastName}',
       style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
       textAlign: TextAlign.center,
     );

@@ -10,8 +10,7 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final themeMode = await getThemeMode();
   runApp(MyApp(themeMode: themeMode));
 }
@@ -67,9 +66,7 @@ class _MyAppState extends State<MyApp> {
         '/': (context) => const SplashScreen(),
         '/login': (context) => LoginScreen(),
         '/onboarding': (context) => const OnboardingContainer(),
-        '/home': (context) => HomePageContainer(
-              onThemeChanged: _changeTheme,
-            ),
+        '/home': (context) => HomePageContainer(onThemeChanged: _changeTheme)
       },
     );
   }

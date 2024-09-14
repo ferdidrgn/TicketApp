@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 
 class AppToolsService {
   final _firestore = FirebaseFirestore.instance.collection('AppTools');
@@ -13,8 +12,7 @@ class AppToolsService {
         return result.docs.first[fieldName] as String;
       }
     } catch (e) {
-      SnackBar(content: Text('Error fetching Privacy Policy: $e'));
-      return null;
+      throw Exception('Error fetching $fieldName: $e');
     }
   }
 
