@@ -17,14 +17,18 @@ class CustomSearchBar extends StatelessWidget {
           decoration: InputDecoration(
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.error,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.red.shade200
+                    : const Color(0xFFCF6679),
                 width: 3,
               ),
               borderRadius: BorderRadius.circular(10), // Matches the Card border
             ),
             focusedBorder: OutlineInputBorder(
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.onSurface,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.red.shade500
+                    :  Colors.red.shade200,
                 width: 3,
               ),
               borderRadius: BorderRadius.circular(10), // Matches the Card border
@@ -38,7 +42,7 @@ class CustomSearchBar extends StatelessWidget {
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 25),
             prefixIcon: IconButton(
-              icon: const Icon(Icons.youtube_searched_for),
+              icon: Icon(Icons.youtube_searched_for, color: Theme.of(context).colorScheme.error),
               onPressed: onSearchTap,
             ),
           ),

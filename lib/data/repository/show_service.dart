@@ -22,11 +22,12 @@ class ShowService {
     }
   }
 
-  // Oyunları getiren fonksiyon
-  Future<List<Show?>> getShows() async {
-    List<Map<String, dynamic>> shows = [];
+  // Tüm Oyunları getiren fonksiyon
+  Future<List<Show?>> getShows(bool isLimit) async {
     try {
-      QuerySnapshot snapshot = await _showCollection.get();
+      QuerySnapshot snapshot = isLimit
+          ? await _showCollection.get()
+          : await _showCollection.orderBy('createdAt', descending: true).limit(20).get();
       return snapshot.docs.map((doc) => _mapDocumentToShow(doc)).toList();
     } catch (e) {
       throw Exception('Oyunları Getirme Hatası: $e');

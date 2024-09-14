@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/player.dart';
 
@@ -20,9 +22,11 @@ class PlayerService {
   }
 
   //all players
-  Future<List<Player?>> getPlayers() async {
+  Future<List<Player?>> getPlayers(bool isLimit) async {
     try {
-      QuerySnapshot snapshot = await _playerCollection.get();
+      QuerySnapshot snapshot = isLimit
+          ? await _playerCollection.get()
+          : await _playerCollection.orderBy('createdAt', descending: true).limit(20).get();
       return snapshot.docs.map((doc) => _mapDocumentToPlayer(doc)).toList();
     } catch (e) {
       throw Exception('Error fetching players: $e');

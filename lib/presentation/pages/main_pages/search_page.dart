@@ -59,9 +59,9 @@ class _SearchPageState extends State<SearchPage> {
     setState(() => _isLoading = true);
 
     try {
-      final fetchedShows = await _showService.getShows();
-      final fetchedPlayers = await _playerService.getPlayers();
-      final fetchedStages = await _stageService.getStages();
+      final fetchedShows = await _showService.getShows(true);
+      final fetchedPlayers = await _playerService.getPlayers(true);
+      final fetchedStages = await _stageService.getStages(true);
 
       setState(() {
         shows = fetchedShows;

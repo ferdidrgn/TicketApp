@@ -72,8 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchData() async {
     try {
-      final fetchedShows = await _showService.getShows();
-      final fetchedStages = await _stageService.getStages();
+      final fetchedShows = await _showService.getShows(true);
+      final fetchedStages = await _stageService.getStages(true);
 
       setState(() {
         _shows = fetchedShows;
