@@ -176,7 +176,7 @@ class ShowService {
   Show _mapDocumentToShow(DocumentSnapshot document) {
     return Show(
       createdAt: _getFieldAsString(document, '_createdAt'),
-      updateAt: _getFieldAsString(document, '_updateAt'),
+      updatedAt: _getFieldAsString(document, '_updatedAt'),
       id: _getFieldAsString(document, '_id'),
       imageUrl: _getFieldAsString(document, 'imageUrl'),
       name: _getFieldAsString(document, 'name'),

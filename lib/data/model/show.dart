@@ -1,6 +1,6 @@
 class Show {
   final String createdAt;
-  final String updateAt;
+  final String updatedAt;
   final String id;
   final String imageUrl;
   final String name;
@@ -14,7 +14,7 @@ class Show {
 
   Show({
     required this.createdAt,
-    required this.updateAt,
+    required this.updatedAt,
     required this.id,
     required this.imageUrl,
     required this.name,

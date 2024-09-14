@@ -1,6 +1,6 @@
 class Player {
   final String createdAt;
-  final String updateAt;
+  final String updatedAt;
   final String id;
   final String firstName;
   final String lastName;
@@ -10,7 +10,7 @@ class Player {
 
   Player({
     required this.createdAt,
-    required this.updateAt,
+    required this.updatedAt,
     required this.id,
     required this.firstName,
     required this.lastName,

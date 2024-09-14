@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/player.dart';
 
@@ -51,7 +49,7 @@ class PlayerService {
   Player _mapDocumentToPlayer(DocumentSnapshot document) {
     return Player(
       createdAt: _getStringField(document, '_createdAt'),
-      updateAt: _getStringField(document, '_updateAt'),
+      updatedAt: _getStringField(document, '_updatedAt'),
       id: _getStringField(document, '_id'),
       firstName: _getStringField(document, 'firstName'),
       lastName: _getStringField(document, 'lastName'),

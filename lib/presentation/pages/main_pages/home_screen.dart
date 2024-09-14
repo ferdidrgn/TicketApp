@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:ticketapp/data/model/campaing.dart';
+import 'package:ticketapp/data/repository/campaign_service.dart';
 import '../../../core/custom_views/custom_category_card.dart';
 import '../../../core/custom_views/custom_search.dart';
 import '../../../core/custom_views/custom_show_card.dart';
@@ -9,6 +11,7 @@ import '../../../data/model/show.dart';
 import '../../../data/model/stage.dart';
 import '../../../data/repository/show_service.dart';
 import '../../../data/repository/stage_service.dart';
+import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 import 'search_page.dart';
@@ -28,15 +31,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final ShowService _showService = ShowService();
   final StageService _stageService = StageService();
+  final CampaignService _campaignService = CampaignService();
 
   List<Show?> _shows = [];
   List<Stage?> _stages = [];
-
-  final List<String> _campaigns = [
-    "Kampanya 1: %50 indirim!",
-    "Kampanya 2: Üç al, bir bedava!",
-    "Kampanya 3: Ücretsiz kargo fırsatı!",
-  ];
+  List<Campaign?> _campaigns = [];
 
   @override
   void initState() {
@@ -74,10 +73,13 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final fetchedShows = await _showService.getShows(true);
       final fetchedStages = await _stageService.getStages(true);
+      final fetchedCampaigns = await _campaignService.getCampaigns();
 
       setState(() {
         _shows = fetchedShows;
         _stages = fetchedStages;
+        _campaigns = fetchedCampaigns;
+
       });
     } catch (e) {
       throw Exception('Veriler getirilemedi: $e');
@@ -88,6 +90,34 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context, MaterialPageRoute(builder: (context) => const SearchPage()),
     );
+  }
+
+  void _navigateToDetailPage(String url) {
+    if (url.contains('player')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => PlayerDetailPage(playerId: _extractIdFromUrl(url))),
+      );
+    } else if (url.contains('stage')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => StageDetailPage(stageId: _extractIdFromUrl(url))),
+      );
+    } else if (url.contains('show')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ShowDetailPage(showId: _extractIdFromUrl(url))),
+      );
+    } else {
+      print('Unknown URL: $url');
+    }
+  }
+
+  String _extractIdFromUrl(String url) {
+    // Extract the ID from the URL
+    // This is a placeholder implementation, adjust according to your URL structure
+    final parts = url.split('/');
+    return parts.isNotEmpty ? parts.last : '';
   }
 
   @override
@@ -138,27 +168,40 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCampaignPage(String campaignText) {
-    return Container(
-      color: Colors.blue,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CachedNetworkImage(
-            imageUrl:
-                "https://pc-4you.ru/wp-content/uploads/2022/11/1870e2d0-d37f-4abe-82eb-dff15da4d6df-1068x801.webp",
-            width: 200,
-            height: 80,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => const CircularProgressIndicator(),
-            errorWidget: (context, url, error) => const Icon(Icons.error),
-          ),
-          Text(
-            campaignText,
-            style: const TextStyle(fontSize: 24, color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-        ],
+  Widget _buildCampaignPage(Campaign? campaign) {
+    if (campaign == null) return const SizedBox();
+
+    return GestureDetector(
+      onTap: () {
+        _navigateToDetailPage(campaign.url);
+      },
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            CachedNetworkImage(
+              imageUrl: campaign.imageUrl,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => const CircularProgressIndicator(),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
+            ),
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                campaign.title,
+                style: const TextStyle(fontSize: 24, color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
