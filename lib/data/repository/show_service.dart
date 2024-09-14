@@ -8,6 +8,7 @@ class ShowService {
   final CollectionReference _showCollection =
       FirebaseFirestore.instance.collection('Show');
 
+  // search show
   Future<List<Show?>> getSearchShow(String query) async {
     try {
       QuerySnapshot result = await _showCollection

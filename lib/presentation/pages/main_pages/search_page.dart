@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/custom_views/custom_search.dart';
 import 'package:ticketapp/data/repository/player_service.dart';
 import 'package:ticketapp/data/repository/show_service.dart';
 import 'package:ticketapp/data/repository/stage_service.dart';
@@ -119,7 +120,7 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSearchBar(),
+            CustomSearchBar(onSearchChanged: _onSearchChanged),
             const SizedBox(height: 16),
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
@@ -141,17 +142,6 @@ class _SearchPageState extends State<SearchPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return TextField(
-      decoration: const InputDecoration(
-        labelText: 'Ara...',
-        prefixIcon: Icon(Icons.search),
-        labelStyle: TextStyle(fontSize: 16),
-      ),
-      onChanged: _onSearchChanged,
     );
   }
 
@@ -206,7 +196,7 @@ class _SearchPageState extends State<SearchPage> {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         SizedBox(
-          height: 185,
+          height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: itemCount,

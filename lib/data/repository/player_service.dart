@@ -5,6 +5,7 @@ class PlayerService {
   final CollectionReference _playerCollection =
       FirebaseFirestore.instance.collection('Player');
 
+  // search player
   Future<List<Player?>> getSearchPlayer(String query) async {
     try {
       QuerySnapshot result = await _playerCollection

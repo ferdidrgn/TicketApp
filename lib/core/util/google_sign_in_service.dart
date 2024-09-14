@@ -1,16 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleSignInService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  GoogleSignInAccount? account;
+
+  GoogleSignInAccount? get getAccount => account;
 
   Future<GoogleSignInAccount?> signInWithGoogle() async {
     try {
-      final account = await _googleSignIn.signIn();
+      account = await _googleSignIn.signIn();
       return account;
     } catch (error) {
-      debugPrint('Google Sign-In Error: $error');
-      return null;
+      throw Exception('Google Sign-In Error: $error');
     }
   }
 

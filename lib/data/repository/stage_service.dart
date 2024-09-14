@@ -5,6 +5,7 @@ class StageService {
   final CollectionReference _stageCollection =
       FirebaseFirestore.instance.collection('Stage');
 
+  // search stage
   Future<List<Stage?>> getSearchStage(String query) async {
     try {
       QuerySnapshot snapshot = await _stageCollection

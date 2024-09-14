@@ -87,7 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => ContractsPage(),
+                    builder: (context) => const ContractsPage(),
                   ),
                 );
               }),
