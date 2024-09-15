@@ -19,7 +19,8 @@ class ShowDetailPage extends StatefulWidget {
 
 class _ShowDetailPageState extends State<ShowDetailPage> {
   Show? showData;
-  List<Player?> playerDataList = [];
+  List<Player?> nowPlayerDataList = [];
+  List<Player?> oldPlayerDataList = [];
   bool isLoading = true;
 
   final ShowService showService = ShowService();
@@ -38,10 +39,12 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         setState(() {
           showData = show;
         });
-        _fetchPlayers(show.playersId);
+        _fetchNowPlayers(show.nowPlayersId);
+        _fetchOldPlayers(show.oldPlayersId);
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
     } finally {
       setState(() {
         isLoading = false; // Yükleme tamamlandı
@@ -49,17 +52,34 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     }
   }
 
-  Future<void> _fetchPlayers(List<String> playersId) async {
+  Future<void> _fetchNowPlayers(List<String> playersId) async {
     for (String playerId in playersId) {
       try {
         var player = await playerService.getPlayerById(playerId);
         if (player != null) {
           setState(() {
-            playerDataList.add(player);
+            nowPlayerDataList.add(player);
           });
         }
       } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')));
+      }
+    }
+  }
+
+  Future<void> _fetchOldPlayers(List<String> playersId) async {
+    for (String playerId in playersId) {
+      try {
+        var player = await playerService.getPlayerById(playerId);
+        if (player != null) {
+          setState(() {
+            oldPlayerDataList.add(player);
+          });
+        }
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')));
       }
     }
   }
@@ -72,8 +92,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         centerTitle: true,
       ),
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : _buildShowDetails(),
     );
   }
@@ -187,7 +206,11 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               ),
             ),*/
             const SizedBox(height: 20),
-            _buildPlayers(),
+            const CustomSectionTitle(title: 'Oyuncular', fontSize: 20),
+            _buildNowPlayers(),
+            const SizedBox(height: 10),
+            const CustomSectionTitle(title: 'Eski Ekip', fontSize: 20),
+            _buildOldPlayers(),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 20),
             //_buildGamePhotosSection(),
@@ -260,43 +283,82 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     );
   }
 
-  Widget _buildPlayers() {
-    return playerDataList.isNotEmpty
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Oyuncular',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(
-                height: 185,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: playerDataList.length,
-                  itemBuilder: (context, index) {
-                    return CustomStageCard(
-                      text: '${playerDataList[index]?.firstName ?? ''} ${playerDataList[index]?.lastName ?? ''}',
-                      imageUrl: playerDataList[index]?.imageUrl ?? '',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => PlayerDetailPage(
-                                  playerId: playerDataList[index]?.id ?? '')),
-                        );
-                      },
+  Widget _buildNowPlayers() {
+    return nowPlayerDataList.isNotEmpty
+        ? SizedBox(
+            height: 185,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: nowPlayerDataList.length,
+              itemBuilder: (context, index) {
+                return CustomStageCard(
+                  text:
+                      '${nowPlayerDataList[index]?.firstName ?? ''} ${nowPlayerDataList[index]?.lastName ?? ''}',
+                  imageUrl: nowPlayerDataList[index]?.imageUrl ?? '',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => PlayerDetailPage(
+                              playerId: nowPlayerDataList[index]?.id ?? '')),
                     );
                   },
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           )
         : const Center(
             child: Text('Oyuncu bilgisi mevcut değil.'),
           );
   }
+
+  Widget _buildOldPlayers() {
+    return oldPlayerDataList.isNotEmpty
+        ? SizedBox(
+      height: 185,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: oldPlayerDataList.length,
+        itemBuilder: (context, index) {
+          return Stack(
+            children: [
+              CustomStageCard(
+                text:
+                '${oldPlayerDataList[index]?.firstName ?? ''} ${oldPlayerDataList[index]?.lastName ?? ''}',
+                imageUrl: oldPlayerDataList[index]?.imageUrl ?? '',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => PlayerDetailPage(
+                            playerId: oldPlayerDataList[index]?.id ?? '')),
+                  );
+                },
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  ignoring: true,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(70),
+                      color: Colors.grey.withOpacity(0.5)
+                    )
+                  )
+                )
+              )
+            ]
+          );
+        },
+      ),
+    )
+        : const Center(
+      child: Text('Oyuncu bilgisi mevcut değil.'),
+    );
+  }
+
+
 
 /*
   Widget _buildGamePhotosSection() {

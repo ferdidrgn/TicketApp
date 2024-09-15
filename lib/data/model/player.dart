@@ -6,7 +6,8 @@ class Player {
   final String lastName;
   final String bio;
   final String? imageUrl;
-  final List<String> showsId;
+  final List<String> nowShowsId;
+  final List<String> oldShowsId;
 
   Player({
     required this.createdAt,
@@ -16,6 +17,7 @@ class Player {
     required this.lastName,
     required this.bio,
     this.imageUrl,
-    required this.showsId,
+    required this.nowShowsId,
+    required this.oldShowsId,
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
 import 'package:ticketapp/core/custom_views/custom_show_card.dart';
 import '../../../data/repository/player_service.dart';
@@ -17,7 +18,8 @@ class PlayerDetailPage extends StatefulWidget {
 
 class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Player? player;
-  List<Show?> showsDataList = [];
+  List<Show?> nowShowsDataList = [];
+  List<Show?> oldShowsDataList = [];
   bool isLoading = true;
 
   final PlayerService _playerService = PlayerService();
@@ -34,14 +36,16 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       final Player? fetchedPlayer =
           await _playerService.getPlayerById(widget.playerId);
 
-      if (fetchedPlayer?.showsId != null) {
+      if (fetchedPlayer?.nowShowsId != null) {
         setState(() {
           player = fetchedPlayer;
         });
-        _fetchShows(player?.showsId ?? []);
+        _fetchNowShows(player?.nowShowsId ?? []);
+        _fetchOldShows(player?.oldShowsId ?? []);
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
     } finally {
       setState(() {
         isLoading = false; // Yükleme tamamlandı
@@ -49,13 +53,29 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     }
   }
 
-  Future<void> _fetchShows(List<String> showsId) async {
+  Future<void> _fetchNowShows(List<String> showsId) async {
     for (String showId in showsId) {
       try {
         var show = await _showService.getShowById(showId);
         if (show != null) {
           setState(() {
-            showsDataList.add(show);
+            nowShowsDataList.add(show);
+          });
+        }
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
+      }
+    }
+  }
+
+  Future<void> _fetchOldShows(List<String> showsId) async {
+    for (String showId in showsId) {
+      try {
+        var show = await _showService.getShowById(showId);
+        if (show != null) {
+          setState(() {
+            oldShowsDataList.add(show);
           });
         }
       } catch (error) {
@@ -68,39 +88,38 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(player != null
-            ? '${player?.firstName} ${player?.lastName}'
-            : 'Player Details'),
-        centerTitle: true,
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  flex: 4, // %40
-                  child: _buildTopSection(),
-                ),
-                Expanded(
-                  flex: 6, // %60
-                  child: Padding(
+        appBar: AppBar(
+          title: Text(player != null
+              ? '${player?.firstName} ${player?.lastName}'
+              : 'Player Details'),
+          centerTitle: true,
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SafeArea(
+                child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: _buildBottomSection(),
-                  ),
-                ),
-              ],
-            ),
-    );
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _buildTopSection(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: _buildBottomSection(),
+                        ),
+                      ],
+                    ))));
   }
 
   Widget _buildTopSection() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        const SizedBox(height: 16),
         _buildPlayerImage(),
         const SizedBox(height: 16),
         _buildPlayerName(),
+        const SizedBox(height: 16)
       ],
     );
   }
@@ -129,9 +148,11 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
           children: [
             _buildPlayerBio(),
             const SizedBox(height: 24),
-            _buildGamesHeader(),
-            const SizedBox(height: 16),
-            _buildGamesSection(),
+            const CustomSectionTitle(title: "Gösterileri"),
+            _buildNowGamesSection(),
+            const SizedBox(height: 10),
+            const CustomSectionTitle(title: "Eski Gösterileri"),
+            _buildOldGamesSection(),
           ],
         ),
       ),
@@ -140,8 +161,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Widget _buildPlayerImage() {
     return Container(
-      width: 150,
-      height: 150,
+      width: 220,
+      height: 220,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(75)),
         border: Border.all(
@@ -181,21 +202,40 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     );
   }
 
-  Widget _buildGamesHeader() {
-    return const Text(
-      'Gösterileri',
-      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-    );
-  }
-
-  Widget _buildGamesSection() {
+  Widget _buildNowGamesSection() {
     return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: showsDataList.length,
+        itemCount: nowShowsDataList.length,
         itemBuilder: (context, index) {
-          final show = showsDataList[index];
+          final show = nowShowsDataList[index];
+          return CustomVerticalShowCard(
+            imageUrl: show?.imageUrl ?? '',
+            gameName: show?.name ?? '',
+            borderRadius: const BorderRadius.all(Radius.circular(20)),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) =>
+                        ShowDetailPage(showId: show?.id ?? '')),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOldGamesSection() {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: oldShowsDataList.length,
+        itemBuilder: (context, index) {
+          final show = oldShowsDataList[index];
           return CustomVerticalShowCard(
             imageUrl: show?.imageUrl ?? '',
             gameName: show?.name ?? '',

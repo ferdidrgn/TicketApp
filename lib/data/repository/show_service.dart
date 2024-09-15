@@ -146,15 +146,25 @@ class ShowService {
     showMap['imageUrl'] = downloadUrl;
     showMap['ageLimit'] = show?.ageLimit ?? '';
     showMap['description'] = show?.description ?? '';
+    showMap['duration'] = show?.duration ?? '';
     showMap['category'] = show?.category ?? '';
+    showMap['type'] = show?.type ?? '';
+    showMap['team'] = show?.team ?? '';
     showMap['eventRule'] = show?.eventRule ?? '';
 
-    // playersId listesi
-    List<String> playersIdList = [];
-    if (show?.playersId != null) {
-      playersIdList = show!.playersId.map((e) => e.toString()).toList();
+    // nowPlayersId listesi
+    List<String> nowPlayersIdList = [];
+    if (show?.nowPlayersId != null) {
+      nowPlayersIdList = show!.nowPlayersId.map((e) => e.toString()).toList();
     }
-    showMap['players'] = playersIdList;
+    showMap['nowPlayersId'] = nowPlayersIdList;
+
+    // oldPlayersId listesi
+    List<String> oldPlayersIdList = [];
+    if (show?.oldPlayersId != null) {
+      oldPlayersIdList = show!.oldPlayersId.map((e) => e.toString()).toList();
+    }
+    showMap['oldPlayersId'] = oldPlayersIdList;
 
     // eventsId listesi
     List<String> eventsIdList = [];
@@ -181,10 +191,14 @@ class ShowService {
       imageUrl: _getFieldAsString(document, 'imageUrl'),
       name: _getFieldAsString(document, 'name'),
       description: _getFieldAsString(document, 'description'),
+      duration: _getFieldAsString(document, 'duration'),
       category: _getFieldAsString(document, 'category'),
+      type: _getFieldAsString(document, 'type'),
+      team: _getFieldAsString(document, 'team'),
       ageLimit: _getFieldAsString(document, 'ageLimit'),
       eventRule: _getFieldAsString(document, 'eventRule'),
-      playersId: _getListAsString(document, 'playersId'),
+      nowPlayersId: _getListAsString(document, 'nowPlayersId'),
+      oldPlayersId: _getListAsString(document, 'oldPlayersId'),
       eventsId: _getListAsString(document, 'eventsId'),
       photosStageId: _getListAsString(document, 'photosStageId'),
     );

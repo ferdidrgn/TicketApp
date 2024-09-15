@@ -55,7 +55,8 @@ class PlayerService {
       lastName: _getStringField(document, 'lastName'),
       bio: _getStringField(document, 'bio'),
       imageUrl: _getStringField(document, 'imageUrl'),
-      showsId: _getListField(document, 'showsId'),
+      nowShowsId: _getListField(document, 'nowShowsId'),
+      oldShowsId: _getListField(document,'oldShowsId')
     );
   }
 

@@ -5,10 +5,14 @@ class Show {
   final String imageUrl;
   final String name;
   final String description;
+  final String duration;
   final String category;
+  final String team;
+  final String type;
   final String ageLimit;
   final String eventRule;
-  final List<String> playersId;
+  final List<String> nowPlayersId;
+  final List<String> oldPlayersId;
   final List<String> eventsId;
   final List<String> photosStageId;
 
@@ -19,11 +23,15 @@ class Show {
     required this.imageUrl,
     required this.name,
     required this.description,
+    required this.duration,
     required this.category,
+    required this.type,
+    required this.team,
     required this.ageLimit,
     required this.eventRule,
-    required this.playersId,
     required this.eventsId,
+    required this.nowPlayersId,
+    required this.oldPlayersId,
     required this.photosStageId,
   });
 }
