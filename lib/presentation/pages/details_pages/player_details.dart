@@ -21,6 +21,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   List<Show?> nowShowsDataList = [];
   List<Show?> oldShowsDataList = [];
   bool isLoading = true;
+  double _sheetProgress = 0.1;
 
   final PlayerService _playerService = PlayerService();
   final ShowService _showService = ShowService();
@@ -33,152 +34,160 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Future<void> _fetchPlayerData() async {
     try {
-      final Player? fetchedPlayer =
-          await _playerService.getPlayerById(widget.playerId);
-
+      final fetchedPlayer = await _playerService.getPlayerById(widget.playerId);
       if (fetchedPlayer?.nowShowsId != null) {
         setState(() {
           player = fetchedPlayer;
         });
-        _fetchNowShows(player?.nowShowsId ?? []);
-        _fetchOldShows(player?.oldShowsId ?? []);
+        await Future.wait([
+          _fetchShows(player!.nowShowsId, nowShowsDataList),
+          _fetchShows(player!.oldShowsId, oldShowsDataList),
+        ]);
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
+      _showErrorSnackbar('Veri alınırken bir hata oluştu: $error');
     } finally {
       setState(() {
-        isLoading = false; // Yükleme tamamlandı
+        isLoading = false;
       });
     }
   }
 
-  Future<void> _fetchNowShows(List<String> showsId) async {
+  Future<void> _fetchShows(List<String> showsId, List<Show?> showsList) async {
     for (String showId in showsId) {
       try {
-        var show = await _showService.getShowById(showId);
+        final show = await _showService.getShowById(showId);
         if (show != null) {
           setState(() {
-            nowShowsDataList.add(show);
+            showsList.add(show);
           });
         }
       } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
+        _showErrorSnackbar('Gösteri verisi alınırken bir hata oluştu: $error');
       }
     }
   }
 
-  Future<void> _fetchOldShows(List<String> showsId) async {
-    for (String showId in showsId) {
-      try {
-        var show = await _showService.getShowById(showId);
-        if (show != null) {
-          setState(() {
-            oldShowsDataList.add(show);
-          });
-        }
-      } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
-      }
-    }
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text(player != null
-              ? '${player?.firstName} ${player?.lastName}'
-              : 'Player Details'),
-          centerTitle: true,
-        ),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : SafeArea(
-                child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        _buildTopSection(),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 5),
-                          child: _buildBottomSection(),
-                        ),
-                      ],
-                    ))));
-  }
-
-  Widget _buildTopSection() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const SizedBox(height: 16),
-        _buildPlayerImage(),
-        const SizedBox(height: 16),
-        _buildPlayerName(),
-        const SizedBox(height: 16)
-      ],
+      appBar: AppBar(
+        title: Text(player != null
+            ? '${player!.firstName} ${player!.lastName}'
+            : 'Player Details'),
+        centerTitle: true,
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: Stack(
+                children: [
+                  _buildTopSection(),
+                  DraggableScrollableSheet(
+                    initialChildSize: 0.1,
+                    minChildSize: 0.1,
+                    maxChildSize: 0.8,
+                    builder: (context, scrollController) {
+                      return NotificationListener<
+                          DraggableScrollableNotification>(
+                        onNotification: (notification) {
+                          setState(() {
+                            _sheetProgress = notification.extent;
+                          });
+                          return true;
+                        },
+                        child: _buildBottomSheet(scrollController),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
-  Widget _buildBottomSection() {
+  Widget _buildBottomSheet(ScrollController scrollController) {
     return Container(
-      padding: const EdgeInsets.only(top: 20),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(50),
-          topRight: Radius.circular(50),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, -5))
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildArrowIcon(),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPlayerBio(),
+                  const SizedBox(height: 24),
+                  const CustomSectionTitle(title: "Gösterileri"),
+                  _buildShowsSection(nowShowsDataList),
+                  const SizedBox(height: 10),
+                  const CustomSectionTitle(title: "Eski Gösterileri"),
+                  _buildShowsSection(oldShowsDataList),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildPlayerBio(),
-            const SizedBox(height: 24),
-            const CustomSectionTitle(title: "Gösterileri"),
-            _buildNowGamesSection(),
-            const SizedBox(height: 10),
-            const CustomSectionTitle(title: "Eski Gösterileri"),
-            _buildOldGamesSection(),
-          ],
-        ),
+    );
+  }
+
+  Widget _buildTopSection() {
+    final double imageSize = 250 - (130 * _sheetProgress);
+    final double topPosition =
+        MediaQuery.of(context).size.height * 0.30 * (0.8 - _sheetProgress);
+
+    return Positioned(
+      top: topPosition,
+      left: 0,
+      right: 0,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: imageSize,
+            height: imageSize,
+            child: _buildPlayerImage(),
+          ),
+          const SizedBox(height: 16),
+          Opacity(opacity: 1 - _sheetProgress, child: _buildPlayerName()),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 
   Widget _buildPlayerImage() {
     return Container(
-      width: 220,
-      height: 220,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(75)),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary,
-          width: 2,
-        ),
+        border:
+            Border.all(color: Theme.of(context).colorScheme.primary, width: 2),
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.all(Radius.circular(75)),
         child: player?.imageUrl != null
-            ? Image.network(
-                player!.imageUrl!,
-                fit: BoxFit.cover,
-              )
-            : const Icon(Icons.person, size: 50), // Placeholder for no image
+            ? Image.network(player!.imageUrl!, fit: BoxFit.cover)
+            : const Icon(Icons.person, size: 50),
       ),
     );
   }
@@ -195,21 +204,21 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Text(
-        player!.bio,
+        player?.bio ?? '',
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400),
         textAlign: TextAlign.center,
       ),
     );
   }
 
-  Widget _buildNowGamesSection() {
+  Widget _buildShowsSection(List<Show?> showsList) {
     return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: nowShowsDataList.length,
+        itemCount: showsList.length,
         itemBuilder: (context, index) {
-          final show = nowShowsDataList[index];
+          final show = showsList[index];
           return CustomVerticalShowCard(
             imageUrl: show?.imageUrl ?? '',
             gameName: show?.name ?? '',
@@ -228,28 +237,16 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     );
   }
 
-  Widget _buildOldGamesSection() {
-    return SizedBox(
-      height: 200,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: oldShowsDataList.length,
-        itemBuilder: (context, index) {
-          final show = oldShowsDataList[index];
-          return CustomVerticalShowCard(
-            imageUrl: show?.imageUrl ?? '',
-            gameName: show?.name ?? '',
-            borderRadius: const BorderRadius.all(Radius.circular(20)),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) =>
-                        ShowDetailPage(showId: show?.id ?? '')),
-              );
-            },
-          );
-        },
+  Widget _buildArrowIcon() {
+    return Container(
+      alignment: Alignment.center,
+      padding: const EdgeInsets.only(top: 20),
+      child: Icon(
+        _sheetProgress == 0.1
+            ? Icons.keyboard_double_arrow_up
+            : Icons.keyboard_double_arrow_down,
+        size: 30,
+        color: Colors.black,
       ),
     );
   }
