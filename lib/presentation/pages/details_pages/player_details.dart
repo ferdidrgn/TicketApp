@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
@@ -115,7 +116,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(50)),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.2),
@@ -170,6 +171,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
           const SizedBox(height: 16),
           Opacity(opacity: 1 - _sheetProgress, child: _buildPlayerName()),
           const SizedBox(height: 16),
+          Opacity(opacity: 1 - _sheetProgress, child: _buildPlayerBio()),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -193,11 +196,9 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   }
 
   Widget _buildPlayerName() {
-    return Text(
-      '${player?.firstName} ${player?.lastName}',
-      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
-      textAlign: TextAlign.center,
-    );
+    return Text('${player?.firstName} ${player?.lastName}',
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
+          textAlign: TextAlign.center);
   }
 
   Widget _buildPlayerBio() {
