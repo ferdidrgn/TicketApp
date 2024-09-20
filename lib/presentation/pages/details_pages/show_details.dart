@@ -22,6 +22,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   List<Player?> nowPlayerDataList = [];
   List<Player?> oldPlayerDataList = [];
   bool isLoading = true;
+  bool isExpanded = false;
 
   final ShowService showService = ShowService();
   final PlayerService playerService = PlayerService();
@@ -178,9 +179,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(showData?.description ?? 'No description available',
-                style: const TextStyle(
-                    fontSize: 16, height: 1.1, fontWeight: FontWeight.w300)),
+            _buildDescription(),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
             const SizedBox(height: 16),
@@ -218,6 +217,60 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildDescription() {
+    String description =
+    _formatDescription(showData?.description ?? 'No description available');
+    if (!isExpanded && description.length > 100) {
+      description = '${description.substring(0, 100)}...'; // Kısaltılmış açıklama
+    }
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              description,
+              style: const TextStyle(
+                fontSize: 16,
+                height: 1.5,
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    isExpanded = !isExpanded;
+                  });
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(isExpanded ? 'Daralt' : 'Daha Fazlasını Göster'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  String _formatDescription(String description) {
+    description = description.replaceAll('\\n', '\n');
+    return description;
   }
 
   Widget _buildEventCard(
@@ -316,49 +369,41 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Widget _buildOldPlayers() {
     return oldPlayerDataList.isNotEmpty
         ? SizedBox(
-      height: 185,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: oldPlayerDataList.length,
-        itemBuilder: (context, index) {
-          return Stack(
-            children: [
-              CustomStageCard(
-                text:
-                '${oldPlayerDataList[index]?.firstName ?? ''} ${oldPlayerDataList[index]?.lastName ?? ''}',
-                imageUrl: oldPlayerDataList[index]?.imageUrl ?? '',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => PlayerDetailPage(
-                            playerId: oldPlayerDataList[index]?.id ?? '')),
-                  );
-                },
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  ignoring: true,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(70),
-                      color: Colors.grey.withOpacity(0.5)
-                    )
-                  )
-                )
-              )
-            ]
-          );
-        },
-      ),
-    )
+            height: 185,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: oldPlayerDataList.length,
+              itemBuilder: (context, index) {
+                return Stack(children: [
+                  CustomStageCard(
+                    text:
+                        '${oldPlayerDataList[index]?.firstName ?? ''} ${oldPlayerDataList[index]?.lastName ?? ''}',
+                    imageUrl: oldPlayerDataList[index]?.imageUrl ?? '',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => PlayerDetailPage(
+                                playerId: oldPlayerDataList[index]?.id ?? '')),
+                      );
+                    },
+                  ),
+                  Positioned.fill(
+                      child: IgnorePointer(
+                          ignoring: true,
+                          child: Container(
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(70),
+                                  color: Colors.grey.withOpacity(0.5)))))
+                ]);
+              },
+            ),
+          )
         : const Center(
-      child: Text('Oyuncu bilgisi mevcut değil.'),
-    );
+            child: Text('Oyuncu bilgisi mevcut değil.'),
+          );
   }
-
-
 
 /*
   Widget _buildGamePhotosSection() {
