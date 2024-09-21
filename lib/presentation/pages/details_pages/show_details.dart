@@ -220,8 +220,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   Widget _buildDescription() {
-    String description =
-    _formatDescription(showData?.description ?? 'No description available');
+    String? description = showData?.description.replaceAll('\\n', '\n') ?? 'No description available';
     if (!isExpanded && description.length > 100) {
       description = '${description.substring(0, 100)}...'; // Kısaltılmış açıklama
     }
@@ -265,12 +264,6 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         ),
       ),
     );
-  }
-
-
-  String _formatDescription(String description) {
-    description = description.replaceAll('\\n', '\n');
-    return description;
   }
 
   Widget _buildEventCard(
