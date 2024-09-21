@@ -114,40 +114,33 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Widget _buildBottomSheet(ScrollController scrollController) {
     return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(50)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -5))
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildArrowIcon(),
-          Expanded(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(50)),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, -5))
+          ],
+        ),
+        child: Expanded(
             child: SingleChildScrollView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildPlayerBio(),
-                  const SizedBox(height: 24),
-                  const CustomSectionTitle(title: "Gösterileri"),
-                  _buildShowsSection(nowShowsDataList),
-                  const SizedBox(height: 10),
-                  const CustomSectionTitle(title: "Eski Gösterileri"),
-                  _buildShowsSection(oldShowsDataList),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+                controller: scrollController,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildArrowIcon(),
+                      const SizedBox(height: 24),
+                      _buildPlayerBio(),
+                      const SizedBox(height: 24),
+                      const CustomSectionTitle(title: "Gösterileri"),
+                      _buildShowsSection(nowShowsDataList),
+                      const SizedBox(height: 10),
+                      const CustomSectionTitle(title: "Eski Gösterileri"),
+                      _buildShowsSection(oldShowsDataList),
+                    ]))));
   }
 
   Widget _buildTopSection() {
@@ -197,8 +190,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Widget _buildPlayerName() {
     return Text('${player?.firstName} ${player?.lastName}',
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
-          textAlign: TextAlign.center);
+        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
+        textAlign: TextAlign.center);
   }
 
   Widget _buildPlayerBio() {
@@ -241,7 +234,6 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Widget _buildArrowIcon() {
     return Container(
       alignment: Alignment.center,
-      padding: const EdgeInsets.only(top: 20),
       child: Icon(
         _sheetProgress == 0.1
             ? Icons.keyboard_double_arrow_up
