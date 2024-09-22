@@ -44,8 +44,7 @@ class CategoryCardBuilder extends StatelessWidget {
     return InkWell(
         onTap: () {
           // Tıklanan kategori ile BottomNavBar'daki Discover sekmesine geçiş yapıyoruz
-          BottomNavBar.of(context)?.changeTabWithCategory(
-              1, title); // "Discover" sekmesine geçiyoruz
+          BottomNavBar.of(context)?.changeTabWithCategory(1, title); // "Discover" sekmesine geçiyoruz
         },
         child: Container(
             width: 150,

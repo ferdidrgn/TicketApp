@@ -7,7 +7,7 @@ class Show {
   final String description;
   final String duration;
   final String category;
-  final String team;
+  final String teamId;
   final String type;
   final String ageLimit;
   final String eventRule;
@@ -26,7 +26,7 @@ class Show {
     required this.duration,
     required this.category,
     required this.type,
-    required this.team,
+    required this.teamId,
     required this.ageLimit,
     required this.eventRule,
     required this.eventsId,

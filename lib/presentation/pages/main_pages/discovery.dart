@@ -56,22 +56,18 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : shows.isEmpty
-                    ? const Center(
-                        child: Text('Bu kategori için etkinlik bulunamadı.'))
-                    : Expanded(child: _buildScrollableItems(shows)),
-          ],
-        ),
-      ),
-    );
+        body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _buildHeader(),
+              isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : shows.isEmpty
+                      ? const Center(
+                          child: Text('Bu kategori için etkinlik bulunamadı.'))
+                      : Expanded(child: _buildScrollableItems(shows))
+            ])));
   }
 
   Widget _buildHeader() {

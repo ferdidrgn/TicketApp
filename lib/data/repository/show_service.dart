@@ -163,7 +163,7 @@ class ShowService {
     showMap['duration'] = show?.duration ?? '';
     showMap['category'] = show?.category ?? '';
     showMap['type'] = show?.type ?? '';
-    showMap['team'] = show?.team ?? '';
+    showMap['teamId'] = show?.teamId ?? '';
     showMap['eventRule'] = show?.eventRule ?? '';
 
     // nowPlayersId listesi
@@ -208,7 +208,7 @@ class ShowService {
       duration: _getFieldAsString(document, 'duration'),
       category: _getFieldAsString(document, 'category'),
       type: _getFieldAsString(document, 'type'),
-      team: _getFieldAsString(document, 'team'),
+      teamId: _getFieldAsString(document, 'teamId'),
       ageLimit: _getFieldAsString(document, 'ageLimit'),
       eventRule: _getFieldAsString(document, 'eventRule'),
       nowPlayersId: _getListAsString(document, 'nowPlayersId'),

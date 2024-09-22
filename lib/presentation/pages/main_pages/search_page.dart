@@ -4,14 +4,18 @@ import 'package:ticketapp/data/repository/player_service.dart';
 import 'package:ticketapp/data/repository/show_service.dart';
 import 'package:ticketapp/data/repository/stage_service.dart';
 import 'package:ticketapp/presentation/pages/details_pages/stage_details.dart';
+import '../../../core/custom_views/bottom_nav_bar.dart';
 import '../../../core/custom_views/custom_category_card.dart';
 import '../../../core/custom_views/custom_show_card.dart';
 import '../../../core/custom_views/custom_stage_card.dart';
 import '../../../data/model/player.dart';
 import '../../../data/model/show.dart';
 import '../../../data/model/stage.dart';
+import '../../../data/model/team.dart';
+import '../../../data/repository/team_service.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
+import '../details_pages/team_details.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -24,14 +28,17 @@ class _SearchPageState extends State<SearchPage> {
   final ShowService _showService = ShowService();
   final PlayerService _playerService = PlayerService();
   final StageService _stageService = StageService();
+  final TeamService _teamService = TeamService();
 
   List<Show?> shows = [];
   List<Player?> players = [];
   List<Stage?> stages = [];
+  List<Team?> teams = [];
 
   List<Show?> _filteredShows = [];
   List<Player?> _filteredPlayers = [];
   List<Stage?> _filteredStages = [];
+  List<Team?> _filteredTeams = [];
   List<Map<String, Object>> _filteredCategories = [];
 
   final List<Map<String, Object>> _categories = [
@@ -62,15 +69,18 @@ class _SearchPageState extends State<SearchPage> {
       final fetchedShows = await _showService.getShows(true);
       final fetchedPlayers = await _playerService.getPlayers(true);
       final fetchedStages = await _stageService.getStages(true);
+      final fetchedTeams = await _teamService.getTeams(true);
 
       setState(() {
         shows = fetchedShows;
         players = fetchedPlayers;
         stages = fetchedStages;
+        teams = fetchedTeams;
 
         _filteredShows = shows;
         _filteredPlayers = players;
         _filteredStages = stages;
+        _filteredTeams = teams;
         _filteredCategories = _categories;
       });
     } catch (e) {
@@ -85,6 +95,10 @@ class _SearchPageState extends State<SearchPage> {
       _filteredShows = shows
           .where((show) =>
               (show?.name ?? '').toLowerCase().contains(query.toLowerCase()))
+          .toList();
+      _filteredTeams = teams
+          .where((team) =>
+              (team?.name ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
       _filteredPlayers = players
           .where((player) =>
@@ -133,6 +147,7 @@ class _SearchPageState extends State<SearchPage> {
                       if (_filteredShows.isNotEmpty) _buildShowSection(),
                       if (_filteredPlayers.isNotEmpty) _buildPlayerSection(),
                       if (_filteredStages.isNotEmpty) _buildVenueSection(),
+                      if (_filteredTeams.isNotEmpty) _buildTeamSection(),
                       if (_filteredCategories.isNotEmpty)
                         _buildCategorySection(),
                     ],
@@ -147,11 +162,10 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildShowSection() {
     return _buildSection(
-      title: 'Eşleşen Etkinlikler',
-      itemCount: _filteredShows.length,
-      itemBuilder: (context, index) => _buildShowCard(context, index),
-      showAllAction: _buildShowAllButton(),
-    );
+        title: 'Eşleşen Etkinlikler',
+        itemCount: _filteredShows.length,
+        itemBuilder: (context, index) => _buildShowCard(context, index),
+        showAllAction: _buildShowAllButton());
   }
 
   Widget _buildVenueSection() {
@@ -170,17 +184,20 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildCategorySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Kategoriler',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        CategoryCardBuilder(categories: _filteredCategories),
-      ],
+  Widget _buildTeamSection() {
+    return _buildSection(
+      title: 'Ekipler',
+      itemCount: _filteredTeams.length,
+      itemBuilder: (context, index) => _buildTeamCard(context, index),
     );
+  }
+
+  Widget _buildCategorySection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Kategoriler',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      CategoryCardBuilder(categories: _filteredCategories)
+    ]);
   }
 
   Widget _buildSection({
@@ -189,75 +206,74 @@ class _SearchPageState extends State<SearchPage> {
     required IndexedWidgetBuilder itemBuilder,
     Widget? showAllAction,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        SizedBox(
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 16),
+      Text(title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 8),
+      SizedBox(
           height: 200,
           child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: itemCount,
-            itemBuilder: itemBuilder,
-          ),
-        ),
-        if (showAllAction != null) const SizedBox(height: 16),
-        if (showAllAction != null) showAllAction,
-      ],
-    );
+              scrollDirection: Axis.horizontal,
+              itemCount: itemCount,
+              itemBuilder: itemBuilder)),
+      if (showAllAction != null) const SizedBox(height: 16),
+      if (showAllAction != null) showAllAction
+    ]);
   }
 
   Widget _buildShowCard(BuildContext context, int index) {
     return CustomVerticalShowCard(
-      gameName: _filteredShows[index]?.name ?? '',
-      imageUrl: _filteredShows[index]?.imageUrl ?? '',
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) =>
-                ShowDetailPage(showId: _filteredShows[index]?.id ?? '')),
-      ),
-    );
+        gameName: _filteredShows[index]?.name ?? '',
+        imageUrl: _filteredShows[index]?.imageUrl ?? '',
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    ShowDetailPage(showId: _filteredShows[index]?.id ?? ''))));
   }
 
   Widget _buildVenueCard(BuildContext context, int index) {
     return CustomStageCard(
-      text: _filteredStages[index]?.name ?? '',
-      imageUrl: _filteredStages[index]?.imageUrl ?? '',
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) =>
-                StageDetailPage(stageId: _filteredStages[index]?.id ?? '')),
-      ),
-    );
+        text: _filteredStages[index]?.name ?? '',
+        imageUrl: _filteredStages[index]?.imageUrl ?? '',
+        onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => StageDetailPage(
+                    stageId: _filteredStages[index]?.id ?? ''))));
   }
 
   Widget _buildPlayerCard(BuildContext context, int index) {
     return CustomStageCard(
-      text:
-          '${_filteredPlayers[index]?.firstName} ${_filteredPlayers[index]?.lastName}',
-      imageUrl: _filteredPlayers[index]?.imageUrl ?? "",
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) =>
-                PlayerDetailPage(playerId: _filteredPlayers[index]?.id ?? '')),
-      ),
-    );
+        text:
+            '${_filteredPlayers[index]?.firstName} ${_filteredPlayers[index]?.lastName}',
+        imageUrl: _filteredPlayers[index]?.imageUrl ?? "",
+        onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => PlayerDetailPage(
+                    playerId: _filteredPlayers[index]?.id ?? ''))));
+  }
+
+  Widget _buildTeamCard(BuildContext context, int index) {
+    return CustomVerticalShowCard(
+        gameName: _filteredTeams[index]?.name ?? '',
+        imageUrl: _filteredTeams[index]?.imageUrl ?? '',
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    TeamDetailsPage(teamId: _filteredTeams[index]?.id ?? ''))));
   }
 
   Widget _buildShowAllButton() {
     return ElevatedButton(
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => const ShowDetailPage(showId: '0')),
-      ),
-      child: const Text('Tümünü Göster',
-          style: TextStyle(fontSize: 16, color: Colors.red)),
-    );
+        onPressed: () {
+          BottomNavBar.of(context)
+              ?.changeTabWithCategory(1, ""); // "Discover" sekmesine geçiyoruz
+        },
+        child: const Text('Tümünü Göster',
+            style: TextStyle(fontSize: 16, color: Colors.red)));
   }
 }

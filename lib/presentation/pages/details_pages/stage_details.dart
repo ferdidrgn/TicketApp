@@ -202,19 +202,16 @@ class _StageDetailPageState extends State<StageDetailPage> {
 
   Widget _buildEventCard(BuildContext context, Show? show) {
     return GestureDetector(
-      child: CustomVerticalShowCard(
-        imageUrl: show?.imageUrl ?? 'https://via.placeholder.com/150',
-        gameName: show?.name ?? 'No Name',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ShowDetailPage(showId: show?.id??''),
-            ),
-          );
-        },
-      ),
-    );
+        child: CustomVerticalShowCard(
+            imageUrl: show?.imageUrl ?? 'https://via.placeholder.com/150',
+            gameName: show?.name ?? 'No Name',
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          ShowDetailPage(showId: show?.id ?? '')));
+            }));
   }
 
   Widget _buildStageMap(Stage stage) {
