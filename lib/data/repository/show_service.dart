@@ -1,22 +1,32 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
 import '../model/show.dart';
 
 class ShowService {
   final CollectionReference _showCollection =
       FirebaseFirestore.instance.collection('Show');
 
-  // search show
-  Future<List<Show?>> getSearchShow(String query) async {
+// search show
+  Future<List<Show?>> getSearchShow(List<String?> categories, String? type) async {
     try {
-      QuerySnapshot result = await _showCollection
-          .where('name', isGreaterThanOrEqualTo: query)
-          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
-          .get();
+      Query query = _showCollection;
 
-      return result.docs.map((e) => _mapDocumentToShow(e)).toList();
+      if (categories.isEmpty && type == null) {
+        return getShows(false);
+      } else {
+        if (categories.isNotEmpty) {
+          query = query.where('category', whereIn: categories);
+        }
+
+        if (type != null && type.isNotEmpty) {
+          query = query.where('type', isEqualTo: type);
+        }
+
+        QuerySnapshot result = await query.get();
+
+        return result.docs.map((e) => _mapDocumentToShow(e)).toList();
+      }
     } catch (e) {
       throw Exception('Arama Hatası: $e');
     }
@@ -26,8 +36,12 @@ class ShowService {
   Future<List<Show?>> getShows(bool isLimit) async {
     try {
       QuerySnapshot snapshot = isLimit
-          ? await _showCollection.get()
-          : await _showCollection.orderBy('createdAt', descending: true).limit(20).get();
+          ? await _showCollection
+              .orderBy('_createdAt', descending: true)
+              .limit(20)
+              .get()
+          : await _showCollection.get();
+
       return snapshot.docs.map((doc) => _mapDocumentToShow(doc)).toList();
     } catch (e) {
       throw Exception('Oyunları Getirme Hatası: $e');

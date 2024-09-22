@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'bottom_nav_bar.dart'; // BottomNavBar'ı buraya import ediyoruz
 
 class CategoryCardBuilder extends StatelessWidget {
   final List<Map<String, Object>>? categories;
@@ -40,31 +41,32 @@ class CategoryCardBuilder extends StatelessWidget {
   }
 
   Widget _buildCategoryCard(String title, IconData icon, BuildContext context) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 16),
-      child: Card(
-        elevation: 8,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon,
-                  size: 50,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.red),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.normal),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return InkWell(
+        onTap: () {
+          // Tıklanan kategori ile BottomNavBar'daki Discover sekmesine geçiş yapıyoruz
+          BottomNavBar.of(context)?.changeTabWithCategory(
+              1, title); // "Discover" sekmesine geçiyoruz
+        },
+        child: Container(
+            width: 150,
+            margin: const EdgeInsets.only(right: 16),
+            child: Card(
+                elevation: 8,
+                child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(icon,
+                              size: 50,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.red),
+                          const SizedBox(height: 10),
+                          Text(title,
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.normal))
+                        ])))));
   }
 }

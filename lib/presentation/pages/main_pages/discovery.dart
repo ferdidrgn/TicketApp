@@ -1,42 +1,50 @@
 import 'package:flutter/material.dart';
-
+import 'package:ticketapp/core/custom_views/custom_title.dart';
 import '../../../core/custom_views/custom_event_card.dart';
+import '../../../data/model/show.dart';
+import '../../../data/repository/show_service.dart';
 
 class DiscoveryPage extends StatefulWidget {
-  const DiscoveryPage({super.key});
+  final String? selectedCategory;
+
+  const DiscoveryPage({super.key, this.selectedCategory});
 
   @override
   _DiscoveryPageState createState() => _DiscoveryPageState();
 }
 
 class _DiscoveryPageState extends State<DiscoveryPage> {
-  // Sample data for events
-  final List<Event> events = [
-    Event(
-      imageUrl: 'https://via.placeholder.com/150',
-      showName: 'Konser 1',
-      category: 'Müzik',
-      date: '2024-09-15',
-      stage: 'Sahne 1',
-      price: 100,
-    ),
-    Event(
-      imageUrl: 'https://via.placeholder.com/150',
-      showName: 'Tiyatro 1',
-      category: 'Tiyatro',
-      date: '2024-09-20',
-      stage: 'Sahne 2',
-      price: 75,
-    ),
-    // Add more events here
-  ];
-
-  // Filter values
-  String selectedCategory = 'Müzik';
+  bool isLoading = true;
+  List<Show?> shows = [];
+  List<String> selectedCategories = [];
+  String? type;
   double minPrice = 0;
   double maxPrice = 5200;
-  DateTime startDate = DateTime.now();
-  DateTime endDate = DateTime.now().add(const Duration(days: 30));
+  DateTime? startDate;
+  DateTime? endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEventsByCategory();
+  }
+
+  Future<void> _fetchEventsByCategory() async {
+    try {
+      final showService = ShowService();
+      final List<Show?> fetchedEvents = await showService.getSearchShow(selectedCategories, type);
+
+      setState(() {
+        shows = fetchedEvents;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      throw Exception('Veriler çekilirken hata oluştu: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,23 +57,42 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildSectionTitle('Keşfet Etkinlikler'),
+                const CustomSectionTitle(title: 'Keşfet', fontSize: 22),
                 IconButton(
                   icon: const Icon(Icons.filter_list),
-                  onPressed: () => _showFilterPopup(),
+                  onPressed: () => _showFilterPopup(context),
                 ),
               ],
             ),
-            Expanded(
-              child: _buildScrollableItems(events),
-            ),
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : shows.isEmpty
+                ? const Center(child: Text('Bu kategori için etkinlik bulunamadı.'))
+                : Expanded(child: _buildScrollableItems(shows)),
           ],
         ),
       ),
     );
   }
 
-  void _showFilterPopup() {
+  Widget _buildScrollableItems(List<Show?> items) {
+    return ListView.builder(
+      scrollDirection: Axis.vertical,
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        return EventCard(
+          imageUrl: items[index]?.imageUrl ?? '',
+          showName: items[index]?.name ?? '',
+          category: items[index]?.category ?? '',
+          date: "15.06.2023",
+          stage: "Sahne 1",
+          price: 150.0,
+        );
+      },
+    );
+  }
+
+  void _showFilterPopup(BuildContext context) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -74,21 +101,18 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFilterDropdown(
-                  'Kategori',
-                  ['Müzik', 'Tiyatro', 'Sinema', 'Dans', 'Opera'],
-                  selectedCategory, (newValue) {
-                setState(() {
-                  selectedCategory = newValue!;
-                });
-              }),
-              _buildPriceRangeSlider(),
+              const Text(
+                'Filtrele',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              _buildCategoryFilter(),
+              _buildPriceRangeFilter(),
               _buildDateRangePicker(),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  // Apply filter logic if needed
+                  _fetchEventsByCategory(); // Fetch with new filters
                 },
                 child: const Text('Uygula'),
               ),
@@ -99,156 +123,106 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildFilterDropdown(String title, List<String> options,
-      String selectedValue, ValueChanged<String?> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: DropdownButtonFormField<String>(
-        decoration: InputDecoration(
-          labelText: title,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+  Widget _buildCategoryFilter() {
+    List<String> categories = ['Müzik', 'Tiyatro', 'Sinema', 'Dans', 'Opera'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Kategori Seçin'),
+        SizedBox(
+          height: 50,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (selectedCategories.contains(category)) {
+                      selectedCategories.remove(category);
+                    } else {
+                      selectedCategories.add(category);
+                    }
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: selectedCategories.contains(category) ? Colors.blue : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(child: Text(category)),
+                ),
+              );
+            },
+          ),
         ),
-        value: selectedValue,
-        onChanged: onChanged,
-        items: options.map((option) {
-          return DropdownMenuItem<String>(
-            value: option,
-            child: Text(option),
-          );
-        }).toList(),
-      ),
+        const SizedBox(height: 10),
+        Text('Seçilen Kategoriler: ${selectedCategories.join(', ')}'),
+      ],
     );
   }
 
-  Widget _buildPriceRangeSlider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Fiyat Aralığı'),
-          RangeSlider(
-            values: RangeValues(minPrice, maxPrice),
-            min: 0,
-            max: 5200,
-            divisions: 10,
-            onChanged: (values) {
-              setState(() {
-                minPrice = values.start;
-                maxPrice = values.end;
-              });
-            },
-          ),
-          Text(
-              '₺${minPrice.toStringAsFixed(2)} - ₺${maxPrice.toStringAsFixed(2)}'),
-        ],
-      ),
+  Widget _buildPriceRangeFilter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Fiyat Aralığı'),
+        RangeSlider(
+          values: RangeValues(minPrice, maxPrice),
+          min: 0,
+          max: 5200,
+          divisions: 10,
+          onChanged: (RangeValues values) {
+            setState(() {
+              minPrice = values.start;
+              maxPrice = values.end;
+            });
+          },
+        ),
+        Text(
+          '₺${minPrice.toStringAsFixed(2)} - ₺${maxPrice.toStringAsFixed(2)}',
+        ),
+      ],
     );
   }
 
   Widget _buildDateRangePicker() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Tarih Aralığı'),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    DateTime? newStartDate = await showDatePicker(
-                      context: context,
-                      initialDate: startDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (newStartDate != null && newStartDate != startDate) {
-                      setState(() {
-                        startDate = newStartDate;
-                      });
-                    }
-                  },
-                  child: Text(
-                      'Başlangıç: ${startDate.toLocal().toShortDateString()}'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    DateTime? newEndDate = await showDatePicker(
-                      context: context,
-                      initialDate: endDate,
-                      firstDate: startDate,
-                      lastDate: DateTime(2100),
-                    );
-                    if (newEndDate != null && newEndDate != endDate) {
-                      setState(() {
-                        endDate = newEndDate;
-                      });
-                    }
-                  },
-                  child:
-                      Text('Bitiş: ${endDate.toLocal().toShortDateString()}'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Tarih Aralığı Seçin'),
+        ElevatedButton(
+          onPressed: () async {
+            DateTime? newStartDate = await showDatePicker(
+              context: context,
+              initialDate: startDate ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            setState(() {
+              startDate = newStartDate;
+            });
+          },
+          child: Text('Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            DateTime? newEndDate = await showDatePicker(
+              context: context,
+              initialDate: endDate ?? DateTime.now(),
+              firstDate: startDate ?? DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            setState(() {
+              endDate = newEndDate;
+            });
+          },
+          child: Text('Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+        ),
+      ],
     );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildScrollableItems(List<Event> items) {
-    return ListView.builder(
-      scrollDirection: Axis.vertical,
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        return EventCard(
-          imageUrl: items[index].imageUrl,
-          showName: items[index].showName,
-          category: items[index].category,
-          date: items[index].date,
-          stage: items[index].stage,
-          price: items[index].price,
-        );
-      },
-    );
-  }
-}
-
-class Event {
-  final String imageUrl;
-  final String showName;
-  final String category;
-  final String date;
-  final String stage;
-  final double price;
-
-  Event({
-    required this.imageUrl,
-    required this.showName,
-    required this.category,
-    required this.date,
-    required this.stage,
-    required this.price,
-  });
-}
-
-extension DateFormatting on DateTime {
-  String toShortDateString() {
-    return '${this.day}-${this.month}-${this.year}';
   }
 }

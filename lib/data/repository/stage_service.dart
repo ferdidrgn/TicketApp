@@ -23,8 +23,8 @@ class StageService {
   Future<List<Stage?>> getStages(bool isLimit) async {
     try {
       QuerySnapshot snapshot = isLimit
-          ? await _stageCollection.get()
-          : await _stageCollection.orderBy('createdAt', descending: true).limit(20).get();
+          ? await _stageCollection.orderBy('_createdAt', descending: true).limit(20).get()
+          : await _stageCollection.get();
       return snapshot.docs.map((doc) => _mapDocumentToStage(doc)).toList();
     } catch (e) {
       throw Exception('Error fetching stages: $e');

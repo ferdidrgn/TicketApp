@@ -10,12 +10,17 @@ class BottomNavBar extends StatefulWidget {
 
   const BottomNavBar({super.key, required this.onThemeChanged});
 
+  // Bu fonksiyon, dışarıdan BottomNavBar'daki sekmeyi değiştirmek için kullanılacak
+  static _BottomNavBarState? of(BuildContext context) =>
+      context.findAncestorStateOfType<_BottomNavBarState>();
+
   @override
   _BottomNavBarState createState() => _BottomNavBarState();
 }
 
 class _BottomNavBarState extends State<BottomNavBar> {
   int _selectedIndex = 0;
+  String? selectedCategoryTitle; // DiscoveryPage'e aktarılacak başlık
 
   late final List<Widget> _pages;
 
@@ -24,10 +29,19 @@ class _BottomNavBarState extends State<BottomNavBar> {
     super.initState();
     _pages = <Widget>[
       const HomeScreen(),
-      const DiscoveryPage(),
+      DiscoveryPage(selectedCategory: selectedCategoryTitle),
       const NearbyEventsPage(),
       ProfilePage(onThemeChanged: widget.onThemeChanged),
     ];
+  }
+
+  // Bu metot ile sekme değiştirebiliriz ve başlık gönderebiliriz
+  void changeTabWithCategory(int index, String? categoryTitle) {
+    setState(() {
+      _selectedIndex = index;
+      selectedCategoryTitle = categoryTitle; // Seçilen başlığı sakla
+      _pages[1] = DiscoveryPage(selectedCategory: selectedCategoryTitle);
+    });
   }
 
   void _onItemTapped(int index) {
@@ -63,11 +77,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
               animationCurve: Curves.easeInOut,
               animationDuration: const Duration(milliseconds: 600),
               index: _selectedIndex,
-              onTap: _onItemTapped,
-            ),
-          ),
-        ],
-      ),
+              onTap: _onItemTapped
+            )
+          )
+        ]
+      )
     );
   }
 }

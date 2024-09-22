@@ -23,8 +23,8 @@ class PlayerService {
   Future<List<Player?>> getPlayers(bool isLimit) async {
     try {
       QuerySnapshot snapshot = isLimit
-          ? await _playerCollection.get()
-          : await _playerCollection.orderBy('createdAt', descending: true).limit(20).get();
+          ? await _playerCollection.orderBy('_createdAt', descending: true).limit(20).get()
+          : await _playerCollection.get();
       return snapshot.docs.map((doc) => _mapDocumentToPlayer(doc)).toList();
     } catch (e) {
       throw Exception('Error fetching players: $e');
