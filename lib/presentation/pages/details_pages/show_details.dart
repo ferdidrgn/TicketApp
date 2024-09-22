@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/custom_views/custom_description_card.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/player_details.dart';
 import '../../../core/custom_views/custom_stage_card.dart';
@@ -89,9 +90,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(showData?.name ?? 'Show Detail'),
-        centerTitle: true,
-      ),
+          title: Text(showData?.name ?? 'Show Detail'), centerTitle: true),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : _buildShowDetails(),
@@ -99,26 +98,18 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   Widget _buildShowDetails() {
-    return SafeArea(
-      child: SingleChildScrollView(
+    return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 5),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: _buildShowImage(),
-              ),
-              const SizedBox(height: 16),
-              _buildShowTitle(),
-              const SizedBox(height: 16),
-              _buildBottomSheetCard(context),
-            ],
-          ],
-        ),
-      ),
-    );
+        child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: _buildShowImage(),
+          ),
+          const SizedBox(height: 16),
+          _buildShowTitle(),
+          const SizedBox(height: 16),
+          _buildBottomSheetCard(context)
+        ]));
   }
 
   Widget _buildShowImage() {
@@ -179,7 +170,9 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDescription(),
+            CustomDescriptionCard(
+                description: showData?.description.replaceAll('\\n', '\n') ??
+                    'No description available'),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
             const SizedBox(height: 16),
@@ -205,7 +198,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               ),
             ),*/
             const SizedBox(height: 20),
-            const CustomSectionTitle(title: 'Oyuncular', fontSize: 20),
+            const CustomSectionTitle(title: 'Ekip', fontSize: 20),
             _buildNowPlayers(),
             const SizedBox(height: 10),
             const CustomSectionTitle(title: 'Eski Ekip', fontSize: 20),
@@ -213,53 +206,6 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 20),
             //_buildGamePhotosSection(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDescription() {
-    String? description = showData?.description.replaceAll('\\n', '\n') ?? 'No description available';
-    if (!isExpanded && description.length > 100) {
-      description = '${description.substring(0, 100)}...'; // Kısaltılmış açıklama
-    }
-
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              description,
-              style: const TextStyle(
-                fontSize: 16,
-                height: 1.5,
-                fontWeight: FontWeight.w300,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  setState(() {
-                    isExpanded = !isExpanded;
-                  });
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(isExpanded ? 'Daralt' : 'Daha Fazlasını Göster'),
-              ),
-            ),
           ],
         ),
       ),
@@ -362,10 +308,10 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Widget _buildOldPlayers() {
     return oldPlayerDataList.isNotEmpty
         ? SizedBox(
-            height: 185,
+            height: 200,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               itemCount: oldPlayerDataList.length,
               itemBuilder: (context, index) {
                 return Stack(children: [

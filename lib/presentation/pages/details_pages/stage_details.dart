@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
 import '../../../core/custom_views/custom_show_card.dart';
+import '../../../core/custom_views/custom_title.dart';
 import '../../../data/model/show.dart';
 import '../../../data/model/stage.dart';
 import '../../../data/repository/show_service.dart';
@@ -18,12 +19,9 @@ class StageDetailPage extends StatefulWidget {
 }
 
 class _StageDetailPageState extends State<StageDetailPage> {
-  late Stage _stage;
+  Stage? _stage;
   final List<Show> _showsDataList = [];
   bool _isLoading = true;
-
-  final StageService _stageService = StageService();
-  final ShowService _showService = ShowService();
 
   @override
   void initState() {
@@ -34,13 +32,13 @@ class _StageDetailPageState extends State<StageDetailPage> {
   Future<void> _fetchStageData() async {
     try {
       final Stage? fetchedStage =
-          await _stageService.getStageById(widget.stageId);
+          await StageService().getStageById(widget.stageId);
 
       if (fetchedStage != null) {
         setState(() {
           _stage = fetchedStage;
         });
-        _fetchShows(fetchedStage.showsId ?? []);
+        _fetchShows();
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,10 +50,10 @@ class _StageDetailPageState extends State<StageDetailPage> {
     }
   }
 
-  Future<void> _fetchShows(List<String> showsId) async {
-    for (String showId in showsId) {
+  Future<void> _fetchShows() async {
+    for (String showId in _stage?.showsId ?? []) {
       try {
-        final Show? show = await _showService.getShowById(showId);
+        final Show? show = await ShowService().getShowById(showId);
         if (show != null) {
           setState(() {
             _showsDataList.add(show);
@@ -71,15 +69,11 @@ class _StageDetailPageState extends State<StageDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: _isLoading
+        appBar: AppBar(
+            title: Text(_stage?.name ?? 'Sahne Detayları'), centerTitle: true),
+        body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : _buildStageContent(context),
-      ),
-    );
+            : _buildStageContent(context));
   }
 
   Widget _buildStageContent(BuildContext context) {
@@ -88,9 +82,9 @@ class _StageDetailPageState extends State<StageDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildStageImage(_stage),
+          _buildStageImage(),
           const SizedBox(height: 16),
-          _buildStageTitle(_stage),
+          _buildStageTitle(),
           const SizedBox(height: 16),
           _buildBottomSheet(context),
         ],
@@ -98,7 +92,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
     );
   }
 
-  Widget _buildStageImage(Stage stage) {
+  Widget _buildStageImage() {
     return AspectRatio(
       aspectRatio: 3 / 3.5,
       child: Container(
@@ -116,7 +110,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: CachedNetworkImage(
-            imageUrl: stage.imageUrl ?? '',
+            imageUrl: _stage?.imageUrl ?? '',
             fit: BoxFit.cover,
             placeholder: (context, url) =>
                 const Center(child: CircularProgressIndicator()),
@@ -128,9 +122,9 @@ class _StageDetailPageState extends State<StageDetailPage> {
     );
   }
 
-  Widget _buildStageTitle(Stage stage) {
+  Widget _buildStageTitle() {
     return Text(
-      stage.name ?? '',
+      _stage?.name ?? '',
       style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
       textAlign: TextAlign.center,
     );
@@ -155,49 +149,37 @@ class _StageDetailPageState extends State<StageDetailPage> {
       ),
       child: Column(
         children: [
-          _buildStageInfo(_stage),
+          _buildStageInfo(),
           const SizedBox(height: 16),
+          const CustomSectionTitle(title: 'Eşleşen Etkinlikler', fontSize: 20),
           _buildShowList(),
           const SizedBox(height: 16),
           //_buildStageMap(_stage),
           const SizedBox(height: 16),
-          _buildStageAddress(context, _stage),
+          _buildStageAddress(context),
         ],
       ),
     );
   }
 
-  Widget _buildStageInfo(Stage stage) {
+  Widget _buildStageInfo() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Text(
-        stage.description ?? '',
-        style: const TextStyle(
-            fontSize: 16, height: 1.1, fontWeight: FontWeight.w300),
-      ),
+      child: Text(_stage?.description ?? '',
+          style: const TextStyle(
+              fontSize: 16, height: 1.1, fontWeight: FontWeight.w300)),
     );
   }
 
   Widget _buildShowList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Eşleşen Etkinlikler',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _showsDataList.length,
-            itemBuilder: (context, index) =>
-                _buildEventCard(context, _showsDataList[index]),
-          ),
-        ),
-      ],
-    );
+    return SizedBox(
+        height: 200,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: _showsDataList.length,
+          itemBuilder: (context, index) =>
+              _buildEventCard(context, _showsDataList[index]),
+        ));
   }
 
   Widget _buildEventCard(BuildContext context, Show? show) {
@@ -238,41 +220,33 @@ class _StageDetailPageState extends State<StageDetailPage> {
     }
   }
 
-  Widget _buildStageAddress(BuildContext context, Stage stage) {
+  Widget _buildStageAddress(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Address',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(stage.address ?? '',
-                  style: const TextStyle(
-                      fontSize: 16, height: 1.1, fontWeight: FontWeight.w300)),
-            ],
-          ),
-        ),
+        _buildInfoSection('Adres', _stage?.address ?? ''),
         const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Contact Info',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(stage.communication ?? '',
-                  style: const TextStyle(
-                      fontSize: 16, height: 1.1, fontWeight: FontWeight.w300)),
-            ],
-          ),
-        ),
+        _buildInfoSection('İletişim Bilgileri', _stage?.communication ?? ''),
       ],
     );
   }
+
+  Widget _buildInfoSection(String title, String content) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CustomSectionTitle(title: title, fontSize: 20),
+          Text(
+            content,
+            style: const TextStyle(
+              fontSize: 16,
+              height: 1.1,
+              fontWeight: FontWeight.w300,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 }
