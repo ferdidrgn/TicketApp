@@ -16,7 +16,7 @@ class CategoryCardBuilder extends StatelessWidget {
                 {'title': 'Tümünü Keşfet', 'icon': Icons.explore},
                 {'title': 'Trendler', 'icon': Icons.trending_up},
                 {'title': 'Tiyatro', 'icon': Icons.theater_comedy},
-                {'title': 'Konser/Müzik', 'icon': Icons.library_music},
+                {'title': 'Konser', 'icon': Icons.library_music},
                 {'title': 'Stand Up', 'icon': Icons.event_seat_rounded},
                 {'title': 'Festival', 'icon': Icons.festival_rounded},
                 {'title': 'Sinema', 'icon': Icons.movie_filter_rounded},

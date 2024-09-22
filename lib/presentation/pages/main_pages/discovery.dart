@@ -26,14 +26,21 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.selectedCategory != null &&
+        widget.selectedCategory != 'Tümünü Keşfet' &&
+        widget.selectedCategory != 'Trendler') {
+      selectedCategories.add(widget.selectedCategory!);
+    }
     _fetchEventsByCategory();
   }
 
   Future<void> _fetchEventsByCategory() async {
+    setState(() => isLoading = true);
+
     try {
       final showService = ShowService();
-      final List<Show?> fetchedEvents = await showService.getSearchShow(selectedCategories, type);
-
+      final List<Show?> fetchedEvents =
+          await showService.getSearchShow(selectedCategories, type);
       setState(() {
         shows = fetchedEvents;
         isLoading = false;
@@ -54,30 +61,34 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const CustomSectionTitle(title: 'Keşfet', fontSize: 22),
-                IconButton(
-                  icon: const Icon(Icons.filter_list),
-                  onPressed: () => _showFilterPopup(context),
-                ),
-              ],
-            ),
+            _buildHeader(),
             isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : shows.isEmpty
-                ? const Center(child: Text('Bu kategori için etkinlik bulunamadı.'))
-                : Expanded(child: _buildScrollableItems(shows)),
+                    ? const Center(
+                        child: Text('Bu kategori için etkinlik bulunamadı.'))
+                    : Expanded(child: _buildScrollableItems(shows)),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const CustomSectionTitle(title: 'Keşfet', fontSize: 22),
+        IconButton(
+          icon: const Icon(Icons.filter_list),
+          onPressed: () => _showFilterPopup(context),
+        ),
+      ],
+    );
+  }
+
   Widget _buildScrollableItems(List<Show?> items) {
     return ListView.builder(
-      scrollDirection: Axis.vertical,
       itemCount: items.length,
       itemBuilder: (context, index) {
         return EventCard(
@@ -95,28 +106,32 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   void _showFilterPopup(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
+          builder: (context, setModalState) {
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Filtrele',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Filtrele',
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
                   _buildCategoryFilter(setModalState),
+                  const SizedBox(height: 20),
                   _buildPriceRangeFilter(setModalState),
-                  _buildDateRangePicker(),
+                  const SizedBox(height: 20),
+                  _buildDateRangePicker(setModalState),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _fetchEventsByCategory(); // Fetch with new filters
+                      _fetchEventsByCategory(); // Yeni filtrelerle verileri çek
                     },
-                    child: const Text('Uygula'),
+                    child: Text('Uygula',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface)),
                   ),
                 ],
               ),
@@ -128,7 +143,15 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   }
 
   Widget _buildCategoryFilter(StateSetter setModalState) {
-    List<String> categories = ['Müzik', 'Tiyatro', 'Sinema', 'Dans', 'Opera'];
+    final List<String> categories = [
+      'Tiyatro',
+      'Konser',
+      'Festival',
+      'Sinema',
+      'Çocuk',
+      'Spor',
+      'Etkinlik'
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -143,19 +166,20 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
               return GestureDetector(
                 onTap: () {
                   setModalState(() {
-                    if (selectedCategories.contains(category)) {
-                      selectedCategories.remove(category);
-                    } else {
-                      selectedCategories.add(category);
-                    }
+                    selectedCategories.contains(category)
+                        ? selectedCategories.remove(category)
+                        : selectedCategories.add(category);
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: selectedCategories.contains(category) ? Colors.blue : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(8),
+                    color: selectedCategories.contains(category)
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).focusColor,
+                    borderRadius: BorderRadius.circular(15),
                   ),
                   child: Center(child: Text(category)),
                 ),
@@ -179,7 +203,9 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           min: 0,
           max: 5200,
           divisions: 10,
-          onChanged: (RangeValues values) {
+          activeColor: Theme.of(context).colorScheme.error,
+          inactiveColor: Theme.of(context).focusColor,
+          onChanged: (values) {
             setModalState(() {
               minPrice = values.start;
               maxPrice = values.end;
@@ -187,44 +213,95 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           },
         ),
         Text(
-          '₺${minPrice.toStringAsFixed(2)} - ₺${maxPrice.toStringAsFixed(2)}',
-        ),
+            '₺${minPrice.toStringAsFixed(2)} - ₺${maxPrice.toStringAsFixed(2)}'),
       ],
     );
   }
 
-  Widget _buildDateRangePicker() {
+  Widget _buildDateRangePicker(StateSetter setModalState) {
+    final themeOf = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Tarih Aralığı Seçin'),
-        ElevatedButton(
-          onPressed: () async {
-            DateTime? newStartDate = await showDatePicker(
-              context: context,
-              initialDate: startDate ?? DateTime.now(),
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2100),
-            );
-            setState(() {
-              startDate = newStartDate;
-            });
-          },
-          child: Text('Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            DateTime? newEndDate = await showDatePicker(
-              context: context,
-              initialDate: endDate ?? DateTime.now(),
-              firstDate: startDate ?? DateTime(2020),
-              lastDate: DateTime(2100),
-            );
-            setState(() {
-              endDate = newEndDate;
-            });
-          },
-          child: Text('Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ElevatedButton(
+              onPressed: () async {
+                DateTime? newStartDate = await showDatePicker(
+                  context: context,
+                  initialDate: startDate ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                  builder: (BuildContext context, Widget? child) {
+                    return Theme(
+                      data: themeOf.copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: themeOf.colorScheme.error,
+                          // Seçili tarih butonlarının rengi
+                          onPrimary: themeOf.colorScheme.onPrimary,
+                          // Seçili tarih buton yazı rengi
+                          surface: themeOf.colorScheme.secondary,
+                          // Diyalog arka plan rengi
+                          onSurface: themeOf.colorScheme
+                              .onSurface, // Tarihlerin varsayılan yazı rengi
+                        ),
+                        textButtonTheme: TextButtonThemeData(
+                          style: TextButton.styleFrom(
+                            foregroundColor: themeOf.colorScheme
+                                .onSurface, //butonlarının yazı rengi
+                          ),
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                setModalState(() => startDate = newStartDate);
+              },
+              child: Text(
+                  'Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}',
+                  style: TextStyle(color: themeOf.colorScheme.onSurface)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                DateTime? newEndDate = await showDatePicker(
+                  context: context,
+                  initialDate: endDate ?? DateTime.now(),
+                  firstDate: startDate ?? DateTime(2020),
+                  lastDate: DateTime(2100),
+                  builder: (BuildContext context, Widget? child) {
+                    return Theme(
+                      data: themeOf.copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: themeOf.colorScheme.error,
+                          // Seçili tarih butonlarının rengi
+                          onPrimary: themeOf.colorScheme.onPrimary,
+                          // Seçili tarih buton yazı rengi
+                          surface: themeOf.colorScheme.secondary,
+                          // Diyalog arka plan rengi
+                          onSurface: themeOf.colorScheme
+                              .onSurface, // Tarihlerin varsayılan yazı rengi
+                        ),
+                        textButtonTheme: TextButtonThemeData(
+                          style: TextButton.styleFrom(
+                            foregroundColor: themeOf.colorScheme
+                                .onSurface, //butonlarının yazı rengi
+                          ),
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                setModalState(() => endDate = newEndDate);
+              },
+              child: Text(
+                  'Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}',
+                  style: TextStyle(color: themeOf.colorScheme.onSurface)),
+            ),
+          ],
         ),
       ],
     );

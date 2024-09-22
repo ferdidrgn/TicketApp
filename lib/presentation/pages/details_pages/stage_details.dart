@@ -159,7 +159,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
           const SizedBox(height: 16),
           _buildShowList(),
           const SizedBox(height: 16),
-          _buildStageMap(_stage),
+          //_buildStageMap(_stage),
           const SizedBox(height: 16),
           _buildStageAddress(context, _stage),
         ],
@@ -200,16 +200,16 @@ class _StageDetailPageState extends State<StageDetailPage> {
     );
   }
 
-  Widget _buildEventCard(BuildContext context, Show show) {
+  Widget _buildEventCard(BuildContext context, Show? show) {
     return GestureDetector(
       child: CustomVerticalShowCard(
-        imageUrl: show.imageUrl ?? 'https://via.placeholder.com/150',
-        gameName: show.name ?? 'No Name',
+        imageUrl: show?.imageUrl ?? 'https://via.placeholder.com/150',
+        gameName: show?.name ?? 'No Name',
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ShowDetailPage(showId: show.id),
+              builder: (context) => ShowDetailPage(showId: show?.id??''),
             ),
           );
         },
