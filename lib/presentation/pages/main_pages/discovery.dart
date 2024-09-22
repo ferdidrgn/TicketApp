@@ -32,7 +32,8 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   Future<void> _fetchEventsByCategory() async {
     try {
       final showService = ShowService();
-      final List<Show?> fetchedEvents = await showService.getSearchShow(selectedCategories, type);
+      final List<Show?> fetchedEvents =
+          await showService.getSearchShow(selectedCategories, type);
 
       setState(() {
         shows = fetchedEvents;
@@ -67,8 +68,9 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
             isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : shows.isEmpty
-                ? const Center(child: Text('Bu kategori için etkinlik bulunamadı.'))
-                : Expanded(child: _buildScrollableItems(shows)),
+                    ? const Center(
+                        child: Text('Bu kategori için etkinlik bulunamadı.'))
+                    : Expanded(child: _buildScrollableItems(shows)),
           ],
         ),
       ),
@@ -147,10 +149,13 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: selectedCategories.contains(category) ? Colors.blue : Colors.grey[300],
+                    color: selectedCategories.contains(category)
+                        ? Colors.blue
+                        : Colors.grey[300],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(child: Text(category)),
@@ -206,7 +211,8 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
               startDate = newStartDate;
             });
           },
-          child: Text('Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+          child: Text(
+              'Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
         ),
         ElevatedButton(
           onPressed: () async {
@@ -220,7 +226,8 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
               endDate = newEndDate;
             });
           },
-          child: Text('Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+          child: Text(
+              'Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
         ),
       ],
     );
