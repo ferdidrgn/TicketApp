@@ -60,7 +60,7 @@ class UserService {
         role: _getStringField(document, 'role'),
         favoriteShows: _getListField(document, 'favoriteShows'),
         favoriteStages: _getListField(document, 'favoriteStages'),
-        favoritePlayesrs: _getListField(document, 'favoritePlayers'));
+        favoritePlayers: _getListField(document, 'favoritePlayers'));
   }
 
   String _getStringField(DocumentSnapshot document, String fieldName) {
@@ -92,7 +92,7 @@ class UserService {
       'city': user.city,
       'favoriteShows': user.favoriteShows,
       'favoriteStages': user.favoriteStages,
-      'favoritePlayers': user.favoritePlayesrs,
+      'favoritePlayers': user.favoritePlayers,
     };
     return userMap;
   }

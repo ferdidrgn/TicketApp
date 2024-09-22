@@ -14,7 +14,8 @@ class User {
   final String? role;
   final List<String>? favoriteShows;
   final List<String>? favoriteStages;
-  final List<String>? favoritePlayesrs;
+  final List<String>? favoritePlayers;
+  final List<String>? ticketsId;
 
   User({
     required this.id,
@@ -32,6 +33,7 @@ class User {
     this.role,
     this.favoriteShows,
     this.favoriteStages,
-    this.favoritePlayesrs
+    this.favoritePlayers,
+    this.ticketsId
   });
 }
