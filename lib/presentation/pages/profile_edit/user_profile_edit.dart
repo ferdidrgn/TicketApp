@@ -56,7 +56,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
       User updatedUser = User(
         id: _currentUser?.id ?? '',
         createdAt: _currentUser?.createdAt ?? '',
-        updatedAt: timestamp.toString() ?? '',
+        updatedAt: timestamp.toString(),
         firstName: _firstName,
         lastName: _lastName,
         phone: _phoneNumber,

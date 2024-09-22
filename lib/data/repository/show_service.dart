@@ -65,9 +65,9 @@ class ShowService {
 // Show kaydetme fonksiyonu
   Future<void> addShow(Show show, Uri? showIdAddOrUpdateImgUrl) async {
     String downloadUrl = await putStorageImage(
-      show.id ?? '',
+      show.id,
       showIdAddOrUpdateImgUrl,
-      show.imageUrl ?? '',
+      show.imageUrl,
     );
 
     Map<String, dynamic> showMap = putHashMap(show, downloadUrl, false);
@@ -220,7 +220,7 @@ class ShowService {
 
 // Helper to get field as a string
   String _getFieldAsString(DocumentSnapshot document, String fieldName) {
-    return document[fieldName].toString() ?? '';
+    return document[fieldName].toString();
   }
 
 // Helper to get a list of strings

@@ -30,7 +30,6 @@ class UserService {
       return _mapDocumentToUser(doc);
     } catch (e) {
       throw Exception('Error fetching user: $e');
-      return null;
     }
   }
 
@@ -107,7 +106,6 @@ class UserService {
       return userCredential.user; // Oturum açan kullanıcıyı döner
     } catch (e) {
       throw Exception('Error signing in: $e');
-      return null;
     }
   }
 
@@ -129,7 +127,6 @@ class UserService {
       return userCredential.user;
     } catch (e) {
       throw Exception('Error signing up: $e');
-      return null;
     }
   }
 

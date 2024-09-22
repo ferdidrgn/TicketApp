@@ -32,8 +32,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   Future<void> _fetchEventsByCategory() async {
     try {
       final showService = ShowService();
-      final List<Show?> fetchedEvents =
-          await showService.getSearchShow(selectedCategories, type);
+      final List<Show?> fetchedEvents = await showService.getSearchShow(selectedCategories, type);
 
       setState(() {
         shows = fetchedEvents;
@@ -68,9 +67,8 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
             isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : shows.isEmpty
-                    ? const Center(
-                        child: Text('Bu kategori için etkinlik bulunamadı.'))
-                    : Expanded(child: _buildScrollableItems(shows)),
+                ? const Center(child: Text('Bu kategori için etkinlik bulunamadı.'))
+                : Expanded(child: _buildScrollableItems(shows)),
           ],
         ),
       ),
@@ -98,34 +96,38 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Filtrele',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Filtrele',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  _buildCategoryFilter(setModalState),
+                  _buildPriceRangeFilter(setModalState),
+                  _buildDateRangePicker(setModalState),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _fetchEventsByCategory(); // Fetch with new filters
+                    },
+                    child: const Text('Uygula'),
+                  ),
+                ],
               ),
-              _buildCategoryFilter(),
-              _buildPriceRangeFilter(),
-              _buildDateRangePicker(),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _fetchEventsByCategory(); // Fetch with new filters
-                },
-                child: const Text('Uygula'),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildCategoryFilter() {
+  Widget _buildCategoryFilter(StateSetter setModalState) {
     List<String> categories = ['Müzik', 'Tiyatro', 'Sinema', 'Dans', 'Opera'];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,7 +142,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
               final category = categories[index];
               return GestureDetector(
                 onTap: () {
-                  setState(() {
+                  setModalState(() {
                     if (selectedCategories.contains(category)) {
                       selectedCategories.remove(category);
                     } else {
@@ -149,13 +151,10 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                   });
                 },
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: selectedCategories.contains(category)
-                        ? Colors.blue
-                        : Colors.grey[300],
+                    color: selectedCategories.contains(category) ? Colors.blue : Colors.grey[300],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(child: Text(category)),
@@ -170,7 +169,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildPriceRangeFilter() {
+  Widget _buildPriceRangeFilter(StateSetter setModalState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -181,7 +180,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           max: 5200,
           divisions: 10,
           onChanged: (RangeValues values) {
-            setState(() {
+            setModalState(() {
               minPrice = values.start;
               maxPrice = values.end;
             });
@@ -194,40 +193,43 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildDateRangePicker() {
+  Widget _buildDateRangePicker(StateSetter setModalState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Tarih Aralığı Seçin'),
-        ElevatedButton(
-          onPressed: () async {
-            DateTime? newStartDate = await showDatePicker(
-              context: context,
-              initialDate: startDate ?? DateTime.now(),
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2100),
-            );
-            setState(() {
-              startDate = newStartDate;
-            });
-          },
-          child: Text(
-              'Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            DateTime? newEndDate = await showDatePicker(
-              context: context,
-              initialDate: endDate ?? DateTime.now(),
-              firstDate: startDate ?? DateTime(2020),
-              lastDate: DateTime(2100),
-            );
-            setState(() {
-              endDate = newEndDate;
-            });
-          },
-          child: Text(
-              'Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ElevatedButton(
+              onPressed: () async {
+                DateTime? newStartDate = await showDatePicker(
+                  context: context,
+                  initialDate: startDate ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                );
+                setModalState(() {
+                  startDate = newStartDate;
+                });
+              },
+              child: Text('Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                DateTime? newEndDate = await showDatePicker(
+                  context: context,
+                  initialDate: endDate ?? DateTime.now(),
+                  firstDate: startDate ?? DateTime(2020),
+                  lastDate: DateTime(2100),
+                );
+                setModalState(() {
+                  endDate = newEndDate;
+                });
+              },
+              child: Text('Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+            ),
+          ],
         ),
       ],
     );
