@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppToolsService {
-  final _firestore = FirebaseFirestore.instance.collection('AppTools');
+  final CollectionReference _firestore =
+      FirebaseFirestore.instance.collection('AppTools');
 
   Future<String?> getPrivacyAndTerms(String fieldName) async {
     try {
-      QuerySnapshot result =await _firestore.where(fieldName).get();
+      QuerySnapshot result = await _firestore.where(fieldName).limit(1).get();
       if (result.docs.isEmpty) {
         return null;
       } else {

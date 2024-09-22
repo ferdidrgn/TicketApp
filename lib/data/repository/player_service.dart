@@ -5,20 +5,6 @@ class PlayerService {
   final CollectionReference _playerCollection =
       FirebaseFirestore.instance.collection('Player');
 
-  // search player
-  Future<List<Player?>> getSearchPlayer(String query) async {
-    try {
-      QuerySnapshot result = await _playerCollection
-          .where('firstName', isGreaterThanOrEqualTo: query)
-          .where('firstName', isLessThanOrEqualTo: '$query\uf8ff')
-          .get();
-
-      return result.docs.map((e) => _mapDocumentToPlayer(e)).toList();
-    } catch (e) {
-      throw Exception('Search Error: $e');
-    }
-  }
-
   //all players
   Future<List<Player?>> getPlayers(bool isLimit) async {
     try {
@@ -35,7 +21,7 @@ class PlayerService {
   Future<Player?> getPlayerById(String playerId) async {
     try {
       QuerySnapshot result =
-          await _playerCollection.where('_id', isEqualTo: playerId).get();
+          await _playerCollection.where('_id', isEqualTo: playerId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
 

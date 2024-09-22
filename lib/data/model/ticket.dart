@@ -1,31 +1,19 @@
 class Ticket {
   final String id;
-  final String title;
-  final String customerName;
-  final String customerSurname;
-  final String showName;
-  final DateTime date;
-  final String time;
-  final String? seat;
-  final String? row;
-  final String? gate;
-  final String? stageName;
-  final String? stageLocation;
-  final double price;
+  final String? createdAt;
+  final String? updatedAt;
+  final String customerId;
+  final String showId;
+  final String stageId;
+  final String eventId;
 
   Ticket({
     required this.id,
-    required this.title,
-    required this.customerName,
-    required this.customerSurname,
-    required this.showName,
-    required this.date,
-    required this.time,
-    this.seat,
-    this.row,
-    this.gate,
-    this.stageName,
-    this.stageLocation,
-    required this.price,
+    this.createdAt,
+    this.updatedAt,
+    required this.customerId,
+    required this.showId,
+    required this.stageId,
+    required this.eventId,
   });
 }

@@ -3,9 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../model/user.dart';
 
 class UserService {
+  final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;
+
   final CollectionReference _userCollection =
       FirebaseFirestore.instance.collection('User');
-  final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;
 
   // Create or update user
   Future<void> saveUser(User user, String downloadUrl,
@@ -25,9 +26,10 @@ class UserService {
   // Fetch user by ID
   Future<User?> getUserById(String userId) async {
     try {
-      DocumentSnapshot doc = await _userCollection.doc(userId).get();
-      if (!doc.exists) return null;
-      return _mapDocumentToUser(doc);
+      QuerySnapshot result =
+          await _userCollection.where('_id', isEqualTo: userId).limit(1).get();
+      if (result.docs.isEmpty) return null;
+      return _mapDocumentToUser(result.docs.first);
     } catch (e) {
       throw Exception('Error fetching user: $e');
     }
@@ -75,7 +77,6 @@ class UserService {
   Map<String, dynamic> _mapUserToFirestore(
       User user, String downloadUrl, bool isUpdate) {
     final userMap = <String, dynamic>{
-
       if (!isUpdate) '_createdAt': Timestamp.now(),
       '_updatedAt': Timestamp.now(),
       '_id': user.id,
@@ -137,5 +138,4 @@ class UserService {
   bool isUserLoggedIn() {
     return _auth.currentUser != null;
   }
-
 }

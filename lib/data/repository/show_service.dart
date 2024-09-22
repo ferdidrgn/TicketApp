@@ -37,9 +37,7 @@ class ShowService {
     try {
       QuerySnapshot snapshot = isLimit
           ? await _showCollection
-              .orderBy('_createdAt', descending: true)
-              .limit(20)
-              .get()
+              .orderBy('_createdAt', descending: true).limit(20).get()
           : await _showCollection.get();
 
       return snapshot.docs.map((doc) => _mapDocumentToShow(doc)).toList();
@@ -52,7 +50,7 @@ class ShowService {
   Future<Show?> getShowById(String showId) async {
     try {
       QuerySnapshot result =
-          await _showCollection.where('_id', isEqualTo: showId).get();
+          await _showCollection.where('_id', isEqualTo: showId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
 

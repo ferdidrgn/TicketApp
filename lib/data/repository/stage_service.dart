@@ -35,9 +35,7 @@ class StageService {
   Future<Stage?> getStageById(String stageId) async {
     try {
       QuerySnapshot result = await _stageCollection
-          .where('_id', isEqualTo: stageId)
-          .limit(1)
-          .get();
+          .where('_id', isEqualTo: stageId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
 
