@@ -109,7 +109,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                   ),
                   _buildCategoryFilter(setModalState),
                   _buildPriceRangeFilter(setModalState),
-                  _buildDateRangePicker(setModalState),
+                  _buildDateRangePicker(),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
@@ -193,43 +193,38 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildDateRangePicker(StateSetter setModalState) {
+  Widget _buildDateRangePicker() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Tarih Aralığı Seçin'),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ElevatedButton(
-              onPressed: () async {
-                DateTime? newStartDate = await showDatePicker(
-                  context: context,
-                  initialDate: startDate ?? DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                );
-                setModalState(() {
-                  startDate = newStartDate;
-                });
-              },
-              child: Text('Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                DateTime? newEndDate = await showDatePicker(
-                  context: context,
-                  initialDate: endDate ?? DateTime.now(),
-                  firstDate: startDate ?? DateTime(2020),
-                  lastDate: DateTime(2100),
-                );
-                setModalState(() {
-                  endDate = newEndDate;
-                });
-              },
-              child: Text('Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
-            ),
-          ],
+        ElevatedButton(
+          onPressed: () async {
+            DateTime? newStartDate = await showDatePicker(
+              context: context,
+              initialDate: startDate ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            setState(() {
+              startDate = newStartDate;
+            });
+          },
+          child: Text('Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            DateTime? newEndDate = await showDatePicker(
+              context: context,
+              initialDate: endDate ?? DateTime.now(),
+              firstDate: startDate ?? DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            setState(() {
+              endDate = newEndDate;
+            });
+          },
+          child: Text('Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}'),
         ),
       ],
     );
