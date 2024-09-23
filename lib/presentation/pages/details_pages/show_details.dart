@@ -22,11 +22,9 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Show? showData;
   List<Player?> nowPlayerDataList = [];
   List<Player?> oldPlayerDataList = [];
+  List<String?> photoDataList = [];
   bool isLoading = true;
   bool isExpanded = false;
-
-  final ShowService showService = ShowService();
-  final PlayerService playerService = PlayerService();
 
   @override
   void initState() {
@@ -36,10 +34,11 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
 
   Future<void> _fetchShowData() async {
     try {
-      final show = await showService.getShowById(widget.showId);
+      final show = await ShowService().getShowById(widget.showId);
       if (show != null) {
         setState(() {
           showData = show;
+          photoDataList = show.photosShowId;
         });
         _fetchNowPlayers(show.nowPlayersId);
         _fetchOldPlayers(show.oldPlayersId);
@@ -57,7 +56,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Future<void> _fetchNowPlayers(List<String> playersId) async {
     for (String playerId in playersId) {
       try {
-        var player = await playerService.getPlayerById(playerId);
+        final player = await PlayerService().getPlayerById(playerId);
         if (player != null) {
           setState(() {
             nowPlayerDataList.add(player);
@@ -73,7 +72,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Future<void> _fetchOldPlayers(List<String> playersId) async {
     for (String playerId in playersId) {
       try {
-        var player = await playerService.getPlayerById(playerId);
+        final player = await PlayerService().getPlayerById(playerId);
         if (player != null) {
           setState(() {
             oldPlayerDataList.add(player);
@@ -205,7 +204,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             _buildOldPlayers(),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 20),
-            //_buildGamePhotosSection(),
+            _buildGamePhotoSection(),
           ],
         ),
       ),
@@ -253,7 +252,6 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             ),
           ),
           const SizedBox(width: 16),
-          // Oyun bilgisi kısmı
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,10 +261,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.black)),
-                Text(
-                  city,
-                  style: const TextStyle(fontSize: 14),
-                )
+                Text(city, style: const TextStyle(fontSize: 14))
               ],
             ),
           ),
@@ -278,25 +273,24 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Widget _buildNowPlayers() {
     return nowPlayerDataList.isNotEmpty
         ? SizedBox(
-            height: 185,
+            height: 195,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: nowPlayerDataList.length,
               itemBuilder: (context, index) {
                 return CustomStageCard(
-                  text:
-                      '${nowPlayerDataList[index]?.firstName ?? ''} ${nowPlayerDataList[index]?.lastName ?? ''}',
-                  imageUrl: nowPlayerDataList[index]?.imageUrl ?? '',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => PlayerDetailPage(
-                              playerId: nowPlayerDataList[index]?.id ?? '')),
-                    );
-                  },
-                );
+                    text:
+                        '${nowPlayerDataList[index]?.firstName ?? ''} ${nowPlayerDataList[index]?.lastName ?? ''}',
+                    imageUrl: nowPlayerDataList[index]?.imageUrl ?? '',
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => PlayerDetailPage(
+                                  playerId:
+                                      nowPlayerDataList[index]?.id ?? '')));
+                    });
               },
             ),
           )
@@ -308,7 +302,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Widget _buildOldPlayers() {
     return oldPlayerDataList.isNotEmpty
         ? SizedBox(
-            height: 200,
+            height: 195,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -339,59 +333,78 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               },
             ),
           )
-        : const Center(
-            child: Text('Oyuncu bilgisi mevcut değil.'),
-          );
+        : const Center(child: Text('Oyuncu bilgisi mevcut değil.'));
   }
 
-/*
-  Widget _buildGamePhotosSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: showData?['gamePhotos']?.length ?? 0,
-            itemBuilder: (context, index) {
-              final photoUrl = showData?['gamePhotos'][index] ?? '';
-              return _buildGamePhotoCard(photoUrl);
+  Widget _buildGamePhotoSection() {
+    return SizedBox(
+      height: 210,
+      width: double.infinity,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: photoDataList.length,
+        itemBuilder: (context, index) {
+          final photoUrl = photoDataList[index] ?? '';
+          return GestureDetector(
+            child: _buildGamePhotoCard(photoUrl),
+            onTap: () {
+              _showFullImage(context, photoUrl); // Tıklayınca tam ekran göster
             },
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildGamePhotoCard(String photoUrl) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.symmetric(horizontal: 7),
+  Widget _buildGamePhotoCard(String? photoUrl) {
+    return SizedBox(
+      width: 160,
       child: Card(
         elevation: 8,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CachedNetworkImage(
-              imageUrl: photoUrl,
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => const CircularProgressIndicator(),
-              errorWidget: (context, url, error) => const Icon(Icons.error),
-            ),
-            const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text(
-                'Oyun Fotoğrafları',
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: CachedNetworkImage(
+            imageUrl: photoUrl ?? '',
+            height: 150,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => const CircularProgressIndicator(),
+            errorWidget: (context, url, error) => const Icon(Icons.error),
+          ),
         ),
       ),
     );
-  }*/
+  }
+
+// Tam boyutlu görseli gösteren dialog
+  void _showFullImage(BuildContext context, String photoUrl) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      // Tıklayınca kapansın
+      barrierLabel: 'Tam Ekran Görsel',
+      barrierColor: Colors.black.withOpacity(0.3),
+      pageBuilder: (context, _, __) {
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).pop(); // Ekrana tıklayınca dialog kapansın
+          },
+          child: Scaffold(
+            backgroundColor: Colors.black.withOpacity(0.3),
+            // Arkaplan rengini ayarlamak için
+            body: Center(
+              child: InteractiveViewer(
+                child: CachedNetworkImage(
+                  imageUrl: photoUrl,
+                  fit: BoxFit.contain, // Görseli tam boyutta göster
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

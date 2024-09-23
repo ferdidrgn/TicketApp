@@ -24,9 +24,6 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   bool isLoading = true;
   double _sheetProgress = 0.1;
 
-  final PlayerService _playerService = PlayerService();
-  final ShowService _showService = ShowService();
-
   @override
   void initState() {
     super.initState();
@@ -35,7 +32,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Future<void> _fetchPlayerData() async {
     try {
-      final fetchedPlayer = await _playerService.getPlayerById(widget.playerId);
+      final fetchedPlayer = await PlayerService().getPlayerById(widget.playerId);
       if (fetchedPlayer?.nowShowsId != null) {
         setState(() {
           player = fetchedPlayer;
@@ -57,7 +54,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Future<void> _fetchShows(List<String> showsId, List<Show?> showsList) async {
     for (String showId in showsId) {
       try {
-        final show = await _showService.getShowById(showId);
+        final show = await ShowService().getShowById(showId);
         if (show != null) {
           setState(() {
             showsList.add(show);

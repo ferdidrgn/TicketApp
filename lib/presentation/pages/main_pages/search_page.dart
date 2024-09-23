@@ -212,7 +212,7 @@ class _SearchPageState extends State<SearchPage> {
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
       SizedBox(
-          height: 200,
+          height: 195,
           child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: itemCount,

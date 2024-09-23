@@ -185,12 +185,12 @@ class ShowService {
     }
     showMap['events'] = eventsIdList;
 
-    // photosStageId listesi
-    List<String> photosStageIdList = [];
-    if (show?.photosStageId != null) {
-      photosStageIdList = show!.photosStageId.map((e) => e.toString()).toList();
+    // photosShowId listesi
+    List<String> photosShowsIdList = [];
+    if (show?.photosShowId != null) {
+      photosShowsIdList = show!.photosShowId.map((e) => e.toString()).toList();
     }
-    showMap['photosStageId'] = photosStageIdList;
+    showMap['photosShowId'] = photosShowsIdList;
 
     return showMap;
   }
@@ -212,7 +212,7 @@ class ShowService {
       nowPlayersId: _getListAsString(document, 'nowPlayersId'),
       oldPlayersId: _getListAsString(document, 'oldPlayersId'),
       eventsId: _getListAsString(document, 'eventsId'),
-      photosStageId: _getListAsString(document, 'photosStageId'),
+      photosShowId: _getListAsString(document, 'photosShowId'),
     );
   }
 

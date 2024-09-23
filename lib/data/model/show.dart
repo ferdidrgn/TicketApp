@@ -14,7 +14,7 @@ class Show {
   final List<String> nowPlayersId;
   final List<String> oldPlayersId;
   final List<String> eventsId;
-  final List<String> photosStageId;
+  final List<String> photosShowId;
 
   Show({
     required this.createdAt,
@@ -32,6 +32,6 @@ class Show {
     required this.eventsId,
     required this.nowPlayersId,
     required this.oldPlayersId,
-    required this.photosStageId,
+    required this.photosShowId,
   });
 }
