@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/custom_views/custom_description_card.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/player_details.dart';
+import 'package:ticketapp/presentation/pages/details_pages/seat_details.dart';
 import '../../../core/custom_views/custom_stage_card.dart';
 import '../../../data/model/player.dart';
 import '../../../data/model/show.dart';
@@ -175,27 +176,19 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
             const SizedBox(height: 16),
-            /*Column(
+            Column(
               children: List.generate(
-                (showData?['events'] as List).length,
-                    (index) {
-                  final events = showData?['events'] as List? ?? [];
-                  if (index >= 0 && index < events.length) {
-                    final event = events[index] as Map<String, dynamic>?;
-
-                    if (event != null) {
-                      return _buildEventCard(
-                        event['date'].toString(),
-                        event['month'].toString(),
-                        event['eventName'].toString(),
-                        event['city'].toString(),
-                      );
-                    }
-                  }
-                  return const SizedBox.shrink();
+                1,
+                (index) {
+                  return _buildEventCard(
+                    "12.02.2000".toString(),
+                    "Şubat".toString(),
+                    "EventName".toString(),
+                    'city'.toString(),
+                  );
                 },
               ),
-            ),*/
+            ),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Ekip', fontSize: 20),
             _buildNowPlayers(),
@@ -213,62 +206,75 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
 
   Widget _buildEventCard(
       String date, String month, String eventName, String city) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
+    return GestureDetector(
+      onTap: () {
+        // Koltuk seçimi sayfasına yönlendirme
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SeatSelectionScreen(stageId: 'Halit Akçatepe Örnek Mahallesi', eventId: '"Gözlerimi Kaparım Vazifemi Yaparım Event1"'),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
               color: Colors.black.withOpacity(0.3),
               blurRadius: 8,
-              offset: const Offset(1, 3)),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Tarih kısmı
-          Container(
-            width: 80,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.blue[900],
-              borderRadius: BorderRadius.circular(8),
+              offset: const Offset(1, 3),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(date,
-                    style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
-                Text(month,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
-              ],
+          ],
+        ),
+        child: Row(
+          children: [
+            // Tarih kısmı
+            Container(
+              width: 80,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.blue[900],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(date,
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                  Text(month,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(eventName,
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black)),
-                Text(city, style: const TextStyle(fontSize: 14))
-              ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(eventName,
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black)),
+                  Text(city, style: const TextStyle(fontSize: 14))
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildNowPlayers() {
     return nowPlayerDataList.isNotEmpty

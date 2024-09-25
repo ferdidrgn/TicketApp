@@ -5,7 +5,8 @@ class SeatSelectionScreen extends StatefulWidget {
   final String stageId;
   final String eventId;
 
-  const SeatSelectionScreen({super.key, required this.stageId, required this.eventId});
+  const SeatSelectionScreen(
+      {super.key, required this.stageId, required this.eventId});
 
   @override
   _SeatSelectionScreenState createState() => _SeatSelectionScreenState();
@@ -23,8 +24,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Future<void> _fetchSeats() async {
-    Map<String, List<String>> fetchedSeats = await SeatService().getSeatsByStage(widget.stageId);
-    Map<String, String> fetchedSeatStatus = await SeatService().getSeatStatusByEvent(widget.eventId);
+    Map<String, List<String>> fetchedSeats =
+        await SeatService().getSeatsByStage(widget.stageId);
+    Map<String, String> fetchedSeatStatus =
+        await SeatService().getSeatStatusByEvent(widget.eventId);
 
     setState(() {
       seats = fetchedSeats;
@@ -51,22 +54,24 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       body: seats.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                color: Colors.grey[300],
-                child: const Center(child: Text('SAHNE', style: TextStyle(fontWeight: FontWeight.bold))),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.grey[300],
+                      child: const Center(
+                          child: Text('SAHNE',
+                              style: TextStyle(fontWeight: FontWeight.bold))),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildSeatLayout(),
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
-              _buildSeatLayout(),
-            ],
-          ),
-        ),
-      ),
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           print('Seçilen koltuklar: $selectedSeats');
@@ -85,29 +90,37 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
     List<String> rows = seatsByRow.keys.toList()..sort();
 
-    return Column(
-      children: rows.map((row) => _buildSeatRow(row, seatsByRow[row]!)).toList(),
-    );
+    return SizedBox(
+        width: double.infinity,
+        height: 500,
+        child: SingleChildScrollView(
+          child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: rows
+                    .map((row) => _buildSeatRow(row, seatsByRow[row]!))
+                    .toList(),
+              )),
+        ));
   }
 
   Widget _buildSeatRow(String row, List<String> rowSeats) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 30,
-            child: Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: rowSeats.map((seatId) => _buildSeat(seatId)).toList(),
-              ),
+      child: Expanded(
+        child: Row(
+          children: [
+            SizedBox(
+              width: 30,
+              child: Text(row,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
-          ),
-        ],
+            Row(
+              children: rowSeats.map((seatId) => _buildSeat(seatId)).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -124,7 +137,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         height: 40,
         margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : (isAvailable ? Colors.green : Colors.red),
+          color: isSelected
+              ? Colors.blue
+              : (isAvailable ? Colors.green : Colors.red),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
