@@ -25,9 +25,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Future<void> _fetchSeats() async {
     Map<String, List<String>> fetchedSeats =
-        await SeatService().getSeatsByStage(widget.stageId);
+    await SeatService().getSeatsByStage(widget.stageId);
     Map<String, String> fetchedSeatStatus =
-        await SeatService().getSeatStatusByEvent(widget.eventId);
+    await SeatService().getSeatStatusByEvent(widget.eventId);
 
     setState(() {
       seats = fetchedSeats;
@@ -53,25 +53,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       ),
       body: seats.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(8),
-                      color: Colors.grey[300],
-                      child: const Center(
-                          child: Text('SAHNE',
-                              style: TextStyle(fontWeight: FontWeight.bold))),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildSeatLayout(),
-                  ],
-                ),
-              ),
-            ),
+          : _buildSeatLayout(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           print('Seçilen koltuklar: $selectedSeats');
@@ -90,37 +72,37 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
     List<String> rows = seatsByRow.keys.toList()..sort();
 
-    return SizedBox(
-        width: double.infinity,
-        height: 500,
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: Center(
         child: SingleChildScrollView(
-          child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: rows
-                    .map((row) => _buildSeatRow(row, seatsByRow[row]!))
-                    .toList(),
-              )),
-        ));
+          scrollDirection: Axis.horizontal,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: rows
+                .map((row) => _buildSeatRow(row, seatsByRow[row]!))
+                .toList(),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSeatRow(String row, List<String> rowSeats) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      child: Expanded(
-        child: Row(
-          children: [
-            SizedBox(
-              width: 30,
-              child: Text(row,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            Row(
-              children: rowSeats.map((seatId) => _buildSeat(seatId)).toList(),
-            ),
-          ],
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 30,
+            child: Text(row,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Row(
+            children: rowSeats.map((seatId) => _buildSeat(seatId)).toList(),
+          ),
+        ],
       ),
     );
   }

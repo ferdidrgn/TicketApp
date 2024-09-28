@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:ticketapp/data/repository/user_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -8,7 +9,8 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -17,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat(reverse: true);
 
@@ -27,8 +29,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     Timer(const Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacementNamed('/login');
+      _checkUserLoginState();
     });
+  }
+
+  Future<void> _checkUserLoginState() async {
+    final currentUser = UserService().isUserLoggedIn();
+
+    if (currentUser == false) {
+      Navigator.of(context).pushReplacementNamed('/login');
+    } else {
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
   }
 
   @override
@@ -40,13 +52,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: FadeTransition(
+        backgroundColor: Colors.red,
+        body: Center(
+            child: FadeTransition(
           opacity: _animation,
-          child: Image.asset('assets/logo.png', width: 150, height: 150),
-        ),
-      ),
-    );
+          child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height,
+              child: Image.asset('assets/images/logo1.jpg', fit: BoxFit.cover)),
+        )));
   }
 }
