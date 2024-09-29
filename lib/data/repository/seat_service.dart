@@ -48,21 +48,21 @@ class SeatService {
 
   Future<void> reserveSeat(String eventId, String seatId) async {
     // Koltuğu rezerve et
-    await _firestore.collection('events').doc(eventId).update({
+    await _firestore.collection('Event').doc(eventId).update({
       'reservedSeats': FieldValue.arrayUnion([seatId]),
     });
   }
 
   Future<void> cancelReservation(String eventId, String seatId) async {
     // Rezervasyonu iptal et
-    await _firestore.collection('events').doc(eventId).update({
+    await _firestore.collection('Event').doc(eventId).update({
       'reservedSeats': FieldValue.arrayRemove([seatId]),
     });
   }
 
   Future<void> confirmPurchase(String eventId, List<String> selectedSeats) async {
     // Satın alma işlemini onayla
-    await _firestore.collection('events').doc(eventId).update({
+    await _firestore.collection('Event').doc(eventId).update({
       'purchasedSeats': FieldValue.arrayUnion(selectedSeats),
     });
   }
