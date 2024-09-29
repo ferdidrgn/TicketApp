@@ -212,7 +212,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SeatSelectionScreen(stageId: 'Halit Akçatepe Örnek Mahallesi', eventId: '"Gözlerimi Kaparım Vazifemi Yaparım Event1"'),
+            builder: (context) => SeatSelectionScreen(stageId: 'Halit Akçatepe Örnek Mahallesi', eventId: 'Gözlerimi Kaparım Vazifemi Yaparım Event1'),
           ),
         );
       },
