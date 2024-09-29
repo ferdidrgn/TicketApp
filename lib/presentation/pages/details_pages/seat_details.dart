@@ -22,6 +22,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Set<String> selectedSeats = {};
   Timer? reservationTimer;
   int remainingTime = 600; // 10 dakika = 600 saniye
+  double totalPrice = 0.0; // Toplam fiyat
 
   @override
   void initState() {
@@ -38,13 +39,15 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Future<void> _fetchSeats() async {
     Map<String, List<String>> fetchedSeats =
-        await SeatService().getSeatsByStage(widget.stageId);
+    await SeatService().getSeatsByStage(widget.stageId);
     Map<String, String> fetchedSeatStatus =
-        await SeatService().getSeatStatusByEvent(widget.eventId);
+    await SeatService().getSeatStatusByEvent(widget.eventId);
+    //double eventPrice = await SeatService().getEventPrice(widget.eventId); // Fiyatı backend'den çek
 
     setState(() {
       seats = fetchedSeats;
       seatStatus = fetchedSeatStatus;
+     // totalPrice = eventPrice; // Başlangıç fiyatı
     });
   }
 
@@ -98,9 +101,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       if (selectedSeats.contains(seatId)) {
         selectedSeats.remove(seatId);
         SeatService().updateSeatStatus(widget.eventId, seatId, 'available');
+        totalPrice -= 20.0; // Koltuk fiyatını eksilt
       } else if (selectedSeats.length < 3) {
         selectedSeats.add(seatId);
         SeatService().updateSeatStatus(widget.eventId, seatId, 'reserved');
+        totalPrice += 20.0; // Koltuk fiyatını artır
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('En fazla 3 koltuk seçebilirsiniz.')),
@@ -124,51 +129,56 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       body: seats.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: 200,
-                  child: Image.asset('assets/images/stage_diagram.jpg',
-                      fit: BoxFit.cover),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Kalan Süre: ${_formatRemainingTime()}',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Seçilen Koltuklar: ${selectedSeats.join(", ")}',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10)),
-                    child: Column(
-                      children: [
-                        Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(8),
-                            color: Colors.grey[400],
-                            child: const Center(
-                              child: Text('SAHNE',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18)),
-                            )),
-                        const SizedBox(height: 20),
-                        Expanded(child: _buildSeatLayout()),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 200,
+            child: Image.asset('assets/images/stage_diagram.jpg',
+                fit: BoxFit.cover),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Kalan Süre: ${_formatRemainingTime()}',
+            style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Seçilen Koltuklar: ${selectedSeats.join(", ")}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Toplam Fiyat: $totalPrice TL',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10)),
+              child: Column(
+                children: [
+                  Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.grey[400],
+                      child: const Center(
+                        child: Text('SAHNE',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18)),
+                      )),
+                  const SizedBox(height: 20),
+                  Expanded(child: _buildSeatLayout()),
+                ],
+              ),
             ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: selectedSeats.isNotEmpty ? _showPaymentBottomSheet : null,
         label: const Text('Ödemeye Geç'),
@@ -185,6 +195,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         return PaymentBottomSheet(
           selectedSeats: selectedSeats.toList(),
           eventId: widget.eventId,
+          //totalPrice: totalPrice, // Fiyatı gönder
           onPaymentSuccess: _handlePaymentSuccess,
         );
       },
@@ -255,7 +266,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           SizedBox(
             width: 30,
             child:
-                Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           Row(
             children: rowSeats.map((seatId) => _buildSeat(seatId)).toList(),
