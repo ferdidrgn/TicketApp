@@ -22,14 +22,47 @@ class SeatService {
     }
   }
 
-  // Event ID'sine göre koltuk doluluk durumu
+  // Event ID'sine göre koltuk durumu kontrolü ve boş koltukların ilk defa eklenmesi
+  Future<void> initializeEventSeats(String eventId, String stageId) async {
+    try {
+      DocumentSnapshot eventDoc = await _firestore.collection('Event').doc(eventId).get();
+
+      if (eventDoc.exists) {
+        Map<String, dynamic> eventData = eventDoc.data() as Map<String, dynamic>;
+
+        // Eğer seats verisi boşsa, Seats koleksiyonundan verileri çek ve Event'e ekle
+        if (eventData['seats'] == null || (eventData['seats'] as Map).isEmpty) {
+          Map<String, List<String>> stageSeats = await getSeatsByStage(stageId);
+          Map<String, String> seatStatus = {};
+
+          // Boş koltukları 'available' olarak işaretle
+          stageSeats.forEach((row, seatList) {
+            for (var seat in seatList) {
+              seatStatus[seat] = 'available';
+            }
+          });
+
+          // Koltukları Event'e kaydet
+          await _firestore.collection('Event').doc(eventId).update({
+            'seats': seatStatus,
+          });
+        }
+      } else {
+        throw Exception('Etkinlik bulunamadı.');
+      }
+    } catch (e) {
+      throw Exception('Error initializing event seats: $e');
+    }
+  }
+
+  // Event ID'sine göre koltuk durumu
   Future<Map<String, String>> getSeatStatusByEvent(String eventId) async {
     try {
       DocumentSnapshot doc = await _firestore.collection('Event').doc(eventId).get();
       if (doc.exists) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         Map<String, String> seatStatus = {};
-        // seats değerinin Map olduğundan emin olun
+
         if (data['seats'] is Map) {
           data['seats'].forEach((seatId, status) {
             seatStatus[seatId] = status; // available, reserved, sold vb.
@@ -46,25 +79,30 @@ class SeatService {
     }
   }
 
+  // Koltuk rezerve etme işlemi
   Future<void> reserveSeat(String eventId, String seatId) async {
-    // Koltuğu rezerve et
     await _firestore.collection('Event').doc(eventId).update({
-      'reservedSeats': FieldValue.arrayUnion([seatId]),
+      'seats.$seatId': 'reserved',
     });
   }
 
+  // Koltuk rezervasyonu iptal etme işlemi
   Future<void> cancelReservation(String eventId, String seatId) async {
-    // Rezervasyonu iptal et
     await _firestore.collection('Event').doc(eventId).update({
-      'reservedSeats': FieldValue.arrayRemove([seatId]),
+      'seats.$seatId': 'available',
     });
   }
 
+  // Satın alma işlemi
   Future<void> confirmPurchase(String eventId, List<String> selectedSeats) async {
-    // Satın alma işlemini onayla
     await _firestore.collection('Event').doc(eventId).update({
       'purchasedSeats': FieldValue.arrayUnion(selectedSeats),
     });
+    for (var seatId in selectedSeats) {
+      await _firestore.collection('Event').doc(eventId).update({
+        'seats.$seatId': 'sold',
+      });
+    }
   }
 
   Future<void> updateSeatStatus(String eventId, String seatId, String status) async {
