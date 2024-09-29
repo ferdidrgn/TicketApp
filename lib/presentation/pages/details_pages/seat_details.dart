@@ -21,7 +21,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Map<String, String> seatStatus = {};
   Set<String> selectedSeats = {};
   Timer? reservationTimer;
-  int remainingTime = 100; // 10 dakika = 600 saniye
+  int remainingTime = 600; // 10 dakika = 600 saniye
 
   @override
   void initState() {
