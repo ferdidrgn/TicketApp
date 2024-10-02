@@ -18,11 +18,12 @@ class SeatSelectionScreen extends StatefulWidget {
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Map<String, List<String>> seats = {};
-  Map<String, String> seatStatus = {};
+  Map<String, Map<String, dynamic>> seatStatus = {};
   Set<String> selectedSeats = {};
   Timer? reservationTimer;
   int remainingTime = 600; // 10 dakika = 600 saniye
   double totalPrice = 0.0; // Toplam fiyat
+  double seatPrice = 0.0; // Her bir koltuk için fiyat
 
   @override
   void initState() {
@@ -38,16 +39,18 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Future<void> _fetchSeats() async {
+    // Koltukları ve durumunu al
+    await SeatService().initializeEventSeats(
+        widget.eventId, widget.stageId); // Koltuk durumunu başlat
+
     Map<String, List<String>> fetchedSeats =
-    await SeatService().getSeatsByStage(widget.stageId);
-    Map<String, String> fetchedSeatStatus =
-    await SeatService().getSeatStatusByEvent(widget.eventId);
-    //double eventPrice = await SeatService().getEventPrice(widget.eventId); // Fiyatı backend'den çek
+        await SeatService().getSeatsByStage(widget.stageId);
+    Map<String, Map<String, dynamic>> fetchedSeatStatus =
+        await SeatService().getSeatStatusByEvent(widget.eventId);
 
     setState(() {
       seats = fetchedSeats;
       seatStatus = fetchedSeatStatus;
-     // totalPrice = eventPrice; // Başlangıç fiyatı
     });
   }
 
@@ -67,24 +70,21 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _showTimeUpDialog() {
     showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('İşlem Süresi Doldu'),
-          content: const Text('Oyun bilgilerine yönlendiriliyorsunuz.'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Tamam'),
-              onPressed: () {
-                Navigator.of(context).pop(); // Dialog'u kapat
-                Navigator.of(context).pop(); // Önceki sayfaya dön
-              },
-            ),
-          ],
-        );
-      },
-    );
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+              title: const Text('İşlem Süresi Doldu'),
+              content: const Text('Oyun bilgilerine yönlendiriliyorsunuz.'),
+              actions: <Widget>[
+                TextButton(
+                    child: const Text('Tamam'),
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Dialog'u kapat
+                      Navigator.of(context).pop(); // Önceki sayfaya dön
+                    })
+              ]);
+        });
   }
 
   void _cancelReservations() {
@@ -101,15 +101,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       if (selectedSeats.contains(seatId)) {
         selectedSeats.remove(seatId);
         SeatService().updateSeatStatus(widget.eventId, seatId, 'available');
-        totalPrice -= 20.0; // Koltuk fiyatını eksilt
+        totalPrice -= seatPrice; // Koltuk fiyatını eksilt
       } else if (selectedSeats.length < 3) {
         selectedSeats.add(seatId);
         SeatService().updateSeatStatus(widget.eventId, seatId, 'reserved');
-        totalPrice += 20.0; // Koltuk fiyatını artır
+        totalPrice += seatPrice; // Koltuk fiyatını artır
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('En fazla 3 koltuk seçebilirsiniz.')),
-        );
+            const SnackBar(content: Text('En fazla 3 koltuk seçebilirsiniz.')));
       }
     });
   }
@@ -123,62 +122,48 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Koltuk Seçimi'),
-      ),
+      appBar: AppBar(title: const Text('Koltuk Seçimi')),
       body: seats.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: 200,
-            child: Image.asset('assets/images/stage_diagram.jpg',
-                fit: BoxFit.cover),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Kalan Süre: ${_formatRemainingTime()}',
-            style: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Seçilen Koltuklar: ${selectedSeats.join(", ")}',
-            style: const TextStyle(fontSize: 16),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Toplam Fiyat: $totalPrice TL',
-            style: const TextStyle(fontSize: 16),
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10)),
-              child: Column(
-                children: [
-                  Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(8),
-                      color: Colors.grey[400],
-                      child: const Center(
-                        child: Text('SAHNE',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18)),
-                      )),
-                  const SizedBox(height: 20),
-                  Expanded(child: _buildSeatLayout()),
-                ],
+          : Column(children: [
+              SizedBox(
+                  width: double.infinity,
+                  height: 200,
+                  child: Image.asset('assets/images/stage_diagram.jpg',
+                      fit: BoxFit.cover)),
+              const SizedBox(height: 20),
+              Text(
+                'Kalan Süre: ${_formatRemainingTime()}',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
-          ),
-        ],
-      ),
+              const SizedBox(height: 10),
+              Text('Seçilen Koltuklar: ${selectedSeats.join(", ")}',
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 10),
+              Text('Toplam Fiyat: $totalPrice TL',
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 20),
+              Expanded(
+                  child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Column(children: [
+                        Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(8),
+                            color: Colors.grey[400],
+                            child: const Center(
+                                child: Text('SAHNE',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18)))),
+                        const SizedBox(height: 20),
+                        Expanded(child: _buildSeatLayout())
+                      ])))
+            ]),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: selectedSeats.isNotEmpty ? _showPaymentBottomSheet : null,
         label: const Text('Ödemeye Geç'),
@@ -195,7 +180,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         return PaymentBottomSheet(
           selectedSeats: selectedSeats.toList(),
           eventId: widget.eventId,
-          //totalPrice: totalPrice, // Fiyatı gönder
+          customerId: "test",
           onPaymentSuccess: _handlePaymentSuccess,
         );
       },
@@ -218,13 +203,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             ),
             TextButton(
               child: const Text('Biletlerim'),
-              onPressed: () {
-                // Biletlerim sayfasına yönlendirme
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                      builder: (context) => const TicketsScreen()),
-                );
-              },
+              onPressed: () {},
             ),
           ],
         );
@@ -242,82 +221,83 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     List<String> rows = seatsByRow.keys.toList()..sort();
 
     return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: Center(
-        child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Center(
+            child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: rows
-                .map((row) => _buildSeatRow(row, seatsByRow[row]!))
-                .toList(),
-          ),
-        ),
-      ),
-    );
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: rows
+                  .map((row) => _buildSeatRow(row, seatsByRow[row]!))
+                  .toList()),
+        )));
   }
 
   Widget _buildSeatRow(String row, List<String> rowSeats) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 30,
-            child:
-            Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          Row(
-            children: rowSeats.map((seatId) => _buildSeat(seatId)).toList(),
-          ),
-        ],
-      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        SizedBox(
+          width: 30,
+          child: Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        Row(children: rowSeats.map((seatId) => _buildSeat(seatId)).toList()),
+      ]),
     );
   }
 
   Widget _buildSeat(String seatId) {
-    String status = seatStatus[seatId] ?? 'available';
-    bool isAvailable = status == 'available';
+    String status = seatStatus[seatId]?['status'] ?? 'available';
+    String? reservedById =
+        seatStatus[seatId]?['customerId']; // customerId'yi burada aldık
+
+    bool isAvailable = status == 'available' ||
+        (status == 'reserved' && reservedById == 'test');
     bool isSelected = selectedSeats.contains(seatId);
+
+    Color seatColor;
+
+    if (status == 'sold') {
+      seatColor = Colors.red; // Satılmış koltuk
+    } else if (status == 'reserved' &&
+        reservedById != null &&
+        reservedById != 'test') {
+      seatColor = Colors
+          .yellow; // Başka bir kullanıcı tarafından rezerve edilmiş koltuk
+    } else {
+      seatColor =
+          isSelected ? Colors.blue : Colors.green; // Seçilen veya boş koltuk
+    }
 
     return GestureDetector(
         onTap: isAvailable ? () => _toggleSeatSelection(seatId) : null,
         child: Container(
-            width: 40,
-            height: 40,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Colors.blue
-                  : (isAvailable ? Colors.green : Colors.red),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                seatId.substring(1),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )));
+          width: 40,
+          height: 40,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+              color: seatColor, borderRadius: BorderRadius.circular(8)),
+          child: Center(
+              child: Text(seatId.substring(1),
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold))),
+        ));
   }
-
-// Diğer widget'lar (_buildSeatLayout, _buildSeatRow, _buildSeat) aynı kalacak
 }
 
 class PaymentBottomSheet extends StatelessWidget {
   final List<String> selectedSeats;
   final String eventId;
-  final VoidCallback onPaymentSuccess;
+  final String customerId;
+  final Function onPaymentSuccess;
 
   const PaymentBottomSheet({
-    Key? key,
+    super.key,
     required this.selectedSeats,
     required this.eventId,
+    required this.customerId,
     required this.onPaymentSuccess,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -326,46 +306,27 @@ class PaymentBottomSheet extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Ödeme',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          Text('Seçilen Koltuklar: ${selectedSeats.join(", ")}'),
-          const SizedBox(height: 16),
-          // Burada ödeme bilgileri için form alanları eklenebilir
-          ElevatedButton(
-            onPressed: () {
-              // Ödeme işlemi gerçekleştirme
-              for (String seatId in selectedSeats) {
-                SeatService().updateSeatStatus(eventId, seatId, 'sold');
-              }
-              Navigator.pop(context); // BottomSheet'i kapat
-              onPaymentSuccess(); // Başarılı ödeme dialogunu göster
-            },
-            child: const Text('Ödemeyi Tamamla'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class TicketsScreen extends StatelessWidget {
-  const TicketsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Biletlerim'),
-      ),
-      body: const Center(
-        child: Text('Biletlerim Sayfası'),
-      ),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Ödeme Bilgileri',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Text('Seçilen Koltuklar: ${selectedSeats.join(", ")}'),
+            const SizedBox(height: 16),
+            // Burada ödeme bilgileri için form alanları eklenebilir
+            ElevatedButton(
+                onPressed: () {
+                  // Ödeme işlemi gerçekleştirme
+                  for (String seatId in selectedSeats) {
+                    SeatService().updateSeatStatus(eventId, seatId, 'sold',
+                        customerId: "test");
+                  }
+                  Navigator.pop(context); // BottomSheet'i kapat
+                  onPaymentSuccess(); // Başarılı ödeme dialogunu göster
+                },
+                child: const Text('Ödemeyi Tamamla'))
+          ]),
     );
   }
 }
