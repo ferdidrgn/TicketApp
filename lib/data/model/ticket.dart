@@ -6,6 +6,8 @@ class Ticket {
   final String showId;
   final String stageId;
   final String eventId;
+  final String orderMethod;
+  final String orderPrice;
 
   Ticket({
     required this.id,
@@ -15,5 +17,7 @@ class Ticket {
     required this.showId,
     required this.stageId,
     required this.eventId,
+    required this.orderMethod,
+    required this.orderPrice,
   });
 }
