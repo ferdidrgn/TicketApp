@@ -1,15 +1,18 @@
 import 'dart:async';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import '../../../data/model/ticket.dart';
 import '../../../data/repository/seat_service.dart';
 import '../../../data/repository/ticket_service.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
+  final String showId;
   final String stageId;
   final String eventId;
 
   const SeatSelectionScreen({
     super.key,
+    required this.showId,
     required this.stageId,
     required this.eventId,
   });
@@ -354,7 +357,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         // 1. Koltukları satıldı olarak güncelle
         for (String seatId in selectedSeats) {
           try {
-            await seatService.updateSeatStatus(widget.eventId, seatId, 'sold', customerId: "test");
+            await seatService.updateSeatStatus(widget.eventId, seatId, 'sold',
+                customerId: "test");
           } catch (e) {
             throw Exception('Koltuk güncellenemedi: $seatId - $e');
           }
@@ -427,15 +431,18 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Ticket _createNewTicket() {
+    var uuid = const Uuid();
+    final nowTime = DateTime.now().toString();
     return Ticket(
-        createdAt: DateTime.now().toString(),
-        updatedAt: DateTime.now().toString(),
-        id: 'unique_ticket_id',
-        showId: 'show_id',
-        customerId: 'customer_id',
-        stageId: 'stage_id',
-        eventId: 'event_id',
-        orderPrice: '20',
-        orderMethod: 'google_play');
+      createdAt: nowTime,
+      updatedAt: nowTime,
+      id: uuid.v4(),
+      showId: widget.showId,
+      customerId: 'customer_id',
+      stageId: widget.stageId,
+      eventId: widget.eventId,
+      orderPrice: '20',
+      orderMethod: 'google_play',
+    );
   }
 }
