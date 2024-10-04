@@ -177,17 +177,13 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
             const SizedBox(height: 16),
             Column(
-              children: List.generate(
-                1,
-                (index) {
-                  return _buildEventCard(
+              children: List.generate(showData?.eventsId.length ?? 0, (index) {
+                return _buildEventCard(
                     "12.02.2000".toString(),
                     "Şubat".toString(),
-                    "EventName".toString(),
-                    'city'.toString(),
-                  );
-                },
-              ),
+                    showData!.eventsId[index],
+                    'city'.toString());
+              }),
             ),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Ekip', fontSize: 20),
@@ -205,14 +201,17 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   Widget _buildEventCard(
-      String date, String month, String eventName, String city) {
+      String date, String month, String eventId, String city) {
     return GestureDetector(
       onTap: () {
         // Koltuk seçimi sayfasına yönlendirme
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SeatSelectionScreen(showId: showData?.id??'',stageId: 'Halit Akçatepe Örnek Mahallesi', eventId: 'Gözlerimi Kaparım Vazifemi Yaparım Event1'),
+            builder: (context) => SeatSelectionScreen(
+                showId: showData?.id ?? '',
+                stageId: 'Halit Akçatepe Örnek Mahallesi',
+                eventId: eventId),
           ),
         );
       },
@@ -260,7 +259,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(eventName,
+                  Text("eventName",
                       style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -274,7 +273,6 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
       ),
     );
   }
-
 
   Widget _buildNowPlayers() {
     return nowPlayerDataList.isNotEmpty

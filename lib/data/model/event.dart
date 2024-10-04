@@ -3,7 +3,7 @@ class Event {
   final String stageId;
   final String date;
   final String price;
-  final Map<String, Map<String, dynamic>>? seatStatus;
+  final Map<String, dynamic>? seatStatus;
 
   Event({
     required this.id,

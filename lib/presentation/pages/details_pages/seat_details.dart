@@ -328,67 +328,81 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Future<void> _showPaymentBottomSheet() async {
     showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(16),
-          width: double.infinity,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Ödeme Bilgileri',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Text('Seçilen Koltuklar: ${selectedSeats.join(", ")}'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _confirmPayment,
-                child: const Text('Ödemeyi Tamamla'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+        context: context,
+        isScrollControlled: true,
+        builder: (BuildContext context) {
+          return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Ödeme Bilgileri',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    Text('Seçilen Koltuklar: ${selectedSeats.join(", ")}'),
+                    Text('Tarih: $date'),
+                    Text('Saat: $time'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                        onPressed: _showPaymentMethods,
+                        child: const Text('Ödeme Seçenekleri'))
+                  ]));
+        });
   }
 
-  Future<void> _confirmPayment() async {
-    final confirmed = await _showConfirmationDialog();
-    if (confirmed == true) {
-      try {
-        // 1. Koltukları satıldı olarak güncelle
-        for (String seatId in selectedSeats) {
-          try {
-            await seatService.updateSeatStatus(widget.eventId, seatId, 'sold',
-                customerId: "test");
-          } catch (e) {
-            throw Exception('Koltuk güncellenemedi: $seatId - $e');
-          }
-        }
+  Future<void> _showPaymentMethods() async {
+    String? selectedMethod = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+            title: const Text('Ödeme Yöntemi Seçin'),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              ListTile(
+                  title: const Text('Google Play'),
+                  onTap: () => Navigator.of(context).pop('Google Play')),
+              ListTile(
+                  title: const Text('Kredi Kartı'),
+                  onTap: () => Navigator.of(context).pop('Kredi Kartı')),
+              ListTile(
+                  title: const Text('IBAN'),
+                  onTap: () => Navigator.of(context).pop('IBAN')),
+            ]));
+      },
+    );
 
-        // 2. Koltuklar başarıyla güncellendikten sonra kullanıcıya bilgi ver
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content:
-                Text("Koltuklar sisteme kaydedildi. Bilet oluşturuluyor...")));
-
-        // 3. Bilet oluşturma işlemi
-        await TicketService().createTicket(_createNewTicket());
-
-        // 4. Başarılı mesajını göster
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Bilet başarıyla oluşturuldu")));
-      } catch (e) {
-        throw Exception(e);
+    if (selectedMethod != null) {
+      final confirmed = await _showConfirmationDialog();
+      if (confirmed == true) {
+        await _processPayment(selectedMethod);
       }
     }
+  }
 
+  Future<void> _processPayment(String method) async {
+    try {
+      // 1. Koltukları satıldı olarak güncelle
+      for (String seatId in selectedSeats) {
+        await seatService.updateSeatStatus(widget.eventId, seatId, 'sold',
+            customerId: "test");
+      }
+
+      // 2. Bilet oluşturma işlemi
+      await TicketService().createTicket(_createNewTicket());
+
+      // Başarılı mesajını göster
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Bilet başarıyla oluşturuldu")));
+      Navigator.pop(context); // BottomSheet'i kapat
+      _handlePaymentSuccess(); // Başarılı ödeme dialogunu göster
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Hata: $e")));
+    }
     Navigator.pop(context); // BottomSheet'i kapat
-    _handlePaymentSuccess(); // Başarılı ödeme dialogunu göster
   }
 
   Future<bool?> _showConfirmationDialog() {
@@ -448,7 +462,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       customerId: 'customer_id',
       stageId: widget.stageId,
       eventId: widget.eventId,
-      orderPrice: '20',
+      orderPrice: totalPrice.toString(),
       orderMethod: 'google_play',
     );
   }

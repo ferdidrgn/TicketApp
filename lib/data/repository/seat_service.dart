@@ -4,26 +4,6 @@ import 'package:ticketapp/data/model/event.dart';
 class SeatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late Event? eventInfo;
-  
-  // Sahne ID'sine göre koltukları çekmek için bir fonksiyon
-  Future<Map<String, List<String>>> getSeatsByStage(String stageId) async {
-    try {
-      DocumentSnapshot doc =
-          await _firestore.collection('Seats').doc(stageId).get();
-      if (doc.exists) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        Map<String, List<String>> seats = {};
-        data.forEach((row, seatList) {
-          seats[row] = List<String>.from(seatList);
-        });
-        return seats;
-      } else {
-        throw Exception('Belirtilen sahne bulunamadı.');
-      }
-    } catch (e) {
-      throw Exception('Error fetching seats: $e');
-    }
-  }
 
   // Event ID'sine göre koltuk durumu kontrolü ve boş koltukların ilk defa eklenmesi
   Future<void> initializeEventSeats(String eventId, String stageId) async {
@@ -56,12 +36,37 @@ class SeatService {
           });
         }
 
-        eventInfo = Event(id: eventData['_id'], date: eventData['date'], price: eventData['price'], stageId: eventData['stageId'], seatStatus: eventData['seats']);
+        eventInfo = Event(
+            id: eventData['_id'],
+            date: eventData['date'],
+            price: eventData['price'],
+            stageId: eventData['stageId'],
+            seatStatus: eventData['seats']);
       } else {
         throw Exception('Etkinlik bulunamadı.');
       }
     } catch (e) {
       throw Exception('Error initializing event seats: $e');
+    }
+  }
+
+  // Sahne ID'sine göre koltukları çekmek için bir fonksiyon
+  Future<Map<String, List<String>>> getSeatsByStage(String stageId) async {
+    try {
+      DocumentSnapshot doc =
+          await _firestore.collection('Seats').doc(stageId).get();
+      if (doc.exists) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        Map<String, List<String>> seats = {};
+        data.forEach((row, seatList) {
+          seats[row] = List<String>.from(seatList);
+        });
+        return seats;
+      } else {
+        throw Exception('Belirtilen sahne bulunamadı.');
+      }
+    } catch (e) {
+      throw Exception('Error fetching seats: $e');
     }
   }
 
@@ -78,7 +83,8 @@ class SeatService {
         if (data['seats'] is Map) {
           data['seats'].forEach((seatId, seatInfo) {
             if (seatInfo is Map<String, dynamic>) {
-              seatStatus[seatId] = seatInfo; // Koltuk durumu ve customerId içeren obje
+              seatStatus[seatId] =
+                  seatInfo; // Koltuk durumu ve customerId içeren obje
             }
           });
         } else {
@@ -103,22 +109,35 @@ class SeatService {
   }
 
   // Get Date and Time
-  Future<Map<String, String>> getEventDate() async {
+  Future<Map<String, String>> getEventDate({bool formatWithMonthName = false}) async {
     try {
-      if (eventInfo?.price == null) {
-        return {};
-      }
+      if (eventInfo?.date == null) return {};
 
-      List<String> dateParts = eventInfo!.price.split(' at ');
-      DateTime parsedDate = _parseDate(dateParts);
+      List<String> parts = eventInfo!.date.split(',');
+      List<String> dateParts = parts[0].split('.');
 
-      return {
-        "date": _formatDate(parsedDate),
-        "time": _formatTime(parsedDate)
-      };
+      int day = int.parse(dateParts[0]);
+      int month = int.parse(dateParts[1]);
+      int year = int.parse(dateParts[2]);
+      String timePart = parts[1];
+
+      String formattedDate = formatWithMonthName
+          ? "${_getMonthName(month)} $day" //Like "10 Ekim"
+          : "$day.${month.toString().padLeft(2, '0')}.$year"; //Like "18.09.2024"
+
+      return {"date": formattedDate, "time": timePart};
     } catch (e) {
       throw Exception("Tarihte bir hata oldu: $e");
     }
+  }
+
+  String _getMonthName(int month) {
+    const Map<int, String> monthNames = {
+      1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan",
+      5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos",
+      9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"
+    };
+    return monthNames[month] ?? '';
   }
 
 // Koltuk rezerve etme işlemi (müşteri ID'si ile birlikte)
@@ -160,40 +179,18 @@ class SeatService {
     }
   }
 
-
-  DateTime _parseDate(List<String> dateParts) {
-    String monthName = dateParts[0].split(' ')[0];
-    int day = int.parse(dateParts[0].split(' ')[1]);
-    int month = _getMonthNumber(monthName);
-    String time = dateParts[1].split(' ')[0];
-
-    return DateTime.parse("${DateTime.now().year}-$month-$day T$time");
-  }
-
-  String _formatDate(DateTime date) {
-    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-  }
-
-  String _formatTime(DateTime date) {
-    return "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
-  }
-
-  // Ay ismini sayıya çeviren yardımcı fonksiyon
-  int _getMonthNumber(String month) {
-    Map<String, int> months = {
-      'January': 1,
-      'February': 2,
-      'March': 3,
-      'April': 4,
-      'May': 5,
-      'June': 6,
-      'July': 7,
-      'August': 8,
-      'September': 9,
-      'October': 10,
-      'November': 11,
-      'December': 12,
-    };
-    return months[month] ?? 1;
-  }
+  Map<int, String> monthNames = {
+    1: "Ocak",
+    2: "Şubat",
+    3: "Mart",
+    4: "Nisan",
+    5: "Mayıs",
+    6: "Haziran",
+    7: "Temmuz",
+    8: "Ağustos",
+    9: "Eylül",
+    10: "Ekim",
+    11: "Kasım",
+    12: "Aralık"
+  };
 }
