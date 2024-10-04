@@ -128,7 +128,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _addSeat(String seatId) {
     selectedSeats.add(seatId);
-    seatService.updateSeatStatus(widget.eventId, seatId, 'reserved');
+    seatService.updateSeatStatus(widget.eventId, seatId, 'reserved', customerId: "test");
     totalPrice += seatPrice;
   }
 
@@ -288,6 +288,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
     final isAvailable = status == 'available' ||
         (status == 'reserved' && reservedById == 'test');
+
     final isSelected = selectedSeats.contains(seatId);
     final seatColor = _getSeatColor(status, reservedById, isSelected);
 
@@ -316,7 +317,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     if (status == 'sold') {
       return Colors.white30; // Satılmış koltuk
     } else if (status == 'reserved' &&
-        reservedById != null &&
+        reservedById == null &&
         reservedById != 'test') {
       return Colors.purple; // Başka biri tarafından rezerve edilmiş koltuk
     } else if (isSelected) {
