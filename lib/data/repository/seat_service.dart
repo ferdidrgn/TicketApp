@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ticketapp/data/model/event.dart';
 
 class SeatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
+  late Event? eventInfo;
+  
   // Sahne ID'sine göre koltukları çekmek için bir fonksiyon
   Future<Map<String, List<String>>> getSeatsByStage(String stageId) async {
     try {
@@ -53,6 +55,8 @@ class SeatService {
             'seats': seatStatus,
           });
         }
+
+        eventInfo = Event(id: eventData['_id'], date: eventData['date'], price: eventData['price'], stageId: eventData['stageId'], seatStatus: eventData['seats']);
       } else {
         throw Exception('Etkinlik bulunamadı.');
       }
@@ -74,8 +78,7 @@ class SeatService {
         if (data['seats'] is Map) {
           data['seats'].forEach((seatId, seatInfo) {
             if (seatInfo is Map<String, dynamic>) {
-              seatStatus[seatId] =
-                  seatInfo; // Koltuk durumu ve customerId içeren obje
+              seatStatus[seatId] = seatInfo; // Koltuk durumu ve customerId içeren obje
             }
           });
         } else {
@@ -87,6 +90,34 @@ class SeatService {
       }
     } catch (e) {
       throw Exception('Error fetching seat status: $e');
+    }
+  }
+
+  //Price Get
+  Future<String?> getEventPrice() async {
+    try {
+      return eventInfo?.price;
+    } catch (e) {
+      throw Exception('Fiyat verisi alınırken hata oluştu: $e');
+    }
+  }
+
+  // Get Date and Time
+  Future<Map<String, String>> getEventDate() async {
+    try {
+      if (eventInfo?.price == null) {
+        return {};
+      }
+
+      List<String> dateParts = eventInfo!.price.split(' at ');
+      DateTime parsedDate = _parseDate(dateParts);
+
+      return {
+        "date": _formatDate(parsedDate),
+        "time": _formatTime(parsedDate)
+      };
+    } catch (e) {
+      throw Exception("Tarihte bir hata oldu: $e");
     }
   }
 
@@ -111,23 +142,6 @@ class SeatService {
     });
   }
 
-  // Satın alma işlemi
-  Future<void> confirmPurchase(
-      String eventId, List<String> selectedSeats, String customerId) async {
-    await _firestore.collection('Event').doc(eventId).update({
-      'purchasedSeats': FieldValue.arrayUnion(selectedSeats),
-    });
-    for (var seatId in selectedSeats) {
-      await _firestore.collection('Event').doc(eventId).update({
-        // Koltuk bilgisi hem status (sold) hem de customerId içeriyor
-        'seats.$seatId': {
-          'status': 'sold',
-          'customerId': customerId // Satın alan kişinin ID'si
-        }
-      });
-    }
-  }
-
   Future<void> updateSeatStatus(String eventId, String seatId, String status,
       {String? customerId}) async {
     try {
@@ -144,5 +158,42 @@ class SeatService {
     } catch (e) {
       throw Exception('Error updating seat status: $e');
     }
+  }
+
+
+  DateTime _parseDate(List<String> dateParts) {
+    String monthName = dateParts[0].split(' ')[0];
+    int day = int.parse(dateParts[0].split(' ')[1]);
+    int month = _getMonthNumber(monthName);
+    String time = dateParts[1].split(' ')[0];
+
+    return DateTime.parse("${DateTime.now().year}-$month-$day T$time");
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  }
+
+  String _formatTime(DateTime date) {
+    return "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+  }
+
+  // Ay ismini sayıya çeviren yardımcı fonksiyon
+  int _getMonthNumber(String month) {
+    Map<String, int> months = {
+      'January': 1,
+      'February': 2,
+      'March': 3,
+      'April': 4,
+      'May': 5,
+      'June': 6,
+      'July': 7,
+      'August': 8,
+      'September': 9,
+      'October': 10,
+      'November': 11,
+      'December': 12,
+    };
+    return months[month] ?? 1;
   }
 }

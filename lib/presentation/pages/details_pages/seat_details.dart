@@ -30,6 +30,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   int remainingTime = 600; // 10 dakika
   double totalPrice = 0.0;
   double seatPrice = 0.0;
+  String date = "";
+  String time = "";
 
   @override
   void initState() {
@@ -50,10 +52,15 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     final fetchedSeats = await seatService.getSeatsByStage(widget.stageId);
     final fetchedSeatStatus =
         await seatService.getSeatStatusByEvent(widget.eventId);
+    final fetchPrice = await seatService.getEventPrice();
+    final Map<String, String> fetchDate = await seatService.getEventDate();
 
     setState(() {
       seats = fetchedSeats;
       seatStatus = fetchedSeatStatus;
+      seatPrice = fetchPrice != null ? double.parse(fetchPrice) : 0.0;
+      date = fetchDate['date'].toString();
+      time = fetchDate['time'].toString();
     });
   }
 

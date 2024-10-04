@@ -1,17 +1,15 @@
 class Event {
   final String id;
-  final String name;
-  final String desc;
-  final DateTime date;
-  final String time;
-  final double price;
+  final String stageId;
+  final String date;
+  final String price;
+  final Map<String, Map<String, dynamic>>? seatStatus;
 
   Event({
     required this.id,
-    required this.name,
-    required this.desc,
+    required this.stageId,
     required this.date,
-    required this.time,
     required this.price,
+    this.seatStatus
   });
 }
