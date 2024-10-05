@@ -101,6 +101,6 @@ class PhoneAuthController {
     _hideLoadingDialog(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(e.toString())));
+      ..showSnackBar(SnackBar(content: Text(message.toString())));
   }
 }
