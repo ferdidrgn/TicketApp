@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../presentation/pages/main_pages/discovery.dart';
+import '../../presentation/pages/main_pages/discovery_page.dart';
 import '../../presentation/pages/main_pages/nearby_events.dart';
 import '../../presentation/pages/main_pages/profile_page.dart';
 import '../../presentation/pages/main_pages/home_screen.dart';

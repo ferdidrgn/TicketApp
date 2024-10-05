@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:ticketapp/presentation/pages/login/phone_page.dart';
 import '../../../core/custom_views/custom_elevated_button.dart';
 import '../../../core/util/google_sign_in_service.dart';
-import '../../../core/util/phone_sign_in_service.dart';
 import '../../../data/model/user.dart';
 import '../../../data/repository/user_service.dart';
 
@@ -43,7 +43,7 @@ class LoginScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _buildGoogleSignInButton(context),
             const SizedBox(height: 20),
-            _buildPhoneLogIn()
+            _buildPhoneLogIn(context)
           ]))
     ]));
   }
@@ -73,16 +73,15 @@ class LoginScreen extends StatelessWidget {
         });
   }
 
-  Widget _buildPhoneLogIn() {
+  Widget _buildPhoneLogIn(context) {
     return CustomElevatedButton(
         text: 'Tel No İle Giriş Yap',
         icon: Icons.phone,
-        onPressed: () async {
-          final phoneService = PhoneSignInService();
-          await phoneService.signInWithPhone('+905XXXXXXXXX', (verificationId) {
-            // After receiving the code, verify it
-            // You can prompt the user to enter the SMS code
-          });
+        onPressed: (){
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PhonePage()),
+          );
         });
   }
 

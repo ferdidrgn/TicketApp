@@ -44,6 +44,7 @@ dependencies:
   permission_handler: ^10.0.0
   url_launcher: ^6.0.9
   simple_html_css: ^5.0.0
+  pinput: ^4.0.0
   qr_flutter: ^4.0.1
   google_sign_in: ^6.2.1
   firebase_core: ^2.24.2
