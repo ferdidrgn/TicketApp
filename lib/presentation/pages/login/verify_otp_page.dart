@@ -22,7 +22,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
   int timeUntilNextResend = Duration.secondsPerMinute;
 
   void startTimer() {
-    const oneSec = Duration(seconds: 2);
+    const oneSec = Duration(seconds: 1);
     Timer.periodic(oneSec, (timer) {
       if (timeUntilNextResend < 1) {
         timer.cancel();
@@ -35,7 +35,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
   }
 
   Future<void> resendOtp() async {
-    PhoneAuthController.sendOtp(context, widget.phone,
+    await PhoneAuthController.sendOtp(context, widget.phone,
         forceResendingToken: widget.forceResendingToken);
     startTimer();
   }
@@ -74,7 +74,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
           child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(children: [
-                const Text("Lütfen size gönderilen",
+                const Text("Lütfen size gönderilen kodu giriniz.",
                     textAlign: TextAlign.center),
                 const SizedBox(height: 20),
                 Pinput(
@@ -94,8 +94,8 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                 TextButton(
                     onPressed: timeUntilNextResend == 0 ? resendOtp : null,
                     child: Text(timeUntilNextResend == 0
-                        ? "Resend code again"
-                        : "Resend code in 00:${timeUntilNextResend.toString().padLeft(2, '0')}"))
+                        ? "Kodu yeniden gönder"
+                        : "Yeniden gönderme süresi: 00:${timeUntilNextResend.toString().padLeft(2, '0')}"))
               ])),
         ));
   }

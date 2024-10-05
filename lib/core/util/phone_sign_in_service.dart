@@ -12,7 +12,7 @@ class PhoneAuthController {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         forceResendingToken: forceResendingToken,
-        codeSent: (verificationId, x) {
+        codeSent: (verificationId, resendingToken) {
           _hideLoadingDialog(context);
 
           if (forceResendingToken == null) {
@@ -20,36 +20,29 @@ class PhoneAuthController {
                 context,
                 MaterialPageRoute(
                   builder: (context) => VerifyOtpPage(
-                      phone: phoneNumber,
-                      verificationId: verificationId,
-                      forceResendingToken: x),
+                    phone: phoneNumber,
+                    verificationId: verificationId,
+                    forceResendingToken: resendingToken,
+                  ),
                 ));
           }
         },
         verificationCompleted: (phoneAuthCredential) async {
           final smsCode = phoneAuthCredential.smsCode;
-          print("Verification completed $smsCode");
+          print("Verification completed: $smsCode");
         },
         verificationFailed: (error) {
-          _hideLoadingDialog(context);
-          ScaffoldMessenger.of(context)
-            ..hideCurrentMaterialBanner()
-            ..showSnackBar(SnackBar(content: Text("${error.message}")));
+          _handleError(context, error.message);
         },
         codeAutoRetrievalTimeout: (verificationId) {
           _hideLoadingDialog(context);
         },
       );
-    } on FirebaseAuthException catch (e) {
-      _hideLoadingDialog(context);
-      ScaffoldMessenger.of(context)
-        ..hideCurrentMaterialBanner()
-        ..showSnackBar(SnackBar(content: Text("${e.message}")));
     } catch (e) {
+      _handleError(context, e.toString());
+    }
+    finally {
       _hideLoadingDialog(context);
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -60,11 +53,9 @@ class PhoneAuthController {
       if (!context.mounted) return;
       Navigator.pushReplacementNamed(context, '/');
     } catch (e) {
-      _hideLoadingDialog(context);
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
+      _handleError(context, e.toString());
+    }
+    finally {
       _hideLoadingDialog(context);
     }
   }
@@ -76,23 +67,18 @@ class PhoneAuthController {
     try {
       _showLoadingDialog(context);
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: otp,
-      );
+          verificationId: verificationId, smsCode: otp);
       await _auth.signInWithCredential(credential);
       if (!context.mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      _hideLoadingDialog(context);
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text("${e.toString()}")));
-    } finally {
+      _handleError(context, e.toString());
+    }
+    finally {
       _hideLoadingDialog(context);
     }
   }
 
-  // Loading dialog'u gösteren fonksiyon
   static void _showLoadingDialog(BuildContext context) {
     showDialog(
         barrierDismissible: false, // Dışarı tıklanarak kapatılmasın
@@ -107,8 +93,14 @@ class PhoneAuthController {
         });
   }
 
-  // Loading dialog'u gizleyen fonksiyon
   static void _hideLoadingDialog(BuildContext context) {
-    Navigator.of(context).pop(); // En son açılan dialog'u kapat
+    Navigator.of(context).pop();
+  }
+
+  static void _handleError(BuildContext context, String? message) {
+    _hideLoadingDialog(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(e.toString())));
   }
 }

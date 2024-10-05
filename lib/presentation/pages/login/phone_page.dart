@@ -13,7 +13,7 @@ class _PhonePageState extends State<PhonePage> {
   bool enableOtpBtn = false;
 
   Future<void> getOtp() async {
-    PhoneAuthController.sendOtp(context, phone);
+    await PhoneAuthController.sendOtp(context, phone);
   }
 
   @override
@@ -31,9 +31,8 @@ class _PhonePageState extends State<PhonePage> {
                 const SizedBox(height: 30),
                 TextField(
                     onChanged: (value) {
-                      phone = value;
-                      // Telefon numarası girildiğinde butonu aktif et
                       setState(() {
+                        phone = value;
                         enableOtpBtn = value.isNotEmpty;
                       });
                     },
