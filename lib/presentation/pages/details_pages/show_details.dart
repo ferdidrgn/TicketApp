@@ -259,8 +259,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("eventName",
-                      style: const TextStyle(
+                  const Text("eventName",
+                      style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.black)),

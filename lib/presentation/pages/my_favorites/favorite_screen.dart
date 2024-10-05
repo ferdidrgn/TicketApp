@@ -139,7 +139,7 @@ class FavoritesPage extends StatelessWidget {
   }
 
   Widget _buildStageSection() {
-    final List<String> _venues = [
+    final List<String> venues = [
       'Halit Akçatepe Sahnesi',
       'Sahne 2',
       'Sahne 3',
@@ -164,10 +164,10 @@ class FavoritesPage extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _venues.length,
+            itemCount: venues.length,
             itemBuilder: (context, index) {
               return CustomStageCard(
-                text: _venues[index],
+                text: venues[index],
                 imageUrl:
                     'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
                 onPressed: () {
@@ -187,7 +187,7 @@ class FavoritesPage extends StatelessWidget {
   }
 
   Widget _buildPlayers() {
-    final List<String> _players = [
+    final List<String> players = [
       'Oyuncu 1',
       'Oyuncu 2',
       'Oyuncu 3',
@@ -210,16 +210,16 @@ class FavoritesPage extends StatelessWidget {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _players.length,
+        itemCount: players.length,
         itemBuilder: (context, index) {
           return CustomStageCard(
-            text: _players[index],
+            text: players[index],
             imageUrl:
                 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-cV2ZIk5Wi_uoyY1PdDVM2vFzuSMQATw7iw&s',
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => PlayerDetailPage(playerId: "0")),
+                MaterialPageRoute(builder: (context) => const PlayerDetailPage(playerId: "0")),
               );
             },
           );

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
