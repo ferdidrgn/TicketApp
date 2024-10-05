@@ -46,20 +46,6 @@ class PhoneAuthController {
     }
   }
 
-  static Future<void> logout(BuildContext context) async {
-    try {
-      _showLoadingDialog(context);
-      await _auth.signOut();
-      if (!context.mounted) return;
-      Navigator.pushReplacementNamed(context, '/');
-    } catch (e) {
-      _handleError(context, e.toString());
-    }
-    finally {
-      _hideLoadingDialog(context);
-    }
-  }
-
   static Future<void> verifyOtp(
       {required BuildContext context,
       required String otp,

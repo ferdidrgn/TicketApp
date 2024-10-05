@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../model/user.dart';
 
 class UserService {
-  final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;
+  static final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;
 
   final CollectionReference _userCollection =
       FirebaseFirestore.instance.collection('User');
@@ -111,7 +111,7 @@ class UserService {
   }
 
   // Firebase Authentication - Oturum Kapatma
-  Future<void> signOut() async {
+  static Future<void> signOut() async {
     try {
       await _auth.signOut();
     } catch (e) {
