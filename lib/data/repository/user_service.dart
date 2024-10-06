@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../model/user.dart';
 
@@ -113,21 +114,22 @@ class UserService {
   // Firebase Authentication - Oturum Kapatma
   static Future<void> signOut() async {
     try {
-      await _auth.signOut();
-    } catch (e) {
-      throw Exception('Error signing out: $e');
-    }
-  }
+      auth.User? user = _auth.currentUser;
 
-  // Firebase Authentication - Yeni Kullanıcı Oluşturma
-  Future<auth.User?> signUpWithEmailAndPassword(
-      String email, String password) async {
-    try {
-      auth.UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
-      return userCredential.user;
+      if (user != null) {
+        for (auth.UserInfo userInfo in user.providerData) {
+          if (userInfo.providerId == 'google.com') {
+            // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
+            await GoogleSignIn().signOut();
+            print('Google ile oturum kapatıldı.');
+          }
+        }
+        await _auth.signOut();
+      }
+      print('Firebaseden oturum kapatıldı.');
     } catch (e) {
-      throw Exception('Error signing up: $e');
+      print('Oturum kapatılırken hata oluştu: $e');
+      throw Exception('Error signing out: $e');
     }
   }
 

@@ -22,7 +22,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
   int timeUntilNextResend = Duration.secondsPerMinute;
 
   void startTimer() {
-    const oneSec = Duration(seconds: 1);
+    const oneSec = Duration(seconds: 2);
     Timer.periodic(oneSec, (timer) {
       if (timeUntilNextResend < 1) {
         timer.cancel();
