@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:ticketapp/core/util/sign_service.dart';
 import 'package:ticketapp/presentation/pages/login/phone_page.dart';
 import '../../../core/custom_views/custom_elevated_button.dart';
-import '../../../core/util/google_sign_in_service.dart';
 import '../../../data/model/user.dart';
 import '../../../data/repository/user_service.dart';
 
 class LoginScreen extends StatelessWidget {
-  final GoogleSignInService _googleSignInService = GoogleSignInService();
+  final LoginService _loginService = LoginService();
 
   LoginScreen({super.key});
 
@@ -54,7 +54,7 @@ class LoginScreen extends StatelessWidget {
         icon: Icons.abc,
         onPressed: () async {
           try {
-            final account = await _googleSignInService.signInWithGoogle();
+            final account = await _loginService.signInWithGoogle();
             if (account != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(account.displayName ?? '')));
@@ -80,18 +80,24 @@ class LoginScreen extends StatelessWidget {
         onPressed: (){
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const PhonePage()),
+            MaterialPageRoute(builder: (context) => const PhoneLogInPage()),
           );
         });
   }
 
   void saveUser(GoogleSignInAccount account) {
+    String displayName = account.displayName?.trim() ?? '';
+    List<String> nameParts = displayName.split(' ');
+
+    String lastName = nameParts.isNotEmpty ? nameParts.removeLast() : '';
+    String firstName = nameParts.join(' ');
+
     final user = User(
       id: account.id,
       createdAt: DateTime.now().toString(),
       updatedAt: DateTime.now().toString(),
-      firstName: account.displayName ?? '',
-      lastName: '',
+      firstName: firstName,
+      lastName: lastName,
       imageUrl: account.photoUrl,
       phone: '',
       age: 0,

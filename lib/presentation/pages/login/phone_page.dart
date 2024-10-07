@@ -1,53 +1,182 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../core/util/phone_sign_in_service.dart';
+import 'package:pinput/pinput.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
+import '../../../core/util/sign_service.dart';
+import '../../../data/model/user.dart';
+import '../../../data/repository/user_service.dart';
 
-class PhonePage extends StatefulWidget {
-  const PhonePage({super.key});
+class PhoneLogInPage extends StatefulWidget {
+  const PhoneLogInPage({super.key});
 
   @override
-  State<PhonePage> createState() => _PhonePageState();
+  State<PhoneLogInPage> createState() => _PhoneLogInPageState();
 }
 
-class _PhonePageState extends State<PhonePage> {
-  String phone = "";
-  bool enableOtpBtn = false;
+class _PhoneLogInPageState extends State<PhoneLogInPage> {
+  final TextEditingController _phoneController = TextEditingController();
+  final LoginService _loginService = LoginService();
+  String _verificationId = '';
+  bool _codeSent = false;
+  int _timeUntilNextResend = 60;
+  Timer? _timer;
 
-  Future<void> getOtp() async {
-    await PhoneAuthController.sendOtp(context, phone);
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startResendTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_timeUntilNextResend > 0) {
+        setState(() => _timeUntilNextResend--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  Future<void> _verifyPhone() async {
+    if (_phoneController.text.isEmpty) {
+      _showErrorSnackBar('Lütfen bir telefon numarası girin.');
+      return;
+    }
+
+    _loginService.verifyPhone(
+      context,
+      _phoneController.text,
+          (smsCode) {
+        _navigateToHome();
+      },
+          (verificationId) {
+        setState(() {
+          _verificationId = verificationId;
+          _codeSent = true;
+        });
+        _startResendTimer();
+      },
+          (verificationId) {
+        setState(() => _verificationId = verificationId);
+      },
+    );
+  }
+
+  Future<void> _verifyOtp(String otp) async {
+    if (otp.isEmpty) {
+      _showErrorSnackBar('Lütfen OTP kodunu girin.');
+      return;
+    }
+    try {
+      bool isVerified =
+      await _loginService.verifyOtp(context, _verificationId, otp);
+      if (isVerified) {
+        saveUser();
+        _navigateToHome();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('OTP kodu hatalı. Lütfen tekrar deneyin.')),
+        );
+      }
+    } catch (e) {
+      _showErrorSnackBar('Hatalı kod. Lütfen tekrar deneyin.');
+    }
+  }
+
+  void _navigateToHome() {
+    Navigator.of(context).pushReplacementNamed('/home');
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-            automaticallyImplyLeading: false,
-            title: const Text("Telefon Numaranızı Giriniz"),
-            centerTitle: true),
-        body: SafeArea(
-          child: Padding(
-              padding: const EdgeInsets.all(14.0),
-              child: Column(children: [
-                const Text("Doğrulama Gerekiyor..."),
-                const SizedBox(height: 30),
-                TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        phone = value;
-                        enableOtpBtn = value.isNotEmpty;
-                      });
-                    },
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                        hintText: "+90***********",
-                        contentPadding: EdgeInsets.symmetric(horizontal: 20),
-                        border: OutlineInputBorder())),
-                const Spacer(),
-                SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                        onPressed: enableOtpBtn ? getOtp : null,
-                        child: const Text("Kod Gönder")))
-              ])),
-        ));
+      appBar: AppBar(
+        title: const Text("Telefon Doğrulama"),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                hintText: "+90***********",
+                labelText: "Telefon Numarası",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _codeSent ? null : _verifyPhone,
+              child: Text(_codeSent ? "Kod Gönderildi" : "Kod Gönder"),
+            ),
+            if (_codeSent) ...[
+              const SizedBox(height: 24),
+              const Text(
+                "Lütfen size gönderilen kodu giriniz:",
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Pinput(
+                length: 6,
+                onCompleted: _verifyOtp,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: _timeUntilNextResend == 0 ? _verifyPhone : null,
+                child: Text(
+                  _timeUntilNextResend > 0
+                      ? "Yeniden gönderme süresi: $_timeUntilNextResend"
+                      : "Kodu yeniden gönder",
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
+
+  void saveUser() {
+    final auth.User? account = auth.FirebaseAuth.instance.currentUser;
+
+    if (account == null) return;
+
+    String displayName = account.displayName?.trim() ?? '';
+    List<String> nameParts = displayName.split(' ');
+
+    String lastName = nameParts.isNotEmpty ? nameParts.removeLast() : '';
+    String firstName = nameParts.join(' ');
+
+    final user = User(
+      id: account.uid,
+      createdAt: DateTime.now().toString(),
+      updatedAt: DateTime.now().toString(),
+      firstName: firstName,
+      lastName: lastName,
+      imageUrl: account.photoURL,
+      phone: account.phoneNumber ?? '',
+      age: 0,
+      mail: account.email,
+      city: '',
+      isPhoneActive: true,
+      fcmToken: '',
+      role: 'user',
+    );
+
+    UserService().saveUser(user, account.photoURL ?? '');
+  }
+
 }

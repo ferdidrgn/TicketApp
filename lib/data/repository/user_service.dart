@@ -1,11 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../model/user.dart';
 
 class UserService {
-  static final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;
-
   final CollectionReference _userCollection =
       FirebaseFirestore.instance.collection('User');
 
@@ -97,47 +93,5 @@ class UserService {
       'favoritePlayers': user.favoritePlayers,
     };
     return userMap;
-  }
-
-  // Firebase Authentication - Email ve Şifre ile Oturum Açma
-  Future<auth.User?> signInWithEmailAndPassword(
-      String email, String password) async {
-    try {
-      auth.UserCredential userCredential = await _auth
-          .signInWithEmailAndPassword(email: email, password: password);
-      return userCredential.user; // Oturum açan kullanıcıyı döner
-    } catch (e) {
-      throw Exception('Error signing in: $e');
-    }
-  }
-
-  // Firebase Authentication - Oturum Kapatma
-  static Future<void> signOut() async {
-    try {
-      auth.User? user = _auth.currentUser;
-
-      if (user != null) {
-        for (auth.UserInfo userInfo in user.providerData) {
-          if (userInfo.providerId == 'google.com') {
-            // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
-            await GoogleSignIn().signOut();
-            print('Google ile oturum kapatıldı.');
-          }
-        }
-        await _auth.signOut();
-      }
-      print('Firebaseden oturum kapatıldı.');
-    } catch (e) {
-      print('Oturum kapatılırken hata oluştu: $e');
-      throw Exception('Error signing out: $e');
-    }
-  }
-
-  // Açık oturumdaki user bilgileri
-  get currentUser => _auth.currentUser;
-
-  // Kullanıcının Oturum Açmış mı Kontrol Etme
-  bool isUserLoggedIn() {
-    return _auth.currentUser != null;
   }
 }
