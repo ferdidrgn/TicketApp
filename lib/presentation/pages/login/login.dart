@@ -21,8 +21,7 @@ class LoginScreen extends StatelessWidget {
 
   Widget _buildBackgroundImage() {
     return Positioned.fill(
-      child: Image.asset('assets/images/book_logo.jpg', fit: BoxFit.cover)
-    );
+        child: Image.asset('assets/images/book_logo.jpg', fit: BoxFit.cover));
   }
 
   Widget _buildContent(BuildContext context) {
@@ -51,7 +50,9 @@ class LoginScreen extends StatelessWidget {
   Widget _buildGoogleSignInButton(BuildContext context) {
     return CustomElevatedButton(
         text: 'Google ile Giriş Yap',
-        icon: Icons.abc,
+        iconAsset: Image.network(
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
+            height: 24),
         onPressed: () async {
           try {
             final account = await _loginService.signInWithGoogle();
@@ -63,12 +64,10 @@ class LoginScreen extends StatelessWidget {
             } else {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text('Google Girişi Başarısız Oldu.')));
-              Navigator.pushReplacementNamed(context, '/home');
             }
           } catch (error) {
             ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Hata: $error  TEST için girildi.')));
-            Navigator.pushReplacementNamed(context, '/home');
+                const SnackBar(content: Text('Google Girişi Başarısız Oldu.')));
           }
         });
   }
@@ -76,8 +75,8 @@ class LoginScreen extends StatelessWidget {
   Widget _buildPhoneLogIn(context) {
     return CustomElevatedButton(
         text: 'Tel No İle Giriş Yap',
-        icon: Icons.phone,
-        onPressed: (){
+        iconData: Icons.phone,
+        onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const PhoneLogInPage()),

@@ -48,53 +48,53 @@ class _ProfilePageState extends State<ProfilePage> {
       if (firebaseUser != null) ...[
         CustomElevatedButton(
           text: 'Profilini Düzenle',
-          icon: Icons.edit,
+          iconData: Icons.edit,
           onPressed: () => _navigateTo(const UserProfileEditScreen()),
         ),
         CustomElevatedButton(
           text: 'Biletlerim',
-          icon: Icons.theaters_rounded,
+          iconData: Icons.theaters_rounded,
           onPressed: () => _navigateTo(MyTicketPage()),
         ),
         CustomElevatedButton(
           text: 'Favori Etkinliklerim',
-          icon: Icons.favorite,
+          iconData: Icons.favorite,
           onPressed: () => _navigateTo(FavoritesPage()),
         ),
       ],
       const SizedBox(height: 20),
       CustomElevatedButton(
         text: 'Bildirim Ayarları',
-        icon: Icons.notifications,
+        iconData: Icons.notifications,
         onPressed: () => _navigateTo(const PermissionSettingsScreen()),
       ),
       CustomElevatedButton(
         text: 'Uygulama Ayarları',
-        icon: Icons.settings,
+        iconData: Icons.settings,
         onPressed: () => _navigateTo(const AppSettingsPage()),
       ),
       const SizedBox(height: 20),
       CustomElevatedButton(
         text: 'Gizlilik ve Güvenlik',
-        icon: Icons.privacy_tip,
+        iconData: Icons.privacy_tip,
         onPressed: () => _navigateTo(const ContractsPage()),
       ),
       CustomElevatedButton(
         text: 'Sıkça Sorulan Sorular',
-        icon: Icons.help,
+        iconData: Icons.help,
         onPressed: () {},
       ),
       const SizedBox(height: 20),
       CustomElevatedButton(
         text: 'Destek ve Bağış',
-        icon: Icons.coffee,
+        iconData: Icons.coffee,
         onPressed: () {},
       ),
       const SizedBox(height: 20),
       _buildThemeSelectorCard(),
       CustomElevatedButton(
         text: firebaseUser != null ? 'Çıkış Yap' : 'Giriş Yap',
-        icon: firebaseUser != null ? Icons.logout : Icons.login,
+        iconData: firebaseUser != null ? Icons.logout : Icons.login,
         onPressed: firebaseUser != null ? _signOut : _navigateToLogin,
       ),
       const SizedBox(height: 50)

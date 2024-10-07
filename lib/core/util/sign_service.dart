@@ -6,33 +6,50 @@ import '../custom_views/custom_loading.dart';
 
 class LoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  late final GoogleSignInAccount? account;
+  GoogleSignInAccount? account;
 
   Future<GoogleSignInAccount?> signInWithGoogle() async {
-    try{
+    try {
+      // Eğer kullanıcı zaten oturum açtıysa doğrudan account'ı döndürebiliriz
+      account =
+          await _googleSignIn.isSignedIn() ? _googleSignIn.currentUser : null;
+      if (account != null) {
+        return account;
+      }
+
+      // Google ile giriş yapılıyor
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
+      if (googleUser == null) {
+        // Kullanıcı giriş yapmayı iptal etti, gereksiz işlemlerden kaçın
+        return null;
+      }
+
+      // Kimlik doğrulama bilgilerini paralel olarak alıp Firebase giriş işlemiyle devam ediyoruz
+      final googleAuthFuture = googleUser.authentication;
+
+      final GoogleSignInAuthentication googleAuth = await googleAuthFuture;
 
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      // Firebase Authentication ile giriş işlemi
+      await _auth.signInWithCredential(credential);
+      account = googleUser;
 
       return account;
-    }catch (e){
-      throw Exception(e);
+    } catch (e) {
+      throw Exception('Google ile giriş başarısız: $e');
     }
   }
 
-  Future<void> verifyPhone(BuildContext context,
-      String phoneNumber,
-      Function(String) onVerificationCompleted,
-      Function(String) onCodeSent,
-      Function(String) onAutoRetrievalTimeout,) async {
+  Future<void> verifyPhone(
+    BuildContext context,
+    String phoneNumber,
+    Function(String) onVerificationCompleted,
+    Function(String) onCodeSent,
+    Function(String) onAutoRetrievalTimeout,
+  ) async {
     _showLoadingDialog(context);
 
     await _auth.verifyPhoneNumber(
@@ -56,7 +73,8 @@ class LoginService {
     );
   }
 
-  Future<bool> verifyOtp(BuildContext context, String verificationId, String otp) async {
+  Future<bool> verifyOtp(
+      BuildContext context, String verificationId, String otp) async {
     _showLoadingDialog(context);
     try {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
