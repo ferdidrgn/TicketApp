@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/util/sign_service.dart';
 import 'dart:async';
-import 'package:ticketapp/data/repository/user_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -34,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkUserLoginState() async {
-    final currentUser = UserService().isUserLoggedIn();
+    final currentUser = LoginService().isUserLoggedIn();
 
     if (currentUser == false) {
       Navigator.of(context).pushReplacementNamed('/login');

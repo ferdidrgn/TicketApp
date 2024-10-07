@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/data/repository/user_service.dart';
+import 'package:ticketapp/core/util/sign_service.dart';
 import 'package:ticketapp/presentation/pages/contracts/contracts.dart';
 import '../../../core/custom_views/custom_elevated_button.dart';
 import '../profile_edit/user_profile_edit.dart';
@@ -20,6 +20,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   User? firebaseUser;
+  final LoginService _loginService = LoginService();
 
   @override
   void initState() {
@@ -30,7 +31,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _fetchUserInfo() async {
     try {
       setState(() {
-        firebaseUser = UserService().currentUser;
+        firebaseUser = _loginService.currentUser;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -197,7 +198,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _signOut() async {
     try {
-      await UserService.signOut();
+      await _loginService.signOut();
       setState(() {
         firebaseUser = null;
       });

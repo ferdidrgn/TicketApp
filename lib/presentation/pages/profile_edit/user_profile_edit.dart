@@ -40,8 +40,8 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
         _currentUser = user;
         _firstName = user.firstName;
         _lastName = user.lastName;
-        _phoneNumber = user.phone;
-        _email = user.mail ?? '';
+        _phoneNumber = user.phoneNumber;
+        _email = user.eMail ?? '';
         _age = int.tryParse(user.age as String) ?? 0;
         _city = user.city ?? '';
         _profileImageUrl = user.imageUrl ?? 'https://via.placeholder.com/150';
@@ -59,8 +59,8 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
         updatedAt: timestamp.toString(),
         firstName: _firstName,
         lastName: _lastName,
-        phone: _phoneNumber,
-        mail: _email,
+        phoneNumber: _phoneNumber,
+        eMail: _email,
         age: _age.toInt(),
         city: _city,
         imageUrl: _profileImageUrl,
