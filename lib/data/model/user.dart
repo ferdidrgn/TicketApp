@@ -5,9 +5,9 @@ class User {
   final String firstName;
   final String lastName;
   final String? imageUrl;
-  final String phone;
+  final String phoneNumber;
   final int? age;
-  final String? mail;
+  final String? eMail;
   final String? city;
   final bool? isPhoneActive;
   final String? fcmToken;
@@ -24,9 +24,9 @@ class User {
     required this.firstName,
     required this.lastName,
     this.imageUrl,
-    required this.phone,
+    required this.phoneNumber,
     this.age,
-    this.mail,
+    this.eMail,
     this.city,
     this.isPhoneActive,
     this.fcmToken,

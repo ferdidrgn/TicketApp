@@ -49,17 +49,18 @@ class UserService {
         updatedAt: _getStringField(document, '_updatedAt'),
         firstName: _getStringField(document, 'firstName'),
         lastName: _getStringField(document, 'lastName'),
-        imageUrl: _getStringField(document, 'photoUrl'),
-        phone: _getStringField(document, 'phoneNumber'),
+        imageUrl: _getStringField(document, 'imageUrl'),
+        phoneNumber: _getStringField(document, 'phoneNumber'),
         age: int.tryParse(_getStringField(document, 'age')) ?? 0,
-        mail: _getStringField(document, 'eMail'),
+        eMail: _getStringField(document, 'eMail'),
         city: _getStringField(document, 'city'),
-        isPhoneActive: document['isActivite'],
+        isPhoneActive: document['isPhoneActive'],
         fcmToken: _getStringField(document, 'fcmToken'),
         role: _getStringField(document, 'role'),
         favoriteShows: _getListField(document, 'favoriteShows'),
         favoriteStages: _getListField(document, 'favoriteStages'),
-        favoritePlayers: _getListField(document, 'favoritePlayers'));
+        favoritePlayers: _getListField(document, 'favoritePlayers'),
+        ticketsId: _getListField(document, "ticketsId"));
   }
 
   String _getStringField(DocumentSnapshot document, String fieldName) {
@@ -80,17 +81,18 @@ class UserService {
       'firstName': user.firstName,
       'lastName': user.lastName,
       'fullName': '${user.firstName} ${user.lastName}',
-      'phoneNumber': user.phone,
+      'phoneNumber': user.phoneNumber,
       'photoUrl': downloadUrl,
-      'isActivite': user.isPhoneActive,
+      'isPhoneActive': user.isPhoneActive,
       'age': user.age,
-      'eMail': user.mail,
+      'eMail': user.eMail,
       'fcmToken': user.fcmToken,
       'role': user.role,
       'city': user.city,
       'favoriteShows': user.favoriteShows,
       'favoriteStages': user.favoriteStages,
       'favoritePlayers': user.favoritePlayers,
+      'ticketsId': user.ticketsId
     };
     return userMap;
   }
