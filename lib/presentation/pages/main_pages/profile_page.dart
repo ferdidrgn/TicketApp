@@ -92,12 +92,11 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       const SizedBox(height: 20),
       _buildThemeSelectorCard(),
-      if (firebaseUser != null)
-        CustomElevatedButton(
-          text: 'Çıkış Yap',
-          icon: Icons.logout,
-          onPressed: _signOut,
-        ),
+      CustomElevatedButton(
+        text: firebaseUser != null ? 'Çıkış Yap' : 'Giriş Yap',
+        icon: firebaseUser != null ? Icons.logout : Icons.login,
+        onPressed: firebaseUser != null ? _signOut : _navigateToLogin,
+      ),
       const SizedBox(height: 50)
     ]));
   }
@@ -105,20 +104,22 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildProfileCard() {
     if (firebaseUser == null) {
       return Card(
-        elevation: 5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: const Padding(
-            padding: EdgeInsets.all(20.0),
-            child: Column(children: [
-              Icon(Icons.account_circle, size: 100, color: Colors.grey),
-              SizedBox(height: 10),
-              Text('Giriş Yap',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              SizedBox(height: 5),
-              Text('Lütfen giriş yapın',
-                  style: TextStyle(fontSize: 16, color: Colors.grey))
-            ])),
-      );
+          elevation: 5,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(children: [
+                const Icon(Icons.account_circle, size: 100, color: Colors.grey),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                    onPressed: _navigateToLogin,
+                    child: const Text('Giriş Yap',
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold))),
+                const SizedBox(height: 5),
+                const Text('Lütfen giriş yapın',
+                    style: TextStyle(fontSize: 16, color: Colors.grey))
+              ])));
     } else {
       return Card(
           elevation: 5,
@@ -196,13 +197,20 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.of(context).push(MaterialPageRoute(builder: (context) => page));
   }
 
+  void _navigateToLogin() {
+    // Giriş sayfasına yönlendirme
+    Navigator.of(context).pushReplacementNamed('/');
+  }
+
   void _signOut() async {
     try {
       await _loginService.signOut();
+      _navigateToLogin;
+
       setState(() {
         firebaseUser = null;
       });
-    }catch(e){
+    } catch (e) {
       throw Exception('Çıkış yaparken bir hata oluştu: $e');
     }
   }
