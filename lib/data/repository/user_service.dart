@@ -9,6 +9,15 @@ class UserService {
   Future<void> saveUser(User user, String downloadUrl,
       {bool isUpdate = false}) async {
     try {
+      // Belgeyi kontrol et
+      final docSnapshot = await _userCollection.doc(user.id).get();
+
+      if (docSnapshot.exists) {
+        // Eğer belge mevcutsa, işlemi atla
+        print('User with ID ${user.id} already exists. Skipping save operation.');
+        return; // İşlemi sonlandır
+      }
+
       final userMap = _mapUserToFirestore(user, downloadUrl, isUpdate);
       if (isUpdate) {
         await _userCollection.doc(user.id).update(userMap);
