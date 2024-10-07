@@ -9,12 +9,14 @@ class LoginService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   GoogleSignInAccount? account;
 
-  Future<GoogleSignInAccount?> signInWithGoogle() async {
+  Future<GoogleSignInAccount?> signInWithGoogle(BuildContext context) async {
+    _showLoadingDialog(context);
     try {
       // Eğer kullanıcı zaten oturum açtıysa doğrudan account'ı döndürebiliriz
       account =
           await _googleSignIn.isSignedIn() ? _googleSignIn.currentUser : null;
       if (account != null) {
+        _hideLoadingDialog(context);
         return account;
       }
 
@@ -22,24 +24,28 @@ class LoginService {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         // Kullanıcı giriş yapmayı iptal etti, gereksiz işlemlerden kaçın
+        _hideLoadingDialog(context);
         return null;
       }
 
       // Kimlik doğrulama bilgilerini paralel olarak alıp Firebase giriş işlemiyle devam ediyoruz
       final googleAuthFuture = googleUser.authentication;
-
       final GoogleSignInAuthentication googleAuth = await googleAuthFuture;
 
       final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
       // Firebase Authentication ile giriş işlemi
       await _auth.signInWithCredential(credential);
       account = googleUser;
-
+      _hideLoadingDialog(context);
       return account;
     } catch (e) {
-      throw Exception('Google ile giriş başarısız: $e');
+      _hideLoadingDialog(context);
+      _showErrorSnackBar(context, 'Google ile giriş başarısız: $e');
+      return null;
     }
   }
 
@@ -57,6 +63,7 @@ class LoginService {
       verificationCompleted: (PhoneAuthCredential credential) async {
         await _auth.signInWithCredential(credential);
         onVerificationCompleted(credential.smsCode ?? '');
+        _hideLoadingDialog(context);
       },
       verificationFailed: (FirebaseAuthException e) {
         _showErrorSnackBar(context, e.message ?? 'Verification failed');
@@ -109,12 +116,12 @@ class LoginService {
       print('Firebaseden oturum kapatıldı.');
     } catch (e) {
       print('Oturum kapatılırken hata oluştu: $e');
-      throw Exception('Error signing out: $e');
+      _showErrorSnackBar(null, 'Oturum kapatılırken hata oluştu: $e');
     }
   }
 
   // Açık oturumdaki user bilgileri
-  get currentUser => _auth.currentUser;
+  User? get currentUser => _auth.currentUser;
 
   // Kullanıcının Oturum Açmış mı Kontrol Etme
   bool isUserLoggedIn() {
@@ -129,9 +136,10 @@ class LoginService {
     LoadingOverlay.hide(context);
   }
 
-  void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  void _showErrorSnackBar(BuildContext? context, String message) {
+    context == null
+        ? throw Exception(message)
+        : ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
   }
 }
