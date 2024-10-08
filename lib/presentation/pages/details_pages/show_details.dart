@@ -54,35 +54,39 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     }
   }
 
-  Future<void> _fetchNowPlayers(List<String> playersId) async {
-    for (String playerId in playersId) {
-      try {
-        final player = await PlayerService().getPlayerById(playerId);
-        if (player != null) {
-          setState(() {
-            nowPlayerDataList.add(player);
-          });
+  Future<void> _fetchNowPlayers(List<String>? playersId) async {
+    try {
+      if (playersId != null) {
+        for (String playerId in playersId) {
+          final player = await PlayerService().getPlayerById(playerId);
+          if (player != null) {
+            setState(() {
+              nowPlayerDataList.add(player);
+            });
+          }
         }
-      } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')));
       }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')));
     }
   }
 
-  Future<void> _fetchOldPlayers(List<String> playersId) async {
-    for (String playerId in playersId) {
-      try {
-        final player = await PlayerService().getPlayerById(playerId);
-        if (player != null) {
-          setState(() {
-            oldPlayerDataList.add(player);
-          });
+  Future<void> _fetchOldPlayers(List<String>? playersId) async {
+    try {
+      if (playersId != null) {
+        for (String playerId in playersId) {
+          final player = await PlayerService().getPlayerById(playerId);
+          if (player != null) {
+            setState(() {
+              oldPlayerDataList.add(player);
+            });
+          }
         }
-      } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')));
       }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Oyuncu verisi alınırken bir hata oluştu: $error')));
     }
   }
 

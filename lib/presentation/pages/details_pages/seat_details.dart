@@ -48,7 +48,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Future<void> _fetchSeats() async {
-    await seatService.initializeEventSeats(widget.eventId, widget.stageId);
+    await seatService.initializeAndGetEventSeats(widget.eventId, widget.stageId);
 
     final fetchedSeats = await seatService.getSeatsByStage(widget.stageId);
     final fetchedSeatStatus =

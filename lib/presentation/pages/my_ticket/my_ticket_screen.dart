@@ -1,104 +1,112 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/data/repository/ticket_service.dart';
+import 'package:ticketapp/data/repository/user_service.dart';
 import '../../../core/custom_views/custom_art_words_card.dart';
+import '../../../data/model/event.dart';
+import '../../../data/model/show.dart';
+import '../../../data/model/stage.dart';
+import '../../../data/model/ticket.dart';
+import '../../../data/model/user.dart';
+import '../../../data/repository/event_service.dart';
+import '../../../data/repository/show_service.dart';
+import '../../../data/repository/stage_service.dart';
 import '../details_pages/ticket_details.dart';
 
-class Ticket {
-  final String title;
-  final String date;
-  final String time;
-  final String location;
-  final bool isPast;
+class MyTicketPage extends StatefulWidget {
+  final String userId;
 
-  Ticket({
-    required this.title,
-    required this.date,
-    required this.time,
-    required this.location,
-    this.isPast = false,
-  });
+  const MyTicketPage({super.key, required this.userId});
+
+  @override
+  _MyTicketPageState createState() => _MyTicketPageState();
 }
 
-class MyTicketPage extends StatelessWidget {
-  MyTicketPage({super.key});
+class _MyTicketPageState extends State<MyTicketPage> {
+  late final User userData;
+  List<Ticket?> ticketDataList = [];
+  bool isLoading = true;
 
-  // Örnek bilet verileri
-  final List<Ticket> tickets = [
-    Ticket(
-      title: 'Konser Bileti',
-      date: '2024-09-15',
-      time: '20:00',
-      location: 'Stadyum A',
-      isPast: false,
-    ),
-    Ticket(
-      title: 'Sergi Girişi',
-      date: '2024-08-20',
-      time: '15:00',
-      location: 'Sanat Galerisi B',
-      isPast: true,
-    ),
-    Ticket(
-      title: 'Stand Up Gösterisi',
-      date: '2024-10-01',
-      time: '21:00',
-      location: 'Küçük Tiyatro',
-      isPast: false,
-    ),
-    Ticket(
-      title: 'Müzik Festivali',
-      date: '2024-07-10',
-      time: '14:00',
-      location: 'Park Alanı C',
-      isPast: true,
-    ),
-    Ticket(
-      title: 'Sinemaya Giriş',
-      date: '2024-09-25',
-      time: '18:00',
-      location: 'Sinema Salon X',
-      isPast: false,
-    ),
-    Ticket(
-      title: 'Çocuk Tiyatrosu',
-      date: '2024-08-30',
-      time: '11:00',
-      location: 'Tiyatro E',
-      isPast: false,
-    ),
-    Ticket(
-      title: 'Festival Bileti',
-      date: '2024-06-15',
-      time: '12:00',
-      location: 'Festival Alanı Y',
-      isPast: true,
-    ),
-    Ticket(
-      title: 'Tiyatro Bileti',
-      date: '2024-09-05',
-      time: '19:00',
-      location: 'Büyük Tiyatro',
-      isPast: false,
-    ),
-    Ticket(
-      title: 'Konferans Bileti',
-      date: '2024-11-20',
-      time: '09:00',
-      location: 'Konferans Merkezi',
-      isPast: false,
-    ),
-    Ticket(
-      title: 'Dans Gösterisi',
-      date: '2024-10-15',
-      time: '20:00',
-      location: 'Dans Salonu',
-      isPast: true,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final userInfo = await UserService().getUserById(widget.userId);
+      if (userInfo != null) {
+        setState(() {
+          userData = userInfo;
+        });
+        _fetchTicketsData(userData.ticketsId);
+      }
+    } catch (e) {
+      throw Exception("Kullanıcı bilgilerinde bir hata oluştu.");
+    }
+  }
+
+  Future<void> _fetchTicketsData(List<String>? ticketsId) async {
+    try {
+      if (ticketsId != null) {
+        for (String ticketId in ticketsId) {
+          final ticket = await TicketService().getTicketById(ticketId);
+          if (ticket != null) {
+            setState(() {
+              ticketDataList.add(ticket);
+            });
+          }
+        }
+      }
+    } catch (e) {
+      throw Exception("Bilet bilgilerinde bir hata oluştu.");
+    }
+  }
+
+  Future<Show?> _fetchShowData(String showId) async {
+    try {
+      final show = await ShowService().getShowById(showId);
+      return show;
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
+      return null;
+    } finally {
+      setState(() {
+        isLoading = false; // Yükleme tamamlandı
+      });
+    }
+  }
+
+  Future<Stage?> _fetchStageData(String stageId) async {
+    try {
+      final stage = await StageService().getStageById(stageId);
+      return stage;
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Sahne verisi alınırken bir hata oluştu: $error')));
+      return null;
+    }
+  }
+
+  Future<Event?> _fetchEventData(String eventId, String stageId) async {
+    try {
+      final eventService = EventService();
+      await eventService.initializeAndGetEventSeats(eventId, stageId);
+      final event = eventService.getEvent();
+      return event;
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Sahne verisi alınırken bir hata oluştu: $error')));
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pastTickets = tickets.where((ticket) => ticket.isPast).toList();
-    final upcomingTickets = tickets.where((ticket) => !ticket.isPast).toList();
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -109,7 +117,8 @@ class MyTicketPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CustomArtWordsCard(word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
+            const CustomArtWordsCard(
+                word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
             const SizedBox(height: 20),
             if (upcomingTickets.isNotEmpty) ...[
               _buildSectionTitle('Gelecek Biletler'),
@@ -141,7 +150,7 @@ class MyTicketPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTicketList(List<Ticket> tickets, BuildContext context) {
+  Widget _buildTicketList(List<Ticket?> tickets, BuildContext context) {
     return SizedBox(
       height: 200, // Kartların yüksekliği
       child: ListView.builder(
@@ -172,26 +181,27 @@ class MyTicketPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
-                        ticket.isPast ? Icons.history : Icons.event,
-                        color: ticket.isPast ? Colors.grey : Colors.green,
+                        ticket?.isPast == true ? Icons.history : Icons.event,
+                        color:
+                            ticket?.isPast == true ? Colors.grey : Colors.green,
                         size: 40,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        ticket.title,
+                        ticket?.title ?? 'Başlık Yok',
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        'Tarih: ${ticket.date}',
+                        'Tarih: ${ticket?.date ?? 'Belirtilmemiş'}',
                         style: const TextStyle(fontSize: 14),
                       ),
                       Text(
-                        'Saat: ${ticket.time}',
+                        'Saat: ${ticket?.time ?? 'Belirtilmemiş'}',
                         style: const TextStyle(fontSize: 14),
                       ),
                       Text(
-                        'Lokasyon: ${ticket.location}',
+                        'Lokasyon: ${ticket?.location ?? 'Belirtilmemiş'}',
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
