@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:ticketapp/data/repository/event_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import '../../../core/util/date_formatter.dart';
@@ -8,13 +9,11 @@ import '../../../data/repository/ticket_service.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
   final String showId;
-  final String stageId;
   final String eventId;
 
   const SeatSelectionScreen({
     super.key,
     required this.showId,
-    required this.stageId,
     required this.eventId,
   });
 
@@ -23,10 +22,11 @@ class SeatSelectionScreen extends StatefulWidget {
 }
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
-  final SeatService seatService = SeatService();
+  final EventService eventService = EventService();
   Map<String, List<String>> seats = {};
   Map<String, Map<String, dynamic>> seatStatus = {};
   Set<String> selectedSeats = {};
+  late String stageId;
   Timer? reservationTimer;
   int remainingTime = 600; // 10 dakika
   double totalPrice = 0.0;
@@ -48,20 +48,22 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Future<void> _fetchSeats() async {
-    await seatService.initializeAndGetEventSeats(widget.eventId, widget.stageId);
-
-    final fetchedSeats = await seatService.getSeatsByStage(widget.stageId);
+    await eventService.initializeAndGetEventSeats(widget.eventId);
+    final fetchStageId = await eventService.getStageId(widget.eventId);
+    final fetchedSeats = await SeatService().getSeatsByStage(fetchStageId);
     final fetchedSeatStatus =
-        await seatService.getSeatStatusByEvent(widget.eventId);
-    final fetchPrice = await seatService.getEventPrice();
-    final Map<String, String> fetchDate = await seatService.getEventDate();
+        await eventService.getSeatStatusByEvent(widget.eventId);
+    final fetchPrice = await eventService.getEventPrice(widget.eventId);
+    final Map<String, String>? fetchDate =
+        await eventService.getEventDate(widget.eventId);
 
     setState(() {
+      stageId = fetchStageId;
       seats = fetchedSeats;
       seatStatus = fetchedSeatStatus;
       seatPrice = fetchPrice != null ? double.parse(fetchPrice) : 0.0;
-      date = fetchDate['date'].toString();
-      time = fetchDate['time'].toString();
+      date = fetchDate?['date'].toString() ?? '';
+      time = fetchDate?['time'].toString() ?? '';
     });
   }
 
@@ -104,7 +106,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _cancelReservations() {
     for (String seatId in selectedSeats) {
-      seatService.updateSeatStatus(widget.eventId, seatId, 'available');
+      eventService.updateSeatStatus(widget.eventId, seatId, 'available');
     }
     setState(() => selectedSeats.clear());
   }
@@ -123,13 +125,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _removeSeat(String seatId) {
     selectedSeats.remove(seatId);
-    seatService.updateSeatStatus(widget.eventId, seatId, 'available');
+    eventService.updateSeatStatus(widget.eventId, seatId, 'available');
     totalPrice -= seatPrice;
   }
 
   void _addSeat(String seatId) {
     selectedSeats.add(seatId);
-    seatService.updateSeatStatus(widget.eventId, seatId, 'reserved', customerId: "test");
+    eventService.updateSeatStatus(widget.eventId, seatId, 'reserved',
+        customerId: "test");
     totalPrice += seatPrice;
   }
 
@@ -388,7 +391,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     try {
       // 1. Koltukları satıldı olarak güncelle
       for (String seatId in selectedSeats) {
-        await seatService.updateSeatStatus(widget.eventId, seatId, 'sold',
+        await eventService.updateSeatStatus(widget.eventId, seatId, 'sold',
             customerId: "test");
       }
 
@@ -463,7 +466,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       id: uuid.v4(),
       showId: widget.showId,
       customerId: 'customer_id',
-      stageId: widget.stageId,
+      stageId: stageId,
       eventId: widget.eventId,
       orderPrice: totalPrice.toString(),
       orderMethod: 'google_play',

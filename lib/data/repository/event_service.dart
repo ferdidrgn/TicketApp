@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:ticketapp/data/model/event.dart';
 import 'package:ticketapp/data/repository/seat_service.dart';
 import '../../core/util/date_formatter.dart';
 
@@ -8,8 +7,7 @@ class EventService {
       FirebaseFirestore.instance.collection("Event");
 
   // Event ID'sine göre koltuk durumu kontrolü ve boş koltukların ilk defa eklenmesi
-  Future<void> initializeAndGetEventSeats(
-      String eventId, String stageId) async {
+  Future<void> initializeAndGetEventSeats(String eventId) async {
     try {
       DocumentSnapshot eventDoc = await _firestore.doc(eventId).get();
 
@@ -20,7 +18,7 @@ class EventService {
         // Eğer seats verisi boşsa, Seats koleksiyonundan verileri çek ve Event'e ekle
         if (eventData['seats'] == null || (eventData['seats'] as Map).isEmpty) {
           Map<String, List<String>> stageSeats =
-              await SeatService().getSeatsByStage(stageId);
+              await SeatService().getSeatsByStage(eventData['stageId']);
           Map<String, Map<String, dynamic>> seatStatus = {};
 
           // Boş koltukları 'available' olarak işaretle
@@ -92,6 +90,21 @@ class EventService {
     }
   }
 
+  //Price StageId
+  Future<String> getStageId(String eventId) async {
+    try {
+      final docSnapshot = await _firestore.doc(eventId).get();
+
+      if (!docSnapshot.exists) return throw Exception("Sahne verisi Alınamadı");
+
+      final eventData = docSnapshot.data() as Map<String, dynamic>;
+      return eventData['stageId'] as String;
+    } catch (error) {
+      throw Exception(
+          "Etkinlik Sahne verisi alınırken bir hata oluştu: $error");
+    }
+  }
+
   //Price Get
   Future<String?> getEventPrice(String eventId) async {
     try {
@@ -100,7 +113,7 @@ class EventService {
       if (!docSnapshot.exists) return null;
 
       final eventData = docSnapshot.data() as Map<String, dynamic>;
-      return eventData['price'] as String; // Sadece tarih alanını al
+      return eventData['price'] as String;
     } catch (error) {
       throw Exception(
           "Etkinlik Tarih verisi alınırken bir hata oluştu: $error");

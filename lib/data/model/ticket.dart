@@ -8,6 +8,7 @@ class Ticket {
   final String eventId;
   final String orderMethod;
   final String orderPrice;
+  final String? isPast;
 
   Ticket({
     required this.id,
@@ -19,5 +20,6 @@ class Ticket {
     required this.eventId,
     required this.orderMethod,
     required this.orderPrice,
+    this.isPast
   });
 }

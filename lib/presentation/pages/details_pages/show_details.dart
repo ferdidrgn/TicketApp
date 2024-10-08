@@ -213,9 +213,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           context,
           MaterialPageRoute(
               builder: (context) => SeatSelectionScreen(
-                  showId: showData?.id ?? '',
-                  stageId: 'Halit Akçatepe Örnek Mahallesi',
-                  eventId: eventId)),
+                  showId: showData?.id ?? '', eventId: eventId)),
         );
       },
       child: Container(
