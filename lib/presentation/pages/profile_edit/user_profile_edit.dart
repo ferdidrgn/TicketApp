@@ -7,7 +7,9 @@ import '../../../data/model/user.dart';
 import '../../../data/repository/user_service.dart';
 
 class UserProfileEditScreen extends StatefulWidget {
-  const UserProfileEditScreen({super.key});
+  final String userId;
+
+  const UserProfileEditScreen({super.key, required this.userId});
 
   @override
   _UserProfileEditScreenState createState() => _UserProfileEditScreenState();
@@ -33,8 +35,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
   }
 
   Future<void> _getUserData() async {
-    String userId = 'mevcutKullaniciId'; // Mevcut kullanıcı ID'sini belirleyin
-    User? user = await _userService.getUserById(userId);
+    User? user = await _userService.getUserById(widget.userId);
     if (user != null) {
       setState(() {
         _currentUser = user;
@@ -54,17 +55,23 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
       DateTime now = DateTime.now();
       Timestamp timestamp = Timestamp.fromDate(now);
       User updatedUser = User(
-        id: _currentUser?.id ?? '',
-        createdAt: _currentUser?.createdAt ?? '',
-        updatedAt: timestamp.toString(),
-        firstName: _firstName,
-        lastName: _lastName,
-        phoneNumber: _phoneNumber,
-        eMail: _email,
-        age: _age.toInt(),
-        city: _city,
-        imageUrl: _profileImageUrl,
-      );
+          id: _currentUser?.id ?? '',
+          createdAt: _currentUser?.createdAt ?? '',
+          updatedAt: timestamp.toString(),
+          firstName: _firstName,
+          lastName: _lastName,
+          phoneNumber: _phoneNumber,
+          eMail: _email,
+          age: _age.toInt(),
+          city: _city,
+          imageUrl: _profileImageUrl,
+          ticketsId: _currentUser?.ticketsId,
+          favoritePlayers: _currentUser?.favoritePlayers,
+          favoriteShows: _currentUser?.favoriteShows,
+          favoriteStages: _currentUser?.favoriteStages,
+          fcmToken: _currentUser?.fcmToken,
+          isPhoneActive: _currentUser?.isPhoneActive,
+          role: _currentUser?.role);
 
       // Profil güncelleme işlemi
       await _userService.saveUser(updatedUser, _profileImageUrl,

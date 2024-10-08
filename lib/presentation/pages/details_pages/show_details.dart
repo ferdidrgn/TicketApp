@@ -208,11 +208,10 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SeatSelectionScreen(
-                showId: showData?.id ?? '',
-                stageId: 'Halit Akçatepe Örnek Mahallesi',
-                eventId: eventId),
-          ),
+              builder: (context) => SeatSelectionScreen(
+                  showId: showData?.id ?? '',
+                  stageId: 'Halit Akçatepe Örnek Mahallesi',
+                  eventId: eventId)),
         );
       },
       child: Container(

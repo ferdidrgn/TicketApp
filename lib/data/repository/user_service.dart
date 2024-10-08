@@ -14,7 +14,8 @@ class UserService {
 
       if (docSnapshot.exists) {
         // Eğer belge mevcutsa, işlemi atla
-        print('User with ID ${user.id} already exists. Skipping save operation.');
+        print(
+            'User with ID ${user.id} already exists. Skipping save operation.');
         return; // İşlemi sonlandır
       }
 
@@ -32,10 +33,12 @@ class UserService {
   // Fetch user by ID
   Future<User?> getUserById(String userId) async {
     try {
-      QuerySnapshot result =
-          await _userCollection.where('_id', isEqualTo: userId).limit(1).get();
-      if (result.docs.isEmpty) return null;
-      return _mapDocumentToUser(result.docs.first);
+      DocumentSnapshot doc = await _userCollection.doc(userId).get();
+      if (doc.exists) {
+        return _mapDocumentToUser(doc);
+      } else {
+        throw Exception("Kullanıcı bulunamadı.");
+      }
     } catch (e) {
       throw Exception('Error fetching user: $e');
     }

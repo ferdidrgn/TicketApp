@@ -55,7 +55,7 @@ class LoginScreen extends StatelessWidget {
             height: 24),
         onPressed: () async {
           try {
-            final account = await _loginService.signInWithGoogle();
+            final account = await _loginService.signInWithGoogle(context);
             if (account != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(account.displayName ?? '')));

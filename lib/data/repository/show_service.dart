@@ -24,7 +24,6 @@ class ShowService {
         }
 
         QuerySnapshot result = await query.get();
-
         return result.docs.map((e) => _mapDocumentToShow(e)).toList();
       }
     } catch (e) {

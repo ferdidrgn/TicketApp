@@ -49,7 +49,8 @@ class _ProfilePageState extends State<ProfilePage> {
         CustomElevatedButton(
           text: 'Profilini Düzenle',
           iconData: Icons.edit,
-          onPressed: () => _navigateTo(const UserProfileEditScreen()),
+          onPressed: () => _navigateTo(
+              UserProfileEditScreen(userId: firebaseUser?.uid ?? '')),
         ),
         CustomElevatedButton(
           text: 'Biletlerim',
@@ -105,7 +106,8 @@ class _ProfilePageState extends State<ProfilePage> {
     if (firebaseUser == null) {
       return Card(
           elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(children: [
