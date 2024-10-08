@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../core/util/date_formatter.dart';
 import '../model/show.dart';
 
 class ShowService {
@@ -8,7 +9,8 @@ class ShowService {
       FirebaseFirestore.instance.collection('Show');
 
 // search show
-  Future<List<Show?>> getSearchShow(List<String?> categories, String? type) async {
+  Future<List<Show?>> getSearchShow(
+      List<String?> categories, String? type) async {
     try {
       Query query = _showCollection;
 
@@ -36,7 +38,9 @@ class ShowService {
     try {
       QuerySnapshot snapshot = isLimit
           ? await _showCollection
-              .orderBy('_createdAt', descending: true).limit(20).get()
+              .orderBy('_createdAt', descending: true)
+              .limit(20)
+              .get()
           : await _showCollection.get();
 
       return snapshot.docs.map((doc) => _mapDocumentToShow(doc)).toList();
@@ -146,12 +150,13 @@ class ShowService {
   Map<String, dynamic> putHashMap(
       Show? show, String downloadUrl, bool isUpdate) {
     final Map<String, dynamic> showMap = {};
+    final nowTime = DateFormatter.nowFormatDateTime();
 
     if (!isUpdate) {
-      showMap['_createdAt'] = DateTime.now().toIso8601String();
+      showMap['_createdAt'] = nowTime;
     }
 
-    showMap['_updatedAt'] = DateTime.now().toIso8601String();
+    showMap['_updatedAt'] = nowTime;
     showMap['_id'] = show?.id ?? '';
     showMap['name'] = show?.name ?? '';
     showMap['imageUrl'] = downloadUrl;

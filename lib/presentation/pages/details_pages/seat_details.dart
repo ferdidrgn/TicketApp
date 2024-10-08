@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
+import '../../../core/util/date_formatter.dart';
 import '../../../data/model/ticket.dart';
 import '../../../data/repository/seat_service.dart';
 import '../../../data/repository/ticket_service.dart';
@@ -454,7 +455,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Ticket _createNewTicket() {
     var uuid = const Uuid();
-    final nowTime = DateTime.now().toString();
+    final nowTime = DateFormatter.nowFormatDateTime();
+
     return Ticket(
       createdAt: nowTime,
       updatedAt: nowTime,

@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../core/custom_views/custom_art_words_card.dart';
 import '../../../core/custom_views/custom_button.dart';
 import '../../../core/custom_views/custom_text_field.dart';
+import '../../../core/util/date_formatter.dart';
 import '../../../data/model/user.dart';
 import '../../../data/repository/user_service.dart';
 
@@ -43,7 +43,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
           _currentUser = user;
           _firstName = user.firstName;
           _lastName = user.lastName;
-          _phoneNumber = user.phoneNumber;
+          _phoneNumber = user.phoneNumber ?? '';
           _email = user.eMail ?? '';
           _age = int.tryParse(user.age as String) ?? 0;
           _city = user.city ?? '';
@@ -61,12 +61,11 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
 
   void _updateProfile() async {
     if (_formKey.currentState?.validate() ?? false) {
-      DateTime now = DateTime.now();
-      Timestamp timestamp = Timestamp.fromDate(now);
+      final nowTime = DateFormatter.nowFormatDateTime();
       User updatedUser = User(
           id: _currentUser?.id ?? '',
-          createdAt: _currentUser?.createdAt ?? '',
-          updatedAt: timestamp.toString(),
+          createdAt: _currentUser?.createdAt ?? nowTime,
+          updatedAt: nowTime,
           firstName: _firstName,
           lastName: _lastName,
           phoneNumber: _phoneNumber,

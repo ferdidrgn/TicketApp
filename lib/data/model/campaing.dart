@@ -1,3 +1,5 @@
+import '../../core/util/date_formatter.dart';
+
 class Campaign {
   final String id;
   final String createdAt;
@@ -21,10 +23,11 @@ class Campaign {
 
   // Function to map Firestore document to Campaign object
   factory Campaign.fromDocumentSnapshot(Map<String, dynamic> data, String docId) {
+    final nowTime = DateFormatter.nowFormatDateTime();
     return Campaign(
       id: docId,
-      createdAt: data['_createdAt'] ?? '',
-      updatedAt: data['_updatedAt'] ?? '',
+      createdAt: data['_createdAt'] ?? nowTime,
+      updatedAt: data['_updatedAt'] ?? nowTime,
       endDate: data['endDate'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       startDate: data['startDate'] ?? '',

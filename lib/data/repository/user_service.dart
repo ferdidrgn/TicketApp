@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/util/date_formatter.dart';
 import '../model/user.dart';
 
 class UserService {
@@ -86,14 +87,16 @@ class UserService {
   // Map User model to Firestore data
   Map<String, dynamic> _mapUserToFirestore(
       User user, String downloadUrl, bool isUpdate) {
+    final nowTime = DateFormatter.nowFormatDateTime();
+
     final userMap = <String, dynamic>{
-      if (!isUpdate) '_createdAt': Timestamp.now(),
-      '_updatedAt': Timestamp.now(),
+      if (!isUpdate) '_createdAt': nowTime,
+      '_updatedAt': nowTime,
       '_id': user.id,
       'firstName': user.firstName,
       'lastName': user.lastName,
       'phoneNumber': user.phoneNumber,
-      'photoUrl': downloadUrl,
+      'imageUrl': downloadUrl,
       'isPhoneActive': user.isPhoneActive,
       'age': user.age,
       'eMail': user.eMail,

@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../data/repository/user_service.dart';
 import '../custom_views/custom_loading.dart';
 import '../../../data/model/user.dart' as _user;
+import 'date_formatter.dart';
 
 class LoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -152,11 +153,12 @@ class LoginService {
     if (isUserLoggedIn()) {
       String displayName = account.displayName?.trim() ?? '';
       List<String> nameParts = displayName.split(' ');
+      final nowTime = DateFormatter.nowFormatDateTime();
 
       final user = _user.User(
         id: _auth.currentUser!.uid,
-        createdAt: DateTime.now().toString(),
-        updatedAt: DateTime.now().toString(),
+        createdAt: nowTime,
+        updatedAt: nowTime,
         firstName: nameParts.isNotEmpty
             ? nameParts.sublist(0, nameParts.length - 1).join(' ')
             : '',

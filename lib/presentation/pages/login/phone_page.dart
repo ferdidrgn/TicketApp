@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
+import '../../../core/util/date_formatter.dart';
 import '../../../core/util/sign_service.dart';
 import '../../../data/model/user.dart';
 import '../../../data/repository/user_service.dart';
@@ -159,11 +160,12 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
 
     String lastName = nameParts.isNotEmpty ? nameParts.removeLast() : '';
     String firstName = nameParts.join(' ');
+    final nowTime = DateFormatter.nowFormatDateTime();
 
     final user = User(
       id: account.uid,
-      createdAt: DateTime.now().toString(),
-      updatedAt: DateTime.now().toString(),
+      createdAt: nowTime,
+      updatedAt: nowTime,
       firstName: firstName,
       lastName: lastName,
       imageUrl: account.photoURL,

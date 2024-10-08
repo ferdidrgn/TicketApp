@@ -5,7 +5,7 @@ class User {
   final String firstName;
   final String lastName;
   final String? imageUrl;
-  final String phoneNumber;
+  final String? phoneNumber;
   final int? age;
   final String? eMail;
   final String? city;
@@ -24,7 +24,7 @@ class User {
     required this.firstName,
     required this.lastName,
     this.imageUrl,
-    required this.phoneNumber,
+    this.phoneNumber,
     this.age,
     this.eMail,
     this.city,
