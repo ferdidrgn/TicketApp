@@ -55,7 +55,8 @@ class _ProfilePageState extends State<ProfilePage> {
         CustomElevatedButton(
           text: 'Biletlerim',
           iconData: Icons.theaters_rounded,
-          onPressed: () => _navigateTo(MyTicketPage()),
+          onPressed: () =>
+              _navigateTo(MyTicketPage(userId: firebaseUser?.uid ?? '')),
         ),
         CustomElevatedButton(
           text: 'Favori Etkinliklerim',

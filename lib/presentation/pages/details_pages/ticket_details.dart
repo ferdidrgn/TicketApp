@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../my_ticket/my_ticket_screen.dart';
+import '../../../data/model/ticket.dart';
 
 class TicketDetailPage extends StatelessWidget {
-  final Ticket ticket;
+  final Ticket? ticket;
 
   const TicketDetailPage({super.key, required this.ticket});
 
@@ -11,7 +11,7 @@ class TicketDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(ticket.title),
+        title: Text(ticket?.id??''),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -51,16 +51,16 @@ class TicketDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Başlık: ${ticket.title}',
+                      'Başlık: ${ticket?.id??''}',
                       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
-                    Text('Tarih: ${ticket.date}', style: const TextStyle(fontSize: 18)),
-                    Text('Saat: ${ticket.time}', style: const TextStyle(fontSize: 18)),
-                    Text('Lokasyon: ${ticket.location}', style: const TextStyle(fontSize: 18)),
+                    Text('Tarih: ${ticket?.id??''}', style: const TextStyle(fontSize: 18)),
+                    Text('Saat: ${ticket?.id??''}', style: const TextStyle(fontSize: 18)),
+                    Text('Lokasyon: ${ticket?.id??''}', style: const TextStyle(fontSize: 18)),
                     const SizedBox(height: 20),
                     Center(
                       child: QrImageView(
-                        data: ticket.title,
+                        data:ticket?.id??'',
                         size: 130,
                         backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
                       ),
