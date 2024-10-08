@@ -169,63 +169,89 @@ class _MyTicketPageState extends State<MyTicketPage> {
 
   Widget _buildTicketList(List<Ticket?> tickets, BuildContext context) {
     return SizedBox(
-      height: 200, // Kartların yüksekliği
+      height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: tickets.length,
         itemBuilder: (context, index) {
           final ticket = tickets[index];
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TicketDetailPage(ticket: ticket),
+          return FutureBuilder<List>(
+            future: Future.wait([
+              _fetchEventData(ticket?.eventId ?? ''),
+              _fetchShowData(ticket?.showId ?? ''),
+              _fetchStageData(ticket?.stageId ?? ''),
+            ]),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              }
+              if (snapshot.hasError) {
+                return Text('Hata: ${snapshot.error}');
+              }
+              if (!snapshot.hasData) {
+                return const Text('Veri yok');
+              }
+
+              final event = snapshot.data![0] as Event?;
+              final show = snapshot.data![1] as Show?;
+              final stage = snapshot.data![2] as Stage?;
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TicketDetailPage(ticket: ticket),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 150,
+                  margin: const EdgeInsets.only(right: 16),
+                  child: Card(
+                    elevation: 5,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            ticket?.isPast == true
+                                ? Icons.history
+                                : Icons.event,
+                            color: ticket?.isPast == true
+                                ? Colors.grey
+                                : Colors.green,
+                            size: 40,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            show?.name ?? 'Başlık Yok',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Tarih: ${event?.date ?? 'Belirtilmemiş'}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            'Saat: ${event?.date ?? 'Belirtilmemiş'}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            'Lokasyon: ${stage?.address ?? 'Belirtilmemiş'}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
-            child: Container(
-              width: 150,
-              margin: const EdgeInsets.only(right: 16),
-              child: Card(
-                elevation: 5,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        ticket?.isPast == true ? Icons.history : Icons.event,
-                        color:
-                            ticket?.isPast == true ? Colors.grey : Colors.green,
-                        size: 40,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        ticket?.title ?? 'Başlık Yok',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Tarih: ${ticket?.date ?? 'Belirtilmemiş'}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'Saat: ${ticket?.time ?? 'Belirtilmemiş'}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'Lokasyon: ${ticket?.location ?? 'Belirtilmemiş'}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           );
         },
       ),
