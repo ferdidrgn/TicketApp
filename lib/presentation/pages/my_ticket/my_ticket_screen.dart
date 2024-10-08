@@ -24,6 +24,8 @@ class MyTicketPage extends StatefulWidget {
 
 class _MyTicketPageState extends State<MyTicketPage> {
   late final User userData;
+  List<Ticket?> upcomingTickets = [];
+  List<Ticket?> pastTickets = [];
   List<Ticket?> ticketDataList = [];
   bool isLoading = true;
 
@@ -40,10 +42,14 @@ class _MyTicketPageState extends State<MyTicketPage> {
         setState(() {
           userData = userInfo;
         });
-        _fetchTicketsData(userData.ticketsId);
+        await _fetchTicketsData(userData.ticketsId);
       }
     } catch (e) {
       throw Exception("Kullanıcı bilgilerinde bir hata oluştu.");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -53,9 +59,22 @@ class _MyTicketPageState extends State<MyTicketPage> {
         for (String ticketId in ticketsId) {
           final ticket = await TicketService().getTicketById(ticketId);
           if (ticket != null) {
-            setState(() {
-              ticketDataList.add(ticket);
-            });
+            final event = await _fetchEventData(ticket.eventId);
+            if (event != null) {
+              final eventDate = DateTime.parse(event.date);
+              final isPast = eventDate.isBefore(DateTime.now());
+
+              final updatedTicket = ticket.copyWith(isPast: isPast);
+
+              setState(() {
+                ticketDataList.add(ticket);
+                if (isPast) {
+                  pastTickets.add(updatedTicket);
+                } else {
+                  upcomingTickets.add(updatedTicket);
+                }
+              });
+            }
           }
         }
       }
