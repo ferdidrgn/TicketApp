@@ -6,10 +6,10 @@ import '../../core/util/date_formatter.dart';
 class EventService {
   final CollectionReference _firestore =
       FirebaseFirestore.instance.collection("Event");
-  late Event? eventInfo;
 
   // Event ID'sine göre koltuk durumu kontrolü ve boş koltukların ilk defa eklenmesi
-  Future<void> initializeAndGetEventSeats(String eventId, String stageId) async {
+  Future<void> initializeAndGetEventSeats(
+      String eventId, String stageId) async {
     try {
       DocumentSnapshot eventDoc = await _firestore.doc(eventId).get();
 
@@ -38,26 +38,11 @@ class EventService {
             'seats': seatStatus,
           });
         }
-
-        eventInfo = Event(
-            id: eventData['_id'],
-            date: eventData['date'],
-            price: eventData['price'],
-            stageId: eventData['stageId'],
-            seatStatus: eventData['seats']);
       } else {
         throw Exception('Etkinlik bulunamadı.');
       }
     } catch (e) {
       throw Exception('Error initializing event seats: $e');
-    }
-  }
-
-  Event? getEvent(){
-    try {
-     return eventInfo;
-    } catch (e) {
-      throw Exception('Event verilerinde bir hata oluştu: $e');
     }
   }
 
@@ -108,23 +93,35 @@ class EventService {
   }
 
   //Price Get
-  Future<String?> getEventPrice() async {
+  Future<String?> getEventPrice(String eventId) async {
     try {
-      return eventInfo?.price;
-    } catch (e) {
-      throw Exception('Fiyat verisi alınırken hata oluştu: $e');
+      final docSnapshot = await _firestore.doc(eventId).get();
+
+      if (!docSnapshot.exists) return null;
+
+      final eventData = docSnapshot.data() as Map<String, dynamic>;
+      return eventData['price'] as String; // Sadece tarih alanını al
+    } catch (error) {
+      throw Exception(
+          "Etkinlik Tarih verisi alınırken bir hata oluştu: $error");
     }
   }
 
-  // Get Date and Time
-  Future<Map<String, String>> getEventDate(
+// Get Date and Time
+  Future<Map<String, String>?> getEventDate(eventId,
       {bool formatWithMonthName = false}) async {
     try {
-      if (eventInfo?.date == null) return {};
-      return DateFormatter.parseFormattedDateTime(eventInfo!.date,
+      final docSnapshot = await _firestore.doc(eventId).get();
+
+      if (!docSnapshot.exists) return null;
+
+      final eventData = docSnapshot.data() as Map<String, dynamic>;
+      final date = eventData['date'] as String; // Sadece tarih alanını al
+      return DateFormatter.parseFormattedDateTime(date,
           formatWithMonthName: formatWithMonthName);
-    } catch (e) {
-      throw Exception("Tarihte bir hata oldu: $e");
+    } catch (error) {
+      throw Exception(
+          "Etkinlik Tarih verisi alınırken bir hata oluştu: $error");
     }
   }
 

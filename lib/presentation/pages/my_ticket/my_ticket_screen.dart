@@ -89,12 +89,15 @@ class _MyTicketPageState extends State<MyTicketPage> {
     }
   }
 
-  Future<Event?> _fetchEventData(String eventId, String stageId) async {
+  Future<Event?> _fetchEventData(String eventId) async {
     try {
-      final eventService = EventService();
-      await eventService.initializeAndGetEventSeats(eventId, stageId);
-      final event = eventService.getEvent();
-      return event;
+      final EventService eventService = EventService();
+      final eventDate = await eventService.getEventDate(eventId);
+      final data = eventDate?.entries
+          .map((entry) => '${entry.key}: ${entry.value}')
+          .join(', ');
+      final String eventPrice = await eventService.getEventPrice(eventId) ?? '';
+      return Event(id: '', stageId: '', date: data ?? '', price: eventPrice);
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Sahne verisi alınırken bir hata oluştu: $error')));
