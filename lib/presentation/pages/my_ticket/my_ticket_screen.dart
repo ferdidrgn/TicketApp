@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/data/repository/ticket_service.dart';
 import 'package:ticketapp/data/repository/user_service.dart';
 import '../../../core/custom_views/custom_art_words_card.dart';
@@ -63,6 +64,26 @@ class _MyTicketPageState extends State<MyTicketPage> {
     }
   }
 
+  Future<Event?> _fetchEventData(String eventId) async {
+    try {
+      final EventService eventService = EventService();
+      final eventDate = await eventService.getEventDate(eventId);
+      final data = eventDate?.entries
+          .map((entry) => '${entry.key}: ${entry.value}')
+          .join(', ');
+      final String eventPrice = await eventService.getEventPrice(eventId) ?? '';
+      return Event(id: '', stageId: '', date: data ?? '', price: eventPrice);
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Etkinlik verisi alınırken bir hata oluştu: $error')));
+      return null;
+    } finally {
+      setState(() {
+        isLoading = false; // Yükleme tamamlandı
+      });
+    }
+  }
+
   Future<Show?> _fetchShowData(String showId) async {
     try {
       final show = await ShowService().getShowById(showId);
@@ -89,22 +110,6 @@ class _MyTicketPageState extends State<MyTicketPage> {
     }
   }
 
-  Future<Event?> _fetchEventData(String eventId) async {
-    try {
-      final EventService eventService = EventService();
-      final eventDate = await eventService.getEventDate(eventId);
-      final data = eventDate?.entries
-          .map((entry) => '${entry.key}: ${entry.value}')
-          .join(', ');
-      final String eventPrice = await eventService.getEventPrice(eventId) ?? '';
-      return Event(id: '', stageId: '', date: data ?? '', price: eventPrice);
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Sahne verisi alınırken bir hata oluştu: $error')));
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -124,12 +129,12 @@ class _MyTicketPageState extends State<MyTicketPage> {
                 word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
             const SizedBox(height: 20),
             if (upcomingTickets.isNotEmpty) ...[
-              _buildSectionTitle('Gelecek Biletler'),
+              const CustomSectionTitle(title: 'Gelecek Biletler'),
               _buildTicketList(upcomingTickets, context),
               const SizedBox(height: 20),
             ],
             if (pastTickets.isNotEmpty) ...[
-              _buildSectionTitle('Geçmiş Biletler'),
+              const CustomSectionTitle(title: 'Geçmiş Biletler'),
               _buildTicketList(pastTickets, context),
             ],
             if (pastTickets.isEmpty && upcomingTickets.isEmpty) ...[
@@ -139,16 +144,6 @@ class _MyTicketPageState extends State<MyTicketPage> {
             ],
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
     );
   }
