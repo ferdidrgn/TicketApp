@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ticketapp/core/util/sign_service.dart';
 import 'package:ticketapp/presentation/pages/login/phone_page.dart';
 import '../../../core/custom_views/custom_elevated_button.dart';
-import '../../../data/model/user.dart';
-import '../../../data/repository/user_service.dart';
 
 class LoginScreen extends StatelessWidget {
   final LoginService _loginService = LoginService();
@@ -59,7 +56,6 @@ class LoginScreen extends StatelessWidget {
             if (account != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(account.displayName ?? '')));
-              saveUser(account);
               Navigator.pushReplacementNamed(context, '/home');
             } else {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -82,30 +78,5 @@ class LoginScreen extends StatelessWidget {
             MaterialPageRoute(builder: (context) => const PhoneLogInPage()),
           );
         });
-  }
-
-  void saveUser(GoogleSignInAccount account) {
-    String displayName = account.displayName?.trim() ?? '';
-    List<String> nameParts = displayName.split(' ');
-
-    String lastName = nameParts.isNotEmpty ? nameParts.removeLast() : '';
-    String firstName = nameParts.join(' ');
-
-    final user = User(
-      id: account.id,
-      createdAt: DateTime.now().toString(),
-      updatedAt: DateTime.now().toString(),
-      firstName: firstName,
-      lastName: lastName,
-      imageUrl: account.photoUrl,
-      phoneNumber: '',
-      age: 0,
-      eMail: account.email,
-      city: '',
-      isPhoneActive: false,
-      fcmToken: '',
-      role: 'user',
-    );
-    UserService().saveUser(user, account.photoUrl ?? '');
   }
 }

@@ -92,7 +92,6 @@ class UserService {
       '_id': user.id,
       'firstName': user.firstName,
       'lastName': user.lastName,
-      'fullName': '${user.firstName} ${user.lastName}',
       'phoneNumber': user.phoneNumber,
       'photoUrl': downloadUrl,
       'isPhoneActive': user.isPhoneActive,

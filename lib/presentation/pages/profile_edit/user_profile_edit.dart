@@ -27,6 +27,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
   String _city = '';
   String _profileImageUrl = 'https://via.placeholder.com/150';
   User? _currentUser;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -35,17 +36,25 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
   }
 
   Future<void> _getUserData() async {
-    User? user = await _userService.getUserById(widget.userId);
-    if (user != null) {
+    try {
+      User? user = await _userService.getUserById(widget.userId);
+      if (user != null) {
+        setState(() {
+          _currentUser = user;
+          _firstName = user.firstName;
+          _lastName = user.lastName;
+          _phoneNumber = user.phoneNumber;
+          _email = user.eMail ?? '';
+          _age = int.tryParse(user.age as String) ?? 0;
+          _city = user.city ?? '';
+          _profileImageUrl = user.imageUrl ?? 'https://via.placeholder.com/150';
+        });
+      }
+    } catch (e) {
+      throw Exception('Veri çekme hatası: $e');
+    } finally {
       setState(() {
-        _currentUser = user;
-        _firstName = user.firstName;
-        _lastName = user.lastName;
-        _phoneNumber = user.phoneNumber;
-        _email = user.eMail ?? '';
-        _age = int.tryParse(user.age as String) ?? 0;
-        _city = user.city ?? '';
-        _profileImageUrl = user.imageUrl ?? 'https://via.placeholder.com/150';
+        _isLoading = false;
       });
     }
   }
@@ -62,7 +71,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
           lastName: _lastName,
           phoneNumber: _phoneNumber,
           eMail: _email,
-          age: _age.toInt(),
+          age: _age,
           city: _city,
           imageUrl: _profileImageUrl,
           ticketsId: _currentUser?.ticketsId,
@@ -100,84 +109,89 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
       appBar: AppBar(
         title: const Text('Profil Düzenle'),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              const CustomArtWordsCard(
-                  word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
-              const SizedBox(height: 20),
-              _buildProfileImage(),
-              const SizedBox(height: 20),
-              Form(
-                key: _formKey,
+      body: _isLoading
+          ? const Center(
+              child:
+                  CircularProgressIndicator()) // Veriler yüklenirken gösterilecek loading
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CustomTextField(
-                      label: 'Ad',
-                      initialValue: _firstName,
-                      onChanged: (value) {
-                        setState(() => _firstName = value);
-                      },
-                    ),
-                    CustomTextField(
-                      label: 'Soyad',
-                      initialValue: _lastName,
-                      onChanged: (value) {
-                        setState(() => _lastName = value);
-                      },
-                    ),
-                    CustomTextField(
-                      label: 'Telefon No',
-                      initialValue: _phoneNumber,
-                      onChanged: (value) {
-                        setState(() => _phoneNumber = value);
-                      },
-                      keyboardType: TextInputType.phone,
-                    ),
-                    CustomTextField(
-                      label: 'E-posta',
-                      initialValue: _email,
-                      isRequired: false,
-                      onChanged: (value) {
-                        setState(() => _email = value);
-                      },
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    CustomTextField(
-                      label: 'Yaş',
-                      initialValue: _age.toString(),
-                      onChanged: (value) {
-                        setState(() => _age = int.tryParse(value) ?? 0);
-                      },
-                      keyboardType: TextInputType.number,
-                    ),
-                    CustomTextField(
-                      label: 'Lokasyon',
-                      initialValue: _city,
-                      isRequired: false,
-                      onChanged: (value) {
-                        setState(() => _city = value);
-                      },
-                    ),
+                    const CustomArtWordsCard(
+                        word: 'Sanat Sanat İçin midir',
+                        author: 'Pablo Picasso'),
                     const SizedBox(height: 20),
-                    Center(
-                      child: CustomButton(
-                        text: 'Güncelle',
-                        onPressed: _updateProfile,
-                        backgroundColor: Theme.of(context).primaryColor,
-                        textColor: Colors.white,
+                    _buildProfileImage(),
+                    const SizedBox(height: 20),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomTextField(
+                            label: 'Ad',
+                            initialValue: _firstName,
+                            onChanged: (value) {
+                              setState(() => _firstName = value);
+                            },
+                          ),
+                          CustomTextField(
+                            label: 'Soyad',
+                            initialValue: _lastName,
+                            onChanged: (value) {
+                              setState(() => _lastName = value);
+                            },
+                          ),
+                          CustomTextField(
+                            label: 'Telefon No',
+                            initialValue: _phoneNumber,
+                            onChanged: (value) {
+                              setState(() => _phoneNumber = value);
+                            },
+                            keyboardType: TextInputType.phone,
+                          ),
+                          CustomTextField(
+                            label: 'E-posta',
+                            initialValue: _email,
+                            isRequired: false,
+                            onChanged: (value) {
+                              setState(() => _email = value);
+                            },
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          CustomTextField(
+                            label: 'Yaş',
+                            initialValue: _age.toString(),
+                            onChanged: (value) {
+                              setState(() => _age = int.tryParse(value) ?? 0);
+                            },
+                            keyboardType: TextInputType.number,
+                          ),
+                          CustomTextField(
+                            label: 'Lokasyon',
+                            initialValue: _city,
+                            isRequired: false,
+                            onChanged: (value) {
+                              setState(() => _city = value);
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          Center(
+                            child: CustomButton(
+                              text: 'Güncelle',
+                              onPressed: _updateProfile,
+                              backgroundColor: Theme.of(context).primaryColor,
+                              textColor: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 

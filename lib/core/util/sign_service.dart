@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../data/repository/user_service.dart';
 import '../custom_views/custom_loading.dart';
+import '../../../data/model/user.dart' as _user;
 
 class LoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -46,6 +48,10 @@ class LoginService {
       _hideLoadingDialog(context);
       _showErrorSnackBar(context, 'Google ile giriş başarısız: $e');
       return null;
+    } finally {
+      if (account != null) {
+        fillUserInfo(account!);
+      }
     }
   }
 
@@ -113,9 +119,8 @@ class LoginService {
         }
         await _auth.signOut();
       }
-      print('Firebaseden oturum kapatıldı.');
+      throw ('Firebaseden oturum kapatıldı.');
     } catch (e) {
-      print('Oturum kapatılırken hata oluştu: $e');
       _showErrorSnackBar(null, 'Oturum kapatılırken hata oluştu: $e');
     }
   }
@@ -141,5 +146,31 @@ class LoginService {
         ? throw Exception(message)
         : ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void fillUserInfo(GoogleSignInAccount account) {
+    if (isUserLoggedIn()) {
+      String displayName = account.displayName?.trim() ?? '';
+      List<String> nameParts = displayName.split(' ');
+
+      final user = _user.User(
+        id: _auth.currentUser!.uid,
+        createdAt: DateTime.now().toString(),
+        updatedAt: DateTime.now().toString(),
+        firstName: nameParts.isNotEmpty
+            ? nameParts.sublist(0, nameParts.length - 1).join(' ')
+            : '',
+        lastName: nameParts.isNotEmpty ? nameParts.last : '',
+        imageUrl: account.photoUrl,
+        phoneNumber: '',
+        age: 0,
+        eMail: account.email,
+        city: '',
+        isPhoneActive: false,
+        fcmToken: '',
+        role: 'user',
+      );
+      UserService().saveUser(user, account.photoUrl ?? '');
+    }
   }
 }
