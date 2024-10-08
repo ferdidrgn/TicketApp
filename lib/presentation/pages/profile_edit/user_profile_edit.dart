@@ -45,13 +45,15 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
           _lastName = user.lastName;
           _phoneNumber = user.phoneNumber ?? '';
           _email = user.eMail ?? '';
-          _age = int.tryParse(user.age as String) ?? 0;
+          _age = user.age ?? 0;
           _city = user.city ?? '';
           _profileImageUrl = user.imageUrl ?? 'https://via.placeholder.com/150';
         });
       }
     } catch (e) {
-      throw Exception('Veri çekme hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Veri çekme hatası: $e')),
+      );
     } finally {
       setState(() {
         _isLoading = false;
@@ -63,43 +65,36 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       final nowTime = DateFormatter.nowFormatDateTime();
       User updatedUser = User(
-          id: _currentUser?.id ?? '',
-          createdAt: _currentUser?.createdAt ?? nowTime,
-          updatedAt: nowTime,
-          firstName: _firstName,
-          lastName: _lastName,
-          phoneNumber: _phoneNumber,
-          eMail: _email,
-          age: _age,
-          city: _city,
-          imageUrl: _profileImageUrl,
-          ticketsId: _currentUser?.ticketsId,
-          favoritePlayers: _currentUser?.favoritePlayers,
-          favoriteShows: _currentUser?.favoriteShows,
-          favoriteStages: _currentUser?.favoriteStages,
-          fcmToken: _currentUser?.fcmToken,
-          isPhoneActive: _currentUser?.isPhoneActive,
-          role: _currentUser?.role);
-
-      // Profil güncelleme işlemi
-      await _userService.saveUser(updatedUser, _profileImageUrl,
-          isUpdate: true);
-
-      // Başarı mesajı
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil başarıyla güncellendi!')),
+        id: _currentUser?.id ?? '',
+        createdAt: _currentUser?.createdAt ?? nowTime,
+        updatedAt: nowTime,
+        firstName: _firstName,
+        lastName: _lastName,
+        phoneNumber: _phoneNumber.isNotEmpty ? _phoneNumber : null,
+        eMail: _email.isNotEmpty ? _email : null,
+        age: _age > 0 ? _age : null,
+        city: _city.isNotEmpty ? _city : null,
+        imageUrl: _profileImageUrl,
+        ticketsId: _currentUser?.ticketsId,
+        favoritePlayers: _currentUser?.favoritePlayers,
+        favoriteShows: _currentUser?.favoriteShows,
+        favoriteStages: _currentUser?.favoriteStages,
+        fcmToken: _currentUser?.fcmToken,
+        isPhoneActive: _currentUser?.isPhoneActive,
+        role: _currentUser?.role,
       );
+
+      try {
+        await _userService.saveUser(updatedUser, _profileImageUrl, isUpdate: true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil başarıyla güncellendi!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Güncelleme hatası: $e')),
+        );
+      }
     }
-  }
-
-  void _handleProfileImageChange() {
-    // Profil fotoğrafı değiştirme işlemleri
-  }
-
-  void _handleProfileImageDelete() {
-    setState(() {
-      _profileImageUrl = 'https://via.placeholder.com/150';
-    });
   }
 
   @override
@@ -109,88 +104,72 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
         title: const Text('Profil Düzenle'),
       ),
       body: _isLoading
-          ? const Center(
-              child:
-                  CircularProgressIndicator()) // Veriler yüklenirken gösterilecek loading
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    const CustomArtWordsCard(
-                        word: 'Sanat Sanat İçin midir',
-                        author: 'Pablo Picasso'),
-                    const SizedBox(height: 20),
-                    _buildProfileImage(),
-                    const SizedBox(height: 20),
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomTextField(
-                            label: 'Ad',
-                            initialValue: _firstName,
-                            onChanged: (value) {
-                              setState(() => _firstName = value);
-                            },
-                          ),
-                          CustomTextField(
-                            label: 'Soyad',
-                            initialValue: _lastName,
-                            onChanged: (value) {
-                              setState(() => _lastName = value);
-                            },
-                          ),
-                          CustomTextField(
-                            label: 'Telefon No',
-                            initialValue: _phoneNumber,
-                            onChanged: (value) {
-                              setState(() => _phoneNumber = value);
-                            },
-                            keyboardType: TextInputType.phone,
-                          ),
-                          CustomTextField(
-                            label: 'E-posta',
-                            initialValue: _email,
-                            isRequired: false,
-                            onChanged: (value) {
-                              setState(() => _email = value);
-                            },
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          CustomTextField(
-                            label: 'Yaş',
-                            initialValue: _age.toString(),
-                            onChanged: (value) {
-                              setState(() => _age = int.tryParse(value) ?? 0);
-                            },
-                            keyboardType: TextInputType.number,
-                          ),
-                          CustomTextField(
-                            label: 'Lokasyon',
-                            initialValue: _city,
-                            isRequired: false,
-                            onChanged: (value) {
-                              setState(() => _city = value);
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          Center(
-                            child: CustomButton(
-                              text: 'Güncelle',
-                              onPressed: _updateProfile,
-                              backgroundColor: Theme.of(context).primaryColor,
-                              textColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CustomArtWordsCard(
+                  word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
+              const SizedBox(height: 20),
+              _buildProfileImage(),
+              const SizedBox(height: 20),
+              CustomTextField(
+                label: 'Ad',
+                initialValue: _firstName,
+                isRequired: true,
+                onChanged: (value) => setState(() => _firstName = value),
+              ),
+              CustomTextField(
+                label: 'Soyad',
+                initialValue: _lastName,
+                isRequired: true,
+                onChanged: (value) => setState(() => _lastName = value),
+              ),
+              CustomTextField(
+                label: 'Telefon No',
+                initialValue: _phoneNumber,
+                onChanged: (value) => setState(() => _phoneNumber = value),
+                keyboardType: TextInputType.phone,
+                isRequired: false, // Telefon zorunlu değil
+              ),
+              CustomTextField(
+                label: 'E-posta',
+                initialValue: _email,
+                onChanged: (value) => setState(() => _email = value),
+                keyboardType: TextInputType.emailAddress,
+                isRequired: false, // E-posta zorunlu değil
+              ),
+              CustomTextField(
+                label: 'Yaş',
+                initialValue: _age > 0 ? _age.toString() : '',
+                onChanged: (value) =>
+                    setState(() => _age = int.tryParse(value) ?? 0),
+                keyboardType: TextInputType.number,
+                isRequired: false, // Yaş zorunlu değil
+              ),
+              CustomTextField(
+                label: 'Lokasyon',
+                initialValue: _city,
+                onChanged: (value) => setState(() => _city = value),
+                isRequired: false, // Lokasyon zorunlu değil
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: CustomButton(
+                  text: 'Güncelle',
+                  onPressed: _updateProfile,
+                  backgroundColor: Theme.of(context).primaryColor,
+                  textColor: Colors.white,
                 ),
               ),
-            ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -211,8 +190,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
                   backgroundColor: Theme.of(context)
                       .bottomNavigationBarTheme
                       .selectedItemColor,
-                  child: const Icon(Icons.camera_alt,
-                      color: Colors.white, size: 20),
+                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                 ),
               ),
             ),
@@ -242,5 +220,15 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
         ],
       ),
     );
+  }
+
+  void _handleProfileImageChange() {
+    // Profil fotoğrafı değiştirme işlemleri
+  }
+
+  void _handleProfileImageDelete() {
+    setState(() {
+      _profileImageUrl = 'https://via.placeholder.com/150';
+    });
   }
 }

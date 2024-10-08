@@ -13,19 +13,16 @@ class UserService {
       // Belgeyi kontrol et
       final docSnapshot = await _userCollection.doc(user.id).get();
 
-      if (docSnapshot.exists) {
-        // Eğer belge mevcutsa, işlemi atla
-        print(
-            'User with ID ${user.id} already exists. Skipping save operation.');
+      if (docSnapshot.exists && !isUpdate) {
+        // Eğer belge mevcutsa ve update değilse, işlemi atla
+        print('User with ID ${user.id} already exists. Skipping save operation.');
         return; // İşlemi sonlandır
       }
 
       final userMap = _mapUserToFirestore(user, downloadUrl, isUpdate);
-      if (isUpdate) {
-        await _userCollection.doc(user.id).update(userMap);
-      } else {
-        await _userCollection.doc(user.id).set(userMap);
-      }
+      isUpdate
+          ? await _userCollection.doc(user.id).update(userMap)
+          : await _userCollection.doc(user.id).set(userMap);
     } catch (e) {
       throw Exception('Error saving user: $e');
     }
