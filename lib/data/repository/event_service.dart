@@ -72,6 +72,37 @@ class EventService {
     }
   }
 
+  // Belirli bir müşteri ID'sine göre alınmış koltukları getirir
+  Future<List<String>> getPurchasedSeatsByCustomerId(
+      String eventId, String customerId) async {
+    try {
+      DocumentSnapshot doc = await _firestore.doc(eventId).get();
+
+      if (doc.exists) {
+        Map<String, dynamic> eventData = doc.data() as Map<String, dynamic>;
+
+        if (eventData['seats'] != null) {
+          List<String> purchasedSeats = [];
+
+          // Tüm koltuklar arasında müşteri ID'sine göre filtreleme yap
+          eventData['seats'].forEach((seatId, seatInfo) {
+            if (seatInfo['customerId'] == customerId) {
+              purchasedSeats.add(seatId);
+            }
+          });
+
+          return purchasedSeats;
+        } else {
+          throw ('Koltuk verisi bulunamadı.');
+        }
+      } else {
+        throw ('Etkinlik bulunamadı.');
+      }
+    } catch (e) {
+      throw Exception('Error fetching seats by customerId: $e');
+    }
+  }
+
   Future<void> updateSeatStatus(String eventId, String seatId, String status,
       {String? customerId}) async {
     try {
