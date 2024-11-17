@@ -9,14 +9,10 @@ class HomePageContainer extends StatefulWidget {
   @override
   _HomePageContainerState createState() => _HomePageContainerState();
 }
-class _HomePageContainerState extends State<HomePageContainer> {
 
+class _HomePageContainerState extends State<HomePageContainer> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: BottomNavBar(
-        onThemeChanged: widget.onThemeChanged,
-      ),
-    );
+    return Scaffold(body: BottomNavBar(onThemeChanged: widget.onThemeChanged));
   }
 }

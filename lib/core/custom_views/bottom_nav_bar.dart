@@ -58,30 +58,26 @@ class _BottomNavBarState extends State<BottomNavBar> {
       appBar: AppBar(
         title: const Text('Bilet Satış Uygulaması'),
       ),
-      body: Stack(
-        children: [
-          _pages[_selectedIndex],
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: CurvedNavigationBar(
-              backgroundColor: Colors.transparent,
-              color: bottomNavBarTheme.selectedItemColor!,
-              buttonBackgroundColor: bottomNavBarTheme.selectedItemColor!,
-              height: 50,
-              items: const <Widget>[
-                Icon(Icons.home, size: 30),
-                Icon(Icons.event_seat_sharp, size: 30),
-                Icon(Icons.location_city, size: 30),
-                Icon(Icons.people, size: 30),
-              ],
-              animationCurve: Curves.easeInOut,
-              animationDuration: const Duration(milliseconds: 600),
-              index: _selectedIndex,
-              onTap: _onItemTapped
-            )
-          )
-        ]
-      )
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: CurvedNavigationBar(
+        backgroundColor: Colors.transparent,
+        color: bottomNavBarTheme.selectedItemColor!,
+        buttonBackgroundColor: bottomNavBarTheme.selectedItemColor!,
+        height: 50,
+        items: const <Widget>[
+          Icon(Icons.home, size: 30),
+          Icon(Icons.event_seat_sharp, size: 30),
+          Icon(Icons.location_city, size: 30),
+          Icon(Icons.people, size: 30),
+        ],
+        animationCurve: Curves.easeInOut,
+        animationDuration: const Duration(milliseconds: 600),
+        index: _selectedIndex,
+        onTap: _onItemTapped,
+      ),
     );
   }
 }
