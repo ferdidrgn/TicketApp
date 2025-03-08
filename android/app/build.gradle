@@ -2,7 +2,6 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
     id 'com.google.gms.google-services'
 }
 
@@ -25,6 +24,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode
         versionName = flutterVersionName
+        multiDexEnabled true
     }
 
     buildTypes {
@@ -39,5 +39,6 @@ flutter {
 }
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:33.2.0')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20"
+    implementation 'com.android.support:multidex:1.0.3'
 }
