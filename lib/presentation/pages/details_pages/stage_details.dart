@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
@@ -38,7 +37,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
         setState(() {
           _stage = fetchedStage;
         });
-        _fetchShows();
+        await _fetchShows();
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -51,7 +50,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
   }
 
   Future<void> _fetchShows() async {
-    for (String showId in _stage?.showsId ?? []) {
+    for (final String showId in _stage?.showsId ?? []) {
       try {
         final Show? show = await ShowService().getShowById(showId);
         if (show != null) {
@@ -67,7 +66,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
         appBar: AppBar(
             title: Text(_stage?.name ?? 'Sahne Detayları'), centerTitle: true),
@@ -76,7 +75,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
             : _buildStageContent(context));
   }
 
-  Widget _buildStageContent(BuildContext context) {
+  Widget _buildStageContent(final BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 5),
       child: Column(
@@ -109,13 +108,16 @@ class _StageDetailPageState extends State<StageDetailPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: CachedNetworkImage(
-            imageUrl: _stage?.imageUrl ?? '',
+          child: Image.network(
+            _stage?.imageUrl ?? '',
             fit: BoxFit.cover,
-            placeholder: (context, url) =>
-                const Center(child: CircularProgressIndicator()),
-            errorWidget: (context, url, error) =>
-                const Center(child: Icon(Icons.error, color: Colors.red)),
+            loadingBuilder: (final context, final child, final progress) {
+              if (progress == null) return child;
+              return const Center(child: CircularProgressIndicator());
+            },
+            errorBuilder: (final context, final error, final stackTrace) {
+              return const Center(child: Icon(Icons.error, color: Colors.red));
+            },
           ),
         ),
       ),
@@ -130,7 +132,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
     );
   }
 
-  Widget _buildBottomSheet(BuildContext context) {
+  Widget _buildBottomSheet(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -177,12 +179,12 @@ class _StageDetailPageState extends State<StageDetailPage> {
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: _showsDataList.length,
-          itemBuilder: (context, index) =>
+          itemBuilder: (final context, final index) =>
               _buildEventCard(context, _showsDataList[index]),
         ));
   }
 
-  Widget _buildEventCard(BuildContext context, Show? show) {
+  Widget _buildEventCard(final BuildContext context, final Show? show) {
     return GestureDetector(
         child: CustomVerticalShowCard(
             imageUrl: show?.imageUrl ?? 'https://via.placeholder.com/150',
@@ -191,12 +193,12 @@ class _StageDetailPageState extends State<StageDetailPage> {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) =>
+                      builder: (final context) =>
                           ShowDetailPage(showId: show?.id ?? '')));
             }));
   }
 
-  Widget _buildStageMap(Stage stage) {
+  Widget _buildStageMap(final Stage stage) {
     // Ensure latitude and longitude are not null before using them
     if (stage.locationLat != null && stage.locationLng != null) {
       final LatLng position = LatLng(stage.locationLat!, stage.locationLng!);
@@ -220,7 +222,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
     }
   }
 
-  Widget _buildStageAddress(BuildContext context) {
+  Widget _buildStageAddress(final BuildContext context) {
     return Row(
       children: [
         _buildInfoSection('Adres', _stage?.address ?? ''),
@@ -230,7 +232,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
     );
   }
 
-  Widget _buildInfoSection(String title, String content) {
+  Widget _buildInfoSection(final String title, final String content) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,5 +250,4 @@ class _StageDetailPageState extends State<StageDetailPage> {
       ),
     );
   }
-
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
 import '../../../core/custom_views/custom_description_card.dart';
@@ -32,12 +31,12 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
 
   Future<void> _fetchTeamDetails() async {
     try {
-      TeamService teamService = TeamService();
+      final TeamService teamService = TeamService();
       final fetchedTeam = await teamService.getTeamById(widget.teamId);
       setState(() {
         team = fetchedTeam;
       });
-      _fetchShows();
+      await _fetchShows();
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
@@ -49,7 +48,7 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
   }
 
   Future<void> _fetchShows() async {
-    for (String showId in team?.showsId ?? []) {
+    for (final String showId in team?.showsId ?? []) {
       try {
         final Show? show = await ShowService().getShowById(showId);
         if (show != null) {
@@ -65,10 +64,10 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
-        appBar:
-            AppBar(title: Text(team?.name ?? 'Ekip Detayları'), centerTitle: true),
+        appBar: AppBar(
+            title: Text(team?.name ?? 'Ekip Detayları'), centerTitle: true),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
             : _buildTeamDetails());
@@ -97,27 +96,32 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
 
   Widget _buildTeamImage() {
     return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.8),
-                blurRadius: 5,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: CachedNetworkImage(
-              imageUrl: team?.imageUrl ?? '',
-              fit: BoxFit.cover,
-              placeholder: (context, url) =>
-                  const Center(child: CircularProgressIndicator()),
-              errorWidget: (context, url, error) =>
-                  const Center(child: Icon(Icons.error, color: Colors.red))),
-        ));
+      aspectRatio: 16 / 9,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.8),
+              blurRadius: 5,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Image.network(
+          team?.imageUrl ?? '',
+          fit: BoxFit.cover,
+          loadingBuilder: (final context, final child, final progress) {
+            if (progress == null) return child;
+            return const Center(child: CircularProgressIndicator());
+          },
+          errorBuilder: (final context, final error, final stackTrace) {
+            return const Center(child: Icon(Icons.error, color: Colors.red));
+          },
+        ),
+      ),
+    );
   }
 
   Widget _buildShowList() {
@@ -126,13 +130,13 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _showsDataList.length,
-        itemBuilder: (context, index) =>
+        itemBuilder: (final context, final index) =>
             _buildEventCard(context, _showsDataList[index]),
       ),
     );
   }
 
-  Widget _buildEventCard(BuildContext context, Show? show) {
+  Widget _buildEventCard(final BuildContext context, final Show? show) {
     return GestureDetector(
         child: CustomVerticalShowCard(
             imageUrl: show?.imageUrl ?? 'https://via.placeholder.com/150',
@@ -141,7 +145,7 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) =>
+                      builder: (final context) =>
                           ShowDetailPage(showId: show?.id ?? '')));
             }));
   }
@@ -152,15 +156,19 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: team!.photosId.length,
-          itemBuilder: (context, index) {
+          itemBuilder: (final context, final index) {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: CachedNetworkImage(
-                imageUrl: team!.photosId[index],
-                placeholder: (context, url) =>
-                    const Center(child: CircularProgressIndicator()),
-                errorWidget: (context, url, error) =>
-                    const Center(child: Icon(Icons.error, color: Colors.red)),
+              child: Image.network(
+                team!.photosId[index],
+                loadingBuilder: (final context, final child, final progress) {
+                  if (progress == null) return child;
+                  return const Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (final context, final error, final stackTrace) {
+                  return const Center(
+                      child: Icon(Icons.error, color: Colors.red));
+                },
               ),
             );
           },

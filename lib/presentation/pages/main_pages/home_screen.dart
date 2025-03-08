@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/data/model/campaing.dart';
 import 'package:ticketapp/data/repository/campaign_service.dart';
 import '../../../core/custom_views/custom_category_card.dart';
+import '../../../core/custom_views/custom_dots_indicator.dart';
 import '../../../core/custom_views/custom_search.dart';
 import '../../../core/custom_views/custom_show_card.dart';
 import '../../../core/custom_views/custom_stage_card.dart';
@@ -15,7 +16,6 @@ import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 import 'search_page.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startAutoScroll() {
-    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (final timer) {
       setState(() {
         _currentPage = (_currentPage + 1) % _campaigns.length;
       });
@@ -88,30 +88,30 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToSearch() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SearchPage()),
+      MaterialPageRoute(builder: (final context) => const SearchPage()),
     );
   }
 
-  void _navigateToDetailPage(String url) {
+  void _navigateToDetailPage(final String url) {
     if (url.contains('player')) {
       Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) =>
+            builder: (final context) =>
                 PlayerDetailPage(playerId: _extractIdFromUrl(url))),
       );
     } else if (url.contains('stage')) {
       Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) =>
+            builder: (final context) =>
                 StageDetailPage(stageId: _extractIdFromUrl(url))),
       );
     } else if (url.contains('show')) {
       Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) =>
+            builder: (final context) =>
                 ShowDetailPage(showId: _extractIdFromUrl(url))),
       );
     } else {
@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _extractIdFromUrl(String url) {
+  String _extractIdFromUrl(final String url) {
     // Extract the ID from the URL
     // This is a placeholder implementation, adjust according to your URL structure
     final parts = url.split('/');
@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
         body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -155,19 +155,18 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(children: [
           Expanded(
             child: PageView.builder(
-              controller: _pageController,
-              itemCount: _campaigns.length,
-              itemBuilder: (context, index) {
-                return _buildCampaignPage(_campaigns[index]);
-              },
-            ),
+                controller: _pageController,
+                itemCount: _campaigns.length,
+                itemBuilder: (final context, final index) {
+                  return _buildCampaignPage(_campaigns[index]);
+                }),
           ),
           const SizedBox(height: 10),
           _buildDotsIndicator()
         ]));
   }
 
-  Widget _buildCampaignPage(Campaign? campaign) {
+  Widget _buildCampaignPage(final Campaign? campaign) {
     if (campaign == null) return const SizedBox();
 
     return GestureDetector(
@@ -180,14 +179,19 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(15),
             ),
             child: Stack(alignment: Alignment.bottomCenter, children: [
-              CachedNetworkImage(
-                imageUrl: campaign.imageUrl,
+              Image.network(
+                campaign.imageUrl,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
+                loadingBuilder: (final context, final child, final progress) {
+                  if (progress == null) return child;
+                  return const Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (final context, final error, final stackTrace) {
+                  return const Center(
+                      child: Icon(Icons.error, color: Colors.red));
+                },
               ),
               Container(
                   color: Colors.black.withOpacity(0.5),
@@ -202,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return DotsIndicator(
         controller: _pageController,
         itemCount: _campaigns.length,
-        onPageSelected: (page) {
+        onPageSelected: (final page) {
           setState(() {
             _currentPage = page;
           });
@@ -221,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: _shows.length,
-            itemBuilder: (context, index) {
+            itemBuilder: (final context, final index) {
               return GestureDetector(
                   child: CustomVerticalShowCard(
                       imageUrl: _shows[index]?.imageUrl ?? '',
@@ -230,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => ShowDetailPage(
+                              builder: (final context) => ShowDetailPage(
                                   showId: _shows[index]?.id ?? '')),
                         );
                       }));
@@ -244,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: _stages.length,
-            itemBuilder: (context, index) {
+            itemBuilder: (final context, final index) {
               return CustomStageCard(
                   text: _stages[index]?.name ?? '',
                   imageUrl: _stages[index]?.imageUrl ?? '',
@@ -252,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => StageDetailPage(
+                            builder: (final context) => StageDetailPage(
                                 stageId: _stages[index]?.id ?? '')));
                   });
             }));
@@ -265,12 +269,12 @@ class _HomeScreenState extends State<HomeScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: 6,
-            itemBuilder: (context, index) {
+            itemBuilder: (final context, final index) {
               return _buildGamePhotoCard(index);
             }));
   }
 
-  Widget _buildGamePhotoCard(int index) {
+  Widget _buildGamePhotoCard(final int index) {
     return Container(
         width: 160,
         margin: const EdgeInsets.only(right: 16),
@@ -279,18 +283,23 @@ class _HomeScreenState extends State<HomeScreen> {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                child: CachedNetworkImage(
-                  imageUrl:
-                      'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      const CircularProgressIndicator(),
-                  errorWidget: (context, url, error) => const Icon(Icons.error),
-                ),
-              ),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                  child: Image.network(
+                    'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    loadingBuilder:
+                        (final context, final child, final progress) {
+                      if (progress == null) return child;
+                      return const Center(child: CircularProgressIndicator());
+                    },
+                    errorBuilder:
+                        (final context, final error, final stackTrace) {
+                      return const Center(
+                          child: Icon(Icons.error, color: Colors.red));
+                    },
+                  )),
               const SizedBox(height: 5),
               Padding(
                   padding: const EdgeInsets.all(8),
@@ -300,38 +309,3 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class DotsIndicator extends StatelessWidget {
-  final PageController controller;
-  final int itemCount;
-  final ValueChanged<int> onPageSelected;
-
-  const DotsIndicator({
-    super.key,
-    required this.controller,
-    required this.itemCount,
-    required this.onPageSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(itemCount, (index) {
-          return _buildDot(index);
-        }));
-  }
-
-  Widget _buildDot(int index) {
-    return GestureDetector(
-        onTap: () => onPageSelected(index),
-        child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4.0),
-            width: 8.0,
-            height: 8.0,
-            decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: controller.page?.round() == index
-                    ? Colors.red
-                    : Colors.grey)));
-  }
-}

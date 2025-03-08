@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class CustomStageCard extends StatelessWidget {
@@ -14,7 +13,7 @@ class CustomStageCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Container(
       width: 125,
       margin: const EdgeInsets.only(right: 5),
@@ -30,14 +29,19 @@ class CustomStageCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               ClipOval(
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
+                child: Image.network(
+                  imageUrl,
                   width: 120,
                   height: 120,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      const CircularProgressIndicator(),
-                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                  loadingBuilder: (final context, final child, final progress) {
+                    if (progress == null) return child;
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                  errorBuilder: (final context, final error, final stackTrace) {
+                    return const Center(
+                        child: Icon(Icons.error, color: Colors.red));
+                  },
                 ),
               ),
               SizedBox(height: text.length <= 18 ? 17 : 8),

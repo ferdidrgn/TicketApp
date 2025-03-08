@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/custom_views/custom_description_card.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
@@ -41,8 +40,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           showData = show;
           photoDataList = show.photosShowId;
         });
-        _fetchNowPlayers(show.nowPlayersId);
-        _fetchOldPlayers(show.oldPlayersId);
+        await _fetchNowPlayers(show.nowPlayersId);
+        await _fetchOldPlayers(show.oldPlayersId);
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -54,10 +53,10 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     }
   }
 
-  Future<void> _fetchNowPlayers(List<String>? playersId) async {
+  Future<void> _fetchNowPlayers(final List<String>? playersId) async {
     try {
       if (playersId != null) {
-        for (String playerId in playersId) {
+        for (final String playerId in playersId) {
           final player = await PlayerService().getPlayerById(playerId);
           if (player != null) {
             setState(() {
@@ -72,10 +71,10 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     }
   }
 
-  Future<void> _fetchOldPlayers(List<String>? playersId) async {
+  Future<void> _fetchOldPlayers(final List<String>? playersId) async {
     try {
       if (playersId != null) {
-        for (String playerId in playersId) {
+        for (final String playerId in playersId) {
           final player = await PlayerService().getPlayerById(playerId);
           if (player != null) {
             setState(() {
@@ -91,7 +90,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
           title: Text(showData?.name ?? 'Show Detail'), centerTitle: true),
@@ -131,13 +130,16 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             ),
           ],
         ),
-        child: CachedNetworkImage(
-          imageUrl: showData?.imageUrl ?? '',
+        child: Image.network(
+          showData?.imageUrl ?? '',
           fit: BoxFit.cover,
-          placeholder: (context, url) =>
-              const Center(child: CircularProgressIndicator()),
-          errorWidget: (context, url, error) =>
-              const Center(child: Icon(Icons.error, color: Colors.red)),
+          loadingBuilder: (final context, final child, final progress) {
+            if (progress == null) return child;
+            return const Center(child: CircularProgressIndicator());
+          },
+          errorBuilder: (final context, final error, final stackTrace) {
+            return const Center(child: Icon(Icons.error, color: Colors.red));
+          },
         ),
       ),
     );
@@ -151,7 +153,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     );
   }
 
-  Widget _buildBottomSheetCard(BuildContext context) {
+  Widget _buildBottomSheetCard(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(top: 20),
       width: double.infinity,
@@ -181,7 +183,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
             const SizedBox(height: 16),
             Column(
-              children: List.generate(showData?.eventsId.length ?? 0, (index) {
+              children: List.generate(showData?.eventsId.length ?? 0, (final index) {
                 return _buildEventCard(
                     "12.02.2000".toString(),
                     "Şubat".toString(),
@@ -205,14 +207,14 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   Widget _buildEventCard(
-      String date, String month, String eventId, String city) {
+      final String date, final String month, final String eventId, final String city) {
     return GestureDetector(
       onTap: () {
         // Koltuk seçimi sayfasına yönlendirme
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => SeatSelectionScreen(
+              builder: (final context) => SeatSelectionScreen(
                   showId: showData?.id ?? '', eventId: eventId)),
         );
       },
@@ -283,7 +285,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: nowPlayerDataList.length,
-              itemBuilder: (context, index) {
+              itemBuilder: (final context, final index) {
                 return CustomStageCard(
                     text:
                         '${nowPlayerDataList[index]?.firstName ?? ''} ${nowPlayerDataList[index]?.lastName ?? ''}',
@@ -292,7 +294,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => PlayerDetailPage(
+                              builder: (final context) => PlayerDetailPage(
                                   playerId:
                                       nowPlayerDataList[index]?.id ?? '')));
                     });
@@ -312,7 +314,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               itemCount: oldPlayerDataList.length,
-              itemBuilder: (context, index) {
+              itemBuilder: (final context, final index) {
                 return Stack(children: [
                   CustomStageCard(
                     text:
@@ -322,7 +324,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => PlayerDetailPage(
+                            builder: (final context) => PlayerDetailPage(
                                 playerId: oldPlayerDataList[index]?.id ?? '')),
                       );
                     },
@@ -349,7 +351,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: photoDataList.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           final photoUrl = photoDataList[index] ?? '';
           return GestureDetector(
             child: _buildGamePhotoCard(photoUrl),
@@ -362,20 +364,25 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     );
   }
 
-  Widget _buildGamePhotoCard(String? photoUrl) {
+  Widget _buildGamePhotoCard(final String? photoUrl) {
     return SizedBox(
       width: 160,
       child: Card(
         elevation: 8,
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: CachedNetworkImage(
-            imageUrl: photoUrl ?? '',
+          child: Image.network(
+            photoUrl ?? '',
             height: 150,
             width: double.infinity,
             fit: BoxFit.cover,
-            placeholder: (context, url) => const CircularProgressIndicator(),
-            errorWidget: (context, url, error) => const Icon(Icons.error),
+            loadingBuilder: (final context, final child, final progress) {
+              if (progress == null) return child;
+              return const Center(child: CircularProgressIndicator());
+            },
+            errorBuilder: (final context, final error, final stackTrace) {
+              return const Center(child: Icon(Icons.error, color: Colors.red));
+            },
           ),
         ),
       ),
@@ -383,14 +390,14 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
 // Tam boyutlu görseli gösteren dialog
-  void _showFullImage(BuildContext context, String photoUrl) {
+  void _showFullImage(final BuildContext context, final String photoUrl) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
       // Tıklayınca kapansın
       barrierLabel: 'Tam Ekran Görsel',
       barrierColor: Colors.black.withOpacity(0.3),
-      pageBuilder: (context, _, __) {
+      pageBuilder: (final context, final _, final __) {
         return GestureDetector(
           onTap: () {
             Navigator.of(context).pop(); // Ekrana tıklayınca dialog kapansın
@@ -400,10 +407,17 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             // Arkaplan rengini ayarlamak için
             body: Center(
               child: InteractiveViewer(
-                child: CachedNetworkImage(
-                  imageUrl: photoUrl,
+                child: Image.network(
+                  photoUrl,
                   fit: BoxFit.contain, // Görseli tam boyutta göster
-                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                  loadingBuilder: (final context, final child, final progress) {
+                    if (progress == null) return child;
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                  errorBuilder: (final context, final error, final stackTrace) {
+                    return const Center(
+                        child: Icon(Icons.error, color: Colors.red));
+                  },
                 ),
               ),
             ),
