@@ -25,7 +25,7 @@ class TicketService {
       await _ticketService.add({
         '_createdAt': ticket.createdAt,
         '_updatedAt': ticket.updatedAt,
-        '_id': ticket.id,
+        '_id': _ticketService.doc().id,
         'showId': ticket.showId,
         'customerId': ticket.customerId,
         'stageId': ticket.stageId,
@@ -52,7 +52,8 @@ class TicketService {
   }
 
 // Helper to get field as a string
-  String _getFieldAsString(final DocumentSnapshot document, final String fieldName) {
+  String _getFieldAsString(
+      final DocumentSnapshot document, final String fieldName) {
     return document[fieldName].toString();
   }
 }

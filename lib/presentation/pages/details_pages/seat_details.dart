@@ -466,7 +466,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     return Ticket(
       createdAt: nowTime,
       updatedAt: nowTime,
-      id: uuid.v4(),
+      id: '',
       showId: widget.showId,
       customerId: 'customer_id',
       stageId: stageId,
