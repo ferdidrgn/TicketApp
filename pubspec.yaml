@@ -1,5 +1,6 @@
-name: ticketapp
-description: "A new Flutter project."
+name: ticketapp  # Paket adı, diğer paketler tarafından referans alınır.
+description: "A new Flutter project."  # Paket hakkında kısa bir açıklama.
+
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,10 +17,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+1  # Uygulama sürümü ve yapı numarası.
 
 environment:
-  sdk: '>=3.4.4 <4.0.0'
+  sdk: '>=3.4.4 <4.0.0'  # Desteklenen Dart SDK sürümleri.
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -27,66 +28,98 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+
+# Paketinizin çalışması için gereken bağımlılıkları belirtir.
 dependencies:
   flutter:
-    sdk: flutter
+    sdk: flutter  # Flutter SDK bağımlılığı.
 
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  # cupertino_icons: ^1.0.8
+  # Cupertino İkonları fontunu uygulamanıza ekler.
+  # cupertino_icons: ^1.0.8  # Kullanım için yorum satırına alındı.
 
   #flutter_launcher_icons: ^0.9.2
-  curved_navigation_bar: ^1.0.6 #latest version
-  shared_preferences: ^2.0.13
-  uuid: ^3.0.6
-  cached_network_image: ^3.2.3
-  permission_handler: ^10.0.0
-  url_launcher: ^6.0.9
-  simple_html_css: ^5.0.0
-  pinput: ^4.0.0
-  qr_flutter: ^4.0.1
-  google_sign_in: ^6.2.1
-  firebase_core: ^3.6.0
-  cloud_firestore: ^5.4.4
-  firebase_storage: ^12.3.2
-  firebase_auth: ^5.3.1
-  google_maps_flutter: ^2.1.1
+
+  # State Yönetimi
+  equatable: ^2.0.5  # Nesne karşılaştırmaları için kullanılır.
+
+  # Fonksiyonel Programlama
+  dartz: ^0.10.1  # Fonksiyonel programlama yapıları sağlar.
+
+  # Ağ
+  dio: ^5.3.2  # HTTP istekleri için kullanılan bir ağ kütüphanesi.
+
+  # Yerel Depolama
+  shared_preferences: ^2.2.0  # Kalıcı veri depolamak için.
+
+  # Servis Lokasyonu
+  internet_connection_checker: ^3.0.1  # İnternet bağlantısını kontrol eder.
+
+  # Firebase
+  firebase_core: ^3.6.0  # Firebase temel yapı.
+  cloud_firestore: ^5.4.4  # Firebase'in NoSQL veritabanı.
+  firebase_storage: ^12.3.2  # Firebase dosya depolama hizmeti.
+  firebase_auth: ^5.3.1  # Firebase kimlik doğrulama.
+
+  # Google
+  google_sign_in: ^6.2.1  # Google ile giriş yapma.
+  google_maps_flutter: ^2.1.1  # Google Haritalar entegrasyonu.
+
+  # Diğer bağımlılıklar
+  curved_navigation_bar: ^1.0.6  # En son sürüm.
+  permission_handler: ^10.0.0  # İzin yönetimi için.
+  simple_html_css: ^5.0.0  # HTML/CSS işleme.
+  pinput: ^4.0.0  # Giriş alanı için.
+  qr_flutter: ^4.0.1  # QR kod oluşturma.
+
+  # URL ve Dosya Seçimi
+  url_launcher: ^6.0.20  # URL açmak için.
+  image_picker: ^0.8.7+5  # Kamera ve galeriye erişim için.
+  file_picker: ^8.1.7  # Dosya seçimi için.
+
+  # Uluslararasılaştırma
+  intl: ^0.18.1  # Tarih ve sayı biçimlendirme için.
+
+  # Diğer Kütüphaneler
+  flutter_riverpod: ^2.4.10  # State yönetimi için Riverpod.
+  freezed_annotation: ^2.4.1  # Immutable veri sınıfları için.
+  riverpod_annotation: ^2.3.4  # Riverpod için anotasyon desteği.
+
+  # Kod Üretimi
+  build_runner: ^2.4.8  # Kod üretimi aracı.
+  freezed: ^2.4.7  # Freezed ile veri sınıfları oluşturur.
+  riverpod_generator: ^2.3.9  # Riverpod için kod üretimi.
 
 dev_dependencies:
   flutter_test:
-    sdk: flutter
+    sdk: flutter  # Flutter test kütüphanesi.
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
-  flutter_lints: ^3.0.0
+  flutter_lints: ^4.0.0  # Kod kalitesini artıran lint kuralları.
+  build_runner: ^2.4.8  # Kod üretimi aracı.
+  injectable_generator: ^2.4.1  # Injectable için otomatik kod üretimi.
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+# Flutter paketleri için özel alanlar.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
-  uses-material-design: true
+  uses-material-design: true  # Material tasarım ikonlarının kullanımını sağlar.
 
   # To add assets to your application, add an assets section, like this:
+  # Uygulamaya varlık eklemek için assets bölümünü kullanın.
   assets:
-    - assets/images/app_logo.jpg
-    - assets/images/app_near_logo.jpg
-    - assets/images/book_logo.jpg
-  #   - images/a_dot_ham.jpeg
+    - assets/images/app_logo.jpg  # Uygulama logosu.
+    - assets/images/app_near_logo.jpg  # Yakın logo.
+    - assets/images/book_logo.jpg  # Kitap logosu.
+
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/assets-and-images/#resolution-aware
+  # https://flutter.dev/to/resolution-aware-images
 
   # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/assets-and-images/#from-packages
+  # https://flutter.dev/to/asset-from-package
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
@@ -94,9 +127,6 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   # fonts:
-  #   - family: CupertinoIcons
-  #     fonts:
-  #        - asset: assets/CupertinoIcons.ttf
   #   - family: Schyler
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf
@@ -109,9 +139,4 @@ flutter:
   #         weight: 700
   #
   # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/custom-fonts/#from-packages
-
-#flutter_icons:
-  #android: true
-  #ios: true
-  #image_path: "assets/images/app_near_logo.jpg"
+  # see https://flutter.dev/to/font-from-package
