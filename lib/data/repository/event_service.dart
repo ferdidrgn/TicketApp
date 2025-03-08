@@ -7,23 +7,23 @@ class EventService {
       FirebaseFirestore.instance.collection("Event");
 
   // Event ID'sine göre koltuk durumu kontrolü ve boş koltukların ilk defa eklenmesi
-  Future<void> initializeAndGetEventSeats(String eventId) async {
+  Future<void> initializeAndGetEventSeats(final String eventId) async {
     try {
-      DocumentSnapshot eventDoc = await _firestore.doc(eventId).get();
+      final DocumentSnapshot eventDoc = await _firestore.doc(eventId).get();
 
       if (eventDoc.exists) {
-        Map<String, dynamic> eventData =
-            eventDoc.data() as Map<String, dynamic>;
+        final Map<String, dynamic> eventData =
+            eventDoc.data()! as Map<String, dynamic>;
 
         // Eğer seats verisi boşsa, Seats koleksiyonundan verileri çek ve Event'e ekle
         if (eventData['seats'] == null || (eventData['seats'] as Map).isEmpty) {
-          Map<String, List<String>> stageSeats =
+          final Map<String, List<String>> stageSeats =
               await SeatService().getSeatsByStage(eventData['stageId']);
-          Map<String, Map<String, dynamic>> seatStatus = {};
+          final Map<String, Map<String, dynamic>> seatStatus = {};
 
           // Boş koltukları 'available' olarak işaretle
-          stageSeats.forEach((row, seatList) {
-            for (var seat in seatList) {
+          stageSeats.forEach((final row, final seatList) {
+            for (final seat in seatList) {
               seatStatus[seat] = {
                 'status': 'available',
                 'customerId': null
@@ -46,15 +46,15 @@ class EventService {
 
   // Event ID'sine göre koltuk durumu
   Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(
-      String eventId) async {
+      final String eventId) async {
     try {
-      DocumentSnapshot doc = await _firestore.doc(eventId).get();
+      final DocumentSnapshot doc = await _firestore.doc(eventId).get();
       if (doc.exists) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        Map<String, Map<String, dynamic>> seatStatus = {};
+        final Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
+        final Map<String, Map<String, dynamic>> seatStatus = {};
 
         if (data['seats'] is Map) {
-          data['seats'].forEach((seatId, seatInfo) {
+          data['seats'].forEach((final seatId, final seatInfo) {
             if (seatInfo is Map<String, dynamic>) {
               seatStatus[seatId] =
                   seatInfo; // Koltuk durumu ve customerId içeren obje
@@ -74,18 +74,18 @@ class EventService {
 
   // Belirli bir müşteri ID'sine göre alınmış koltukları getirir
   Future<List<String>> getPurchasedSeatsByCustomerId(
-      String eventId, String customerId) async {
+      final String eventId, final String customerId) async {
     try {
-      DocumentSnapshot doc = await _firestore.doc(eventId).get();
+      final DocumentSnapshot doc = await _firestore.doc(eventId).get();
 
       if (doc.exists) {
-        Map<String, dynamic> eventData = doc.data() as Map<String, dynamic>;
+        final Map<String, dynamic> eventData = doc.data()! as Map<String, dynamic>;
 
         if (eventData['seats'] != null) {
-          List<String> purchasedSeats = [];
+          final List<String> purchasedSeats = [];
 
           // Tüm koltuklar arasında müşteri ID'sine göre filtreleme yap
-          eventData['seats'].forEach((seatId, seatInfo) {
+          eventData['seats'].forEach((final seatId, final seatInfo) {
             if (seatInfo['customerId'] == customerId) {
               purchasedSeats.add(seatId);
             }
@@ -103,10 +103,10 @@ class EventService {
     }
   }
 
-  Future<void> updateSeatStatus(String eventId, String seatId, String status,
-      {String? customerId}) async {
+  Future<void> updateSeatStatus(final String eventId, final String seatId, final String status,
+      {final String? customerId}) async {
     try {
-      Map<String, dynamic> seatUpdate = {'status': status};
+      final Map<String, dynamic> seatUpdate = {'status': status};
 
       // Eğer customerId belirtilmişse, koltuk bilgisine ekle
       if (customerId != null) {
@@ -122,13 +122,13 @@ class EventService {
   }
 
   //Price StageId
-  Future<String> getStageId(String eventId) async {
+  Future<String> getStageId(final String eventId) async {
     try {
       final docSnapshot = await _firestore.doc(eventId).get();
 
       if (!docSnapshot.exists) return throw Exception("Sahne verisi Alınamadı");
 
-      final eventData = docSnapshot.data() as Map<String, dynamic>;
+      final eventData = docSnapshot.data()! as Map<String, dynamic>;
       return eventData['stageId'] as String;
     } catch (error) {
       throw Exception(
@@ -137,13 +137,13 @@ class EventService {
   }
 
   //Price Get
-  Future<String?> getEventPrice(String eventId) async {
+  Future<String?> getEventPrice(final String eventId) async {
     try {
       final docSnapshot = await _firestore.doc(eventId).get();
 
       if (!docSnapshot.exists) return null;
 
-      final eventData = docSnapshot.data() as Map<String, dynamic>;
+      final eventData = docSnapshot.data()! as Map<String, dynamic>;
       return eventData['price'] as String;
     } catch (error) {
       throw Exception(
@@ -152,14 +152,14 @@ class EventService {
   }
 
 // Get Date and Time
-  Future<Map<String, String>?> getEventDate(eventId,
-      {bool formatWithMonthName = false}) async {
+  Future<Map<String, String>?> getEventDate(final eventId,
+      {final bool formatWithMonthName = false}) async {
     try {
       final docSnapshot = await _firestore.doc(eventId).get();
 
       if (!docSnapshot.exists) return null;
 
-      final eventData = docSnapshot.data() as Map<String, dynamic>;
+      final eventData = docSnapshot.data()! as Map<String, dynamic>;
       final date = eventData['date'] as String; // Sadece tarih alanını al
       return DateFormatter.parseFormattedDateTime(date,
           formatWithMonthName: formatWithMonthName);
@@ -171,7 +171,7 @@ class EventService {
 
 // Koltuk rezerve etme işlemi (müşteri ID'si ile birlikte)
   Future<void> reserveSeat(
-      String eventId, String seatId, String customerId) async {
+      final String eventId, final String seatId, final String customerId) async {
     await _firestore.doc(eventId).update({
       'seats.$seatId': {
         'status': 'reserved',
@@ -181,7 +181,7 @@ class EventService {
   }
 
 // Koltuk rezervasyonu iptal etme işlemi
-  Future<void> cancelReservation(String eventId, String seatId) async {
+  Future<void> cancelReservation(final String eventId, final String seatId) async {
     await _firestore.doc(eventId).update({
       'seats.$seatId': {
         'status': 'available',

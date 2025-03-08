@@ -12,7 +12,7 @@ class HomePageContainer extends StatefulWidget {
 
 class _HomePageContainerState extends State<HomePageContainer> {
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(body: BottomNavBar(onThemeChanged: widget.onThemeChanged));
   }
 }

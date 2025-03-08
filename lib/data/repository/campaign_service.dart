@@ -8,14 +8,14 @@ class CampaignService {
   // Get all campaigns
   Future<List<Campaign?>> getCampaigns() async {
     try {
-      QuerySnapshot snapshot = await _campaignCollection.get();
-      return snapshot.docs.map((doc) => _mapDocumentToCampaign(doc)).toList();
+      final QuerySnapshot snapshot = await _campaignCollection.get();
+      return snapshot.docs.map((final doc) => _mapDocumentToCampaign(doc)).toList();
     } catch (e) {
       throw Exception('Kampanyalar getirilemedi: $e');
     }
   }
 
-  Campaign _mapDocumentToCampaign(DocumentSnapshot document) {
+  Campaign _mapDocumentToCampaign(final DocumentSnapshot document) {
     return Campaign(
       createdAt: _getStringField(document, '_createdAt'),
       updatedAt: _getStringField(document, '_updatedAt'),
@@ -28,7 +28,7 @@ class CampaignService {
     );
   }
 
-  String _getStringField(DocumentSnapshot document, String fieldName) {
+  String _getStringField(final DocumentSnapshot document, final String fieldName) {
     return document[fieldName]?.toString() ?? '';
   }
 }

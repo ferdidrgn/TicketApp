@@ -8,7 +8,7 @@ class TicketDetailPage extends StatelessWidget {
   const TicketDetailPage({super.key, required this.ticket});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(ticket?.id??''),

@@ -22,7 +22,7 @@ class Campaign {
   });
 
   // Function to map Firestore document to Campaign object
-  factory Campaign.fromDocumentSnapshot(Map<String, dynamic> data, String docId) {
+  factory Campaign.fromDocumentSnapshot(final Map<String, dynamic> data, final String docId) {
     final nowTime = DateFormatter.nowFormatDateTime();
     return Campaign(
       id: docId,

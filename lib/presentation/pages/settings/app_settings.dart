@@ -17,7 +17,7 @@ class AppSettingsPage extends StatelessWidget {
 
   String get featuresUrl => playStoreUrl;
 
-  Future<void> _launchUrl(String url) async {
+  Future<void> _launchUrl(final String url) async {
     if (await canLaunch(url)) {
       await launch(url);
     } else {
@@ -26,7 +26,7 @@ class AppSettingsPage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Uygulama Ayarları'),
@@ -69,10 +69,10 @@ class AppSettingsPage extends StatelessWidget {
   }
 
   Widget _buildActionButton(
-    BuildContext context,
-    String text,
-    IconData icon,
-    VoidCallback onPressed,
+    final BuildContext context,
+    final String text,
+    final IconData icon,
+    final VoidCallback onPressed,
   ) {
     return SizedBox(
       width: double.infinity,

@@ -10,7 +10,7 @@ class ShowService {
 
 // search show
   Future<List<Show?>> getSearchShow(
-      List<String?> categories, String? type) async {
+      final List<String?> categories, final String? type) async {
     try {
       Query query = _showCollection;
 
@@ -25,8 +25,8 @@ class ShowService {
           query = query.where('type', isEqualTo: type);
         }
 
-        QuerySnapshot result = await query.get();
-        return result.docs.map((e) => _mapDocumentToShow(e)).toList();
+        final QuerySnapshot result = await query.get();
+        return result.docs.map((final e) => _mapDocumentToShow(e)).toList();
       }
     } catch (e) {
       throw Exception('Arama Hatası: $e');
@@ -34,25 +34,25 @@ class ShowService {
   }
 
   // Tüm Oyunları getiren fonksiyon
-  Future<List<Show?>> getShows(bool isLimit) async {
+  Future<List<Show?>> getShows(final isLimit) async {
     try {
-      QuerySnapshot snapshot = isLimit
+      final QuerySnapshot snapshot = isLimit
           ? await _showCollection
               .orderBy('_createdAt', descending: true)
               .limit(20)
               .get()
           : await _showCollection.get();
 
-      return snapshot.docs.map((doc) => _mapDocumentToShow(doc)).toList();
+      return snapshot.docs.map((final doc) => _mapDocumentToShow(doc)).toList();
     } catch (e) {
       throw Exception('Oyunları Getirme Hatası: $e');
     }
   }
 
   // Show ID ile gösterileri getiren fonksiyon
-  Future<Show?> getShowById(String showId) async {
+  Future<Show?> getShowById(final String showId) async {
     try {
-      QuerySnapshot result =
+      final QuerySnapshot result =
           await _showCollection.where('_id', isEqualTo: showId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
@@ -64,30 +64,29 @@ class ShowService {
   }
 
 // Show kaydetme fonksiyonu
-  Future<void> addShow(Show show, Uri? showIdAddOrUpdateImgUrl) async {
-    String downloadUrl = await putStorageImage(
+  Future<void> addShow(
+      final Show show, final Uri? showIdAddOrUpdateImgUrl) async {
+    final String downloadUrl = await putStorageImage(
       show.id,
       showIdAddOrUpdateImgUrl,
       show.imageUrl,
     );
 
-    Map<String, dynamic> showMap = putHashMap(show, downloadUrl, false);
+    final Map<String, dynamic> showMap = putHashMap(show, downloadUrl, false);
 
-    _showCollection.add(showMap).then((value) {
-      true;
-    }).catchError((error) {
+    await _showCollection.add(showMap).then((final value) {}).catchError((final error) {
       throw Exception('Show Ekleme Hatası: $error');
     });
   }
 
   // Show silme fonksiyonu
-  Future<void> deleteShow(String? showId) async {
+  Future<void> deleteShow(final String? showId) async {
     try {
-      QuerySnapshot showQuery =
+      final QuerySnapshot showQuery =
           await _showCollection.where('_id', isEqualTo: showId).get();
 
       if (showQuery.docs.isNotEmpty) {
-        for (var document in showQuery.docs) {
+        for (final document in showQuery.docs) {
           try {
             await _showCollection.doc(document.id).delete();
 
@@ -108,7 +107,7 @@ class ShowService {
 
 // Show güncelleme fonksiyonu
   Future<void> updateShow(
-      String showId, Map<String, dynamic> updatedData) async {
+      final String showId, final Map<String, dynamic> updatedData) async {
     await _showCollection.doc(showId).update({
       ...updatedData, // Güncellenen veriler
       '_updatedAt': FieldValue.serverTimestamp(), // Güncelleme zamanı
@@ -116,9 +115,9 @@ class ShowService {
   }
 
   Future<String> putStorageImage(
-    String showId,
-    Uri? showIdAddOrUpdateImgUrl,
-    String showIdImgUrl,
+    final String showId,
+    final Uri? showIdAddOrUpdateImgUrl,
+    final String showIdImgUrl,
   ) async {
     final String imageName = "ShowImages/$showId.jpg";
     final Reference imagesRef = FirebaseStorage.instance.ref().child(imageName);
@@ -136,7 +135,7 @@ class ShowService {
     return downloadUrl.isEmpty ? showIdImgUrl : downloadUrl;
   }
 
-  Future<void> deleteStorageImage(String stageId) async {
+  Future<void> deleteStorageImage(final String stageId) async {
     final String imageName = "ShowImages/$stageId.jpg";
     final Reference imagesRef = FirebaseStorage.instance.ref().child(imageName);
 
@@ -148,7 +147,7 @@ class ShowService {
   }
 
   Map<String, dynamic> putHashMap(
-      Show? show, String downloadUrl, bool isUpdate) {
+      final Show? show, final String downloadUrl, final isUpdate) {
     final Map<String, dynamic> showMap = {};
     final nowTime = DateFormatter.nowFormatDateTime();
 
@@ -171,35 +170,38 @@ class ShowService {
     // nowPlayersId listesi
     List<String> nowPlayersIdList = [];
     if (show?.nowPlayersId != null) {
-      nowPlayersIdList = show!.nowPlayersId.map((e) => e.toString()).toList();
+      nowPlayersIdList =
+          show!.nowPlayersId.map((final e) => e.toString()).toList();
     }
     showMap['nowPlayersId'] = nowPlayersIdList;
 
     // oldPlayersId listesi
     List<String> oldPlayersIdList = [];
     if (show?.oldPlayersId != null) {
-      oldPlayersIdList = show!.oldPlayersId.map((e) => e.toString()).toList();
+      oldPlayersIdList =
+          show!.oldPlayersId.map((final e) => e.toString()).toList();
     }
     showMap['oldPlayersId'] = oldPlayersIdList;
 
     // eventsId listesi
     List<String> eventsIdList = [];
     if (show?.eventsId != null) {
-      eventsIdList = show!.eventsId.map((e) => e.toString()).toList();
+      eventsIdList = show!.eventsId.map((final e) => e.toString()).toList();
     }
     showMap['events'] = eventsIdList;
 
     // photosShowId listesi
     List<String> photosShowsIdList = [];
     if (show?.photosShowId != null) {
-      photosShowsIdList = show!.photosShowId.map((e) => e.toString()).toList();
+      photosShowsIdList =
+          show!.photosShowId.map((final e) => e.toString()).toList();
     }
     showMap['photosShowId'] = photosShowsIdList;
 
     return showMap;
   }
 
-  Show _mapDocumentToShow(DocumentSnapshot document) {
+  Show _mapDocumentToShow(final DocumentSnapshot document) {
     return Show(
       createdAt: _getFieldAsString(document, '_createdAt'),
       updatedAt: _getFieldAsString(document, '_updatedAt'),
@@ -221,12 +223,14 @@ class ShowService {
   }
 
 // Helper to get field as a string
-  String _getFieldAsString(DocumentSnapshot document, String fieldName) {
+  String _getFieldAsString(
+      final DocumentSnapshot document, final String fieldName) {
     return document[fieldName].toString();
   }
 
 // Helper to get a list of strings
-  List<String> _getListAsString(DocumentSnapshot document, String fieldName) {
+  List<String> _getListAsString(
+      final DocumentSnapshot document, final String fieldName) {
     return List<String>.from(document[fieldName] ?? []);
   }
 }

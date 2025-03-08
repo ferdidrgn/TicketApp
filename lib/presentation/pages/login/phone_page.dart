@@ -31,7 +31,7 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
 
   void _startResendTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
       if (_timeUntilNextResend > 0) {
         setState(() => _timeUntilNextResend--);
       } else {
@@ -46,32 +46,32 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
       return;
     }
 
-    _loginService.verifyPhone(
+    await _loginService.verifyPhone(
       context,
       _phoneController.text,
-          (smsCode) {
+          (final smsCode) {
         _navigateToHome();
       },
-          (verificationId) {
+          (final verificationId) {
         setState(() {
           _verificationId = verificationId;
           _codeSent = true;
         });
         _startResendTimer();
       },
-          (verificationId) {
+          (final verificationId) {
         setState(() => _verificationId = verificationId);
       },
     );
   }
 
-  Future<void> _verifyOtp(String otp) async {
+  Future<void> _verifyOtp(final String otp) async {
     if (otp.isEmpty) {
       _showErrorSnackBar('Lütfen OTP kodunu girin.');
       return;
     }
     try {
-      bool isVerified =
+      final bool isVerified =
       await _loginService.verifyOtp(context, _verificationId, otp);
       if (isVerified) {
         saveUser();
@@ -91,14 +91,14 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
     Navigator.of(context).pushReplacementNamed('/home');
   }
 
-  void _showErrorSnackBar(String message) {
+  void _showErrorSnackBar(final String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Telefon Doğrulama"),
@@ -155,11 +155,11 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
 
     if (account == null) return;
 
-    String displayName = account.displayName?.trim() ?? '';
-    List<String> nameParts = displayName.split(' ');
+    final String displayName = account.displayName?.trim() ?? '';
+    final List<String> nameParts = displayName.split(' ');
 
-    String lastName = nameParts.isNotEmpty ? nameParts.removeLast() : '';
-    String firstName = nameParts.join(' ');
+    final String lastName = nameParts.isNotEmpty ? nameParts.removeLast() : '';
+    final String firstName = nameParts.join(' ');
     final nowTime = DateFormatter.nowFormatDateTime();
 
     final user = User(

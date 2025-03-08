@@ -19,7 +19,7 @@ class EventCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(

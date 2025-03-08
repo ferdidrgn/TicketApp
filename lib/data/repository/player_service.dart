@@ -6,21 +6,21 @@ class PlayerService {
       FirebaseFirestore.instance.collection('Player');
 
   //all players
-  Future<List<Player?>> getPlayers(bool isLimit) async {
+  Future<List<Player?>> getPlayers(final isLimit) async {
     try {
-      QuerySnapshot snapshot = isLimit
+      final QuerySnapshot snapshot = isLimit
           ? await _playerCollection.orderBy('_createdAt', descending: true).limit(20).get()
           : await _playerCollection.get();
-      return snapshot.docs.map((doc) => _mapDocumentToPlayer(doc)).toList();
+      return snapshot.docs.map((final doc) => _mapDocumentToPlayer(doc)).toList();
     } catch (e) {
       throw Exception('Error fetching players: $e');
     }
   }
 
   // player by ID
-  Future<Player?> getPlayerById(String playerId) async {
+  Future<Player?> getPlayerById(final String playerId) async {
     try {
-      QuerySnapshot result =
+      final QuerySnapshot result =
           await _playerCollection.where('_id', isEqualTo: playerId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
@@ -32,7 +32,7 @@ class PlayerService {
   }
 
 // Convert Firestore document to Player model
-  Player _mapDocumentToPlayer(DocumentSnapshot document) {
+  Player _mapDocumentToPlayer(final DocumentSnapshot document) {
     return Player(
       createdAt: _getStringField(document, '_createdAt'),
       updatedAt: _getStringField(document, '_updatedAt'),
@@ -46,11 +46,11 @@ class PlayerService {
     );
   }
 
-  String _getStringField(DocumentSnapshot document, String fieldName) {
+  String _getStringField(final DocumentSnapshot document, final String fieldName) {
     return document[fieldName]?.toString() ?? '';
   }
 
-  List<String> _getListField(DocumentSnapshot document, String fieldName) {
+  List<String> _getListField(final DocumentSnapshot document, final String fieldName) {
     return List<String>.from(document[fieldName] ?? []);
   }
 }

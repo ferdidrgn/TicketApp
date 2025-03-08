@@ -90,18 +90,18 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  void _filterData(String query) {
+  void _filterData(final String query) {
     setState(() {
       _filteredShows = shows
-          .where((show) =>
+          .where((final show) =>
               (show?.name ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
       _filteredTeams = teams
-          .where((team) =>
+          .where((final team) =>
               (team?.name ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
       _filteredPlayers = players
-          .where((player) =>
+          .where((final player) =>
               (player?.firstName ?? '')
                   .toLowerCase()
                   .contains(query.toLowerCase()) ||
@@ -110,21 +110,21 @@ class _SearchPageState extends State<SearchPage> {
                   .contains(query.toLowerCase()))
           .toList();
       _filteredStages = stages
-          .where((stage) =>
+          .where((final stage) =>
               (stage?.name ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
       _filteredCategories = _categories
-          .where((category) => (category['title'] as String)
+          .where((final category) => (category['title']! as String)
               .toLowerCase()
               .contains(query.toLowerCase()))
           .toList();
     });
   }
 
-  void _onSearchChanged(String query) => _filterData(query);
+  void _onSearchChanged(final String query) => _filterData(query);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Arama', style: TextStyle(fontSize: 20)),
@@ -164,7 +164,7 @@ class _SearchPageState extends State<SearchPage> {
     return _buildSection(
         title: 'Eşleşen Etkinlikler',
         itemCount: _filteredShows.length,
-        itemBuilder: (context, index) => _buildShowCard(context, index),
+        itemBuilder: (final context, final index) => _buildShowCard(context, index),
         showAllAction: _buildShowAllButton());
   }
 
@@ -172,7 +172,7 @@ class _SearchPageState extends State<SearchPage> {
     return _buildSection(
       title: 'Gösteri Mekanları',
       itemCount: _filteredStages.length,
-      itemBuilder: (context, index) => _buildVenueCard(context, index),
+      itemBuilder: (final context, final index) => _buildVenueCard(context, index),
     );
   }
 
@@ -180,7 +180,7 @@ class _SearchPageState extends State<SearchPage> {
     return _buildSection(
       title: 'Oyuncular',
       itemCount: _filteredPlayers.length,
-      itemBuilder: (context, index) => _buildPlayerCard(context, index),
+      itemBuilder: (final context, final index) => _buildPlayerCard(context, index),
     );
   }
 
@@ -188,7 +188,7 @@ class _SearchPageState extends State<SearchPage> {
     return _buildSection(
       title: 'Ekipler',
       itemCount: _filteredTeams.length,
-      itemBuilder: (context, index) => _buildTeamCard(context, index),
+      itemBuilder: (final context, final index) => _buildTeamCard(context, index),
     );
   }
 
@@ -201,10 +201,10 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildSection({
-    required String title,
-    required int itemCount,
-    required IndexedWidgetBuilder itemBuilder,
-    Widget? showAllAction,
+    required final String title,
+    required final int itemCount,
+    required final IndexedWidgetBuilder itemBuilder,
+    final Widget? showAllAction,
   }) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 16),
@@ -222,29 +222,29 @@ class _SearchPageState extends State<SearchPage> {
     ]);
   }
 
-  Widget _buildShowCard(BuildContext context, int index) {
+  Widget _buildShowCard(final BuildContext context, final int index) {
     return CustomVerticalShowCard(
         gameName: _filteredShows[index]?.name ?? '',
         imageUrl: _filteredShows[index]?.imageUrl ?? '',
         onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) =>
+                builder: (final context) =>
                     ShowDetailPage(showId: _filteredShows[index]?.id ?? ''))));
   }
 
-  Widget _buildVenueCard(BuildContext context, int index) {
+  Widget _buildVenueCard(final BuildContext context, final int index) {
     return CustomStageCard(
         text: _filteredStages[index]?.name ?? '',
         imageUrl: _filteredStages[index]?.imageUrl ?? '',
         onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => StageDetailPage(
+                builder: (final context) => StageDetailPage(
                     stageId: _filteredStages[index]?.id ?? ''))));
   }
 
-  Widget _buildPlayerCard(BuildContext context, int index) {
+  Widget _buildPlayerCard(final BuildContext context, final int index) {
     return CustomStageCard(
         text:
             '${_filteredPlayers[index]?.firstName} ${_filteredPlayers[index]?.lastName}',
@@ -252,18 +252,18 @@ class _SearchPageState extends State<SearchPage> {
         onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => PlayerDetailPage(
+                builder: (final context) => PlayerDetailPage(
                     playerId: _filteredPlayers[index]?.id ?? ''))));
   }
 
-  Widget _buildTeamCard(BuildContext context, int index) {
+  Widget _buildTeamCard(final BuildContext context, final int index) {
     return CustomVerticalShowCard(
         gameName: _filteredTeams[index]?.name ?? '',
         imageUrl: _filteredTeams[index]?.imageUrl ?? '',
         onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) =>
+                builder: (final context) =>
                     TeamDetailsPage(teamId: _filteredTeams[index]?.id ?? ''))));
   }
 

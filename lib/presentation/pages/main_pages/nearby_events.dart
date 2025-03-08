@@ -23,7 +23,7 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (final BuildContext context) {
         return AlertDialog(
           title: const Text('Filtreler'),
           content: SingleChildScrollView(
@@ -31,20 +31,19 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Kategoriler:'),
-                ..._categories
-                    .map((category) => CheckboxListTile(
-                  title: Text(category),
-                  value: _selectedCategories.contains(category),
-                  onChanged: (bool? checked) {
-                    setState(() {
-                      if (checked == true) {
-                        _selectedCategories.add(category);
-                      } else {
-                        _selectedCategories.remove(category);
-                      }
-                    });
-                  },
-                )),
+                ..._categories.map((final category) => CheckboxListTile(
+                      title: Text(category),
+                      value: _selectedCategories.contains(category),
+                      onChanged: (final bool? checked) {
+                        setState(() {
+                          if (checked != null && checked == true) {
+                            _selectedCategories.add(category);
+                          } else {
+                            _selectedCategories.remove(category);
+                          }
+                        });
+                      },
+                    )),
                 const SizedBox(height: 20),
                 const Text('Fiyat Aralığı:'),
                 RangeSlider(
@@ -56,7 +55,7 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
                     '${_priceRange.start.round()}₺',
                     '${_priceRange.end.round()}₺',
                   ),
-                  onChanged: (RangeValues values) {
+                  onChanged: (final RangeValues values) {
                     setState(() {
                       _priceRange = values;
                     });
@@ -79,7 +78,7 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -104,7 +103,8 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
               child: ListView(
                 children: const [
                   EventCard(
-                    imageUrl: 'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
+                    imageUrl:
+                        'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
                     showName: 'Cimri',
                     category: 'Müzikal',
                     date: '12 Eylül 2024',
@@ -113,7 +113,8 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
                   ),
                   SizedBox(height: 16),
                   EventCard(
-                    imageUrl: 'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
+                    imageUrl:
+                        'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
                     showName: 'Hamlet',
                     category: 'Tiyatro',
                     date: '15 Eylül 2024',
@@ -122,7 +123,8 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
                   ),
                   SizedBox(height: 16),
                   EventCard(
-                    imageUrl: 'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
+                    imageUrl:
+                        'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
                     showName: 'Gözlerimi Kaparım Vazifemi Yaparım',
                     category: 'Sinema',
                     date: '20 Eylül 2024',

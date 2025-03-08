@@ -1,11 +1,11 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ticketapp/presentation/pages/login/login.dart';
 import 'package:ticketapp/presentation/pages/main_pages/main_pages_container.dart';
 import 'package:ticketapp/presentation/pages/onboarding/onboarding_container.dart';
 import 'package:ticketapp/presentation/pages/splash/splash_screen.dart';
 import 'core/util/app_theme.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -46,7 +46,7 @@ class _MyAppState extends State<MyApp> {
     _themeMode = widget.themeMode;
   }
 
-  void _changeTheme(ThemeMode themeMode) async {
+  Future<void> _changeTheme(final ThemeMode themeMode) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _themeMode = themeMode;
@@ -55,7 +55,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return MaterialApp(
       title: 'Bilet Satış Uygulaması',
       theme: AppTheme.lightTheme,
@@ -63,10 +63,10 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       initialRoute: '/',
       routes: {
-        '/': (context) => const SplashScreen(),
-        '/login': (context) => LoginScreen(),
-        '/onboarding': (context) => const OnboardingContainer(),
-        '/home': (context) => HomePageContainer(onThemeChanged: _changeTheme)
+        '/': (final context) => const SplashScreen(),
+        '/login': (final context) => LoginScreen(),
+        '/onboarding': (final context) => const OnboardingContainer(),
+        '/home': (final context) => HomePageContainer(onThemeChanged: _changeTheme)
       },
     );
   }

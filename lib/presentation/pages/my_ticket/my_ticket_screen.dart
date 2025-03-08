@@ -39,14 +39,14 @@ class _MyTicketPageState extends State<MyTicketPage> {
     }
 
     final tickets = await Future.wait(
-      user.ticketsId!.map((id) => TicketService().getTicketById(id)),
+      user.ticketsId!.map((final id) => TicketService().getTicketById(id)),
     );
 
     final ticketsWithDetails = await Future.wait(
-      tickets.where((t) => t != null).map((ticket) async {
+      tickets.where((final t) => t != null).map((final ticket) async {
         final eventDate = await EventService().getEventDate(ticket!.eventId);
         final data = eventDate?.entries
-            .map((entry) => '${entry.key}: ${entry.value}')
+            .map((final entry) => '${entry.key}: ${entry.value}')
             .join(', ');
         final isPast =
             data != null && DateTime.parse(data).isBefore(DateTime.now());
@@ -57,7 +57,7 @@ class _MyTicketPageState extends State<MyTicketPage> {
     return ticketsWithDetails;
   }
 
-  Future _fetchPurchasedSeat(String eventId) async {
+  Future _fetchPurchasedSeat(final String eventId) async {
     final fetchPurchasedSeats = await EventService()
         .getPurchasedSeatsByCustomerId(eventId, widget.userId);
     setState(() {
@@ -66,12 +66,12 @@ class _MyTicketPageState extends State<MyTicketPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Biletlerim')),
       body: FutureBuilder<List<Ticket?>>(
         future: _ticketsFuture,
-        builder: (context, snapshot) {
+        builder: (final context, final snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -84,8 +84,8 @@ class _MyTicketPageState extends State<MyTicketPage> {
 
           final tickets = snapshot.data!;
           final upcomingTickets =
-              tickets.where((t) => t?.isPast == false).toList();
-          final pastTickets = tickets.where((t) => t?.isPast == true).toList();
+              tickets.where((final t) => t?.isPast == false).toList();
+          final pastTickets = tickets.where((final t) => t?.isPast == true).toList();
 
           return SingleChildScrollView(
             child: Padding(
@@ -116,22 +116,22 @@ class _MyTicketPageState extends State<MyTicketPage> {
     );
   }
 
-  Widget _buildTicketList(List<Ticket?> tickets) {
+  Widget _buildTicketList(final List<Ticket?> tickets) {
     return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: tickets.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           final eventId = tickets[index]?.eventId;
           _fetchPurchasedSeat(eventId ?? '');
-          _buildTicketCard(tickets[index]!);
+          return _buildTicketCard(tickets[index]!);
         },
       ),
     );
   }
 
-  Widget _buildTicketCard(Ticket ticket) {
+  Widget _buildTicketCard(final Ticket ticket) {
     return FutureBuilder<List<dynamic>>(
       future: Future.wait([
         EventService().getEventDate(ticket.eventId),
@@ -139,7 +139,7 @@ class _MyTicketPageState extends State<MyTicketPage> {
         ShowService().getShowById(ticket.showId),
         StageService().getStageById(ticket.stageId),
       ]),
-      builder: (context, snapshot) {
+      builder: (final context, final snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const CircularProgressIndicator();
         }
@@ -153,7 +153,7 @@ class _MyTicketPageState extends State<MyTicketPage> {
         final eventDates = snapshot.data![0] as Map<String, String>?;
         final eventPrice = snapshot.data![1] as String?;
         final date = eventDates?.entries
-            .map((entry) => '${entry.key}: ${entry.value}')
+            .map((final entry) => '${entry.key}: ${entry.value}')
             .join(', ');
         final event = Event(
             id: '', stageId: '', date: date ?? '', price: eventPrice ?? '');
@@ -164,7 +164,7 @@ class _MyTicketPageState extends State<MyTicketPage> {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => TicketDetailPage(ticket: ticket)),
+                builder: (final context) => TicketDetailPage(ticket: ticket)),
           ),
           child: Container(
             width: 150,

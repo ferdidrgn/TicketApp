@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'bottom_nav_bar.dart'; // BottomNavBar'ı buraya import ediyoruz
+import 'bottom_nav_bar.dart';
 
 class CategoryCardBuilder extends StatelessWidget {
   final List<Map<String, Object>>? categories;
@@ -7,7 +7,7 @@ class CategoryCardBuilder extends StatelessWidget {
   const CategoryCardBuilder({super.key, this.categories});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     // Use default categories if the provided list is null
     final List<Map<String, Object>> effectiveCategories =
         categories?.isNotEmpty == true
@@ -29,10 +29,10 @@ class CategoryCardBuilder extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        children: effectiveCategories.map((category) {
+        children: effectiveCategories.map((final category) {
           return _buildCategoryCard(
             category['title'].toString(),
-            category['icon'] as IconData,
+            category['icon']! as IconData,
             context,
           );
         }).toList(),
@@ -40,7 +40,7 @@ class CategoryCardBuilder extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryCard(String title, IconData icon, BuildContext context) {
+  Widget _buildCategoryCard(final String title, final IconData icon, final BuildContext context) {
     return InkWell(
         onTap: () {
           // Tıklanan kategori ile BottomNavBar'daki Discover sekmesine geçiş yapıyoruz

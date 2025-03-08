@@ -66,7 +66,7 @@ class FavoritesPage extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Favorilerim'),
@@ -96,14 +96,14 @@ class FavoritesPage extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: 10,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           return _buildEventCard(context, index);
         },
       ),
     );
   }
 
-  Widget _buildEventCard(BuildContext context, int index) {
+  Widget _buildEventCard(final BuildContext context, final int index) {
     final List<String> events = [
       'Etkinlik 1',
       'Etkinlik 2',
@@ -130,7 +130,7 @@ class FavoritesPage extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>const ShowDetailPage(showId: '0')
+              builder: (final context) =>const ShowDetailPage(showId: '0')
             ),
           );
         },
@@ -165,7 +165,7 @@ class FavoritesPage extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: venues.length,
-            itemBuilder: (context, index) {
+            itemBuilder: (final context, final index) {
               return CustomStageCard(
                 text: venues[index],
                 imageUrl:
@@ -174,7 +174,7 @@ class FavoritesPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const StageDetailPage(stageId: '0')
+                      builder: (final context) => const StageDetailPage(stageId: '0')
                     ),
                   );
                 },
@@ -211,7 +211,7 @@ class FavoritesPage extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: players.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           return CustomStageCard(
             text: players[index],
             imageUrl:
@@ -219,7 +219,7 @@ class FavoritesPage extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const PlayerDetailPage(playerId: "0")),
+                MaterialPageRoute(builder: (final context) => const PlayerDetailPage(playerId: "0")),
               );
             },
           );

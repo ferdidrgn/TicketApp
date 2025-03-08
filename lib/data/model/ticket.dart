@@ -24,16 +24,16 @@ class Ticket {
   });
 
   Ticket copyWith({
-    String? id,
-    String? createdAt,
-    String? updatedAt,
-    String? customerId,
-    String? showId,
-    String? stageId,
-    String? eventId,
-    String? orderMethod,
-    String? orderPrice,
-    bool? isPast,
+    final String? id,
+    final String? createdAt,
+    final String? updatedAt,
+    final String? customerId,
+    final String? showId,
+    final String? stageId,
+    final String? eventId,
+    final String? orderMethod,
+    final String? orderPrice,
+    final bool? isPast,
   }) {
     return Ticket(
       id: id ?? this.id,

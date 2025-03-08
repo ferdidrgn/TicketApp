@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'package:ticketapp/data/repository/event_service.dart';
-import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
+import 'package:ticketapp/data/repository/event_service.dart';
 import '../../../core/util/date_formatter.dart';
 import '../../../data/model/ticket.dart';
 import '../../../data/repository/seat_service.dart';
@@ -68,7 +67,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   void _startReservationTimer() {
-    reservationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    reservationTimer =
+        Timer.periodic(const Duration(seconds: 1), (final timer) {
       if (remainingTime > 0) {
         setState(() => remainingTime--);
       } else {
@@ -77,7 +77,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     });
   }
 
-  void _handleTimeUp(Timer timer) {
+  void _handleTimeUp(final Timer timer) {
     _showTimeUpDialog();
     timer.cancel();
     _cancelReservations();
@@ -87,7 +87,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (final context) {
         return AlertDialog(
           title: const Text('İşlem Süresi Doldu'),
           content: const Text('Oyun bilgilerine yönlendiriliyorsunuz.'),
@@ -95,7 +95,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             TextButton(
               child: const Text('Tamam'),
               onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).popUntil((final route) => route.isFirst);
               },
             ),
           ],
@@ -105,13 +105,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   void _cancelReservations() {
-    for (String seatId in selectedSeats) {
+    for (final String seatId in selectedSeats) {
       eventService.updateSeatStatus(widget.eventId, seatId, 'available');
     }
     setState(() => selectedSeats.clear());
   }
 
-  void _toggleSeatSelection(String seatId) {
+  void _toggleSeatSelection(final String seatId) {
     setState(() {
       if (selectedSeats.contains(seatId)) {
         _removeSeat(seatId);
@@ -123,13 +123,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     });
   }
 
-  void _removeSeat(String seatId) {
+  void _removeSeat(final String seatId) {
     selectedSeats.remove(seatId);
     eventService.updateSeatStatus(widget.eventId, seatId, 'available');
     totalPrice -= seatPrice;
   }
 
-  void _addSeat(String seatId) {
+  void _addSeat(final String seatId) {
     selectedSeats.add(seatId);
     eventService.updateSeatStatus(widget.eventId, seatId, 'reserved',
         customerId: "test");
@@ -149,7 +149,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Koltuk Seçimi')),
       body: seats.isEmpty
@@ -232,8 +232,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Map<String, List<String>> _groupSeatsByRow() {
     final seatsByRow = <String, List<String>>{};
 
-    for (String seat in seats.values.expand((element) => element)) {
-      String row = seat[0];
+    for (final String seat in seats.values.expand((final element) => element)) {
+      final String row = seat[0];
       seatsByRow.putIfAbsent(row, () => []).add(seat);
     }
 
@@ -254,7 +254,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
-  Widget _buildRows(Map<String, List<String>> seatsByRow) {
+  Widget _buildRows(final Map<String, List<String>> seatsByRow) {
     final rows = seatsByRow.keys.toList()..sort();
 
     return SingleChildScrollView(
@@ -265,11 +265,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: rows
-                        .map((row) => _buildSeatRow(row, seatsByRow[row]!))
+                        .map(
+                            (final row) => _buildSeatRow(row, seatsByRow[row]!))
                         .toList()))));
   }
 
-  Widget _buildSeatRow(String row, List<String> rowSeats) {
+  Widget _buildSeatRow(final String row, final List<String> rowSeats) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -280,13 +281,15 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             child:
                 Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
-          Row(children: rowSeats.map((seatId) => _buildSeat(seatId)).toList()),
+          Row(
+              children:
+                  rowSeats.map((final seatId) => _buildSeat(seatId)).toList()),
         ],
       ),
     );
   }
 
-  Widget _buildSeat(String seatId) {
+  Widget _buildSeat(final String seatId) {
     final status = seatStatus[seatId]?['status'] ?? 'available';
     final reservedById = seatStatus[seatId]?['customerId'];
 
@@ -317,7 +320,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
-  Color _getSeatColor(String status, String? reservedById, bool isSelected) {
+  Color _getSeatColor(
+      final String status, final String? reservedById, final bool isSelected) {
     if (status == 'sold') {
       return Colors.white30; // Satılmış koltuk
     } else if (status == 'reserved' &&
@@ -332,10 +336,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Future<void> _showPaymentBottomSheet() async {
-    showModalBottomSheet(
+    await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (BuildContext context) {
+        builder: (final BuildContext context) {
           return Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               padding: const EdgeInsets.all(16),
@@ -360,9 +364,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Future<void> _showPaymentMethods() async {
-    String? selectedMethod = await showDialog<String>(
+    final String? selectedMethod = await showDialog<String>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (final BuildContext context) {
         return AlertDialog(
             title: const Text('Ödeme Yöntemi Seçin'),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -381,16 +385,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
     if (selectedMethod != null) {
       final confirmed = await _showConfirmationDialog();
-      if (confirmed == true) {
+      if (confirmed != null && confirmed == true) {
         await _processPayment(selectedMethod);
       }
     }
   }
 
-  Future<void> _processPayment(String method) async {
+  Future<void> _processPayment(final String method) async {
     try {
       // 1. Koltukları satıldı olarak güncelle
-      for (String seatId in selectedSeats) {
+      for (final String seatId in selectedSeats) {
         await eventService.updateSeatStatus(widget.eventId, seatId, 'sold',
             customerId: "test");
       }
@@ -413,7 +417,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Future<bool?> _showConfirmationDialog() {
     return showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (final BuildContext context) {
         return AlertDialog(
           title: const Text('Onay'),
           content: const Text('Ödeme işlemini onaylıyor musunuz?'),
@@ -435,7 +439,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   void _handlePaymentSuccess() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (final BuildContext context) {
         return AlertDialog(
           title: const Text('Ödeme Başarılı'),
           content: const Text('Ödemeniz başarıyla tamamlandı.'),
@@ -443,7 +447,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             TextButton(
               child: const Text('Anasayfa'),
               onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).popUntil((final route) => route.isFirst);
               },
             ),
             TextButton(
@@ -457,7 +461,6 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Ticket _createNewTicket() {
-    var uuid = const Uuid();
     final nowTime = DateFormatter.nowFormatDateTime();
 
     return Ticket(

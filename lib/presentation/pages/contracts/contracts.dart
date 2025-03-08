@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../data/repository/app_tools_service.dart';
 import 'package:simple_html_css/simple_html_css.dart';
+import '../../../data/repository/app_tools_service.dart';
 
 class ContractsPage extends StatefulWidget {
   const ContractsPage({super.key});
@@ -30,7 +30,7 @@ class _ContractsPageState extends State<ContractsPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Privacy Policy & Terms & Conditions'),

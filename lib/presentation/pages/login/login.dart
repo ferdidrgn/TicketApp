@@ -9,7 +9,7 @@ class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
         body: Stack(
       children: [_buildBackgroundImage(), _buildContent(context)],
@@ -21,7 +21,7 @@ class LoginScreen extends StatelessWidget {
         child: Image.asset('assets/images/book_logo.jpg', fit: BoxFit.cover));
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(final BuildContext context) {
     return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(
@@ -44,7 +44,7 @@ class LoginScreen extends StatelessWidget {
     ]));
   }
 
-  Widget _buildGoogleSignInButton(BuildContext context) {
+  Widget _buildGoogleSignInButton(final BuildContext context) {
     return CustomElevatedButton(
         text: 'Google ile Giriş Yap',
         iconAsset: Image.network(
@@ -56,7 +56,7 @@ class LoginScreen extends StatelessWidget {
             if (account != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(account.displayName ?? '')));
-              Navigator.pushReplacementNamed(context, '/home');
+              await Navigator.pushReplacementNamed(context, '/home');
             } else {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text('Google Girişi Başarısız Oldu.')));
@@ -68,14 +68,14 @@ class LoginScreen extends StatelessWidget {
         });
   }
 
-  Widget _buildPhoneLogIn(context) {
+  Widget _buildPhoneLogIn(final context) {
     return CustomElevatedButton(
         text: 'Tel No İle Giriş Yap',
         iconData: Icons.phone,
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const PhoneLogInPage()),
+            MaterialPageRoute(builder: (final context) => const PhoneLogInPage()),
           );
         });
   }

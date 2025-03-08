@@ -37,7 +37,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
 
   Future<void> _getUserData() async {
     try {
-      User? user = await _userService.getUserById(widget.userId);
+      final User? user = await _userService.getUserById(widget.userId);
       if (user != null) {
         setState(() {
           _currentUser = user;
@@ -61,10 +61,10 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
     }
   }
 
-  void _updateProfile() async {
+  Future<void> _updateProfile() async {
     if (_formKey.currentState?.validate() ?? false) {
       final nowTime = DateFormatter.nowFormatDateTime();
-      User updatedUser = User(
+      final User updatedUser = User(
         id: _currentUser?.id ?? '',
         createdAt: _currentUser?.createdAt ?? nowTime,
         updatedAt: nowTime,
@@ -98,7 +98,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil Düzenle'),
@@ -121,32 +121,32 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
                 label: 'Ad',
                 initialValue: _firstName,
                 isRequired: true,
-                onChanged: (value) => setState(() => _firstName = value),
+                onChanged: (final value) => setState(() => _firstName = value),
               ),
               CustomTextField(
                 label: 'Soyad',
                 initialValue: _lastName,
                 isRequired: true,
-                onChanged: (value) => setState(() => _lastName = value),
+                onChanged: (final value) => setState(() => _lastName = value),
               ),
               CustomTextField(
                 label: 'Telefon No',
                 initialValue: _phoneNumber,
-                onChanged: (value) => setState(() => _phoneNumber = value),
+                onChanged: (final value) => setState(() => _phoneNumber = value),
                 keyboardType: TextInputType.phone,
                 isRequired: false, // Telefon zorunlu değil
               ),
               CustomTextField(
                 label: 'E-posta',
                 initialValue: _email,
-                onChanged: (value) => setState(() => _email = value),
+                onChanged: (final value) => setState(() => _email = value),
                 keyboardType: TextInputType.emailAddress,
                 isRequired: false, // E-posta zorunlu değil
               ),
               CustomTextField(
                 label: 'Yaş',
                 initialValue: _age > 0 ? _age.toString() : '',
-                onChanged: (value) =>
+                onChanged: (final value) =>
                     setState(() => _age = int.tryParse(value) ?? 0),
                 keyboardType: TextInputType.number,
                 isRequired: false, // Yaş zorunlu değil
@@ -154,7 +154,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
               CustomTextField(
                 label: 'Lokasyon',
                 initialValue: _city,
-                onChanged: (value) => setState(() => _city = value),
+                onChanged: (final value) => setState(() => _city = value),
                 isRequired: false, // Lokasyon zorunlu değil
               ),
               const SizedBox(height: 20),

@@ -17,7 +17,7 @@ class CustomTextField extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final borderColor = Theme.of(context).brightness == Brightness.dark
         ? Colors.white
         : Colors.red; // Tıklanmadığında renk
@@ -49,7 +49,7 @@ class CustomTextField extends StatelessWidget {
         ),
         onChanged: onChanged,
         keyboardType: keyboardType,
-        validator: (value) {
+        validator: (final value) {
           // Eğer alan zorunluysa ve değer boşsa, hata döndür
           if (isRequired && (value == null || value.isEmpty)) {
             return 'Bu alan boş olamaz';

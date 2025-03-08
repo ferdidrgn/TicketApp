@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/sign_service.dart';
-import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -37,9 +37,9 @@ class _SplashScreenState extends State<SplashScreen>
     final currentUser = LoginService().isUserLoggedIn();
 
     if (currentUser == false) {
-      Navigator.of(context).pushReplacementNamed('/login');
+      await Navigator.of(context).pushReplacementNamed('/login');
     } else {
-      Navigator.of(context).pushReplacementNamed('/home');
+      await Navigator.of(context).pushReplacementNamed('/home');
     }
   }
 
@@ -50,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
         backgroundColor: Colors.red,
         body: Center(

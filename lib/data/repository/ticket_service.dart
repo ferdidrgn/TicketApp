@@ -6,9 +6,9 @@ class TicketService {
       FirebaseFirestore.instance.collection('Ticket');
 
 // Ticket ID ile gösterileri getiren fonksiyon
-  Future<Ticket?> getTicketById(String ticketId) async {
+  Future<Ticket?> getTicketById(final String ticketId) async {
     try {
-      QuerySnapshot result =
+      final QuerySnapshot result =
           await _ticketService.where('_id', isEqualTo: ticketId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
@@ -20,7 +20,7 @@ class TicketService {
   }
 
 // Bilet kaydetme fonksiyonu
-  Future<void> createTicket(Ticket ticket) async {
+  Future<void> createTicket(final Ticket ticket) async {
     try {
       await _ticketService.add({
         '_createdAt': ticket.createdAt,
@@ -38,7 +38,7 @@ class TicketService {
     }
   }
 
-  Ticket _mapDocumentToTicket(DocumentSnapshot doc) {
+  Ticket _mapDocumentToTicket(final DocumentSnapshot doc) {
     return Ticket(
         createdAt: _getFieldAsString(doc, '_createdAt'),
         updatedAt: _getFieldAsString(doc, '_updatedAt'),
@@ -52,7 +52,7 @@ class TicketService {
   }
 
 // Helper to get field as a string
-  String _getFieldAsString(DocumentSnapshot document, String fieldName) {
+  String _getFieldAsString(final DocumentSnapshot document, final String fieldName) {
     return document[fieldName].toString();
   }
 }

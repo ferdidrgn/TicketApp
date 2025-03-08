@@ -6,7 +6,7 @@ class PermissionSettingsScreen extends StatelessWidget {
   const PermissionSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Bildirim Ayarları'),
@@ -27,7 +27,7 @@ class PermissionSettingsScreen extends StatelessWidget {
                 if (await Permission.location.isDenied) {
                   await Permission.location.request();
                 }
-                openAppSettings();
+                await openAppSettings();
               },
             ),
             const SizedBox(height: 20),
@@ -40,7 +40,7 @@ class PermissionSettingsScreen extends StatelessWidget {
                 if (await Permission.notification.isDenied) {
                   await Permission.notification.request();
                 }
-                openAppSettings();
+                await openAppSettings();
               },
             ),
           ],
@@ -50,11 +50,11 @@ class PermissionSettingsScreen extends StatelessWidget {
   }
 
   Widget _buildPermissionCard({
-    required String title,
-    required String description,
-    required Permission permission,
-    required BuildContext context,
-    required VoidCallback onTap,
+    required final String title,
+    required final String description,
+    required final Permission permission,
+    required final BuildContext context,
+    required final VoidCallback onTap,
   }) {
     return Card(
       elevation: 5,

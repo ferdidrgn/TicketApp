@@ -12,7 +12,7 @@ class LoginService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   GoogleSignInAccount? account;
 
-  Future<GoogleSignInAccount?> signInWithGoogle(BuildContext context) async {
+  Future<GoogleSignInAccount?> signInWithGoogle(final BuildContext context) async {
     _showLoadingDialog(context);
     try {
       // Eğer kullanıcı zaten oturum açtıysa doğrudan account'ı döndürebiliriz
@@ -57,30 +57,30 @@ class LoginService {
   }
 
   Future<void> verifyPhone(
-    BuildContext context,
-    String phoneNumber,
-    Function(String) onVerificationCompleted,
-    Function(String) onCodeSent,
-    Function(String) onAutoRetrievalTimeout,
+    final BuildContext context,
+    final String phoneNumber,
+    final Function(String) onVerificationCompleted,
+    final Function(String) onCodeSent,
+    final Function(String) onAutoRetrievalTimeout,
   ) async {
     _showLoadingDialog(context);
 
     await _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) async {
+      verificationCompleted: (final PhoneAuthCredential credential) async {
         await _auth.signInWithCredential(credential);
         onVerificationCompleted(credential.smsCode ?? '');
         _hideLoadingDialog(context);
       },
-      verificationFailed: (FirebaseAuthException e) {
+      verificationFailed: (final FirebaseAuthException e) {
         _showErrorSnackBar(context, e.message ?? 'Verification failed');
         _hideLoadingDialog(context);
       },
-      codeSent: (String verificationId, int? resendToken) {
+      codeSent: (final String verificationId, final int? resendToken) {
         onCodeSent(verificationId);
         _hideLoadingDialog(context);
       },
-      codeAutoRetrievalTimeout: (String verificationId) {
+      codeAutoRetrievalTimeout: (final String verificationId) {
         onAutoRetrievalTimeout(verificationId);
         _hideLoadingDialog(context);
       },
@@ -88,10 +88,10 @@ class LoginService {
   }
 
   Future<bool> verifyOtp(
-      BuildContext context, String verificationId, String otp) async {
+      final BuildContext context, final String verificationId, final String otp) async {
     _showLoadingDialog(context);
     try {
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+      final PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: verificationId,
         smsCode: otp,
       );
@@ -108,10 +108,10 @@ class LoginService {
   // Firebase Authentication - Oturum Kapatma
   Future<void> signOut() async {
     try {
-      User? user = _auth.currentUser;
+      final User? user = _auth.currentUser;
 
       if (user != null) {
-        for (UserInfo userInfo in user.providerData) {
+        for (final UserInfo userInfo in user.providerData) {
           if (userInfo.providerId == 'google.com') {
             // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
             await GoogleSignIn().signOut();
@@ -134,25 +134,25 @@ class LoginService {
     return _auth.currentUser != null;
   }
 
-  void _showLoadingDialog(BuildContext context) {
+  void _showLoadingDialog(final BuildContext context) {
     LoadingOverlay.show(context);
   }
 
-  void _hideLoadingDialog(BuildContext context) {
+  void _hideLoadingDialog(final BuildContext context) {
     LoadingOverlay.hide(context);
   }
 
-  void _showErrorSnackBar(BuildContext? context, String message) {
+  void _showErrorSnackBar(final BuildContext? context, final String message) {
     context == null
         ? throw Exception(message)
         : ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void fillUserInfo(GoogleSignInAccount account) {
+  void fillUserInfo(final GoogleSignInAccount account) {
     if (isUserLoggedIn()) {
-      String displayName = account.displayName?.trim() ?? '';
-      List<String> nameParts = displayName.split(' ');
+      final String displayName = account.displayName?.trim() ?? '';
+      final List<String> nameParts = displayName.split(' ');
       final nowTime = DateFormatter.nowFormatDateTime();
 
       final user = _user.User(

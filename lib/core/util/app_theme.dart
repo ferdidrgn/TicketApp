@@ -165,7 +165,7 @@ class AppTheme {
   );
 }
 
-List<Color> gradientColors(BuildContext context, bool isTrue) {
+List<Color> gradientColors(final BuildContext context, final isTrue) {
   return isTrue
       ? (Theme.of(context).brightness == Brightness.light
           ? [Colors.red.shade300, Colors.red.shade900]

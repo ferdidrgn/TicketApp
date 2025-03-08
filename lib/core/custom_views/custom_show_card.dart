@@ -20,7 +20,7 @@ class CustomVerticalShowCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -46,13 +46,13 @@ class CustomVerticalShowCard extends StatelessWidget {
               child: Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
+                loadingBuilder: (final context, final child, final progress) {
                   if (progress == null) {
                     return child;
                   }
                   return const Center(child: CircularProgressIndicator());
                 },
-                errorBuilder: (context, error, stackTrace) {
+                errorBuilder: (final context, final error, final stackTrace) {
                   return const Center(
                       child: Icon(Icons.error, color: Colors.red));
                 },

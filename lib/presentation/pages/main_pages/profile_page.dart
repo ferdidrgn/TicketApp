@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/sign_service.dart';
 import 'package:ticketapp/presentation/pages/contracts/contracts.dart';
 import '../../../core/custom_views/custom_elevated_button.dart';
-import '../profile_edit/user_profile_edit.dart';
 import '../my_favorites/favorite_screen.dart';
 import '../my_ticket/my_ticket_screen.dart';
+import '../profile_edit/user_profile_edit.dart';
 import '../settings/app_settings.dart';
 import '../settings/permission_settings.dart';
 
@@ -40,7 +40,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
         body: ListView(padding: const EdgeInsets.all(20.0), children: [
       _buildProfileCard(),
@@ -150,10 +150,10 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _showThemeSelectionDialog(BuildContext context) {
+  void _showThemeSelectionDialog(final BuildContext context) {
     showDialog(
         context: context,
-        builder: (BuildContext context) {
+        builder: (final BuildContext context) {
           return AlertDialog(
             title: const Text('Tema Seçimi'),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -165,7 +165,7 @@ class _ProfilePageState extends State<ProfilePage> {
         });
   }
 
-  Widget _themeOption(String title, ThemeMode mode) {
+  Widget _themeOption(final String title, final ThemeMode mode) {
     return ListTile(
         title: Text(title),
         onTap: () {
@@ -196,8 +196,8 @@ class _ProfilePageState extends State<ProfilePage> {
         ));
   }
 
-  void _navigateTo(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) => page));
+  void _navigateTo(final Widget page) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (final context) => page));
   }
 
   void _navigateToLogin() {
@@ -205,10 +205,10 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.of(context).pushReplacementNamed('/');
   }
 
-  void _signOut() async {
+  Future<void> _signOut() async {
     try {
       await _loginService.signOut();
-      _navigateToLogin;
+      _navigateToLogin();
 
       setState(() {
         firebaseUser = null;

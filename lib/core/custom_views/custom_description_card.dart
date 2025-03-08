@@ -13,7 +13,7 @@ class _CustomDescriptionCardState extends State<CustomDescriptionCard> {
   bool isExpanded = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     String? displayDescription = widget.description.replaceAll('\\n', '\n');
 
     // Eğer açıklama uzunsa, kısalt

@@ -6,24 +6,24 @@ class TeamService {
       FirebaseFirestore.instance.collection('Team');
 
   // all teams
-  Future<List<Team?>> getTeams(bool isLimit) async {
+  Future<List<Team?>> getTeams(final isLimit) async {
     try {
-      QuerySnapshot snapshot = isLimit
+      final QuerySnapshot snapshot = isLimit
           ? await _teamCollection
               .orderBy('_createdAt', descending: true)
               .limit(20)
               .get()
           : await _teamCollection.get();
-      return snapshot.docs.map((doc) => _mapDocumentToTeam(doc)).toList();
+      return snapshot.docs.map((final doc) => _mapDocumentToTeam(doc)).toList();
     } catch (e) {
       throw Exception('Error fetching teams: $e');
     }
   }
 
   // Fetch a teams by ID
-  Future<Team?> getTeamById(String teamId) async {
+  Future<Team?> getTeamById(final String teamId) async {
     try {
-      QuerySnapshot result =
+      final QuerySnapshot result =
           await _teamCollection.where('_id', isEqualTo: teamId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
@@ -35,7 +35,7 @@ class TeamService {
   }
 
   // Convert Firestore document to Team model
-  Team _mapDocumentToTeam(DocumentSnapshot document) {
+  Team _mapDocumentToTeam(final DocumentSnapshot document) {
     return Team(
       id: _getStringField(document, '_id'),
       createdAt: _getStringField(document, '_createdAt'),
@@ -49,11 +49,11 @@ class TeamService {
   }
 
   // Utility method for fetching string fields
-  String _getStringField(DocumentSnapshot document, String fieldName) {
+  String _getStringField(final DocumentSnapshot document, final String fieldName) {
     return document[fieldName]?.toString() ?? '';
   }
 
-  List<String> _getListField(DocumentSnapshot document, String fieldName) {
+  List<String> _getListField(final DocumentSnapshot document, final String fieldName) {
     return List<String>.from(document[fieldName] ?? []);
   }
 }

@@ -7,7 +7,7 @@ class CustomSearchBar extends StatelessWidget {
   const CustomSearchBar({super.key, this.onSearchTap, this.onSearchChanged});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Card(
         elevation: 5, // Adds shadow
         shape: RoundedRectangleBorder(

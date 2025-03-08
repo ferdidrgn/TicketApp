@@ -54,7 +54,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
         body: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -83,10 +83,10 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildScrollableItems(List<Show?> items) {
+  Widget _buildScrollableItems(final List<Show?> items) {
     return ListView.builder(
       itemCount: items.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (final context, final index) {
         return EventCard(
           imageUrl: items[index]?.imageUrl ?? '',
           showName: items[index]?.name ?? '',
@@ -99,12 +99,12 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  void _showFilterPopup(BuildContext context) {
+  void _showFilterPopup(final BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) {
+      builder: (final context) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
+          builder: (final context, final setModalState) {
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -138,7 +138,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildCategoryFilter(StateSetter setModalState) {
+  Widget _buildCategoryFilter(final StateSetter setModalState) {
     final List<String> categories = [
       'Tiyatro',
       'Konser',
@@ -157,7 +157,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: categories.length,
-            itemBuilder: (context, index) {
+            itemBuilder: (final context, final index) {
               final category = categories[index];
               return GestureDetector(
                 onTap: () {
@@ -189,7 +189,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildPriceRangeFilter(StateSetter setModalState) {
+  Widget _buildPriceRangeFilter(final StateSetter setModalState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -201,7 +201,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           divisions: 10,
           activeColor: Theme.of(context).colorScheme.error,
           inactiveColor: Theme.of(context).focusColor,
-          onChanged: (values) {
+          onChanged: (final values) {
             setModalState(() {
               minPrice = values.start;
               maxPrice = values.end;
@@ -214,7 +214,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildDateRangePicker(StateSetter setModalState) {
+  Widget _buildDateRangePicker(final StateSetter setModalState) {
     final themeOf = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,12 +225,12 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           children: [
             ElevatedButton(
               onPressed: () async {
-                DateTime? newStartDate = await showDatePicker(
+                final DateTime? newStartDate = await showDatePicker(
                   context: context,
                   initialDate: startDate ?? DateTime.now(),
                   firstDate: DateTime(2020),
                   lastDate: DateTime(2100),
-                  builder: (BuildContext context, Widget? child) {
+                  builder: (final BuildContext context, final Widget? child) {
                     return Theme(
                       data: themeOf.copyWith(
                         colorScheme: ColorScheme.light(
@@ -262,12 +262,12 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                DateTime? newEndDate = await showDatePicker(
+                final DateTime? newEndDate = await showDatePicker(
                   context: context,
                   initialDate: endDate ?? DateTime.now(),
                   firstDate: startDate ?? DateTime(2020),
                   lastDate: DateTime(2100),
-                  builder: (BuildContext context, Widget? child) {
+                  builder: (final BuildContext context, final Widget? child) {
                     return Theme(
                       data: themeOf.copyWith(
                         colorScheme: ColorScheme.light(

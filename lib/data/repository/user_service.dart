@@ -7,8 +7,8 @@ class UserService {
       FirebaseFirestore.instance.collection('User');
 
   // Create or update user
-  Future<void> saveUser(User user, String downloadUrl,
-      {bool isUpdate = false}) async {
+  Future<void> saveUser(final User user, final String downloadUrl,
+      {final isUpdate = false}) async {
     try {
       // Belgeyi kontrol et
       final docSnapshot = await _userCollection.doc(user.id).get();
@@ -29,9 +29,9 @@ class UserService {
   }
 
   // Fetch user by ID
-  Future<User?> getUserById(String userId) async {
+  Future<User?> getUserById(final String userId) async {
     try {
-      DocumentSnapshot doc = await _userCollection.doc(userId).get();
+      final DocumentSnapshot doc = await _userCollection.doc(userId).get();
       if (doc.exists) {
         return _mapDocumentToUser(doc);
       } else {
@@ -43,7 +43,7 @@ class UserService {
   }
 
   // Delete user by ID
-  Future<void> deleteUser(String userId) async {
+  Future<void> deleteUser(final String userId) async {
     try {
       await _userCollection.doc(userId).delete();
     } catch (e) {
@@ -52,7 +52,7 @@ class UserService {
   }
 
   // Map Firestore document to User model
-  User _mapDocumentToUser(DocumentSnapshot document) {
+  User _mapDocumentToUser(final DocumentSnapshot document) {
     return User(
         id: _getStringField(document, '_id'),
         createdAt: _getStringField(document, '_createdAt'),
@@ -73,17 +73,17 @@ class UserService {
         ticketsId: _getListField(document, "ticketsId"));
   }
 
-  String _getStringField(DocumentSnapshot document, String fieldName) {
+  String _getStringField(final DocumentSnapshot document, final String fieldName) {
     return document[fieldName]?.toString() ?? '';
   }
 
-  List<String> _getListField(DocumentSnapshot document, String fieldName) {
+  List<String> _getListField(final DocumentSnapshot document, final String fieldName) {
     return List<String>.from(document[fieldName] ?? []);
   }
 
   // Map User model to Firestore data
   Map<String, dynamic> _mapUserToFirestore(
-      User user, String downloadUrl, bool isUpdate) {
+      final User user, final String downloadUrl, final bool isUpdate) {
     final nowTime = DateFormatter.nowFormatDateTime();
 
     final userMap = <String, dynamic>{

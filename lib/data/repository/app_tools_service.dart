@@ -4,9 +4,9 @@ class AppToolsService {
   final CollectionReference _firestore =
       FirebaseFirestore.instance.collection('AppTools');
 
-  Future<String?> getPrivacyAndTerms(String fieldName) async {
+  Future<String?> getPrivacyAndTerms(final String fieldName) async {
     try {
-      QuerySnapshot result = await _firestore.where(fieldName).limit(1).get();
+      final QuerySnapshot result = await _firestore.where(fieldName).limit(1).get();
       if (result.docs.isEmpty) {
         return null;
       } else {

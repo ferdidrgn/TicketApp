@@ -1,9 +1,9 @@
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import '../../presentation/pages/main_pages/discovery_page.dart';
+import '../../presentation/pages/main_pages/home_screen.dart';
 import '../../presentation/pages/main_pages/nearby_events.dart';
 import '../../presentation/pages/main_pages/profile_page.dart';
-import '../../presentation/pages/main_pages/home_screen.dart';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
 class BottomNavBar extends StatefulWidget {
   final Function(ThemeMode) onThemeChanged;
@@ -36,7 +36,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   }
 
   // Bu metot ile sekme değiştirebiliriz ve başlık gönderebiliriz
-  void changeTabWithCategory(int index, String? categoryTitle) {
+  void changeTabWithCategory(final int index, final String? categoryTitle) {
     setState(() {
       _selectedIndex = index;
       selectedCategoryTitle = categoryTitle; // Seçilen başlığı sakla
@@ -44,14 +44,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
     });
   }
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(final int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final bottomNavBarTheme = Theme.of(context).bottomNavigationBarTheme;
 
     return Scaffold(
@@ -65,7 +65,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: Colors.transparent,
         color: bottomNavBarTheme.selectedItemColor!,
-        buttonBackgroundColor: bottomNavBarTheme.selectedItemColor!,
+        buttonBackgroundColor: bottomNavBarTheme.selectedItemColor,
         height: 50,
         items: const <Widget>[
           Icon(Icons.home, size: 30),

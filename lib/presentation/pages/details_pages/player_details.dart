@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/custom_views/custom_show_card.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
-import 'package:ticketapp/core/custom_views/custom_show_card.dart';
-import '../../../data/repository/player_service.dart';
-import '../../../data/repository/show_service.dart';
 import '../../../data/model/player.dart';
 import '../../../data/model/show.dart';
+import '../../../data/repository/player_service.dart';
+import '../../../data/repository/show_service.dart';
 
 class PlayerDetailPage extends StatefulWidget {
   final String playerId;
@@ -50,8 +50,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     }
   }
 
-  Future<void> _fetchShows(List<String> showsId, List<Show?> showsList) async {
-    for (String showId in showsId) {
+  Future<void> _fetchShows(final List<String> showsId, final List<Show?> showsList) async {
+    for (final String showId in showsId) {
       try {
         final show = await ShowService().getShowById(showId);
         if (show != null) {
@@ -65,13 +65,13 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     }
   }
 
-  void _showErrorSnackbar(String message) {
+  void _showErrorSnackbar(final String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(player != null
@@ -89,10 +89,10 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
                     initialChildSize: 0.1,
                     minChildSize: 0.1,
                     maxChildSize: 0.8,
-                    builder: (context, scrollController) {
+                    builder: (final context, final scrollController) {
                       return NotificationListener<
                           DraggableScrollableNotification>(
-                        onNotification: (notification) {
+                        onNotification: (final notification) {
                           setState(() {
                             _sheetProgress = notification.extent;
                           });
@@ -108,7 +108,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     );
   }
 
-  Widget _buildBottomSheet(ScrollController scrollController) {
+  Widget _buildBottomSheet(final ScrollController scrollController) {
     return Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
@@ -201,13 +201,13 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     );
   }
 
-  Widget _buildShowsSection(List<Show?> showsList) {
+  Widget _buildShowsSection(final List<Show?> showsList) {
     return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: showsList.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           final show = showsList[index];
           return CustomVerticalShowCard(
             imageUrl: show?.imageUrl ?? '',
@@ -217,7 +217,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) =>
+                    builder: (final context) =>
                         ShowDetailPage(showId: show?.id ?? '')),
               );
             },

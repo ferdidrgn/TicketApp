@@ -6,35 +6,35 @@ class StageService {
       FirebaseFirestore.instance.collection('Stage');
 
   // search stage
-  Future<List<Stage?>> getSearchStage(String query) async {
+  Future<List<Stage?>> getSearchStage(final String query) async {
     try {
-      QuerySnapshot snapshot = await _stageCollection
+      final QuerySnapshot snapshot = await _stageCollection
           .where('name', isGreaterThanOrEqualTo: query)
           .where('name', isLessThanOrEqualTo: '$query\uf8ff')
           .get();
 
-      return snapshot.docs.map((doc) => _mapDocumentToStage(doc)).toList();
+      return snapshot.docs.map((final doc) => _mapDocumentToStage(doc)).toList();
     } catch (e) {
       throw Exception('Error fetching stages: $e');
     }
   }
 
   // all stages
-  Future<List<Stage?>> getStages(bool isLimit) async {
+  Future<List<Stage?>> getStages(final isLimit) async {
     try {
-      QuerySnapshot snapshot = isLimit
+      final QuerySnapshot snapshot = isLimit
           ? await _stageCollection.orderBy('_createdAt', descending: true).limit(20).get()
           : await _stageCollection.get();
-      return snapshot.docs.map((doc) => _mapDocumentToStage(doc)).toList();
+      return snapshot.docs.map((final doc) => _mapDocumentToStage(doc)).toList();
     } catch (e) {
       throw Exception('Error fetching stages: $e');
     }
   }
 
   // Fetch a stage by ID
-  Future<Stage?> getStageById(String stageId) async {
+  Future<Stage?> getStageById(final String stageId) async {
     try {
-      QuerySnapshot result = await _stageCollection
+      final QuerySnapshot result = await _stageCollection
           .where('_id', isEqualTo: stageId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
@@ -46,7 +46,7 @@ class StageService {
   }
 
   // Convert Firestore document to Stage model
-  Stage _mapDocumentToStage(DocumentSnapshot document) {
+  Stage _mapDocumentToStage(final DocumentSnapshot document) {
     return Stage(
       id: _getStringField(document, '_id'),
       createdAt: _getStringField(document, '_createdAt'),
@@ -64,11 +64,11 @@ class StageService {
   }
 
   // Utility method for fetching string fields
-  String _getStringField(DocumentSnapshot document, String fieldName) {
+  String _getStringField(final DocumentSnapshot document, final String fieldName) {
     return document[fieldName]?.toString() ?? '';
   }
 
-  List<String> _getListField(DocumentSnapshot document, String fieldName) {
+  List<String> _getListField(final DocumentSnapshot document, final String fieldName) {
     return List<String>.from(document[fieldName] ?? []);
   }
 }
