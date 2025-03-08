@@ -9,50 +9,48 @@ import 'date_formatter.dart';
 
 class LoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-  GoogleSignInAccount? account;
+  static final LoginService _instance = LoginService._internal();
 
-  Future<GoogleSignInAccount?> signInWithGoogle(final BuildContext context) async {
+  factory LoginService() {
+    return _instance; // Singleton
+  }
+
+  LoginService._internal(); // Private constructor
+
+  User? get currentUser => _auth.currentUser;
+
+  bool isUserLoggedIn() {
+    return currentUser != null;
+  }
+
+  Future<UserCredential?> signInWithGoogle(final BuildContext context) async {
     _showLoadingDialog(context);
+
     try {
-      // Eğer kullanıcı zaten oturum açtıysa doğrudan account'ı döndürebiliriz
-      account =
-          await _googleSignIn.isSignedIn() ? _googleSignIn.currentUser : null;
-      if (account != null) {
+      if (currentUser != null) {
         _hideLoadingDialog(context);
-        return account;
+        return currentUser;
       }
 
-      // Google ile giriş yapılıyor
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // Kullanıcı giriş yapmayı iptal etti, gereksiz işlemlerden kaçın
-        _hideLoadingDialog(context);
-        return null;
-      }
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAuthentication? googleAuth =
+          await googleUser?.authentication;
 
-      // Kimlik doğrulama bilgilerini paralel olarak alıp Firebase giriş işlemiyle devam ediyoruz
-      final googleAuthFuture = googleUser.authentication;
-      final GoogleSignInAuthentication googleAuth = await googleAuthFuture;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth?.accessToken,
+        idToken: googleAuth?.idToken,
       );
 
-      // Firebase Authentication ile giriş işlemi
-      await _auth.signInWithCredential(credential);
-      account = googleUser;
-      _hideLoadingDialog(context);
-      return account;
+      if (googleUser != null) {
+        fillUserInfo(googleUser);
+      }
+
+      return await _auth.signInWithCredential(credential);
     } catch (e) {
-      _hideLoadingDialog(context);
-      _showErrorSnackBar(context, 'Google ile giriş başarısız: $e');
+      _showErrorSnackBar(context, 'Google Girişi Başarısız Oldu: $e');
       return null;
     } finally {
-      if (account != null) {
-        fillUserInfo(account!);
-      }
+      _hideLoadingDialog(context);
     }
   }
 
@@ -70,25 +68,22 @@ class LoginService {
       verificationCompleted: (final PhoneAuthCredential credential) async {
         await _auth.signInWithCredential(credential);
         onVerificationCompleted(credential.smsCode ?? '');
-        _hideLoadingDialog(context);
       },
       verificationFailed: (final FirebaseAuthException e) {
-        _showErrorSnackBar(context, e.message ?? 'Verification failed');
-        _hideLoadingDialog(context);
+        _showErrorSnackBar(context, e.message ?? 'Doğrulama hatası');
       },
       codeSent: (final String verificationId, final int? resendToken) {
         onCodeSent(verificationId);
-        _hideLoadingDialog(context);
       },
       codeAutoRetrievalTimeout: (final String verificationId) {
         onAutoRetrievalTimeout(verificationId);
-        _hideLoadingDialog(context);
       },
     );
+    _hideLoadingDialog(context);
   }
 
-  Future<bool> verifyOtp(
-      final BuildContext context, final String verificationId, final String otp) async {
+  Future<bool> verifyOtp(final BuildContext context,
+      final String verificationId, final String otp) async {
     _showLoadingDialog(context);
     try {
       final PhoneAuthCredential credential = PhoneAuthProvider.credential(
@@ -96,42 +91,31 @@ class LoginService {
         smsCode: otp,
       );
       await _auth.signInWithCredential(credential);
-      _hideLoadingDialog(context);
       return true; // Başarılı
     } catch (e) {
       _showErrorSnackBar(context, e.toString());
-      _hideLoadingDialog(context);
       return false; // Hatalı
+    } finally {
+      _hideLoadingDialog(context);
     }
   }
 
-  // Firebase Authentication - Oturum Kapatma
   Future<void> signOut() async {
     try {
-      final User? user = _auth.currentUser;
+      final User? user = currentUser;
 
       if (user != null) {
         for (final UserInfo userInfo in user.providerData) {
           if (userInfo.providerId == 'google.com') {
             // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
             await GoogleSignIn().signOut();
-            print('Google ile oturum kapatıldı.');
           }
         }
         await _auth.signOut();
       }
-      throw ('Firebaseden oturum kapatıldı.');
     } catch (e) {
       _showErrorSnackBar(null, 'Oturum kapatılırken hata oluştu: $e');
     }
-  }
-
-  // Açık oturumdaki user bilgileri
-  User? get currentUser => _auth.currentUser;
-
-  // Kullanıcının Oturum Açmış mı Kontrol Etme
-  bool isUserLoggedIn() {
-    return _auth.currentUser != null;
   }
 
   void _showLoadingDialog(final BuildContext context) {
@@ -143,10 +127,12 @@ class LoginService {
   }
 
   void _showErrorSnackBar(final BuildContext? context, final String message) {
-    context == null
-        ? throw Exception(message)
-        : ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
+    if (context != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } else {
+      throw Exception(message);
+    }
   }
 
   void fillUserInfo(final GoogleSignInAccount account) {

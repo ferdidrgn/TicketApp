@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/util/sign_service.dart';
+import 'package:ticketapp/core/util/login_service.dart';
 import 'package:ticketapp/presentation/pages/contracts/contracts.dart';
 import '../../../core/custom_views/custom_elevated_button.dart';
 import '../my_favorites/favorite_screen.dart';
