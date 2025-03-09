@@ -5,7 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../data/repository/user_service.dart';
 import '../custom_views/custom_loading.dart';
 import '../../../data/model/user.dart' as _user;
-import 'date_formatter.dart';
+import '../util/date_formatter.dart';
 
 class LoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
