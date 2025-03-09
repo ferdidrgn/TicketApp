@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../data/repository/user_service.dart';
-import '../custom_views/custom_loading.dart';
+import '../widgets/custom_loading.dart';
 import '../../../data/model/user.dart' as _user;
 import '../util/date_formatter.dart';
 

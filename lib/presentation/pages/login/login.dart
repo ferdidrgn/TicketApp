@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/services/login_service.dart';
 import 'package:ticketapp/presentation/pages/login/phone_page.dart';
-import '../../../core/custom_views/custom_elevated_button.dart';
+import '../../../core/widgets/custom_elevated_button.dart';
 
 class LoginScreen extends StatelessWidget {
   final LoginService _loginService = LoginService();

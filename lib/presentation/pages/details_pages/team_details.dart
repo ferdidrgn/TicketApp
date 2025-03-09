@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/custom_views/custom_title.dart';
+import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
-import '../../../core/custom_views/custom_description_card.dart';
-import '../../../core/custom_views/custom_show_card.dart';
+import '../../../core/widgets/custom_description_card.dart';
+import '../../../core/widgets/custom_show_card.dart';
 import '../../../data/model/show.dart';
 import '../../../data/model/team.dart';
 import '../../../data/repository/show_service.dart';

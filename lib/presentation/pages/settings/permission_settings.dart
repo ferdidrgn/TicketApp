@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../../core/custom_views/custom_art_words_card.dart';
+import '../../../core/widgets/custom_art_words_card.dart';
 
 class PermissionSettingsScreen extends StatelessWidget {
   const PermissionSettingsScreen({super.key});

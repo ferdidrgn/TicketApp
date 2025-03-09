@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/custom_views/custom_art_words_card.dart';
+import '../../../core/widgets/custom_art_words_card.dart';
 
 class AppSettingsPage extends StatelessWidget {
   final String appStoreUrl =

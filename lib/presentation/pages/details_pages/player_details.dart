@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/custom_views/custom_show_card.dart';
-import 'package:ticketapp/core/custom_views/custom_title.dart';
+import 'package:ticketapp/core/widgets/custom_show_card.dart';
+import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
 import '../../../data/model/player.dart';
 import '../../../data/model/show.dart';
