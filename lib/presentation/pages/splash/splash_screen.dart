@@ -34,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkUserLoginState() async {
-    final currentUser = LoginService().isUserLoggedIn();
+    final currentUser = LoginService().isUserLoggedIn;
 
     if (currentUser == false) {
       await Navigator.of(context).pushReplacementNamed('/login');
