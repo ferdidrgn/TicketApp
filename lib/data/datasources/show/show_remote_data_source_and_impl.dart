@@ -97,11 +97,12 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
 
   @override
   Future<void> addShow(
+     
       final ShowModel show, final Uri? showIdAddOrUpdateImgUrl) async {
     final String downloadUrl =
         await putStorageImage(show.id, showIdAddOrUpdateImgUrl, show.imageUrl);
     final Map<String, dynamic> showMap = show.toFirestore()
-      ..['_imageUrl'] = downloadUrl;
+      ..['imageUrl'] = downloadUrl;
 
     await firestore.collection('Show').add(showMap).catchError((final error) {
       throw Exception('Show Ekleme Hatası: $error');
