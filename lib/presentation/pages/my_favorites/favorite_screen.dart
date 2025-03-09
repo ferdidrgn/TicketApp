@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/custom_views/custom_show_card.dart';
-import '../../../core/custom_views/custom_stage_card.dart';
-import '../../../core/custom_views/custom_title.dart';
+import '../../../core/widgets/custom_show_card.dart';
+import '../../../core/widgets/custom_stage_card.dart';
+import '../../../core/widgets/custom_title.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';

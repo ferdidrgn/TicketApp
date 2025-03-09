@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/custom_views/custom_title.dart';
+import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/repository/ticket_service.dart';
 import 'package:ticketapp/data/repository/user_service.dart';
-import '../../../core/custom_views/custom_art_words_card.dart';
+import '../../../core/widgets/custom_art_words_card.dart';
 import '../../../data/model/event.dart';
 import '../../../data/model/show.dart';
 import '../../../data/model/stage.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/custom_views/custom_event_card.dart';
+import '../../../core/widgets/custom_event_card.dart';
 
 class NearbyEventsPage extends StatefulWidget {
   const NearbyEventsPage({super.key});

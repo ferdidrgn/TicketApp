@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/custom_views/custom_title.dart';
-import '../../../core/custom_views/custom_event_card.dart';
+import 'package:ticketapp/core/widgets/custom_title.dart';
+import '../../../core/widgets/custom_event_card.dart';
 import '../../../data/model/show.dart';
 import '../../../data/repository/show_service.dart';
 
