@@ -23,32 +23,33 @@ class LoginService {
     return currentUser != null;
   }
 
-  Future<UserCredential?> signInWithGoogle(final BuildContext context) async {
+  Future<UserCredential> signInWithGoogle(final BuildContext context) async {
     _showLoadingDialog(context);
 
     try {
+      // Eğer kullanıcı zaten giriş yapmışsa, mevcut kullanıcıyı UserCredential'i ver
       if (currentUser != null) {
-        _hideLoadingDialog(context);
-        return currentUser;
+        return UserCredential(
+          user: currentUser!,
+          credential: null, // çünkü mevcut bir kullanıcıyı döndürüyoruz
+        );
       }
 
+      // Kimlik doğrulama akışını başlat
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      final GoogleSignInAuthentication? googleAuth =
-          await googleUser?.authentication;
+      final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
 
+      // Yeni bir kimlik bilgisi oluştur
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth?.accessToken,
         idToken: googleAuth?.idToken,
       );
 
-      if (googleUser != null) {
-        fillUserInfo(googleUser);
-      }
-
+      // Firebase ile oturum aç ve UserCredential döndür
       return await _auth.signInWithCredential(credential);
     } catch (e) {
       _showErrorSnackBar(context, 'Google Girişi Başarısız Oldu: $e');
-      return null;
+      rethrow; // Hata durumunu fırlat
     } finally {
       _hideLoadingDialog(context);
     }
@@ -102,10 +103,8 @@ class LoginService {
 
   Future<void> signOut() async {
     try {
-      final User? user = currentUser;
-
-      if (user != null) {
-        for (final UserInfo userInfo in user.providerData) {
+      if (currentUser != null) {
+        for (final UserInfo userInfo in currentUser.providerData) {
           if (userInfo.providerId == 'google.com') {
             // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
             await GoogleSignIn().signOut();
