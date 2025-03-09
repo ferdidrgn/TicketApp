@@ -5,7 +5,7 @@ import 'package:ticketapp/presentation/pages/login/login.dart';
 import 'package:ticketapp/presentation/pages/main_pages/main_pages_container.dart';
 import 'package:ticketapp/presentation/pages/onboarding/onboarding_container.dart';
 import 'package:ticketapp/presentation/pages/splash/splash_screen.dart';
-import 'core/util/app_theme.dart';
+import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 
 void main() async {
