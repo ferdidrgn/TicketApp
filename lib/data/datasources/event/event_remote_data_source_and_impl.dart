@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/util/date_formatter.dart';
 
 abstract class EventRemoteDataSource {
-  Future<void> initializeAndGetEventSeats(final String eventId);
-  Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(final String eventId);
+  Future<void> initializeAndGetEventSeats(final String? eventId);
+  Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(final String? eventId);
   Future<List<String>> getPurchasedSeatsByCustomerId(final String eventId, final String customerId);
   Future<void> updateSeatStatus(final String eventId, final String seatId, final String status, {final String? customerId});
   Future<String> getStageId(final String eventId);
