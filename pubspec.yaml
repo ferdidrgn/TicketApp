@@ -47,6 +47,9 @@ dependencies:
 
   # Ağ
   dio: ^5.3.2  # HTTP istekleri için kullanılan bir ağ kütüphanesi.
+  
+  #Internet Image
+  cached_network_image: ^3.2.3  # İnternetten resimleri önbelleğe alır.
 
   # Yerel Depolama
   shared_preferences: ^2.2.0  # Kalıcı veri depolamak için.

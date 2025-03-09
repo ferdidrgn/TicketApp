@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
@@ -109,16 +110,13 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
             ),
           ],
         ),
-        child: Image.network(
-          team?.imageUrl ?? '',
+        child: CachedNetworkImage(
+          imageUrl: team?.imageUrl ?? '',
           fit: BoxFit.cover,
-          loadingBuilder: (final context, final child, final progress) {
-            if (progress == null) return child;
-            return const Center(child: CircularProgressIndicator());
-          },
-          errorBuilder: (final context, final error, final stackTrace) {
-            return const Center(child: Icon(Icons.error, color: Colors.red));
-          },
+          placeholder: (final context, final url) =>
+              const CircularProgressIndicator(),
+          errorWidget: (final context, final url, final error) =>
+              const Icon(Icons.error),
         ),
       ),
     );
@@ -159,16 +157,10 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
           itemBuilder: (final context, final index) {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Image.network(
-                team!.photosId[index],
-                loadingBuilder: (final context, final child, final progress) {
-                  if (progress == null) return child;
-                  return const Center(child: CircularProgressIndicator());
-                },
-                errorBuilder: (final context, final error, final stackTrace) {
-                  return const Center(
-                      child: Icon(Icons.error, color: Colors.red));
-                },
+              child: CachedNetworkImage(
+                imageUrl: team!.photosId[index],
+                placeholder: (final context, final url) => const CircularProgressIndicator(),
+                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),
             );
           },

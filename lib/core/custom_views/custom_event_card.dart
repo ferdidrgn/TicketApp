@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class EventCard extends StatelessWidget {
@@ -33,11 +34,13 @@ class EventCard extends StatelessWidget {
               // Image
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                child: Image.network(
-                  imageUrl,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
                   width: double.infinity,
                   height: 150,
                   fit: BoxFit.cover,
+                  placeholder: (final context, final url) => const CircularProgressIndicator(),
+                  errorWidget: (final context, final url, final error) => const Icon(Icons.error),
                 ),
               ),
               // Show name overlay

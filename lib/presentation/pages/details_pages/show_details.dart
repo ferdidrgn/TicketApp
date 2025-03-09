@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/custom_views/custom_description_card.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
@@ -130,16 +131,11 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             ),
           ],
         ),
-        child: Image.network(
-          showData?.imageUrl ?? '',
+        child: CachedNetworkImage(
+          imageUrl: showData?.imageUrl ?? '',
           fit: BoxFit.cover,
-          loadingBuilder: (final context, final child, final progress) {
-            if (progress == null) return child;
-            return const Center(child: CircularProgressIndicator());
-          },
-          errorBuilder: (final context, final error, final stackTrace) {
-            return const Center(child: Icon(Icons.error, color: Colors.red));
-          },
+          placeholder: (final context, final url) => const CircularProgressIndicator(),
+          errorWidget: (final context, final url, final error) => const Icon(Icons.error),
         ),
       ),
     );
@@ -183,7 +179,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
             const SizedBox(height: 16),
             Column(
-              children: List.generate(showData?.eventsId.length ?? 0, (final index) {
+              children:
+                  List.generate(showData?.eventsId.length ?? 0, (final index) {
                 return _buildEventCard(
                     "12.02.2000".toString(),
                     "Şubat".toString(),
@@ -206,8 +203,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     );
   }
 
-  Widget _buildEventCard(
-      final String date, final String month, final String eventId, final String city) {
+  Widget _buildEventCard(final String date, final String month,
+      final String eventId, final String city) {
     return GestureDetector(
       onTap: () {
         // Koltuk seçimi sayfasına yönlendirme
@@ -371,18 +368,13 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         elevation: 8,
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: Image.network(
-            photoUrl ?? '',
+          child: CachedNetworkImage(
+            imageUrl: photoUrl ?? '',
             height: 150,
             width: double.infinity,
             fit: BoxFit.cover,
-            loadingBuilder: (final context, final child, final progress) {
-              if (progress == null) return child;
-              return const Center(child: CircularProgressIndicator());
-            },
-            errorBuilder: (final context, final error, final stackTrace) {
-              return const Center(child: Icon(Icons.error, color: Colors.red));
-            },
+            placeholder: (final context, final url) => const CircularProgressIndicator(),
+            errorWidget: (final context, final url, final error) => const Icon(Icons.error),
           ),
         ),
       ),
@@ -407,17 +399,11 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             // Arkaplan rengini ayarlamak için
             body: Center(
               child: InteractiveViewer(
-                child: Image.network(
-                  photoUrl,
+                child: CachedNetworkImage(
+                  imageUrl: photoUrl,
                   fit: BoxFit.contain, // Görseli tam boyutta göster
-                  loadingBuilder: (final context, final child, final progress) {
-                    if (progress == null) return child;
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                  errorBuilder: (final context, final error, final stackTrace) {
-                    return const Center(
-                        child: Icon(Icons.error, color: Colors.red));
-                  },
+                  placeholder: (final context, final url) => const CircularProgressIndicator(),
+                  errorWidget: (final context, final url, final error) => const Icon(Icons.error),
                 ),
               ),
             ),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/login_service.dart';
 import 'package:ticketapp/presentation/pages/login/phone_page.dart';
@@ -62,9 +63,11 @@ class LoginScreen extends StatelessWidget {
   Widget _buildGoogleSignInButton(final BuildContext context) {
     return CustomElevatedButton(
       text: 'Google ile Giriş Yap',
-      iconAsset: Image.network(
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
+      iconAsset: CachedNetworkImage(
+        imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
         height: 24,
+        placeholder: (final context, final url) => const CircularProgressIndicator(),
+        errorWidget: (final context, final url, final error) => const Icon(Icons.error),
       ),
       onPressed: () async {
         final String? displayName =

@@ -281,15 +281,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Padding(
                   padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                  child: CachedNetworkImage(
-                    imageUrl: 'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
+                  child: Image.network(
+                    'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
                     height: 150,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    placeholder: (final context, final url) =>
-                        const CircularProgressIndicator(),
-                    errorWidget: (final context, final url, final error) =>
-                        const Icon(Icons.error),
+                    loadingBuilder:
+                        (final context, final child, final progress) {
+                      if (progress == null) return child;
+                      return const Center(child: CircularProgressIndicator());
+                    },
+                    errorBuilder:
+                        (final context, final error, final stackTrace) {
+                      return const Center(
+                          child: Icon(Icons.error, color: Colors.red));
+                    },
                   )),
               const SizedBox(height: 5),
               Padding(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'custom_gradient_background_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CustomVerticalShowCard extends StatelessWidget {
   final String imageUrl;
@@ -43,19 +44,11 @@ class CustomVerticalShowCard extends StatelessWidget {
             // Background image
             ClipRRect(
               borderRadius: borderRadius,
-              child: Image.network(
-                imageUrl,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
                 fit: BoxFit.cover,
-                loadingBuilder: (final context, final child, final progress) {
-                  if (progress == null) {
-                    return child;
-                  }
-                  return const Center(child: CircularProgressIndicator());
-                },
-                errorBuilder: (final context, final error, final stackTrace) {
-                  return const Center(
-                      child: Icon(Icons.error, color: Colors.red));
-                },
+                placeholder: (final context, final url) => const CircularProgressIndicator(),
+                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),
             ),
             const GradientStrip(
@@ -73,7 +66,7 @@ class CustomVerticalShowCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   borderRadius:
-                      const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  const BorderRadius.vertical(bottom: Radius.circular(16)),
                   color: Colors.black.withOpacity(0.5),
                 ),
                 child: Text(

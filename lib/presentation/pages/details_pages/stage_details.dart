@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
@@ -108,16 +109,11 @@ class _StageDetailPageState extends State<StageDetailPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Image.network(
-            _stage?.imageUrl ?? '',
+          child: CachedNetworkImage(
+            imageUrl: _stage?.imageUrl ?? '',
             fit: BoxFit.cover,
-            loadingBuilder: (final context, final child, final progress) {
-              if (progress == null) return child;
-              return const Center(child: CircularProgressIndicator());
-            },
-            errorBuilder: (final context, final error, final stackTrace) {
-              return const Center(child: Icon(Icons.error, color: Colors.red));
-            },
+            placeholder: (final context, final url) => const CircularProgressIndicator(),
+            errorWidget: (final context, final url, final error) => const Icon(Icons.error),
           ),
         ),
       ),

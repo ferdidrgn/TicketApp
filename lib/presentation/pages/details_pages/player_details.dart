@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/custom_views/custom_show_card.dart';
 import 'package:ticketapp/core/custom_views/custom_title.dart';
@@ -31,7 +32,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Future<void> _fetchPlayerData() async {
     try {
-      final fetchedPlayer = await PlayerService().getPlayerById(widget.playerId);
+      final fetchedPlayer =
+          await PlayerService().getPlayerById(widget.playerId);
       if (fetchedPlayer?.nowShowsId != null) {
         setState(() {
           player = fetchedPlayer;
@@ -50,7 +52,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     }
   }
 
-  Future<void> _fetchShows(final List<String> showsId, final List<Show?> showsList) async {
+  Future<void> _fetchShows(
+      final List<String> showsId, final List<Show?> showsList) async {
     for (final String showId in showsId) {
       try {
         final show = await ShowService().getShowById(showId);
@@ -178,7 +181,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       child: ClipRRect(
         borderRadius: const BorderRadius.all(Radius.circular(75)),
         child: player?.imageUrl != null
-            ? Image.network(player!.imageUrl!, fit: BoxFit.cover)
+            ? CachedNetworkImage(imageUrl: player!.imageUrl!, fit: BoxFit.cover)
             : const Icon(Icons.person, size: 50),
       ),
     );
