@@ -67,13 +67,17 @@ class LoginScreen extends StatelessWidget {
         height: 24,
       ),
       onPressed: () async {
-        final account = await _loginService.signInWithGoogle(context);
-        if (account != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(account.displayName ?? '')),
-          );
-          await Navigator.pushReplacementNamed(context, '/home');
-        }
+        final String? displayName =
+            await _loginService.signInWithGoogle(context);
+
+        // mounted kontrolü BuildContext nesnesinin asenkron bir işlemin içinde kullanılmasının potansiyel sorunlara yol açar
+        if (!context.mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(displayName ?? '')),
+        );
+
+        await Navigator.pushReplacementNamed(context, '/home');
       },
     );
   }

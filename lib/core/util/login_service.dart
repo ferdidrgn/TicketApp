@@ -19,25 +19,21 @@ class LoginService {
 
   User? get currentUser => _auth.currentUser;
 
-  bool isUserLoggedIn() {
-    return currentUser != null;
-  }
+  bool get isUserLoggedIn => currentUser != null;
 
-  Future<UserCredential> signInWithGoogle(final BuildContext context) async {
+  Future<String?> signInWithGoogle(final BuildContext context) async {
     _showLoadingDialog(context);
 
     try {
-      // Eğer kullanıcı zaten giriş yapmışsa, mevcut kullanıcıyı UserCredential'i ver
+      // Eğer kullanıcı zaten giriş yapmışsa, user bilgisini döndür
       if (currentUser != null) {
-        return UserCredential(
-          user: currentUser!,
-          credential: null, // çünkü mevcut bir kullanıcıyı döndürüyoruz
-        );
+        return currentUser!.displayName;
       }
 
       // Kimlik doğrulama akışını başlat
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+      final GoogleSignInAuthentication? googleAuth =
+          await googleUser?.authentication;
 
       // Yeni bir kimlik bilgisi oluştur
       final credential = GoogleAuthProvider.credential(
@@ -45,11 +41,12 @@ class LoginService {
         idToken: googleAuth?.idToken,
       );
 
-      // Firebase ile oturum aç ve UserCredential döndür
-      return await _auth.signInWithCredential(credential);
+      // Firebase ile oturum aç
+      await _auth.signInWithCredential(credential);
+      return googleUser?.displayName;
     } catch (e) {
       _showErrorSnackBar(context, 'Google Girişi Başarısız Oldu: $e');
-      rethrow; // Hata durumunu fırlat
+      return null; // Hata durumunu fırlat
     } finally {
       _hideLoadingDialog(context);
     }
@@ -104,7 +101,7 @@ class LoginService {
   Future<void> signOut() async {
     try {
       if (currentUser != null) {
-        for (final UserInfo userInfo in currentUser.providerData) {
+        for (final UserInfo userInfo in currentUser!.providerData) {
           if (userInfo.providerId == 'google.com') {
             // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
             await GoogleSignIn().signOut();
@@ -135,7 +132,7 @@ class LoginService {
   }
 
   void fillUserInfo(final GoogleSignInAccount account) {
-    if (isUserLoggedIn()) {
+    if (isUserLoggedIn) {
       final String displayName = account.displayName?.trim() ?? '';
       final List<String> nameParts = displayName.split(' ');
       final nowTime = DateFormatter.nowFormatDateTime();
