@@ -4,7 +4,7 @@ import 'package:ticketapp/data/datasources/player/player_remote_data_source_prov
 import 'package:ticketapp/data/repository/player/player_repository_impl.dart';
 import 'package:ticketapp/domain/repository/player_repository.dart';
 
-final playerProvider = Provider<PlayerRepository>((final ref) {
+final playerRepositoryProvider = Provider<PlayerRepository>((final ref) {
   final remoteDataSource = ref.watch(playerRemoteDataSourceProvider);
   final internetService = ref.watch(internetServiceProvider);
 

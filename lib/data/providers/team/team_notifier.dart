@@ -1,0 +1,53 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../domain/entities/team.dart';
+import '../../../domain/useCase/team/get_team_by_id_use_case_impl.dart';
+import '../../../domain/useCase/team/get_teams_use_case_impl.dart';
+import 'team_state.dart';
+
+class TeamNotifier extends StateNotifier<TeamState> {
+  final GetTeamsUseCase getTeamsUseCase;
+  final GetTeamByIdUseCase getTeamByIdUseCase;
+
+  TeamNotifier(this.getTeamsUseCase, this.getTeamByIdUseCase)
+      : super(TeamState());
+
+  Future<void> loadTeams(final isLimit) async {
+    _setLoadingState(true);
+    final result = await getTeamsUseCase.call(isLimit);
+
+    result.fold(
+      (final failure) => _setErrorState(failure.message),
+      (final teams) {
+        final convertedTeams =
+            teams.map((final team) => team?.toEntity()).toList();
+        _setTeamsState(convertedTeams);
+      },
+    );
+  }
+
+  Future<void> loadTeamById(final String teamId) async {
+    _setLoadingState(true);
+    final result = await getTeamByIdUseCase.call(teamId);
+
+    result.fold(
+      (final failure) => _setErrorState(failure.message),
+      (final team) => _setTeamState(team?.toEntity()),
+    );
+  }
+
+  void _setLoadingState(final bool isLoading) {
+    state = state.copyWith(isLoading: isLoading);
+  }
+
+  void _setErrorState(final String errorMessage) {
+    state = state.copyWith(errorMessage: errorMessage, isLoading: false);
+  }
+
+  void _setTeamsState(final List<Team?> teams) {
+    state = state.copyWith(teams: teams, isLoading: false);
+  }
+
+  void _setTeamState(final Team? team) {
+    state = state.copyWith(team: team, isLoading: false);
+  }
+}

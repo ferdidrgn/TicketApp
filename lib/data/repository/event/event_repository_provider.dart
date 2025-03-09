@@ -4,7 +4,7 @@ import '../../../core/network/internet_service_provider.dart';
 import '../../datasources/event/event_remote_data_source_provider.dart';
 import 'event_repository_impl.dart';
 
-final eventProvider = Provider<EventRepository>((final ref) {
+final eventRepositoryProvider = Provider<EventRepository>((final ref) {
   final remoteDataSource = ref.watch(eventRemoteDataSourceProvider);
   final internetService = ref.watch(internetServiceProvider);
 
