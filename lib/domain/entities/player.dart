@@ -36,11 +36,11 @@ class Player extends Equatable {
         oldShowsId,
       ];
 
-  factory Player.fromMap(final Map<String, dynamic> data, String docId) {
+  factory Player.fromMap(final Map<String, dynamic> data) {
     return Player(
       createdAt: data['_createdAt'] ?? '',
       updatedAt: data['_updatedAt'] ?? '',
-      id: docId,
+      id: data['_id'] ?? '',
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
       bio: data['bio'] ?? '',
@@ -52,6 +52,7 @@ class Player extends Equatable {
 
   Map<String, dynamic> toMap() {
     return {
+      '_id': id,
       '_createdAt': createdAt,
       '_updatedAt': updatedAt,
       'firstName': firstName,

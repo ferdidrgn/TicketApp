@@ -57,11 +57,11 @@ class Show extends Equatable {
     photosShowId,
   ];
 
-  factory Show.fromMap(final Map<String, dynamic> data, String docId) {
+  factory Show.fromMap(final Map<String, dynamic> data) {
     return Show(
       createdAt: data['_createdAt'] ?? '',
       updatedAt: data['_updatedAt'] ?? '',
-      id: docId,
+      id: data['_id'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       name: data['name'] ?? '',
       description: data['description'] ?? '',
@@ -80,6 +80,7 @@ class Show extends Equatable {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       '_createdAt': createdAt,
       '_updatedAt': updatedAt,
       'imageUrl': imageUrl,

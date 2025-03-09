@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/util/date_formatter.dart';
-import '../../model/user.dart';
+import '../../model/user_model.dart';
 
 abstract class UserRemoteDataSource {
   Future<void> saveUser(final User user, final String downloadUrl,

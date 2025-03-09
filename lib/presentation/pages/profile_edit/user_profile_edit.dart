@@ -3,7 +3,7 @@ import '../../../core/widgets/custom_art_words_card.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/util/date_formatter.dart';
-import '../../../data/model/user.dart';
+import '../../../data/model/user_model.dart';
 import '../../../data/repository/user_service.dart';
 
 class UserProfileEditScreen extends StatefulWidget {

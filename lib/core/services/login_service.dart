@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../data/repository/user_service.dart';
 import '../widgets/custom_loading.dart';
-import '../../../data/model/user.dart' as _user;
+import '../../../data/model/user_model.dart' as _user;
 import '../util/date_formatter.dart';
 
 class LoginService {

@@ -18,9 +18,9 @@ class Event extends Equatable {
   @override
   List<Object?> get props => [id, stageId, date, price, seatStatus];
 
-  factory Event.fromMap(final Map<String, dynamic> data, String docId) {
+  factory Event.fromMap(final Map<String, dynamic> data) {
     return Event(
-      id: docId,
+      id: data['_id'],
       stageId: data['stageId'] ?? '',
       date: data['date'] ?? '',
       price: data['price'] ?? '',
@@ -30,6 +30,7 @@ class Event extends Equatable {
 
   Map<String, dynamic> toMap() {
     return {
+      '_id': id,
       'stageId': stageId,
       'date': date,
       'price': price,

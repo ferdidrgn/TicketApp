@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../../../data/model/ticket.dart';
+import '../../../data/model/ticket_model.dart';
 
 class TicketDetailPage extends StatelessWidget {
   final Ticket? ticket;

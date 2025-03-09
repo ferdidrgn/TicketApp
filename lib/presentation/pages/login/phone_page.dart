@@ -4,7 +4,7 @@ import 'package:pinput/pinput.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../../../core/util/date_formatter.dart';
 import '../../../core/services/login_service.dart';
-import '../../../data/model/user.dart';
+import '../../../data/model/user_model.dart';
 import '../../../data/repository/user_service.dart';
 
 class PhoneLogInPage extends StatefulWidget {

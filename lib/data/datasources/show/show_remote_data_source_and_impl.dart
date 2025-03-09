@@ -1,8 +1,6 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import '../../../core/util/date_formatter.dart';
 import '../../model/show_model.dart';
 
 abstract class ShowRemoteDataSource {
@@ -13,7 +11,8 @@ abstract class ShowRemoteDataSource {
 
   Future<ShowModel?> getShowById(final String showId);
 
-  Future<void> addShow(final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
+  Future<void> addShow(
+      final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
 
   Future<void> deleteShow(final String? showId);
 
@@ -48,7 +47,10 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
         }
 
         final QuerySnapshot result = await query.get();
-        return result.docs.map((final e) => _mapDocumentToShow(e)).toList();
+        return result.docs
+            .map((final e) =>
+                ShowModel.fromFirestore(e.data()! as Map<String, dynamic>))
+            .toList();
       }
     } catch (e) {
       throw Exception('Arama Hatası: $e');
@@ -66,14 +68,17 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
               .get()
           : await firestore.collection('Show').get();
 
-      return snapshot.docs.map((final doc) => _mapDocumentToShow(doc)).toList();
+      return snapshot.docs
+          .map((final doc) =>
+              ShowModel.fromFirestore(doc.data()! as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       throw Exception('Oyunları Getirme Hatası: $e');
     }
   }
 
   @override
-  Future<Show?> getShowById(final String showId) async {
+  Future<ShowModel?> getShowById(final String showId) async {
     try {
       final QuerySnapshot result = await firestore
           .collection('Show')
@@ -83,7 +88,8 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
 
       if (result.docs.isEmpty) return null;
 
-      return _mapDocumentToShow(result.docs.first);
+      return ShowModel.fromFirestore(
+          result.docs.first.data()! as Map<String, dynamic>);
     } catch (error) {
       throw Exception('Gösterileri Getirme Hatası: $error');
     }
@@ -91,16 +97,13 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
 
   @override
   Future<void> addShow(
-      final Show show, final Uri? showIdAddOrUpdateImgUrl) async {
+      final ShowModel show, final Uri? showIdAddOrUpdateImgUrl) async {
     final String downloadUrl =
         await putStorageImage(show.id, showIdAddOrUpdateImgUrl, show.imageUrl);
-    final Map<String, dynamic> showMap = putHashMap(show, downloadUrl, false);
+    final Map<String, dynamic> showMap = show.toFirestore()
+      ..['_imageUrl'] = downloadUrl;
 
-    await firestore
-        .collection('Show')
-        .add(showMap)
-        .then((final value) {})
-        .catchError((final error) {
+    await firestore.collection('Show').add(showMap).catchError((final error) {
       throw Exception('Show Ekleme Hatası: $error');
     });
   }
@@ -151,8 +154,8 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
     return downloadUrl.isEmpty ? showIdImgUrl : downloadUrl;
   }
 
-  Future<void> deleteStorageImage(final String stageId) async {
-    final String imageName = "ShowImages/$stageId.jpg";
+  Future<void> deleteStorageImage(final String showId) async {
+    final String imageName = "ShowImages/$showId.jpg";
     final Reference imagesRef = storage.ref().child(imageName);
 
     try {
@@ -160,69 +163,5 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
     } catch (e) {
       throw Exception('Resim silinirken bir hata oluştu: $e');
     }
-  }
-
-  Map<String, dynamic> putHashMap(
-      final Show? show, final String downloadUrl, final isUpdate) {
-    final Map<String, dynamic> showMap = {};
-    final nowTime = DateFormatter.nowFormatDateTime();
-
-    if (!isUpdate) {
-      showMap['_createdAt'] = nowTime;
-    }
-
-    showMap['_updatedAt'] = nowTime;
-    showMap['_id'] = show?.id ?? '';
-    showMap['name'] = show?.name ?? '';
-    showMap['imageUrl'] = downloadUrl;
-    showMap['ageLimit'] = show?.ageLimit ?? '';
-    showMap['description'] = show?.description ?? '';
-    showMap['duration'] = show?.duration ?? '';
-    showMap['category'] = show?.category ?? '';
-    showMap['type'] = show?.type ?? '';
-    showMap['teamId'] = show?.teamId ?? '';
-    showMap['eventRule'] = show?.eventRule ?? '';
-
-    showMap['nowPlayersId'] =
-        show?.nowPlayersId.map((final e) => e.toString()).toList() ?? [];
-    showMap['oldPlayersId'] =
-        show?.oldPlayersId.map((final e) => e.toString()).toList() ?? [];
-    showMap['events'] =
-        show?.eventsId.map((final e) => e.toString()).toList() ?? [];
-    showMap['photosShowId'] =
-        show?.photosShowId.map((final e) => e.toString()).toList() ?? [];
-
-    return showMap;
-  }
-
-  Show _mapDocumentToShow(final DocumentSnapshot document) {
-    return Show(
-      createdAt: _getFieldAsString(document, '_createdAt'),
-      updatedAt: _getFieldAsString(document, '_updatedAt'),
-      id: _getFieldAsString(document, '_id'),
-      imageUrl: _getFieldAsString(document, 'imageUrl'),
-      name: _getFieldAsString(document, 'name'),
-      description: _getFieldAsString(document, 'description'),
-      duration: _getFieldAsString(document, 'duration'),
-      category: _getFieldAsString(document, 'category'),
-      type: _getFieldAsString(document, 'type'),
-      teamId: _getFieldAsString(document, 'teamId'),
-      ageLimit: _getFieldAsString(document, 'ageLimit'),
-      eventRule: _getFieldAsString(document, 'eventRule'),
-      nowPlayersId: _getListAsString(document, 'nowPlayersId'),
-      oldPlayersId: _getListAsString(document, 'oldPlayersId'),
-      eventsId: _getListAsString(document, 'eventsId'),
-      photosShowId: _getListAsString(document, 'photosShowId'),
-    );
-  }
-
-  String _getFieldAsString(
-      final DocumentSnapshot document, final String fieldName) {
-    return document[fieldName].toString();
-  }
-
-  List<String> _getListAsString(
-      final DocumentSnapshot document, final String fieldName) {
-    return List<String>.from(document[fieldName] ?? []);
   }
 }

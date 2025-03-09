@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/data/repository/event_service.dart';
 import '../../../core/util/date_formatter.dart';
-import '../../../data/model/ticket.dart';
+import '../../../data/model/ticket_model.dart';
 import '../../../data/repository/seat_service.dart';
 import '../../../data/repository/ticket_service.dart';
 

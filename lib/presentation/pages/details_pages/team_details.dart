@@ -5,7 +5,7 @@ import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
 import '../../../core/widgets/custom_description_card.dart';
 import '../../../core/widgets/custom_show_card.dart';
 import '../../../data/model/show_model.dart';
-import '../../../data/model/team.dart';
+import '../../../data/model/team_model.dart';
 import '../../../data/repository/show_service.dart';
 import '../../../data/repository/team_service.dart';
 

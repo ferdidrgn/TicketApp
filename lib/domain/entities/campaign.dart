@@ -35,7 +35,7 @@ class Campaign extends Equatable {
 
   factory Campaign.fromMap(final Map<String, dynamic> data) {
     return Campaign(
-      id: data['id'],
+      id: data['_id'],
       createdAt: data['_createdAt'] ?? '',
       updatedAt: data['_updatedAt'] ?? '',
       endDate: data['endDate'] ?? '',
@@ -48,7 +48,7 @@ class Campaign extends Equatable {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      '_id': id,
       '_createdAt': createdAt,
       '_updatedAt': updatedAt,
       'endDate': endDate,
