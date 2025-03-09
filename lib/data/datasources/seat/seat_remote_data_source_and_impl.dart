@@ -1,13 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SeatService {
-  final CollectionReference _firestore = FirebaseFirestore.instance.collection('Seats');
+abstract class SeatRemoteDataSource {
+  Future<Map<String, List<String>>> getSeatsByStage(final String stageId);
+}
 
-  // Sahne ID'sine göre koltukları çekmek için bir fonksiyon
-  Future<Map<String, List<String>>> getSeatsByStage(final String stageId) async {
+class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
+  final FirebaseFirestore firestore;
+
+  SeatRemoteDataSourceImpl({required this.firestore});
+
+  @override
+  Future<Map<String, List<String>>> getSeatsByStage(
+      final String stageId) async {
     try {
       final DocumentSnapshot doc =
-          await _firestore.doc(stageId).get();
+          await firestore.collection('Seats').doc(stageId).get();
       if (doc.exists) {
         final Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
         final Map<String, List<String>> seats = {};
@@ -22,5 +29,4 @@ class SeatService {
       throw Exception('Error fetching seats: $e');
     }
   }
-
 }

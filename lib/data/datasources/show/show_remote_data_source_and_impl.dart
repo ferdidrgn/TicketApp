@@ -1,18 +1,40 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import '../../core/util/date_formatter.dart';
-import '../model/show.dart';
+import '../../../core/util/date_formatter.dart';
+import '../../model/show_model.dart';
 
-class ShowService {
-  final CollectionReference _showCollection =
-      FirebaseFirestore.instance.collection('Show');
+abstract class ShowRemoteDataSource {
+  Future<List<ShowModel?>> getSearchShow(
+      final List<String?> categories, final String? type);
 
-// search show
-  Future<List<Show?>> getSearchShow(
+  Future<List<ShowModel?>> getShows(final isLimit);
+
+  Future<ShowModel?> getShowById(final String showId);
+
+  Future<void> addShow(final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
+
+  Future<void> deleteShow(final String? showId);
+
+  Future<void> updateShow(
+      final String showId, final Map<String, dynamic> updatedData);
+}
+
+class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
+  final FirebaseFirestore firestore;
+  final FirebaseStorage storage;
+
+  ShowRemoteDataSourceImpl({
+    required this.firestore,
+    required this.storage,
+  });
+
+  @override
+  Future<List<ShowModel?>> getSearchShow(
       final List<String?> categories, final String? type) async {
     try {
-      Query query = _showCollection;
+      Query query = firestore.collection('Show');
 
       if (categories.isEmpty && type == null) {
         return getShows(false);
@@ -33,15 +55,16 @@ class ShowService {
     }
   }
 
-  // Tüm Oyunları getiren fonksiyon
-  Future<List<Show?>> getShows(final isLimit) async {
+  @override
+  Future<List<ShowModel?>> getShows(final isLimit) async {
     try {
       final QuerySnapshot snapshot = isLimit
-          ? await _showCollection
+          ? await firestore
+              .collection('Show')
               .orderBy('_createdAt', descending: true)
               .limit(20)
               .get()
-          : await _showCollection.get();
+          : await firestore.collection('Show').get();
 
       return snapshot.docs.map((final doc) => _mapDocumentToShow(doc)).toList();
     } catch (e) {
@@ -49,11 +72,14 @@ class ShowService {
     }
   }
 
-  // Show ID ile gösterileri getiren fonksiyon
+  @override
   Future<Show?> getShowById(final String showId) async {
     try {
-      final QuerySnapshot result =
-          await _showCollection.where('_id', isEqualTo: showId).limit(1).get();
+      final QuerySnapshot result = await firestore
+          .collection('Show')
+          .where('_id', isEqualTo: showId)
+          .limit(1)
+          .get();
 
       if (result.docs.isEmpty) return null;
 
@@ -63,84 +89,74 @@ class ShowService {
     }
   }
 
-// Show kaydetme fonksiyonu
+  @override
   Future<void> addShow(
       final Show show, final Uri? showIdAddOrUpdateImgUrl) async {
-    final String downloadUrl = await putStorageImage(
-      show.id,
-      showIdAddOrUpdateImgUrl,
-      show.imageUrl,
-    );
-
+    final String downloadUrl =
+        await putStorageImage(show.id, showIdAddOrUpdateImgUrl, show.imageUrl);
     final Map<String, dynamic> showMap = putHashMap(show, downloadUrl, false);
 
-    await _showCollection.add(showMap).then((final value) {}).catchError((final error) {
+    await firestore
+        .collection('Show')
+        .add(showMap)
+        .then((final value) {})
+        .catchError((final error) {
       throw Exception('Show Ekleme Hatası: $error');
     });
   }
 
-  // Show silme fonksiyonu
+  @override
   Future<void> deleteShow(final String? showId) async {
     try {
-      final QuerySnapshot showQuery =
-          await _showCollection.where('_id', isEqualTo: showId).get();
+      final QuerySnapshot showQuery = await firestore
+          .collection('Show')
+          .where('_id', isEqualTo: showId)
+          .get();
 
       if (showQuery.docs.isNotEmpty) {
         for (final document in showQuery.docs) {
           try {
-            await _showCollection.doc(document.id).delete();
-
-            // Storage'daki resmi sil
+            await firestore.collection('Show').doc(document.id).delete();
             await deleteStorageImage(showId ?? '');
-            true;
           } catch (e) {
             throw Exception('Silme işleminde bir hata oluştu: $e');
           }
         }
-      } else {
-        false;
       }
     } catch (e) {
       throw Exception('Silme işleminde bir hata oluştu: $e');
     }
   }
 
-// Show güncelleme fonksiyonu
+  @override
   Future<void> updateShow(
       final String showId, final Map<String, dynamic> updatedData) async {
-    await _showCollection.doc(showId).update({
-      ...updatedData, // Güncellenen veriler
-      '_updatedAt': FieldValue.serverTimestamp(), // Güncelleme zamanı
+    await firestore.collection('Show').doc(showId).update({
+      ...updatedData,
+      '_updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<String> putStorageImage(
-    final String showId,
-    final Uri? showIdAddOrUpdateImgUrl,
-    final String showIdImgUrl,
-  ) async {
+  Future<String> putStorageImage(final String showId,
+      final Uri? showIdAddOrUpdateImgUrl, final String showIdImgUrl) async {
     final String imageName = "ShowImages/$showId.jpg";
-    final Reference imagesRef = FirebaseStorage.instance.ref().child(imageName);
+    final Reference imagesRef = storage.ref().child(imageName);
     String downloadUrl = '';
 
     if (showIdAddOrUpdateImgUrl != null) {
-      // Dosyayı Firebase Storage'a yükleme
       await imagesRef.putFile(File.fromUri(showIdAddOrUpdateImgUrl));
-
-      // Yüklenen dosyanın indirme URL'sini alma
       downloadUrl = await imagesRef.getDownloadURL();
     }
 
-    // Eğer yeni URL alınmadıysa eski URL'yi kullan
     return downloadUrl.isEmpty ? showIdImgUrl : downloadUrl;
   }
 
   Future<void> deleteStorageImage(final String stageId) async {
     final String imageName = "ShowImages/$stageId.jpg";
-    final Reference imagesRef = FirebaseStorage.instance.ref().child(imageName);
+    final Reference imagesRef = storage.ref().child(imageName);
 
     try {
-      await imagesRef.delete(); // Resmi silme
+      await imagesRef.delete();
     } catch (e) {
       throw Exception('Resim silinirken bir hata oluştu: $e');
     }
@@ -167,36 +183,14 @@ class ShowService {
     showMap['teamId'] = show?.teamId ?? '';
     showMap['eventRule'] = show?.eventRule ?? '';
 
-    // nowPlayersId listesi
-    List<String> nowPlayersIdList = [];
-    if (show?.nowPlayersId != null) {
-      nowPlayersIdList =
-          show!.nowPlayersId.map((final e) => e.toString()).toList();
-    }
-    showMap['nowPlayersId'] = nowPlayersIdList;
-
-    // oldPlayersId listesi
-    List<String> oldPlayersIdList = [];
-    if (show?.oldPlayersId != null) {
-      oldPlayersIdList =
-          show!.oldPlayersId.map((final e) => e.toString()).toList();
-    }
-    showMap['oldPlayersId'] = oldPlayersIdList;
-
-    // eventsId listesi
-    List<String> eventsIdList = [];
-    if (show?.eventsId != null) {
-      eventsIdList = show!.eventsId.map((final e) => e.toString()).toList();
-    }
-    showMap['events'] = eventsIdList;
-
-    // photosShowId listesi
-    List<String> photosShowsIdList = [];
-    if (show?.photosShowId != null) {
-      photosShowsIdList =
-          show!.photosShowId.map((final e) => e.toString()).toList();
-    }
-    showMap['photosShowId'] = photosShowsIdList;
+    showMap['nowPlayersId'] =
+        show?.nowPlayersId.map((final e) => e.toString()).toList() ?? [];
+    showMap['oldPlayersId'] =
+        show?.oldPlayersId.map((final e) => e.toString()).toList() ?? [];
+    showMap['events'] =
+        show?.eventsId.map((final e) => e.toString()).toList() ?? [];
+    showMap['photosShowId'] =
+        show?.photosShowId.map((final e) => e.toString()).toList() ?? [];
 
     return showMap;
   }
@@ -222,13 +216,11 @@ class ShowService {
     );
   }
 
-// Helper to get field as a string
   String _getFieldAsString(
       final DocumentSnapshot document, final String fieldName) {
     return document[fieldName].toString();
   }
 
-// Helper to get a list of strings
   List<String> _getListAsString(
       final DocumentSnapshot document, final String fieldName) {
     return List<String>.from(document[fieldName] ?? []);

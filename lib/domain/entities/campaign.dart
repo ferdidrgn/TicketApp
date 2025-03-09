@@ -1,6 +1,6 @@
-import '../../core/util/date_formatter.dart';
+import 'package:equatable/equatable.dart';
 
-class Campaign {
+class Campaign extends Equatable {
   final String id;
   final String createdAt;
   final String updatedAt;
@@ -10,7 +10,7 @@ class Campaign {
   final String title;
   final String url;
 
-  Campaign({
+  const Campaign({
     required this.id,
     required this.createdAt,
     required this.updatedAt,
@@ -21,13 +21,23 @@ class Campaign {
     required this.url,
   });
 
-  // Function to map Firestore document to Campaign object
-  factory Campaign.fromDocumentSnapshot(final Map<String, dynamic> data, final String docId) {
-    final nowTime = DateFormatter.nowFormatDateTime();
+  @override
+  List<Object?> get props => [
+        id,
+        createdAt,
+        updatedAt,
+        endDate,
+        imageUrl,
+        startDate,
+        title,
+        url,
+      ];
+
+  factory Campaign.fromMap(final Map<String, dynamic> data) {
     return Campaign(
-      id: docId,
-      createdAt: data['_createdAt'] ?? nowTime,
-      updatedAt: data['_updatedAt'] ?? nowTime,
+      id: data['id'],
+      createdAt: data['_createdAt'] ?? '',
+      updatedAt: data['_updatedAt'] ?? '',
       endDate: data['endDate'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       startDate: data['startDate'] ?? '',
@@ -36,9 +46,9 @@ class Campaign {
     );
   }
 
-  // Function to convert Campaign object to a map for Firestore
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       '_createdAt': createdAt,
       '_updatedAt': updatedAt,
       'endDate': endDate,

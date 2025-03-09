@@ -5,8 +5,8 @@ import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/player_details.dart';
 import 'package:ticketapp/presentation/pages/details_pages/seat_details.dart';
 import '../../../core/widgets/custom_stage_card.dart';
-import '../../../data/model/player.dart';
-import '../../../data/model/show.dart';
+import '../../../data/model/player_model.dart';
+import '../../../data/model/show_model.dart';
 import '../../../data/repository/player_service.dart';
 import '../../../data/repository/show_service.dart';
 

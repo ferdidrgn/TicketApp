@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import '../../../core/widgets/custom_event_card.dart';
-import '../../../data/model/show.dart';
+import '../../../data/model/show_model.dart';
 import '../../../data/repository/show_service.dart';
 
 class DiscoveryPage extends StatefulWidget {

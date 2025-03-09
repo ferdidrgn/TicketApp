@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/data/model/campaing.dart';
+import 'package:ticketapp/data/model/campaing_model.dart';
 import 'package:ticketapp/data/repository/campaign_service.dart';
 import '../../../core/widgets/custom_category_card.dart';
 import '../../../core/widgets/custom_dots_indicator.dart';
@@ -9,7 +9,7 @@ import '../../../core/widgets/custom_search.dart';
 import '../../../core/widgets/custom_show_card.dart';
 import '../../../core/widgets/custom_stage_card.dart';
 import '../../../core/widgets/custom_title.dart';
-import '../../../data/model/show.dart';
+import '../../../data/model/show_model.dart';
 import '../../../data/model/stage.dart';
 import '../../../data/repository/show_service.dart';
 import '../../../data/repository/stage_service.dart';

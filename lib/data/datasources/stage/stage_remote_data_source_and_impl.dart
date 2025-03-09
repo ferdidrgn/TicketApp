@@ -1,40 +1,52 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../model/stage.dart';
+import '../../model/stage.dart';
 
-class StageService {
-  final CollectionReference _stageCollection =
-      FirebaseFirestore.instance.collection('Stage');
+abstract class StageRemoteDataSource {
+  Future<List<Stage?>> getSearchStage(final String query);
 
-  // search stage
+  Future<List<Stage?>> getStages(final isLimit);
+
+  Future<Stage?> getStageById(final String stageId);
+}
+
+class StageRemoteDataSourceImpl implements StageRemoteDataSource {
+  final FirebaseFirestore firestore;
+
+  StageRemoteDataSourceImpl({required this.firestore});
+
+  @override
   Future<List<Stage?>> getSearchStage(final String query) async {
     try {
-      final QuerySnapshot snapshot = await _stageCollection
+      final QuerySnapshot snapshot = await firestore.collection('Stage')
           .where('name', isGreaterThanOrEqualTo: query)
           .where('name', isLessThanOrEqualTo: '$query\uf8ff')
           .get();
 
-      return snapshot.docs.map((final doc) => _mapDocumentToStage(doc)).toList();
+      return snapshot.docs.map((final doc) => _mapDocumentToStage(doc))
+          .toList();
     } catch (e) {
       throw Exception('Error fetching stages: $e');
     }
   }
 
-  // all stages
+  @override
   Future<List<Stage?>> getStages(final isLimit) async {
     try {
       final QuerySnapshot snapshot = isLimit
-          ? await _stageCollection.orderBy('_createdAt', descending: true).limit(20).get()
-          : await _stageCollection.get();
-      return snapshot.docs.map((final doc) => _mapDocumentToStage(doc)).toList();
+          ? await firestore.collection('Stage').orderBy(
+          '_createdAt', descending: true).limit(20).get()
+          : await firestore.collection('Stage').get();
+      return snapshot.docs.map((final doc) => _mapDocumentToStage(doc))
+          .toList();
     } catch (e) {
       throw Exception('Error fetching stages: $e');
     }
   }
 
-  // Fetch a stage by ID
+  @override
   Future<Stage?> getStageById(final String stageId) async {
     try {
-      final QuerySnapshot result = await _stageCollection
+      final QuerySnapshot result = await firestore.collection('Stage')
           .where('_id', isEqualTo: stageId).limit(1).get();
 
       if (result.docs.isEmpty) return null;
@@ -45,7 +57,6 @@ class StageService {
     }
   }
 
-  // Convert Firestore document to Stage model
   Stage _mapDocumentToStage(final DocumentSnapshot document) {
     return Stage(
       id: _getStringField(document, '_id'),
@@ -63,12 +74,13 @@ class StageService {
     );
   }
 
-  // Utility method for fetching string fields
-  String _getStringField(final DocumentSnapshot document, final String fieldName) {
+  String _getStringField(final DocumentSnapshot document,
+      final String fieldName) {
     return document[fieldName]?.toString() ?? '';
   }
 
-  List<String> _getListField(final DocumentSnapshot document, final String fieldName) {
+  List<String> _getListField(final DocumentSnapshot document,
+      final String fieldName) {
     return List<String>.from(document[fieldName] ?? []);
   }
 }

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_show_card.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
-import '../../../data/model/player.dart';
-import '../../../data/model/show.dart';
+import '../../../data/model/player_model.dart';
+import '../../../data/model/show_model.dart';
 import '../../../data/repository/player_service.dart';
 import '../../../data/repository/show_service.dart';
 
