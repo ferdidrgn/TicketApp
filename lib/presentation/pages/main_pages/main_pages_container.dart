@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/bottom_nav_bar.dart';
 
-class HomePageContainer extends StatefulWidget {
-  final Function(ThemeMode) onThemeChanged;
+class HomePageContainer extends StatelessWidget {
+  const HomePageContainer({super.key});
 
-  const HomePageContainer({super.key, required this.onThemeChanged});
-
-  @override
-  _HomePageContainerState createState() => _HomePageContainerState();
-}
-
-class _HomePageContainerState extends State<HomePageContainer> {
   @override
   Widget build(final BuildContext context) {
-    return Scaffold(body: BottomNavBar(onThemeChanged: widget.onThemeChanged));
+    return const Scaffold(body: BottomNavBar());
   }
 }

@@ -6,9 +6,7 @@ import '../../presentation/pages/main_pages/nearby_events.dart';
 import '../../presentation/pages/main_pages/profile_page.dart';
 
 class BottomNavBar extends StatefulWidget {
-  final Function(ThemeMode) onThemeChanged;
-
-  const BottomNavBar({super.key, required this.onThemeChanged});
+  const BottomNavBar({super.key});
 
   // Bu fonksiyon, dışarıdan BottomNavBar'daki sekmeyi değiştirmek için kullanılacak
   static _BottomNavBarState? of(BuildContext context) =>
@@ -31,7 +29,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
       const HomeScreen(),
       DiscoveryPage(selectedCategory: selectedCategoryTitle),
       const NearbyEventsPage(),
-      ProfilePage(onThemeChanged: widget.onThemeChanged),
+      const ProfilePage(),
     ];
   }
 
