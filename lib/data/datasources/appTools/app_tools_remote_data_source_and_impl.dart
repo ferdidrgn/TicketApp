@@ -15,15 +15,15 @@ class AppToolsRemoteDataSourceImpl implements AppToolsRemoteDataSource {
 
   @override
   Future<String?> getPrivacyPolicy() async {
-    return _getPrivacyAndTerms('privacyPolicy');
+    return getPrivacyAndTerms('privacyPolicy');
   }
 
   @override
   Future<String?> getTermsCondition() async {
-    return _getPrivacyAndTerms('termsAndCondition');
+    return getPrivacyAndTerms('termsAndCondition');
   }
 
-  Future<String?> _getPrivacyAndTerms(final String fieldName) async {
+  Future<String?> getPrivacyAndTerms(final String fieldName) async {
     try {
       final QuerySnapshot result = await firestore
           .collection("AppTools")

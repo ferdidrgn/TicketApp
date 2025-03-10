@@ -1,0 +1,22 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/network/internet_service_provider.dart';
+import '../../../domain/repository/app_tools_repository.dart';
+import '../../datasources/appTools/app_tools_remote_data_source_and_impl.dart';
+import 'app_tools_repository_impl.dart';
+
+final appToolsRepositoryProvider =
+    Provider<AppToolsRemoteDataSource>((final ref) {
+  final remoteDataSource = ref.watch(appToolsRemoteDataSourceProvider);
+  final internetService = ref.watch(internetServiceProvider);
+
+  return AppToolsRemoteDataSourceImpl(
+    remoteDataSource: remoteDataSource,
+    internetService: internetService,
+  );
+});
+
+final appToolsRepositoryProvider = Provider<AppToolsRepository>((final ref) {
+  final remoteDataSource = ref.watch(appToolsRemoteDataSourceProvider);
+  return AppToolsRepositoryImpl(remoteDataSource);
+});
