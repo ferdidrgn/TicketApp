@@ -19,8 +19,16 @@ class LoginNotifier extends StateNotifier<LoginState> {
     this.getCurrentUserUseCase,
     this.verifyPhoneUseCase,
     this.verifyOtpUseCase,
-  ) : super(LoginState()) {
-    signInWithGoogle();
+  ) : super(LoginState());
+
+  Future<void> getCurrentUser() async {
+    state = state.copyWith(isLoading: true);
+    final result = await getCurrentUserUseCase.call();
+    result.fold(
+      (final failure) => state =
+          state.copyWith(isLoading: false, errorMessage: failure.message),
+      (final user) => state = state.copyWith(isLoading: false, user: user),
+    );
   }
 
   Future<void> signInWithGoogle() async {
@@ -29,9 +37,13 @@ class LoginNotifier extends StateNotifier<LoginState> {
     result.fold(
       (final failure) => state =
           state.copyWith(isLoading: false, errorMessage: failure.message),
-      (final userDisplayName) {
-        state = state.copyWith(
-            isLoading: false, user: getCurrentUserUseCase.call());
+      (final user) async {
+        final userResult = await getCurrentUserUseCase.call();
+        userResult.fold(
+          (final failure) => state =
+              state.copyWith(isLoading: false, errorMessage: failure.message),
+          (final user) => state = state.copyWith(isLoading: false, user: user),
+        );
       },
     );
   }
@@ -65,7 +77,14 @@ class LoginNotifier extends StateNotifier<LoginState> {
     final result = await verifyOtpUseCase.call(verificationId, otp);
     result.fold(
       (final failure) => state = state.copyWith(errorMessage: failure.message),
-      (final _) => state = state.copyWith(user: getCurrentUserUseCase.call()),
+      (final _) async {
+        final userResult = await getCurrentUserUseCase.call();
+        userResult.fold(
+          (final failure) =>
+              state = state.copyWith(errorMessage: failure.message),
+          (final user) => state = state.copyWith(user: user),
+        );
+      },
     );
   }
 }

@@ -6,7 +6,7 @@ abstract class LoginRemoteDataSource {
 
   Future<void> signOut();
 
-  User? getCurrentUser();
+  Future<User?> getCurrentUser();
 
   Future<void> verifyPhone(
     final String phoneNumber,
@@ -24,11 +24,11 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   LoginRemoteDataSourceImpl({required this.firebaseAuth});
 
   @override
-  User? getCurrentUser() => firebaseAuth.currentUser;
+  Future<User?> getCurrentUser() async => firebaseAuth.currentUser;
 
   @override
   Future<String?> signInWithGoogle() async {
-    final user = getCurrentUser();
+    final user = await getCurrentUser();
     if (user != null) return user.displayName;
 
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
@@ -46,7 +46,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
 
   @override
   Future<void> signOut() async {
-    final user = getCurrentUser();
+    final user = await getCurrentUser();
     if (user != null) {
       for (final UserInfo userInfo in user.providerData) {
         if (userInfo.providerId == 'google.com') {

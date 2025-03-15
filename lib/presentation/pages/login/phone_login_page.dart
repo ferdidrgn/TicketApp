@@ -1,22 +1,20 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:pinput/pinput.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pinput/pinput.dart';
 import '../../../core/util/date_formatter.dart';
-import '../../../core/services/login_service.dart';
-import '../../../data/model/user_model.dart';
-import '../../../data/repository/user_service.dart';
+import '../../../data/providers/login/login_provider.dart';
 
-class PhoneLogInPage extends StatefulWidget {
+class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
 
   @override
-  State<PhoneLogInPage> createState() => _PhoneLogInPageState();
+  _PhoneLogInPageState createState() => _PhoneLogInPageState();
 }
 
-class _PhoneLogInPageState extends State<PhoneLogInPage> {
+class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   final TextEditingController _phoneController = TextEditingController();
-  final LoginService _loginService = LoginService();
   String _verificationId = '';
   bool _codeSent = false;
   int _timeUntilNextResend = 60;
@@ -31,6 +29,7 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
 
   void _startResendTimer() {
     _timer?.cancel();
+    _timeUntilNextResend = 60;
     _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
       if (_timeUntilNextResend > 0) {
         setState(() => _timeUntilNextResend--);
@@ -42,48 +41,44 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
 
   Future<void> _verifyPhone() async {
     if (_phoneController.text.isEmpty) {
-      _showErrorSnackBar('Lütfen bir telefon numarası girin.');
+      _showSnackBar('Lütfen bir telefon numarası girin.');
       return;
     }
 
-    await _loginService.verifyPhone(
-      context,
+    final loginNotifier = ref.read(loginProvider.notifier);
+    await loginNotifier.verifyPhone(
       _phoneController.text,
-          (final smsCode) {
-        _navigateToHome();
-      },
-          (final verificationId) {
+      (final smsCode) => _verifyOtp(smsCode),
+      // OTP doğrulama için çağırıyoruz
+      (final verificationId) {
         setState(() {
           _verificationId = verificationId;
           _codeSent = true;
         });
         _startResendTimer();
       },
-          (final verificationId) {
-        setState(() => _verificationId = verificationId);
-      },
+      (final verificationId) =>
+          setState(() => _verificationId = verificationId),
     );
   }
 
   Future<void> _verifyOtp(final String otp) async {
     if (otp.isEmpty) {
-      _showErrorSnackBar('Lütfen OTP kodunu girin.');
+      _showSnackBar('Lütfen OTP kodunu girin.');
       return;
     }
     try {
-      final bool isVerified =
-      await _loginService.verifyOtp(context, _verificationId, otp);
-      if (isVerified) {
-        saveUser();
+      final loginNotifier = ref.read(loginProvider.notifier);
+      await loginNotifier.verifyOtp(_verificationId, otp);
+      final loginState = ref.read(loginProvider);
+
+      if (loginState.user != null) {
         _navigateToHome();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('OTP kodu hatalı. Lütfen tekrar deneyin.')),
-        );
+        _showSnackBar('OTP kodu hatalı. Lütfen tekrar deneyin.');
       }
     } catch (e) {
-      _showErrorSnackBar('Hatalı kod. Lütfen tekrar deneyin.');
+      _showSnackBar('Hatalı kod. Lütfen tekrar deneyin.');
     }
   }
 
@@ -91,19 +86,15 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
     Navigator.of(context).pushReplacementNamed('/home');
   }
 
-  void _showErrorSnackBar(final String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  void _showSnackBar(final String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(final BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Telefon Doğrulama"),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text("Telefon Doğrulama"), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -125,10 +116,8 @@ class _PhoneLogInPageState extends State<PhoneLogInPage> {
             ),
             if (_codeSent) ...[
               const SizedBox(height: 24),
-              const Text(
-                "Lütfen size gönderilen kodu giriniz:",
-                textAlign: TextAlign.center,
-              ),
+              const Text("Lütfen size gönderilen kodu giriniz:",
+                  textAlign: TextAlign.center),
               const SizedBox(height: 16),
               Pinput(
                 length: 6,

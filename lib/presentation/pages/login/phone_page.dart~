@@ -1,0 +1,111 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pinput/pinput.dart';
+import '../../../data/providers/login/login_provider.dart';
+
+class PhoneLogInPage extends ConsumerWidget {
+  const PhoneLogInPage({super.key});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final loginState = ref.watch(loginProvider);
+    final loginNotifier = ref.read(loginProvider.notifier);
+    final TextEditingController phoneController = TextEditingController();
+    Timer? timer;
+
+    void startResendTimer() {
+      timer?.cancel();
+      timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
+        if (loginState.timeUntilNextResend > 0) {
+          loginNotifier.updateResendTime(loginState.timeUntilNextResend - 1);
+        } else {
+          timer.cancel();
+        }
+      });
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("Telefon Doğrulama"), centerTitle: true),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                hintText: "+90***********",
+                labelText: "Telefon Numarası",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: loginState.codeSent
+                  ? null
+                  : () async {
+                if (phoneController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Lütfen bir telefon numarası girin.")),
+                  );
+                  return;
+                }
+                await loginNotifier.verifyPhone(
+                  phoneController.text,
+                      (final smsCode) => Navigator.of(context).pushReplacementNamed('/home'),
+                      (final verificationId) {
+                    loginNotifier.setVerificationId(verificationId);
+                    startResendTimer();
+                  },
+                      (final verificationId) => loginNotifier.setVerificationId(verificationId),
+                );
+              },
+              child: Text(loginState.codeSent ? "Kod Gönderildi" : "Kod Gönder"),
+            ),
+            if (loginState.codeSent) ...[
+              const SizedBox(height: 24),
+              const Text("Lütfen size gönderilen kodu giriniz:", textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              Pinput(
+                length: 6,
+                onCompleted: (final otp) async {
+                  await loginNotifier.verifyOtp(loginState.verificationId, otp);
+                  if (loginState.user != null) {
+                    Navigator.of(context).pushReplacementNamed('/home');
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("OTP kodu hatalı. Lütfen tekrar deneyin.")),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: loginState.timeUntilNextResend == 0
+                    ? () async {
+                  await loginNotifier.verifyPhone(
+                    phoneController.text,
+                        (final smsCode) => Navigator.of(context).pushReplacementNamed('/home'),
+                        (final verificationId) {
+                      loginNotifier.setVerificationId(verificationId);
+                      startResendTimer();
+                    },
+                        (final verificationId) => loginNotifier.setVerificationId(verificationId),
+                  );
+                }
+                    : null,
+                child: Text(
+                  loginState.timeUntilNextResend > 0
+                      ? "Yeniden gönderme süresi: ${loginState.timeUntilNextResend}"
+                      : "Kodu yeniden gönder",
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

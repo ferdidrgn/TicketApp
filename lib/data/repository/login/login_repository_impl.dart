@@ -13,7 +13,14 @@ class LoginRepositoryImpl implements LoginRepository {
       {required this.remoteDataSource, required this.internetService});
 
   @override
-  User? getCurrentUser() => remoteDataSource.getCurrentUser();
+  Future<Either<Failure, User?>> getCurrentUser() async {
+    try {
+      final user = await remoteDataSource.getCurrentUser();
+      return Right(user); // Başarılı
+    } catch (e) {
+      return Left(ServerFailure('Google Girişi Başarısız: $e')); // Hata
+    }
+  }
 
   @override
   Future<Either<Failure, String?>> signInWithGoogle() async {

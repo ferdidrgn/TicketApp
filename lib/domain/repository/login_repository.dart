@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/errors/failures.dart';
 
 abstract class LoginRepository {
-  User? getCurrentUser();
+  Future<Either<Failure, User?>> getCurrentUser();
 
   Future<Either<Failure, String?>> signInWithGoogle();
 

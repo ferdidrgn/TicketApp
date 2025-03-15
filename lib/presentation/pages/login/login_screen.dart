@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/presentation/pages/login/phone_page.dart';
+import 'package:ticketapp/presentation/pages/login/phone_login_page.dart';
 import '../../../core/widgets/custom_elevated_button.dart';
 import '../../../data/providers/login/login_provider.dart';
 
