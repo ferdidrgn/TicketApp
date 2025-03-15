@@ -19,29 +19,20 @@ class PermissionSettingsScreen extends StatelessWidget {
                 word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
             const SizedBox(height: 30),
             _buildPermissionCard(
-              title: 'Konum İzni',
-              description: 'Uygulamanızın konum özelliklerini kullanabilmesi için konum izni vermeniz gerekmektedir.',
-              permission: Permission.location,
-              context: context,
-              onTap: () async {
-                if (await Permission.location.isDenied) {
-                  await Permission.location.request();
-                }
-                await openAppSettings();
-              },
-            ),
+                title: 'Konum İzni',
+                description:
+                    'Uygulamanızın konum özelliklerini kullanabilmesi için konum izni vermeniz gerekmektedir.',
+                permission: Permission.location,
+                onTap: () => _handlePermission(Permission.location),
+                context: context),
             const SizedBox(height: 20),
             _buildPermissionCard(
               title: 'Bildirim İzni',
-              description: 'Uygulamanız bildirimleri gösterebilmesi için bildirim izni vermeniz gerekmektedir.',
+              description:
+                  'Uygulamanız bildirimleri gösterebilmesi için bildirim izni vermeniz gerekmektedir.',
               permission: Permission.notification,
+              onTap: () => _handlePermission(Permission.notification),
               context: context,
-              onTap: () async {
-                if (await Permission.notification.isDenied) {
-                  await Permission.notification.request();
-                }
-                await openAppSettings();
-              },
             ),
           ],
         ),
@@ -50,10 +41,10 @@ class PermissionSettingsScreen extends StatelessWidget {
   }
 
   Widget _buildPermissionCard({
+    required final BuildContext context,
     required final String title,
     required final String description,
     required final Permission permission,
-    required final BuildContext context,
     required final VoidCallback onTap,
   }) {
     return Card(
@@ -61,11 +52,19 @@ class PermissionSettingsScreen extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16.0),
-        title: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         subtitle: Text(description),
-        trailing: Icon(Icons.settings, color: Theme.of(context).bottomNavigationBarTheme.selectedItemColor),
+        trailing: Icon(Icons.settings,
+            color:
+                Theme.of(context).bottomNavigationBarTheme.selectedItemColor),
         onTap: onTap,
       ),
     );
+  }
+
+  Future<void> _handlePermission(final Permission permission) async {
+    if (await permission.isDenied) await permission.request();
+    await openAppSettings();
   }
 }

@@ -1,21 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/util/url_launcher_service.dart';
 import '../../../core/widgets/custom_art_words_card.dart';
 
 class AppSettingsPage extends StatelessWidget {
   const AppSettingsPage({super.key});
 
-  String get reviewUrl =>  AppConstants.playStoreUrl;
-  String get featuresUrl => AppConstants.playStoreUrl;
+  String get reviewUrl => AppConstants.playStoreUrl;
 
-  Future<void> _launchUrl(final String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      throw 'URL açılamadı: $url';
-    }
-  }
+  String get featuresUrl => AppConstants.playStoreUrl;
 
   @override
   Widget build(final BuildContext context) {
@@ -24,8 +17,7 @@ class AppSettingsPage extends StatelessWidget {
         title: const Text('Uygulama Ayarları'),
       ),
       body: Center(
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
+        child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,24 +26,25 @@ class AppSettingsPage extends StatelessWidget {
                   word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
               const SizedBox(height: 30),
               _buildActionButton(
-                context,
-                'Uygulamayı Oyla',
-                Icons.star,
-                () => _launchUrl(reviewUrl),
+                context: context,
+                text: 'Uygulamayı Oyla',
+                icon: Icons.star,
+                onPressed: () => UrlLauncherService.launchUrl(reviewUrl),
               ),
               const SizedBox(height: 16),
               _buildActionButton(
-                context,
-                'Uygulamayı Paylaş',
-                Icons.share,
-                () => _launchUrl(AppConstants.shareUrl),
+                context: context,
+                text: 'Uygulamayı Paylaş',
+                icon: Icons.share,
+                onPressed: () =>
+                    UrlLauncherService.launchUrl(AppConstants.shareUrl),
               ),
               const SizedBox(height: 16),
               _buildActionButton(
-                context,
-                'Uygulama Özellikleri',
-                Icons.info,
-                () => _launchUrl(featuresUrl),
+                context: context,
+                text: 'Uygulama Özellikleri',
+                icon: Icons.info,
+                onPressed: () => UrlLauncherService.launchUrl(featuresUrl),
               ),
             ],
           ),
@@ -59,28 +52,27 @@ class AppSettingsPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildActionButton(
-    final BuildContext context,
-    final String text,
-    final IconData icon,
-    final VoidCallback onPressed,
-  ) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: Icon(icon, color: Colors.white),
-        label: Text(text, style: const TextStyle(color: Colors.white)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 5,
+Widget _buildActionButton(
+    {required final Future<void> Function() onPressed,
+    required final String text,
+    required final IconData icon,
+    required final BuildContext context}) {
+  return SizedBox(
+    width: double.infinity,
+    child: ElevatedButton.icon(
+      icon: Icon(icon, color: Colors.white),
+      label: Text(text, style: const TextStyle(color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        onPressed: onPressed,
+        elevation: 5,
       ),
-    );
-  }
+      onPressed: onPressed,
+    ),
+  );
 }
