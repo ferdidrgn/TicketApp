@@ -20,7 +20,7 @@ class ContractsPage extends ConsumerWidget {
   }
 
   Widget _buildErrorState(final String message) {
-    return Center(child: Text(message));
+    return Text('Error: $message');
   }
 
   // Content state with the actual HTML content
@@ -35,36 +35,56 @@ class ContractsPage extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildPrivacyPolicyAndTermsConditionCard(
-                context, privacyPolicy, true),
+            _buildPrivacyPolicyCard(context, privacyPolicy),
             const Divider(height: 2, thickness: 1),
-            _buildPrivacyPolicyAndTermsConditionCard(
-                context, termsCondition, false),
+            _buildTermsConditionCard(context, termsCondition),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPrivacyPolicyAndTermsConditionCard(final BuildContext context,
-      final String? privacyPolicyOrTermsCondition, final bool isPrivacyPolicy) {
+  // Card for Privacy Policy section
+  Widget _buildPrivacyPolicyCard(
+      final BuildContext context, final String? privacyPolicy) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle(
-            isPrivacyPolicy ? 'Privacy Policy' : 'Terms and Conditions'),
+        _buildSectionTitle('Privacy Policy'),
         const SizedBox(height: 10),
-        if (privacyPolicyOrTermsCondition != null)
+        if (privacyPolicy != null)
           RichText(
             text: HTML.toTextSpan(
               context,
-              privacyPolicyOrTermsCondition,
+              privacyPolicy,
               defaultTextStyle: const TextStyle(
                   fontSize: 18, decoration: TextDecoration.none),
             ),
           )
         else
           const Center(child: CircularProgressIndicator()),
+      ],
+    );
+  }
+
+  // Card for Terms and Conditions section
+  Widget _buildTermsConditionCard(
+      final BuildContext context, final String? termsCondition) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Terms and Conditions'),
+        const SizedBox(height: 10),
+        termsCondition != null
+            ? RichText(
+                text: HTML.toTextSpan(
+                  context,
+                  termsCondition,
+                  defaultTextStyle: const TextStyle(
+                      fontSize: 18, decoration: TextDecoration.none),
+                ),
+              )
+            : const Center(child: CircularProgressIndicator()),
       ],
     );
   }

@@ -10,7 +10,10 @@ class AppToolsNotifier extends StateNotifier<AppToolsState> {
   AppToolsNotifier(
     this.getPrivacyPolicyUseCase,
     this.getTermsConditionUseCase,
-  ) : super(AppToolsState());
+  ) : super(AppToolsState()) {
+    fetchPrivacyPolicy();
+    fetchTermsCondition();
+  }
 
   Future<void> fetchPrivacyPolicy() async {
     state = state.copyWith(isLoading: true);
