@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/util/date_formatter.dart';
 
 abstract class EventRemoteDataSource {
-  Future<void> initializeAndGetEventSeats(final String? eventId);
-  Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(final String? eventId);
+  Future<void> initializeAndGetEventSeats(final String eventId);
+  Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(final String eventId);
   Future<List<String>> getPurchasedSeatsByCustomerId(final String eventId, final String customerId);
   Future<void> updateSeatStatus(final String eventId, final String seatId, final String status, {final String? customerId});
   Future<String> getStageId(final String eventId);
@@ -16,39 +16,27 @@ abstract class EventRemoteDataSource {
 class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   final FirebaseFirestore firestore;
 
-  EventRemoteDataSourceImpl({
-    required this.firestore
-  });
+  EventRemoteDataSourceImpl({required this.firestore});
 
   @override
   Future<void> initializeAndGetEventSeats(final String eventId) async {
     try {
-      final DocumentSnapshot eventDoc = await firestore.doc(eventId).get();
+      final eventDoc = await firestore.doc(eventId).get();
 
-      if (eventDoc.exists) {
-        final Map<String, dynamic> eventData =
-        eventDoc.data()! as Map<String, dynamic>;
+      if (!eventDoc.exists) throw Exception('Etkinlik bulunamadı.');
 
-        if (eventData['seats'] == null || (eventData['seats'] as Map).isEmpty) {
-          final Map<String, List<String>> stageSeats =
-          await SeatService().getSeatsByStage(eventData['stageId']);
-          final Map<String, Map<String, dynamic>> seatStatus = {};
+      final eventData = eventDoc.data()!;
+      if (eventData['seats'] == null || (eventData['seats'] as Map).isEmpty) {
+        final stageSeats = await SeatService().getSeatsByStage(eventData['stageId']);
+        final seatStatus = <String, Map<String, dynamic>>{};
 
-          stageSeats.forEach((final row, final seatList) {
-            for (final seat in seatList) {
-              seatStatus[seat] = {
-                'status': 'available',
-                'customerId': null
-              };
-            }
-          });
-
-          await firestore.doc(eventId).update({
-            'seats': seatStatus,
-          });
+        for (final entry in stageSeats.entries) {
+          for (final seat in entry.value) {
+            seatStatus[seat] = {'status': 'available', 'customerId': null};
+          }
         }
-      } else {
-        throw Exception('Etkinlik bulunamadı.');
+
+        await firestore.doc(eventId).update({'seats': seatStatus});
       }
     } catch (e) {
       throw Exception('Error initializing event seats: $e');
@@ -58,24 +46,22 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(final String eventId) async {
     try {
-      final DocumentSnapshot doc = await firestore.doc(eventId).get();
-      if (doc.exists) {
-        final Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
-        final Map<String, Map<String, dynamic>> seatStatus = {};
+      final doc = await firestore.doc(eventId).get();
+      if (!doc.exists) throw Exception('Etkinlik bulunamadı.');
 
-        if (data['seats'] is Map) {
-          data['seats'].forEach((final seatId, final seatInfo) {
-            if (seatInfo is Map<String, dynamic>) {
-              seatStatus[seatId] = seatInfo;
-            }
-          });
-        } else {
-          throw ('Koltuk durumu geçerli bir harita değil.');
-        }
-        return seatStatus;
+      final data = doc.data()!;
+      final seatStatus = <String, Map<String, dynamic>>{};
+
+      if (data['seats'] is Map) {
+        data['seats'].forEach((final seatId, final seatInfo) {
+          if (seatInfo is Map<String, dynamic>) {
+            seatStatus[seatId] = seatInfo;
+          }
+        });
       } else {
-        throw ('Belirtilen etkinlik bulunamadı.');
+        throw Exception('Koltuk durumu geçerli bir harita değil.');
       }
+      return seatStatus;
     } catch (e) {
       throw Exception('Error fetching seat status: $e');
     }

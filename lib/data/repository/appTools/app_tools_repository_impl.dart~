@@ -16,21 +16,11 @@ class AppToolsRepositoryImpl implements AppToolsRepository {
 
   @override
   Future<Either<Failure, String?>> getPrivacyPolicy() async {
-    try {
-      final privacyPolicy = await remoteDataSource.getPrivacyPolicy();
-      return Right(privacyPolicy); // Başarılı
-    } catch (e) {
-      return Left(ServerFailure('Verileri Getirme Başarısız: $e')); // Hata
-    }
+    return remoteDataSource.getPrivacyPolicy();
   }
 
   @override
   Future<Either<Failure, String?>> getTermsCondition() async {
-    try {
-      final termsCondition = await remoteDataSource.getTermsCondition();
-      return Right(termsCondition); // Başarılı
-    } catch (e) {
-      return Left(ServerFailure('Verileri Getirme Başarısız: $e')); // Hata
-    }
+    return remoteDataSource.getTermsCondition();
   }
 }

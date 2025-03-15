@@ -3,7 +3,7 @@ class EventState {
   final Map<String, String>? date;
   final String? stageId;
   final Map<String, Map<String, dynamic>>? seatStatus;
-  final List<String?> purchasedSeats;
+  final List<String> purchasedSeats;
   final bool isLoading;
   final String? errorMessage;
 
@@ -22,7 +22,7 @@ class EventState {
     final Map<String, String>? date,
     final String? stageId,
     final Map<String, Map<String, dynamic>>? seatStatus,
-    final List<String?>? purchasedSeats,
+    final List<String>? purchasedSeats,
     final bool? isLoading,
     final String? errorMessage,
   }) {
