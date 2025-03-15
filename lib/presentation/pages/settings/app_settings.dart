@@ -1,21 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/custom_art_words_card.dart';
 
 class AppSettingsPage extends StatelessWidget {
-  final String appStoreUrl =
-      'https://apps.apple.com/app/idYOUR_APP_ID'; // App Store URL
-  final String playStoreUrl =
-      'https://play.google.com/store/apps/details?id=YOUR_PACKAGE_NAME'; // Google Play Store URL
-
   const AppSettingsPage({super.key});
 
-  String get reviewUrl => playStoreUrl;
-
-  String get shareUrl =>
-      'https://play.google.com/store/apps/details?id=YOUR_PACKAGE_NAME';
-
-  String get featuresUrl => playStoreUrl;
+  String get reviewUrl =>  AppConstants.playStoreUrl;
+  String get featuresUrl => AppConstants.playStoreUrl;
 
   Future<void> _launchUrl(final String url) async {
     if (await canLaunch(url)) {
@@ -52,7 +44,7 @@ class AppSettingsPage extends StatelessWidget {
                 context,
                 'Uygulamayı Paylaş',
                 Icons.share,
-                () => _launchUrl(shareUrl),
+                () => _launchUrl(AppConstants.shareUrl),
               ),
               const SizedBox(height: 16),
               _buildActionButton(
