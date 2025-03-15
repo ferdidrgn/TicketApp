@@ -19,7 +19,9 @@ class LoginNotifier extends StateNotifier<LoginState> {
     this.getCurrentUserUseCase,
     this.verifyPhoneUseCase,
     this.verifyOtpUseCase,
-  ) : super(LoginState());
+  ) : super(LoginState()) {
+    signInWithGoogle();
+  }
 
   Future<void> signInWithGoogle() async {
     state = state.copyWith(isLoading: true);

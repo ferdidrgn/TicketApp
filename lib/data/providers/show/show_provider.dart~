@@ -5,7 +5,7 @@ import '../../../domain/useCase/show/get_search_show_use_case_impl.dart';
 import '../../../domain/useCase/show/get_show_by_id_use_case_impl.dart';
 import '../../../domain/useCase/show/get_shows_use_case_impl.dart';
 import '../../../domain/useCase/show/update_show_use_case_impl.dart';
-import '../../repository/show/show_repository_provider.dart';
+import '../../repository/show/show_repository__provider.dart';
 import 'show_notifier.dart';
 import 'show_state.dart';
 

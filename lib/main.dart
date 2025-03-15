@@ -1,11 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/providers/theme_provider.dart';
-import 'package:ticketapp/presentation/pages/login/login.dart';
+import 'package:ticketapp/presentation/pages/login/login_screen.dart';
 import 'package:ticketapp/presentation/pages/main_pages/main_pages_container.dart';
 import 'package:ticketapp/presentation/pages/onboarding/onboarding_container.dart';
 import 'package:ticketapp/presentation/pages/splash/splash_screen.dart';
+import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_notifier.dart';
 import 'firebase_options.dart';
@@ -25,7 +25,7 @@ class MyApp extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
 
     return MaterialApp(
-      title: 'Bilet Satış Uygulaması',
+      title: AppConstants.appName,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,

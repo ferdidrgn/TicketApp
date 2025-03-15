@@ -1,21 +1,37 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/services/login_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/presentation/pages/login/phone_page.dart';
 import '../../../core/widgets/custom_elevated_button.dart';
+import '../../../data/providers/login/login_provider.dart';
 
-class LoginScreen extends StatelessWidget {
-  final LoginService _loginService = LoginService();
-
-  LoginScreen({super.key});
+class LoginScreen extends ConsumerWidget {
+  const LoginScreen({super.key});
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final loginState = ref.watch(loginProvider);
+
+    return loginState.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : loginState.errorMessage != null
+            ? _buildErrorState(loginState.errorMessage!)
+            : _buildContentState(context, ref);
+  }
+
+  Widget _buildErrorState(final String message) {
+    return Center(child: Text(message));
+  }
+
+  Widget _buildContentState(final BuildContext context, final WidgetRef ref) {
     return Scaffold(
-      body: Stack(children: [
-        _buildBackgroundImage(),
-        _buildContent(context),
-      ]),
+      body: SingleChildScrollView(
+          child: Stack(
+        children: [
+          _buildBackgroundImage(),
+          _buildContent(context, ref),
+        ],
+      )),
     );
   }
 
@@ -25,7 +41,7 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(final BuildContext context) {
+  Widget _buildContent(final BuildContext context, final WidgetRef ref) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -49,7 +65,7 @@ class LoginScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-                _buildGoogleSignInButton(context),
+                _buildGoogleSignInButton(context, ref),
                 const SizedBox(height: 20),
                 _buildPhoneLogIn(context),
               ],
@@ -60,32 +76,39 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGoogleSignInButton(final BuildContext context) {
+  Widget _buildGoogleSignInButton(
+      final BuildContext context, final WidgetRef ref) {
     return CustomElevatedButton(
       text: 'Google ile Giriş Yap',
       iconAsset: CachedNetworkImage(
-        imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
+        imageUrl:
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
         height: 24,
-        placeholder: (final context, final url) => const CircularProgressIndicator(),
-        errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+        placeholder: (final context, final url) =>
+            const CircularProgressIndicator(),
+        errorWidget: (final context, final url, final error) =>
+            const Icon(Icons.error),
       ),
       onPressed: () async {
-        final String? displayName =
-            await _loginService.signInWithGoogle(context);
+        final loginNotifier = ref.read(loginProvider.notifier);
+        await loginNotifier.signInWithGoogle();
+        final loginState = ref.read(loginProvider);
 
-        // mounted kontrolü BuildContext nesnesinin asenkron bir işlemin içinde kullanılmasının potansiyel sorunlara yol açar
         if (!context.mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(displayName ?? '')),
+          SnackBar(
+              content: Text(loginState.user?.displayName ?? 'Giriş başarısız')),
         );
 
-        await Navigator.pushReplacementNamed(context, '/home');
+        if (loginState.user != null) {
+          await Navigator.pushReplacementNamed(context, '/home');
+        }
       },
     );
   }
 
-  Widget _buildPhoneLogIn(final context) {
+  Widget _buildPhoneLogIn(final BuildContext context) {
     return CustomElevatedButton(
       text: 'Tel No İle Giriş Yap',
       iconData: Icons.phone,

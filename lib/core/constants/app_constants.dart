@@ -14,5 +14,6 @@ class AppConstants {
 
   // Other Constants
   static const String appName = 'Ticket App'; // Application name
+  static const String appNameTr = 'Bilet Satış Uygulaması'; // Application name
   static const String copyright = '© 2024 My Company'; // Copyright
 }
