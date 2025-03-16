@@ -14,11 +14,14 @@ class UserRepositoryImpl implements UserRepository {
     required this.internetService,
   });
 
-  Future<Either<Failure, T>> _execute<T>(final Future<T> Function() action) async {
+  @override
+  Future<Either<Failure, void>> saveUser(
+      final UserModel user, final String downloadUrl,
+      {final isUpdate = false}) async {
     if (await internetService.isConnected) {
       try {
-        final result = await action();
-        return Right(result);
+        await remoteDataSource.saveUser(user, downloadUrl, isUpdate: isUpdate);
+        return const Right(null);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
@@ -28,25 +31,30 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<Either<Failure, void>> saveUser(final UserModel user, final String downloadUrl, {final bool isUpdate = false}) async {
-    return _execute(() async {
-      await remoteDataSource.saveUser(user, downloadUrl, isUpdate: isUpdate);
-    });
-  }
-
-  @override
   Future<Either<Failure, UserModel?>> getUserById(final String userId) async {
-    return _execute(() async {
-      if (userId.isEmpty) throw Exception('User ID cannot be empty.');
-      return remoteDataSource.getUserById(userId);
-    });
+    if (await internetService.isConnected) {
+      try {
+        final user = await remoteDataSource.getUserById(userId);
+        return Right(user);
+      } catch (e) {
+        return Left(ServerFailure(e.toString()));
+      }
+    } else {
+      return const Left(NetworkFailure('No internet connection'));
+    }
   }
 
   @override
   Future<Either<Failure, void>> deleteUser(final String userId) async {
-    return _execute(() async {
-      if (userId.isEmpty) throw Exception('User ID cannot be empty.');
-      await remoteDataSource.deleteUser(userId);
-    });
+    if (await internetService.isConnected) {
+      try {
+        await remoteDataSource.deleteUser(userId);
+        return const Right(null);
+      } catch (e) {
+        return Left(ServerFailure(e.toString()));
+      }
+    } else {
+      return const Left(NetworkFailure('No internet connection'));
+    }
   }
 }

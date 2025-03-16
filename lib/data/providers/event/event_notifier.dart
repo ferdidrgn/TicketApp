@@ -85,7 +85,7 @@ class EventNotifier extends StateNotifier<EventState> {
 
     result.fold(
       (final failure) => _setErrorState(failure.message),
-      (final seats) => _setPurchasedSeats(seats),
+      (final seats) => _setPurchasedSeats(List<String>.from(seats)),
     );
   }
 
@@ -162,7 +162,7 @@ class EventNotifier extends StateNotifier<EventState> {
     state = state.copyWith(seatStatus: seatStatus, isLoading: false);
   }
 
-  void _setPurchasedSeats(final List<String?> seats) {
+  void _setPurchasedSeats(final List<String>? seats) {
     state = state.copyWith(purchasedSeats: seats, isLoading: false);
   }
 }

@@ -20,14 +20,16 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
   @override
   Future<void> initializeAndGetEventSeats(final String eventId) async {
+    if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
     try {
       final eventDoc = await firestore.doc(eventId).get();
-
-      if (!eventDoc.exists) throw Exception('Etkinlik bulunamadı.');
+      if (!eventDoc.exists) throw Exception('Event not found.');
 
       final eventData = eventDoc.data()!;
       if (eventData['seats'] == null || (eventData['seats'] as Map).isEmpty) {
-        final stageSeats = await SeatService().getSeatsByStage(eventData['stageId']);
+        final stageSeats =
+            await SeatService().getSeatsByStage(eventData['stageId']);
         final seatStatus = <String, Map<String, dynamic>>{};
 
         for (final entry in stageSeats.entries) {
@@ -39,15 +41,18 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         await firestore.doc(eventId).update({'seats': seatStatus});
       }
     } catch (e) {
-      throw Exception('Error initializing event seats: $e');
+      throw Exception('Error initializing event seats: ${e.toString()}');
     }
   }
 
   @override
-  Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(final String eventId) async {
+  Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(
+      final String eventId) async {
+    if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
     try {
       final doc = await firestore.doc(eventId).get();
-      if (!doc.exists) throw Exception('Etkinlik bulunamadı.');
+      if (!doc.exists) throw Exception('Event not found.');
 
       final data = doc.data()!;
       final seatStatus = <String, Map<String, dynamic>>{};
@@ -59,21 +64,26 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
           }
         });
       } else {
-        throw Exception('Koltuk durumu geçerli bir harita değil.');
+        throw Exception('Seat status is not a valid map.');
       }
       return seatStatus;
     } catch (e) {
-      throw Exception('Error fetching seat status: $e');
+      throw Exception('Error fetching seat status: ${e.toString()}');
     }
   }
 
   @override
-  Future<List<String>> getPurchasedSeatsByCustomerId(final String eventId, final String customerId) async {
+  Future<List<String>> getPurchasedSeatsByCustomerId(
+      final String eventId, final String customerId) async {
+    if (eventId.isEmpty || customerId.isEmpty)
+      throw Exception('Event ID and Customer ID cannot be empty.');
+
     try {
       final DocumentSnapshot doc = await firestore.doc(eventId).get();
 
       if (doc.exists) {
-        final Map<String, dynamic> eventData = doc.data()! as Map<String, dynamic>;
+        final Map<String, dynamic> eventData =
+            doc.data()! as Map<String, dynamic>;
 
         if (eventData['seats'] != null) {
           final List<String> purchasedSeats = [];
@@ -86,18 +96,23 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
           return purchasedSeats;
         } else {
-          throw ('Koltuk verisi bulunamadı.');
+          throw Exception('Seat data not found.');
         }
       } else {
-        throw ('Etkinlik bulunamadı.');
+        throw Exception('Event not found.');
       }
     } catch (e) {
-      throw Exception('Error fetching seats by customerId: $e');
+      throw Exception('Error fetching seats by customerId: ${e.toString()}');
     }
   }
 
   @override
-  Future<void> updateSeatStatus(final String eventId, final String seatId, final String status, {final String? customerId}) async {
+  Future<void> updateSeatStatus(
+      final String eventId, final String seatId, final String status,
+      {final String? customerId}) async {
+    if (eventId.isEmpty || seatId.isEmpty || status.isEmpty)
+      throw Exception('Event ID, Seat ID, and Status cannot be empty.');
+
     try {
       final Map<String, dynamic> seatUpdate = {'status': status};
 
@@ -109,35 +124,39 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         'seats.$seatId': seatUpdate,
       });
     } catch (e) {
-      throw Exception('Error updating seat status: $e');
+      throw Exception('Error updating seat status: ${e.toString()}');
     }
   }
 
   @override
   Future<String> getStageId(final String eventId) async {
+    if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
     try {
       final docSnapshot = await firestore.doc(eventId).get();
 
-      if (!docSnapshot.exists) throw Exception("Sahne verisi Alınamadı");
+      if (!docSnapshot.exists) throw Exception("Stage data not found");
 
-      final eventData = docSnapshot.data()! as Map<String, dynamic>;
+      final eventData = docSnapshot.data()!;
       return eventData['stageId'] as String;
     } catch (error) {
-      throw Exception("Etkinlik Sahne verisi alınırken bir hata oluştu: $error");
+      throw Exception("Error fetching stage data: ${error.toString()}");
     }
   }
 
   @override
   Future<String?> getEventPrice(final String eventId) async {
+    if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
     try {
       final docSnapshot = await firestore.doc(eventId).get();
 
       if (!docSnapshot.exists) return null;
 
-      final eventData = docSnapshot.data()! as Map<String, dynamic>;
+      final eventData = docSnapshot.data()!;
       return eventData['price'] as String;
     } catch (error) {
-      throw Exception("Etkinlik Tarih verisi alınırken bir hata oluştu: $error");
+      throw Exception("Error fetching event price: ${error.toString()}");
     }
   }
 
@@ -148,11 +167,11 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
       if (!docSnapshot.exists) return null;
 
-      final eventData = docSnapshot.data()! as Map<String, dynamic>;
+      final eventData = docSnapshot.data()!;
       final date = eventData['date'] as String;
       return DateFormatter.parseFormattedDateTime(date, formatWithMonthName: formatWithMonthName);
     } catch (error) {
-      throw Exception("Etkinlik Tarih verisi alınırken bir hata oluştu: $error");
+      throw Exception("Error fetching event date: ${error.toString()}");
     }
   }
 
@@ -169,10 +188,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<void> cancelReservation(final String eventId, final String seatId) async {
     await firestore.doc(eventId).update({
-      'seats.$seatId': {
-        'status': 'available',
-        'customerId': null
-      }
+      'seats.$seatId': {'status': 'available', 'customerId': null}
     });
   }
 }

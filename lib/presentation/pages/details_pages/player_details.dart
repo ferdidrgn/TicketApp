@@ -1,12 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_show_card.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
+import 'package:ticketapp/data/datasources/show/show_remote_data_source_and_impl.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
-import '../../../data/model/player_model.dart';
-import '../../../data/model/show_model.dart';
-import '../../../data/repository/player_service.dart';
-import '../../../data/repository/show_service.dart';
+import '../../../data/datasources/player/player_remote_data_source_and_impl.dart';
+import '../../../domain/entities/player.dart';
+import '../../../domain/entities/show.dart';
 
 class PlayerDetailPage extends StatefulWidget {
   final String playerId;
@@ -21,6 +23,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Player? player;
   List<Show?> nowShowsDataList = [];
   List<Show?> oldShowsDataList = [];
+  final firestore = FirebaseFirestore.instance;
+  final storage = FirebaseStorage.instance;
   bool isLoading = true;
   double _sheetProgress = 0.1;
 
@@ -33,10 +37,11 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Future<void> _fetchPlayerData() async {
     try {
       final fetchedPlayer =
-          await PlayerService().getPlayerById(widget.playerId);
+          await PlayerRemoteDataSourceImpl(firestore: firestore)
+              .getPlayerById(widget.playerId);
       if (fetchedPlayer?.nowShowsId != null) {
         setState(() {
-          player = fetchedPlayer;
+          player = fetchedPlayer?.toEntity();
         });
         await Future.wait([
           _fetchShows(player!.nowShowsId, nowShowsDataList),
@@ -56,10 +61,12 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       final List<String> showsId, final List<Show?> showsList) async {
     for (final String showId in showsId) {
       try {
-        final show = await ShowService().getShowById(showId);
+        final show = await ShowRemoteDataSourceImpl(
+                firestore: firestore, storage: storage)
+            .getShowById(showId);
         if (show != null) {
           setState(() {
-            showsList.add(show);
+            showsList.add(show.toEntity());
           });
         }
       } catch (error) {
