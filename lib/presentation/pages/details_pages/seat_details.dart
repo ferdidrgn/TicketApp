@@ -5,7 +5,6 @@ import 'package:ticketapp/data/datasources/event/event_remote_data_source_and_im
 import 'package:ticketapp/data/datasources/seat/seat_remote_data_source_and_impl.dart';
 import 'package:ticketapp/data/datasources/ticket/ticket_remote_data_source_and_impl.dart';
 import '../../../core/util/date_formatter.dart';
-import '../../../data/model/ticket_model.dart';
 import '../../../domain/entities/ticket.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
@@ -26,7 +25,6 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   final firestore = FirebaseFirestore.instance;
   late final EventRemoteDataSourceImpl? eventService;
   late final SeatRemoteDataSourceImpl? seatService;
-  late final TicketRemoteDataSourceImpl? ticketService;
   Map<String, List<String>>? seats = {};
   Map<String, Map<String, dynamic>>? seatStatus = {};
   Set<String> selectedSeats = {};
@@ -43,7 +41,6 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     super.initState();
     eventService = EventRemoteDataSourceImpl(firestore: firestore);
     seatService = SeatRemoteDataSourceImpl(firestore: firestore);
-    ticketService = TicketRemoteDataSourceImpl(firestore: firestore);
     _fetchSeats();
     _startReservationTimer();
   }
@@ -78,8 +75,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   void _startReservationTimer() {
     reservationTimer =
         Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (remainingTime > 0) setState(() => remainingTime--);
-      else _handleTimeUp(timer);
+      if (remainingTime > 0)
+        setState(() => remainingTime--);
+      else
+        _handleTimeUp(timer);
     });
   }
 
@@ -119,9 +118,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _toggleSeatSelection(final String seatId) {
     setState(() {
-      if (selectedSeats.contains(seatId)) _removeSeat(seatId);
-      else if (selectedSeats.length < 3) _addSeat(seatId);
-      else _showMaxSeatsSnackbar();
+      if (selectedSeats.contains(seatId))
+        _removeSeat(seatId);
+      else if (selectedSeats.length < 3)
+        _addSeat(seatId);
+      else
+        _showMaxSeatsSnackbar();
     });
   }
 
@@ -133,7 +135,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _addSeat(final String seatId) {
     selectedSeats.add(seatId);
-    eventService?.updateSeatStatus(widget.eventId, seatId, 'reserved', customerId: "test");
+    eventService?.updateSeatStatus(widget.eventId, seatId, 'reserved',
+        customerId: "test");
     totalPrice += seatPrice;
   }
 
@@ -234,7 +237,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     final seatsByRow = <String, List<String>>{};
 
     if (seats == null) return seatsByRow;
-    for (final String seat in seats!.values.expand((final element) => element)) {
+    for (final String seat
+        in seats!.values.expand((final element) => element)) {
       final String row = seat[0];
       seatsByRow.putIfAbsent(row, () => []).add(seat);
     }
@@ -402,7 +406,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       }
 
       // 2. Bilet oluşturma işlemi
-      await ticketService?.createTicket(_createNewTicket());
+      final ticketService = TicketRemoteDataSourceImpl(firestore: firestore);
+      await ticketService.createTicket(_createNewTicket());
 
       // Başarılı mesajını göster
       ScaffoldMessenger.of(context).showSnackBar(

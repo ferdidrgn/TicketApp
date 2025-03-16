@@ -23,7 +23,7 @@ class ShowDetailPage extends StatefulWidget {
 
 class _ShowDetailPageState extends State<ShowDetailPage> {
   final firestore = FirebaseFirestore.instance;
-  final strorage = FirebaseStorage.instance;
+
   late final PlayerRemoteDataSourceImpl? playerService;
   Show? showData;
   List<Player?> nowPlayerDataList = [];

@@ -1,13 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
 import '../../../core/widgets/custom_show_card.dart';
 import '../../../core/widgets/custom_title.dart';
-import '../../../data/model/show_model.dart';
-import '../../../data/model/stage_model.dart';
-import '../../../data/repository/show_service.dart';
-import '../../../data/repository/stage_service.dart';
+import '../../../data/datasources/show/show_remote_data_source_and_impl.dart';
+import '../../../data/datasources/stage/stage_remote_data_source_and_impl.dart';
+import '../../../domain/entities/show.dart';
+import '../../../domain/entities/stage.dart';
 
 class StageDetailPage extends StatefulWidget {
   final String stageId;
@@ -19,7 +21,8 @@ class StageDetailPage extends StatefulWidget {
 }
 
 class _StageDetailPageState extends State<StageDetailPage> {
-  Stage? _stage;
+  final firestore = FirebaseFirestore.instance;
+  final strorage = FirebaseStorage.instance;  Stage? _stage;
   final List<Show> _showsDataList = [];
   bool _isLoading = true;
 
@@ -31,12 +34,12 @@ class _StageDetailPageState extends State<StageDetailPage> {
 
   Future<void> _fetchStageData() async {
     try {
-      final Stage? fetchedStage =
-          await StageService().getStageById(widget.stageId);
+      final stageService = StageRemoteDataSourceImpl(firestore: firestore);
+      final fetchedStage = await stageService.getStageById(widget.stageId);
 
       if (fetchedStage != null) {
         setState(() {
-          _stage = fetchedStage;
+          _stage = fetchedStage.toEntity();
         });
         await _fetchShows();
       }
@@ -53,10 +56,12 @@ class _StageDetailPageState extends State<StageDetailPage> {
   Future<void> _fetchShows() async {
     for (final String showId in _stage?.showsId ?? []) {
       try {
-        final Show? show = await ShowService().getShowById(showId);
+        final showService =
+        ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
+        final show = await showService.getShowById(showId);
         if (show != null) {
           setState(() {
-            _showsDataList.add(show);
+            _showsDataList.add(show.toEntity());
           });
         }
       } catch (error) {
@@ -112,8 +117,10 @@ class _StageDetailPageState extends State<StageDetailPage> {
           child: CachedNetworkImage(
             imageUrl: _stage?.imageUrl ?? '',
             fit: BoxFit.cover,
-            placeholder: (final context, final url) => const CircularProgressIndicator(),
-            errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+            placeholder: (final context, final url) =>
+                const CircularProgressIndicator(),
+            errorWidget: (final context, final url, final error) =>
+                const Icon(Icons.error),
           ),
         ),
       ),
