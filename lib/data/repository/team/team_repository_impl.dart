@@ -14,31 +14,30 @@ class TeamRepositoryImpl implements TeamRepository {
     required this.internetService,
   });
 
-  @override
-  Future<Either<Failure, List<TeamModel?>>> getTeams(final isLimit) async {
-    if (await internetService.isConnected) {
+  Future<Either<Failure, T>> _execute<T>(final Future<T> Function() action) async {
+    if (await internetService.isConnected)
       try {
-        final teams = await remoteDataSource.getTeams(isLimit);
-        return Right(teams);
+        final result = await action();
+        return Right(result);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    else return const Left(NetworkFailure('No internet connection'));
+  }
+
+  @override
+  Future<Either<Failure, List<TeamModel>>> getTeams(final isLimit) async {
+    return _execute(() async {
+      final teams = await remoteDataSource.getTeams(isLimit);
+      return teams.whereType<TeamModel>().toList(); // Nullable değerleri filtrele
+    });
   }
 
   @override
   Future<Either<Failure, TeamModel?>> getTeamById(final String teamId) async {
-    if (await internetService.isConnected) {
-      try {
-        final team = await remoteDataSource.getTeamById(teamId);
-        return Right(team);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    return _execute(() async {
+      if (teamId.isEmpty) throw Exception('Team ID cannot be empty.');
+      return remoteDataSource.getTeamById(teamId);
+    });
   }
 }

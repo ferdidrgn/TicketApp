@@ -15,44 +15,39 @@ class StageRepositoryImpl implements StageRepository {
   });
 
   @override
-  Future<Either<Failure, List<StageModel?>>> getSearchStage(final String query) async {
-    if (await internetService.isConnected) {
+  Future<Either<Failure, List<StageModel>>> getSearchStage(final String query) async {
+    if (await internetService.isConnected)
       try {
         final stages = await remoteDataSource.getSearchStage(query);
         return Right(stages);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    else return const Left(NetworkFailure('No internet connection'));
   }
 
   @override
-  Future<Either<Failure, List<StageModel?>>> getStages(final isLimit) async {
-    if (await internetService.isConnected) {
+  Future<Either<Failure, List<StageModel>>> getStages(final isLimit) async {
+    if (await internetService.isConnected)
       try {
         final stages = await remoteDataSource.getStages(isLimit);
         return Right(stages);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    else return const Left(NetworkFailure('No internet connection'));
   }
 
   @override
   Future<Either<Failure, StageModel?>> getStageById(final String stageId) async {
-    if (await internetService.isConnected) {
+    if (await internetService.isConnected)
       try {
+        if (stageId.isEmpty) throw Exception('Stage ID cannot be empty.');
         final stage = await remoteDataSource.getStageById(stageId);
         return Right(stage);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    else return const Left(NetworkFailure('No internet connection'));
   }
 }

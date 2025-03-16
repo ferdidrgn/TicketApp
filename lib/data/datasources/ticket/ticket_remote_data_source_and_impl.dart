@@ -14,6 +14,8 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
 
   @override
   Future<TicketModel?> getTicketById(final String ticketId) async {
+    if (ticketId.isEmpty) throw Exception('Ticket ID cannot be empty.');
+
     try {
       final QuerySnapshot result = await firestore
           .collection('Ticket')
@@ -25,7 +27,7 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
 
       return TicketModel.fromFirestore(result.docs.first.data()! as Map<String, dynamic>);
     } catch (error) {
-      throw Exception('Bilet Getirme Hatası: $error');
+      throw Exception('Error fetching ticket: $error');
     }
   }
 
@@ -44,7 +46,7 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
         'orderPrice': ticket.orderPrice,
       });
     } catch (error) {
-      throw Exception('Bilet Kaydetme Hatası: $error');
+      throw Exception('Error saving ticket: $error');
     }
   }
 }

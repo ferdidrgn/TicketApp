@@ -14,13 +14,11 @@ class TicketRepositoryImpl implements TicketRepository {
     required this.internetService,
   });
 
-  @override
-  Future<Either<Failure, TicketModel?>> getTicketById(
-      final String ticketId) async {
+  Future<Either<Failure, T>> _execute<T>(final Future<T> Function() action) async {
     if (await internetService.isConnected) {
       try {
-        final ticket = await remoteDataSource.getTicketById(ticketId);
-        return Right(ticket);
+        final result = await action();
+        return Right(result);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
@@ -30,16 +28,17 @@ class TicketRepositoryImpl implements TicketRepository {
   }
 
   @override
+  Future<Either<Failure, TicketModel?>> getTicketById(final String ticketId) async {
+    return _execute(() async {
+      if (ticketId.isEmpty) throw Exception('Ticket ID cannot be empty.');
+      return await remoteDataSource.getTicketById(ticketId);
+    });
+  }
+
+  @override
   Future<Either<Failure, void>> createTicket(final TicketModel ticket) async {
-    if (await internetService.isConnected) {
-      try {
-        await remoteDataSource.createTicket(ticket.toEntity());
-        return const Right(null);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    return _execute(() async {
+      await remoteDataSource.createTicket(ticket.toEntity());
+    });
   }
 }

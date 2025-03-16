@@ -15,16 +15,14 @@ class UserRepositoryImpl implements UserRepository {
   });
 
   Future<Either<Failure, T>> _execute<T>(final Future<T> Function() action) async {
-    if (await internetService.isConnected) {
+    if (await internetService.isConnected)
       try {
         final result = await action();
         return Right(result);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    else return const Left(NetworkFailure('No internet connection'));
   }
 
   @override

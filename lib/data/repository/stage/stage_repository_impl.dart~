@@ -1,27 +1,25 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../core/network/internet_service.dart';
-import '../../../domain/repository/user_repository.dart';
-import '../../datasources/user/user_remote_data_source_and_impl.dart';
-import '../../model/user_model.dart';
+import '../../../domain/repository/stage_repository.dart';
+import '../../datasources/stage/stage_remote_data_source_and_impl.dart';
+import '../../model/stage_model.dart';
 
-class UserRepositoryImpl implements UserRepository {
-  final UserRemoteDataSource remoteDataSource;
+class StageRepositoryImpl implements StageRepository {
+  final StageRemoteDataSource remoteDataSource;
   final InternetService internetService;
 
-  UserRepositoryImpl({
+  StageRepositoryImpl({
     required this.remoteDataSource,
     required this.internetService,
   });
 
   @override
-  Future<Either<Failure, void>> saveUser(
-      final UserModel user, final String downloadUrl,
-      {final isUpdate = false}) async {
+  Future<Either<Failure, List<StageModel?>>> getSearchStage(final String query) async {
     if (await internetService.isConnected) {
       try {
-        await remoteDataSource.saveUser(user, downloadUrl, isUpdate: isUpdate);
-        return const Right(null);
+        final stages = await remoteDataSource.getSearchStage(query);
+        return Right(stages);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
@@ -31,11 +29,11 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<Either<Failure, UserModel?>> getUserById(final String userId) async {
+  Future<Either<Failure, List<StageModel?>>> getStages(final isLimit) async {
     if (await internetService.isConnected) {
       try {
-        final user = await remoteDataSource.getUserById(userId);
-        return Right(user);
+        final stages = await remoteDataSource.getStages(isLimit);
+        return Right(stages);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
@@ -45,11 +43,11 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<Either<Failure, void>> deleteUser(final String userId) async {
+  Future<Either<Failure, StageModel?>> getStageById(final String stageId) async {
     if (await internetService.isConnected) {
       try {
-        await remoteDataSource.deleteUser(userId);
-        return const Right(null);
+        final stage = await remoteDataSource.getStageById(stageId);
+        return Right(stage);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
