@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/data/repository/event_service.dart';
+import 'package:ticketapp/data/datasources/event/event_remote_data_source_and_impl.dart';
+import 'package:ticketapp/data/datasources/seat/seat_remote_data_source_and_impl.dart';
+import 'package:ticketapp/data/datasources/ticket/ticket_remote_data_source_and_impl.dart';
 import '../../../core/util/date_formatter.dart';
 import '../../../data/model/ticket_model.dart';
-import '../../../data/repository/seat_service.dart';
-import '../../../data/repository/ticket_service.dart';
+import '../../../domain/entities/ticket.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
   final String showId;
@@ -21,9 +23,12 @@ class SeatSelectionScreen extends StatefulWidget {
 }
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
-  final EventService eventService = EventService();
-  Map<String, List<String>> seats = {};
-  Map<String, Map<String, dynamic>> seatStatus = {};
+  final firestore = FirebaseFirestore.instance;
+  late final EventRemoteDataSourceImpl? eventService;
+  late final SeatRemoteDataSourceImpl? seatService;
+  late final TicketRemoteDataSourceImpl? ticketService;
+  Map<String, List<String>>? seats = {};
+  Map<String, Map<String, dynamic>>? seatStatus = {};
   Set<String> selectedSeats = {};
   late String stageId;
   Timer? reservationTimer;
@@ -36,6 +41,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   @override
   void initState() {
     super.initState();
+    eventService = EventRemoteDataSourceImpl(firestore: firestore);
+    seatService = SeatRemoteDataSourceImpl(firestore: firestore);
+    ticketService = TicketRemoteDataSourceImpl(firestore: firestore);
     _fetchSeats();
     _startReservationTimer();
   }
@@ -47,14 +55,15 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Future<void> _fetchSeats() async {
-    await eventService.initializeAndGetEventSeats(widget.eventId);
-    final fetchStageId = await eventService.getStageId(widget.eventId);
-    final fetchedSeats = await SeatService().getSeatsByStage(fetchStageId);
+    await eventService?.initializeAndGetEventSeats(widget.eventId);
+    final fetchStageId = await eventService?.getStageId(widget.eventId);
+    if (fetchStageId == null) return;
+    final fetchedSeats = await seatService?.getSeatsByStage(fetchStageId);
     final fetchedSeatStatus =
-        await eventService.getSeatStatusByEvent(widget.eventId);
-    final fetchPrice = await eventService.getEventPrice(widget.eventId);
+        await eventService?.getSeatStatusByEvent(widget.eventId);
+    final fetchPrice = await eventService?.getEventPrice(widget.eventId);
     final Map<String, String>? fetchDate =
-        await eventService.getEventDate(widget.eventId);
+        await eventService?.getEventDate(widget.eventId);
 
     setState(() {
       stageId = fetchStageId;
@@ -69,11 +78,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   void _startReservationTimer() {
     reservationTimer =
         Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (remainingTime > 0) {
-        setState(() => remainingTime--);
-      } else {
-        _handleTimeUp(timer);
-      }
+      if (remainingTime > 0) setState(() => remainingTime--);
+      else _handleTimeUp(timer);
     });
   }
 
@@ -106,33 +112,28 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _cancelReservations() {
     for (final String seatId in selectedSeats) {
-      eventService.updateSeatStatus(widget.eventId, seatId, 'available');
+      eventService?.updateSeatStatus(widget.eventId, seatId, 'available');
     }
     setState(() => selectedSeats.clear());
   }
 
   void _toggleSeatSelection(final String seatId) {
     setState(() {
-      if (selectedSeats.contains(seatId)) {
-        _removeSeat(seatId);
-      } else if (selectedSeats.length < 3) {
-        _addSeat(seatId);
-      } else {
-        _showMaxSeatsSnackbar();
-      }
+      if (selectedSeats.contains(seatId)) _removeSeat(seatId);
+      else if (selectedSeats.length < 3) _addSeat(seatId);
+      else _showMaxSeatsSnackbar();
     });
   }
 
   void _removeSeat(final String seatId) {
     selectedSeats.remove(seatId);
-    eventService.updateSeatStatus(widget.eventId, seatId, 'available');
+    eventService?.updateSeatStatus(widget.eventId, seatId, 'available');
     totalPrice -= seatPrice;
   }
 
   void _addSeat(final String seatId) {
     selectedSeats.add(seatId);
-    eventService.updateSeatStatus(widget.eventId, seatId, 'reserved',
-        customerId: "test");
+    eventService?.updateSeatStatus(widget.eventId, seatId, 'reserved', customerId: "test");
     totalPrice += seatPrice;
   }
 
@@ -152,8 +153,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Koltuk Seçimi')),
-      body: seats.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+      body: seats?.isEmpty ?? true
+          ? const Center(child: Text('Tekrar Deneyiniz'))
           : _buildSeatSelectionView(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: selectedSeats.isNotEmpty ? _showPaymentBottomSheet : null,
@@ -232,7 +233,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Map<String, List<String>> _groupSeatsByRow() {
     final seatsByRow = <String, List<String>>{};
 
-    for (final String seat in seats.values.expand((final element) => element)) {
+    if (seats == null) return seatsByRow;
+    for (final String seat in seats!.values.expand((final element) => element)) {
       final String row = seat[0];
       seatsByRow.putIfAbsent(row, () => []).add(seat);
     }
@@ -290,8 +292,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Widget _buildSeat(final String seatId) {
-    final status = seatStatus[seatId]?['status'] ?? 'available';
-    final reservedById = seatStatus[seatId]?['customerId'];
+    final status = seatStatus?[seatId]?['status'] ?? 'available';
+    final reservedById = seatStatus?[seatId]?['customerId'];
 
     final isAvailable = status == 'available' ||
         (status == 'reserved' && reservedById == 'test');
@@ -395,12 +397,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     try {
       // 1. Koltukları satıldı olarak güncelle
       for (final String seatId in selectedSeats) {
-        await eventService.updateSeatStatus(widget.eventId, seatId, 'sold',
+        await eventService?.updateSeatStatus(widget.eventId, seatId, 'sold',
             customerId: "test");
       }
 
       // 2. Bilet oluşturma işlemi
-      await TicketService().createTicket(_createNewTicket());
+      await ticketService?.createTicket(_createNewTicket());
 
       // Başarılı mesajını göster
       ScaffoldMessenger.of(context).showSnackBar(

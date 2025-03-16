@@ -3,7 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../repository/event_repository.dart';
 
 abstract class GetEventPriceUseCase {
-  Future<Either<Failure, String?>> call(final String? eventId);
+  Future<Either<Failure, String?>> call(final String eventId);
 }
 
 class GetEventPriceUseCaseImpl implements GetEventPriceUseCase {
@@ -12,7 +12,7 @@ class GetEventPriceUseCaseImpl implements GetEventPriceUseCase {
   GetEventPriceUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, String?>> call(final String? eventId) async {
+  Future<Either<Failure, String?>> call(final String eventId) async {
     return repository.getEventPrice(eventId);
   }
 }

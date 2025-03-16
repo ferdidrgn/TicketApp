@@ -4,7 +4,7 @@ import '../../repository/event_repository.dart';
 
 abstract class GetPurchasedSeatsByCustomerIdUseCase {
   Future<Either<Failure, List<String?>>> call(
-      final String? eventId, final String? customerId);
+      final String eventId, final String customerId);
 }
 
 class GetPurchasedSeatsByCustomerIdUseCaseImpl
@@ -15,7 +15,7 @@ class GetPurchasedSeatsByCustomerIdUseCaseImpl
 
   @override
   Future<Either<Failure, List<String?>>> call(
-      final String? eventId, final String? customerId) async {
+      final String eventId, final String customerId) async {
     return repository.getPurchasedSeatsByCustomerId(eventId, customerId);
   }
 }

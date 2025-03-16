@@ -4,7 +4,7 @@ import '../../repository/event_repository.dart';
 
 abstract class GetSeatStatusByEventUseCase {
   Future<Either<Failure, Map<String, Map<String, dynamic>>>>
-  call(final String? eventId);
+  call(final String eventId);
 }
 
 class GetSeatStatusByEventUseCaseImpl implements GetSeatStatusByEventUseCase {
@@ -14,7 +14,7 @@ class GetSeatStatusByEventUseCaseImpl implements GetSeatStatusByEventUseCase {
 
   @override
   Future<Either<Failure, Map<String, Map<String, dynamic>>>>
-  call(final String? eventId) async {
+  call(final String eventId) async {
     return repository.getSeatStatusByEvent(eventId);
   }
 }

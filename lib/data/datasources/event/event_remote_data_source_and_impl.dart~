@@ -1,29 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/util/date_formatter.dart';
-import '../seat/seat_remote_data_source_and_impl.dart';
 
 abstract class EventRemoteDataSource {
   Future<void> initializeAndGetEventSeats(final String eventId);
-
-  Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(
-      final String eventId);
-
-  Future<List<String>> getPurchasedSeatsByCustomerId(final String eventId,
-      final String customerId);
-
-  Future<void> updateSeatStatus(final String eventId, final String seatId,
-      final String status, {final String? customerId});
-
+  Future<Map<String, Map<String, dynamic>>> getSeatStatusByEvent(final String eventId);
+  Future<List<String>> getPurchasedSeatsByCustomerId(final String eventId, final String customerId);
+  Future<void> updateSeatStatus(final String eventId, final String seatId, final String status, {final String? customerId});
   Future<String> getStageId(final String eventId);
-
   Future<String?> getEventPrice(final String eventId);
-
-  Future<Map<String, String>?> getEventDate(final String eventId,
-      {final bool formatWithMonthName = false});
-
-  Future<void> reserveSeat(final String eventId, final String seatId,
-      final String customerId);
-
+  Future<Map<String, String>?> getEventDate(final String eventId, {final bool formatWithMonthName = false});
+  Future<void> reserveSeat(final String eventId, final String seatId, final String customerId);
   Future<void> cancelReservation(final String eventId, final String seatId);
 }
 
@@ -42,13 +28,12 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
       final eventData = eventDoc.data()!;
       if (eventData['seats'] == null || (eventData['seats'] as Map).isEmpty) {
-        final stageSeats = await SeatRemoteDataSourceImpl(firestore: firestore)
-            .getSeatsByStage((eventData['stageId']));
+        final stageSeats =
+            await SeatService().getSeatsByStage(eventData['stageId']);
 
-            final seatStatus = <String, Map<String, dynamic> > {};
+        final seatStatus = <String, Map<String, dynamic>>{};
 
-            for (final entry in stageSeats.entries)
-        {
+        for (final entry in stageSeats.entries) {
           for (final seat in entry.value) {
             seatStatus[seat] = {'status': 'available', 'customerId': null};
           }
@@ -89,8 +74,8 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   @override
-  Future<List<String>> getPurchasedSeatsByCustomerId(final String eventId,
-      final String customerId) async {
+  Future<List<String>> getPurchasedSeatsByCustomerId(
+      final String eventId, final String customerId) async {
     if (eventId.isEmpty || customerId.isEmpty)
       throw Exception('Event ID and Customer ID cannot be empty.');
 
@@ -99,7 +84,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
       if (doc.exists) {
         final Map<String, dynamic> eventData =
-        doc.data()! as Map<String, dynamic>;
+            doc.data()! as Map<String, dynamic>;
 
         if (eventData['seats'] != null) {
           final List<String> purchasedSeats = [];
@@ -123,8 +108,8 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   @override
-  Future<void> updateSeatStatus(final String eventId, final String seatId,
-      final String status,
+  Future<void> updateSeatStatus(
+      final String eventId, final String seatId, final String status,
       {final String? customerId}) async {
     if (eventId.isEmpty || seatId.isEmpty || status.isEmpty)
       throw Exception('Event ID, Seat ID, and Status cannot be empty.');
@@ -177,8 +162,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   @override
-  Future<Map<String, String>?> getEventDate(final String eventId,
-      {final bool formatWithMonthName = false}) async {
+  Future<Map<String, String>?> getEventDate(final String eventId, {final bool formatWithMonthName = false}) async {
     try {
       final docSnapshot = await firestore.doc(eventId).get();
 
@@ -186,16 +170,14 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
       final eventData = docSnapshot.data()!;
       final date = eventData['date'] as String;
-      return DateFormatter.parseFormattedDateTime(
-          date, formatWithMonthName: formatWithMonthName);
+      return DateFormatter.parseFormattedDateTime(date, formatWithMonthName: formatWithMonthName);
     } catch (error) {
       throw Exception("Error fetching event date: ${error.toString()}");
     }
   }
 
   @override
-  Future<void> reserveSeat(final String eventId, final String seatId,
-      final String customerId) async {
+  Future<void> reserveSeat(final String eventId, final String seatId, final String customerId) async {
     await firestore.doc(eventId).update({
       'seats.$seatId': {
         'status': 'reserved',
@@ -205,8 +187,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   @override
-  Future<void> cancelReservation(final String eventId,
-      final String seatId) async {
+  Future<void> cancelReservation(final String eventId, final String seatId) async {
     await firestore.doc(eventId).update({
       'seats.$seatId': {'status': 'available', 'customerId': null}
     });

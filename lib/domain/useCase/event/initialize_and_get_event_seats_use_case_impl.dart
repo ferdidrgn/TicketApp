@@ -3,7 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../repository/event_repository.dart';
 
 abstract class InitializeAndGetEventSeatsUseCase {
-  Future<Either<Failure, void>> call(final String? eventId);
+  Future<Either<Failure, void>> call(final String eventId);
 }
 
 class InitializeAndGetEventSeatsUseCaseImpl implements InitializeAndGetEventSeatsUseCase {
@@ -12,7 +12,7 @@ class InitializeAndGetEventSeatsUseCaseImpl implements InitializeAndGetEventSeat
   InitializeAndGetEventSeatsUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(final String? eventId) async {
+  Future<Either<Failure, void>> call(final String eventId) async {
     return repository.initializeAndGetEventSeats(eventId);
   }
 }

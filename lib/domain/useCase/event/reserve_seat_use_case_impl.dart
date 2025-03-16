@@ -3,7 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../repository/event_repository.dart';
 
 abstract class ReserveSeatUseCase {
-  Future<Either<Failure, void>> call(final String? eventId, final String? seatId, final String? customerId);
+  Future<Either<Failure, void>> call(final String eventId, final String seatId, final String customerId);
 }
 
 class ReserveSeatUseCaseImpl implements ReserveSeatUseCase {
@@ -12,7 +12,7 @@ class ReserveSeatUseCaseImpl implements ReserveSeatUseCase {
   ReserveSeatUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(final String? eventId, final String? seatId, final String? customerId) async {
+  Future<Either<Failure, void>> call(final String eventId, final String seatId, final String customerId) async {
     return repository.reserveSeat(eventId, seatId, customerId);
   }
 }

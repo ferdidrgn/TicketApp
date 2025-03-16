@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:ticketapp/domain/repository/seat_repository.dart';
 import '../../../../core/errors/failures.dart';
+import '../../repository/event_repository.dart';
 
 abstract class GetSeatsByStageUseCase {
   Future<Either<Failure, Map<String, List<String?>>>> call(final String stageId);
