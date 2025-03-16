@@ -77,7 +77,7 @@ class ShowNotifier extends StateNotifier<ShowState> {
   }
 
   Future<void> searchShows(
-      final List<String> categories, final String? type) async {
+      final List<String?> categories, final String? type) async {
     _setLoadingState(true);
     final result = await getSearchShowUseCase.call(categories, type);
 

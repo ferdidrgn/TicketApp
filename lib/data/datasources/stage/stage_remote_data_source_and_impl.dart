@@ -30,7 +30,7 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
   }
 
   @override
-  Future<List<StageModel>> getStages(final bool isLimit) async {
+  Future<List<StageModel>> getStages(final isLimit) async {
     try {
       final QuerySnapshot snapshot = isLimit
           ? await firestore

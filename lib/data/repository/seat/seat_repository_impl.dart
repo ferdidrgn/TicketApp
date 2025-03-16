@@ -15,15 +15,13 @@ class SeatRepositoryImpl implements SeatRepository {
 
   @override
   Future<Either<Failure, Map<String, List<String>>>> getSeatsByStage(final String stageId) async {
-    if (await internetService.isConnected) {
+    if (await internetService.isConnected)
       try {
         final seats = await remoteDataSource.getSeatsByStage(stageId);
         return Right(seats);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    else return const Left(NetworkFailure('No internet connection'));
   }
 }

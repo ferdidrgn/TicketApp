@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-
 import '../../../core/errors/failures.dart';
 import '../../../core/network/internet_service.dart';
 import '../../../domain/repository/app_tools_repository.dart';

@@ -9,8 +9,7 @@ class LoginRepositoryImpl implements LoginRepository {
   final LoginRemoteDataSource remoteDataSource;
   final InternetService internetService;
 
-  LoginRepositoryImpl(
-      {required this.remoteDataSource, required this.internetService});
+  LoginRepositoryImpl({required this.remoteDataSource, required this.internetService});
 
   @override
   Future<Either<Failure, User?>> getCurrentUser() async {
@@ -18,7 +17,7 @@ class LoginRepositoryImpl implements LoginRepository {
       final user = await remoteDataSource.getCurrentUser();
       return Right(user); // Başarılı
     } catch (e) {
-      return Left(ServerFailure('Google Girişi Başarısız: $e')); // Hata
+      return Left(ServerFailure('Kullanıcı alma hatası: $e')); // Hata
     }
   }
 
@@ -44,14 +43,13 @@ class LoginRepositoryImpl implements LoginRepository {
 
   @override
   Future<Either<Failure, void>> verifyPhone(
-    final String phoneNumber,
-    final Function(String) onVerificationCompleted,
-    final Function(String) onCodeSent,
-    final Function(String) onAutoRetrievalTimeout,
-  ) async {
+      final String phoneNumber,
+      final Function(String) onVerificationCompleted,
+      final Function(String) onCodeSent,
+      final Function(String) onAutoRetrievalTimeout,
+      ) async {
     try {
-      await remoteDataSource.verifyPhone(phoneNumber, onVerificationCompleted,
-          onCodeSent, onAutoRetrievalTimeout);
+      await remoteDataSource.verifyPhone(phoneNumber, onVerificationCompleted, onCodeSent, onAutoRetrievalTimeout);
       return const Right(null); // Başarılı
     } catch (e) {
       return Left(ServerFailure('Telefon Doğrulama Hatası: $e')); // Hata
@@ -59,8 +57,7 @@ class LoginRepositoryImpl implements LoginRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> verifyOtp(
-      final String verificationId, final String otp) async {
+  Future<Either<Failure, bool>> verifyOtp(final String verificationId, final String otp) async {
     try {
       final result = await remoteDataSource.verifyOtp(verificationId, otp);
       return Right(result); // Başarılı

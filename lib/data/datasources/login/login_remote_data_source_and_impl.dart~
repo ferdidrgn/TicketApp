@@ -44,8 +44,10 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
     final user = await getCurrentUser();
     if (user != null) {
       for (final UserInfo userInfo in user.providerData) {
-        if (userInfo.providerId == 'google.com')
-             await GoogleSignIn().signOut(); // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
+        if (userInfo.providerId == 'google.com') {
+          // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
+          await GoogleSignIn().signOut();
+        }
       }
       await firebaseAuth.signOut();
     }

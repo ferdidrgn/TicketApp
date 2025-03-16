@@ -10,11 +10,9 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
   SeatRemoteDataSourceImpl({required this.firestore});
 
   @override
-  Future<Map<String, List<String>>> getSeatsByStage(
-      final String stageId) async {
+  Future<Map<String, List<String>>> getSeatsByStage(final String stageId) async {
     try {
-      final DocumentSnapshot doc =
-          await firestore.collection('Seats').doc(stageId).get();
+      final DocumentSnapshot doc = await firestore.collection('Seats').doc(stageId).get();
       if (doc.exists) {
         final Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
         final Map<String, List<String>> seats = {};
@@ -22,9 +20,7 @@ class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
           seats[row] = List<String>.from(seatList);
         });
         return seats;
-      } else {
-        throw Exception('Belirtilen sahne bulunamadı.');
-      }
+      } else throw Exception('Belirtilen sahne bulunamadı.');
     } catch (e) {
       throw Exception('Error fetching seats: $e');
     }

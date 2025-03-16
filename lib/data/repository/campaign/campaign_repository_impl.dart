@@ -15,20 +15,15 @@ class CampaignRepositoryImpl implements CampaignRepository {
   });
 
   @override
-  Future<Either<Failure, List<Campaign?>>> getCampaigns() async {
-    if (await internetService.isConnected) {
+  Future<Either<Failure, List<Campaign>>> getCampaigns() async {
+    if (await internetService.isConnected)
       try {
         final campaigns = await remoteDataSource.getCampaigns();
-        if (campaigns.isNotEmpty) {
-          return Right(campaigns.map((final model) => model!.toEntity()).toList());
-        } else {
-          return const Left(ServerFailure("Boş Liste"));
-        }
+        if (campaigns.isNotEmpty) return Right(campaigns.map((final model) => model.toEntity()).toList());
+        else return const Left(ServerFailure("Boş Liste"));
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
-    } else {
-      return const Left(NetworkFailure('No internet connection'));
-    }
+    else return const Left(NetworkFailure('No internet connection'));
   }
 }
