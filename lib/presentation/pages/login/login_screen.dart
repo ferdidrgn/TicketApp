@@ -90,8 +90,7 @@ class LoginScreen extends ConsumerWidget {
             const Icon(Icons.error),
       ),
       onPressed: () async {
-        final loginNotifier = ref.read(loginProvider.notifier);
-        await loginNotifier.signInWithGoogle();
+        await ref.read(loginProvider.notifier).signInWithGoogle();
         final loginState = ref.read(loginProvider);
 
         if (!context.mounted) return;
