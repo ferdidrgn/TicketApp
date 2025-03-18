@@ -3,8 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pinput/pinput.dart';
+import 'package:ticketapp/data/providers/user/user_provider.dart';
 import '../../../core/util/date_formatter.dart';
 import '../../../data/providers/login/login_provider.dart';
+import '../../../domain/entities/user.dart';
 
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
@@ -48,16 +50,16 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     final loginNotifier = ref.read(loginProvider.notifier);
     await loginNotifier.verifyPhone(
       _phoneController.text,
-      (final smsCode) => _verifyOtp(smsCode),
+          (final smsCode) => _verifyOtp(smsCode),
       // OTP doğrulama için çağırıyoruz
-      (final verificationId) {
+          (final verificationId) {
         setState(() {
           _verificationId = verificationId;
           _codeSent = true;
         });
         _startResendTimer();
       },
-      (final verificationId) =>
+          (final verificationId) =>
           setState(() => _verificationId = verificationId),
     );
   }
@@ -73,6 +75,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       final loginState = ref.read(loginProvider);
 
       if (loginState.user != null) {
+        await saveUser();
         _navigateToHome();
       } else {
         _showSnackBar('OTP kodu hatalı. Lütfen tekrar deneyin.');
@@ -139,7 +142,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     );
   }
 
-  void saveUser() {
+  Future<void> saveUser() async {
     final auth.User? account = auth.FirebaseAuth.instance.currentUser;
 
     if (account == null) return;
@@ -167,7 +170,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       role: 'user',
     );
 
-    UserService().saveUser(user, account.photoURL ?? '');
+    await ref.read(userProvider.notifier).saveUser(
+        user, account.photoURL ?? '');
   }
-
 }
