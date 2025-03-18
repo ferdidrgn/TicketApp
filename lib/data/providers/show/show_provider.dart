@@ -9,7 +9,7 @@ import '../../repository/show/show_repository_provider.dart';
 import 'show_notifier.dart';
 import 'show_state.dart';
 
-final showProvider = StateNotifierProvider<ShowNotifier, ShowState>((final ref) {
+final showProvider = StateNotifierProvider.autoDispose<ShowNotifier, ShowState>((final ref) {
   return ShowNotifier(
     ref.watch(addShowUseCaseProvider),
     ref.watch(deleteShowUseCaseProvider),

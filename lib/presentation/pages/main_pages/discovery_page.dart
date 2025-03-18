@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import '../../../core/widgets/custom_event_card.dart';
 import '../../../data/model/show_model.dart';
-import '../../../data/repository/show_service.dart';
+import '../../../data/providers/show/show_provider.dart';
 
-class DiscoveryPage extends StatefulWidget {
+class DiscoveryPage extends ConsumerStatefulWidget {
   final String? selectedCategory;
 
   const DiscoveryPage({super.key, this.selectedCategory});
 
   @override
-  _DiscoveryPageState createState() => _DiscoveryPageState();
+  ConsumerState<DiscoveryPage> createState() => _DiscoveryPageState();
 }
 
-class _DiscoveryPageState extends State<DiscoveryPage> {
-  bool isLoading = true;
-  List<Show?> shows = [];
+class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   List<String> selectedCategories = [];
   String? type;
   double minPrice = 0;
@@ -31,43 +30,34 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
         widget.selectedCategory != 'Trendler') {
       selectedCategories.add(widget.selectedCategory!);
     }
-    _fetchEventsByCategory();
+    _fetchShows();
   }
 
-  Future<void> _fetchEventsByCategory() async {
-    setState(() => isLoading = true);
-
-    try {
-      final showService = ShowService();
-      final List<Show?> fetchedEvents =
-          await showService.getSearchShow(selectedCategories, type);
-      setState(() {
-        shows = fetchedEvents;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      throw Exception('Veriler çekilirken hata oluştu: $e');
-    }
+  void _fetchShows() {
+    ref.read(showProvider.notifier).searchShows(selectedCategories, type);
   }
 
   @override
   Widget build(final BuildContext context) {
+    final showState = ref.watch(showProvider);
+
     return Scaffold(
-        body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _buildHeader(),
-              isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : shows.isEmpty
-                      ? const Center(
-                          child: Text('Bu kategori için etkinlik bulunamadı.'))
-                      : Expanded(child: _buildScrollableItems(shows))
-            ])));
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            showState.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : showState.shows.isEmpty
+                    ? const Center(
+                        child: Text('Bu kategori için etkinlik bulunamadı.'))
+                    : Expanded(child: _buildScrollableItems(showState.shows))
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildHeader() {
@@ -83,14 +73,15 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     );
   }
 
-  Widget _buildScrollableItems(final List<Show?> items) {
+  Widget _buildScrollableItems(final List<ShowModel?> items) {
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (final context, final index) {
+        final show = items[index];
         return EventCard(
-          imageUrl: items[index]?.imageUrl ?? '',
-          showName: items[index]?.name ?? '',
-          category: items[index]?.category ?? '',
+          imageUrl: show?.imageUrl ?? '',
+          showName: show?.name ?? '',
+          category: show?.category ?? '',
           date: "15.06.2023",
           stage: "Sahne 1",
           price: 150.0,
@@ -105,37 +96,71 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       builder: (final context) {
         return StatefulBuilder(
           builder: (final context, final setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Filtrele',
-                      style:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-                  _buildCategoryFilter(setModalState),
-                  const SizedBox(height: 20),
-                  _buildPriceRangeFilter(setModalState),
-                  const SizedBox(height: 20),
-                  _buildDateRangePicker(setModalState),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _fetchEventsByCategory(); // Yeni filtrelerle verileri çek
-                    },
-                    child: Text('Uygula',
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface)),
-                  ),
-                ],
-              ),
+            return FilterBottomSheet(
+              selectedCategories: selectedCategories,
+              minPrice: minPrice,
+              maxPrice: maxPrice,
+              startDate: startDate,
+              endDate: endDate,
+              setModalState: setModalState,
+              onApplyFilters: (final filters) {
+                setState(() {
+                  selectedCategories = filters.selectedCategories;
+                  minPrice = filters.minPrice;
+                  maxPrice = filters.maxPrice;
+                  startDate = filters.startDate;
+                  endDate = filters.endDate;
+                });
+                Navigator.pop(context);
+                _fetchShows();
+              },
             );
           },
         );
       },
     );
+  }
+}
+
+class FilterBottomSheet extends StatefulWidget {
+  final List<String> selectedCategories;
+  final double minPrice;
+  final double maxPrice;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final void Function(void Function()) setModalState;
+  final Function(FilterData) onApplyFilters;
+
+  const FilterBottomSheet({
+    super.key,
+    required this.selectedCategories,
+    required this.minPrice,
+    required this.maxPrice,
+    this.startDate,
+    this.endDate,
+    required this.setModalState,
+    required this.onApplyFilters,
+  });
+
+  @override
+  State<FilterBottomSheet> createState() => _FilterBottomSheetState();
+}
+
+class _FilterBottomSheetState extends State<FilterBottomSheet> {
+  late List<String> selectedCategories;
+  late double minPrice;
+  late double maxPrice;
+  late DateTime? startDate;
+  late DateTime? endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCategories = List.from(widget.selectedCategories);
+    minPrice = widget.minPrice;
+    maxPrice = widget.maxPrice;
+    startDate = widget.startDate;
+    endDate = widget.endDate;
   }
 
   Widget _buildCategoryFilter(final StateSetter setModalState) {
@@ -302,4 +327,55 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       ],
     );
   }
+
+  @override
+  Widget build(final BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Filtrele',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          _buildCategoryFilter(widget.setModalState),
+          const SizedBox(height: 20),
+          _buildPriceRangeFilter(widget.setModalState),
+          const SizedBox(height: 20),
+          _buildDateRangePicker(widget.setModalState),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              widget.onApplyFilters(
+                FilterData(
+                  selectedCategories: selectedCategories,
+                  minPrice: minPrice,
+                  maxPrice: maxPrice,
+                  startDate: startDate,
+                  endDate: endDate,
+                ),
+              );
+            },
+            child: const Text('Uygula'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FilterData {
+  final List<String> selectedCategories;
+  final double minPrice;
+  final double maxPrice;
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  FilterData({
+    required this.selectedCategories,
+    required this.minPrice,
+    required this.maxPrice,
+    this.startDate,
+    this.endDate,
+  });
 }

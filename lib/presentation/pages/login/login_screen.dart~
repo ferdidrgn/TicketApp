@@ -12,13 +12,11 @@ class LoginScreen extends ConsumerWidget {
   Widget build(final BuildContext context, final WidgetRef ref) {
     final loginState = ref.watch(loginProvider);
 
-    return Scaffold(
-      body: loginState.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : loginState.errorMessage != null
-              ? _buildErrorState(loginState.errorMessage!)
-              : _buildContentState(context, ref),
-    );
+    return loginState.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : loginState.errorMessage != null
+            ? _buildErrorState(loginState.errorMessage!)
+            : _buildContentState(context, ref);
   }
 
   Widget _buildErrorState(final String message) {
@@ -26,13 +24,15 @@ class LoginScreen extends ConsumerWidget {
   }
 
   Widget _buildContentState(final BuildContext context, final WidgetRef ref) {
-    return SingleChildScrollView(
-        child: Stack(
-      children: [
-        _buildBackgroundImage(),
-        _buildContent(context, ref),
-      ],
-    ));
+    return Scaffold(
+      body: SingleChildScrollView(
+          child: Stack(
+        children: [
+          _buildBackgroundImage(),
+          _buildContent(context, ref),
+        ],
+      )),
+    );
   }
 
   Widget _buildBackgroundImage() {
