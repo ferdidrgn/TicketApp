@@ -7,6 +7,7 @@ import 'package:ticketapp/data/providers/user/user_provider.dart';
 import '../../../core/util/date_formatter.dart';
 import '../../../data/providers/login/login_provider.dart';
 import '../../../domain/entities/user.dart';
+import '../profile_edit/user_profile_edit.dart';
 
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
@@ -47,8 +48,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       return;
     }
 
-    final loginNotifier = ref.read(loginProvider.notifier);
-    await loginNotifier.verifyPhone(
+    await ref.read(loginProvider.notifier).verifyPhone(
       _phoneController.text,
           (final smsCode) => _verifyOtp(smsCode),
       // OTP doğrulama için çağırıyoruz
@@ -70,28 +70,25 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       return;
     }
     try {
-      final loginNotifier = ref.read(loginProvider.notifier);
-      await loginNotifier.verifyOtp(_verificationId, otp);
+      await ref.read(loginProvider.notifier).verifyOtp(_verificationId, otp);
       final loginState = ref.read(loginProvider);
 
       if (loginState.user != null) {
-        await saveUser();
-        _navigateToHome();
-      } else {
+        final auth.User? account = auth.FirebaseAuth.instance.currentUser;
+
+        await saveUser(account); // Kullanıcıyı kaydet
+
+        // Login state'i kontrol et, hata varsa yönlendir
+        if (loginState.errorMessage != null)
+          if (account != null)
+            _navigateToEditProfile(account);
+          else
+            _navigateToHome();
+      } else
         _showSnackBar('OTP kodu hatalı. Lütfen tekrar deneyin.');
-      }
     } catch (e) {
       _showSnackBar('Hatalı kod. Lütfen tekrar deneyin.');
     }
-  }
-
-  void _navigateToHome() {
-    Navigator.of(context).pushReplacementNamed('/home');
-  }
-
-  void _showSnackBar(final String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -142,9 +139,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     );
   }
 
-  Future<void> saveUser() async {
-    final auth.User? account = auth.FirebaseAuth.instance.currentUser;
-
+  Future<void> saveUser(final auth.User? account) async {
     if (account == null) return;
 
     final String displayName = account.displayName?.trim() ?? '';
@@ -170,7 +165,23 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       role: 'user',
     );
 
-    await ref.read(userProvider.notifier).saveUser(
-        user, account.photoURL ?? '');
+    await ref
+        .read(userProvider.notifier)
+        .saveUser(user, account.photoURL ?? '');
+  }
+
+  void _navigateToEditProfile(final auth.User account) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (final context) =>
+        UserProfileEditScreen(userId: account.uid)));
   }
 }
+
+void _navigateToHome() {
+  Navigator.of(context).pushReplacementNamed('/home');
+}
+
+void _showSnackBar(final String message) {
+  ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(message)));
+}}
