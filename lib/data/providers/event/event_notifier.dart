@@ -35,7 +35,7 @@ class EventNotifier extends StateNotifier<EventState> {
     this.cancelReservationUseCase,
   ) : super(EventState());
 
-  Future<void> loadEventPrice(final String? eventId) async {
+  Future<void> loadEventPrice(final String eventId) async {
     _setLoadingState(true);
     final result = await getEventPriceUseCase.call(eventId);
 
@@ -45,7 +45,7 @@ class EventNotifier extends StateNotifier<EventState> {
     );
   }
 
-  Future<void> loadEventDate(final String? eventId,
+  Future<void> loadEventDate(final String eventId,
       {final bool formatWithMonthName = false}) async {
     _setLoadingState(true);
     final result = await getEventDateUseCase.call(eventId,
@@ -57,7 +57,7 @@ class EventNotifier extends StateNotifier<EventState> {
     );
   }
 
-  Future<void> loadStageId(final String? eventId) async {
+  Future<void> loadStageId(final String eventId) async {
     _setLoadingState(true);
     final result = await getStageIdUseCase.call(eventId);
 
@@ -67,7 +67,7 @@ class EventNotifier extends StateNotifier<EventState> {
     );
   }
 
-  Future<void> loadSeatStatusByEvent(final String? eventId) async {
+  Future<void> loadSeatStatusByEvent(final String eventId) async {
     _setLoadingState(true);
     final result = await getSeatStatusByEventUseCase.call(eventId);
 
@@ -78,7 +78,7 @@ class EventNotifier extends StateNotifier<EventState> {
   }
 
   Future<void> loadPurchasedSeatsByCustomerId(
-      final String? eventId, final String? customerId) async {
+      final String eventId, final String customerId) async {
     _setLoadingState(true);
     final result =
         await getPurchasedSeatsByCustomerIdUseCase.call(eventId, customerId);
@@ -89,7 +89,7 @@ class EventNotifier extends StateNotifier<EventState> {
     );
   }
 
-  Future<void> initializeAndGetEventSeats(final String? eventId) async {
+  Future<void> initializeAndGetEventSeats(final String eventId) async {
     _setLoadingState(true);
     final result = await initializeAndGetEventSeatsUseCase.call(eventId);
 
@@ -100,7 +100,7 @@ class EventNotifier extends StateNotifier<EventState> {
   }
 
   Future<void> updateSeatStatus(
-      final String? eventId, final String? seatId, final String? status,
+      final String eventId, final String seatId, final String status,
       {final String? customerId}) async {
     _setLoadingState(true);
     final result = await updateSeatStatusUseCase.call(eventId, seatId, status,
@@ -112,8 +112,8 @@ class EventNotifier extends StateNotifier<EventState> {
     );
   }
 
-  Future<void> reserveSeat(final String? eventId, final String? seatId,
-      final String? customerId) async {
+  Future<void> reserveSeat(final String eventId, final String seatId,
+      final String customerId) async {
     _setLoadingState(true);
     final result = await reserveSeatUseCase.call(eventId, seatId, customerId);
 
@@ -124,7 +124,7 @@ class EventNotifier extends StateNotifier<EventState> {
   }
 
   Future<void> cancelReservation(
-      final String? eventId, final String? seatId) async {
+      final String eventId, final String seatId) async {
     _setLoadingState(true);
     final result = await cancelReservationUseCase.call(eventId, seatId);
 
