@@ -6,6 +6,7 @@ import 'package:ticketapp/data/model/campaing_model.dart';
 import 'package:ticketapp/data/model/show_model.dart';
 import 'package:ticketapp/data/model/stage_model.dart';
 import 'package:ticketapp/data/providers/campaign/campaign_provider.dart';
+import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
 import '../../../core/widgets/custom_category_card.dart';
 import '../../../core/widgets/custom_dots_indicator.dart';
@@ -13,7 +14,6 @@ import '../../../core/widgets/custom_search.dart';
 import '../../../core/widgets/custom_show_card.dart';
 import '../../../core/widgets/custom_stage_card.dart';
 import '../../../core/widgets/custom_title.dart';
-import '../../../data/providers/show/show_provider.dart';
 import '../../../domain/entities/campaign.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
@@ -35,15 +35,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(campaignProvider.notifier).loadCampaigns();
-    ref.read(showProvider.notifier).loadShows(false);
-    ref.read(stageProvider.notifier).loadStages(false);
+    _loadData();
     _startAutoScroll();
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page?.round() ?? 0;
       });
     });
+  }
+
+  void _loadData() {
+    ref.read(campaignProvider.notifier).loadCampaigns();
+    ref.read(showProvider.notifier).loadShows(false);
+    ref.read(stageProvider.notifier).loadStages(false);
   }
 
   @override
@@ -56,8 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 10), (final timer) {
       setState(() {
-        final homeState = ref.read(campaignProvider);
-        _currentPage = (_currentPage + 1) % homeState.campaigns.length;
+        _currentPage = (_currentPage + 1) % ref.read(campaignProvider).campaigns.length;
       });
       _pageController.animateToPage(
         _currentPage,
@@ -74,24 +77,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _navigateToDetailPage(final String url) {
     final id = _extractIdFromUrl(url);
-    if (url.contains('player')) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (final context) => PlayerDetailPage(playerId: id)));
-    } else if (url.contains('stage')) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (final context) => StageDetailPage(stageId: id)));
-    } else if (url.contains('show')) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (final context) => ShowDetailPage(showId: id)));
-    } else {
-      throw Exception('Unknown URL: $url');
-    }
+    Widget detailPage;
+
+    if (url.contains('player')) detailPage = PlayerDetailPage(playerId: id);
+    else if (url.contains('stage')) detailPage = StageDetailPage(stageId: id);
+    else if (url.contains('show')) detailPage = ShowDetailPage(showId: id);
+    else throw Exception('Unknown URL: $url');
+
+
+    Navigator.push(context, MaterialPageRoute(builder: (final context) => detailPage));
   }
 
   String _extractIdFromUrl(final String url) {
@@ -105,9 +99,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final stageState = ref.watch(stageProvider);
 
     if (campaign.isLoading || showState.isLoading || stageState.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -172,10 +164,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (final context, final url) =>
-                  const CircularProgressIndicator(),
-              errorWidget: (final context, final url, final error) =>
-                  const Icon(Icons.error),
+              placeholder: (final context, final url) => const CircularProgressIndicator(),
+              errorWidget: (final context, final url, final error) => const Icon(Icons.error),
             ),
             Container(
               color: Colors.black.withOpacity(0.5),
@@ -225,8 +215,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (final context) =>
-                        ShowDetailPage(showId: shows[index]?.id ?? ''),
+                    builder: (final context) => ShowDetailPage(showId: shows[index]?.id ?? ''),
                   ),
                 );
               },
@@ -252,8 +241,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (final context) =>
-                      StageDetailPage(stageId: stages[index]?.id ?? ''),
+                  builder: (final context) => StageDetailPage(stageId: stages[index]?.id ?? ''),
                 ),
               );
             },
@@ -289,15 +277,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
               child: CachedNetworkImage(
-                imageUrl:
-                    'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
+                imageUrl: 'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
                 height: 150,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                placeholder: (final context, final url) =>
-                    const CircularProgressIndicator(),
-                errorWidget: (final context, final url, final error) =>
-                    const Icon(Icons.error),
+                placeholder: (final context, final url) => const CircularProgressIndicator(),
+                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),
             ),
             const SizedBox(height: 5),

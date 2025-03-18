@@ -1,44 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/widgets/bottom_nav_bar.dart';
+import 'package:ticketapp/core/widgets/custom_category_card.dart';
 import 'package:ticketapp/core/widgets/custom_search.dart';
-import 'package:ticketapp/data/repository/player_service.dart';
-import 'package:ticketapp/data/repository/show_service.dart';
-import 'package:ticketapp/data/repository/stage_service.dart';
-import 'package:ticketapp/presentation/pages/details_pages/stage_details.dart';
-import '../../../core/widgets/bottom_nav_bar.dart';
-import '../../../core/widgets/custom_category_card.dart';
-import '../../../core/widgets/custom_show_card.dart';
-import '../../../core/widgets/custom_stage_card.dart';
-import '../../../data/model/player_model.dart';
-import '../../../data/model/show_model.dart';
-import '../../../data/model/stage_model.dart';
-import '../../../data/model/team_model.dart';
-import '../../../data/repository/team_service.dart';
+import 'package:ticketapp/core/widgets/custom_show_card.dart';
+import 'package:ticketapp/core/widgets/custom_stage_card.dart';
+import 'package:ticketapp/data/model/player_model.dart';
+import 'package:ticketapp/data/model/show_model.dart';
+import 'package:ticketapp/data/model/stage_model.dart';
+import 'package:ticketapp/data/model/team_model.dart';
+import 'package:ticketapp/data/providers/player/player_provider.dart';
+import '../../../data/providers/show/show_provider.dart';
+import '../../../data/providers/stage/stage_provider.dart';
+import '../../../data/providers/team/team_provider.dart';
+import '../../../domain/entities/player.dart';
+import '../../../domain/entities/show.dart';
+import '../../../domain/entities/stage.dart';
+import '../../../domain/entities/team.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
+import '../details_pages/stage_details.dart';
 import '../details_pages/team_details.dart';
 
-class SearchPage extends StatefulWidget {
+class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
   @override
-  _SearchPageState createState() => _SearchPageState();
+  ConsumerState<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
-  final ShowService _showService = ShowService();
-  final PlayerService _playerService = PlayerService();
-  final StageService _stageService = StageService();
-  final TeamService _teamService = TeamService();
-
-  List<Show?> shows = [];
-  List<Player?> players = [];
-  List<Stage?> stages = [];
-  List<Team?> teams = [];
-
-  List<Show?> _filteredShows = [];
-  List<Player?> _filteredPlayers = [];
-  List<Stage?> _filteredStages = [];
-  List<Team?> _filteredTeams = [];
+class _SearchPageState extends ConsumerState<SearchPage> {
+  List<ShowModel?> _filteredShows = [];
+  List<PlayerModel?> _filteredPlayers = [];
+  List<StageModel?> _filteredStages = [];
+  List<TeamModel?> _filteredTeams = [];
   List<Map<String, Object>> _filteredCategories = [];
 
   final List<Map<String, Object>> _categories = [
@@ -54,8 +49,6 @@ class _SearchPageState extends State<SearchPage> {
     {'title': 'Etkinlik', 'icon': Icons.event},
   ];
 
-  bool _isLoading = false;
-
   @override
   void initState() {
     super.initState();
@@ -63,44 +56,41 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _fetchData() async {
-    setState(() => _isLoading = true);
+    await Future.wait([
+      ref.read(showProvider.notifier).loadShows(true),
+      ref.read(playerProvider.notifier).loadPlayers(true),
+      ref.read(stageProvider.notifier).loadStages(true),
+      ref.read(teamProvider.notifier).loadTeams(true),
+    ]);
+    _updateFilteredData();
+  }
 
-    try {
-      final fetchedShows = await _showService.getShows(true);
-      final fetchedPlayers = await _playerService.getPlayers(true);
-      final fetchedStages = await _stageService.getStages(true);
-      final fetchedTeams = await _teamService.getTeams(true);
+  void _updateFilteredData() {
+    final shows = ref.read(showProvider).shows;
+    final players = ref.read(playerProvider).players;
+    final stages = ref.read(stageProvider).stages;
+    final teams = ref.read(teamProvider).teams;
 
-      setState(() {
-        shows = fetchedShows;
-        players = fetchedPlayers;
-        stages = fetchedStages;
-        teams = fetchedTeams;
-
-        _filteredShows = shows;
-        _filteredPlayers = players;
-        _filteredStages = stages;
-        _filteredTeams = teams;
-        _filteredCategories = _categories;
-      });
-    } catch (e) {
-      throw Exception('Veriler getirilemedi: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    setState(() {
+      _filteredShows = shows;
+      _filteredPlayers = players;
+      _filteredStages = stages;
+      _filteredTeams = teams;
+      _filteredCategories = _categories;
+    });
   }
 
   void _filterData(final String query) {
     setState(() {
-      _filteredShows = shows
+      _filteredShows = ref
+          .read(showProvider)
+          .shows
           .where((final show) =>
               (show?.name ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
-      _filteredTeams = teams
-          .where((final team) =>
-              (team?.name ?? '').toLowerCase().contains(query.toLowerCase()))
-          .toList();
-      _filteredPlayers = players
+      _filteredPlayers = ref
+          .read(playerProvider)
+          .players
           .where((final player) =>
               (player?.firstName ?? '')
                   .toLowerCase()
@@ -109,10 +99,19 @@ class _SearchPageState extends State<SearchPage> {
                   .toLowerCase()
                   .contains(query.toLowerCase()))
           .toList();
-      _filteredStages = stages
+      _filteredStages = ref
+          .read(stageProvider)
+          .stages
           .where((final stage) =>
               (stage?.name ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
+      _filteredTeams = ref
+          .read(teamProvider)
+          .teams
+          .where((final team) =>
+              (team?.name ?? '').toLowerCase().contains(query.toLowerCase()))
+          .toList();
+
       _filteredCategories = _categories
           .where((final category) => (category['title']! as String)
               .toLowerCase()
@@ -125,6 +124,18 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(final BuildContext context) {
+    final showNotifier = ref.watch(showProvider);
+    final playerNotifier = ref.watch(playerProvider);
+    final stageNotifier = ref.watch(stageProvider);
+    final teamNotifier = ref.watch(teamProvider);
+
+    if (showNotifier.isLoading ||
+        playerNotifier.isLoading ||
+        stageNotifier.isLoading ||
+        teamNotifier.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Arama', style: TextStyle(fontSize: 20)),
@@ -136,24 +147,20 @@ class _SearchPageState extends State<SearchPage> {
           children: [
             CustomSearchBar(onSearchChanged: _onSearchChanged),
             const SizedBox(height: 16),
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_filteredShows.isNotEmpty) _buildShowSection(),
-                      if (_filteredPlayers.isNotEmpty) _buildPlayerSection(),
-                      if (_filteredStages.isNotEmpty) _buildVenueSection(),
-                      if (_filteredTeams.isNotEmpty) _buildTeamSection(),
-                      if (_filteredCategories.isNotEmpty)
-                        _buildCategorySection(),
-                    ],
-                  ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_filteredShows.isNotEmpty) _buildShowSection(),
+                    if (_filteredPlayers.isNotEmpty) _buildPlayerSection(),
+                    if (_filteredStages.isNotEmpty) _buildVenueSection(),
+                    if (_filteredTeams.isNotEmpty) _buildTeamSection(),
+                    if (_filteredCategories.isNotEmpty) _buildCategorySection(),
+                  ],
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -164,7 +171,8 @@ class _SearchPageState extends State<SearchPage> {
     return _buildSection(
         title: 'Eşleşen Etkinlikler',
         itemCount: _filteredShows.length,
-        itemBuilder: (final context, final index) => _buildShowCard(context, index),
+        itemBuilder: (final context, final index) =>
+            _buildShowCard(context, index),
         showAllAction: _buildShowAllButton());
   }
 
@@ -172,7 +180,8 @@ class _SearchPageState extends State<SearchPage> {
     return _buildSection(
       title: 'Gösteri Mekanları',
       itemCount: _filteredStages.length,
-      itemBuilder: (final context, final index) => _buildVenueCard(context, index),
+      itemBuilder: (final context, final index) =>
+          _buildVenueCard(context, index),
     );
   }
 
@@ -180,7 +189,8 @@ class _SearchPageState extends State<SearchPage> {
     return _buildSection(
       title: 'Oyuncular',
       itemCount: _filteredPlayers.length,
-      itemBuilder: (final context, final index) => _buildPlayerCard(context, index),
+      itemBuilder: (final context, final index) =>
+          _buildPlayerCard(context, index),
     );
   }
 
@@ -188,7 +198,8 @@ class _SearchPageState extends State<SearchPage> {
     return _buildSection(
       title: 'Ekipler',
       itemCount: _filteredTeams.length,
-      itemBuilder: (final context, final index) => _buildTeamCard(context, index),
+      itemBuilder: (final context, final index) =>
+          _buildTeamCard(context, index),
     );
   }
 

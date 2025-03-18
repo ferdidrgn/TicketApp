@@ -10,7 +10,8 @@ class StageNotifier extends StateNotifier<StageState> {
   final GetStageByIdUseCase getStageByIdUseCase;
   final GetSearchStageUseCase getSearchStageUseCase;
 
-  StageNotifier(this.getStagesUseCase, this.getStageByIdUseCase, this.getSearchStageUseCase)
+  StageNotifier(this.getStagesUseCase, this.getStageByIdUseCase,
+      this.getSearchStageUseCase)
       : super(StageState());
 
   Future<void> loadStages(final isLimit) async {
@@ -18,11 +19,8 @@ class StageNotifier extends StateNotifier<StageState> {
     final result = await getStagesUseCase.call(isLimit);
 
     result.fold(
-          (final failure) => _setErrorState(failure.message),
-          (final stages) {
-        final convertedStages = stages.map((final stage) => stage).toList();
-        _setStagesState(convertedStages);
-      },
+      (final failure) => _setErrorState(failure.message),
+      (final stages) => _setStagesState(stages),
     );
   }
 
@@ -31,8 +29,8 @@ class StageNotifier extends StateNotifier<StageState> {
     final result = await getStageByIdUseCase.call(stageId);
 
     result.fold(
-          (final failure) => _setErrorState(failure.message),
-          (final stage) => _setStageState(stage),
+      (final failure) => _setErrorState(failure.message),
+      (final stage) => _setStageState(stage),
     );
   }
 
@@ -41,11 +39,8 @@ class StageNotifier extends StateNotifier<StageState> {
     final result = await getSearchStageUseCase.call(query);
 
     result.fold(
-          (final failure) => _setErrorState(failure.message),
-          (final stages) {
-        final convertedStages = stages.map((final stage) => stage).toList();
-        _setStagesState(convertedStages);
-      },
+      (final failure) => _setErrorState(failure.message),
+      (final stages) => _setStagesState(stages),
     );
   }
 

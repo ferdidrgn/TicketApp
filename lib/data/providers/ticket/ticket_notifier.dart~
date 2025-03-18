@@ -18,7 +18,7 @@ class TicketNotifier extends StateNotifier<TicketState> {
 
     result.fold(
       (final failure) => _setErrorState(failure.message),
-      (final ticket) => _setTicketState(ticket),
+      (final ticket) => _setTicketState(ticket?.toEntity()),
     );
   }
 
@@ -33,7 +33,7 @@ class TicketNotifier extends StateNotifier<TicketState> {
     );
   }
 
-  void _setLoadingState(final isLoading) {
+  void _setLoadingState(final bool isLoading) {
     state = state.copyWith(isLoading: isLoading);
   }
 
@@ -41,7 +41,7 @@ class TicketNotifier extends StateNotifier<TicketState> {
     state = state.copyWith(errorMessage: errorMessage, isLoading: false);
   }
 
-  void _setTicketState(final TicketModel? ticket) {
+  void _setTicketState(final Ticket? ticket) {
     state = state.copyWith(ticket: ticket, isLoading: false);
   }
 

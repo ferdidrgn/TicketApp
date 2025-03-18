@@ -1,7 +1,7 @@
-import '../../../domain/entities/ticket.dart';
+import 'package:ticketapp/data/model/ticket_model.dart';
 
 class TicketState {
-  final Ticket? ticket;
+  final TicketModel? ticket;
   final bool isLoading;
   final String? errorMessage;
 
@@ -12,7 +12,7 @@ class TicketState {
   });
 
   TicketState copyWith({
-    final Ticket? ticket,
+    final TicketModel? ticket,
     final bool? isLoading,
     final String? errorMessage,
   }) {

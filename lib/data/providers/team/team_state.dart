@@ -1,8 +1,8 @@
-import '../../../domain/entities/team.dart';
+import 'package:ticketapp/data/model/team_model.dart';
 
 class TeamState {
-  final List<Team?> teams;
-  final Team? team;
+  final List<TeamModel?> teams;
+  final TeamModel? team;
   final bool isLoading;
   final String? errorMessage;
 
@@ -14,8 +14,8 @@ class TeamState {
   });
 
   TeamState copyWith({
-    final List<Team?>? teams,
-    final Team? team,
+    final List<TeamModel?>? teams,
+    final TeamModel? team,
     final bool? isLoading,
     final String? errorMessage,
   }) {
