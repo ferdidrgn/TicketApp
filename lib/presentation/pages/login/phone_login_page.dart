@@ -43,23 +43,23 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   }
 
   Future<void> _verifyPhone() async {
-    if (_phoneController.text.isEmpty) {
+    final phoneNumber = _phoneController.text;
+    if (phoneNumber.isEmpty) {
       _showSnackBar('Lütfen bir telefon numarası girin.');
       return;
     }
 
     await ref.read(loginProvider.notifier).verifyPhone(
-      _phoneController.text,
-          (final smsCode) => _verifyOtp(smsCode),
-      // OTP doğrulama için çağırıyoruz
-          (final verificationId) {
+      phoneNumber,
+      (final smsCode) => _verifyOtp(smsCode),
+      (final verificationId) {
         setState(() {
           _verificationId = verificationId;
           _codeSent = true;
         });
         _startResendTimer();
       },
-          (final verificationId) =>
+      (final verificationId) =>
           setState(() => _verificationId = verificationId),
     );
   }
@@ -69,92 +69,34 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       _showSnackBar('Lütfen OTP kodunu girin.');
       return;
     }
+
     try {
       await ref.read(loginProvider.notifier).verifyOtp(_verificationId, otp);
       final loginState = ref.read(loginProvider);
 
       if (loginState.user != null) {
         final auth.User? account = auth.FirebaseAuth.instance.currentUser;
+        await _saveUser(account!);
 
-        await saveUser(account); // Kullanıcıyı kaydet
-
-        // Login state'i kontrol et, hata varsa yönlendir
         if (loginState.errorMessage != null)
-          if (account != null)
-            _navigateToEditProfile(account);
-          else
-            _navigateToHome();
-      } else
+          _navigateToEditProfile(account.uid);
+        else
+          _navigateToHome();
+      } else {
         _showSnackBar('OTP kodu hatalı. Lütfen tekrar deneyin.');
+      }
     } catch (e) {
       _showSnackBar('Hatalı kod. Lütfen tekrar deneyin.');
     }
   }
 
-  @override
-  Widget build(final BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Telefon Doğrulama"), centerTitle: true),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                hintText: "+90***********",
-                labelText: "Telefon Numarası",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _codeSent ? null : _verifyPhone,
-              child: Text(_codeSent ? "Kod Gönderildi" : "Kod Gönder"),
-            ),
-            if (_codeSent) ...[
-              const SizedBox(height: 24),
-              const Text("Lütfen size gönderilen kodu giriniz:",
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              Pinput(
-                length: 6,
-                onCompleted: _verifyOtp,
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: _timeUntilNextResend == 0 ? _verifyPhone : null,
-                child: Text(
-                  _timeUntilNextResend > 0
-                      ? "Yeniden gönderme süresi: $_timeUntilNextResend"
-                      : "Kodu yeniden gönder",
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> saveUser(final auth.User? account) async {
-    if (account == null) return;
-
-    final String displayName = account.displayName?.trim() ?? '';
-    final List<String> nameParts = displayName.split(' ');
-
-    final String lastName = nameParts.isNotEmpty ? nameParts.removeLast() : '';
-    final String firstName = nameParts.join(' ');
-    final nowTime = DateFormatter.nowFormatDateTime();
-
+  Future<void> _saveUser(final auth.User account) async {
     final user = User(
       id: account.uid,
-      createdAt: nowTime,
-      updatedAt: nowTime,
-      firstName: firstName,
-      lastName: lastName,
+      createdAt: DateFormatter.nowFormatDateTime(),
+      updatedAt: DateFormatter.nowFormatDateTime(),
+      firstName: _extractFirstName(account.displayName),
+      lastName: _extractLastName(account.displayName),
       imageUrl: account.photoURL,
       phoneNumber: account.phoneNumber ?? '',
       age: 0,
@@ -170,18 +112,90 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         .saveUser(user, account.photoURL ?? '');
   }
 
-  void _navigateToEditProfile(final auth.User account) {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (final context) =>
-        UserProfileEditScreen(userId: account.uid)));
+  String _extractFirstName(final String? displayName) {
+    final parts = displayName?.trim().split(' ') ?? [];
+    return parts.length > 1 ? parts.sublist(0, parts.length - 1).join(' ') : '';
+  }
+
+  String _extractLastName(final String? displayName) {
+    final parts = displayName?.trim().split(' ') ?? [];
+    return parts.isNotEmpty ? parts.last : '';
+  }
+
+  void _navigateToEditProfile(final String uid) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (final context) => UserProfileEditScreen(userId: uid),
+      ),
+    );
+  }
+
+  void _navigateToHome() {
+    Navigator.of(context).pushReplacementNamed('/home');
+  }
+
+  void _showSnackBar(final String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Telefon Doğrulama"), centerTitle: true),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildPhoneNumberField(),
+            const SizedBox(height: 16),
+            _buildSendCodeButton(),
+            if (_codeSent) ..._buildOtpInput(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  TextField _buildPhoneNumberField() {
+    return TextField(
+      controller: _phoneController,
+      keyboardType: TextInputType.phone,
+      decoration: const InputDecoration(
+        hintText: "+90***********",
+        labelText: "Telefon Numarası",
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
+
+  ElevatedButton _buildSendCodeButton() {
+    return ElevatedButton(
+      onPressed: _codeSent ? null : _verifyPhone,
+      child: Text(_codeSent ? "Kod Gönderildi" : "Kod Gönder"),
+    );
+  }
+
+  List<Widget> _buildOtpInput() {
+    return [
+      const SizedBox(height: 24),
+      const Text("Lütfen size gönderilen kodu giriniz:",
+          textAlign: TextAlign.center),
+      const SizedBox(height: 16),
+      Pinput(
+        length: 6,
+        onCompleted: _verifyOtp,
+      ),
+      const SizedBox(height: 16),
+      TextButton(
+        onPressed: _timeUntilNextResend == 0 ? _verifyPhone : null,
+        child: Text(
+          _timeUntilNextResend > 0
+              ? "Yeniden gönderme süresi: $_timeUntilNextResend"
+              : "Kodu yeniden gönder",
+        ),
+      ),
+    ];
   }
 }
-
-void _navigateToHome() {
-  Navigator.of(context).pushReplacementNamed('/home');
-}
-
-void _showSnackBar(final String message) {
-  ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(message)));
-}}
