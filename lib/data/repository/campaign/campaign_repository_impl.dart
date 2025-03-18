@@ -1,9 +1,9 @@
 import 'package:dartz/dartz.dart';
 import '../../../../../core/errors/failures.dart';
 import '../../../core/network/internet_service.dart';
-import '../../../domain/entities/campaign.dart';
 import '../../../domain/repository/campaign_repository.dart';
 import '../../datasources/campaign/campaign_remote_data_source_and_impl.dart';
+import '../../model/campaing_model.dart';
 
 class CampaignRepositoryImpl implements CampaignRepository {
   final CampaignRemoteDataSource remoteDataSource;
@@ -15,11 +15,11 @@ class CampaignRepositoryImpl implements CampaignRepository {
   });
 
   @override
-  Future<Either<Failure, List<Campaign>>> getCampaigns() async {
+  Future<Either<Failure, List<CampaignModel>>> getCampaigns() async {
     if (await internetService.isConnected)
       try {
         final campaigns = await remoteDataSource.getCampaigns();
-        if (campaigns.isNotEmpty) return Right(campaigns.map((final model) => model.toEntity()).toList());
+        if (campaigns.isNotEmpty) return Right(campaigns.map((final model) => model).toList());
         else return const Left(ServerFailure("Boş Liste"));
       } catch (e) {
         return Left(ServerFailure(e.toString()));

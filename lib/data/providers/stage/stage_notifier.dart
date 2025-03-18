@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../domain/entities/stage.dart';
 import '../../../domain/useCase/stage/get_search_stage_use_case_impl.dart';
 import '../../../domain/useCase/stage/get_stage_by_id_use_case_impl.dart';
 import '../../../domain/useCase/stage/get_stages_use_case_impl.dart';
+import '../../model/stage_model.dart';
 import 'stage_state.dart';
 
 class StageNotifier extends StateNotifier<StageState> {
@@ -20,7 +20,7 @@ class StageNotifier extends StateNotifier<StageState> {
     result.fold(
           (final failure) => _setErrorState(failure.message),
           (final stages) {
-        final convertedStages = stages.map((final stage) => stage?.toEntity()).toList();
+        final convertedStages = stages.map((final stage) => stage).toList();
         _setStagesState(convertedStages);
       },
     );
@@ -32,7 +32,7 @@ class StageNotifier extends StateNotifier<StageState> {
 
     result.fold(
           (final failure) => _setErrorState(failure.message),
-          (final stage) => _setStageState(stage?.toEntity()),
+          (final stage) => _setStageState(stage),
     );
   }
 
@@ -43,7 +43,7 @@ class StageNotifier extends StateNotifier<StageState> {
     result.fold(
           (final failure) => _setErrorState(failure.message),
           (final stages) {
-        final convertedStages = stages.map((final stage) => stage?.toEntity()).toList();
+        final convertedStages = stages.map((final stage) => stage).toList();
         _setStagesState(convertedStages);
       },
     );
@@ -57,11 +57,11 @@ class StageNotifier extends StateNotifier<StageState> {
     state = state.copyWith(errorMessage: errorMessage, isLoading: false);
   }
 
-  void _setStagesState(final List<Stage?> stages) {
+  void _setStagesState(final List<StageModel?> stages) {
     state = state.copyWith(stages: stages, isLoading: false);
   }
 
-  void _setStageState(final Stage? stage) {
+  void _setStageState(final StageModel? stage) {
     state = state.copyWith(stage: stage, isLoading: false);
   }
 }

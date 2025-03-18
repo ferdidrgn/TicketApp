@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/data/model/campaing_model.dart';
 
 import '../../../domain/entities/campaign.dart';
 import '../../../domain/useCase/campaign/get_campaigns_use_case_impl.dart';
@@ -30,7 +29,7 @@ class CampaignNotifier extends StateNotifier<CampaignState> {
     state = state.copyWith(errorMessage: errorMessage, isLoading: false);
   }
 
-  void _setCampaignsState(final List<CampaignModel?> campaigns) {
+  void _setCampaignsState(final List<Campaign?> campaigns) {
     state = state.copyWith(campaigns: campaigns, isLoading: false);
   }
 }

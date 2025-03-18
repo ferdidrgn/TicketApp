@@ -1,4 +1,6 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/errors/failures.dart';
 import '../../../domain/useCase/show/add_show_use_case_impl.dart';
 import '../../../domain/useCase/show/delete_show_use_case_impl.dart';
 import '../../../domain/useCase/show/get_search_show_use_case_impl.dart';
@@ -26,64 +28,52 @@ class ShowNotifier extends StateNotifier<ShowState> {
   ) : super(ShowState());
 
   Future<void> addShow(final ShowModel show, final Uri? imageUrl) async {
-    _setLoadingState(true);
-    final result = await addShowUseCase.call(show, imageUrl);
-
-    result.fold(
-      (final failure) => _setErrorState(failure.message),
-      (final _) => _setSuccessState(),
-    );
+    await _handleShowOperation(() async => addShowUseCase.call(show, imageUrl));
   }
 
   Future<void> deleteShow(final String? showId) async {
-    _setLoadingState(true);
-    final result = await deleteShowUseCase.call(showId);
-
-    result.fold(
-      (final failure) => _setErrorState(failure.message),
-      (final _) => _setSuccessState(),
-    );
+    await _handleShowOperation(() async => deleteShowUseCase.call(showId));
   }
 
   Future<void> updateShow(
       final String showId, final Map<String, dynamic> updatedData) async {
-    _setLoadingState(true);
-    final result = await updateShowUseCase.call(showId, updatedData);
-
-    result.fold(
-      (final failure) => _setErrorState(failure.message),
-      (final _) => _setSuccessState(),
-    );
+    await _handleShowOperation(
+        () async => updateShowUseCase.call(showId, updatedData));
   }
 
   Future<void> loadShowById(final String showId) async {
-    _setLoadingState(true);
-    final result = await getShowByIdUseCase.call(showId);
-
-    result.fold(
-      (final failure) => _setErrorState(failure.message),
-      (final show) => _setShowState(show),
-    );
+    await _handleShowOperation(() async => getShowByIdUseCase.call(showId),
+        onSuccess: (final show) {
+      state = state.copyWith(show: show);
+    });
   }
 
   Future<void> loadShows(final isLimit) async {
-    _setLoadingState(true);
-    final result = await getShowsUseCase.call(isLimit);
-
-    result.fold(
-      (final failure) => _setErrorState(failure.message),
-      (final shows) => _setShowsState(shows),
-    );
+    await _handleShowOperation(() async => getShowsUseCase.call(isLimit),
+        onSuccess: (final shows) {
+      state = state.copyWith(shows: shows);
+    });
   }
 
   Future<void> searchShows(
       final List<String> categories, final String? type) async {
+    await _handleShowOperation(
+        () async => getSearchShowUseCase.call(categories, type));
+  }
+
+  Future<void> _handleShowOperation<T>(
+    final Future<Either<Failure, T>> Function() operation, {
+    final Function(T)? onSuccess,
+  }) async {
     _setLoadingState(true);
-    final result = await getSearchShowUseCase.call(categories, type);
+    final result = await operation();
 
     result.fold(
       (final failure) => _setErrorState(failure.message),
-      (final shows) => _setShowsState(shows),
+      (final success) {
+        onSuccess?.call(success);
+        _setSuccessState();
+      },
     );
   }
 
@@ -97,13 +87,5 @@ class ShowNotifier extends StateNotifier<ShowState> {
 
   void _setSuccessState() {
     state = state.copyWith(isLoading: false);
-  }
-
-  void _setShowState(final ShowModel? show) {
-    state = state.copyWith(show: show, isLoading: false);
-  }
-
-  void _setShowsState(final List<ShowModel?> shows) {
-    state = state.copyWith(shows: shows, isLoading: false);
   }
 }

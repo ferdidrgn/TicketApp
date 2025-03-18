@@ -1,18 +1,18 @@
-import '../../../domain/entities/campaign.dart';
+import 'package:ticketapp/data/model/campaing_model.dart';
 
 class CampaignState {
-  final List<Campaign?> campaigns;
+  final List<CampaignModel?> campaigns;
   final bool isLoading;
   final String? errorMessage;
 
   CampaignState({
     this.isLoading = false,
     this.errorMessage,
-    final List<Campaign?>? campaigns,
+    final List<CampaignModel?>? campaigns,
   }) : campaigns = campaigns ?? [];
 
   CampaignState copyWith({
-    final List<Campaign?>? campaigns,
+    final List<CampaignModel?>? campaigns,
     final bool? isLoading,
     final String? errorMessage,
   }) {
