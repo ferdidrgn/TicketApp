@@ -32,7 +32,7 @@ class MyApp extends ConsumerWidget {
       initialRoute: '/',
       routes: {
         '/': (final context) => const SplashScreen(),
-        '/login': (final context) => LoginScreen(),
+        '/login': (final context) => const LoginScreen(),
         '/onboarding': (final context) => const OnboardingContainer(),
         '/home': (final context) => const HomePageContainer(),
       },
