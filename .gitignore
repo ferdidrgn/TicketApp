@@ -45,7 +45,5 @@ app.*.map.json
 firebase.json
 /android/app
 pubspec.lock
-pubspec.lock
 *.lock
-pubspec.lock
 ios/Runner/GoogleService-Info.plist
