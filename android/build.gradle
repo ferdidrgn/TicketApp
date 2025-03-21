@@ -1,5 +1,4 @@
-// android/build.gradle
-buildscript {
+allprojects {
     repositories {
         google()
         mavenCentral()
