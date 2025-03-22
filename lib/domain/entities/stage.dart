@@ -4,7 +4,7 @@ class Stage extends Equatable {
   final String? id;
   final String? name;
   final String? imageUrl;
-  final int? capacity;
+  final String? capacity;
   final String? description;
   final String? communication;
   final String? address;
