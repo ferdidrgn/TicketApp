@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ticketapp/core/util/shimmer.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
 import '../../../core/widgets/custom_show_card.dart';
 import '../../../core/widgets/custom_title.dart';
@@ -114,13 +114,16 @@ class _StageDetailPageState extends State<StageDetailPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: CachedNetworkImage(
-            imageUrl: _stage?.imageUrl ?? '',
+          child: Image.network(
+            _stage?.imageUrl ?? '',
             fit: BoxFit.cover,
-            placeholder: (final context, final url) =>
-                const CircularProgressIndicator(),
-            errorWidget: (final context, final url, final error) =>
-                const Icon(Icons.error),
+            loadingBuilder: (final context, final child, final loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const ShimmerLoading();
+            },
+            errorBuilder: (final context, final error, final stackTrace) {
+              return const Center(child: Icon(Icons.error));
+            },
           ),
         ),
       ),

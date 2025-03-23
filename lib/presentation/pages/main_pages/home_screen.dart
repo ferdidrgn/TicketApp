@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/data/model/campaing_model.dart';
@@ -8,6 +7,7 @@ import 'package:ticketapp/data/model/stage_model.dart';
 import 'package:ticketapp/data/providers/campaign/campaign_provider.dart';
 import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
+import '../../../core/util/shimmer.dart';
 import '../../../core/widgets/custom_category_card.dart';
 import '../../../core/widgets/custom_dots_indicator.dart';
 import '../../../core/widgets/custom_search.dart';
@@ -178,13 +178,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
-            CachedNetworkImage(
-              imageUrl: campaign.imageUrl,
+            Image.network(
+              campaign.imageUrl,
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (final context, final url) => const CircularProgressIndicator(),
-              errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+              loadingBuilder: (final context, final child, final loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const ShimmerLoading();
+              },
+              errorBuilder: (final context, final error, final stackTrace) {
+                return const Center(child: Icon(Icons.error));
+              },
             ),
             Container(
               color: Colors.black.withOpacity(0.5),
@@ -297,16 +302,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-              child: CachedNetworkImage(
-                imageUrl:
-                    'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
+              child: Image.network(
+               'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
                 height: 150,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                placeholder: (final context, final url) =>
-                    const CircularProgressIndicator(),
-                errorWidget: (final context, final url, final error) =>
-                    const Icon(Icons.error),
+                loadingBuilder: (final context, final child, final loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const ShimmerLoading();
+                },
+                errorBuilder: (final context, final error, final stackTrace) {
+                  return const Center(child: Icon(Icons.error));
+                },
               ),
             ),
             const SizedBox(height: 5),

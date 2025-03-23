@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import 'package:ticketapp/data/datasources/player/player_remote_data_source_and_
 import 'package:ticketapp/data/datasources/show/show_remote_data_source_and_impl.dart';
 import 'package:ticketapp/presentation/pages/details_pages/player_details.dart';
 import 'package:ticketapp/presentation/pages/details_pages/seat_details.dart';
+import '../../../core/util/shimmer.dart';
 import '../../../core/widgets/custom_stage_card.dart';
 import '../../../domain/entities/player.dart';
 import '../../../domain/entities/show.dart';
@@ -139,13 +139,16 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             ),
           ],
         ),
-        child: CachedNetworkImage(
-          imageUrl: showData?.imageUrl ?? '',
+        child: Image.network(
+          showData?.imageUrl ?? '',
           fit: BoxFit.cover,
-          placeholder: (final context, final url) =>
-              const CircularProgressIndicator(),
-          errorWidget: (final context, final url, final error) =>
-              const Icon(Icons.error),
+          loadingBuilder: (final context, final child, final loadingProgress) {
+            if (loadingProgress == null) return child;
+            return const ShimmerLoading();
+          },
+          errorBuilder: (final context, final error, final stackTrace) {
+            return const Center(child: Icon(Icons.error));
+          },
         ),
       ),
     );
@@ -378,15 +381,18 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         elevation: 8,
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: CachedNetworkImage(
-            imageUrl: photoUrl ?? '',
+          child: Image.network(
+            photoUrl ?? '',
             height: 150,
             width: double.infinity,
             fit: BoxFit.cover,
-            placeholder: (final context, final url) =>
-                const CircularProgressIndicator(),
-            errorWidget: (final context, final url, final error) =>
-                const Icon(Icons.error),
+            loadingBuilder: (final context, final child, final loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const ShimmerLoading();
+            },
+            errorBuilder: (final context, final error, final stackTrace) {
+              return const Center(child: Icon(Icons.error));
+            },
           ),
         ),
       ),
@@ -411,13 +417,16 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             // Arkaplan rengini ayarlamak için
             body: Center(
               child: InteractiveViewer(
-                child: CachedNetworkImage(
-                  imageUrl: photoUrl,
+                child: Image.network(
+                  photoUrl,
                   fit: BoxFit.contain, // Görseli tam boyutta göster
-                  placeholder: (final context, final url) =>
-                      const CircularProgressIndicator(),
-                  errorWidget: (final context, final url, final error) =>
-                      const Icon(Icons.error),
+                  loadingBuilder: (final context, final child, final loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const ShimmerLoading();
+                  },
+                  errorBuilder: (final context, final error, final stackTrace) {
+                    return const Center(child: Icon(Icons.error));
+                  },
                 ),
               ),
             ),
