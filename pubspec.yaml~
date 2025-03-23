@@ -47,9 +47,7 @@ dependencies:
 
   # Ağ
   dio: ^5.3.2  # HTTP istekleri için kullanılan bir ağ kütüphanesi.
-  
-  #Internet Image
-  cached_network_image: ^3.2.3  # İnternetten resimleri önbelleğe alır.
+
 
   # Yerel Depolama
   shared_preferences: ^2.2.0  # Kalıcı veri depolamak için.
@@ -58,47 +56,48 @@ dependencies:
   internet_connection_checker: ^3.0.1  # İnternet bağlantısını kontrol eder.
 
   # Firebase
-  firebase_core: ^3.6.0  # Firebase temel yapı.
-  cloud_firestore: ^5.4.4  # Firebase'in NoSQL veritabanı.
-  firebase_storage: ^12.3.2  # Firebase dosya depolama hizmeti.
-  firebase_auth: ^5.3.1  # Firebase kimlik doğrulama.
+  firebase_core:  # Firebase temel yapı.
+  cloud_firestore:   # Firebase'in NoSQL veritabanı.
+  firebase_storage:   # Firebase dosya depolama hizmeti.
+  firebase_auth:  # Firebase kimlik doğrulama.
 
   # Google
-  google_sign_in: ^6.2.1  # Google ile giriş yapma.
-  google_maps_flutter: ^2.1.1  # Google Haritalar entegrasyonu.
+  google_sign_in:  # Google ile giriş yapma.
+  google_maps_flutter:  # Google Haritalar entegrasyonu.
 
   # Diğer bağımlılıklar
-  curved_navigation_bar: ^1.0.6  # En son sürüm.
-  permission_handler: ^10.0.0  # İzin yönetimi için.
-  simple_html_css: ^5.0.0  # HTML/CSS işleme.
-  pinput: ^4.0.0  # Giriş alanı için.
-  qr_flutter: ^4.0.1  # QR kod oluşturma.
+  curved_navigation_bar:  # En son sürüm.
+  permission_handler:   # İzin yönetimi için.
+  simple_html_css:   # HTML/CSS işleme.
+  pinput:  # Giriş alanı için.
+  qr_flutter:   # QR kod oluşturma.
+  shimmer:   # Görüntü yükseltme.
 
   # URL ve Dosya Seçimi
-  url_launcher: ^6.0.20  # URL açmak için.
-  image_picker: ^0.8.7+5  # Kamera ve galeriye erişim için.
-  file_picker: ^8.1.7  # Dosya seçimi için.
+  url_launcher:   # URL açmak için.
+  image_picker: # Kamera ve galeriye erişim için.
+  file_picker:   # Dosya seçimi için.
 
   # Uluslararasılaştırma
-  intl: ^0.18.1  # Tarih ve sayı biçimlendirme için.
+  intl: # Tarih ve sayı biçimlendirme için.
 
   # Diğer Kütüphaneler
-  flutter_riverpod: ^2.4.10  # State yönetimi için Riverpod.
-  freezed_annotation: ^2.4.1  # Immutable veri sınıfları için.
-  riverpod_annotation: ^2.3.4  # Riverpod için anotasyon desteği.
+  flutter_riverpod:   # State yönetimi için Riverpod.
+  freezed_annotation:   # Immutable veri sınıfları için.
+  riverpod_annotation:  # Riverpod için anotasyon desteği.
 
   # Kod Üretimi
-  build_runner: ^2.4.8  # Kod üretimi aracı.
-  freezed: ^2.4.7  # Freezed ile veri sınıfları oluşturur.
-  riverpod_generator: ^2.3.9  # Riverpod için kod üretimi.
+  build_runner:   # Kod üretimi aracı.
+  freezed:  # Freezed ile veri sınıfları oluşturur.
+  riverpod_generator:  # Riverpod için kod üretimi.
 
 dev_dependencies:
   flutter_test:
     sdk: flutter  # Flutter test kütüphanesi.
 
-  flutter_lints: ^4.0.0  # Kod kalitesini artıran lint kuralları.
-  build_runner: ^2.4.8  # Kod üretimi aracı.
-  injectable_generator: ^2.4.1  # Injectable için otomatik kod üretimi.
+  flutter_lints:   # Kod kalitesini artıran lint kuralları.
+  build_runner:   # Kod üretimi aracı.
+  injectable_generator:  # Injectable için otomatik kod üretimi.
 
 
 # For information on the generic Dart part of this file, see the
