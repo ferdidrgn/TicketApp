@@ -35,16 +35,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initializeData();
+  }
+
+  void _initializeData() {
     _startAutoScroll();
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page?.round() ?? 0;
       });
     });
-  }
-
-  void _loadData() {
   }
 
   @override
@@ -98,21 +98,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (campaignState.isLoading || showState.isLoading || stageState.isLoading)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    // Sayfa yüklendiğinde loadCampaigns'i tetikliyoruz.
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (!campaignState.isLoading && campaignState.campaigns.isEmpty)
-        ref.read(campaignProvider.notifier).loadCampaigns();
-      if (!showState.isLoading && showState.shows.isEmpty)
-        ref.read(showProvider.notifier).loadShows(true);
-      if (!stageState.isLoading && stageState.stages.isEmpty)
-        ref.read(stageProvider.notifier).loadStages(true);
-    });
+    _loadInitialDataIfNeeded(campaignState, showState, stageState);
 
-    if (campaignState.errorMessage != null ||
-        showState.errorMessage != null ||
-        stageState.errorMessage != null) {
+    if (_hasError(campaignState, showState, stageState))
       return Scaffold(body: Center(child: Text(campaignState.errorMessage!)));
-    }
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -135,6 +124,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+
+  void _loadInitialDataIfNeeded(
+      final campaignState, final showState, final stageState) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (!campaignState.isLoading && campaignState.campaigns.isEmpty)
+        ref.read(campaignProvider.notifier).loadCampaigns();
+      if (!showState.isLoading && showState.shows.isEmpty)
+        ref.read(showProvider.notifier).loadShows(true);
+      if (!stageState.isLoading && stageState.stages.isEmpty)
+        ref.read(stageProvider.notifier).loadStages(true);
+    });
+  }
+
+  bool _hasError(final campaignState, final showState, final stageState) {
+    return campaignState.errorMessage != null ||
+        showState.errorMessage != null ||
+        stageState.errorMessage != null;
   }
 
   Widget _buildCampaignSlider(final List<CampaignModel?> campaigns) {
