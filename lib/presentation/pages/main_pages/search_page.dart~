@@ -12,34 +12,20 @@ import 'package:ticketapp/data/model/show_model.dart';
 import 'package:ticketapp/data/model/stage_model.dart';
 import 'package:ticketapp/data/model/team_model.dart';
 import 'package:ticketapp/data/providers/player/player_provider.dart';
+import 'package:ticketapp/data/providers/stage/stage_state.dart';
+import '../../../data/providers/player/player_state.dart';
 import '../../../data/providers/show/show_provider.dart';
+import '../../../data/providers/show/show_state.dart';
 import '../../../data/providers/stage/stage_provider.dart';
 import '../../../data/providers/team/team_provider.dart';
+import '../../../data/providers/team/team_state.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 import '../details_pages/team_details.dart';
 
-// Tek bir yerden veri çekme işlemini yönetmek için provider
-final dataFetchProvider = FutureProvider.autoDispose<bool>((final ref) async {
-  //final showNotifier = ref.read(showProvider.notifier);
-  //final playerNotifier = ref.read(playerProvider.notifier);
-  final stageNotifier = ref.read(stageProvider.notifier);
-  final teamNotifier = ref.read(teamProvider.notifier);
-
-  // Paralel veri çekme
-  await Future.wait([
-    //showNotifier.loadShows(true),
-    //playerNotifier.loadPlayers(true),
-    stageNotifier.loadStages(true),
-    teamNotifier.loadTeams(true),
-  ]);
-
-  return true;
-});
-
 // Arama değişimlerini debounce eden bir provider
-final searchQueryProvider = StateProvider.autoDispose<String>((final ref) => '');
+final searchQueryProvider = StateProvider.autoDispose<String>((ref) => '');
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -50,6 +36,8 @@ class SearchPage extends ConsumerStatefulWidget {
 
 class _SearchPageState extends ConsumerState<SearchPage> {
   Timer? _debounce;
+  bool _isInitialized = false;
+  bool _isLoading = true;
 
   final List<Map<String, Object>> _categories = [
     {'title': 'Tümünü Keşfet', 'icon': Icons.explore},
@@ -63,6 +51,50 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     {'title': 'Spor', 'icon': Icons.sports_baseball},
     {'title': 'Etkinlik', 'icon': Icons.event},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // InitState'te addPostFrameCallback kullanarak veri yükleme işlemini başlatıyoruz
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeData();
+    });
+  }
+
+  Future<void> _initializeData() async {
+    if (_isInitialized) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Fetch data concurrently
+      await Future.wait([
+        if (ref.read(showProvider).shows.isEmpty)
+          ref.read(showProvider.notifier).loadShows(true),
+        if (ref.read(playerProvider).players.isEmpty)
+          ref.read(playerProvider.notifier).loadPlayers(true),
+        if (ref.read(stageProvider).stages.isEmpty)
+          ref.read(stageProvider.notifier).loadStages(true),
+        if (ref.read(teamProvider).teams.isEmpty)
+          ref.read(teamProvider.notifier).loadTeams(true),
+      ]);
+
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      print('Data loading error: $e');
+    } finally {
+      // Delay the loading state update to allow UI to render changes properly
+      Future.delayed(const Duration(milliseconds: 100), () {
+        setState(() {
+          _isLoading = false;
+        });
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -79,8 +111,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   Widget build(final BuildContext context) {
-    final dataFetchAsync = ref.watch(dataFetchProvider);
+    final showState = ref.watch(showProvider);
+    final playerState = ref.watch(playerProvider);
+    final stageState = ref.watch(stageProvider);
+    final teamState = ref.watch(teamProvider);
     final searchQuery = ref.watch(searchQueryProvider);
+
+    // Check if any provider is loading
+    bool isAnyLoading = showState.isLoading || playerState.isLoading || stageState.isLoading || teamState.isLoading || _isLoading;
 
     return Scaffold(
       appBar: AppBar(
@@ -94,13 +132,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             CustomSearchBar(onSearchChanged: _onSearchChanged),
             const SizedBox(height: 16),
             Expanded(
-              child: dataFetchAsync.when(
-                loading: () => _buildLoadingView(),
-                error: (final error, final stack) => Center(
-                  child: Text('Veri yüklenirken hata oluştu: $error'),
-                ),
-                data: (final _) => _buildSearchResults(searchQuery),
-              ),
+              child: isAnyLoading
+                  ? _buildLoadingView()
+                  : _buildSearchResults(searchQuery),
             ),
           ],
         ),
@@ -123,19 +157,20 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildShimmerSection(final String title) {
+  Widget _buildShimmerSection(String title) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
-        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         SizedBox(
           height: 195,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: 5,
-            itemBuilder: (final context, final index) => Padding(
+            itemBuilder: (context, index) => Padding(
               padding: const EdgeInsets.only(right: 8.0),
               child: Shimmer.fromColors(
                 baseColor: Colors.grey[300]!,
@@ -156,44 +191,84 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildSearchResults(final String searchQuery) {
-    // Filtreleme işlemini burada yapıyoruz (Riverpod ile)
-    final showData = ref.watch(filteredShowsProvider(searchQuery));
-    final playerData = ref.watch(filteredPlayersProvider(searchQuery));
-    final stageData = ref.watch(filteredStagesProvider(searchQuery));
-    final teamData = ref.watch(filteredTeamsProvider(searchQuery));
+  Widget _buildSearchResults(String searchQuery) {
+    // Verileri doğrudan provider'lardan alıp filtreliyoruz
+    final shows = ref
+        .watch(showProvider)
+        .shows
+        .where((show) =>
+            searchQuery.isEmpty ||
+            (show?.name ?? '').toLowerCase().contains(searchQuery))
+        .toList();
 
-    // Kategorileri filtreleme (yerel)
-    final filteredCategories = _categories.where((final category) =>
-        (category['title']! as String).toLowerCase().contains(searchQuery)
-    ).toList();
+    final players = ref
+        .watch(playerProvider)
+        .players
+        .where((player) =>
+            searchQuery.isEmpty ||
+            (player?.firstName ?? '').toLowerCase().contains(searchQuery) ||
+            (player?.lastName ?? '').toLowerCase().contains(searchQuery))
+        .toList();
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (showData.isNotEmpty) _buildShowSection(showData),
-          if (playerData.isNotEmpty) _buildPlayerSection(playerData),
-          if (stageData.isNotEmpty) _buildVenueSection(stageData),
-          if (teamData.isNotEmpty) _buildTeamSection(teamData),
-          if (filteredCategories.isNotEmpty) _buildCategorySection(filteredCategories),
+    final stages = ref
+        .watch(stageProvider)
+        .stages
+        .where((stage) =>
+            searchQuery.isEmpty ||
+            (stage?.name ?? '').toLowerCase().contains(searchQuery))
+        .toList();
 
-          // Hiçbir sonuç yoksa
-          if (showData.isEmpty && playerData.isEmpty && stageData.isEmpty &&
-              teamData.isEmpty && filteredCategories.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(top: 32.0),
-                child: Text('Aramanızla eşleşen sonuç bulunamadı',
-                    style: TextStyle(fontSize: 16)),
+    final teams = ref
+        .watch(teamProvider)
+        .teams
+        .where((team) =>
+            searchQuery.isEmpty ||
+            (team?.name ?? '').toLowerCase().contains(searchQuery))
+        .toList();
+
+    // Kategorileri filtreleme
+    final filteredCategories = searchQuery.isEmpty
+        ? _categories
+        : _categories
+            .where((category) => (category['title'] as String)
+                .toLowerCase()
+                .contains(searchQuery))
+            .toList();
+
+    return RefreshIndicator(
+      onRefresh: _initializeData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (shows.isNotEmpty) _buildShowSection(shows),
+            if (players.isNotEmpty) _buildPlayerSection(players),
+            if (stages.isNotEmpty) _buildVenueSection(stages),
+            if (teams.isNotEmpty) _buildTeamSection(teams),
+            if (filteredCategories.isNotEmpty)
+              _buildCategorySection(filteredCategories),
+
+            // Hiçbir sonuç yoksa
+            if (shows.isEmpty &&
+                players.isEmpty &&
+                stages.isEmpty &&
+                teams.isEmpty &&
+                filteredCategories.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 32.0),
+                  child: Text('Aramanızla eşleşen sonuç bulunamadı',
+                      style: TextStyle(fontSize: 16)),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildShowSection(final List<ShowModel?> shows) {
+  Widget _buildShowSection(List<ShowModel?> shows) {
     return _buildSection(
       title: 'Eşleşen Etkinlikler',
       itemCount: shows.length,
@@ -203,7 +278,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildVenueSection(final List<StageModel?> stages) {
+  Widget _buildVenueSection(List<StageModel?> stages) {
     return _buildSection(
       title: 'Gösteri Mekanları',
       itemCount: stages.length,
@@ -212,7 +287,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildPlayerSection(final List<PlayerModel?> players) {
+  Widget _buildPlayerSection(List<PlayerModel?> players) {
     return _buildSection(
       title: 'Oyuncular',
       itemCount: players.length,
@@ -221,7 +296,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildTeamSection(final List<TeamModel?> teams) {
+  Widget _buildTeamSection(List<TeamModel?> teams) {
     return _buildSection(
       title: 'Ekipler',
       itemCount: teams.length,
@@ -230,16 +305,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildCategorySection(final List<Map<String, Object>> categories) {
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          const Text('Kategoriler',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          CategoryCardBuilder(categories: categories)
-        ]
-    );
+  Widget _buildCategorySection(List<Map<String, Object>> categories) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 16),
+      const Text('Kategoriler',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      CategoryCardBuilder(categories: categories)
+    ]);
   }
 
   Widget _buildSection({
@@ -248,24 +320,22 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     required final IndexedWidgetBuilder itemBuilder,
     final Widget? showAllAction,
   }) {
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 195,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: itemCount,
-              itemBuilder: itemBuilder,
-            ),
-          ),
-          if (showAllAction != null) const SizedBox(height: 16),
-          if (showAllAction != null) showAllAction
-        ]
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 16),
+      Text(title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 8),
+      SizedBox(
+        height: 195,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: itemCount,
+          itemBuilder: itemBuilder,
+        ),
+      ),
+      if (showAllAction != null) const SizedBox(height: 16),
+      if (showAllAction != null) showAllAction
+    ]);
   }
 
   Widget _buildShowCard(final BuildContext context, final ShowModel? show) {
@@ -275,10 +345,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (final context) => ShowDetailPage(showId: show?.id ?? '')
-            )
-        )
-    );
+                builder: (final context) =>
+                    ShowDetailPage(showId: show?.id ?? ''))));
   }
 
   Widget _buildVenueCard(final BuildContext context, final StageModel? stage) {
@@ -288,23 +356,20 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (final context) => StageDetailPage(stageId: stage?.id ?? '')
-            )
-        )
-    );
+                builder: (final context) =>
+                    StageDetailPage(stageId: stage?.id ?? ''))));
   }
 
-  Widget _buildPlayerCard(final BuildContext context, final PlayerModel? player) {
+  Widget _buildPlayerCard(
+      final BuildContext context, final PlayerModel? player) {
     return CustomStageCard(
         text: '${player?.firstName} ${player?.lastName}',
         imageUrl: player?.imageUrl ?? "",
         onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (final context) => PlayerDetailPage(playerId: player?.id ?? '')
-            )
-        )
-    );
+                builder: (final context) =>
+                    PlayerDetailPage(playerId: player?.id ?? ''))));
   }
 
   Widget _buildTeamCard(final BuildContext context, final TeamModel? team) {
@@ -314,10 +379,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (final context) => TeamDetailsPage(teamId: team?.id ?? '')
-            )
-        )
-    );
+                builder: (final context) =>
+                    TeamDetailsPage(teamId: team?.id ?? ''))));
   }
 
   Widget _buildShowAllButton() {
@@ -326,45 +389,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           BottomNavBar.of(context)?.changeTabWithCategory(1, "");
         },
         child: const Text('Tümünü Göster',
-            style: TextStyle(fontSize: 16, color: Colors.red))
-    );
+            style: TextStyle(fontSize: 16, color: Colors.red)));
   }
 }
-
-// Filtreleme işlemlerini Riverpod providers ile yaparak performansı artıralım
-final filteredShowsProvider = Provider.family<List<ShowModel?>, String>((final ref, final query) {
-  final shows = ref.watch(showProvider).shows;
-  if (query.isEmpty) return shows;
-
-  return shows.where((final show) =>
-      (show?.name ?? '').toLowerCase().contains(query)
-  ).toList();
-});
-
-final filteredPlayersProvider = Provider.family<List<PlayerModel?>, String>((final ref, final query) {
-  final players = ref.watch(playerProvider).players;
-  if (query.isEmpty) return players;
-
-  return players.where((final player) =>
-  (player?.firstName ?? '').toLowerCase().contains(query) ||
-      (player?.lastName ?? '').toLowerCase().contains(query)
-  ).toList();
-});
-
-final filteredStagesProvider = Provider.family<List<StageModel?>, String>((final ref, final query) {
-  final stages = ref.watch(stageProvider).stages;
-  if (query.isEmpty) return stages;
-
-  return stages.where((final stage) =>
-      (stage?.name ?? '').toLowerCase().contains(query)
-  ).toList();
-});
-
-final filteredTeamsProvider = Provider.family<List<TeamModel?>, String>((final ref, final query) {
-  final teams = ref.watch(teamProvider).teams;
-  if (query.isEmpty) return teams;
-
-  return teams.where((final team) =>
-      (team?.name ?? '').toLowerCase().contains(query)
-  ).toList();
-});
