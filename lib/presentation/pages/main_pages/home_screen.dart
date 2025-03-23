@@ -7,7 +7,7 @@ import 'package:ticketapp/data/model/stage_model.dart';
 import 'package:ticketapp/data/providers/campaign/campaign_provider.dart';
 import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
-import '../../../core/util/shimmer.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../core/widgets/custom_category_card.dart';
 import '../../../core/widgets/custom_dots_indicator.dart';
 import '../../../core/widgets/custom_search.dart';

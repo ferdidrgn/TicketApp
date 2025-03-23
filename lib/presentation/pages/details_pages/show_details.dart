@@ -7,7 +7,7 @@ import 'package:ticketapp/data/datasources/player/player_remote_data_source_and_
 import 'package:ticketapp/data/datasources/show/show_remote_data_source_and_impl.dart';
 import 'package:ticketapp/presentation/pages/details_pages/player_details.dart';
 import 'package:ticketapp/presentation/pages/details_pages/seat_details.dart';
-import '../../../core/util/shimmer.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../core/widgets/custom_stage_card.dart';
 import '../../../domain/entities/player.dart';
 import '../../../domain/entities/show.dart';

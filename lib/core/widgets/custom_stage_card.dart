@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../util/shimmer.dart';
+import 'shimmer.dart';
 
 class CustomStageCard extends StatelessWidget {
   final String text;

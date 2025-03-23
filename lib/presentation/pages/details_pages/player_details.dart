@@ -5,7 +5,7 @@ import 'package:ticketapp/core/widgets/custom_show_card.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/datasources/show/show_remote_data_source_and_impl.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
-import '../../../core/util/shimmer.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../data/datasources/player/player_remote_data_source_and_impl.dart';
 import '../../../domain/entities/player.dart';
 import '../../../domain/entities/show.dart';

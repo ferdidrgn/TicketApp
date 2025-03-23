@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/util/shimmer.dart';
+import 'package:ticketapp/core/widgets/shimmer.dart';
 import 'custom_gradient_background_image.dart';
 
 class CustomVerticalShowCard extends StatelessWidget {

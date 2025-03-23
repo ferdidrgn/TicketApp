@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/util/shimmer.dart';
+import 'package:ticketapp/core/widgets/shimmer.dart';
 
 class EventCard extends StatelessWidget {
   final String imageUrl;

@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/presentation/pages/login/phone_login_page.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../core/widgets/custom_elevated_button.dart';
 import '../../../data/providers/login/login_provider.dart';
 
@@ -13,11 +13,7 @@ class LoginScreen extends ConsumerWidget {
     final loginState = ref.watch(loginProvider);
 
     return Scaffold(
-      body: loginState.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : loginState.errorMessage != null
-              ? _buildErrorState(loginState.errorMessage!)
-              : _buildContentState(context, ref),
+      body: _buildContentState(context, ref),
     );
   }
 
@@ -78,16 +74,19 @@ class LoginScreen extends ConsumerWidget {
 
   Widget _buildGoogleSignInButton(
       final BuildContext context, final WidgetRef ref) {
+
     return CustomElevatedButton(
       text: 'Google ile Giriş Yap',
-      iconAsset: CachedNetworkImage(
-        imageUrl:
-            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
+      iconAsset: Image.network(
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
         height: 24,
-        placeholder: (final context, final url) =>
-            const CircularProgressIndicator(),
-        errorWidget: (final context, final url, final error) =>
-            const Icon(Icons.error),
+        loadingBuilder: (final context, final child, final loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const ShimmerLoading();
+        },
+        errorBuilder: (final context, final error, final stackTrace) {
+          return const Center(child: Icon(Icons.error));
+        },
       ),
       onPressed: () async {
         await ref.read(loginProvider.notifier).signInWithGoogle();
@@ -100,9 +99,8 @@ class LoginScreen extends ConsumerWidget {
               content: Text(loginState.user?.displayName ?? 'Giriş başarısız')),
         );
 
-        if (loginState.user != null) {
+       // if (loginState.user != null)
           await Navigator.pushReplacementNamed(context, '/home');
-        }
       },
     );
   }
