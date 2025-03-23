@@ -10,13 +10,13 @@ import 'package:ticketapp/data/model/show_model.dart';
 import 'package:ticketapp/data/model/stage_model.dart';
 import 'package:ticketapp/data/model/team_model.dart';
 import 'package:ticketapp/data/providers/player/player_provider.dart';
+import 'package:ticketapp/data/providers/stage/stage_state.dart';
+import '../../../data/providers/player/player_state.dart';
 import '../../../data/providers/show/show_provider.dart';
+import '../../../data/providers/show/show_state.dart';
 import '../../../data/providers/stage/stage_provider.dart';
 import '../../../data/providers/team/team_provider.dart';
-import '../../../domain/entities/player.dart';
-import '../../../domain/entities/show.dart';
-import '../../../domain/entities/stage.dart';
-import '../../../domain/entities/team.dart';
+import '../../../data/providers/team/team_state.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
@@ -49,33 +49,30 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     {'title': 'Etkinlik', 'icon': Icons.event},
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchData();
-  }
-
-  Future<void> _fetchData() async {
-    await Future.wait([
-      ref.read(showProvider.notifier).loadShows(true),
-      ref.read(playerProvider.notifier).loadPlayers(true),
-      ref.read(stageProvider.notifier).loadStages(true),
-      ref.read(teamProvider.notifier).loadTeams(true),
-    ]);
+  Future<void> _fetchData(
+      final ShowState showState,
+      final PlayerState playerState,
+      final StageState stageState,
+      final TeamState teamState) async {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (!showState.isLoading && showState.shows.isEmpty)
+        ref.read(showProvider.notifier).loadShows(true);
+      if (!playerState.isLoading && playerState.players.isEmpty)
+        ref.read(playerProvider.notifier).loadPlayers(true);
+      if (!stageState.isLoading && stageState.stages.isEmpty)
+        ref.read(stageProvider.notifier).loadStages(true);
+      if (!teamState.isLoading && teamState.teams.isEmpty)
+        ref.read(teamProvider.notifier).loadTeams(true);
+    });
     _updateFilteredData();
   }
 
   void _updateFilteredData() {
-    final shows = ref.read(showProvider).shows;
-    final players = ref.read(playerProvider).players;
-    final stages = ref.read(stageProvider).stages;
-    final teams = ref.read(teamProvider).teams;
-
     setState(() {
-      _filteredShows = shows;
-      _filteredPlayers = players;
-      _filteredStages = stages;
-      _filteredTeams = teams;
+      _filteredPlayers = ref.read(playerProvider).players;
+      _filteredShows = ref.read(showProvider).shows;
+      _filteredStages = ref.read(stageProvider).stages;
+      _filteredTeams = ref.read(teamProvider).teams;
       _filteredCategories = _categories;
     });
   }
@@ -111,7 +108,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           .where((final team) =>
               (team?.name ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
-
       _filteredCategories = _categories
           .where((final category) => (category['title']! as String)
               .toLowerCase()
@@ -135,6 +131,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         teamNotifier.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    _fetchData(showNotifier, playerNotifier, stageNotifier, teamNotifier);
 
     return Scaffold(
       appBar: AppBar(

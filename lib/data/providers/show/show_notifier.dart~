@@ -27,11 +27,13 @@ class ShowNotifier extends StateNotifier<ShowState> {
     this.getSearchShowUseCase,
   ) : super(ShowState());
 
-  Future<void> addShow(final ShowModel show, final Uri? imageUrl) async =>
-      _handleShowOperation(() async => addShowUseCase.call(show, imageUrl));
+  Future<void> addShow(final ShowModel show, final Uri? imageUrl) async {
+    await _handleShowOperation(() async => addShowUseCase.call(show, imageUrl));
+  }
 
-  Future<void> deleteShow(final String? showId) async =>
-      _handleShowOperation(() async => deleteShowUseCase.call(showId));
+  Future<void> deleteShow(final String? showId) async {
+    await _handleShowOperation(() async => deleteShowUseCase.call(showId));
+  }
 
   Future<void> updateShow(
       final String showId, final Map<String, dynamic> updatedData) async {
