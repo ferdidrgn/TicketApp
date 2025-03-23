@@ -9,7 +9,7 @@ class BottomNavBar extends StatefulWidget {
   const BottomNavBar({super.key});
 
   // Bu fonksiyon, dışarıdan BottomNavBar'daki sekmeyi değiştirmek için kullanılacak
-  static _BottomNavBarState? of(BuildContext context) =>
+  static _BottomNavBarState? of(final BuildContext context) =>
       context.findAncestorStateOfType<_BottomNavBarState>();
 
   @override

@@ -13,7 +13,7 @@ class CampaignRemoteDataSourceImpl implements CampaignRemoteDataSource {
   @override
   Future<List<CampaignModel>> getCampaigns() async {
     try {
-      final snapshot = await firestore.collection('Campaigns').get();
+      final snapshot = await firestore.collection('Campaign').get();
       return snapshot.docs
           .map((final doc) => CampaignModel.fromFirestore(doc.data()))
           .toList();

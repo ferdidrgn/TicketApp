@@ -1,4 +1,4 @@
-import 'package:ticketapp/data/model/campaing_model.dart';
+import '../../model/campaing_model.dart';
 
 class CampaignState {
   final List<CampaignModel?> campaigns;

@@ -11,8 +11,7 @@ class StageNotifier extends StateNotifier<StageState> {
   final GetSearchStageUseCase getSearchStageUseCase;
 
   StageNotifier(this.getStagesUseCase, this.getStageByIdUseCase,
-      this.getSearchStageUseCase)
-      : super(StageState());
+      this.getSearchStageUseCase) : super(StageState());
 
   Future<void> loadStages(final isLimit) async {
     _setLoadingState(true);
