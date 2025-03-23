@@ -35,16 +35,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
     _startAutoScroll();
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page?.round() ?? 0;
       });
     });
-  }
-
-  void _loadData() {
   }
 
   @override
@@ -57,7 +53,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 10), (final timer) {
       setState(() {
-        _currentPage = (_currentPage + 1) % ref.read(campaignProvider).campaigns.length;
+        _currentPage =
+            (_currentPage + 1) % ref.read(campaignProvider).campaigns.length;
       });
       _pageController.animateToPage(
         _currentPage,
@@ -76,13 +73,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final id = _extractIdFromUrl(url);
     Widget detailPage;
 
-    if (url.contains('player')) detailPage = PlayerDetailPage(playerId: id);
-    else if (url.contains('stage')) detailPage = StageDetailPage(stageId: id);
-    else if (url.contains('show')) detailPage = ShowDetailPage(showId: id);
-    else throw Exception('Unknown URL: $url');
+    if (url.contains('player'))
+      detailPage = PlayerDetailPage(playerId: id);
+    else if (url.contains('stage'))
+      detailPage = StageDetailPage(stageId: id);
+    else if (url.contains('show'))
+      detailPage = ShowDetailPage(showId: id);
+    else
+      throw Exception('Unknown URL: $url');
 
-
-    Navigator.push(context, MaterialPageRoute(builder: (final context) => detailPage));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (final context) => detailPage));
   }
 
   String _extractIdFromUrl(final String url) {
@@ -176,8 +177,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (final context, final url) => const CircularProgressIndicator(),
-              errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+              placeholder: (final context, final url) =>
+                  const CircularProgressIndicator(),
+              errorWidget: (final context, final url, final error) =>
+                  const Icon(Icons.error),
             ),
             Container(
               color: Colors.black.withOpacity(0.5),
