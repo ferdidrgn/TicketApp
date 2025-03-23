@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../domain/entities/team.dart';
 import '../../../domain/useCase/team/get_team_by_id_use_case_impl.dart';
 import '../../../domain/useCase/team/get_teams_use_case_impl.dart';
 import '../../model/team_model.dart';

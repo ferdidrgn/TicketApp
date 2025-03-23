@@ -1,5 +1,6 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../util/shimmer.dart';
 
 class CustomStageCard extends StatelessWidget {
   final String text;
@@ -30,14 +31,18 @@ class CustomStageCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               ClipOval(
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
+                child: Image.network(
+                  imageUrl,
                   width: 120,
                   height: 120,
                   fit: BoxFit.cover,
-                  placeholder: (final context, final url) =>
-                      const CircularProgressIndicator(),
-                  errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+                  loadingBuilder: (final context, final child, final loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const ShimmerLoading();
+                  },
+                  errorBuilder: (final context, final error, final stackTrace) {
+                    return const Center(child: Icon(Icons.error));
+                  },
                 ),
               ),
               SizedBox(height: text.length <= 18 ? 17 : 8),

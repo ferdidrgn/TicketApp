@@ -1,5 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/util/shimmer.dart';
 
 class EventCard extends StatelessWidget {
   final String imageUrl;
@@ -34,13 +34,18 @@ class EventCard extends StatelessWidget {
               // Image
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
+                child: Image.network(
+                  imageUrl,
                   width: double.infinity,
                   height: 150,
                   fit: BoxFit.cover,
-                  placeholder: (final context, final url) => const CircularProgressIndicator(),
-                  errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+                  loadingBuilder: (final context, final child, final loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const ShimmerLoading();
+                  },
+                  errorBuilder: (final context, final error, final stackTrace) {
+                    return const Center(child: Icon(Icons.error));
+                  },
                 ),
               ),
               // Show name overlay

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/util/shimmer.dart';
 import 'custom_gradient_background_image.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class CustomVerticalShowCard extends StatelessWidget {
   final String imageUrl;
@@ -44,11 +44,16 @@ class CustomVerticalShowCard extends StatelessWidget {
             // Background image
             ClipRRect(
               borderRadius: borderRadius,
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
+              child: Image.network(
+                imageUrl,
                 fit: BoxFit.cover,
-                placeholder: (final context, final url) => const CircularProgressIndicator(),
-                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+                loadingBuilder: (final context, final child, final loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const ShimmerLoading();
+                },
+                errorBuilder: (final context, final error, final stackTrace) {
+                  return const Icon(Icons.error);
+                },
               ),
             ),
             const GradientStrip(

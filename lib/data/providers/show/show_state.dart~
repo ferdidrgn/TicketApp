@@ -3,11 +3,11 @@ import '../../model/show_model.dart';
 
 class ShowState extends BaseState {
   final ShowModel? show;
-  final List<ShowModel?> shows;
+  final List<ShowModel?>? shows;
 
   ShowState({
     this.show,
-    this.shows = const [],
+    this.shows,
     super.isLoading,
     super.errorMessage,
   });

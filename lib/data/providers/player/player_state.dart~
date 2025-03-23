@@ -6,16 +6,16 @@ class PlayerState extends BaseState {
   final List<PlayerModel?> players;
 
   PlayerState({
-    this.player,
     this.players = const [],
+    this.player,
     super.isLoading,
     super.errorMessage,
   });
 
   @override
   PlayerState copyWith({
-    final PlayerModel? player,
     final List<PlayerModel?>? players,
+    final PlayerModel? player,
     final bool? isLoading,
     final String? errorMessage,
   }) {
