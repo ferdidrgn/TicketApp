@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:ticketapp/core/widgets/bottom_nav_bar.dart';
 import 'package:ticketapp/core/widgets/custom_category_card.dart';
 import 'package:ticketapp/core/widgets/custom_search.dart';
@@ -11,7 +12,6 @@ import 'package:ticketapp/data/model/show_model.dart';
 import 'package:ticketapp/data/model/stage_model.dart';
 import 'package:ticketapp/data/model/team_model.dart';
 import 'package:ticketapp/data/providers/player/player_provider.dart';
-import '../../../core/widgets/shimmer.dart';
 import '../../../data/providers/show/show_provider.dart';
 import '../../../data/providers/stage/stage_provider.dart';
 import '../../../data/providers/team/team_provider.dart';
@@ -137,7 +137,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             itemCount: 5,
             itemBuilder: (final context, final index) => Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: ShimmerLoading(),
+              child: Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Container(
+                  width: 130,
+                  height: 190,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
