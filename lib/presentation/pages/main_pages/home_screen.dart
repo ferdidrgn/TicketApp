@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/data/model/campaing_model.dart';
@@ -57,7 +58,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 10), (final timer) {
       setState(() {
-        _currentPage = (_currentPage + 1) % ref.read(campaignProvider).campaigns.length;
+        _currentPage =
+            (_currentPage + 1) % ref.read(campaignProvider).campaigns.length;
       });
       _pageController.animateToPage(
         _currentPage,
@@ -76,13 +78,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final id = _extractIdFromUrl(url);
     Widget detailPage;
 
-    if (url.contains('player')) detailPage = PlayerDetailPage(playerId: id);
-    else if (url.contains('stage')) detailPage = StageDetailPage(stageId: id);
-    else if (url.contains('show')) detailPage = ShowDetailPage(showId: id);
-    else throw Exception('Unknown URL: $url');
+    if (url.contains('player'))
+      detailPage = PlayerDetailPage(playerId: id);
+    else if (url.contains('stage'))
+      detailPage = StageDetailPage(stageId: id);
+    else if (url.contains('show'))
+      detailPage = ShowDetailPage(showId: id);
+    else
+      throw Exception('Unknown URL: $url');
 
-
-    Navigator.push(context, MaterialPageRoute(builder: (final context) => detailPage));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (final context) => detailPage));
   }
 
   String _extractIdFromUrl(final String url) {
@@ -178,18 +184,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
-            Image.network(
-              campaign.imageUrl,
+            CachedNetworkImage(
+              imageUrl: campaign.imageUrl,
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
-              loadingBuilder: (final context, final child, final loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const ShimmerLoading();
-              },
-              errorBuilder: (final context, final error, final stackTrace) {
-                return const Center(child: Icon(Icons.error));
-              },
+              placeholder: (final context, final url) => ShimmerLoading(),
+              errorWidget: (final context, final url, final error) =>
+                  const Icon(Icons.error),
             ),
             Container(
               color: Colors.black.withOpacity(0.5),
@@ -302,18 +304,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-              child: Image.network(
-               'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
+              child: CachedNetworkImage(
+                imageUrl:
+                    'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
                 height: 150,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                loadingBuilder: (final context, final child, final loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const ShimmerLoading();
-                },
-                errorBuilder: (final context, final error, final stackTrace) {
-                  return const Center(child: Icon(Icons.error));
-                },
+                placeholder: (final context, final url) => ShimmerLoading(),
+                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),
             ),
             const SizedBox(height: 5),

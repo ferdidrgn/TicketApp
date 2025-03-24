@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/shimmer.dart';
 import 'custom_gradient_background_image.dart';
@@ -44,16 +45,11 @@ class CustomVerticalShowCard extends StatelessWidget {
             // Background image
             ClipRRect(
               borderRadius: borderRadius,
-              child: Image.network(
-                imageUrl,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
                 fit: BoxFit.cover,
-                loadingBuilder: (final context, final child, final loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const ShimmerLoading();
-                },
-                errorBuilder: (final context, final error, final stackTrace) {
-                  return const Icon(Icons.error);
-                },
+                placeholder: (final context, final url) => ShimmerLoading(),
+                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),
             ),
             const GradientStrip(
@@ -71,7 +67,7 @@ class CustomVerticalShowCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(16)),
+                      const BorderRadius.vertical(bottom: Radius.circular(16)),
                   color: Colors.black.withOpacity(0.5),
                 ),
                 child: Text(

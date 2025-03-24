@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -188,17 +189,11 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       child: ClipRRect(
         borderRadius: const BorderRadius.all(Radius.circular(75)),
         child: player?.imageUrl != null
-            ? Image.network(
-                player!.imageUrl!,
+            ? CachedNetworkImage(
+                imageUrl: player!.imageUrl!,
                 fit: BoxFit.cover,
-                loadingBuilder:
-                    (final context, final child, final loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const ShimmerLoading();
-                },
-                errorBuilder: (final context, final error, final stackTrace) {
-                  return const Center(child: Icon(Icons.error));
-                },
+                placeholder: (final context, final url) => ShimmerLoading(),
+                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               )
             : const Icon(Icons.person, size: 50),
       ),

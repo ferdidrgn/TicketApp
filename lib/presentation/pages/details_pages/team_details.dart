@@ -1,12 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/datasources/team/team_remote_data_source_and_impl.dart';
 import 'package:ticketapp/presentation/pages/details_pages/show_details.dart';
-import '../../../core/widgets/shimmer.dart';
 import '../../../core/widgets/custom_description_card.dart';
 import '../../../core/widgets/custom_show_card.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../data/datasources/show/show_remote_data_source_and_impl.dart';
 import '../../../domain/entities/show.dart';
 import '../../../domain/entities/team.dart';
@@ -55,7 +56,8 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
   Future<void> _fetchShows() async {
     for (final String showId in team?.showsId ?? []) {
       try {
-        final showService = ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
+        final showService =
+            ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
         final show = await showService.getShowById(showId);
         if (show != null) {
           setState(() {
@@ -115,16 +117,12 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
             ),
           ],
         ),
-        child: Image.network(
-          team?.imageUrl ?? '',
+        child: CachedNetworkImage(
+          imageUrl: team?.imageUrl ?? '',
           fit: BoxFit.cover,
-          loadingBuilder: (final context, final child, final loadingProgress) {
-            if (loadingProgress == null) return child;
-            return const ShimmerLoading();
-          },
-          errorBuilder: (final context, final error, final stackTrace) {
-            return const Center(child: Icon(Icons.error));
-          },
+          placeholder: (final context, final url) => ShimmerLoading(),
+          errorWidget: (final context, final url, final error) =>
+              const Icon(Icons.error),
         ),
       ),
     );
@@ -165,15 +163,10 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
           itemBuilder: (final context, final index) {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Image.network(
-                team!.photosId[index],
-                loadingBuilder: (final context, final child, final loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const ShimmerLoading();
-                },
-                errorBuilder: (final context, final error, final stackTrace) {
-                  return const Center(child: Icon(Icons.error));
-                },
+              child: CachedNetworkImage(
+                imageUrl: team!.photosId[index],
+                placeholder: (final context, final url) => ShimmerLoading(),
+                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),
             );
           },

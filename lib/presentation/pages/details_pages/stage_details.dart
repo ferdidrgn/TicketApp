@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,8 @@ class StageDetailPage extends StatefulWidget {
 
 class _StageDetailPageState extends State<StageDetailPage> {
   final firestore = FirebaseFirestore.instance;
-  final strorage = FirebaseStorage.instance;  Stage? _stage;
+  final strorage = FirebaseStorage.instance;
+  Stage? _stage;
   final List<Show> _showsDataList = [];
   bool _isLoading = true;
 
@@ -57,7 +59,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
     for (final String showId in _stage?.showsId ?? []) {
       try {
         final showService =
-        ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
+            ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
         final show = await showService.getShowById(showId);
         if (show != null) {
           setState(() {
@@ -114,16 +116,11 @@ class _StageDetailPageState extends State<StageDetailPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Image.network(
-            _stage?.imageUrl ?? '',
+          child: CachedNetworkImage(
+            imageUrl: _stage?.imageUrl ?? '',
             fit: BoxFit.cover,
-            loadingBuilder: (final context, final child, final loadingProgress) {
-              if (loadingProgress == null) return child;
-              return const ShimmerLoading();
-            },
-            errorBuilder: (final context, final error, final stackTrace) {
-              return const Center(child: Icon(Icons.error));
-            },
+            placeholder: (final context, final url) => ShimmerLoading(),
+            errorWidget: (final context, final url, final error) => const Icon(Icons.error),
           ),
         ),
       ),

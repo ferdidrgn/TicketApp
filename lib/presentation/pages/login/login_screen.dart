@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/presentation/pages/login/phone_login_page.dart';
@@ -74,19 +75,15 @@ class LoginScreen extends ConsumerWidget {
 
   Widget _buildGoogleSignInButton(
       final BuildContext context, final WidgetRef ref) {
-
     return CustomElevatedButton(
       text: 'Google ile Giriş Yap',
-      iconAsset: Image.network(
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
+      iconAsset: CachedNetworkImage(
+        imageUrl:
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCw09UBmrWncMvaCr60UG1GAWJWuggPlzSlw&s',
         height: 24,
-        loadingBuilder: (final context, final child, final loadingProgress) {
-          if (loadingProgress == null) return child;
-          return const ShimmerLoading();
-        },
-        errorBuilder: (final context, final error, final stackTrace) {
-          return const Center(child: Icon(Icons.error));
-        },
+        placeholder: (final context, final url) => ShimmerLoading(),
+        errorWidget: (final context, final url, final error) =>
+            const Icon(Icons.error),
       ),
       onPressed: () async {
         await ref.read(loginProvider.notifier).signInWithGoogle();
@@ -99,8 +96,8 @@ class LoginScreen extends ConsumerWidget {
               content: Text(loginState.user?.displayName ?? 'Giriş başarısız')),
         );
 
-       // if (loginState.user != null)
-          await Navigator.pushReplacementNamed(context, '/home');
+        // if (loginState.user != null)
+        await Navigator.pushReplacementNamed(context, '/home');
       },
     );
   }

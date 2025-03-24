@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/shimmer.dart';
 
@@ -33,19 +34,15 @@ class EventCard extends StatelessWidget {
             children: [
               // Image
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                child: Image.network(
-                  imageUrl,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(10)),
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
                   width: double.infinity,
                   height: 150,
                   fit: BoxFit.cover,
-                  loadingBuilder: (final context, final child, final loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const ShimmerLoading();
-                  },
-                  errorBuilder: (final context, final error, final stackTrace) {
-                    return const Center(child: Icon(Icons.error));
-                  },
+                  placeholder: (final context, final url) => ShimmerLoading(),
+                  errorWidget: (final context, final url, final error) => const Icon(Icons.error),
                 ),
               ),
               // Show name overlay
@@ -73,7 +70,8 @@ class EventCard extends StatelessWidget {
                 bottom: 28,
                 left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(5),
