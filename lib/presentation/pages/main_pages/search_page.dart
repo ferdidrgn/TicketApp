@@ -13,6 +13,7 @@ import 'package:ticketapp/data/model/stage_model.dart';
 import 'package:ticketapp/data/model/team_model.dart';
 import 'package:ticketapp/data/providers/player/player_provider.dart';
 import '../../../core/services/pagination_controller.dart';
+import '../../../data/providers/search/search_query_provider.dart';
 import '../../../data/providers/show/show_provider.dart';
 import '../../../data/providers/stage/stage_provider.dart';
 import '../../../data/providers/team/team_provider.dart';
@@ -20,10 +21,6 @@ import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 import '../details_pages/team_details.dart';
-
-// Arama değişimlerini debounce eden bir provider
-final searchQueryProvider =
-    StateProvider.autoDispose<String>((final ref) => '');
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -296,10 +293,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             if (filteredShows.isNotEmpty) _buildShowSection(filteredShows),
-            if (filteredPlayers.isNotEmpty)_buildPlayerSection(filteredPlayers),
+            if (filteredPlayers.isNotEmpty)
+              _buildPlayerSection(filteredPlayers),
             if (filteredStages.isNotEmpty) _buildVenueSection(filteredStages),
             if (filteredTeams.isNotEmpty) _buildTeamSection(filteredTeams),
-            if (filteredCategories.isNotEmpty)_buildCategorySection(filteredCategories),
+            if (filteredCategories.isNotEmpty)
+              _buildCategorySection(filteredCategories),
           ],
         ),
       ),
