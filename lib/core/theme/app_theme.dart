@@ -42,7 +42,7 @@ mixin AppTheme {
     brightness: Brightness.dark,
     primarySwatch: Colors.grey,
     colorScheme: const ColorScheme.dark(
-      primary: AppDarkColors.secondary,
+      primary: AppDarkColors.error,
       primaryContainer: AppDarkColors.primaryVariant,
       secondary: AppDarkColors.primaryVariant,
       secondaryContainer: AppDarkColors.secondaryVariant,

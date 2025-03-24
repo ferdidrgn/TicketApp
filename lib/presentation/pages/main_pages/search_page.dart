@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:ticketapp/core/widgets/bottom_nav_bar.dart';
 import 'package:ticketapp/core/widgets/custom_category_card.dart';
 import 'package:ticketapp/core/widgets/custom_search.dart';
 import 'package:ticketapp/core/widgets/custom_show_card.dart';
 import 'package:ticketapp/core/widgets/custom_stage_card.dart';
+import 'package:ticketapp/core/widgets/shimmer.dart';
 import 'package:ticketapp/data/model/player_model.dart';
 import 'package:ticketapp/data/model/show_model.dart';
 import 'package:ticketapp/data/model/stage_model.dart';
@@ -213,7 +213,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           _buildShimmerSection('Eşleşen Etkinlikler'),
           _buildShimmerSection('Gösteri Mekanları'),
           _buildShimmerSection('Oyuncular'),
-          _buildShimmerSection('Ekipler'),
           _buildShimmerSection('Kategoriler'),
         ],
       ),
@@ -235,18 +234,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             itemCount: 5,
             itemBuilder: (final context, final index) => Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
-                child: Container(
-                  width: 130,
-                  height: 190,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
+              child: ShimmerLoading()
             ),
           ),
         ),

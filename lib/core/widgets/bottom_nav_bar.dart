@@ -55,6 +55,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Bilet Satış Uygulaması'),
+        automaticallyImplyLeading: false,
       ),
       body: IndexedStack(
         index: _selectedIndex,
