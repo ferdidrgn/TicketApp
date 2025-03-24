@@ -275,6 +275,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             (team?.name ?? '').toLowerCase().contains(searchQuery))
         .toList();
 
+    final filteredCategories = _categories
+        .where((final category) =>
+            searchQuery.isEmpty ||
+            (category['title']! as String).toLowerCase().contains(searchQuery))
+        .toList();
+
     return NotificationListener<ScrollNotification>(
       onNotification: (final ScrollNotification scrollInfo) {
         if (scrollInfo.metrics.pixels >=
@@ -290,11 +296,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             if (filteredShows.isNotEmpty) _buildShowSection(filteredShows),
-            if (filteredPlayers.isNotEmpty)
-              _buildPlayerSection(filteredPlayers),
+            if (filteredPlayers.isNotEmpty)_buildPlayerSection(filteredPlayers),
             if (filteredStages.isNotEmpty) _buildVenueSection(filteredStages),
             if (filteredTeams.isNotEmpty) _buildTeamSection(filteredTeams),
-            if (_categories.isNotEmpty) _buildCategorySection(_categories),
+            if (filteredCategories.isNotEmpty)_buildCategorySection(filteredCategories),
           ],
         ),
       ),
