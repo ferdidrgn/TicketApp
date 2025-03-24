@@ -81,7 +81,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
           ? const Center(child: CircularProgressIndicator())
           : userState.errorMessage != null
               ? _buildErrorState(userState.errorMessage!)
-              : _buildContentState(context, userState.user),
+              : _buildContentState(context, userState.user?.toEntity()),
     );
   }
 
