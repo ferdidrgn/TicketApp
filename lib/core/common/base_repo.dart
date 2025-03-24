@@ -15,7 +15,6 @@ abstract class BaseRepository {
 
         if ((result is List && result.isEmpty) || result == null) {
           Left(ServerFailure('No data found')); // Hata döndür
-          return Right([] as T); // Boş liste döndür
         }
 
         return Right(result);
