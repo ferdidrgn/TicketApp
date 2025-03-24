@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/useCase/show/add_show_use_case_impl.dart';
 import '../../../domain/useCase/show/delete_show_use_case_impl.dart';
 import '../../../domain/useCase/show/get_search_show_use_case_impl.dart';
-import '../../../domain/useCase/show/get_show_by_id_use_case_impl.dart';
+import '../../../domain/useCase/show/get_shows_by_ids_use_case_impl.dart';
 import '../../../domain/useCase/show/get_shows_use_case_impl.dart';
 import '../../../domain/useCase/show/update_show_use_case_impl.dart';
 import '../../repository/show/show_repository_provider.dart';
@@ -14,7 +14,7 @@ final showProvider = StateNotifierProvider<ShowNotifier, ShowState>((final ref) 
     ref.watch(addShowUseCaseProvider),
     ref.watch(deleteShowUseCaseProvider),
     ref.watch(updateShowUseCaseProvider),
-    ref.watch(getShowByIdUseCaseProvider),
+    ref.watch(getShowsByIdsUseCaseProvider),
     ref.watch(getShowsUseCaseProvider),
     ref.watch(getSearchShowUseCaseProvider),
   );
@@ -36,9 +36,9 @@ final updateShowUseCaseProvider = Provider<UpdateShowUseCase>((final ref) {
   return UpdateShowUseCaseImpl(repository);
 });
 
-final getShowByIdUseCaseProvider = Provider<GetShowByIdUseCase>((final ref) {
+final getShowsByIdsUseCaseProvider = Provider<GetShowsByIdsUseCase>((final ref) {
   final repository = ref.watch(showRepositoryProvider);
-  return GetShowByIdUseCaseImpl(repository);
+  return GetShowsByIdsUseCaseImpl(repository);
 });
 
 final getShowsUseCaseProvider = Provider<GetShowsUseCase>((final ref) {

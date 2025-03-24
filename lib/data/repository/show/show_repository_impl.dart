@@ -39,10 +39,10 @@ class ShowRepositoryImpl implements ShowRepository {
   }
 
   @override
-  Future<Either<Failure, ShowModel?>> getShowById(final String showId) async {
+  Future<Either<Failure, List<ShowModel>>> getShowsByIds(final List<String> showsIds) async {
     if (await internetService.isConnected)
       try {
-        final show = await remoteDataSource.getShowById(showId);
+        final show = await remoteDataSource.getShowsByIds(showsIds);
         return Right(show);
       } catch (e) {
         return Left(ServerFailure(e.toString()));

@@ -110,6 +110,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     setState(() {
       _isLoading = true;
+      ref.read(searchQueryProvider.notifier).state = "";
     });
 
     try {
@@ -161,11 +162,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       stagesPagination.reset();
       teamsPagination.reset();
 
-      // Tüm kategoriler için loadMoreItems() çağırılıyor
-      showsPagination.loadMoreItems();
-      playersPagination.loadMoreItems();
-      stagesPagination.loadMoreItems();
-      teamsPagination.loadMoreItems();
+      _loadMoreData();
     });
   }
 

@@ -6,7 +6,7 @@ import '../../model/show_model.dart';
 abstract class ShowRemoteDataSource {
   Future<List<ShowModel>> getSearchShow(final List<String> categories, final String? type);
   Future<List<ShowModel>> getShows(final isLimit);
-  Future<ShowModel?> getShowById(final String showId);
+  Future<List<ShowModel>> getShowsByIds(final List<String> showsIds);
   Future<void> addShow(final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
   Future<void> deleteShow(final String? showId);
   Future<void> updateShow(final String showId, final Map<String, dynamic> updatedData);
@@ -67,20 +67,21 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   }
 
   @override
-  Future<ShowModel?> getShowById(final String showId) async {
-    try {
-      final QuerySnapshot result = await firestore
-          .collection('Show')
-          .where('_id', isEqualTo: showId)
-          .limit(1)
-          .get();
+  Future<List<ShowModel>> getShowsByIds(final List<String> showsIds) async {
+    final showsList = <ShowModel>[];
 
-      if (result.docs.isEmpty) return null;
+    // Firestore'dan birden fazla gösteriyi tek bir istekle çekmek
+    final snapshots = await firestore
+        .collection('Show')
+        .where('_id', whereIn: showsIds)
+        .get();
+    //.where(FieldPath.documentId, whereIn: showsId)
 
-      return ShowModel.fromFirestore(result.docs.first.data()! as Map<String, dynamic>);
-    } catch (error) {
-      throw Exception('Error fetching show: $error');
+    for (final doc in snapshots.docs) {
+      final show = ShowModel.fromFirestore(doc.data());
+      showsList.add(show);
     }
+    return showsList;
   }
 
   @override

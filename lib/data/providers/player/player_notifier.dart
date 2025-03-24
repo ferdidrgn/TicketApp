@@ -24,4 +24,3 @@ class PlayerNotifier extends BaseNotifier<PlayerState> {
     );
   }
 }
-

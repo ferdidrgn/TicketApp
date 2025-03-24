@@ -59,20 +59,16 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   }
 
   Future<void> _fetchShows(
-      final List<String> showsId, final List<Show?> showsList) async {
-    for (final String showId in showsId) {
-      try {
-        final show = await ShowRemoteDataSourceImpl(
-                firestore: firestore, storage: storage)
-            .getShowById(showId);
-        if (show != null) {
-          setState(() {
-            showsList.add(show.toEntity());
-          });
-        }
-      } catch (error) {
-        _showErrorSnackbar('Gösteri verisi alınırken bir hata oluştu: $error');
-      }
+      final List<String> showsIds, final List<Show?> showsList) async {
+    try {
+      final shows =
+          await ShowRemoteDataSourceImpl(firestore: firestore, storage: storage)
+              .getShowsByIds(showsIds);
+      setState(() {
+        showsList.addAll(shows.map((final show) => show.toEntity()));
+      });
+    } catch (error) {
+      _showErrorSnackbar('Gösteri verisi alınırken bir hata oluştu: $error');
     }
   }
 
@@ -193,7 +189,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
                 imageUrl: player!.imageUrl!,
                 fit: BoxFit.cover,
                 placeholder: (final context, final url) => ShimmerLoading(),
-                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+                errorWidget: (final context, final url, final error) =>
+                    const Icon(Icons.error),
               )
             : const Icon(Icons.person, size: 50),
       ),

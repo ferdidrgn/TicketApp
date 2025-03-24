@@ -110,9 +110,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         context, MaterialPageRoute(builder: (final context) => detailPage));
   }
 
-  String _extractIdFromUrl(final String url) {
-    return url.split('/').last;
-  }
+  String _extractIdFromUrl(final String url) => url.split('/').last;
 
   @override
   Widget build(final BuildContext context) {

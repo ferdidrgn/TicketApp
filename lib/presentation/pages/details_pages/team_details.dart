@@ -58,12 +58,10 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
       try {
         final showService =
             ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
-        final show = await showService.getShowById(showId);
-        if (show != null) {
-          setState(() {
-            _showsDataList.add(show.toEntity());
-          });
-        }
+        final show = (await showService.getShowsByIds([showId])).first;
+        setState(() {
+          _showsDataList.add(show.toEntity());
+        });
       } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
