@@ -15,12 +15,13 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   @override
   Future<void> saveUser(final UserModel user, final String downloadUrl, {final bool isUpdate = false}) async {
     try {
+
       final docRef = firestore.collection('User').doc(user.id);
       final docSnapshot = await docRef.get();
 
       if (docSnapshot.exists && !isUpdate) {
         print('User with ID ${user.id} already exists. Skipping save operation.');
-        return; // İşlemi sonlandır
+        return;
       }
 
       final Map<String, dynamic> userMap = user.toFirestore()..['imageUrl'] = downloadUrl;
@@ -33,12 +34,13 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
 
   @override
   Future<UserModel?> getUserById(final String userId) async {
-    if (userId.isEmpty) throw Exception('User ID cannot be empty.');
 
     try {
-      final DocumentSnapshot doc = await firestore.collection('User').doc(userId).get();
-      if (doc.exists) return UserModel.fromFirestore(doc.data()! as Map<String, dynamic>);
-      else throw Exception('User not found.');
+      if (userId.isEmpty) throw Exception('User ID cannot be empty.');
+
+      final doc = await firestore.collection('User').doc(userId).get();
+      if (doc.exists) return UserModel.fromFirestore(doc.data());
+      else return  null;
     } catch (e) {
       throw Exception('Error fetching user: ${e.toString()}');
     }
@@ -46,9 +48,10 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
 
   @override
   Future<void> deleteUser(final String userId) async {
-    if (userId.isEmpty) throw Exception('User ID cannot be empty.');
 
     try {
+      if (userId.isEmpty) throw Exception('User ID cannot be empty.');
+
       await firestore.collection('User').doc(userId).delete();
     } catch (e) {
       throw Exception('Error deleting user: ${e.toString()}');

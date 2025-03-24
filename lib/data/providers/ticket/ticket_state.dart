@@ -1,23 +1,23 @@
+import 'package:ticketapp/core/common/base_state.dart';
 import 'package:ticketapp/data/model/ticket_model.dart';
 
-class TicketState {
-  final TicketModel? ticket;
-  final bool isLoading;
-  final String? errorMessage;
+class TicketState extends BaseState {
+  final List<TicketModel?>? tickets;
 
   TicketState({
-    this.ticket,
-    this.isLoading = false,
-    this.errorMessage,
+    this.tickets,
+    super.isLoading = false,
+    super.errorMessage,
   });
 
+  @override
   TicketState copyWith({
-    final TicketModel? ticket,
+    final List<TicketModel?>? tickets,
     final bool? isLoading,
     final String? errorMessage,
   }) {
     return TicketState(
-      ticket: ticket ?? this.ticket,
+      tickets: tickets ?? this.tickets,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
     );

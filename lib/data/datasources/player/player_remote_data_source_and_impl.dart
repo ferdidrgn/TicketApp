@@ -2,9 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../model/player_model.dart';
 
 abstract class PlayerRemoteDataSource {
-  Future<List<PlayerModel>> getPlayers(final isLimit);
-
-  Future<PlayerModel?> getPlayerById(final String playerId);
+  Future<List<PlayerModel?>?> getPlayers(final isLimit);
+  Future<List<PlayerModel?>?> getPlayersByIds(final List<String> playersIds);
 }
 
 class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
@@ -23,32 +22,33 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
               .get()
           : await firestore.collection('Player').get();
 
-      return _mapQuerySnapshotToPlayers(querySnapshot);
+      if (querySnapshot.docs.isEmpty) return [];
+      return _convertQuerySnapshotToPlayerList(querySnapshot);
     } catch (e) {
       throw Exception('Error fetching players: ${e.toString()}');
     }
   }
 
   @override
-  Future<PlayerModel?> getPlayerById(final String playerId) async {
-    if (playerId.isEmpty) throw Exception('Player ID cannot be empty.');
+  Future<List<PlayerModel?>?> getPlayersByIds(final List<String> playersIds) async {
 
     try {
-      final result = await firestore
+      if (playersIds.isEmpty) throw Exception('Players IDs cannot be empty.');
+
+      final querySnapshot = await firestore
           .collection('Player')
-          .where('_id', isEqualTo: playerId)
-          .limit(1)
+          .where(FieldPath.documentId, whereIn: playersIds)
           .get();
 
-      if (result.docs.isEmpty) return null;
-      return PlayerModel.fromFirestore(result.docs.first.data());
+      if (querySnapshot.docs.isEmpty) return [];
+      return _convertQuerySnapshotToPlayerList(querySnapshot);
     } catch (error) {
-      throw Exception('Error fetching player by ID: ${error.toString()}');
+      throw Exception('Error fetching players by IDs: ${error.toString()}');
     }
   }
 
   // Convert Firestore document to Player model
-  List<PlayerModel> _mapQuerySnapshotToPlayers(
+  List<PlayerModel> _convertQuerySnapshotToPlayerList(
       final QuerySnapshot<Map<String, dynamic>> snapshot) {
     return snapshot.docs
         .map((final doc) => PlayerModel.fromFirestore(doc.data()))

@@ -1,10 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import '../../../domain/useCase/team/get_team_by_id_use_case_impl.dart';
 import '../../../domain/useCase/team/get_teams_use_case_impl.dart';
-import '../../model/team_model.dart';
 import 'team_state.dart';
 
-class TeamNotifier extends StateNotifier<TeamState> {
+class TeamNotifier extends BaseNotifier<TeamState> {
   final GetTeamsUseCase getTeamsUseCase;
   final GetTeamByIdUseCase getTeamByIdUseCase;
 
@@ -12,38 +11,12 @@ class TeamNotifier extends StateNotifier<TeamState> {
       : super(TeamState());
 
   Future<void> loadTeams(final isLimit) async {
-    _setLoadingState(true);
-    final result = await getTeamsUseCase.call(isLimit);
-
-    result.fold(
-      (final failure) => _setErrorState(failure.message),
-      (final teams) => _setTeamsState(teams),
-    );
+    await handleOperation(() => getTeamsUseCase.call(isLimit),
+        onSuccess: (final teams) => state = state.copyWith(teams: teams));
   }
 
-  Future<void> loadTeamById(final String teamId) async {
-    _setLoadingState(true);
-    final result = await getTeamByIdUseCase.call(teamId);
-
-    result.fold(
-      (final failure) => _setErrorState(failure.message),
-      (final team) => _setTeamState(team),
-    );
-  }
-
-  void _setLoadingState(final bool isLoading) {
-    state = state.copyWith(isLoading: isLoading);
-  }
-
-  void _setErrorState(final String errorMessage) {
-    state = state.copyWith(errorMessage: errorMessage, isLoading: false);
-  }
-
-  void _setTeamsState(final List<TeamModel?> teams) {
-    state = state.copyWith(teams: teams, isLoading: false);
-  }
-
-  void _setTeamState(final TeamModel? team) {
-    state = state.copyWith(team: team, isLoading: false);
+  Future<void> loadTeamsByIds(final List<String> teamsIds) async {
+    await handleOperation(() => getTeamByIdUseCase.call(teamsIds),
+        onSuccess: (final teams) => state = state.copyWith(teams: teams));
   }
 }

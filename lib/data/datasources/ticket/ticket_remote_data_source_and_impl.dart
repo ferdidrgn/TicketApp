@@ -3,7 +3,7 @@ import '../../../domain/entities/ticket.dart';
 import '../../model/ticket_model.dart';
 
 abstract class TicketRemoteDataSource {
-  Future<TicketModel?> getTicketById(final String ticketId);
+  Future<List<TicketModel?>?> getTicketsByIds(final List<String> ticketsIds);
   Future<void> createTicket(final Ticket ticket);
 }
 
@@ -13,19 +13,20 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
   TicketRemoteDataSourceImpl({required this.firestore});
 
   @override
-  Future<TicketModel?> getTicketById(final String ticketId) async {
-    if (ticketId.isEmpty) throw Exception('Ticket ID cannot be empty.');
+  Future<List<TicketModel?>?> getTicketsByIds(final List<String> ticketsIds) async {
 
     try {
-      final QuerySnapshot result = await firestore
+      if (ticketsIds.isEmpty) throw Exception('Ticket ID cannot be empty.');
+
+      final result = await firestore
           .collection('Ticket')
-          .where('_id', isEqualTo: ticketId)
-          .limit(1)
+          .where(FieldPath.documentId, whereIn: ticketsIds)
           .get();
 
       if (result.docs.isEmpty) return null;
-
-      return TicketModel.fromFirestore(result.docs.first.data()! as Map<String, dynamic>);
+      return result.docs.map((final doc) {
+        return TicketModel.fromFirestore(doc.data());
+      }).toList();
     } catch (error) {
       throw Exception('Error fetching ticket: $error');
     }

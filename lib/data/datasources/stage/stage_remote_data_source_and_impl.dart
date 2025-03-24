@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../model/stage_model.dart';
 
 abstract class StageRemoteDataSource {
-  Future<List<StageModel>> getSearchStage(final String query);
-  Future<List<StageModel>> getStages(final isLimit);
-  Future<StageModel?> getStageById(final String stageId);
+  Future<List<StageModel?>?> getSearchStage(final String query);
+  Future<List<StageModel?>?> getStages(final isLimit);
+  Future<List<StageModel?>?> getStagesByIds(final List<String> stagesIds);
 }
 
 class StageRemoteDataSourceImpl implements StageRemoteDataSource {
@@ -13,26 +13,28 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
   StageRemoteDataSourceImpl({required this.firestore});
 
   @override
-  Future<List<StageModel>> getSearchStage(final String query) async {
+  Future<List<StageModel?>?> getSearchStage(final String query) async {
+
     try {
-      final QuerySnapshot snapshot = await firestore
+      if (query.isEmpty) throw Exception('Query cannot be empty.');
+
+      final snapshot = await firestore
           .collection('Stage')
           .where('name', isGreaterThanOrEqualTo: query)
           .where('name', isLessThanOrEqualTo: '$query\uf8ff')
           .get();
 
-      return snapshot.docs
-          .map((final doc) => StageModel.fromFirestore(doc.data()! as Map<String, dynamic>))
-          .toList();
+      if (snapshot.docs.isEmpty) return [];
+      return _convertQuerySnapshotToStageList(snapshot);
     } catch (e) {
       throw Exception('Error fetching stages: $e');
     }
   }
 
   @override
-  Future<List<StageModel>> getStages(final isLimit) async {
+  Future<List<StageModel?>?> getStages(final isLimit) async {
     try {
-      final QuerySnapshot snapshot = isLimit
+      final snapshot = isLimit
           ? await firestore
           .collection('Stage')
           .orderBy('_createdAt', descending: true)
@@ -40,30 +42,36 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
           .get()
           : await firestore.collection('Stage').get();
 
-      return snapshot.docs
-          .map((final doc) => StageModel.fromFirestore(doc.data()! as Map<String, dynamic>))
-          .toList();
+      if (snapshot.docs.isEmpty) return [];
+      return _convertQuerySnapshotToStageList(snapshot);
     } catch (e) {
       throw Exception('Error fetching stages: $e');
     }
   }
 
   @override
-  Future<StageModel?> getStageById(final String stageId) async {
-    if (stageId.isEmpty) throw Exception('Stage ID cannot be empty.');
+  Future<List<StageModel?>?> getStagesByIds(final List<String> stagesIds) async {
 
     try {
-      final QuerySnapshot result = await firestore
+      if (stagesIds.isEmpty) throw Exception('Stage ID cannot be empty.');
+
+      final result = await firestore
           .collection('Stage')
-          .where('_id', isEqualTo: stageId)
-          .limit(1)
+          .where(FieldPath.documentId, whereIn: stagesIds)
           .get();
 
-      if (result.docs.isEmpty) return null;
-
-      return StageModel.fromFirestore(result.docs.first.data()! as Map<String, dynamic>);
+      if (result.docs.isEmpty) return [];
+      return _convertQuerySnapshotToStageList(result);
     } catch (error) {
       throw Exception('Error fetching stage: $error');
     }
+  }
+
+// Convert Firestore document to StageModel
+  List<StageModel> _convertQuerySnapshotToStageList(
+      final QuerySnapshot snapshot) {
+    return snapshot.docs.map((final doc) {
+      return StageModel.fromFirestore(doc.data()! as Map<String, dynamic>);
+    }).toList();
   }
 }

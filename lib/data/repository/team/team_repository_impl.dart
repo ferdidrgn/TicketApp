@@ -1,43 +1,31 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../core/network/internet_service.dart';
+import '../../../core/common/base_repo.dart';
 import '../../../domain/repository/team_repository.dart';
 import '../../datasources/team/team_remote_data_source_and_impl.dart';
 import '../../model/team_model.dart';
 
-class TeamRepositoryImpl implements TeamRepository {
+class TeamRepositoryImpl extends BaseRepository implements TeamRepository {
   final TeamRemoteDataSource remoteDataSource;
-  final InternetService internetService;
 
   TeamRepositoryImpl({
     required this.remoteDataSource,
-    required this.internetService,
+    required super.internetService,
   });
 
-  Future<Either<Failure, T>> _execute<T>(final Future<T> Function() action) async {
-    if (await internetService.isConnected)
-      try {
-        final result = await action();
-        return Right(result);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    else return const Left(NetworkFailure('No internet connection'));
-  }
-
   @override
-  Future<Either<Failure, List<TeamModel>>> getTeams(final isLimit) async {
-    return _execute(() async {
+  Future<Either<Failure, List<TeamModel?>?>> getTeams(final isLimit) async {
+    return execute(() async {
       final teams = await remoteDataSource.getTeams(isLimit);
-      return teams.whereType<TeamModel>().toList(); // Nullable değerleri filtrele
+      return teams?.whereType<TeamModel>().toList(); // Nullable değerleri filtrele
     });
   }
 
   @override
-  Future<Either<Failure, TeamModel?>> getTeamById(final String teamId) async {
-    return _execute(() async {
-      if (teamId.isEmpty) throw Exception('Team ID cannot be empty.');
-      return remoteDataSource.getTeamById(teamId);
+  Future<Either<Failure, List<TeamModel?>?>> getTeamsByIds(final List<String> teamIds) async {
+    return execute(() async {
+      if (teamIds.isEmpty) throw Exception('Team ID cannot be empty.');
+      return remoteDataSource.getTeamsByIds(teamIds);
     });
   }
 }

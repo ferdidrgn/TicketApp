@@ -28,15 +28,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       curve: Curves.easeInOut,
     );
 
-    Future.delayed(const Duration(seconds: 3), _checkUserLoginState);
-  }
-
-  Future<void> _checkUserLoginState() async {
-    final currentUser = ref.read(loginProvider).user;
-    if (currentUser != null)
-      await Navigator.of(context).pushReplacementNamed('/home');
-    else
-      await Navigator.of(context).pushReplacementNamed('/login');
+    // Kullanıcıyı getir
+    Future.microtask(() {
+      ref.read(loginProvider.notifier).getCurrentUser();
+    });
   }
 
   @override
@@ -47,6 +42,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(final BuildContext context) {
+    ref.listen(loginProvider, (previous, next) {
+      if (next.user != null) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else if (!next.isLoading) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.red,
       body: Center(

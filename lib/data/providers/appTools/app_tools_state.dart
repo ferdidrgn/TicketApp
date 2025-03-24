@@ -1,16 +1,17 @@
-class AppToolsState {
+import 'package:ticketapp/core/common/base_state.dart';
+
+class AppToolsState extends BaseState{
   final String? privacyPolicy;
   final String? termsCondition;
-  final bool isLoading;
-  final String? errorMessage;
 
   AppToolsState({
     this.privacyPolicy,
     this.termsCondition,
-    this.isLoading = false,
-    this.errorMessage,
+    super.isLoading = false,
+    super.errorMessage,
   });
 
+  @override
   AppToolsState copyWith({
     final String? privacyPolicy,
     final String? termsCondition,

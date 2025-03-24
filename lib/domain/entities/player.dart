@@ -1,26 +1,26 @@
 import 'package:equatable/equatable.dart';
 
 class Player extends Equatable {
-  final String createdAt;
-  final String updatedAt;
-  final String id;
-  final String firstName;
-  final String lastName;
-  final String bio;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? id;
+  final String? firstName;
+  final String? lastName;
+  final String? bio;
   final String? imageUrl;
-  final List<String> nowShowsId;
-  final List<String> oldShowsId;
+  final List<String?>? nowShowsId;
+  final List<String?>? oldShowsId;
 
   const Player({
-    required this.createdAt,
-    required this.updatedAt,
-    required this.id,
-    required this.firstName,
-    required this.lastName,
-    required this.bio,
+    this.createdAt,
+    this.updatedAt,
+    this.id,
+    this.firstName,
+    this.lastName,
+    this.bio,
     this.imageUrl,
-    required this.nowShowsId,
-    required this.oldShowsId,
+    this.nowShowsId,
+    this.oldShowsId,
   });
 
   @override
@@ -36,31 +36,30 @@ class Player extends Equatable {
         oldShowsId,
       ];
 
-  factory Player.fromMap(final Map<String, dynamic> data) {
+  factory Player.fromMap(final Map<String, dynamic>? data) {
+    if (data == null) return const Player();
     return Player(
-      createdAt: data['_createdAt'] ?? '',
-      updatedAt: data['_updatedAt'] ?? '',
-      id: data['_id'] ?? '',
-      firstName: data['firstName'] ?? '',
-      lastName: data['lastName'] ?? '',
-      bio: data['bio'] ?? '',
-      imageUrl: data['imageUrl'],
-      nowShowsId: List<String>.from(data['nowShowsId'] ?? []),
-      oldShowsId: List<String>.from(data['oldShowsId'] ?? []),
+      id: data['_id'] as String?,
+      createdAt: data['_createdAt'] as String?,
+      updatedAt: data['_updatedAt'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      firstName: data['firstName'] as String?,
+      lastName: data['lastName'] as String?,
+      bio: data['bio'] as String?,
+      nowShowsId: (data['nowShowsId'] as List?)?.map((final e) => e as String?).toList(),
+      oldShowsId: (data['oldShowsId'] as List?)?.map((final e) => e as String?).toList(),
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       '_id': id,
       '_createdAt': createdAt,
       '_updatedAt': updatedAt,
+      'imageUrl': imageUrl,
       'firstName': firstName,
       'lastName': lastName,
       'bio': bio,
-      'imageUrl': imageUrl,
       'nowShowsId': nowShowsId,
       'oldShowsId': oldShowsId,
     };
-  }
 }

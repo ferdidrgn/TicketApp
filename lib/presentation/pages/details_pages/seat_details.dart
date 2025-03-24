@@ -25,7 +25,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   final firestore = FirebaseFirestore.instance;
   late final EventRemoteDataSourceImpl? eventService;
   late final SeatRemoteDataSourceImpl? seatService;
-  Map<String, List<String>>? seats = {};
+  Map<String, List<String?>?>? seats = {};
   Map<String, Map<String, dynamic>>? seatStatus = {};
   Set<String> selectedSeats = {};
   late String stageId;
@@ -75,10 +75,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   void _startReservationTimer() {
     reservationTimer =
         Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (remainingTime > 0)
-        setState(() => remainingTime--);
-      else
-        _handleTimeUp(timer);
+      if (remainingTime > 0) setState(() => remainingTime--);
+      else _handleTimeUp(timer);
     });
   }
 
@@ -237,8 +235,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     final seatsByRow = <String, List<String>>{};
 
     if (seats == null) return seatsByRow;
-    for (final String seat
-        in seats!.values.expand((final element) => element)) {
+    for (final String seat in seats!.values.expand((final element) => element?.whereType<String>() ?? [])) {
       final String row = seat[0];
       seatsByRow.putIfAbsent(row, () => []).add(seat);
     }

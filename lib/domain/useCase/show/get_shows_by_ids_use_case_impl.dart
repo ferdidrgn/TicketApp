@@ -4,7 +4,7 @@ import '../../../data/model/show_model.dart';
 import '../../repository/show_repository.dart';
 
 abstract class GetShowsByIdsUseCase {
-  Future<Either<Failure, List<ShowModel?>>> call(final List<String> showsIds);
+  Future<Either<Failure, List<ShowModel?>?>> call(final List<String> showsIds);
 }
 
 class GetShowsByIdsUseCaseImpl implements GetShowsByIdsUseCase {
@@ -13,7 +13,7 @@ class GetShowsByIdsUseCaseImpl implements GetShowsByIdsUseCase {
   GetShowsByIdsUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<ShowModel?>>> call(final List<String> showsIds) async {
+  Future<Either<Failure, List<ShowModel?>?>> call(final List<String> showsIds) async {
     return repository.getShowsByIds(showsIds);
   }
 }

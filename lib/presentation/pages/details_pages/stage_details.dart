@@ -37,11 +37,11 @@ class _StageDetailPageState extends State<StageDetailPage> {
   Future<void> _fetchStageData() async {
     try {
       final stageService = StageRemoteDataSourceImpl(firestore: firestore);
-      final fetchedStage = await stageService.getStageById(widget.stageId);
+      final fetchedStage = await stageService.getStagesByIds([widget.stageId]);
 
       if (fetchedStage != null) {
         setState(() {
-          _stage = fetchedStage.toEntity();
+          _stage = fetchedStage.first?.toEntity();
         });
         await _fetchShows();
       }
@@ -56,19 +56,19 @@ class _StageDetailPageState extends State<StageDetailPage> {
   }
 
   Future<void> _fetchShows() async {
-    for (final String showId in _stage?.showsId ?? []) {
       try {
-        final showService =
-            ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
-        final show = (await showService.getShowsByIds([showId])).first;
+        final showService = ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
+        if (_stage == null) return;
+        final filteredStageIds = _stage?.showsId?.whereType<String>().toList();
+        if (filteredStageIds == null || filteredStageIds.isEmpty) return;
+        final shows = await showService.getShowsByIds(filteredStageIds);
           setState(() {
-            _showsDataList.add(show.toEntity());
+            _showsDataList.addAll(shows!.map((final show) => show?.toEntity()).whereType<Show>());
           });
       } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
       }
-    }
   }
 
   @override

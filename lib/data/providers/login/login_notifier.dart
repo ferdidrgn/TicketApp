@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import '../../../domain/useCase/login/get_current_user_use_case_impl.dart';
 import '../../../domain/useCase/login/sign_in_with_google_use_case_impl.dart';
 import '../../../domain/useCase/login/sign_out_use_case_impl.dart';
@@ -6,7 +6,7 @@ import '../../../domain/useCase/login/verify_otp_use_case_impl.dart';
 import '../../../domain/useCase/login/verify_phone_use_case_impl.dart';
 import 'login_state.dart';
 
-class LoginNotifier extends StateNotifier<LoginState> {
+class LoginNotifier extends BaseNotifier<LoginState> {
   final SignInWithGoogleUseCase signInWithGoogleUseCase;
   final SignOutUseCase signOutUseCase;
   final GetCurrentUserUseCase getCurrentUserUseCase;
@@ -22,35 +22,29 @@ class LoginNotifier extends StateNotifier<LoginState> {
   ) : super(LoginState());
 
   Future<void> getCurrentUser() async {
-    state = state.copyWith(isLoading: true);
-    final result = await getCurrentUserUseCase.call();
-    result.fold(
-      (final failure) => state =
-          state.copyWith(isLoading: false, errorMessage: failure.message),
-      (final user) => state = state.copyWith(isLoading: false, user: user),
+    await handleOperation(
+      () => getCurrentUserUseCase.call(),
+      onSuccess: (final user) => state = state.copyWith(user: user),
     );
   }
 
   Future<void> signInWithGoogle() async {
-    state = state.copyWith(isLoading: true);
-    final result = await signInWithGoogleUseCase.call();
-    result.fold(
-      (final failure) => state =
-          state.copyWith(isLoading: false, errorMessage: failure.message),
-      (final user) async {
-        final userResult = await getCurrentUserUseCase.call();
-        userResult.fold(
-          (final failure) => state =
-              state.copyWith(isLoading: false, errorMessage: failure.message),
-          (final user) => state = state.copyWith(isLoading: false, user: user),
-        );
-      },
-    );
+    await handleOperation(() => signInWithGoogleUseCase.call(),
+        onSuccess: (final user) async {
+      final userResult = await getCurrentUserUseCase.call();
+      userResult.fold(
+        (final failure) => state =
+            state.copyWith(isLoading: false, errorMessage: failure.message),
+        (final user) => state = state.copyWith(isLoading: false, user: user),
+      );
+    });
   }
 
   Future<void> signOut() async {
-    await signOutUseCase.call();
-    state = state.copyWith(user: null);
+    await handleOperation(
+      () => signOutUseCase.call(),
+      onSuccess: (final _) => state = state.copyWith(user: null),
+    );
   }
 
   Future<void> verifyPhone(
@@ -74,10 +68,9 @@ class LoginNotifier extends StateNotifier<LoginState> {
   }
 
   Future<void> verifyOtp(final String verificationId, final String otp) async {
-    final result = await verifyOtpUseCase.call(verificationId, otp);
-    result.fold(
-      (final failure) => state = state.copyWith(errorMessage: failure.message),
-      (final _) async {
+    await handleOperation(
+      () => verifyOtpUseCase.call(verificationId, otp),
+      onSuccess: (final bool) async {
         final userResult = await getCurrentUserUseCase.call();
         userResult.fold(
           (final failure) =>

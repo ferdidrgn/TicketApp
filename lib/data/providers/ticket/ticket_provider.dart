@@ -13,7 +13,7 @@ final ticketProvider = StateNotifierProvider<TicketNotifier, TicketState>((final
 });
 
 // Use case providers
-final getTicketByIdUseCaseProvider = Provider<GetTicketByIdUseCase>((final ref) {
+final getTicketByIdUseCaseProvider = Provider<GetTicketsByIdsUseCase>((final ref) {
   final repository = ref.watch(ticketRepositoryProvider);
   return GetTicketByIdUseCaseImpl(repository);
 });

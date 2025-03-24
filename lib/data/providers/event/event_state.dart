@@ -1,11 +1,11 @@
-class EventState {
+import 'package:ticketapp/core/common/base_state.dart';
+
+class EventState extends BaseState{
   final String? price;
   final Map<String, String>? date;
   final String? stageId;
   final Map<String, Map<String, dynamic>>? seatStatus;
   final List<String> purchasedSeats;
-  final bool isLoading;
-  final String? errorMessage;
 
   EventState({
     this.price,
@@ -13,10 +13,11 @@ class EventState {
     this.stageId,
     this.seatStatus,
     this.purchasedSeats = const [],
-    this.isLoading = false,
-    this.errorMessage,
+    super.isLoading = false,
+    super.errorMessage,
   });
 
+  @override
   EventState copyWith({
     final String? price,
     final Map<String, String>? date,

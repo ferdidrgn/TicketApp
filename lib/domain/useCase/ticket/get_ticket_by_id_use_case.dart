@@ -3,17 +3,17 @@ import '../../../../core/errors/failures.dart';
 import '../../../data/model/ticket_model.dart';
 import '../../repository/ticket_repository.dart';
 
-abstract class GetTicketByIdUseCase {
-  Future<Either<Failure, TicketModel?>> call(final String ticketId);
+abstract class GetTicketsByIdsUseCase {
+  Future<Either<Failure, List<TicketModel?>?>> call(final List<String> ticketsIds);
 }
 
-class GetTicketByIdUseCaseImpl implements GetTicketByIdUseCase {
+class GetTicketByIdUseCaseImpl implements GetTicketsByIdsUseCase {
   final TicketRepository repository;
 
   GetTicketByIdUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, TicketModel?>> call(final String ticketId) async {
-    return repository.getTicketById(ticketId);
+  Future<Either<Failure, List<TicketModel?>?>> call(final List<String> ticketsIds) async {
+    return repository.getTicketsByIds(ticketsIds);
   }
 }

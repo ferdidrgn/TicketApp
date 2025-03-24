@@ -29,7 +29,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Show? showData;
   List<Player?> nowPlayerDataList = [];
   List<Player?> oldPlayerDataList = [];
-  List<String?> photoDataList = [];
+  List<String?>? photoDataList = [];
   bool isLoading = true;
   bool isExpanded = false;
 
@@ -44,13 +44,13 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     try {
       final showService =
           ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
-      final show = (await showService.getShowsByIds([widget.showId])).first;
-        setState(() {
-          showData = show.toEntity();
-          photoDataList = show.photosShowId;
-        });
-        await _fetchNowPlayers(show.nowPlayersId);
-        await _fetchOldPlayers(show.oldPlayersId);
+      final show = (await showService.getShowsByIds([widget.showId]))?.first;
+      setState(() {
+        showData = show?.toEntity();
+        photoDataList = show?.photosShowId;
+      });
+      await _fetchNowPlayers(show?.nowPlayersId);
+      await _fetchOldPlayers(show?.oldPlayersId);
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
@@ -61,17 +61,15 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     }
   }
 
-  Future<void> _fetchNowPlayers(final List<String>? playersId) async {
+  Future<void> _fetchNowPlayers(final List<String?>? playersId) async {
     try {
       if (playersId != null) {
-        for (final String playerId in playersId) {
-          final player = await playerService?.getPlayerById(playerId);
-          if (player != null) {
-            setState(() {
-              nowPlayerDataList.add(player.toEntity());
-            });
-          }
-        }
+        final filteredPlayersId = playersId.whereType<String>().toList();
+        final player = await playerService?.getPlayersByIds(filteredPlayersId);
+        if (player != null)
+          setState(() {
+            nowPlayerDataList.addAll(player.map((final e) => e?.toEntity()));
+          });
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -79,17 +77,15 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     }
   }
 
-  Future<void> _fetchOldPlayers(final List<String>? playersId) async {
+  Future<void> _fetchOldPlayers(final List<String?>? playersId) async {
     try {
       if (playersId != null) {
-        for (final String playerId in playersId) {
-          final player = await playerService?.getPlayerById(playerId);
-          if (player != null) {
-            setState(() {
-              oldPlayerDataList.add(player.toEntity());
-            });
-          }
-        }
+        final filteredPlayersId = playersId.whereType<String>().toList();
+        final player = await playerService?.getPlayersByIds(filteredPlayersId);
+        if (player != null)
+          setState(() {
+            nowPlayerDataList.addAll(player.map((e) => e?.toEntity()));
+          });
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -181,18 +177,18 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CustomDescriptionCard(
-                description: showData?.description.replaceAll('\\n', '\n') ??
+                description: showData?.description?.replaceAll('\\n', '\n') ??
                     'No description available'),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
             const SizedBox(height: 16),
             Column(
               children:
-                  List.generate(showData?.eventsId.length ?? 0, (final index) {
+                  List.generate(showData?.eventsId?.length ?? 0, (final index) {
                 return _buildEventCard(
                     "15.04.2004".toString(),
                     "Şubat".toString(),
-                    showData!.eventsId[index],
+                    showData?.eventsId?[index] ?? "",
                     'city'.toString());
               }),
             ),
@@ -355,9 +351,9 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: photoDataList.length,
+        itemCount: photoDataList?.length,
         itemBuilder: (final context, final index) {
-          final photoUrl = photoDataList[index] ?? '';
+          final photoUrl = photoDataList?[index] ?? '';
           return GestureDetector(
             child: _buildGamePhotoCard(photoUrl),
             onTap: () {
@@ -412,7 +408,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                   imageUrl: photoUrl,
                   fit: BoxFit.contain, // Görseli tam boyutta göster
                   placeholder: (final context, final url) => ShimmerLoading(),
-                  errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+                  errorWidget: (final context, final url, final error) =>
+                      const Icon(Icons.error),
                 ),
               ),
             ),

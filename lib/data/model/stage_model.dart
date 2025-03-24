@@ -12,7 +12,7 @@ class StageModel {
   final double? locationLng;
   final String? createdAt;
   final String? updatedAt;
-  final List<String>? showsId;
+  final List<String?>? showsId;
 
   const StageModel({
     this.id,
@@ -29,71 +29,67 @@ class StageModel {
     this.showsId,
   });
 
-  factory StageModel.fromFirestore(final Map<String, dynamic> data) {
+  factory StageModel.fromFirestore(final Map<String, dynamic>? data) {
+    if (data == null) return const StageModel();
     return StageModel(
-      id: data['_id'],
-      name: data['name'],
-      imageUrl: data['imageUrl'],
-      capacity: data['capacity'],
-      description: data['description'],
-      communication: data['communication'],
-      address: data['address'],
-      locationLat: data['locationLat']?.toDouble(),
-      locationLng: data['locationLng']?.toDouble(),
-      createdAt: data['_createdAt'],
-      updatedAt: data['_updatedAt'],
-      showsId: List<String>.from(data['showsId'] ?? []),
+      createdAt: data['_createdAt'] as String?,
+      updatedAt: data['_updatedAt'] as String?,
+      id: data['_id'] as String?,
+      name: data['name'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      capacity: data['capacity'] as String?,
+      description: data['description'] as String?,
+      communication: data['communication'] as String?,
+      address: data['address'] as String?,
+      locationLat: data['locationLat'] as double?,
+      locationLng: data['locationLng'] as double?,
+      showsId:
+          (data['showsId'] as List?)?.map((final e) => e as String?).toList(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      '_id': id,
-      'name': name,
-      'imageUrl': imageUrl,
-      'capacity': capacity,
-      'description': description,
-      'communication': communication,
-      'address': address,
-      'locationLat': locationLat,
-      'locationLng': locationLng,
-      '_createdAt': createdAt,
-      '_updatedAt': updatedAt,
-      'showsId': showsId,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+        '_createdAt': createdAt,
+        '_updatedAt': updatedAt,
+        '_id': id,
+        'name': name,
+        'imageUrl': imageUrl,
+        'capacity': capacity,
+        'description': description,
+        'communication': communication,
+        'address': address,
+        'locationLat': locationLat,
+        'locationLng': locationLng,
+        'showsId': showsId,
+      };
 
-  Stage toEntity() {
-    return Stage(
-      id: id,
-      name: name,
-      imageUrl: imageUrl,
-      capacity: capacity,
-      description: description,
-      communication: communication,
-      address: address,
-      locationLat: locationLat,
-      locationLng: locationLng,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      showsId: showsId,
-    );
-  }
+  Stage toEntity() => Stage(
+        id: id,
+        name: name,
+        imageUrl: imageUrl,
+        capacity: capacity,
+        description: description,
+        communication: communication,
+        address: address,
+        locationLat: locationLat,
+        locationLng: locationLng,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        showsId: showsId ?? [],
+      );
 
-  factory StageModel.fromEntity(final Stage stage) {
-    return StageModel(
-      id: stage.id,
-      name: stage.name,
-      imageUrl: stage.imageUrl,
-      capacity: stage.capacity,
-      description: stage.description,
-      communication: stage.communication,
-      address: stage.address,
-      locationLat: stage.locationLat,
-      locationLng: stage.locationLng,
-      createdAt: stage.createdAt,
-      updatedAt: stage.updatedAt,
-      showsId: stage.showsId,
-    );
-  }
+  factory StageModel.fromEntity(final Stage entity) => StageModel(
+        id: entity.id,
+        name: entity.name,
+        imageUrl: entity.imageUrl,
+        capacity: entity.capacity,
+        description: entity.description,
+        communication: entity.communication,
+        address: entity.address,
+        locationLat: entity.locationLat,
+        locationLng: entity.locationLng,
+        createdAt: entity.createdAt,
+        updatedAt: entity.updatedAt,
+        showsId: entity.showsId,
+      );
 }

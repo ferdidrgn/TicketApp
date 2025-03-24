@@ -1,88 +1,68 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../core/network/internet_service.dart';
+import '../../../core/common/base_repo.dart';
 import '../../../domain/repository/show_repository.dart';
 import '../../datasources/show/show_remote_data_source_and_impl.dart';
 import '../../model/show_model.dart';
 
-class ShowRepositoryImpl implements ShowRepository {
+class ShowRepositoryImpl extends BaseRepository implements ShowRepository {
   final ShowRemoteDataSource remoteDataSource;
-  final InternetService internetService;
 
   ShowRepositoryImpl({
     required this.remoteDataSource,
-    required this.internetService,
+    required super.internetService,
   });
 
   @override
-  Future<Either<Failure, List<ShowModel>>> getSearchShow(final List<String> categories, final String? type) async {
-    if (await internetService.isConnected)
-      try {
-        final shows = await remoteDataSource.getSearchShow(categories, type);
-        return Right(shows);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-     else return const Left(NetworkFailure('No internet connection'));
+  Future<Either<Failure, List<ShowModel?>?>> getSearchShow(
+      final List<String> categories, final String? type) async {
+    return execute(() async {
+      if (categories.isEmpty) throw Exception('categories is empty');
+      return remoteDataSource.getSearchShow(categories, type);
+    });
   }
 
   @override
-  Future<Either<Failure, List<ShowModel>>> getShows(final isLimit) async {
-    if (await internetService.isConnected)
-      try {
-        final shows = await remoteDataSource.getShows(isLimit);
-        return Right(shows);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    else return const Left(NetworkFailure('No internet connection'));
+  Future<Either<Failure, List<ShowModel?>?>> getShows(final isLimit) async {
+    return execute(() async {
+      if (isLimit == null) throw Exception('isLimit is null');
+      return remoteDataSource.getShows(isLimit);
+    });
   }
 
   @override
-  Future<Either<Failure, List<ShowModel>>> getShowsByIds(final List<String> showsIds) async {
-    if (await internetService.isConnected)
-      try {
-        final show = await remoteDataSource.getShowsByIds(showsIds);
-        return Right(show);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-      else return const Left(NetworkFailure('No internet connection'));
+  Future<Either<Failure, List<ShowModel?>?>> getShowsByIds(
+      final List<String> showsIds) async {
+    return execute(() async {
+      if (showsIds.isEmpty) throw Exception('showsIds is empty');
+      return remoteDataSource.getShowsByIds(showsIds);
+    });
   }
 
   @override
-  Future<Either<Failure, void>> addShow(final ShowModel show, final Uri? showIdAddOrUpdateImgUrl) async {
-    if (await internetService.isConnected)
-      try {
-        await remoteDataSource.addShow(show, showIdAddOrUpdateImgUrl);
-        return const Right(null);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    else return const Left(NetworkFailure('No internet connection'));
+  Future<Either<Failure, void>> addShow(final ShowModel show,
+      final Uri? showIdAddOrUpdateImgUrl) async {
+    return execute(() async {
+      if (showIdAddOrUpdateImgUrl == null) throw Exception(
+          'showIdAddOrUpdateImgUrl is null');
+      await remoteDataSource.addShow(show, showIdAddOrUpdateImgUrl);
+    });
   }
 
   @override
   Future<Either<Failure, void>> deleteShow(final String? showId) async {
-    if (await internetService.isConnected)
-      try {
-        await remoteDataSource.deleteShow(showId);
-        return const Right(null);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    else return const Left(NetworkFailure('No internet connection'));
+    return execute(() async {
+      if (showId == null) throw Exception('showId is null');
+      await remoteDataSource.deleteShow(showId);
+    });
   }
 
   @override
-  Future<Either<Failure, void>> updateShow(final String showId, final Map<String, dynamic> updatedData) async {
-    if (await internetService.isConnected)
-      try {
-        await remoteDataSource.updateShow(showId, updatedData);
-        return const Right(null);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    else return const Left(NetworkFailure('No internet connection'));
+  Future<Either<Failure, void>> updateShow(final String showId,
+      final Map<String, dynamic> updatedData) async {
+    return execute(() async {
+      if (showId.isEmpty) throw Exception('showId is empty');
+      await remoteDataSource.updateShow(showId, updatedData);
+    });
   }
 }

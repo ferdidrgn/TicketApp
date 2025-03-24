@@ -1,18 +1,19 @@
 import 'package:ticketapp/data/model/stage_model.dart';
 
-class StageState {
+import '../../../core/common/base_state.dart';
+
+class StageState extends BaseState {
   final List<StageModel?> stages;
   final StageModel? stage;
-  final bool isLoading;
-  final String? errorMessage;
 
   StageState({
     this.stages = const [],
     this.stage,
-    this.isLoading = false,
-    this.errorMessage,
+    super.isLoading,
+    super.errorMessage,
   });
 
+  @override
   StageState copyWith({
     final List<StageModel?>? stages,
     final StageModel? stage,

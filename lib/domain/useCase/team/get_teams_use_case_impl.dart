@@ -4,7 +4,7 @@ import '../../../data/model/team_model.dart';
 import '../../repository/team_repository.dart';
 
 abstract class GetTeamsUseCase {
-  Future<Either<Failure, List<TeamModel?>>> call(final isLimit);
+  Future<Either<Failure, List<TeamModel?>?>> call(final isLimit);
 }
 
 class GetTeamsUseCaseImpl implements GetTeamsUseCase {
@@ -13,7 +13,7 @@ class GetTeamsUseCaseImpl implements GetTeamsUseCase {
   GetTeamsUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<TeamModel?>>> call(final isLimit) async {
+  Future<Either<Failure, List<TeamModel?>?>> call(final isLimit) async {
     return repository.getTeams(isLimit);
   }
 }

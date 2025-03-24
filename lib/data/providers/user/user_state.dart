@@ -1,18 +1,18 @@
-import '../../../domain/entities/user.dart';
+import 'package:ticketapp/core/common/base_state.dart';
+import 'package:ticketapp/data/model/user_model.dart';
 
-class UserState {
-  final User? user;
-  final bool isLoading;
-  final String? errorMessage;
+class UserState extends BaseState {
+  final UserModel? user;
 
   UserState({
     this.user,
-    this.isLoading = false,
-    this.errorMessage,
+    super.isLoading = false,
+    super.errorMessage,
   });
 
+  @override
   UserState copyWith({
-    final User? user,
+    final UserModel? user,
     final bool? isLoading,
     final String? errorMessage,
   }) {

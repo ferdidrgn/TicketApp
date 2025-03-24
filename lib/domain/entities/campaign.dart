@@ -1,24 +1,24 @@
 import 'package:equatable/equatable.dart';
 
 class Campaign extends Equatable {
-  final String id;
-  final String createdAt;
-  final String updatedAt;
-  final String endDate;
-  final String imageUrl;
-  final String startDate;
-  final String title;
-  final String url;
+  final String? id;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? endDate;
+  final String? imageUrl;
+  final String? startDate;
+  final String? title;
+  final String? url;
 
   const Campaign({
-    required this.id,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.endDate,
-    required this.imageUrl,
-    required this.startDate,
-    required this.title,
-    required this.url,
+    this.id,
+    this.createdAt,
+    this.updatedAt,
+    this.endDate,
+    this.imageUrl,
+    this.startDate,
+    this.title,
+    this.url,
   });
 
   @override
@@ -33,29 +33,28 @@ class Campaign extends Equatable {
         url,
       ];
 
-  factory Campaign.fromMap(final Map<String, dynamic> data) {
+  factory Campaign.fromMap(final Map<String, dynamic>? data) {
+    if (data == null) return const Campaign();
     return Campaign(
-      id: data['_id'],
-      createdAt: data['_createdAt'] ?? '',
-      updatedAt: data['_updatedAt'] ?? '',
-      endDate: data['endDate'] ?? '',
-      imageUrl: data['imageUrl'] ?? '',
-      startDate: data['startDate'] ?? '',
-      title: data['title'] ?? '',
-      url: data['url'] ?? '',
+      id: data['_id'] as String?,
+      createdAt: data['_createdAt'] as String?,
+      updatedAt: data['_updatedAt'] as String?,
+      endDate: data['endDate'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      startDate: data['startDate'] as String?,
+      title: data['title'] as String?,
+      url: data['url'] as String?,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      '_id': id,
-      '_createdAt': createdAt,
-      '_updatedAt': updatedAt,
-      'endDate': endDate,
-      'imageUrl': imageUrl,
-      'startDate': startDate,
-      'title': title,
-      'url': url,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+        '_createdAt': createdAt,
+        '_updatedAt': updatedAt,
+        '_id': id,
+        'endDate': endDate,
+        'imageUrl': imageUrl,
+        'startDate': startDate,
+        'title': title,
+        'url': url,
+      };
 }

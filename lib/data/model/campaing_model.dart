@@ -1,75 +1,70 @@
 import '../../domain/entities/campaign.dart';
 
 class CampaignModel {
-  final String id;
-  final String createdAt;
-  final String updatedAt;
-  final String endDate;
-  final String imageUrl;
-  final String startDate;
-  final String title;
-  final String url;
+  final String? id;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? endDate;
+  final String? imageUrl;
+  final String? startDate;
+  final String? title;
+  final String? url;
 
   const CampaignModel({
-    required this.id,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.endDate,
-    required this.imageUrl,
-    required this.startDate,
-    required this.title,
-    required this.url,
+    this.id,
+    this.createdAt,
+    this.updatedAt,
+    this.endDate,
+    this.imageUrl,
+    this.startDate,
+    this.title,
+    this.url,
   });
 
-  factory CampaignModel.fromFirestore(final Map<String, dynamic> data) {
+  factory CampaignModel.fromFirestore(final Map<String, dynamic>? data) {
+    if (data == null) return const CampaignModel();
     return CampaignModel(
-      id: data['_id'] ?? '',
-      createdAt: data['_createdAt'] ?? '',
-      updatedAt: data['_updatedAt'] ?? '',
-      endDate: data['endDate'] ?? '',
-      imageUrl: data['imageUrl'] ?? '',
-      startDate: data['startDate'] ?? '',
-      title: data['title'] ?? '',
-      url: data['url'] ?? '',
+      createdAt: data['_createdAt'] as String?,
+      updatedAt: data['_updatedAt'] as String?,
+      id: data['_id'] as String?,
+      endDate: data['endDate'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      startDate: data['startDate'] as String?,
+      title: data['title'] as String?,
+      url: data['url'] as String?,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      '_id': id,
-      '_createdAt': createdAt,
-      '_updatedAt': updatedAt,
-      'endDate': endDate,
-      'imageUrl': imageUrl,
-      'startDate': startDate,
-      'title': title,
-      'url': url,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+        '_createdAt': createdAt,
+        '_updatedAt': updatedAt,
+        '_id': id,
+        'endDate': endDate,
+        'imageUrl': imageUrl,
+        'startDate': startDate,
+        'title': title,
+        'url': url,
+      };
 
-  Campaign toEntity() {
-    return Campaign(
-      id: id,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      endDate: endDate,
-      imageUrl: imageUrl,
-      startDate: startDate,
-      title: title,
-      url: url,
-    );
-  }
+  Campaign toEntity() => Campaign(
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        id: id,
+        endDate: endDate,
+        imageUrl: imageUrl,
+        startDate: startDate,
+        title: title,
+        url: url,
+      );
 
-  factory CampaignModel.fromEntity(final Campaign campaign) {
-    return CampaignModel(
-      id: campaign.id,
-      createdAt: campaign.createdAt,
-      updatedAt: campaign.updatedAt,
-      endDate: campaign.endDate,
-      imageUrl: campaign.imageUrl,
-      startDate: campaign.startDate,
-      title: campaign.title,
-      url: campaign.url,
-    );
-  }
+  factory CampaignModel.fromEntity(final Campaign campaign) => CampaignModel(
+        createdAt: campaign.createdAt,
+        updatedAt: campaign.updatedAt,
+        id: campaign.id,
+        endDate: campaign.endDate,
+        imageUrl: campaign.imageUrl,
+        startDate: campaign.startDate,
+        title: campaign.title,
+        url: campaign.url,
+      );
 }

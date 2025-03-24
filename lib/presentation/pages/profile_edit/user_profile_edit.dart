@@ -30,12 +30,14 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   @override
   void initState() {
     super.initState();
-    // Veriyi yükle
     _getUserData();
   }
 
   Future<void> _getUserData() async {
-    await ref.read(userProvider.notifier).loadUserById(widget.userId);
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (ref.read(userProvider).user != null)
+        ref.read(userProvider.notifier).loadUserById(widget.userId);
+    });
   }
 
   Future<void> _updateProfile() async {
@@ -211,8 +213,8 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   void fillUIUserInfo(final User user) {
     setState(() {
-      _firstName = user.firstName;
-      _lastName = user.lastName;
+      _firstName = user.firstName ?? "";
+      _lastName = user.lastName ?? "";
       _phoneNumber = user.phoneNumber ?? "";
       _email = user.eMail ?? "";
       _age = user.age?.toInt() ?? 0;

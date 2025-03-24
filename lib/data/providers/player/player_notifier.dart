@@ -10,17 +10,19 @@ class PlayerNotifier extends BaseNotifier<PlayerState> {
   PlayerNotifier(this.getPlayerByIdUseCase, this.getPlayersUseCase)
       : super(PlayerState());
 
-  Future<void> loadPlayerById(final String playerId) async {
+  Future<void> loadPlayers(final isLimit) async {
     await handleOperation(
-          () => getPlayerByIdUseCase.call(playerId),
-      onSuccess: (final player) => state = state.copyWith(player: player),
+      () => getPlayersUseCase.call(isLimit),
+      onSuccess: (final players) =>
+          state = state.copyWith(players: players),
     );
   }
 
-  Future<void> loadPlayers(final isLimit) async {
+  Future<void> loadPlayersByIds(final List<String> playerIds) async {
     await handleOperation(
-          () => getPlayersUseCase.call(isLimit),
-      onSuccess: (final players) => state = state.copyWith(players: players),
+      () => getPlayerByIdUseCase.call(playerIds),
+      onSuccess: (final players) =>
+          state = state.copyWith(players: players),
     );
   }
 }

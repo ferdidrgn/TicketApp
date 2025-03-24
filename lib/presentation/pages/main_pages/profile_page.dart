@@ -217,7 +217,7 @@ class ProfilePage extends ConsumerWidget {
   }
 
   void _navigateToLogin(final context) {
-    Navigator.of(context).pushReplacementNamed('/');
+    Navigator.of(context).pushReplacementNamed('/home');
   }
 
   Future<void> _signOut(final context, final WidgetRef ref) async {

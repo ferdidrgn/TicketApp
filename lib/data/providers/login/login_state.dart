@@ -1,16 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ticketapp/core/common/base_state.dart';
 
-class LoginState {
+class LoginState extends BaseState {
   final User? user;
-  final bool isLoading;
-  final String? errorMessage;
 
   LoginState({
     this.user,
-    this.isLoading = false,
-    this.errorMessage,
+    super.isLoading = false,
+    super.errorMessage,
   });
 
+  @override
   LoginState copyWith({
     final User? user,
     final bool? isLoading,

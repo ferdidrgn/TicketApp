@@ -37,9 +37,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Future<void> _fetchPlayerData() async {
     try {
-      final fetchedPlayer =
-          await PlayerRemoteDataSourceImpl(firestore: firestore)
-              .getPlayerById(widget.playerId);
+      final fetchedPlayer = (await PlayerRemoteDataSourceImpl(firestore: firestore).getPlayersByIds([widget.playerId]))?.first;
       if (fetchedPlayer?.nowShowsId != null) {
         setState(() {
           player = fetchedPlayer?.toEntity();
@@ -59,13 +57,13 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   }
 
   Future<void> _fetchShows(
-      final List<String> showsIds, final List<Show?> showsList) async {
+      final List<String?>? showsIds, final List<Show?> showsList) async {
     try {
-      final shows =
-          await ShowRemoteDataSourceImpl(firestore: firestore, storage: storage)
-              .getShowsByIds(showsIds);
+      if (showsIds == null) return;
+      final filteredShowIds = showsIds.whereType<String>().toList();
+      final shows = await ShowRemoteDataSourceImpl(firestore: firestore, storage: storage).getShowsByIds(filteredShowIds);
       setState(() {
-        showsList.addAll(shows.map((final show) => show.toEntity()));
+        showsList.addAll(shows?.map((final show) => show?.toEntity()) ?? []);
       });
     } catch (error) {
       _showErrorSnackbar('Gösteri verisi alınırken bir hata oluştu: $error');

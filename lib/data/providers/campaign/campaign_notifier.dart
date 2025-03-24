@@ -14,8 +14,8 @@ class CampaignNotifier extends StateNotifier<CampaignState> {
     try {
       final result = await getCampaignsUseCase.call();
       result.fold(
-            (final failure) => _setErrorState(failure.message),
-            (final campaignList) => _setCampaignsState(campaignList),
+        (final failure) => _setErrorState(failure.message),
+        (final campaignList) => _setCampaignsState(campaignList ?? []),
       );
     } catch (e) {
       _setErrorState("Beklenmeyen bir hata oluştu");

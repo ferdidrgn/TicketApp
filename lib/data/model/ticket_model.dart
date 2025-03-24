@@ -1,77 +1,72 @@
 import '../../domain/entities/ticket.dart';
 
 class TicketModel {
-  final String id;
+  final String? id;
   final String? createdAt;
   final String? updatedAt;
-  final String customerId;
-  final String showId;
-  final String stageId;
-  final String eventId;
-  final String orderMethod;
-  final String orderPrice;
-  final bool isPast;
+  final String? customerId;
+  final String? showId;
+  final String? stageId;
+  final String? eventId;
+  final String? orderMethod;
+  final String? orderPrice;
+  final bool? isPast;
 
   const TicketModel({
-    required this.id,
+    this.id,
     this.createdAt,
     this.updatedAt,
-    required this.customerId,
-    required this.showId,
-    required this.stageId,
-    required this.eventId,
-    required this.orderMethod,
-    required this.orderPrice,
-    this.isPast = false,
+    this.customerId,
+    this.showId,
+    this.stageId,
+    this.eventId,
+    this.orderMethod,
+    this.orderPrice,
+    this.isPast,
   });
 
-  factory TicketModel.fromFirestore(final Map<String, dynamic> data) {
+  factory TicketModel.fromFirestore(final Map<String, dynamic>? data) {
+    if (data == null) return const TicketModel();
     return TicketModel(
-      id: data['_id'] ?? '',
-      createdAt: data['_createdAt'],
-      updatedAt: data['_updatedAt'],
-      customerId: data['customerId'] ?? '',
-      showId: data['showId'] ?? '',
-      stageId: data['stageId'] ?? '',
-      eventId: data['eventId'] ?? '',
-      orderMethod: data['orderMethod'] ?? '',
-      orderPrice: data['orderPrice'] ?? '',
-      isPast: data['isPast'] ?? false,
+      createdAt: data['_createdAt'] as String?,
+      updatedAt: data['_updatedAt'] as String?,
+      id: data['_id'] as String?,
+      customerId: data['customerId'] as String?,
+      showId: data['showId'] as String?,
+      stageId: data['stageId'] as String?,
+      eventId: data['eventId'] as String?,
+      orderMethod: data['orderMethod'] as String?,
+      orderPrice: data['orderPrice'] as String?,
+      isPast: data['isPast'] as bool?,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      '_id': id,
-      '_createdAt': createdAt,
-      '_updatedAt': updatedAt,
-      'customerId': customerId,
-      'showId': showId,
-      'stageId': stageId,
-      'eventId': eventId,
-      'orderMethod': orderMethod,
-      'orderPrice': orderPrice,
-      'isPast': isPast,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+        '_createdAt': createdAt,
+        '_updatedAt': updatedAt,
+        '_id': id,
+        'showId': showId,
+        'stageId': stageId,
+        'eventId': eventId,
+        'orderMethod': orderMethod,
+        'orderPrice': orderPrice,
+        'isPast': isPast,
+      };
 
-  Ticket toEntity() {
-    return Ticket(
-      id: id,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      customerId: customerId,
-      showId: showId,
-      stageId: stageId,
-      eventId: eventId,
-      orderMethod: orderMethod,
-      orderPrice: orderPrice,
-      isPast: isPast,
-    );
-  }
+  Ticket toEntity() => Ticket(
+        id: id,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        customerId: customerId,
+        showId: showId,
+        stageId: stageId,
+        eventId: eventId,
+        orderMethod: orderMethod,
+        orderPrice: orderPrice,
+        isPast: isPast,
+      );
 
-  factory TicketModel.fromEntity(final Ticket ticket) {
-    return TicketModel(
+  factory TicketModel.fromEntity(final Ticket ticket) => TicketModel(
       id: ticket.id,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
@@ -83,5 +78,4 @@ class TicketModel {
       orderPrice: ticket.orderPrice,
       isPast: ticket.isPast,
     );
-  }
 }

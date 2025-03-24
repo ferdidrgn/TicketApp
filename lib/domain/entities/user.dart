@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
 
 class User extends Equatable {
-  final String id;
-  final String createdAt;
-  final String updatedAt;
-  final String firstName;
-  final String lastName;
+  final String? id;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? firstName;
+  final String? lastName;
   final String? imageUrl;
   final String? phoneNumber;
   final int? age;
@@ -14,17 +14,17 @@ class User extends Equatable {
   final bool? isPhoneActive;
   final String? fcmToken;
   final String? role;
-  final List<String>? favoriteShows;
-  final List<String>? favoriteStages;
-  final List<String>? favoritePlayers;
-  final List<String>? ticketsId;
+  final List<String?>? favoriteShows;
+  final List<String?>? favoriteStages;
+  final List<String?>? favoritePlayers;
+  final List<String?>? ticketsId;
 
   const User({
-    required this.id,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.firstName,
-    required this.lastName,
+    this.id,
+    this.createdAt,
+    this.updatedAt,
+    this.firstName,
+    this.lastName,
     this.imageUrl,
     this.phoneNumber,
     this.age,
@@ -60,47 +60,54 @@ class User extends Equatable {
         ticketsId,
       ];
 
-  factory User.fromMap(final Map<String, dynamic> data) {
+  factory User.fromMap(final Map<String, dynamic>? data) {
+    if (data == null) return User();
     return User(
-      id: data['_id'] ?? '',
-      createdAt: data['_createdAt'] ?? '',
-      updatedAt: data['_updatedAt'] ?? '',
-      firstName: data['firstName'] ?? '',
-      lastName: data['lastName'] ?? '',
-      imageUrl: data['imageUrl'],
-      phoneNumber: data['phoneNumber'],
-      age: data['age'],
-      eMail: data['eMail'],
-      city: data['city'],
-      isPhoneActive: data['isPhoneActive'],
-      fcmToken: data['fcmToken'],
-      role: data['role'],
-      favoriteShows: List<String>.from(data['favoriteShows'] ?? []),
-      favoriteStages: List<String>.from(data['favoriteStages'] ?? []),
-      favoritePlayers: List<String>.from(data['favoritePlayers'] ?? []),
-      ticketsId: List<String>.from(data['ticketsId'] ?? []),
+      id: data['_id'] as String?,
+      createdAt: data['_createdAt'] as String?,
+      updatedAt: data['_updatedAt'] as String?,
+      firstName: data['firstName'] as String?,
+      lastName: data['lastName'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      phoneNumber: data['phoneNumber'] as String?,
+      age: data['age'] as int?,
+      eMail: data['eMail'] as String?,
+      city: data['city'] as String?,
+      isPhoneActive: data['isPhoneActive'] as bool?,
+      fcmToken: data['fcmToken'] as String?,
+      role: data['role'] as String?,
+      favoriteShows: (data['favoriteShows'] as List<dynamic>?)
+          ?.map((final e) => e as String?)
+          .toList(),
+      favoriteStages: (data['favoriteStages'] as List<dynamic>?)
+          ?.map((final e) => e as String?)
+          .toList(),
+      favoritePlayers: (data['favoritePlayers'] as List<dynamic>?)
+          ?.map((final e) => e as String?)
+          .toList(),
+      ticketsId: (data['ticketsId'] as List<dynamic>?)
+          ?.map((final e) => e as String?)
+          .toList(),
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      '_id': id,
-      '_createdAt': createdAt,
-      '_updatedAt': updatedAt,
-      'firstName': firstName,
-      'lastName': lastName,
-      'imageUrl': imageUrl,
-      'phoneNumber': phoneNumber,
-      'age': age,
-      'eMail': eMail,
-      'city': city,
-      'isPhoneActive': isPhoneActive,
-      'fcmToken': fcmToken,
-      'role': role,
-      'favoriteShows': favoriteShows,
-      'favoriteStages': favoriteStages,
-      'favoritePlayers': favoritePlayers,
-      'ticketsId': ticketsId,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+        '_createdAt': createdAt,
+        '_updatedAt': updatedAt,
+        '_id': id,
+        'firstName': firstName,
+        'lastName': lastName,
+        'imageUrl': imageUrl,
+        'phoneNumber': phoneNumber,
+        'age': age,
+        'eMail': eMail,
+        'city': city,
+        'isPhoneActive': isPhoneActive,
+        'fcmToken': fcmToken,
+        'role': role,
+        'favoriteShows': favoriteShows,
+        'favoriteStages': favoriteStages,
+        'favoritePlayers': favoritePlayers,
+        'ticketsId': ticketsId,
+      };
 }

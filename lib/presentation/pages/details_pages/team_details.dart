@@ -38,9 +38,9 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
   Future<void> _fetchTeamDetails() async {
     try {
       final teamService = TeamRemoteDataSourceImpl(firestore: firestore);
-      final fetchedTeam = await teamService.getTeamById(widget.teamId);
+      final fetchedTeam = await teamService.getTeamsByIds([widget.teamId]);
       setState(() {
-        team = fetchedTeam?.toEntity();
+        team = fetchedTeam?.first?.toEntity();
       });
       await _fetchShows();
     } catch (error) {
@@ -54,18 +54,19 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
   }
 
   Future<void> _fetchShows() async {
-    for (final String showId in team?.showsId ?? []) {
-      try {
-        final showService =
-            ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
-        final show = (await showService.getShowsByIds([showId])).first;
-        setState(() {
-          _showsDataList.add(show.toEntity());
-        });
-      } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
-      }
+    try {
+      final showService =
+          ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
+      final filteredTeamIds = team?.showsId?.whereType<String>().toList();
+      if (filteredTeamIds == null || filteredTeamIds.isEmpty) return;
+      final shows = (await showService.getShowsByIds(filteredTeamIds));
+      setState(() {
+        _showsDataList
+            .addAll(shows?.map((final show) => show?.toEntity()) ?? []);
+      });
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Gösteri verisi alınırken bir hata oluştu: $error')));
     }
   }
 
@@ -89,7 +90,7 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
           CustomSectionTitle(title: team?.name ?? 'Ekip Adı', fontSize: 28),
           const SizedBox(height: 16),
           CustomDescriptionCard(
-              description: team?.description.replaceAll('\\n', '\n') ??
+              description: team?.description?.replaceAll('\\n', '\n') ??
                   'No description available'),
           const SizedBox(height: 16),
           const CustomSectionTitle(title: 'Gösteriler', fontSize: 20),
@@ -157,12 +158,12 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
         height: 100,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          itemCount: team!.photosId.length,
+          itemCount: team?.photosId?.length ?? 0,
           itemBuilder: (final context, final index) {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: CachedNetworkImage(
-                imageUrl: team!.photosId[index],
+                imageUrl: team?.photosId?[index] ?? "",
                 placeholder: (final context, final url) => ShimmerLoading(),
                 errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),

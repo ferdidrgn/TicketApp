@@ -1,18 +1,18 @@
+import 'package:ticketapp/core/common/base_state.dart';
 import 'package:ticketapp/data/model/team_model.dart';
 
-class TeamState {
+class TeamState extends BaseState{
   final List<TeamModel?> teams;
   final TeamModel? team;
-  final bool isLoading;
-  final String? errorMessage;
 
   TeamState({
     this.teams = const [],
     this.team,
-    this.isLoading = false,
-    this.errorMessage,
+    super.isLoading = false,
+    super.errorMessage,
   });
 
+  @override
   TeamState copyWith({
     final List<TeamModel?>? teams,
     final TeamModel? team,

@@ -2,8 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/presentation/pages/login/phone_login_page.dart';
-import '../../../core/widgets/shimmer.dart';
 import '../../../core/widgets/custom_elevated_button.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../data/providers/login/login_provider.dart';
 
 class LoginScreen extends ConsumerWidget {
@@ -12,14 +12,13 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     final loginState = ref.watch(loginProvider);
-
     return Scaffold(
-      body: _buildContentState(context, ref),
+      body: loginState.isLoading
+          ? Center(child: CircularProgressIndicator())
+          : loginState.errorMessage != null
+              ? Center(child: Text(loginState.errorMessage!))
+              : _buildContentState(context, ref),
     );
-  }
-
-  Widget _buildErrorState(final String message) {
-    return Center(child: Text(message));
   }
 
   Widget _buildContentState(final BuildContext context, final WidgetRef ref) {
@@ -91,13 +90,16 @@ class LoginScreen extends ConsumerWidget {
 
         if (!context.mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(loginState.user?.displayName ?? 'Giriş başarısız')),
-        );
-
-        // if (loginState.user != null)
-        await Navigator.pushReplacementNamed(context, '/home');
+        final user = loginState.user;
+        if (user != null) {
+          await Navigator.pushReplacementNamed(context, '/home');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Giriş başarılı ${user.displayName}')),
+          );
+        } else
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Giriş başarısız')),
+          );
       },
     );
   }

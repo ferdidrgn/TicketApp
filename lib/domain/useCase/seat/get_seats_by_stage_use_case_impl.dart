@@ -3,7 +3,7 @@ import 'package:ticketapp/domain/repository/seat_repository.dart';
 import '../../../../core/errors/failures.dart';
 
 abstract class GetSeatsByStageUseCase {
-  Future<Either<Failure, Map<String, List<String?>>>> call(final String stageId);
+  Future<Either<Failure, Map<String, List<String?>?>?>> call(final String stageId);
 }
 
 class GetSeatsByStageUseCaseImpl implements GetSeatsByStageUseCase {
@@ -12,7 +12,7 @@ class GetSeatsByStageUseCaseImpl implements GetSeatsByStageUseCase {
   GetSeatsByStageUseCaseImpl(this.seatRepository);
 
   @override
-  Future<Either<Failure, Map<String, List<String?>>>> call(
+  Future<Either<Failure, Map<String, List<String?>?>?>> call(
       final String stageId) async {
     return seatRepository.getSeatsByStage(stageId);
   }

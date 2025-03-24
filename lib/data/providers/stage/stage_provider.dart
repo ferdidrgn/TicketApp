@@ -21,7 +21,7 @@ final getStagesUseCaseProvider = Provider<GetStagesUseCase>((final ref) {
   return GetStagesUseCaseImpl(repository);
 });
 
-final getStageByIdUseCaseProvider = Provider<GetStageByIdUseCase>((final ref) {
+final getStageByIdUseCaseProvider = Provider<GetStagesByIdsUseCase>((final ref) {
   final repository = ref.watch(stageRepositoryProvider);
   return GetStageByIdUseCaseImpl(repository);
 });
