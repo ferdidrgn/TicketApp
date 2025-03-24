@@ -73,19 +73,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void _initializePaginationControllers() {
     showsPagination = PaginationController(
       allItems: ref.read(showProvider).shows,
-      itemsPerPage: 5,
+      itemsPerPage: 20,
     );
     playersPagination = PaginationController(
       allItems: ref.read(playerProvider).players,
-      itemsPerPage: 5,
+      itemsPerPage: 20,
     );
     stagesPagination = PaginationController(
       allItems: ref.read(stageProvider).stages,
-      itemsPerPage: 5,
+      itemsPerPage: 20,
     );
     teamsPagination = PaginationController(
       allItems: ref.read(teamProvider).teams,
-      itemsPerPage: 5,
+      itemsPerPage: 20,
     );
   }
 
@@ -127,6 +127,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
       _initializePaginationControllers();
 
+      // Sayfalama verilerini başlat
+      _resetPagination();
+
       setState(() {
         _isInitialized = true;
       });
@@ -157,6 +160,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       playersPagination.reset();
       stagesPagination.reset();
       teamsPagination.reset();
+
+      // Tüm kategoriler için loadMoreItems() çağırılıyor
+      showsPagination.loadMoreItems();
+      playersPagination.loadMoreItems();
+      stagesPagination.loadMoreItems();
+      teamsPagination.loadMoreItems();
     });
   }
 
@@ -280,8 +289,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     return NotificationListener<ScrollNotification>(
       onNotification: (final ScrollNotification scrollInfo) {
-        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200)
-          _loadMoreData();
+        if (scrollInfo.metrics.pixels >=
+            scrollInfo.metrics.maxScrollExtent - 200) _loadMoreData();
 
         return true;
       },
