@@ -20,9 +20,7 @@ class PaginationController<T> {
   }
 
   void loadMoreItems() {
-    if (hasMoreItems) {
-      currentPage++;
-    }
+    if (hasMoreItems) currentPage++;
   }
 
   void reset() {

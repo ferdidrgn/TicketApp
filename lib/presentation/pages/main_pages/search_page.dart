@@ -280,10 +280,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     return NotificationListener<ScrollNotification>(
       onNotification: (final ScrollNotification scrollInfo) {
-        if (scrollInfo.metrics.pixels >=
-            scrollInfo.metrics.maxScrollExtent - 200) {
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200)
           _loadMoreData();
-        }
+
         return true;
       },
       child: RefreshIndicator(
