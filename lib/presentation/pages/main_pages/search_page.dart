@@ -12,6 +12,7 @@ import 'package:ticketapp/data/model/show_model.dart';
 import 'package:ticketapp/data/model/stage_model.dart';
 import 'package:ticketapp/data/model/team_model.dart';
 import 'package:ticketapp/data/providers/player/player_provider.dart';
+import '../../../core/services/pagination_controller.dart';
 import '../../../data/providers/show/show_provider.dart';
 import '../../../data/providers/stage/stage_provider.dart';
 import '../../../data/providers/team/team_provider.dart';
@@ -21,7 +22,8 @@ import '../details_pages/stage_details.dart';
 import '../details_pages/team_details.dart';
 
 // Arama değişimlerini debounce eden bir provider
-final searchQueryProvider = StateProvider.autoDispose<String>((ref) => '');
+final searchQueryProvider =
+    StateProvider.autoDispose<String>((final ref) => '');
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -31,6 +33,12 @@ class SearchPage extends ConsumerStatefulWidget {
 }
 
 class _SearchPageState extends ConsumerState<SearchPage> {
+  late PaginationController<ShowModel?> showsPagination;
+  late PaginationController<PlayerModel?> playersPagination;
+  late PaginationController<StageModel?> stagesPagination;
+  late PaginationController<TeamModel?> teamsPagination;
+
+  final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
   bool _isInitialized = false;
   bool _isLoading = true;
@@ -51,9 +59,52 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void initState() {
     super.initState();
-    // InitState'te addPostFrameCallback kullanarak veri yükleme işlemini başlatıyoruz
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _scrollController.addListener(_scrollListener);
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       _initializeData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _initializePaginationControllers() {
+    showsPagination = PaginationController(
+      allItems: ref.read(showProvider).shows,
+      itemsPerPage: 5,
+    );
+    playersPagination = PaginationController(
+      allItems: ref.read(playerProvider).players,
+      itemsPerPage: 5,
+    );
+    stagesPagination = PaginationController(
+      allItems: ref.read(stageProvider).stages,
+      itemsPerPage: 5,
+    );
+    teamsPagination = PaginationController(
+      allItems: ref.read(teamProvider).teams,
+      itemsPerPage: 5,
+    );
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreData();
+    }
+  }
+
+  void _loadMoreData() {
+    setState(() {
+      showsPagination.loadMoreItems();
+      playersPagination.loadMoreItems();
+      stagesPagination.loadMoreItems();
+      teamsPagination.loadMoreItems();
     });
   }
 
@@ -77,6 +128,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ref.read(teamProvider.notifier).loadTeams(true),
       ]);
 
+      _initializePaginationControllers();
+
       setState(() {
         _isInitialized = true;
       });
@@ -84,7 +137,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       print('Data loading error: $e');
     } finally {
       // Delay the loading state update to allow UI to render changes properly
-      Future.delayed(const Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 300), () {
         setState(() {
           _isLoading = false;
         });
@@ -92,16 +145,21 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     }
   }
 
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    super.dispose();
-  }
-
   void _onSearchChanged(final String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
       ref.read(searchQueryProvider.notifier).state = query.toLowerCase();
+      // Reset pagination when search query changes
+      _resetPagination();
+    });
+  }
+
+  void _resetPagination() {
+    setState(() {
+      showsPagination.reset();
+      playersPagination.reset();
+      stagesPagination.reset();
+      teamsPagination.reset();
     });
   }
 
@@ -113,8 +171,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final teamState = ref.watch(teamProvider);
     final searchQuery = ref.watch(searchQueryProvider);
 
-    // Check if any provider is loading
-    final isAnyLoading = showState.isLoading || playerState.isLoading || stageState.isLoading || teamState.isLoading || _isLoading;
+    final isAnyLoading = showState.isLoading ||
+        playerState.isLoading ||
+        stageState.isLoading ||
+        teamState.isLoading ||
+        _isLoading;
 
     return Scaffold(
       appBar: AppBar(
@@ -153,7 +214,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildShimmerSection(String title) {
+  Widget _buildShimmerSection(final String title) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -166,7 +227,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: 5,
-            itemBuilder: (context, index) => Padding(
+            itemBuilder: (final context, final index) => Padding(
               padding: const EdgeInsets.only(right: 8.0),
               child: Shimmer.fromColors(
                 baseColor: Colors.grey[300]!,
@@ -187,84 +248,60 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildSearchResults(String searchQuery) {
-    // Verileri doğrudan provider'lardan alıp filtreliyoruz
-    final shows = ref
-        .watch(showProvider)
-        .shows
-        .where((show) =>
+  Widget _buildSearchResults(final String searchQuery) {
+    final filteredShows = showsPagination.currentItems
+        .where((final show) =>
             searchQuery.isEmpty ||
             (show?.name ?? '').toLowerCase().contains(searchQuery))
         .toList();
 
-    final players = ref
-        .watch(playerProvider)
-        .players
-        .where((player) =>
+    final filteredPlayers = playersPagination.currentItems
+        .where((final player) =>
             searchQuery.isEmpty ||
-            (player?.firstName ?? '').toLowerCase().contains(searchQuery) ||
-            (player?.lastName ?? '').toLowerCase().contains(searchQuery))
+            ('${player?.firstName} ${player?.lastName}')
+                .toLowerCase()
+                .contains(searchQuery))
         .toList();
 
-    final stages = ref
-        .watch(stageProvider)
-        .stages
-        .where((stage) =>
+    final filteredStages = stagesPagination.currentItems
+        .where((final stage) =>
             searchQuery.isEmpty ||
             (stage?.name ?? '').toLowerCase().contains(searchQuery))
         .toList();
 
-    final teams = ref
-        .watch(teamProvider)
-        .teams
-        .where((team) =>
+    final filteredTeams = teamsPagination.currentItems
+        .where((final team) =>
             searchQuery.isEmpty ||
             (team?.name ?? '').toLowerCase().contains(searchQuery))
         .toList();
 
-    // Kategorileri filtreleme
-    final filteredCategories = searchQuery.isEmpty
-        ? _categories
-        : _categories
-            .where((category) => (category['title'] as String)
-                .toLowerCase()
-                .contains(searchQuery))
-            .toList();
-
-    return RefreshIndicator(
-      onRefresh: _initializeData,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return NotificationListener<ScrollNotification>(
+      onNotification: (final ScrollNotification scrollInfo) {
+        if (scrollInfo.metrics.pixels >=
+            scrollInfo.metrics.maxScrollExtent - 200) {
+          _loadMoreData();
+        }
+        return true;
+      },
+      child: RefreshIndicator(
+        onRefresh: _initializeData,
+        child: ListView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            if (shows.isNotEmpty) _buildShowSection(shows),
-            if (players.isNotEmpty) _buildPlayerSection(players),
-            if (stages.isNotEmpty) _buildVenueSection(stages),
-            if (teams.isNotEmpty) _buildTeamSection(teams),
-            if (filteredCategories.isNotEmpty)
-              _buildCategorySection(filteredCategories),
-
-            // Hiçbir sonuç yoksa
-            if (shows.isEmpty &&
-                players.isEmpty &&
-                stages.isEmpty &&
-                teams.isEmpty &&
-                filteredCategories.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.only(top: 32.0),
-                  child: Text('Aramanızla eşleşen sonuç bulunamadı',
-                      style: TextStyle(fontSize: 16)),
-                ),
-              ),
+            if (filteredShows.isNotEmpty) _buildShowSection(filteredShows),
+            if (filteredPlayers.isNotEmpty)
+              _buildPlayerSection(filteredPlayers),
+            if (filteredStages.isNotEmpty) _buildVenueSection(filteredStages),
+            if (filteredTeams.isNotEmpty) _buildTeamSection(filteredTeams),
+            if (_categories.isNotEmpty) _buildCategorySection(_categories),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildShowSection(List<ShowModel?> shows) {
+  Widget _buildShowSection(final List<ShowModel?> shows) {
     return _buildSection(
       title: 'Eşleşen Etkinlikler',
       itemCount: shows.length,
@@ -274,7 +311,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildVenueSection(List<StageModel?> stages) {
+  Widget _buildVenueSection(final List<StageModel?> stages) {
     return _buildSection(
       title: 'Gösteri Mekanları',
       itemCount: stages.length,
@@ -283,7 +320,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildPlayerSection(List<PlayerModel?> players) {
+  Widget _buildPlayerSection(final List<PlayerModel?> players) {
     return _buildSection(
       title: 'Oyuncular',
       itemCount: players.length,
@@ -292,7 +329,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildTeamSection(List<TeamModel?> teams) {
+  Widget _buildTeamSection(final List<TeamModel?> teams) {
     return _buildSection(
       title: 'Ekipler',
       itemCount: teams.length,
@@ -301,7 +338,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildCategorySection(List<Map<String, Object>> categories) {
+  Widget _buildCategorySection(final List<Map<String, Object>> categories) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 16),
       const Text('Kategoriler',
@@ -336,6 +373,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   Widget _buildShowCard(final BuildContext context, final ShowModel? show) {
     return CustomVerticalShowCard(
+        key: ValueKey(show?.id),
         gameName: show?.name ?? '',
         imageUrl: show?.imageUrl ?? '',
         onTap: () => Navigator.push(
