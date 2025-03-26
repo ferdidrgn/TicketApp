@@ -1,9 +1,11 @@
-// Base state class that can be extended by specific states
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+@immutable
 abstract class BaseState {
   final bool isLoading;
   final String? errorMessage;
 
-  BaseState({
+  const BaseState({
     this.isLoading = false,
     this.errorMessage,
   });

@@ -1,11 +1,13 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../core/common/base_state.dart';
 import '../../model/show_model.dart';
 
+@freezed
 class ShowState extends BaseState {
   final ShowModel? show;
   final List<ShowModel?> shows;
 
-  ShowState({
+  const ShowState({
     this.show,
     this.shows = const [],
     super.isLoading,

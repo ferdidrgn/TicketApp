@@ -87,19 +87,20 @@ dependencies:
   flutter_riverpod:   # State yönetimi için Riverpod.
   freezed_annotation:   # Immutable veri sınıfları için.
   riverpod_annotation:  # Riverpod için anotasyon desteği.
-  json_annotation: ^4.8.0  # JSON veri sınıfları için.
+
+  # Kod Üretimi
+  build_runner:   # Kod üretimi aracı.
+  freezed:  # Freezed ile veri sınıfları oluşturur.
+  riverpod_generator:  # Riverpod için kod üretimi.
 
 dev_dependencies:
   flutter_test:
     sdk: flutter  # Flutter test kütüphanesi.
 
-  # Kod Üretimi
   flutter_lints:   # Kod kalitesini artıran lint kuralları.
-  injectable_generator:  # Injectable için otomatik kod üretimi.
   build_runner:   # Kod üretimi aracı.
-  freezed:  # Freezed ile veri sınıfları oluşturur.
-  riverpod_generator:  # Riverpod için kod üretimi.
-  json_serializable: ^6.6.0  # JSON veri sınıfları için.
+  injectable_generator:  # Injectable için otomatik kod üretimi.
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
