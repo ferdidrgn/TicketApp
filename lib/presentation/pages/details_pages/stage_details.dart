@@ -201,8 +201,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
 
   Widget _buildStageMap(final Stage stage) {
     // Ensure latitude and longitude are not null before using them
-    if (stage.locationLat != null && stage.locationLng != null) {
-      final LatLng position = LatLng(stage.locationLat!, stage.locationLng!);
+      final LatLng position = LatLng(stage.locationLat, stage.locationLng);
       return SizedBox(
         height: 200,
         child: GoogleMap(
@@ -218,9 +217,6 @@ class _StageDetailPageState extends State<StageDetailPage> {
           },
         ),
       );
-    } else {
-      return const Center(child: Text('Konum bilgisi mevcut değil.'));
-    }
   }
 
   Widget _buildStageAddress(final BuildContext context) {

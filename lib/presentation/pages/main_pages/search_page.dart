@@ -7,10 +7,6 @@ import 'package:ticketapp/core/widgets/custom_search.dart';
 import 'package:ticketapp/core/widgets/custom_show_card.dart';
 import 'package:ticketapp/core/widgets/custom_stage_card.dart';
 import 'package:ticketapp/core/widgets/shimmer.dart';
-import 'package:ticketapp/data/model/player_model.dart';
-import 'package:ticketapp/data/model/show_model.dart';
-import 'package:ticketapp/data/model/stage_model.dart';
-import 'package:ticketapp/data/model/team_model.dart';
 import 'package:ticketapp/data/providers/player/player_provider.dart';
 import '../../../core/services/pagination_controller.dart';
 import '../../../data/providers/search/search_query_provider.dart';
@@ -260,7 +256,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final filteredShows = showsPagination?.currentItems
         .where((final show) =>
             searchQuery.isEmpty ||
-            (show?.name ?? '').toLowerCase().contains(searchQuery))
+            show.name.toLowerCase().contains(searchQuery))
         .toList();
 
     final filteredPlayers = playersPagination?.currentItems
@@ -274,13 +270,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final filteredStages = stagesPagination?.currentItems
         .where((final stage) =>
             searchQuery.isEmpty ||
-            (stage?.name ?? '').toLowerCase().contains(searchQuery))
+            stage.name.toLowerCase().contains(searchQuery))
         .toList();
 
     final filteredTeams = teamsPagination?.currentItems
         .where((final team) =>
             searchQuery.isEmpty ||
-            (team?.name ?? '').toLowerCase().contains(searchQuery))
+            team.name.toLowerCase().contains(searchQuery))
         .toList();
 
     final filteredCategories = _categories

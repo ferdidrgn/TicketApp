@@ -158,12 +158,12 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
         height: 100,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          itemCount: team?.photosId?.length ?? 0,
+          itemCount: team?.photosId.length ?? 0,
           itemBuilder: (final context, final index) {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: CachedNetworkImage(
-                imageUrl: team?.photosId?[index] ?? "",
+                imageUrl: team?.photosId[index] ?? "",
                 placeholder: (final context, final url) => ShimmerLoading(),
                 errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),

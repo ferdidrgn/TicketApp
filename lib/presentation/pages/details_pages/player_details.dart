@@ -37,7 +37,10 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Future<void> _fetchPlayerData() async {
     try {
-      final fetchedPlayer = (await PlayerRemoteDataSourceImpl(firestore: firestore).getPlayersByIds([widget.playerId]))?.first;
+      final fetchedPlayer =
+          (await PlayerRemoteDataSourceImpl(firestore: firestore)
+                  .getPlayersByIds([widget.playerId]))
+              ?.first;
       if (fetchedPlayer?.nowShowsId != null) {
         setState(() {
           player = fetchedPlayer?.toEntity();
@@ -60,9 +63,15 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       final List<String>? showsIds, final List<Show>? showsList) async {
     try {
       if (showsIds == null) return;
-      final shows = await ShowRemoteDataSourceImpl(firestore: firestore, storage: storage).getShowsByIds(showsIds.toList());
+      final shows =
+          await ShowRemoteDataSourceImpl(firestore: firestore, storage: storage)
+              .getShowsByIds(showsIds.toList());
       setState(() {
-        showsList.addAll(shows?.map((final show) => show?.toEntity()) ?? []);
+        showsList?.addAll(shows
+                ?.map((final show) => show?.toEntity())
+                .toList()
+                .whereType<Show>() ??
+            []);
       });
     } catch (error) {
       _showErrorSnackbar('Gösteri verisi alınırken bir hata oluştu: $error');
@@ -183,7 +192,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
         borderRadius: const BorderRadius.all(Radius.circular(75)),
         child: player?.imageUrl != null
             ? CachedNetworkImage(
-                imageUrl: player!.imageUrl!,
+                imageUrl: player!.imageUrl,
                 fit: BoxFit.cover,
                 placeholder: (final context, final url) => ShimmerLoading(),
                 errorWidget: (final context, final url, final error) =>
@@ -211,14 +220,14 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     );
   }
 
-  Widget _buildShowsSection(final List<Show?> showsList) {
+  Widget _buildShowsSection(final List<Show>? showsList) {
     return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: showsList.length,
+        itemCount: showsList?.length ?? 0,
         itemBuilder: (final context, final index) {
-          final show = showsList[index];
+          final show = showsList?[index];
           return CustomVerticalShowCard(
             imageUrl: show?.imageUrl ?? '',
             gameName: show?.name ?? '',

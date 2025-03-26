@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../data/model/player_model.dart';
 import '../../entities/player.dart';
 import '../../repository/player_repository.dart';
 

@@ -4,18 +4,20 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../../model/show_model.dart';
 
 abstract class ShowRemoteDataSource {
-  Future<List<ShowModel?>?> getSearchShow(final List<String> categories,
-      final String? type);
+  Future<List<ShowModel?>?> getSearchShow(
+      final List<String> categories, final String? type);
 
   Future<List<ShowModel?>?> getShows(isLimit);
 
   Future<List<ShowModel?>?> getShowsByIds(final List<String> showsIds);
 
-  Future<void> addShow(final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
+  Future<void> addShow(
+      final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
 
   Future<void> deleteShow(final String showId);
 
-  Future<void> updateShow(final String showId, final Map<String, dynamic> updatedData);
+  Future<void> updateShow(
+      final String showId, final Map<String, dynamic> updatedData);
 }
 
 class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
@@ -28,8 +30,8 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   });
 
   @override
-  Future<List<ShowModel?>?> getSearchShow(final List<String> categories,
-      final String? type) async {
+  Future<List<ShowModel?>?> getSearchShow(
+      final List<String> categories, final String? type) async {
     try {
       Query query = firestore.collection('Show');
 
@@ -47,7 +49,7 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
         if (result.docs.isEmpty) return [];
         return result.docs
             .map((final e) =>
-            ShowModel.fromFirestore(e.data()! as Map<String, dynamic>))
+                ShowModel.fromFirestore(e.data()! as Map<String, dynamic>))
             .toList();
       }
     } catch (e) {
@@ -60,10 +62,10 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
     try {
       final snapshot = isLimit
           ? await firestore
-          .collection('Show')
-          .orderBy('_createdAt', descending: true)
-          .limit(20)
-          .get()
+              .collection('Show')
+              .orderBy('_createdAt', descending: true)
+              .limit(20)
+              .get()
           : await firestore.collection('Show').get();
 
       if (snapshot.docs.isEmpty) return [];
@@ -92,8 +94,8 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   }
 
   @override
-  Future<void> addShow(final ShowModel show, final Uri? showIdAddOrUpdateImgUrl) async {
-
+  Future<void> addShow(
+      final ShowModel show, final Uri? showIdAddOrUpdateImgUrl) async {
     if (show.id == null || show.id!.isEmpty) {
       final String downloadUrl = await putStorageImage(
           show.id, showIdAddOrUpdateImgUrl, show.imageUrl);
@@ -118,7 +120,7 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
       if (showQuery.docs.isNotEmpty)
         for (final document in showQuery.docs) {
           await firestore.collection('Show').doc(document.id).delete();
-          await deleteStorageImage(showId ?? '');
+          await deleteStorageImage(showId);
         }
     } catch (e) {
       throw Exception('Error deleting show: $e');
@@ -126,8 +128,8 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   }
 
   @override
-  Future<void> updateShow(final String showId,
-      final Map<String, dynamic> updatedData) async {
+  Future<void> updateShow(
+      final String showId, final Map<String, dynamic> updatedData) async {
     await firestore.collection('Show').doc(showId).update({
       ...updatedData,
       '_updatedAt': FieldValue.serverTimestamp(),

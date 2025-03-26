@@ -196,7 +196,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (campaign == null) return const SizedBox();
 
     return GestureDetector(
-      onTap: () => _navigateToDetailPage(campaign.url ?? ""),
+      onTap: () => _navigateToDetailPage(campaign.url),
       child: Card(
         elevation: 8,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -204,7 +204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           alignment: Alignment.bottomCenter,
           children: [
             CachedNetworkImage(
-              imageUrl: campaign.imageUrl ?? "",
+              imageUrl: campaign.imageUrl,
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
@@ -215,7 +215,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: Colors.black.withOpacity(0.5),
               padding: const EdgeInsets.all(8),
               child: Text(
-                campaign.title ?? "",
+                campaign.title,
                 style: const TextStyle(fontSize: 24, color: Colors.white),
                 textAlign: TextAlign.center,
               ),
