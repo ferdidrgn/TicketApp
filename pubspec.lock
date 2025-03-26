@@ -524,18 +524,18 @@ packages:
     dependency: "direct dev"
     description:
       name: freezed
-      sha256: "7ed2ddaa47524976d5f2aa91432a79da36a76969edd84170777ac5bea82d797c"
+      sha256: "59a584c24b3acdc5250bb856d0d3e9c0b798ed14a4af1ddb7dc1c7b41df91c9c"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.4"
+    version: "2.5.8"
   freezed_annotation:
     dependency: "direct main"
     description:
       name: freezed_annotation
-      sha256: c87ff004c8aa6af2d531668b46a4ea379f7191dc6dfa066acd53d506da6e044b
+      sha256: c2e2d632dd9b8a2b7751117abcfc2b4888ecfe181bd9fca7170d9ef02e595fe2
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.0"
+    version: "2.4.4"
   frontend_server_client:
     dependency: transitive
     description:
@@ -580,26 +580,26 @@ packages:
     dependency: "direct main"
     description:
       name: google_maps_flutter
-      sha256: "20b84284fb8de970e3734820a5b3dae35983fafca3a873c8ee346d7802072fb0"
+      sha256: b42ff7f3875a5eedbe388d883100561b85c62beed1c39ad66dd60537c75bb424
       url: "https://pub.dev"
     source: hosted
-    version: "2.11.0"
+    version: "2.12.0"
   google_maps_flutter_android:
     dependency: transitive
     description:
       name: google_maps_flutter_android
-      sha256: f199fdcb8a8e1b77f6aaed78aeed1e46b7526daf9007d5c71536a8266c4f0081
+      sha256: "0ede4ae8326335c0c007c8c7a8c9737449263123385e2bdf49f3e71103b2dc2e"
       url: "https://pub.dev"
     source: hosted
-    version: "2.15.0"
+    version: "2.16.0"
   google_maps_flutter_ios:
     dependency: transitive
     description:
       name: google_maps_flutter_ios
-      sha256: "7b5663bfcfbbe8ff96f394ba351b53fa00a8ba75cfc894b790426df4e2d888d6"
+      sha256: ef72c822930ce69515cb91c10cd88cfb8b26296f765808a43cbc9a10eaffacfe
       url: "https://pub.dev"
     source: hosted
-    version: "2.14.0"
+    version: "2.15.0"
   google_maps_flutter_platform_interface:
     dependency: transitive
     description:
@@ -1116,10 +1116,10 @@ packages:
     dependency: transitive
     description:
       name: riverpod_analyzer_utils
-      sha256: "03a17170088c63aab6c54c44456f5ab78876a1ddb6032ffde1662ddab4959611"
+      sha256: "837a6dc33f490706c7f4632c516bcd10804ee4d9ccc8046124ca56388715fdf3"
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.10"
+    version: "0.5.9"
   riverpod_annotation:
     dependency: "direct main"
     description:
@@ -1132,10 +1132,10 @@ packages:
     dependency: "direct dev"
     description:
       name: riverpod_generator
-      sha256: "44a0992d54473eb199ede00e2260bd3c262a86560e3c6f6374503d86d0580e36"
+      sha256: "120d3310f687f43e7011bb213b90a436f1bbc300f0e4b251a72c39bccb017a4f"
       url: "https://pub.dev"
     source: hosted
-    version: "2.6.5"
+    version: "2.6.4"
   rxdart:
     dependency: transitive
     description:
