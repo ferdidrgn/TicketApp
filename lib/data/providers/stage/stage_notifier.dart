@@ -13,10 +13,10 @@ class StageNotifier extends BaseNotifier<StageState> {
       this.getSearchStageUseCase)
       : super(StageState());
 
-  Future<void> loadStages(final isLimit) async {
+  Future<void> loadStages(isLimit) async {
     await handleOperation(
       () => getStagesUseCase.call(isLimit),
-      onSuccess: (final stages) =>
+      onSuccess: (stages) =>
           state = state.copyWith(stages: stages),
     );
   }

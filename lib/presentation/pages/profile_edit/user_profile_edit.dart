@@ -49,10 +49,10 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         updatedAt: nowTime,
         firstName: _firstName,
         lastName: _lastName,
-        phoneNumber: _phoneNumber.isNotEmpty ? _phoneNumber : null,
-        eMail: _email.isNotEmpty ? _email : null,
-        age: _age > 0 ? _age : null,
-        city: _city.isNotEmpty ? _city : null,
+        phoneNumber: _phoneNumber,
+        eMail: _email,
+        age: _age,
+        city: _city,
         imageUrl: _profileImageUrl,
         ticketsId: [],
         favoritePlayers: [],
@@ -81,7 +81,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
           ? const Center(child: CircularProgressIndicator())
           : userState.errorMessage != null
               ? _buildErrorState(userState.errorMessage!)
-              : _buildContentState(context, userState.user?.toEntity()),
+              : _buildContentState(context, userState.user),
     );
   }
 
@@ -213,13 +213,13 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   void fillUIUserInfo(final User user) {
     setState(() {
-      _firstName = user.firstName ?? "";
-      _lastName = user.lastName ?? "";
-      _phoneNumber = user.phoneNumber ?? "";
-      _email = user.eMail ?? "";
-      _age = user.age?.toInt() ?? 0;
-      _city = user.city ?? "";
-      _profileImageUrl = user.imageUrl ?? 'https://via.placeholder.com/150';
+      _firstName = user.firstName;
+      _lastName = user.lastName;
+      _phoneNumber = user.phoneNumber;
+      _email = user.eMail;
+      _age = user.age.toInt();
+      _city = user.city;
+      _profileImageUrl = user.imageUrl;
     });
   }
 

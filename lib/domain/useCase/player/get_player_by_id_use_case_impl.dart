@@ -1,10 +1,10 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../data/model/player_model.dart';
+import '../../entities/player.dart';
 import '../../repository/player_repository.dart';
 
 abstract class GetPlayerByIdUseCase {
-  Future<Either<Failure, List<PlayerModel?>?>>  call(final List<String> playersIds);
+  Future<Either<Failure, List<Player>>>  call(final List<String> playersIds);
 }
 
 class GetPlayerByIdUseCaseImpl implements GetPlayerByIdUseCase {
@@ -13,7 +13,19 @@ class GetPlayerByIdUseCaseImpl implements GetPlayerByIdUseCase {
   GetPlayerByIdUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<PlayerModel?>?>>  call(final List<String> playersIds) async {
-    return repository.getPlayersByIds(playersIds);
+  Future<Either<Failure, List<Player>>>  call(final List<String> playersIds) async {
+
+    final result = await repository.getPlayersByIds(playersIds);
+    return result.fold(
+          (final failure) => Left(failure),
+          (final playersModels) {
+        final players = playersModels
+            ?.map((final playerModel) => playerModel?.toEntity())
+            .whereType<Player>()
+            .toList() ??
+            [];
+        return Right(players);
+      },
+    );
   }
 }

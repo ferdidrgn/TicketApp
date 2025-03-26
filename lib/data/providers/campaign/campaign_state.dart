@@ -1,21 +1,20 @@
 import 'package:ticketapp/core/common/base_state.dart';
-
-import '../../model/campaing_model.dart';
+import 'package:ticketapp/domain/entities/campaign.dart';
 
 class CampaignState extends BaseState {
-  final List<CampaignModel?> campaigns;
+  List<Campaign>? campaigns;
 
   CampaignState({
+    List<Campaign>? campaigns,
     super.isLoading = false,
     super.errorMessage,
-    final List<CampaignModel?>? campaigns,
   }) : campaigns = campaigns ?? [];
 
   @override
   CampaignState copyWith({
-    final List<CampaignModel?>? campaigns,
-    final bool? isLoading,
-    final String? errorMessage,
+    List<Campaign>? campaigns,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return CampaignState(
       campaigns: campaigns ?? this.campaigns,

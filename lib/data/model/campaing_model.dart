@@ -47,14 +47,14 @@ class CampaignModel {
       };
 
   Campaign toEntity() => Campaign(
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-        id: id,
-        endDate: endDate,
-        imageUrl: imageUrl,
-        startDate: startDate,
-        title: title,
-        url: url,
+        createdAt: createdAt ?? 'Tarih bulunamadı',
+        updatedAt: updatedAt ?? 'Tarih bulunamadı',
+        id: id ?? '0',
+        endDate: endDate ?? 'Bitiş tarihi bulunamadı',
+        imageUrl: imageUrl ?? 'https://example.com/default-image.png',
+        startDate: startDate ?? 'Başlangıç tarihi bulunamadı',
+        title: title ?? 'Başlık bulunamadı',
+        url: url ?? 'https://example.com',
       );
 
   factory CampaignModel.fromEntity(final Campaign campaign) => CampaignModel(

@@ -1,10 +1,9 @@
-import 'package:ticketapp/data/model/stage_model.dart';
-
 import '../../../core/common/base_state.dart';
+import '../../../domain/entities/stage.dart';
 
 class StageState extends BaseState {
-  final List<StageModel?> stages;
-  final StageModel? stage;
+  List<Stage>? stages;
+  Stage? stage;
 
   StageState({
     this.stages = const [],
@@ -15,10 +14,10 @@ class StageState extends BaseState {
 
   @override
   StageState copyWith({
-    final List<StageModel?>? stages,
-    final StageModel? stage,
-    final bool? isLoading,
-    final String? errorMessage,
+    List<Stage>? stages,
+    Stage? stage,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return StageState(
       stages: stages ?? this.stages,

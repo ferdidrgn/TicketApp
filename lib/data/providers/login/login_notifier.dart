@@ -30,7 +30,8 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> signInWithGoogle() async {
     await handleOperation(() => signInWithGoogleUseCase.call(),
-        onSuccess: (final user) async {
+        onSuccess: (final googleUser) async {
+      state = state.copyWith(googleUser: googleUser);
       final userResult = await getCurrentUserUseCase.call();
       userResult.fold(
         (final failure) => state =
@@ -71,12 +72,15 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     await handleOperation(
       () => verifyOtpUseCase.call(verificationId, otp),
       onSuccess: (final bool) async {
-        final userResult = await getCurrentUserUseCase.call();
-        userResult.fold(
-          (final failure) =>
-              state = state.copyWith(errorMessage: failure.message),
-          (final user) => state = state.copyWith(user: user),
-        );
+        if (bool) {
+          final userResult = await getCurrentUserUseCase.call();
+          userResult.fold(
+            (final failure) =>
+                state = state.copyWith(errorMessage: failure.message),
+            (final user) => state = state.copyWith(user: user),
+          );
+        } else
+          state = state.copyWith(errorMessage: "Invalid OTP");
       },
     );
   }

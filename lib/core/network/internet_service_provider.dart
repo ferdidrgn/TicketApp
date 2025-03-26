@@ -3,13 +3,13 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'internet_service.dart';
 
 // Singleton for Internet Connection Checker
-final internetServiceProvider = Provider<InternetService>((final ref) {
+final internetServiceProvider = Provider<InternetService>((ref) {
   return InternetService.instance;
 });
 
 // StreamProvider for real-time connection updates
 final networkInfoStreamProvider =
-    StreamProvider<InternetConnectionStatus>((final ref) {
+    StreamProvider<InternetConnectionStatus>((ref) {
   final internetService = ref.watch(internetServiceProvider);
   return internetService.connectionStream;
 });

@@ -477,6 +477,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       eventId: widget.eventId,
       orderPrice: totalPrice.toString(),
       orderMethod: 'google_play',
+      isPast: false,
     );
   }
 }

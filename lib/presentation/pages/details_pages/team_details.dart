@@ -57,7 +57,7 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
     try {
       final showService =
           ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
-      final filteredTeamIds = team?.showsId?.whereType<String>().toList();
+      final filteredTeamIds = team?.showsId.toList();
       if (filteredTeamIds == null || filteredTeamIds.isEmpty) return;
       final shows = (await showService.getShowsByIds(filteredTeamIds));
       setState(() {
@@ -90,7 +90,7 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
           CustomSectionTitle(title: team?.name ?? 'Ekip Adı', fontSize: 28),
           const SizedBox(height: 16),
           CustomDescriptionCard(
-              description: team?.description?.replaceAll('\\n', '\n') ??
+              description: team?.description.replaceAll('\\n', '\n') ??
                   'No description available'),
           const SizedBox(height: 16),
           const CustomSectionTitle(title: 'Gösteriler', fontSize: 20),

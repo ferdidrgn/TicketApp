@@ -97,14 +97,18 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       updatedAt: DateFormatter.nowFormatDateTime(),
       firstName: _extractFirstName(account.displayName),
       lastName: _extractLastName(account.displayName),
-      imageUrl: account.photoURL,
+      imageUrl: account.photoURL ?? "",
       phoneNumber: account.phoneNumber ?? '',
       age: 0,
-      eMail: account.email,
+      eMail: account.email ?? "",
       city: '',
       isPhoneActive: true,
       fcmToken: '',
       role: 'user',
+      favoriteShows: [],
+      favoriteStages: [],
+      favoritePlayers: [],
+      ticketsId: [],
     );
 
     await ref

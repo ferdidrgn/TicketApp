@@ -1,11 +1,11 @@
 import 'package:ticketapp/core/common/base_state.dart';
 
 class EventState extends BaseState{
-  final String? price;
-  final Map<String, String>? date;
-  final String? stageId;
-  final Map<String, Map<String, dynamic>>? seatStatus;
-  final List<String> purchasedSeats;
+  String? price;
+  Map<String, String>? date;
+  String? stageId;
+  Map<String, Map<String, dynamic>>? seatStatus;
+  List<String>? purchasedSeats;
 
   EventState({
     this.price,

@@ -3,7 +3,7 @@ import 'package:ticketapp/data/datasources/player/player_remote_data_source_and_
 import '../../../core/services/firestore_provider.dart';
 
 final playerRemoteDataSourceProvider =
-    Provider<PlayerRemoteDataSource>((final ref) {
+    Provider<PlayerRemoteDataSource>((ref) {
   final firestore = ref.watch(firestoreProvider);
 
   return PlayerRemoteDataSourceImpl(firestore: firestore);

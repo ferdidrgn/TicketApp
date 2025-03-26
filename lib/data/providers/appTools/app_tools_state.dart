@@ -1,8 +1,8 @@
 import 'package:ticketapp/core/common/base_state.dart';
 
 class AppToolsState extends BaseState{
-  final String? privacyPolicy;
-  final String? termsCondition;
+  String? privacyPolicy;
+  String? termsCondition;
 
   AppToolsState({
     this.privacyPolicy,
@@ -13,10 +13,10 @@ class AppToolsState extends BaseState{
 
   @override
   AppToolsState copyWith({
-    final String? privacyPolicy,
-    final String? termsCondition,
-    final bool? isLoading,
-    final String? errorMessage,
+    String? privacyPolicy,
+    String? termsCondition,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return AppToolsState(
       privacyPolicy: privacyPolicy ?? this.privacyPolicy,

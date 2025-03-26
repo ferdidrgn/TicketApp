@@ -1,28 +1,28 @@
 import 'package:equatable/equatable.dart';
 
 class Ticket extends Equatable {
-  final String? id;
-  final String? createdAt;
-  final String? updatedAt;
-  final String? customerId;
-  final String? showId;
-  final String? stageId;
-  final String? eventId;
-  final String? orderMethod;
-  final String? orderPrice;
-  final bool? isPast;
+  final String id;
+  final String createdAt;
+  final String updatedAt;
+  final String customerId;
+  final String showId;
+  final String stageId;
+  final String eventId;
+  final String orderMethod;
+  final String orderPrice;
+  final bool isPast;
 
   const Ticket({
-    this.id,
-    this.createdAt,
-    this.updatedAt,
-    this.customerId,
-    this.showId,
-    this.stageId,
-    this.eventId,
-    this.orderMethod,
-    this.orderPrice,
-    this.isPast,
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.customerId,
+    required this.showId,
+    required this.stageId,
+    required this.eventId,
+    required this.orderMethod,
+    required this.orderPrice,
+    required this.isPast,
   });
 
   @override
@@ -39,21 +39,18 @@ class Ticket extends Equatable {
         isPast,
       ];
 
-  factory Ticket.fromMap(final Map<String, dynamic>? data) {
-    if (data == null) return const Ticket();
-    return Ticket(
-      id: data['_id'] as String?,
-      createdAt: data['_createdAt'] as String?,
-      updatedAt: data['_updatedAt'] as String?,
-      customerId: data['customerId'] as String?,
-      showId: data['showId'] as String?,
-      stageId: data['stageId'] as String?,
-      eventId: data['eventId'] as String?,
-      orderMethod: data['orderMethod'] as String?,
-      orderPrice: data['orderPrice'] as String?,
-      isPast: data['isPast'] as bool?,
-    );
-  }
+  factory Ticket.fromMap(final Map<String, dynamic>? data) => Ticket(
+        id: data?['_id'] as String? ?? '0',
+        createdAt: data?['_createdAt'] as String? ?? 'Tarih bulunamadı',
+        updatedAt: data?['_updatedAt'] as String? ?? 'Tarih bulunamadı',
+        customerId: data?['customerId'] as String? ?? '0',
+        showId: data?['showId'] as String? ?? '0',
+        stageId: data?['stageId'] as String? ?? '0',
+        eventId: data?['eventId'] as String? ?? '0',
+        orderMethod: data?['orderMethod'] as String? ?? '0',
+        orderPrice: data?['orderPrice'] as String? ?? '0',
+        isPast: data?['isPast'] as bool? ?? false,
+      );
 
   Map<String, dynamic> toMap() => {
         '_createdAt': createdAt,

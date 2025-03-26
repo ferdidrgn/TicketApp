@@ -1,19 +1,30 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../data/model/stage_model.dart';
+import '../../entities/stage.dart';
 import '../../repository/stage_repository.dart';
 
 abstract class GetSearchStageUseCase {
-  Future<Either<Failure, List<StageModel?>?>> call(final String query);
+  Future<Either<Failure, List<Stage>>> call(String query);
 }
 
 class GetSearchStageUseCaseImpl implements GetSearchStageUseCase {
-  final StageRepository repository;
+  StageRepository repository;
 
   GetSearchStageUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<StageModel?>?>> call(final String query) async {
-    return repository.getSearchStage(query);
+  Future<Either<Failure, List<Stage>>> call(String query) async {
+    final result = await repository.getSearchStage(query);
+    return result.fold(
+      (final failure) => Left(failure),
+      (final stagesModels) {
+        final stages = stagesModels
+                ?.map((final stageModel) => stageModel?.toEntity())
+                .whereType<Stage>()
+                .toList() ??
+            [];
+        return Right(stages);
+      },
+    );
   }
 }

@@ -15,7 +15,7 @@ class ShowRepositoryImpl extends BaseRepository implements ShowRepository {
 
   @override
   Future<Either<Failure, List<ShowModel?>?>> getSearchShow(
-      final List<String> categories, final String? type) async {
+      List<String> categories, String? type) async {
     return execute(() async {
       if (categories.isEmpty) throw Exception('categories is empty');
       return remoteDataSource.getSearchShow(categories, type);
@@ -23,7 +23,7 @@ class ShowRepositoryImpl extends BaseRepository implements ShowRepository {
   }
 
   @override
-  Future<Either<Failure, List<ShowModel?>?>> getShows(final isLimit) async {
+  Future<Either<Failure, List<ShowModel?>?>> getShows(isLimit) async {
     return execute(() async {
       if (isLimit == null) throw Exception('isLimit is null');
       return remoteDataSource.getShows(isLimit);

@@ -10,7 +10,7 @@ class TeamNotifier extends BaseNotifier<TeamState> {
   TeamNotifier(this.getTeamsUseCase, this.getTeamByIdUseCase)
       : super(TeamState());
 
-  Future<void> loadTeams(final isLimit) async {
+  Future<void> loadTeams(isLimit) async {
     await handleOperation(() => getTeamsUseCase.call(isLimit),
         onSuccess: (final teams) => state = state.copyWith(teams: teams));
   }

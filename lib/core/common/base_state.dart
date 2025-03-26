@@ -1,6 +1,3 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-@immutable
 abstract class BaseState {
   final bool isLoading;
   final String? errorMessage;

@@ -64,19 +64,19 @@ class StageModel {
       };
 
   Stage toEntity() => Stage(
-        id: id,
-        name: name,
-        imageUrl: imageUrl,
-        capacity: capacity,
-        description: description,
-        communication: communication,
-        address: address,
-        locationLat: locationLat,
-        locationLng: locationLng,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-        showsId: showsId ?? [],
-      );
+    id: id ?? '0',
+    createdAt: createdAt ?? 'Tarih bulunamadı',
+    updatedAt: updatedAt ?? 'Tarih bulunamadı',
+    name: name ?? 'İsim bulunamadı',
+    capacity: capacity ?? 'Kapasite bulunamadı',
+    description: description ?? 'Açıklama bulunamadı',
+    communication: communication ?? 'İletişim bulunamadı',
+    address: address ?? 'Adres bulunamadı',
+    imageUrl: imageUrl ?? 'https://example.com/default-image.png',
+    locationLat: locationLat ?? 0.0,
+    locationLng: locationLng ?? 0.0,
+    showsId: showsId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
+  );
 
   factory StageModel.fromEntity(final Stage entity) => StageModel(
         id: entity.id,

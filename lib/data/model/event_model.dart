@@ -35,12 +35,13 @@ class EventModel {
       };
 
   Event toEntity() => Event(
-        id: id,
-        stageId: stageId,
-        date: date,
-        price: price,
-        seatStatus: seatStatus ?? {},
-      );
+    id: id ?? '0',
+    stageId: stageId ?? '0',
+    date: date ?? 'Tarih bulunamadı',
+    price: price ?? 'Fiyat bulunamadı',
+    seatStatus: seatStatus ?? {},
+  );
+
 
   factory EventModel.fromEntity(final Event event) => EventModel(
         id: event.id,

@@ -7,7 +7,7 @@ abstract class ShowRemoteDataSource {
   Future<List<ShowModel?>?> getSearchShow(final List<String> categories,
       final String? type);
 
-  Future<List<ShowModel?>?> getShows(final isLimit);
+  Future<List<ShowModel?>?> getShows(isLimit);
 
   Future<List<ShowModel?>?> getShowsByIds(final List<String> showsIds);
 
@@ -56,7 +56,7 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   }
 
   @override
-  Future<List<ShowModel?>?> getShows(final isLimit) async {
+  Future<List<ShowModel?>?> getShows(isLimit) async {
     try {
       final snapshot = isLimit
           ? await firestore

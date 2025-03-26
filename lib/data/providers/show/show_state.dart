@@ -1,13 +1,11 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../core/common/base_state.dart';
-import '../../model/show_model.dart';
+import '../../../domain/entities/show.dart';
 
-@freezed
 class ShowState extends BaseState {
-  final ShowModel? show;
-  final List<ShowModel?> shows;
+  Show? show;
+  List<Show>? shows;
 
-  const ShowState({
+  ShowState({
     this.show,
     this.shows = const [],
     super.isLoading,
@@ -16,10 +14,10 @@ class ShowState extends BaseState {
 
   @override
   ShowState copyWith({
-    final ShowModel? show,
-    final List<ShowModel?>? shows,
-    final bool? isLoading,
-    final String? errorMessage,
+    Show? show,
+    List<Show>? shows,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return ShowState(
       show: show ?? this.show,

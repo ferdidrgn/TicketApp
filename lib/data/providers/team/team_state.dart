@@ -1,9 +1,9 @@
 import 'package:ticketapp/core/common/base_state.dart';
-import 'package:ticketapp/data/model/team_model.dart';
+import '../../../domain/entities/team.dart';
 
 class TeamState extends BaseState{
-  final List<TeamModel?> teams;
-  final TeamModel? team;
+  List<Team>? teams;
+  Team? team;
 
   TeamState({
     this.teams = const [],
@@ -14,10 +14,10 @@ class TeamState extends BaseState{
 
   @override
   TeamState copyWith({
-    final List<TeamModel?>? teams,
-    final TeamModel? team,
-    final bool? isLoading,
-    final String? errorMessage,
+    List<Team>? teams,
+    Team? team,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return TeamState(
       teams: teams ?? this.teams,

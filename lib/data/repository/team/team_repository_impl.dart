@@ -14,7 +14,7 @@ class TeamRepositoryImpl extends BaseRepository implements TeamRepository {
   });
 
   @override
-  Future<Either<Failure, List<TeamModel?>?>> getTeams(final isLimit) async {
+  Future<Either<Failure, List<TeamModel?>?>> getTeams(isLimit) async {
     return execute(() async {
       final teams = await remoteDataSource.getTeams(isLimit);
       return teams?.whereType<TeamModel>().toList(); // Nullable değerleri filtrele

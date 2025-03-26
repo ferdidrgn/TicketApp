@@ -22,8 +22,8 @@ class PlayerDetailPage extends StatefulWidget {
 
 class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Player? player;
-  List<Show?> nowShowsDataList = [];
-  List<Show?> oldShowsDataList = [];
+  List<Show>? nowShowsDataList = [];
+  List<Show>? oldShowsDataList = [];
   final firestore = FirebaseFirestore.instance;
   final storage = FirebaseStorage.instance;
   bool isLoading = true;
@@ -57,11 +57,10 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   }
 
   Future<void> _fetchShows(
-      final List<String?>? showsIds, final List<Show?> showsList) async {
+      final List<String>? showsIds, final List<Show>? showsList) async {
     try {
       if (showsIds == null) return;
-      final filteredShowIds = showsIds.whereType<String>().toList();
-      final shows = await ShowRemoteDataSourceImpl(firestore: firestore, storage: storage).getShowsByIds(filteredShowIds);
+      final shows = await ShowRemoteDataSourceImpl(firestore: firestore, storage: storage).getShowsByIds(showsIds.toList());
       setState(() {
         showsList.addAll(shows?.map((final show) => show?.toEntity()) ?? []);
       });

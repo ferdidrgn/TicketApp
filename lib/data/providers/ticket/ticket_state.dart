@@ -1,8 +1,8 @@
 import 'package:ticketapp/core/common/base_state.dart';
-import 'package:ticketapp/data/model/ticket_model.dart';
+import '../../../domain/entities/ticket.dart';
 
 class TicketState extends BaseState {
-  final List<TicketModel?>? tickets;
+  List<Ticket>? tickets;
 
   TicketState({
     this.tickets,
@@ -12,9 +12,9 @@ class TicketState extends BaseState {
 
   @override
   TicketState copyWith({
-    final List<TicketModel?>? tickets,
-    final bool? isLoading,
-    final String? errorMessage,
+    List<Ticket>? tickets,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return TicketState(
       tickets: tickets ?? this.tickets,

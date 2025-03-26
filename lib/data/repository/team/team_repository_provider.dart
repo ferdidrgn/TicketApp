@@ -4,7 +4,7 @@ import '../../../domain/repository/team_repository.dart';
 import '../../datasources/team/team_remote_data_source_provider.dart';
 import 'team_repository_impl.dart';
 
-final teamRepositoryProvider = Provider<TeamRepository>((final ref) {
+final teamRepositoryProvider = Provider<TeamRepository>((ref) {
   final remoteDataSource = ref.watch(teamRemoteDataSourceProvider);
   final internetService = ref.watch(internetServiceProvider);
 

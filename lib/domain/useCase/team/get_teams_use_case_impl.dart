@@ -1,19 +1,30 @@
 import 'package:dartz/dartz.dart';
+import 'package:ticketapp/domain/entities/team.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../data/model/team_model.dart';
 import '../../repository/team_repository.dart';
 
 abstract class GetTeamsUseCase {
-  Future<Either<Failure, List<TeamModel?>?>> call(final isLimit);
+  Future<Either<Failure, List<Team>>> call(isLimit);
 }
 
 class GetTeamsUseCaseImpl implements GetTeamsUseCase {
-  final TeamRepository repository;
+  TeamRepository repository;
 
   GetTeamsUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<TeamModel?>?>> call(final isLimit) async {
-    return repository.getTeams(isLimit);
+  Future<Either<Failure, List<Team>>> call(isLimit) async {
+    final result = await repository.getTeams(isLimit);
+    return result.fold(
+      (final failure) => Left(failure),
+      (final teamsModels) {
+        final teams = teamsModels
+                ?.map((final teamModel) => teamModel?.toEntity())
+                .whereType<Team>()
+                .toList() ??
+            [];
+        return Right(teams);
+      },
+    );
   }
 }

@@ -54,28 +54,28 @@ class TicketModel {
       };
 
   Ticket toEntity() => Ticket(
-        id: id,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-        customerId: customerId,
-        showId: showId,
-        stageId: stageId,
-        eventId: eventId,
-        orderMethod: orderMethod,
-        orderPrice: orderPrice,
-        isPast: isPast,
+        id: id ?? '0',
+        createdAt: createdAt ?? 'Tarih bulunamadı',
+        updatedAt: updatedAt ?? 'Tarih bulunamadı',
+        customerId: customerId ?? '0',
+        showId: showId ?? '0',
+        stageId: stageId ?? '0',
+        eventId: eventId ?? '0',
+        orderMethod: orderMethod ?? '0',
+        orderPrice: orderPrice ?? '0',
+        isPast: isPast ?? false,
       );
 
   factory TicketModel.fromEntity(final Ticket ticket) => TicketModel(
-      id: ticket.id,
-      createdAt: ticket.createdAt,
-      updatedAt: ticket.updatedAt,
-      customerId: ticket.customerId,
-      showId: ticket.showId,
-      stageId: ticket.stageId,
-      eventId: ticket.eventId,
-      orderMethod: ticket.orderMethod,
-      orderPrice: ticket.orderPrice,
-      isPast: ticket.isPast,
-    );
+        id: ticket.id,
+        createdAt: ticket.createdAt,
+        updatedAt: ticket.updatedAt,
+        customerId: ticket.customerId,
+        showId: ticket.showId,
+        stageId: ticket.stageId,
+        eventId: ticket.eventId,
+        orderMethod: ticket.orderMethod,
+        orderPrice: ticket.orderPrice,
+        isPast: ticket.isPast,
+      );
 }

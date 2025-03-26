@@ -59,7 +59,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
       try {
         final showService = ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
         if (_stage == null) return;
-        final filteredStageIds = _stage?.showsId?.whereType<String>().toList();
+        final filteredStageIds = _stage?.showsId.toList();
         if (filteredStageIds == null || filteredStageIds.isEmpty) return;
         final shows = await showService.getShowsByIds(filteredStageIds);
           setState(() {

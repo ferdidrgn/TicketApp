@@ -25,31 +25,31 @@ class ShowNotifier extends BaseNotifier<ShowState> {
     this.getSearchShowUseCase,
   ) : super(ShowState());
 
-  Future<void> addShow(final ShowModel show, final Uri? imageUrl) async =>
+  Future<void> addShow(ShowModel show, Uri? imageUrl) async =>
       handleOperation(() => addShowUseCase.call(show, imageUrl));
 
-  Future<void> deleteShow(final String? showId) async =>
+  Future<void> deleteShow(String? showId) async =>
       handleOperation(() => deleteShowUseCase.call(showId));
 
   Future<void> updateShow(
-          final String showId, final Map<String, dynamic> updatedData) async =>
+          String showId, Map<String, dynamic> updatedData) async =>
       handleOperation(() => updateShowUseCase.call(showId, updatedData));
 
   Future<void> loadShowsByIds(final List<String> showsIds) async {
     await handleOperation(
       () => getShowsByIdsUseCase.call(showsIds),
-      onSuccess: (final shows) => state = state.copyWith(shows: shows),
+      onSuccess: (shows) => state = state.copyWith(shows: shows),
     );
   }
 
-  Future<void> loadShows(final isLimit) async {
+  Future<void> loadShows(isLimit) async {
     await handleOperation(
       () => getShowsUseCase.call(isLimit),
-      onSuccess: (final shows) => state = state.copyWith(shows: shows),
+      onSuccess: (shows) => state = state.copyWith(shows: shows),
     );
   }
 
   Future<void> searchShows(
-          final List<String> categories, final String? type) async =>
+      List<String> categories, String? type) async =>
       handleOperation(() => getSearchShowUseCase.call(categories, type));
 }

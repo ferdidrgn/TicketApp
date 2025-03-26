@@ -14,7 +14,7 @@ class PlayerRepositoryImpl extends BaseRepository implements PlayerRepository {
   });
 
   @override
-  Future<Either<Failure, List<PlayerModel?>?>> getPlayers(final isLimit) async {
+  Future<Either<Failure, List<PlayerModel?>?>> getPlayers(isLimit) async {
    return execute(() async {
      if(isLimit == null) throw Exception('isLimit is null');
      return remoteDataSource.getPlayers(isLimit);

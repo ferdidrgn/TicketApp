@@ -1,10 +1,10 @@
 import 'package:dartz/dartz.dart';
+import 'package:ticketapp/domain/entities/campaign.dart';
 import '../../../../../core/errors/failures.dart';
-import '../../../data/model/campaing_model.dart';
 import '../../repository/campaign_repository.dart';
 
 abstract class GetCampaignsUseCase {
-  Future<Either<Failure, List<CampaignModel?>?>> call();
+  Future<Either<Failure, List<Campaign>?>> call();
 }
 
 class GetCampaignsUseCaseImpl implements GetCampaignsUseCase {
@@ -13,7 +13,18 @@ class GetCampaignsUseCaseImpl implements GetCampaignsUseCase {
   GetCampaignsUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<CampaignModel?>?>> call() async {
-    return repository.getCampaigns();
+  Future<Either<Failure, List<Campaign>?>> call() async {
+    final result = await repository.getCampaigns();
+    return result.fold(
+      (final failure) => Left(failure),
+      (final campaignsModels) {
+        final campaigns = campaignsModels
+                ?.map((final campaignModel) => campaignModel?.toEntity())
+                .whereType<Campaign>()
+                .toList() ??
+            [];
+        return Right(campaigns);
+      },
+    );
   }
 }

@@ -1,10 +1,10 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../data/model/user_model.dart';
+import '../../entities/user.dart';
 import '../../repository/user_repository.dart';
 
 abstract class GetUserByIdUseCase {
-  Future<Either<Failure, UserModel?>> call(final String userId);
+  Future<Either<Failure, User>> call(final String userId);
 }
 
 class GetUserByIdUseCaseImpl implements GetUserByIdUseCase {
@@ -13,7 +13,15 @@ class GetUserByIdUseCaseImpl implements GetUserByIdUseCase {
   GetUserByIdUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, UserModel?>> call(final String userId) async {
-    return repository.getUserById(userId);
+  Future<Either<Failure, User>> call(final String userId) async {
+    final result = await repository.getUserById(userId);
+    return result.fold(
+      (final failure) => Left(failure),
+      (final userModel) {
+        final user = userModel?.toEntity();
+        if (user == null) return Left(ServerFailure("User bilgisi yok. Giriş yapılmamış."));
+        return Right(user);
+      },
+    );
   }
 }

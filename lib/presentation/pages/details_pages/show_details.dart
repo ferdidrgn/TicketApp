@@ -27,9 +27,9 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   final strorage = FirebaseStorage.instance;
   late final PlayerRemoteDataSourceImpl? playerService;
   Show? showData;
-  List<Player?> nowPlayerDataList = [];
-  List<Player?> oldPlayerDataList = [];
-  List<String?>? photoDataList = [];
+  List<Player>? nowPlayerDataList = [];
+  List<Player>? oldPlayerDataList = [];
+  List<String>? photoDataList = [];
   bool isLoading = true;
   bool isExpanded = false;
 
@@ -47,10 +47,10 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
       final show = (await showService.getShowsByIds([widget.showId]))?.first;
       setState(() {
         showData = show?.toEntity();
-        photoDataList = show?.photosShowId;
+        photoDataList = show?.photosShowId?.cast<String>();
       });
-      await _fetchNowPlayers(show?.nowPlayersId);
-      await _fetchOldPlayers(show?.oldPlayersId);
+      await _fetchNowPlayers(show?.nowPlayersId?.cast<String>());
+      await _fetchOldPlayers(show?.oldPlayersId?.cast<String>());
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Veri alınırken bir hata oluştu: $error')));
@@ -61,14 +61,17 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     }
   }
 
-  Future<void> _fetchNowPlayers(final List<String?>? playersId) async {
+  Future<void> _fetchNowPlayers(final List<String>? playersId) async {
     try {
       if (playersId != null) {
-        final filteredPlayersId = playersId.whereType<String>().toList();
-        final player = await playerService?.getPlayersByIds(filteredPlayersId);
+        final player = await playerService?.getPlayersByIds(playersId.toList());
         if (player != null)
           setState(() {
-            nowPlayerDataList.addAll(player.map((final e) => e?.toEntity()));
+            nowPlayerDataList?.addAll(player.map((e) => e?.toEntity()).toList().whereType<Player>());
+          });
+        else
+          setState(() {
+            nowPlayerDataList = [];
           });
       }
     } catch (error) {
@@ -77,15 +80,18 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     }
   }
 
-  Future<void> _fetchOldPlayers(final List<String?>? playersId) async {
+  Future<void> _fetchOldPlayers(final List<String>? playersId) async {
     try {
       if (playersId != null) {
-        final filteredPlayersId = playersId.whereType<String>().toList();
-        final player = await playerService?.getPlayersByIds(filteredPlayersId);
+        final player = await playerService?.getPlayersByIds(playersId.toList());
         if (player != null)
           setState(() {
-            nowPlayerDataList.addAll(player.map((e) => e?.toEntity()));
+            oldPlayerDataList?.addAll(player.map((e) => e?.toEntity()).toList().whereType<Player>());
           });
+      } else {
+        setState(() {
+          oldPlayerDataList = [];
+        });
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -279,25 +285,25 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   Widget _buildNowPlayers() {
-    return nowPlayerDataList.isNotEmpty
+    return nowPlayerDataList!.isNotEmpty
         ? SizedBox(
             height: 195,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: nowPlayerDataList.length,
+              itemCount: nowPlayerDataList?.length ?? 0,
               itemBuilder: (final context, final index) {
                 return CustomStageCard(
                     text:
-                        '${nowPlayerDataList[index]?.firstName ?? ''} ${nowPlayerDataList[index]?.lastName ?? ''}',
-                    imageUrl: nowPlayerDataList[index]?.imageUrl ?? '',
+                        '${nowPlayerDataList?[index].firstName ?? ''} ${nowPlayerDataList?[index].lastName ?? ''}',
+                    imageUrl: nowPlayerDataList?[index].imageUrl ?? '',
                     onPressed: () {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (final context) => PlayerDetailPage(
                                   playerId:
-                                      nowPlayerDataList[index]?.id ?? '')));
+                                      nowPlayerDataList?[index].id ?? '')));
                     });
               },
             ),
@@ -308,25 +314,25 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   Widget _buildOldPlayers() {
-    return oldPlayerDataList.isNotEmpty
+    return oldPlayerDataList?.isNotEmpty
         ? SizedBox(
             height: 195,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              itemCount: oldPlayerDataList.length,
+              itemCount: oldPlayerDataList?.length ?? 0,
               itemBuilder: (final context, final index) {
                 return Stack(children: [
                   CustomStageCard(
                     text:
-                        '${oldPlayerDataList[index]?.firstName ?? ''} ${oldPlayerDataList[index]?.lastName ?? ''}',
-                    imageUrl: oldPlayerDataList[index]?.imageUrl ?? '',
+                        '${oldPlayerDataList?[index].firstName ?? ''} ${oldPlayerDataList?[index].lastName ?? ''}',
+                    imageUrl: oldPlayerDataList?[index].imageUrl ?? '',
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (final context) => PlayerDetailPage(
-                                playerId: oldPlayerDataList[index]?.id ?? '')),
+                                playerId: oldPlayerDataList?[index].id ?? '')),
                       );
                     },
                   ),

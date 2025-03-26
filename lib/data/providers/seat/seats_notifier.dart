@@ -8,10 +8,10 @@ class SeatsNotifier extends BaseNotifier<SeatsState> {
 
   SeatsNotifier(this.getSeatsByStageUseCase) : super(SeatsState());
 
-  Future<void> loadSeatsByStage(final String stageId) async {
+  Future<void> loadSeatsByStage(String stageId) async {
     await handleOperation(
           () => getSeatsByStageUseCase.call(stageId),
-      onSuccess: (final seats) =>
+      onSuccess: (seats) =>
       state = state.copyWith(seats: seats),
     );
   }

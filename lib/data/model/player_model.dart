@@ -55,15 +55,15 @@ class PlayerModel {
   };
 
   Player toEntity() => Player(
-    createdAt: createdAt,
-    updatedAt: updatedAt,
-    id: id,
-    firstName: firstName,
-    lastName: lastName,
-    bio: bio,
-    imageUrl: imageUrl,
-    nowShowsId: nowShowsId ?? [],
-    oldShowsId: oldShowsId ?? [],
+    id: id ?? '0',
+    createdAt: createdAt ?? 'Tarih bulunamadı',
+    updatedAt: updatedAt ?? 'Tarih bulunamadı',
+    firstName: firstName ?? 'İsim bulunamadı',
+    lastName: lastName ?? 'Soyisim bulunamadı',
+    bio: bio ?? 'Bio bulunamadı',
+    imageUrl: imageUrl ?? 'https://example.com/default-image.png',
+    nowShowsId: nowShowsId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
+    oldShowsId: oldShowsId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
   );
 
   factory PlayerModel.fromEntity(final Player player) => PlayerModel(

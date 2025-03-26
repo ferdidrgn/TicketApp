@@ -47,14 +47,14 @@ class TeamModel {
   };
 
   Team toEntity() => Team(
-    id: id,
-    createdAt: createdAt,
-    updatedAt: updatedAt,
-    name: name,
-    description: description,
-    imageUrl: imageUrl,
-    photosId: photosId ?? [],
-    showsId: showsId ?? [],
+    id: id ?? '0',
+    createdAt: createdAt ?? 'Tarih bulunamadı',
+    updatedAt: updatedAt ?? 'Tarih bulunamadı',
+    imageUrl: imageUrl ?? 'https://example.com/default-image.png',
+    name: name ?? 'İsim bulunamadı',
+    description: description ?? 'Açıklama bulunamadı',
+    photosId: photosId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
+    showsId: showsId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
   );
 
   factory TeamModel.fromEntity(final Team team) => TeamModel(

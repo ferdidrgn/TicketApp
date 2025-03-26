@@ -1,10 +1,10 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../data/model/show_model.dart';
+import '../../entities/show.dart';
 import '../../repository/show_repository.dart';
 
 abstract class GetSearchShowUseCase {
-  Future<Either<Failure, List<ShowModel?>?>> call(
+  Future<Either<Failure, List<Show>>> call(
       final List<String> categories, final String? type);
 }
 
@@ -14,8 +14,19 @@ class GetSearchShowUseCaseImpl implements GetSearchShowUseCase {
   GetSearchShowUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<ShowModel?>?>> call(
+  Future<Either<Failure, List<Show>>> call(
       final List<String> categories, final String? type) async {
-    return repository.getSearchShow(categories, type);
+    final result = await repository.getSearchShow(categories, type);
+    return result.fold(
+      (final failure) => Left(failure),
+      (final showsModels) {
+        final shows = showsModels
+                ?.map((final showModel) => showModel?.toEntity())
+                .whereType<Show>()
+                .toList() ??
+            [];
+        return Right(shows);
+      },
+    );
   }
 }

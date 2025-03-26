@@ -90,23 +90,39 @@ class UserModel {
       };
 
   User toEntity() => User(
-        id: id,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-        firstName: firstName,
-        lastName: lastName,
-        imageUrl: imageUrl,
-        phoneNumber: phoneNumber,
-        age: age,
-        eMail: eMail,
-        city: city,
-        isPhoneActive: isPhoneActive,
-        fcmToken: fcmToken,
-        role: role,
-        favoriteShows: favoriteShows ?? [],
-        favoriteStages: favoriteStages ?? [],
-        favoritePlayers: favoritePlayers ?? [],
-        ticketsId: ticketsId ?? [],
+        id: id ?? '0',
+        createdAt: createdAt ?? 'Tarih bulunamadı',
+        updatedAt: updatedAt ?? 'Tarih bulunamadı',
+        firstName: firstName ?? 'İsim bulunamadı',
+        lastName: lastName ?? 'Soyisim bulunamadı',
+        phoneNumber: phoneNumber ?? 'Telefon numarası bulunamadı',
+        age: age ?? 0,
+        imageUrl: imageUrl ?? 'https://example.com/default-image.png',
+        eMail: eMail ?? 'E-mail bulunamadı',
+        city: city ?? 'Şehir bulunamadı',
+        isPhoneActive: isPhoneActive ?? false,
+        fcmToken: fcmToken ?? 'FCM token bulunamadı',
+        role: role ?? 'Rol bulunamadı',
+        favoriteShows: favoriteShows
+                ?.where((final e) => e != null)
+                .map((final e) => e!)
+                .toList() ??
+            [],
+        favoriteStages: favoriteStages
+                ?.where((final e) => e != null)
+                .map((final e) => e!)
+                .toList() ??
+            [],
+        favoritePlayers: favoritePlayers
+                ?.where((final e) => e != null)
+                .map((final e) => e!)
+                .toList() ??
+            [],
+        ticketsId: ticketsId
+                ?.where((final e) => e != null)
+                .map((final e) => e!)
+                .toList() ??
+            [],
       );
 
   factory UserModel.fromEntity(final User user) => UserModel(

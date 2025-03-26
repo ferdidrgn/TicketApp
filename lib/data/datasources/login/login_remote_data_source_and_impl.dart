@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 abstract class LoginRemoteDataSource {
-  Future<String?> signInWithGoogle();
+  Future<GoogleSignInAccount?> signInWithGoogle();
   Future<void> signOut();
   Future<User?> getCurrentUser();
   Future<void> verifyPhone(
@@ -23,9 +23,9 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   Future<User?> getCurrentUser() async => firebaseAuth.currentUser;
 
   @override
-  Future<String?> signInWithGoogle() async {
+  Future<GoogleSignInAccount?> signInWithGoogle() async {
     final user = await getCurrentUser();
-    if (user != null) return user.displayName;
+    if (user != null) return null;
 
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
     final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
@@ -36,7 +36,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
     );
 
     await firebaseAuth.signInWithCredential(credential);
-    return googleUser?.displayName;
+    return googleUser;
   }
 
   @override

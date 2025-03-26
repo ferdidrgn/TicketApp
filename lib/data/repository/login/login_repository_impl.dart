@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/common/base_repo.dart';
 import '../../../core/errors/failures.dart';
 import '../../../domain/repository/login_repository.dart';
@@ -18,7 +19,7 @@ class LoginRepositoryImpl extends BaseRepository implements LoginRepository {
   }
 
   @override
-  Future<Either<Failure, String?>> signInWithGoogle() async {
+  Future<Either<Failure, GoogleSignInAccount?>> signInWithGoogle() async {
     return  execute(() async {
       return remoteDataSource.signInWithGoogle();
     });

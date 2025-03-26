@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import '../../../core/widgets/custom_event_card.dart';
-import '../../../data/model/show_model.dart';
 import '../../../data/providers/show/show_provider.dart';
+import '../../../domain/entities/show.dart';
 
 class DiscoveryPage extends ConsumerStatefulWidget {
   final String? selectedCategory;
@@ -25,6 +25,11 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     if (widget.selectedCategory != null &&
         widget.selectedCategory != 'Tümünü Keşfet' &&
         widget.selectedCategory != 'Trendler') {
@@ -34,7 +39,11 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   }
 
   void _fetchShows() {
-    ref.read(showProvider.notifier).searchShows(selectedCategories, type);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      List<Show>? shows = ref.read(showProvider).shows;
+      if (shows == null || shows.isEmpty)
+        ref.read(showProvider.notifier).searchShows(selectedCategories, type);
+    });
   }
 
   @override
@@ -48,12 +57,16 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            showState.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : showState.shows.isEmpty
-                    ? const Center(
-                        child: Text('Bu kategori için etkinlik bulunamadı.'))
-                    : Expanded(child: _buildScrollableItems(showState.shows))
+            if (showState.isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (showState.errorMessage != null)
+              Center(child: Text(showState.errorMessage!))
+            else if (showState.shows == null)
+              Text('Bu kategori için etkinlik bulunamadı.')
+            else if (showState.shows?.isEmpty ?? true)
+              Text('Bu kategori için etkinlik bulunamadı.')
+            else if (showState.shows != null)
+              Expanded(child: _buildScrollableItems(showState.shows!)),
           ],
         ),
       ),
@@ -73,15 +86,15 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     );
   }
 
-  Widget _buildScrollableItems(final List<ShowModel?> items) {
+  Widget _buildScrollableItems(final List<Show> items) {
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (final context, final index) {
         final show = items[index];
         return EventCard(
-          imageUrl: show?.imageUrl ?? '',
-          showName: show?.name ?? '',
-          category: show?.category ?? '',
+          imageUrl: show.imageUrl,
+          showName: show.name,
+          category: show.category,
           date: "15.06.2023",
           stage: "Sahne 1",
           price: 150.0,

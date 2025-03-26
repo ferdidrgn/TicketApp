@@ -1,9 +1,9 @@
 import '../../../core/common/base_state.dart';
-import '../../model/player_model.dart';
+import '../../../domain/entities/player.dart';
 
 class PlayerState extends BaseState {
-  final PlayerModel? player;
-  final List<PlayerModel?> players;
+  Player? player;
+  List<Player>? players;
 
   PlayerState({
     this.player,
@@ -14,10 +14,10 @@ class PlayerState extends BaseState {
 
   @override
   PlayerState copyWith({
-    final PlayerModel? player,
-    final List<PlayerModel?>? players,
-    final bool? isLoading,
-    final String? errorMessage,
+    Player? player,
+    List<Player>? players,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return PlayerState(
       player: player ?? this.player,

@@ -1,24 +1,24 @@
 import 'package:equatable/equatable.dart';
 
 class Campaign extends Equatable {
-  final String? id;
-  final String? createdAt;
-  final String? updatedAt;
-  final String? endDate;
-  final String? imageUrl;
-  final String? startDate;
-  final String? title;
-  final String? url;
+  final String id;
+  final String createdAt;
+  final String updatedAt;
+  final String endDate;
+  final String imageUrl;
+  final String startDate;
+  final String title;
+  final String url;
 
   const Campaign({
-    this.id,
-    this.createdAt,
-    this.updatedAt,
-    this.endDate,
-    this.imageUrl,
-    this.startDate,
-    this.title,
-    this.url,
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.endDate,
+    required this.imageUrl,
+    required this.startDate,
+    required this.title,
+    required this.url,
   });
 
   @override
@@ -33,19 +33,17 @@ class Campaign extends Equatable {
         url,
       ];
 
-  factory Campaign.fromMap(final Map<String, dynamic>? data) {
-    if (data == null) return const Campaign();
-    return Campaign(
-      id: data['_id'] as String?,
-      createdAt: data['_createdAt'] as String?,
-      updatedAt: data['_updatedAt'] as String?,
-      endDate: data['endDate'] as String?,
-      imageUrl: data['imageUrl'] as String?,
-      startDate: data['startDate'] as String?,
-      title: data['title'] as String?,
-      url: data['url'] as String?,
-    );
-  }
+  factory Campaign.fromMap(final Map<String, dynamic>? data) => Campaign(
+        id: data?['_id'] as String? ?? '0',
+        createdAt: data?['_createdAt'] as String? ?? 'Tarih bulunamadı',
+        updatedAt: data?['_updatedAt'] as String? ?? 'Tarih bulunamadı',
+        endDate: data?['endDate'] as String? ?? 'Tarih bulunamadı',
+        imageUrl: data?['imageUrl'] as String? ??
+            'https://example.com/default-image.png',
+        startDate: data?['startDate'] as String? ?? 'Tarih bulunamadı',
+        title: data?['title'] as String? ?? 'İsimsiz Kampanya',
+        url: data?['url'] as String? ?? 'https://example.com',
+      );
 
   Map<String, dynamic> toMap() => {
         '_createdAt': createdAt,

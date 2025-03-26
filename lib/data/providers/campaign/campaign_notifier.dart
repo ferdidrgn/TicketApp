@@ -11,7 +11,7 @@ class CampaignNotifier extends BaseNotifier<CampaignState> {
   Future<void> loadCampaigns() async {
     await handleOperation(
       () => getCampaignsUseCase.call(),
-      onSuccess: (final campaigns) =>
+      onSuccess: (campaigns) =>
           state = state.copyWith(campaigns: campaigns),
     );
   }

@@ -1,0 +1,61 @@
+import 'package:equatable/equatable.dart';
+
+class Team extends Equatable {
+  final String id;
+  final String createdAt;
+  final String updatedAt;
+  final String name;
+  final String description;
+  final String imageUrl;
+  final List<String> photosId;
+  final List<String> showsId;
+
+  const Team({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.name,
+    required this.description,
+    required this.imageUrl,
+    required this.photosId,
+    required this.showsId,
+  });
+
+  @override
+  List<Object?> get props => [
+        id,
+        createdAt,
+        updatedAt,
+        name,
+        description,
+        imageUrl,
+        photosId,
+        showsId,
+      ];
+
+  /// **Nullable değerleri temizleyerek anlamlı varsayılanlar ekler.**
+  factory Team.fromMap(final Map<String, dynamic>? data) {
+    return Team(
+      id: data?['_id'] as String? ?? '0',
+      createdAt: data?['_createdAt'] as String? ?? 'Tarih bulunamadı',
+      updatedAt: data?['_updatedAt'] as String? ?? 'Tarih bulunamadı',
+      name: data?['name'] as String? ?? 'İsimsiz Takım',
+      description: data?['description'] as String? ?? 'Açıklama bulunamadı.',
+      imageUrl: data?['imageUrl'] as String? ?? 'https://example.com/default-image.png',
+      photosId: (data?['photosId'] as List<dynamic>?)?.map((final e) => e as String).toList() ?? [],
+      showsId: (data?['showsId'] as List<dynamic>?)?.map((final e) => e as String).toList() ?? [],
+    );
+  }
+
+  /// **Veriyi geri haritalamak için Map formatına çevirir.**
+  Map<String, dynamic> toMap() => {
+        '_id': id,
+        '_createdAt': createdAt,
+        '_updatedAt': updatedAt,
+        'name': name,
+        'description': description,
+        'imageUrl': imageUrl,
+        'photosId': photosId,
+        'showsId': showsId,
+      };
+}

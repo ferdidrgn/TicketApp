@@ -5,20 +5,20 @@ import 'base_state.dart';
 
 // Enhanced Base Notifier with more robust error handling
 abstract class BaseNotifier<T extends BaseState> extends StateNotifier<T> {
-  BaseNotifier(final T state) : super(state);
+  BaseNotifier(T state) : super(state);
 
   Future<void> handleOperation<R>(
-    final Future<Either<Failure, R>> Function() operation, {
-    final Function(R)? onSuccess,
+    Future<Either<Failure, R>> Function() operation, {
+    Function(R)? onSuccess,
   }) async {
     try {
       isSetLoading(true);
 
-      final result = await operation();
+      Either<Failure, R> result = await operation();
 
       result.fold(
-        (final failure) => setErrorState(failure.message),
-        (final success) {
+        (failure) => setErrorState(failure.message),
+        (success) {
           onSuccess?.call(success);
           isSetLoading(false);
         },
@@ -29,10 +29,10 @@ abstract class BaseNotifier<T extends BaseState> extends StateNotifier<T> {
   }
 
   // Convenience methods for state updates
-  void isSetLoading(final isLoading) =>
+  void isSetLoading(isLoading) =>
       state = state.copyWith(isLoading: isLoading, errorMessage: null) as T;
 
-  void setErrorState(final String errorMessage) {
+  void setErrorState(String errorMessage) {
     state = state.copyWith(
       errorMessage: errorMessage,
       isLoading: false,

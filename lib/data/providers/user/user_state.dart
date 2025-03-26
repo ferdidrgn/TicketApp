@@ -1,8 +1,8 @@
 import 'package:ticketapp/core/common/base_state.dart';
-import 'package:ticketapp/data/model/user_model.dart';
+import '../../../domain/entities/user.dart';
 
 class UserState extends BaseState {
-  final UserModel? user;
+  User? user;
 
   UserState({
     this.user,
@@ -12,9 +12,9 @@ class UserState extends BaseState {
 
   @override
   UserState copyWith({
-    final UserModel? user,
-    final bool? isLoading,
-    final String? errorMessage,
+    User? user,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return UserState(
       user: user ?? this.user,

@@ -1,19 +1,19 @@
 import 'package:ticketapp/core/common/base_state.dart';
 
 class SeatsState extends BaseState{
-  final Map<String, List<String?>?> seats;
+  Map<String, List<String>>? seats;
 
   SeatsState({
+    Map<String, List<String>>? seats,
     super.isLoading = false,
     super.errorMessage,
-    final Map<String, List<String?>?>? seats,
   }) : seats = seats ?? {};
 
   @override
   SeatsState copyWith({
-    final Map<String, List<String?>?>? seats,
-    final bool? isLoading,
-    final String? errorMessage,
+    Map<String, List<String>>? seats,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return SeatsState(
       seats: seats ?? this.seats,

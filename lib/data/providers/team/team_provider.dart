@@ -6,7 +6,7 @@ import 'team_notifier.dart';
 import 'team_state.dart';
 
 final teamProvider =
-    StateNotifierProvider<TeamNotifier, TeamState>((final ref) {
+    StateNotifierProvider<TeamNotifier, TeamState>((ref) {
   return TeamNotifier(
     ref.watch(getTeamsUseCaseProvider),
     ref.watch(getTeamByIdUseCaseProvider),
@@ -14,12 +14,12 @@ final teamProvider =
 });
 
 // Use case providers
-final getTeamsUseCaseProvider = Provider<GetTeamsUseCase>((final ref) {
+final getTeamsUseCaseProvider = Provider<GetTeamsUseCase>((ref) {
   final repository = ref.watch(teamRepositoryProvider);
   return GetTeamsUseCaseImpl(repository);
 });
 
-final getTeamByIdUseCaseProvider = Provider<GetTeamByIdUseCase>((final ref) {
+final getTeamByIdUseCaseProvider = Provider<GetTeamByIdUseCase>((ref) {
   final repository = ref.watch(teamRepositoryProvider);
   return GetTeamByIdUseCaseImpl(repository);
 });

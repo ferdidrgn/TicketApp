@@ -2,22 +2,22 @@ import '../../../core/common/base_state.dart';
 import '../../model/player_model.dart';
 
 class PlayerState extends BaseState {
-  final PlayerModel? player;
-  final List<PlayerModel?> players;
+  PlayerModel? player;
+  List<PlayerModel?>? players;
 
   PlayerState({
-    this.players = const [],
     this.player,
+    this.players = const [],
     super.isLoading,
     super.errorMessage,
   });
 
   @override
   PlayerState copyWith({
-    final List<PlayerModel?>? players,
-    final PlayerModel? player,
-    final bool? isLoading,
-    final String? errorMessage,
+    PlayerModel? player,
+    List<PlayerModel?>? players,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return PlayerState(
       player: player ?? this.player,
