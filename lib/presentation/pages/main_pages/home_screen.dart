@@ -300,7 +300,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (final context) =>
-                      StageDetailPage(stageId: stages[index].id ?? ''),
+                      StageDetailPage(stageId: stages[index].id),
                 ),
               );
             },
