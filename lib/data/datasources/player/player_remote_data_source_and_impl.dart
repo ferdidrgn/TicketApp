@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../model/player_model.dart';
 
 abstract class PlayerRemoteDataSource {
-  Future<List<PlayerModel?>?> getPlayers( isLimit);
+  Future<List<PlayerModel?>?> getPlayers(final isLimit);
   Future<List<PlayerModel?>?> getPlayersByIds(final List<String> playersIds);
 }
 
@@ -12,7 +12,7 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
   PlayerRemoteDataSourceImpl({required this.firestore});
 
   @override
-  Future<List<PlayerModel>> getPlayers(isLimit) async {
+  Future<List<PlayerModel>> getPlayers(final isLimit) async {
     try {
       final querySnapshot = isLimit
           ? await firestore

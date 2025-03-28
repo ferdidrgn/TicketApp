@@ -1,19 +1,19 @@
-import '../../../core/common/base_notifier_with_base_state.dart';
+import '../../../core/common/base_notifier.dart';
 import '../../../domain/useCase/player/get_player_by_id_use_case_impl.dart';
 import '../../../domain/useCase/player/get_players_use_case_impl.dart';
 import 'player_state.dart';
 
-class PlayerNotifier extends BaseNotifierWithBaseState<PlayerState> {
+class PlayerNotifier extends BaseNotifier<PlayerState> {
   GetPlayerByIdUseCase getPlayerByIdUseCase;
   GetPlayersUseCase getPlayersUseCase;
 
   PlayerNotifier(this.getPlayerByIdUseCase, this.getPlayersUseCase)
       : super(PlayerState());
 
-  Future<void> loadPlayers(isLimit) async {
+  Future<void> loadPlayers(final isLimit) async {
     await handleOperation(
       () => getPlayersUseCase.call(isLimit),
-      onSuccess: (players) =>
+      onSuccess: (final players) =>
           state = state.copyWith(dataList: players),
     );
   }

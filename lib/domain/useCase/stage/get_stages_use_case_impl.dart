@@ -4,7 +4,7 @@ import '../../entities/stage.dart';
 import '../../repository/stage_repository.dart';
 
 abstract class GetStagesUseCase {
-  Future<Either<Failure, List<Stage>>> call(isLimit);
+  Future<Either<Failure, List<Stage>>> call(final isLimit);
 }
 
 class GetStagesUseCaseImpl implements GetStagesUseCase {
@@ -13,7 +13,7 @@ class GetStagesUseCaseImpl implements GetStagesUseCase {
   GetStagesUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Stage>>> call(isLimit) async {
+  Future<Either<Failure, List<Stage>>> call(final isLimit) async {
     final result = await repository.getStages(isLimit);
     return result.fold(
           (final failure) => Left(failure),

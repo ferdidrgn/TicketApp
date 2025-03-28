@@ -15,14 +15,14 @@ class ShowRepositoryImpl extends BaseRepository implements ShowRepository {
 
   @override
   Future<Either<Failure, List<ShowModel?>?>> getSearchShow(
-      List<String> categories, String? type) async {
+      final List<String> categories, final String? type) async {
     return execute(() async {
       return remoteDataSource.getSearchShow(categories, type);
     });
   }
 
   @override
-  Future<Either<Failure, List<ShowModel?>?>> getShows(isLimit) async {
+  Future<Either<Failure, List<ShowModel?>?>> getShows(final isLimit) async {
     return execute(() async {
       if (isLimit == null) throw Exception('isLimit is null');
       return remoteDataSource.getShows(isLimit);

@@ -68,7 +68,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         if (player != null)
           setState(() {
             nowPlayerDataList?.addAll(
-                player.map((e) => e?.toEntity()).toList().whereType<Player>());
+                player.map((final e) => e?.toEntity()).toList().whereType<Player>());
           });
         else
           setState(() {
@@ -88,7 +88,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         if (player != null)
           setState(() {
             oldPlayerDataList?.addAll(
-                player.map((e) => e?.toEntity()).toList().whereType<Player>());
+                player.map((final e) => e?.toEntity()).toList().whereType<Player>());
           });
       } else {
         setState(() {

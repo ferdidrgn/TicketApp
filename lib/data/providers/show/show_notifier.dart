@@ -1,4 +1,4 @@
-import '../../../core/common/base_notifier_with_base_state.dart';
+import '../../../core/common/base_notifier.dart';
 import '../../../domain/useCase/show/add_show_use_case_impl.dart';
 import '../../../domain/useCase/show/delete_show_use_case_impl.dart';
 import '../../../domain/useCase/show/get_search_show_use_case_impl.dart';
@@ -8,7 +8,7 @@ import '../../../domain/useCase/show/update_show_use_case_impl.dart';
 import '../../model/show_model.dart';
 import 'show_state.dart';
 
-class ShowNotifier extends BaseNotifierWithBaseState<ShowState> {
+class ShowNotifier extends BaseNotifier<ShowState> {
   final AddShowUseCase addShowUseCase;
   final DeleteShowUseCase deleteShowUseCase;
   final UpdateShowUseCase updateShowUseCase;

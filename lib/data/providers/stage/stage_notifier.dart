@@ -1,10 +1,10 @@
-import 'package:ticketapp/core/common/base_notifier_with_base_state.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import '../../../domain/useCase/stage/get_search_stage_use_case_impl.dart';
 import '../../../domain/useCase/stage/get_stage_by_id_use_case_impl.dart';
 import '../../../domain/useCase/stage/get_stages_use_case_impl.dart';
 import 'stage_state.dart';
 
-class StageNotifier extends BaseNotifierWithBaseState<StageState> {
+class StageNotifier extends BaseNotifier<StageState> {
   final GetStagesUseCase getStagesUseCase;
   final GetStagesByIdsUseCase getStagesByIdsUseCase;
   final GetSearchStageUseCase getSearchStageUseCase;

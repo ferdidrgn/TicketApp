@@ -21,8 +21,7 @@ abstract class BaseRepository {
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
-    } else {
+    } else
       return const Left(NetworkFailure('No internet connection'));
-    }
   }
 }

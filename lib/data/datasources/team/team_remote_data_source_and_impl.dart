@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ticketapp/data/model/team_model.dart';
 
 abstract class TeamRemoteDataSource {
-  Future<List<TeamModel?>?> getTeams(isLimit);
+  Future<List<TeamModel?>?> getTeams(final isLimit);
   Future<List<TeamModel?>?> getTeamsByIds(final List<String> teamsIds);
 }
 

@@ -1,9 +1,9 @@
-import 'package:ticketapp/core/common/base_notifier_with_base_state.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import '../../../domain/useCase/team/get_team_by_id_use_case_impl.dart';
 import '../../../domain/useCase/team/get_teams_use_case_impl.dart';
 import 'team_state.dart';
 
-class TeamNotifier extends BaseNotifierWithBaseState<TeamState> {
+class TeamNotifier extends BaseNotifier<TeamState> {
   final GetTeamsUseCase getTeamsUseCase;
   final GetTeamByIdUseCase getTeamByIdUseCase;
 

@@ -42,7 +42,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(final BuildContext context) {
-    ref.listen(loginProvider, (previous, next) {
+    ref.listen(loginProvider, (final previous, final next) {
       if (next.user != null) {
         Navigator.of(context).pushReplacementNamed('/home');
       } else if (!next.isLoading) {

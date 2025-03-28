@@ -3,7 +3,7 @@ import '../../model/stage_model.dart';
 
 abstract class StageRemoteDataSource {
   Future<List<StageModel?>?> getSearchStage(final String query);
-  Future<List<StageModel?>?> getStages(isLimit);
+  Future<List<StageModel?>?> getStages(final isLimit);
   Future<List<StageModel?>?> getStagesByIds(final List<String> stagesIds);
 }
 
@@ -32,7 +32,7 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
   }
 
   @override
-  Future<List<StageModel?>?> getStages(isLimit) async {
+  Future<List<StageModel?>?> getStages(final isLimit) async {
     try {
       final snapshot = isLimit
           ? await firestore

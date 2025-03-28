@@ -71,10 +71,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 
   void _initializePaginationControllers() {
-    List<Show>? shows = ref.read(showProvider).dataList;
-    List<Player>? players = ref.read(playerProvider).dataList;
-    List<Stage>? stages = ref.read(stageProvider).dataList;
-    List<Team>? teams = ref.read(teamProvider).dataList;
+    final List<Show>? shows = ref.read(showProvider).dataList;
+    final List<Player>? players = ref.read(playerProvider).dataList;
+    final List<Stage>? stages = ref.read(stageProvider).dataList;
+    final List<Team>? teams = ref.read(teamProvider).dataList;
 
     if (shows != null)
       showsPagination = PaginationController(

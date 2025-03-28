@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/util/url_launcher_service.dart';
+import '../../../core/services/url_launcher_service.dart';
 import '../../../core/widgets/custom_art_words_card.dart';
 
 class AppSettingsPage extends StatelessWidget {

@@ -41,7 +41,7 @@ final getShowsByIdsUseCaseProvider = Provider<GetShowsByIdsUseCase>((final ref) 
   return GetShowsByIdsUseCaseImpl(repository);
 });
 
-final getShowsUseCaseProvider = Provider<GetShowsUseCase>((ref) {
+final getShowsUseCaseProvider = Provider<GetShowsUseCase>((final ref) {
   final repository = ref.watch(showRepositoryProvider);
   return GetShowsUseCaseImpl(repository);
 });

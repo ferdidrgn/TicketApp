@@ -7,7 +7,7 @@ import 'stage_notifier.dart';
 import 'stage_state.dart';
 
 final stageProvider =
-    StateNotifierProvider<StageNotifier, StageState>(( ref) {
+    StateNotifierProvider<StageNotifier, StageState>((final ref) {
   return StageNotifier(
     ref.watch(getStagesUseCaseProvider),
     ref.watch(getStageByIdUseCaseProvider),
@@ -16,18 +16,18 @@ final stageProvider =
 });
 
 // Use case providers
-final getStagesUseCaseProvider = Provider<GetStagesUseCase>(( ref) {
+final getStagesUseCaseProvider = Provider<GetStagesUseCase>((final ref) {
   final repository = ref.watch(stageRepositoryProvider);
   return GetStagesUseCaseImpl(repository);
 });
 
-final getStageByIdUseCaseProvider = Provider<GetStagesByIdsUseCase>(( ref) {
+final getStageByIdUseCaseProvider = Provider<GetStagesByIdsUseCase>((final ref) {
   final repository = ref.watch(stageRepositoryProvider);
   return GetStageByIdUseCaseImpl(repository);
 });
 
 final getSearchStageUseCaseProvider =
-    Provider<GetSearchStageUseCase>(( ref) {
+    Provider<GetSearchStageUseCase>((final ref) {
   final repository = ref.watch(stageRepositoryProvider);
   return GetSearchStageUseCaseImpl(repository);
 });

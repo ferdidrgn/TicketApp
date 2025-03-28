@@ -4,7 +4,7 @@ import '../../../core/services/firestore_provider.dart';
 import '../../../core/services/storage_provider.dart';
 
 final showRemoteDataSourceProvider =
-    Provider<ShowRemoteDataSource>((ref) {
+    Provider<ShowRemoteDataSource>((final ref) {
   final firestore = ref.watch(firestoreProvider);
   final storage = ref.watch(storageProvider);
 

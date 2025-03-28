@@ -52,11 +52,9 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
         for (final entry in stageSeats.entries) {
           final seats = entry.value;
-          if (seats is List) {
-            for (final seat in seats!.whereType<String>()) {
+          if (seats is List)
+            for (final seat in seats!.whereType<String>())
               seatStatus[seat] = {'status': 'available', 'customerId': null};
-            }
-          }
         }
 
         await firestore.doc(eventId).update({'seats': seatStatus});

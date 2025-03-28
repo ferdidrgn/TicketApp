@@ -5,12 +5,12 @@ import 'campaign_notifier.dart';
 import 'campaign_state.dart';
 
 final campaignProvider =
-    StateNotifierProvider<CampaignNotifier, CampaignState>((ref) {
+    StateNotifierProvider<CampaignNotifier, CampaignState>((final ref) {
   return CampaignNotifier(ref.watch(getCampaignsUseCaseProvider));
 });
 
 // GetCampaignsUseCase provider
-final getCampaignsUseCaseProvider = Provider<GetCampaignsUseCase>((ref) {
+final getCampaignsUseCaseProvider = Provider<GetCampaignsUseCase>((final ref) {
   final repository = ref.watch(campaignRepositoryProvider);
   return GetCampaignsUseCaseImpl(repository);
 });

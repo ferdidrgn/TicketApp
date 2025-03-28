@@ -1,4 +1,4 @@
-import 'package:ticketapp/core/common/base_notifier_with_base_state.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import '../../../domain/useCase/event/cancel_reservation_use_case_impl.dart';
 import '../../../domain/useCase/event/get_event_date_use_case_impl.dart';
 import '../../../domain/useCase/event/get_event_price_use_case_impl.dart';
@@ -10,7 +10,7 @@ import '../../../domain/useCase/event/reserve_seat_use_case_impl.dart';
 import '../../../domain/useCase/event/update_seat_status_use_case_impl.dart';
 import 'event_state.dart';
 
-class EventNotifier extends BaseNotifierWithBaseState<EventState> {
+class EventNotifier extends BaseNotifier<EventState> {
   final GetEventPriceUseCase getEventPriceUseCase;
   final GetEventDateUseCase getEventDateUseCase;
   final GetStageIdUseCase getStageIdUseCase;

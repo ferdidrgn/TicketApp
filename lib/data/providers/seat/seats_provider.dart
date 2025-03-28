@@ -11,7 +11,7 @@ final seatsProvider =
 
 // GetSeatsByStageUseCase provider
 final getSeatsByStageUseCaseProvider =
-    Provider<GetSeatsByStageUseCase>((ref) {
+    Provider<GetSeatsByStageUseCase>((final ref) {
   final repository = ref.watch(seatRepositoryProvider);
   return GetSeatsByStageUseCaseImpl(repository);
 });

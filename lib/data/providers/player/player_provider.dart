@@ -6,7 +6,7 @@ import 'player_notifier.dart';
 import 'player_state.dart';
 
 final playerProvider =
-    StateNotifierProvider<PlayerNotifier, PlayerState>((ref) {
+    StateNotifierProvider<PlayerNotifier, PlayerState>((final ref) {
   return PlayerNotifier(
     ref.watch(getPlayerByIdUseCaseProvider),
     ref.watch(getPlayersUseCaseProvider),
@@ -15,12 +15,12 @@ final playerProvider =
 
 // Use case providers
 final getPlayerByIdUseCaseProvider =
-    Provider<GetPlayerByIdUseCase>((ref) {
+    Provider<GetPlayerByIdUseCase>((final ref) {
   final repository = ref.watch(playerRepositoryProvider);
   return GetPlayerByIdUseCaseImpl(repository);
 });
 
-final getPlayersUseCaseProvider = Provider<GetPlayersUseCase>((ref) {
+final getPlayersUseCaseProvider = Provider<GetPlayersUseCase>((final ref) {
   final repository = ref.watch(playerRepositoryProvider);
   return GetPlayersUseCaseImpl(repository);
 });

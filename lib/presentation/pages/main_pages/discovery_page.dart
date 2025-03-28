@@ -39,8 +39,8 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   }
 
   void _fetchdata() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      List<Show>? data = ref.read(showProvider).dataList;
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      final List<Show>? data = ref.read(showProvider).dataList;
       if (data == null || data.isEmpty)
         ref.read(showProvider.notifier).searchShows(selectedCategories, type);
     });

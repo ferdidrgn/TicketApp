@@ -16,9 +16,9 @@ class AppConstants {
   static const String appStoreUrl =
       'https://apps.apple.com/app/idYOUR_APP_ID'; // App Store URL
   static const String playStoreUrl =
-      'https://play.google.com/store/apps/details?id=YOUR_PACKAGE_NAME'; // Google Play Store URL
+      'https://play.google.com/store/apps/details?id=com.ferdidrgn.anlikdepremler'; // Google Play Store URL
   static const String shareUrl =
-      'https://play.google.com/store/apps/details?id=YOUR_PACKAGE_NAME';
+      'https://play.google.com/store/apps/details?id=com.ferdidrgn.anlikdepremler';
 
   // Other Constants
   static const String appName = 'Ticket App'; // Application name

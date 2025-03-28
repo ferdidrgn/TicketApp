@@ -4,7 +4,7 @@ import '../../entities/stage.dart';
 import '../../repository/stage_repository.dart';
 
 abstract class GetSearchStageUseCase {
-  Future<Either<Failure, List<Stage>>> call(String query);
+  Future<Either<Failure, List<Stage>>> call(final String query);
 }
 
 class GetSearchStageUseCaseImpl implements GetSearchStageUseCase {
@@ -13,7 +13,7 @@ class GetSearchStageUseCaseImpl implements GetSearchStageUseCase {
   GetSearchStageUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Stage>>> call(String query) async {
+  Future<Either<Failure, List<Stage>>> call(final String query) async {
     final result = await repository.getSearchStage(query);
     return result.fold(
       (final failure) => Left(failure),

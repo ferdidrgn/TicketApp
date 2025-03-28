@@ -1,21 +1,18 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../errors/failures.dart';
-import 'base_loadable_state.dart';
+import '../../../core/errors/failures.dart';
+import 'base_state.dart';
 
-// Enhanced BaseNotifier for LoadableState with silent loading option
-abstract class BaseNotifierWithLoadableState<T extends LoadableState>
-    extends StateNotifier<T> {
-  BaseNotifierWithLoadableState(final T state) : super(state);
+// Enhanced Base Notifier with more robust error handling
+abstract class BaseNotifier<T extends BaseState> extends StateNotifier<T> {
+  BaseNotifier(final T state) : super(state);
 
-  // Perform operation with optional silent loading
   Future<void> handleOperation<R>(
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,
-    final bool silentLoading = false,
   }) async {
     try {
-      if (!silentLoading) _setLoadingState(true);
+      _setLoadingState(true);
 
       final result = await operation();
 
@@ -35,10 +32,11 @@ abstract class BaseNotifierWithLoadableState<T extends LoadableState>
     state = state.copyWith(isLoading: isLoading, errorMessage: null) as T;
   }
 
+  // Private method to set error state
   void _setErrorState(final String errorMessage) {
     state = state.copyWith(
-      isLoading: false,
       errorMessage: errorMessage,
+      isLoading: false,
     ) as T;
   }
 }

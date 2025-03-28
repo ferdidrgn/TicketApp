@@ -1,9 +1,9 @@
-import 'package:ticketapp/core/common/base_notifier_with_base_state.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import '../../../domain/useCase/appTools/get_privacy_policy_use_case_impl.dart';
 import '../../../domain/useCase/appTools/get_terms_condition_use_case_impl.dart';
 import 'app_tools_state.dart';
 
-class AppToolsNotifier extends BaseNotifierWithBaseState<AppToolsState> {
+class AppToolsNotifier extends BaseNotifier<AppToolsState> {
   final GetPrivacyPolicyUseCase getPrivacyPolicyUseCase;
   final GetTermsConditionUseCase getTermsConditionUseCase;
 

@@ -1,8 +1,8 @@
-import 'package:ticketapp/core/common/base_notifier_with_base_state.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import '../../../domain/useCase/seat/get_seats_by_stage_use_case_impl.dart';
 import 'seats_state.dart';
 
-class SeatsNotifier extends BaseNotifierWithBaseState<SeatsState> {
+class SeatsNotifier extends BaseNotifier<SeatsState> {
   final GetSeatsByStageUseCase getSeatsByStageUseCase;
 
   SeatsNotifier(this.getSeatsByStageUseCase) : super(SeatsState());
