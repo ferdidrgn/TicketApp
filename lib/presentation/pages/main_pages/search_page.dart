@@ -71,34 +71,34 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 
   void _initializePaginationControllers() {
-    List<Show>? shows = ref.read(showProvider).data;
-    List<Player>? players = ref.read(playerProvider).players;
-    List<Stage>? stages = ref.read(stageProvider).stages;
-    List<Team>? teams = ref.read(teamProvider).teams;
+    List<Show>? shows = ref.read(showProvider).dataList;
+    List<Player>? players = ref.read(playerProvider).dataList;
+    List<Stage>? stages = ref.read(stageProvider).dataList;
+    List<Team>? teams = ref.read(teamProvider).dataList;
 
     if (shows != null)
-    showsPagination = PaginationController(
-      allItems: shows,
-      itemsPerPage: 20,
-    );
+      showsPagination = PaginationController(
+        allItems: shows,
+        itemsPerPage: 20,
+      );
 
     if (players != null)
-    playersPagination = PaginationController(
-      allItems: players,
-      itemsPerPage: 20,
-    );
+      playersPagination = PaginationController(
+        allItems: players,
+        itemsPerPage: 20,
+      );
 
     if (stages != null)
-    stagesPagination = PaginationController(
-      allItems: ref.read(stageProvider).stages!,
-      itemsPerPage: 20,
-    );
+      stagesPagination = PaginationController(
+        allItems: ref.read(stageProvider).dataList!,
+        itemsPerPage: 20,
+      );
 
     if (teams != null)
-    teamsPagination = PaginationController(
-      allItems: ref.read(teamProvider).teams!,
-      itemsPerPage: 20,
-    );
+      teamsPagination = PaginationController(
+        allItems: ref.read(teamProvider).dataList!,
+        itemsPerPage: 20,
+      );
   }
 
   void _scrollListener() {
@@ -126,17 +126,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     });
 
     try {
-      List<Show>? shows = ref.read(showProvider).data;
-      List<Player>? players = ref.read(playerProvider).players;
-      List<Stage>? stages = ref.read(stageProvider).stages;
-      List<Team>? teams = ref.read(teamProvider).teams;
-
-      // Fetch data concurrently
       await Future.wait([
-        if (shows == null || shows.isEmpty) ref.read(showProvider.notifier).loadShows(true),
-        if (players == null || players.isEmpty) ref.read(playerProvider.notifier).loadPlayers(true),
-        if (stages == null || stages.isEmpty) ref.read(stageProvider.notifier).loadStages(true),
-        if (teams == null || teams.isEmpty) ref.read(teamProvider.notifier).loadTeams(true),
+        if (ref.read(showProvider).isListEmpty)
+          ref.read(showProvider.notifier).loadShows(true),
+        if (ref.read(playerProvider).isListEmpty)
+          ref.read(playerProvider.notifier).loadPlayers(true),
+        if (ref.read(stageProvider).isListEmpty)
+          ref.read(stageProvider.notifier).loadStages(true),
+        if (ref.read(teamProvider).isListEmpty)
+          ref.read(teamProvider.notifier).loadTeams(true),
       ]);
 
       _initializePaginationControllers();
@@ -243,9 +241,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             scrollDirection: Axis.horizontal,
             itemCount: 5,
             itemBuilder: (final context, final index) => Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: ShimmerLoading()
-            ),
+                padding: const EdgeInsets.only(right: 8.0),
+                child: ShimmerLoading()),
           ),
         ),
       ],
@@ -298,11 +295,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            if (filteredShows != null && filteredShows.isNotEmpty) _buildShowSection(filteredShows),
+            if (filteredShows != null && filteredShows.isNotEmpty)
+              _buildShowSection(filteredShows),
             if (filteredPlayers != null && filteredPlayers.isNotEmpty)
               _buildPlayerSection(filteredPlayers),
-            if (filteredStages != null && filteredStages.isNotEmpty) _buildVenueSection(filteredStages),
-            if (filteredTeams != null && filteredTeams.isNotEmpty) _buildTeamSection(filteredTeams),
+            if (filteredStages != null && filteredStages.isNotEmpty)
+              _buildVenueSection(filteredStages),
+            if (filteredTeams != null && filteredTeams.isNotEmpty)
+              _buildTeamSection(filteredTeams),
             if (filteredCategories.isNotEmpty)
               _buildCategorySection(filteredCategories),
           ],
@@ -404,8 +404,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     StageDetailPage(stageId: stage?.id ?? ''))));
   }
 
-  Widget _buildPlayerCard(
-      final BuildContext context, final Player? player) {
+  Widget _buildPlayerCard(final BuildContext context, final Player? player) {
     return CustomStageCard(
         text: '${player?.firstName} ${player?.lastName}',
         imageUrl: player?.imageUrl ?? "",

@@ -36,7 +36,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage> {
   }
 
   Future<List<Ticket?>> _fetchTickets() async {
-    final userTicketsId = ref.read(userProvider).user?.ticketsId ?? [];
+    final userTicketsId = ref.read(userProvider).dataSingle?.ticketsId ?? [];
     if (userTicketsId.isEmpty) return [];
 
     final ticketService = TicketRemoteDataSourceImpl(firestore: firestore);

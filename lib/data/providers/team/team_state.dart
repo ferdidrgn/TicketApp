@@ -1,27 +1,24 @@
-import 'package:ticketapp/core/common/base_state.dart';
+import '../../../core/common/base_loadable_state.dart';
 import '../../../domain/entities/team.dart';
 
-class TeamState extends BaseState{
-  List<Team>? teams;
-  Team? team;
-
-  TeamState({
-    this.teams = const [],
-    this.team,
+class TeamState extends LoadableState<Team, List<Team>> {
+  const TeamState({
+    final List<Team>? teams,
+    final Team? team,
     super.isLoading = false,
     super.errorMessage,
-  });
+  }) : super(dataSingle: team, dataList: teams);
 
   @override
   TeamState copyWith({
-    List<Team>? teams,
-    Team? team,
-    bool? isLoading,
-    String? errorMessage,
+    final Team? dataSingle,
+    final List<Team>? dataList,
+    final bool? isLoading,
+    final String? errorMessage,
   }) {
     return TeamState(
-      teams: teams ?? this.teams,
-      team: team ?? this.team,
+      team: dataSingle ?? dataSingle,
+      teams: dataList ?? this.dataList,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
     );

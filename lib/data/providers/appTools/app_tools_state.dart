@@ -13,10 +13,10 @@ class AppToolsState extends BaseState{
 
   @override
   AppToolsState copyWith({
-    String? privacyPolicy,
-    String? termsCondition,
-    bool? isLoading,
-    String? errorMessage,
+    final String? privacyPolicy,
+    final String? termsCondition,
+    final bool? isLoading,
+    final String? errorMessage,
   }) {
     return AppToolsState(
       privacyPolicy: privacyPolicy ?? this.privacyPolicy,

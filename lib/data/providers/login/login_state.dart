@@ -15,10 +15,10 @@ class LoginState extends BaseState {
 
   @override
   LoginState copyWith({
-    User? user,
-    GoogleSignInAccount? googleUser,
-    bool? isLoading,
-    String? errorMessage,
+    final User? user,
+    final GoogleSignInAccount? googleUser,
+    final bool? isLoading,
+    final String? errorMessage,
   }) {
     return LoginState(
       user: user ?? this.user,

@@ -1,6 +1,4 @@
-import 'package:ticketapp/core/common/base_loadable_state.dart';
-
-import '../../../core/common/base_notifier.dart';
+import '../../../core/common/base_notifier_with_base_state.dart';
 import '../../../domain/useCase/show/add_show_use_case_impl.dart';
 import '../../../domain/useCase/show/delete_show_use_case_impl.dart';
 import '../../../domain/useCase/show/get_search_show_use_case_impl.dart';
@@ -10,7 +8,7 @@ import '../../../domain/useCase/show/update_show_use_case_impl.dart';
 import '../../model/show_model.dart';
 import 'show_state.dart';
 
-class ShowNotifier extends BaseNotifier<ShowState> {
+class ShowNotifier extends BaseNotifierWithBaseState<ShowState> {
   final AddShowUseCase addShowUseCase;
   final DeleteShowUseCase deleteShowUseCase;
   final UpdateShowUseCase updateShowUseCase;
@@ -27,31 +25,31 @@ class ShowNotifier extends BaseNotifier<ShowState> {
     this.getSearchShowUseCase,
   ) : super(ShowState());
 
-  Future<void> addShow(ShowModel show, Uri? imageUrl) async =>
+  Future<void> addShow(final ShowModel show, final Uri? imageUrl) async =>
       handleOperation(() => addShowUseCase.call(show, imageUrl));
 
-  Future<void> deleteShow(String? showId) async =>
+  Future<void> deleteShow(final String? showId) async =>
       handleOperation(() => deleteShowUseCase.call(showId));
 
   Future<void> updateShow(
-          String showId, Map<String, dynamic> updatedData) async =>
+          final String showId, final Map<String, dynamic> updatedData) async =>
       handleOperation(() => updateShowUseCase.call(showId, updatedData));
 
   Future<void> loadShowsByIds(final List<String> showsIds) async {
     await handleOperation(
       () => getShowsByIdsUseCase.call(showsIds),
-      onSuccess: (shows) => state = state.copyWith(shows: shows),
+      onSuccess: (final shows) => state = state.copyWith(dataList: shows),
     );
   }
 
-  Future<void> loadShows(isLimit) async {
+  Future<void> loadShows(final isLimit) async {
     await handleOperation(
       () => getShowsUseCase.call(isLimit),
-      onSuccess: (shows) => state = state.copyWith(shows: shows),
+      onSuccess: (final shows) => state = state.copyWith(dataList: shows),
     );
   }
 
   Future<void> searchShows(
-      List<String> categories, String? type) async =>
+      final List<String> categories, final String? type) async =>
       handleOperation(() => getSearchShowUseCase.call(categories, type));
 }

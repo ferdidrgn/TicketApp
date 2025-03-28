@@ -1,10 +1,10 @@
-import 'package:ticketapp/core/common/base_notifier.dart';
+import 'package:ticketapp/core/common/base_notifier_with_base_state.dart';
 import '../../../domain/useCase/stage/get_search_stage_use_case_impl.dart';
 import '../../../domain/useCase/stage/get_stage_by_id_use_case_impl.dart';
 import '../../../domain/useCase/stage/get_stages_use_case_impl.dart';
 import 'stage_state.dart';
 
-class StageNotifier extends BaseNotifier<StageState> {
+class StageNotifier extends BaseNotifierWithBaseState<StageState> {
   final GetStagesUseCase getStagesUseCase;
   final GetStagesByIdsUseCase getStagesByIdsUseCase;
   final GetSearchStageUseCase getSearchStageUseCase;
@@ -13,11 +13,11 @@ class StageNotifier extends BaseNotifier<StageState> {
       this.getSearchStageUseCase)
       : super(StageState());
 
-  Future<void> loadStages(isLimit) async {
+  Future<void> loadStages(final isLimit) async {
     await handleOperation(
       () => getStagesUseCase.call(isLimit),
-      onSuccess: (stages) =>
-          state = state.copyWith(stages: stages),
+      onSuccess: (final stages) =>
+          state = state.copyWith(dataList: stages),
     );
   }
 
@@ -25,7 +25,7 @@ class StageNotifier extends BaseNotifier<StageState> {
     await handleOperation(
       () => getStagesByIdsUseCase.call(stageIds),
       onSuccess: (final stages) =>
-          state = state.copyWith(stages: stages),
+          state = state.copyWith(dataList: stages),
     );
   }
 
@@ -33,7 +33,7 @@ class StageNotifier extends BaseNotifier<StageState> {
     await handleOperation(
       () => getSearchStageUseCase.call(query),
       onSuccess: (final stages) =>
-          state = state.copyWith(stages: stages),
+          state = state.copyWith(dataList: stages),
     );
   }
 }

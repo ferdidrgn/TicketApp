@@ -4,16 +4,16 @@ class SeatsState extends BaseState{
   Map<String, List<String>>? seats;
 
   SeatsState({
-    Map<String, List<String>>? seats,
+    final Map<String, List<String>>? seats,
     super.isLoading = false,
     super.errorMessage,
   }) : seats = seats ?? {};
 
   @override
   SeatsState copyWith({
-    Map<String, List<String>>? seats,
-    bool? isLoading,
-    String? errorMessage,
+    final Map<String, List<String>>? seats,
+    final bool? isLoading,
+    final String? errorMessage,
   }) {
     return SeatsState(
       seats: seats ?? this.seats,

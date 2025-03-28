@@ -1,4 +1,4 @@
-import 'package:ticketapp/core/common/base_notifier.dart';
+import 'package:ticketapp/core/common/base_notifier_with_base_state.dart';
 import '../../../data/model/user_model.dart';
 import '../../../domain/entities/user.dart';
 import '../../../domain/useCase/user/delete_user_use_case_impl.dart';
@@ -6,7 +6,7 @@ import '../../../domain/useCase/user/get_user_by_id_use_case_impl.dart';
 import '../../../domain/useCase/user/save_user_use_case_impl.dart';
 import 'user_state.dart';
 
-class UserNotifier extends BaseNotifier<UserState> {
+class UserNotifier extends BaseNotifierWithBaseState<UserState> {
   final SaveUserUseCase saveUserUseCase;
   final GetUserByIdUseCase getUserByIdUseCase;
   final DeleteUserUseCase deleteUserUseCase;
@@ -17,7 +17,7 @@ class UserNotifier extends BaseNotifier<UserState> {
 
   Future<void> loadUserById(final String userId) async {
     await handleOperation(() => getUserByIdUseCase.call(userId),
-        onSuccess: (final user) => state = state.copyWith(user: user));
+        onSuccess: (final user) => state = state.copyWith(dataSingle: user));
   }
 
   Future<void> saveUser(final User user, final String downloadUrl,

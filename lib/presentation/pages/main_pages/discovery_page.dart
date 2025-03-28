@@ -40,7 +40,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
   void _fetchdata() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      List<Show>? data = ref.read(showProvider).data;
+      List<Show>? data = ref.read(showProvider).dataList;
       if (data == null || data.isEmpty)
         ref.read(showProvider.notifier).searchShows(selectedCategories, type);
     });
@@ -48,7 +48,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
   @override
   Widget build(final BuildContext context) {
-    final datatate = ref.watch(showProvider);
+    final showState = ref.watch(showProvider);
 
     return Scaffold(
       body: Padding(
@@ -57,16 +57,16 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            if (datatate.isLoading)
+            if (showState.isLoading)
               const Center(child: CircularProgressIndicator())
-            else if (datatate.errorMessage != null)
-              Center(child: Text(datatate.errorMessage!))
-            else if (datatate.data == null)
+            else if (showState.errorMessage != null)
+              Center(child: Text(showState.errorMessage!))
+            else if (showState.dataList == null)
               Text('Bu kategori için etkinlik bulunamadı.')
-            else if (datatate.data?.isEmpty ?? true)
+            else if (showState.dataList?.isEmpty ?? true)
               Text('Bu kategori için etkinlik bulunamadı.')
-            else if (datatate.data != null)
-              Expanded(child: _buildScrollableItems(datatate.data!)),
+            else if (showState.dataList != null)
+              Expanded(child: _buildScrollableItems(showState.dataList!)),
           ],
         ),
       ),

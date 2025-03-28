@@ -1,27 +1,24 @@
-import '../../../core/common/base_state.dart';
+import '../../../core/common/base_loadable_state.dart';
 import '../../../domain/entities/stage.dart';
 
-class StageState extends BaseState {
-  List<Stage>? stages;
-  Stage? stage;
-
-  StageState({
-    this.stages = const [],
-    this.stage,
+class StageState extends LoadableState<Stage, List<Stage>> {
+  const StageState({
+    final Stage? stage,
+    final List<Stage>? stages,
     super.isLoading,
     super.errorMessage,
-  });
+  }) : super(dataSingle: stage, dataList: stages);
 
   @override
   StageState copyWith({
-    List<Stage>? stages,
-    Stage? stage,
-    bool? isLoading,
-    String? errorMessage,
+    final Stage? dataSingle,
+    final List<Stage>? dataList,
+    final bool? isLoading,
+    final String? errorMessage,
   }) {
     return StageState(
-      stages: stages ?? this.stages,
-      stage: stage ?? this.stage,
+      stage: dataSingle ?? this.dataSingle,
+      stages: dataList ?? this.dataList,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
     );

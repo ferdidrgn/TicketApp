@@ -1,14 +1,17 @@
-import '../../../core/common/base_state.dart';
+import 'base_state.dart';
 
-abstract class LoadableState<T> extends BaseState {
-  final T? data;
+abstract class LoadableState<T, R> extends BaseState {
+  final T? dataSingle;
+  final R? dataList;
 
   const LoadableState({
     super.isLoading = false,
     super.errorMessage,
-    this.data,
+    this.dataSingle,
+    this.dataList,
   });
 
   bool get hasError => (errorMessage != null && errorMessage!.isNotEmpty);
-  bool get isEmpty => data == null || (data != null && data is List && (data as List).isEmpty);
+  bool get isSingleNull => dataSingle == null;
+  bool get isListEmpty => dataList == null || (dataList is List && (dataList as List).isEmpty);
 }

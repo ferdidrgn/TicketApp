@@ -35,7 +35,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   Future<void> _getUserData() async {
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (ref.read(userProvider).user != null)
+      if (ref.read(userProvider).dataSingle != null)
         ref.read(userProvider.notifier).loadUserById(widget.userId);
     });
   }
@@ -81,7 +81,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
           ? const Center(child: CircularProgressIndicator())
           : userState.errorMessage != null
               ? _buildErrorState(userState.errorMessage!)
-              : _buildContentState(context, userState.user),
+              : _buildContentState(context, userState.dataSingle),
     );
   }
 

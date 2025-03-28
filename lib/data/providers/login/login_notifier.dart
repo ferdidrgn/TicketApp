@@ -1,4 +1,4 @@
-import 'package:ticketapp/core/common/base_notifier.dart';
+import 'package:ticketapp/core/common/base_notifier_with_base_state.dart';
 import '../../../domain/useCase/login/get_current_user_use_case_impl.dart';
 import '../../../domain/useCase/login/sign_in_with_google_use_case_impl.dart';
 import '../../../domain/useCase/login/sign_out_use_case_impl.dart';
@@ -6,7 +6,7 @@ import '../../../domain/useCase/login/verify_otp_use_case_impl.dart';
 import '../../../domain/useCase/login/verify_phone_use_case_impl.dart';
 import 'login_state.dart';
 
-class LoginNotifier extends BaseNotifier<LoginState> {
+class LoginNotifier extends BaseNotifierWithBaseState<LoginState> {
   final SignInWithGoogleUseCase signInWithGoogleUseCase;
   final SignOutUseCase signOutUseCase;
   final GetCurrentUserUseCase getCurrentUserUseCase;

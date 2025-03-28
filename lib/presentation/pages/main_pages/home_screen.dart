@@ -70,11 +70,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _startAutoScroll() {
     final CampaignState campaignState = ref.read(campaignProvider);
-    if (campaignState.campaigns == null || campaignState.campaigns!.isEmpty)
+    if (campaignState.isListEmpty)
       return;
     _timer = Timer.periodic(const Duration(seconds: 10), (final timer) {
       setState(() {
-        _currentPage = (_currentPage + 1) % campaignState.campaigns!.length;
+        _currentPage = (_currentPage + 1) % campaignState.dataList!.length;
       });
       _pageController.animateToPage(
         _currentPage,
@@ -138,7 +138,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
 
-    if (showState.isEmpty) {
+    if (showState.isListEmpty) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -161,15 +161,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildCampaignSlider(campaignState.campaigns!.cast<Campaign>()),
+            _buildCampaignSlider(campaignState.dataList!.cast<Campaign>()),
             CustomSearchBar(onSearchTap: _navigateToSearch),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Kategoriler'),
             const CategoryCardBuilder(),
             const CustomSectionTitle(title: 'Yeni Gösteriler'),
-            _buildNewShows(showState.data),
+            _buildNewShows(showState.dataList),
             const CustomSectionTitle(title: 'Sahneler'),
-            _buildStageSection(stageState.stages!.cast<Stage>()),
+            _buildStageSection(stageState.dataList!.cast<Stage>()),
             const CustomSectionTitle(title: 'Oyunlardan Kareler'),
             _buildGamesPhotoSection(),
             const SizedBox(height: 50),
