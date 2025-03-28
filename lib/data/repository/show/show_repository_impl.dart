@@ -17,7 +17,6 @@ class ShowRepositoryImpl extends BaseRepository implements ShowRepository {
   Future<Either<Failure, List<ShowModel?>?>> getSearchShow(
       List<String> categories, String? type) async {
     return execute(() async {
-      if (categories.isEmpty) throw Exception('categories is empty');
       return remoteDataSource.getSearchShow(categories, type);
     });
   }

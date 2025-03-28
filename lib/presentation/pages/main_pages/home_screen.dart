@@ -5,9 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/data/providers/campaign/campaign_provider.dart';
 import 'package:ticketapp/data/providers/campaign/campaign_state.dart';
 import 'package:ticketapp/data/providers/show/show_provider.dart';
-import 'package:ticketapp/data/providers/show/show_state.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
-import 'package:ticketapp/data/providers/stage/stage_state.dart';
 import '../../../core/widgets/custom_category_card.dart';
 import '../../../core/widgets/custom_dots_indicator.dart';
 import '../../../core/widgets/custom_search.dart';
@@ -31,7 +29,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  PageController _pageController = PageController();
+  final _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
 
@@ -42,12 +40,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadInitialDataIfNeeded();
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
   }
 
   void _initializeData() {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      _loadAllData();
+      _setupPageControllerListener();
+    });
+  }
+
+  void _loadAllData() {
+    ref.read(campaignProvider.notifier).loadCampaigns();
+    ref.read(showProvider.notifier).loadShows(true);
+    ref.read(stageProvider.notifier).loadStages(true);
+  }
+
+  void _setupPageControllerListener() {
     _startAutoScroll();
     _pageController.addListener(() {
       setState(() {
@@ -56,33 +68,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  void _loadInitialDataIfNeeded() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      List<Campaign>? campaigns = ref.read(campaignProvider).campaigns;
-      List<Show>? shows = ref.read(showProvider).shows;
-      List<Stage>? stages = ref.read(stageProvider).stages;
-
-      if (campaigns == null || campaigns.isEmpty)
-        ref.read(campaignProvider.notifier).loadCampaigns();
-      if (shows == null || shows.isEmpty)
-        ref.read(showProvider.notifier).loadShows(true);
-      if (stages == null || stages.isEmpty)
-        ref.read(stageProvider.notifier).loadStages(true);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _pageController.dispose();
-    super.dispose();
-  }
-
   void _startAutoScroll() {
-    CampaignState campaignState = ref.read(campaignProvider);
+    final CampaignState campaignState = ref.read(campaignProvider);
     if (campaignState.campaigns == null || campaignState.campaigns!.isEmpty)
       return;
-    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (final timer) {
       setState(() {
         _currentPage = (_currentPage + 1) % campaignState.campaigns!.length;
       });
@@ -94,13 +84,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  void _navigateToSearch() {
+  void _navigateToSearch() =>
     Navigator.push(
-        context, MaterialPageRoute(builder: (context) => const SearchPage()));
-  }
+        context, MaterialPageRoute(builder: (final context) => const SearchPage()));
 
-  void _navigateToDetailPage(String url) {
-    String id = _extractIdFromUrl(url);
+  void _navigateToDetailPage(final String url) {
+    final id = url.split('/').last;
     Widget detailPage;
 
     if (url.contains('player'))
@@ -113,47 +102,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       throw Exception('Unknown URL: $url');
 
     Navigator.push(
-        context, MaterialPageRoute(builder: (context) => detailPage));
+        context, MaterialPageRoute(builder: (final context) => detailPage));
   }
 
-  String _extractIdFromUrl(String url) => url.split('/').last;
-
   @override
-  Widget build(BuildContext context) {
-    CampaignState campaignState = ref.watch(campaignProvider);
-    ShowState showState = ref.watch(showProvider);
-    StageState stageState = ref.watch(stageProvider);
+  Widget build(final BuildContext context) {
+    final campaignState = ref.watch(campaignProvider);
+    final showState = ref.watch(showProvider);
+    final stageState = ref.watch(stageProvider);
 
-    if (campaignState.isLoading || showState.isLoading || stageState.isLoading)
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (campaignState.isLoading || showState.isLoading || stageState.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    if (_hasError(campaignState, showState, stageState))
-      return Scaffold(body: Center(child: Text(campaignState.errorMessage!)));
+    if (showState.hasError) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(showState.errorMessage ?? 'Bir hata oluştu',
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _initializeData,
+                child: const Text('Tekrar Dene'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-    if (campaignState.campaigns == null ||
-        showState.shows == null ||
-        stageState.stages == null)
-      return const Scaffold(body: Center(child: Text('Veri bulunamadı.')));
-
-    if (campaignState.campaigns!.isEmpty ||
-        showState.shows!.isEmpty ||
-        stageState.stages!.isEmpty)
-      return const Scaffold(body: Center(child: Text('Veri bulunamadı.')));
+    if (showState.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Henüz veri bulunmamaktadır.'),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _loadAllData,
+                child: const Text('Verileri Yükle'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildCampaignSlider(campaignState.campaigns!.cast<Campaign?>()),
+            _buildCampaignSlider(campaignState.campaigns!.cast<Campaign>()),
             CustomSearchBar(onSearchTap: _navigateToSearch),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Kategoriler'),
             const CategoryCardBuilder(),
             const CustomSectionTitle(title: 'Yeni Gösteriler'),
-            _buildNewShows(showState.shows!.cast<Show?>()),
+            _buildNewShows(showState.data),
             const CustomSectionTitle(title: 'Sahneler'),
-            _buildStageSection(stageState.stages!.cast<Stage?>()),
+            _buildStageSection(stageState.stages!.cast<Stage>()),
             const CustomSectionTitle(title: 'Oyunlardan Kareler'),
             _buildGamesPhotoSection(),
             const SizedBox(height: 50),
@@ -163,13 +179,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  bool _hasError(campaignState, showState, stageState) {
-    return campaignState.errorMessage != null ||
-        showState.errorMessage != null ||
-        stageState.errorMessage != null;
-  }
-
-  Widget _buildCampaignSlider(List<Campaign?> campaigns) {
+  Widget _buildCampaignSlider(final List<Campaign>? campaigns) {
+    if (campaigns == null || campaigns.isEmpty) return const SizedBox();
     return Container(
       padding: const EdgeInsets.all(20.0),
       width: double.infinity,
@@ -180,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: campaigns.length,
-              itemBuilder: (context, index) {
+              itemBuilder: (final context, final index) {
                 return _buildCampaignPage(campaigns[index]);
               },
             ),
@@ -192,7 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildCampaignPage(Campaign? campaign) {
+  Widget _buildCampaignPage(final Campaign? campaign) {
     if (campaign == null) return const SizedBox();
 
     return GestureDetector(
@@ -208,8 +219,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (context, url) => ShimmerLoading(),
-              errorWidget: (context, url, error) => const Icon(Icons.error),
+              placeholder: (final context, final url) => ShimmerLoading(),
+              errorWidget: (final context, final url, final error) => const Icon(Icons.error),
             ),
             Container(
               color: Colors.black.withOpacity(0.5),
@@ -226,11 +237,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildDotsIndicator(int itemCount) {
+  Widget _buildDotsIndicator(final int itemCount) {
     return DotsIndicator(
       controller: _pageController,
       itemCount: itemCount,
-      onPageSelected: (page) {
+      onPageSelected: (final page) {
         setState(() {
           _currentPage = page;
         });
@@ -243,24 +254,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildNewShows(List<Show?> shows) {
+  Widget _buildNewShows(final List<Show>? shows) {
+    if (shows == null || shows.isEmpty) return const SizedBox();
     return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: shows.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           return GestureDetector(
             child: CustomVerticalShowCard(
-              imageUrl: shows[index]?.imageUrl ?? '',
-              gameName: shows[index]?.name ?? '',
+              imageUrl: shows[index].imageUrl,
+              gameName: shows[index].name,
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        ShowDetailPage(showId: shows[index]?.id ?? ''),
+                    builder: (final context) =>
+                        ShowDetailPage(showId: shows[index].id),
                   ),
                 );
               },
@@ -271,23 +283,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildStageSection(List<Stage?> stages) {
+  Widget _buildStageSection(final List<Stage>? stages) {
+    if (stages == null || stages.isEmpty) return const SizedBox();
     return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: stages.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           return CustomStageCard(
-            text: stages[index]?.name ?? '',
-            imageUrl: stages[index]?.imageUrl ?? '',
+            text: stages[index].name,
+            imageUrl: stages[index].imageUrl,
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      StageDetailPage(stageId: stages[index]?.id ?? ''),
+                  builder: (final context) =>
+                      StageDetailPage(stageId: stages[index].id ?? ''),
                 ),
               );
             },
@@ -304,14 +317,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: 6,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           return _buildGamePhotoCard(index);
         },
       ),
     );
   }
 
-  Widget _buildGamePhotoCard(int index) {
+  Widget _buildGamePhotoCard(final int index) {
     return Container(
       width: 160,
       margin: const EdgeInsets.only(right: 16),
@@ -328,8 +341,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 height: 150,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => ShimmerLoading(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
+                placeholder: (final context, final url) => ShimmerLoading(),
+                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
               ),
             ),
             const SizedBox(height: 5),

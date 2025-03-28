@@ -4,7 +4,7 @@ import '../../data/model/show_model.dart';
 
 abstract class ShowRepository {
   Future<Either<Failure, List<ShowModel?>?>> getSearchShow(final List<String> categories, final String? type);
-  Future<Either<Failure, List<ShowModel?>?>> getShows(isLimit);
+  Future<Either<Failure, List<ShowModel?>?>> getShows(final isLimit);
   Future<Either<Failure,List<ShowModel?>?>> getShowsByIds(final List<String> showsIds);
   Future<Either<Failure, void>> addShow(final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
   Future<Either<Failure, void>> deleteShow(final String? showId);

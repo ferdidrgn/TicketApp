@@ -35,20 +35,20 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         widget.selectedCategory != 'Trendler') {
       selectedCategories.add(widget.selectedCategory!);
     }
-    _fetchShows();
+    _fetchdata();
   }
 
-  void _fetchShows() {
+  void _fetchdata() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      List<Show>? shows = ref.read(showProvider).shows;
-      if (shows == null || shows.isEmpty)
+      List<Show>? data = ref.read(showProvider).data;
+      if (data == null || data.isEmpty)
         ref.read(showProvider.notifier).searchShows(selectedCategories, type);
     });
   }
 
   @override
   Widget build(final BuildContext context) {
-    final showState = ref.watch(showProvider);
+    final datatate = ref.watch(showProvider);
 
     return Scaffold(
       body: Padding(
@@ -57,16 +57,16 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            if (showState.isLoading)
+            if (datatate.isLoading)
               const Center(child: CircularProgressIndicator())
-            else if (showState.errorMessage != null)
-              Center(child: Text(showState.errorMessage!))
-            else if (showState.shows == null)
+            else if (datatate.errorMessage != null)
+              Center(child: Text(datatate.errorMessage!))
+            else if (datatate.data == null)
               Text('Bu kategori için etkinlik bulunamadı.')
-            else if (showState.shows?.isEmpty ?? true)
+            else if (datatate.data?.isEmpty ?? true)
               Text('Bu kategori için etkinlik bulunamadı.')
-            else if (showState.shows != null)
-              Expanded(child: _buildScrollableItems(showState.shows!)),
+            else if (datatate.data != null)
+              Expanded(child: _buildScrollableItems(datatate.data!)),
           ],
         ),
       ),
@@ -125,7 +125,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                   endDate = filters.endDate;
                 });
                 Navigator.pop(context);
-                _fetchShows();
+                _fetchdata();
               },
             );
           },

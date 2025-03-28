@@ -1,29 +1,27 @@
-import '../../../core/common/base_state.dart';
+import '../../../core/common/base_loadable_state.dart';
 import '../../../domain/entities/show.dart';
 
-class ShowState extends BaseState {
-  Show? show;
-  List<Show>? shows;
-
-  ShowState({
-    this.show,
-    this.shows = const [],
-    super.isLoading,
-    super.errorMessage,
-  });
+class ShowState extends LoadableState<List<Show>> {
+  const ShowState({
+    bool isLoading = false,
+    String? errorMessage,
+    List<Show>? shows,
+  }) : super(
+    isLoading: isLoading,
+    errorMessage: errorMessage,
+    data: shows,
+  );
 
   @override
   ShowState copyWith({
-    Show? show,
-    List<Show>? shows,
     bool? isLoading,
     String? errorMessage,
+    List<Show>? shows,
   }) {
     return ShowState(
-      show: show ?? this.show,
-      shows: shows ?? this.shows,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
+      shows: shows ?? this.data,
     );
   }
 }

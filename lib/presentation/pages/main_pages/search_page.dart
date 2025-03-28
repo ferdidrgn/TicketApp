@@ -71,7 +71,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 
   void _initializePaginationControllers() {
-    List<Show>? shows = ref.read(showProvider).shows;
+    List<Show>? shows = ref.read(showProvider).data;
     List<Player>? players = ref.read(playerProvider).players;
     List<Stage>? stages = ref.read(stageProvider).stages;
     List<Team>? teams = ref.read(teamProvider).teams;
@@ -126,7 +126,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     });
 
     try {
-      List<Show>? shows = ref.read(showProvider).shows;
+      List<Show>? shows = ref.read(showProvider).data;
       List<Player>? players = ref.read(playerProvider).players;
       List<Stage>? stages = ref.read(stageProvider).stages;
       List<Team>? teams = ref.read(teamProvider).teams;

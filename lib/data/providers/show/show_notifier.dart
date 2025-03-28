@@ -1,3 +1,5 @@
+import 'package:ticketapp/core/common/base_loadable_state.dart';
+
 import '../../../core/common/base_notifier.dart';
 import '../../../domain/useCase/show/add_show_use_case_impl.dart';
 import '../../../domain/useCase/show/delete_show_use_case_impl.dart';
