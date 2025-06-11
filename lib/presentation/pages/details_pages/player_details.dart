@@ -123,33 +123,38 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
 
   Widget _buildBottomSheet(final ScrollController scrollController) {
     return Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(50)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, -5))
-          ],
-        ),
-        child: Expanded(
-            child: SingleChildScrollView(
-                controller: scrollController,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildArrowIcon(),
-                      const SizedBox(height: 24),
-                      _buildPlayerBio(),
-                      const SizedBox(height: 24),
-                      const CustomSectionTitle(title: "Gösterileri"),
-                      _buildShowsSection(nowShowsDataList),
-                      const SizedBox(height: 10),
-                      const CustomSectionTitle(title: "Eski Gösterileri"),
-                      _buildShowsSection(oldShowsDataList),
-                    ]))));
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(50)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, -5))
+        ],
+      ),
+      child: ListView(
+        controller: scrollController,
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildArrowIcon(),
+          const SizedBox(height: 24),
+          _buildPlayerBio(),
+          const SizedBox(height: 24),
+          const CustomSectionTitle(title: "Gösterileri"),
+          SizedBox(
+            height: 200,
+            child: _buildShowsSection(nowShowsDataList),
+          ),
+          const SizedBox(height: 10),
+          const CustomSectionTitle(title: "Eski Gösterileri"),
+          SizedBox(
+            height: 200,
+            child: _buildShowsSection(oldShowsDataList),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTopSection() {
