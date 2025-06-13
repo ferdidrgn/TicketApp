@@ -34,7 +34,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     );
 
     _videoController = VideoPlayerController.network(
-      'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=0708988d-6061-4106-abe2-5fb69a1ffa87',
+      'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705',
     )
       ..setLooping(true)
       ..setVolume(0)
@@ -58,11 +58,11 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
       width: double.infinity,
       child: Stack(
         children: [
-          // 🔁 Video gösterimi
+          // Video
           if (_isVideoReady)
             Positioned.fill(
               child: FittedBox(
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
                 child: SizedBox(
                   width: _videoController.value.size.width,
                   height: _videoController.value.size.height,
@@ -71,14 +71,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
               ),
             )
           else
-            Center(
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: Image.network(
-                  'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705',
-                ),
-              ),
-            ),
+            const Center(child: CircularProgressIndicator()),
 
           // Siyah overlay
           Positioned.fill(
