@@ -48,8 +48,9 @@ dependencies:
   # Ağ
   dio: # HTTP istekleri için kullanılan bir ağ kütüphanesi.
 
-  #Resim
+  #Resim - Video
   cached_network_image:  #Resimleri önbelleğe alır.
+  video_player: ^2.7.0   #Video Oynatıcısı
 
   # Yerel Depolama
   shared_preferences:  # Kalıcı veri depolamak için.

@@ -13,6 +13,13 @@ class AppDarkColors {
   static const Color onError = Color(0xFF000000);
 }
 
+class AppWebLightColors {
+  static const Color primaryGold = Color(0xFFd4af37);
+  static const Color darkBlueBackground = Color(0xFF1a1a2e);
+  static const Color whiteText = Colors.white;
+  static const Color lightWhite = Color(0xFFEDEDED);
+}
+
 mixin AppTheme {
   static final lightTheme = ThemeData(
     brightness: Brightness.light,

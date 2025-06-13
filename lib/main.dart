@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/presentation/mobil/pages/login/login_screen.dart';
 import 'package:ticketapp/presentation/mobil/pages/onboarding/onboarding_container.dart';
 import 'package:ticketapp/presentation/mobil/pages/splash/splash_screen.dart';
-import 'package:ticketapp/presentation/web_or_mobil_check.dart';
+import 'package:ticketapp/web_or_mobil_check.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_notifier.dart';

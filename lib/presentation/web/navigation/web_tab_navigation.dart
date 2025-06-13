@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
+import '../pages/nav_pages/about/about_page.dart';
+import '../pages/nav_pages/content/content_page.dart';
+import '../pages/nav_pages/home/home_page.dart';
+import '../pages/nav_pages/player/players_page.dart';
+import '../pages/nav_pages/team/team_page.dart';
 
 class WebTabNavigation extends StatefulWidget {
   const WebTabNavigation({super.key});
@@ -45,7 +51,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -53,7 +59,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppLightColors.darkBlueBackground,
+              AppWebLightColors.darkBlueBackground,
               Color(0xFF16213e),
               Color(0xFF0f3460)
             ],
@@ -78,13 +84,13 @@ class _WebTabNavigationState extends State<WebTabNavigation>
       floating: true,
       pinned: true,
       backgroundColor: _headerTransparent
-          ? AppLightColors.darkBlueBackground.withOpacity(0.95)
-          : AppLightColors.darkBlueBackground.withOpacity(0.98),
+          ? AppWebLightColors.darkBlueBackground.withOpacity(0.95)
+          : AppWebLightColors.darkBlueBackground.withOpacity(0.98),
       elevation: 0,
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: AppLightColors.primaryGold, width: 2),
+            bottom: BorderSide(color: AppWebLightColors.primaryGold, width: 2),
           ),
         ),
         child: Padding(
@@ -102,7 +108,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppLightColors.primaryGold,
+                      color: AppWebLightColors.primaryGold,
                     ),
                   ),
                 ],
@@ -119,18 +125,18 @@ class _WebTabNavigationState extends State<WebTabNavigation>
   // ---------------- NAVIGATION ----------------
   Widget _buildNavigationTabs() {
     return LayoutBuilder(
-      builder: (context, constraints) {
-        bool isNarrow = constraints.maxWidth < 600;
+      builder: (final context, final constraints) {
+        final bool isNarrow = constraints.maxWidth < 600;
 
         if (isNarrow) {
           return PopupMenuButton<int>(
-            icon: const Icon(Icons.menu, color: AppLightColors.primaryGold),
-            onSelected: (index) => setState(() => currentTab = index),
-            itemBuilder: (context) => tabTitles
+            icon: const Icon(Icons.menu, color: AppWebLightColors.primaryGold),
+            onSelected: (final index) => setState(() => currentTab = index),
+            itemBuilder: (final context) => tabTitles
                 .asMap()
                 .entries
                 .map(
-                  (entry) => PopupMenuItem<int>(
+                  (final entry) => PopupMenuItem<int>(
                     value: entry.key,
                     child: Text(entry.value),
                   ),
@@ -141,10 +147,10 @@ class _WebTabNavigationState extends State<WebTabNavigation>
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: tabTitles.asMap().entries.map((entry) {
-            int index = entry.key;
-            String title = entry.value;
-            bool isActive = currentTab == index;
+          children: tabTitles.asMap().entries.map((final entry) {
+            final int index = entry.key;
+            final String title = entry.value;
+            final bool isActive = currentTab == index;
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -156,18 +162,20 @@ class _WebTabNavigationState extends State<WebTabNavigation>
     );
   }
 
-  Widget _buildNavButton(String title, int index, bool isActive) {
+  Widget _buildNavButton(
+      final String title, final int index, final bool isActive) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       child: ElevatedButton(
         onPressed: () => setState(() => currentTab = index),
         style: ElevatedButton.styleFrom(
           backgroundColor:
-              isActive ? AppLightColors.primaryGold : Colors.transparent,
+              isActive ? AppWebLightColors.primaryGold : Colors.transparent,
           foregroundColor: isActive
-              ? AppLightColors.darkBlueBackground
-              : AppLightColors.primaryGold,
-          side: const BorderSide(color: AppLightColors.primaryGold, width: 2),
+              ? AppWebLightColors.darkBlueBackground
+              : AppWebLightColors.primaryGold,
+          side:
+              const BorderSide(color: AppWebLightColors.primaryGold, width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
@@ -226,7 +234,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppLightColors.darkBlueBackground,
+            AppWebLightColors.darkBlueBackground,
             Color(0xFF16213e),
             Color(0xFF0f3460)
           ],

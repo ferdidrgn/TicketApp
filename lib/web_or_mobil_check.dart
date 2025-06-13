@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:ticketapp/presentation/web_tab_navigation.dart';
-import 'mobil/navigation/bottom_nav_bar.dart';
+import 'package:ticketapp/presentation/web/navigation/web_tab_navigation.dart';
+import 'presentation/mobil/navigation/bottom_nav_bar.dart';
 
 class WebOrMobilCheck extends StatelessWidget {
   const WebOrMobilCheck({super.key});

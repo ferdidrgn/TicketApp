@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart'; // kIsWeb için
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,8 +8,8 @@ final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((final ref
 });
 
 class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.system) {
-    _loadTheme();
+  ThemeNotifier() : super(kIsWeb ? ThemeMode.light : ThemeMode.system) {
+    if (!kIsWeb) _loadTheme(); // Sadece mobilde yükle
   }
 
   Future<void> _loadTheme() async {
@@ -18,6 +19,8 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   }
 
   Future<void> setTheme(final ThemeMode theme) async {
+    if (kIsWeb) return; // Web'de tema değişimi engellenir
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('themeMode', theme.toString().split('.').last);
     state = theme;
