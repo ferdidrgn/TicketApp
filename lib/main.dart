@@ -1,10 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/presentation/pages/login/login_screen.dart';
-import 'package:ticketapp/presentation/pages/main_pages/main_pages_container.dart';
-import 'package:ticketapp/presentation/pages/onboarding/onboarding_container.dart';
-import 'package:ticketapp/presentation/pages/splash/splash_screen.dart';
+import 'package:ticketapp/presentation/mobil/pages/login/login_screen.dart';
+import 'package:ticketapp/presentation/mobil/pages/onboarding/onboarding_container.dart';
+import 'package:ticketapp/presentation/mobil/pages/splash/splash_screen.dart';
+import 'package:ticketapp/presentation/web_or_mobil_check.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_notifier.dart';
@@ -34,7 +34,7 @@ class MyApp extends ConsumerWidget {
         '/': (final context) => const SplashScreen(),
         '/login': (final context) => const LoginScreen(),
         '/onboarding': (final context) => const OnboardingContainer(),
-        '/home': (final context) => const HomePageContainer(),
+        '/home': (final context) => const WebOrMobilCheck(),
       },
     );
   }

@@ -1,0 +1,231 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/theme_notifier.dart';
+import '../../../../core/widgets/custom_elevated_button.dart';
+import '../../../../data/providers/login/login_provider.dart';
+import '../contracts/contracts.dart';
+import '../my_favorites/favorite_screen.dart';
+import '../my_ticket/my_ticket_screen.dart';
+import '../profile_edit/user_profile_edit.dart';
+import '../settings/app_settings.dart';
+import '../settings/permission_settings.dart';
+
+class ProfilePage extends ConsumerWidget {
+  const ProfilePage({super.key});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final loginState = ref.watch(loginProvider);
+    return Scaffold(
+        body: loginState.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : loginState.errorMessage != null
+                ? _buildErrorState(loginState.errorMessage!)
+                : _buildContentState(context, loginState.user, ref));
+  }
+
+  Widget _buildErrorState(final String message) {
+    return Center(child: Text(message));
+  }
+
+  Widget _buildContentState(
+      final BuildContext context, final User? user, final WidgetRef ref) {
+    return ListView(
+      padding: const EdgeInsets.all(20.0),
+      children: [
+        _buildProfileCard(user, context),
+        const SizedBox(height: 20),
+        if (user != null) ...[
+          CustomElevatedButton(
+            text: 'Profilini Düzenle',
+            iconData: Icons.edit,
+            onPressed: () =>
+                _navigateTo(UserProfileEditScreen(userId: user.uid), context),
+          ),
+          CustomElevatedButton(
+            text: 'Biletlerim',
+            iconData: Icons.theaters_rounded,
+            onPressed: () =>
+                _navigateTo(MyTicketPage(userId: user.uid), context),
+          ),
+          CustomElevatedButton(
+            text: 'Favori Etkinliklerim',
+            iconData: Icons.favorite,
+            onPressed: () => _navigateTo(FavoritesPage(), context),
+          ),
+        ],
+        const SizedBox(height: 20),
+        CustomElevatedButton(
+          text: 'Bildirim Ayarları',
+          iconData: Icons.notifications,
+          onPressed: () =>
+              _navigateTo(const PermissionSettingsScreen(), context),
+        ),
+        CustomElevatedButton(
+          text: 'Uygulama Ayarları',
+          iconData: Icons.settings,
+          onPressed: () => _navigateTo(const AppSettingsPage(), context),
+        ),
+        const SizedBox(height: 20),
+        CustomElevatedButton(
+          text: 'Gizlilik ve Güvenlik',
+          iconData: Icons.privacy_tip,
+          onPressed: () => _navigateTo(const ContractsPage(), context),
+        ),
+        CustomElevatedButton(
+          text: 'Sıkça Sorulan Sorular',
+          iconData: Icons.help,
+          onPressed: () {},
+        ),
+        const SizedBox(height: 20),
+        CustomElevatedButton(
+          text: 'Destek ve Bağış',
+          iconData: Icons.coffee,
+          onPressed: () {},
+        ),
+        const SizedBox(height: 20),
+        _buildThemeSelectorCard(context, ref),
+        CustomElevatedButton(
+          text: user != null ? 'Çıkış Yap' : 'Giriş Yap',
+          iconData: user != null ? Icons.logout : Icons.login,
+          onPressed: user != null
+              ? () =>
+                  _signOut(context, ref) // Notifier üzerinden çıkış yapıyoruz
+              : () => _navigateToLogin(context),
+        ),
+        const SizedBox(height: 50),
+      ],
+    );
+  }
+
+  Widget _buildProfileCard(final User? firebaseUser, final context) {
+    if (firebaseUser == null) {
+      return Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              const Icon(Icons.account_circle, size: 100, color: Colors.grey),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => _navigateToLogin(context),
+                child: const Text('Giriş Yap',
+                    style:
+                        TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 5),
+              const Text('Lütfen giriş yapın',
+                  style: TextStyle(fontSize: 16, color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    } else {
+      return Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 50,
+                backgroundImage: NetworkImage(
+                    firebaseUser.photoURL ?? 'https://via.placeholder.com/150'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                firebaseUser.displayName ?? 'İsimsiz Kullanıcı',
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 5),
+              Text(firebaseUser.email ?? 'Mail bilgisi bulunamadı',
+                  style: const TextStyle(fontSize: 16, color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showThemeSelectionDialog(
+      final BuildContext context, final WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (final BuildContext context) {
+        return AlertDialog(
+          title: const Text('Tema Seçimi'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              themeOption(context, ref, 'Açık Tema', ThemeMode.light),
+              themeOption(context, ref, 'Koyu Tema', ThemeMode.dark),
+              themeOption(context, ref, 'Sistem Varsayılanı', ThemeMode.system),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget themeOption(final BuildContext context, final WidgetRef ref,
+      final String title, final ThemeMode mode) {
+    return ListTile(
+      title: Text(title),
+      onTap: () {
+        ref.read(themeProvider.notifier).setTheme(mode);
+        Navigator.of(context).pop();
+      },
+    );
+  }
+
+  Widget _buildThemeSelectorCard(
+      final BuildContext context, final WidgetRef ref) {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showThemeSelectionDialog(context, ref),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(Icons.color_lens, color: Colors.blue),
+              SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Tema Seçimi',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateTo(final Widget page, final context) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (final context) => page));
+  }
+
+  void _navigateToLogin(final context) {
+    Navigator.of(context).pushReplacementNamed('/home');
+  }
+
+  Future<void> _signOut(final context, final WidgetRef ref) async {
+    try {
+      await ref.read(loginProvider.notifier).signOut();
+      _navigateToLogin(context);
+    } catch (e) {
+      throw Exception('Çıkış yaparken bir hata oluştu: $e');
+    }
+  }
+}

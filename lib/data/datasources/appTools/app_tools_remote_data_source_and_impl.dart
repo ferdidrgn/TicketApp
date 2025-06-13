@@ -7,31 +7,28 @@ abstract class AppToolsRemoteDataSource {
 
 class AppToolsRemoteDataSourceImpl implements AppToolsRemoteDataSource {
   final FirebaseFirestore firestore;
+  final String docId = 'bgVYTTauB9gwd1qOyjix';
 
   AppToolsRemoteDataSourceImpl({required this.firestore});
 
   @override
-  Future<String?> getPrivacyPolicy() async {
-    return _getPrivacyAndTerms('privacyPolicy');
-  }
+  Future<String?> getPrivacyPolicy() => _getField('privacyPolicy');
 
   @override
-  Future<String?> getTermsCondition() async {
-    return _getPrivacyAndTerms('termsAndCondition');
+  Future<String?> getTermsCondition() => _getField('termsAndCondition');
+
+  Future<String?> _getField(final String field) async {
+    final settings = await _getAppSettings();
+    return settings?[field] as String?;
   }
 
-  Future<String?> _getPrivacyAndTerms(final String fieldName) async {
+  Future<Map<String, dynamic>?> _getAppSettings() async {
     try {
-      final QuerySnapshot result = await firestore
-          .collection("AppTools")
-          .where(fieldName, isEqualTo: true)
-          .limit(1)
-          .get();
-
-      if (result.docs.isEmpty) return null;
-      else return result.docs.first[fieldName] as String?;
+      final doc = await firestore.collection('AppTools').doc(docId).get();
+      return doc.exists ? doc.data() : null;
     } catch (e) {
-      throw Exception('Error fetching $fieldName: $e');
+      throw Exception('Error fetching app settings: $e');
     }
   }
+
 }
