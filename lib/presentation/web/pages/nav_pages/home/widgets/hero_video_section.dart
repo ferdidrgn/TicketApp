@@ -54,17 +54,8 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
   @override
   Widget build(final BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-
-    // 👇 Video hazırsa oranı kontrol et. Dikey videolarda taşma yapmasını engelleme
-    BoxFit videoFit = BoxFit.cover;
-    if (_isVideoReady) {
-      final videoSize = _videoController.value.size;
-      final isPortrait = videoSize.height > videoSize.width;
-      videoFit = isPortrait ? BoxFit.contain : BoxFit.cover;
-    }
-
     return SizedBox(
-      height: screenHeight,
+      height: MediaQuery.of(context).size.height,
       width: double.infinity,
       child: Stack(
         children: [
@@ -72,7 +63,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
           if (_isVideoReady)
             Positioned.fill(
               child: FittedBox(
-                fit: videoFit, // 👈 Dinamik olarak ayarlandı
+                fit: BoxFit.contain,
                 child: SizedBox(
                   width: _videoController.value.size.width,
                   height: _videoController.value.size.height,
@@ -85,7 +76,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
               child: FittedBox(
                 fit: BoxFit.contain,
                 child: Image.network(
-                  'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fmetafor.png?alt=media&token=0e834168-3918-4a3c-96b9-1fe990afcac2',
+                  'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705',
                 ),
               ),
             ),
