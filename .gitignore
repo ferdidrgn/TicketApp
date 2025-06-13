@@ -49,3 +49,4 @@ pubspec.lock
 ios/Runner/GoogleService-Info.plist
 .metadata
 /android/key_properties.txt
+.firebase/hosting.YnVpbGRcd2Vi.cache
