@@ -34,7 +34,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     );
 
     _videoController = VideoPlayerController.network(
-      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=0708988d-6061-4106-abe2-5fb69a1ffa87',
     )
       ..setLooping(true)
       ..setVolume(0)
