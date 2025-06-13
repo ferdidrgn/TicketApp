@@ -53,7 +53,6 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
 
   @override
   Widget build(final BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     return SizedBox(
       height: MediaQuery.of(context).size.height,
       width: double.infinity,
