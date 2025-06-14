@@ -1,36 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
+import '../../../../../../core/theme/app_theme.dart';
 
-import '../../../../../core/theme/app_theme.dart';
-
-class AboutPage extends StatelessWidget {
-  const AboutPage({super.key});
+class AboutCard extends StatelessWidget {
+  const AboutCard({super.key});
 
   @override
   Widget build(final BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(20),
-      child: Column(
-        children: [
-          SizedBox(height: 40),
-          CustomSectionTitle(title: 'Hakkımızda'),
-          SizedBox(height: 40),
-          LayoutBuilder(
-            builder: (final context, final constraints) {
-              bool isWide = constraints.maxWidth > 800;
-              return isWide
-                  ? _buildAboutWideLayout()
-                  : _buildAboutNarrowLayout();
-            },
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          width: double.infinity,
+          child: const SizedBox(height: 20),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              CustomSectionTitle(
+                title: 'Hakkımızda',
+                textColor: Colors.yellow,
+                fontSize: 50,
+              ),
+              const SizedBox(height: 40),
+              LayoutBuilder(
+                builder: (final context, final constraints) {
+                  final isWide = constraints.maxWidth > 800;
+                  return isWide
+                      ? _buildAboutWideLayout()
+                      : _buildAboutNarrowLayout();
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildAboutWideLayout() {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(flex: 2, child: _buildAboutText()),
         SizedBox(width: 40),
@@ -47,7 +58,7 @@ class AboutPage extends StatelessWidget {
 
   Widget _buildAboutText() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           'Sahne Sanatları Tiyatro Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.',
@@ -81,10 +92,10 @@ class AboutPage extends StatelessWidget {
 
   Widget _buildStatsGrid() {
     final stats = [
-      {'number': '25+', 'label': 'Sahnelenen Oyun'},
-      {'number': '50k+', 'label': 'Seyirci'},
+      {'number': '10+', 'label': 'Sahnelenen Oyun'},
+      {'number': '10k+', 'label': 'Seyirci'},
       {'number': '7', 'label': 'Yıllık Deneyim'},
-      {'number': '12', 'label': 'Profesyonel Sanatçı'},
+      {'number': '10', 'label': 'Gönül Vermiş Kişiler'},
     ];
 
     return GridView.builder(

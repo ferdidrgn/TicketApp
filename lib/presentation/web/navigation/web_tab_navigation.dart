@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../pages/nav_pages/about/about_page.dart';
-import '../pages/nav_pages/content/content_page.dart';
 import '../pages/nav_pages/home/home_page.dart';
-import '../pages/nav_pages/shows/shows_page.dart';
-import '../pages/nav_pages/team/team_page.dart';
 
 class WebTabNavigation extends StatefulWidget {
   const WebTabNavigation({super.key});
@@ -20,11 +16,18 @@ class _WebTabNavigationState extends State<WebTabNavigation>
   final ScrollController _scrollController = ScrollController();
   bool _headerTransparent = true;
 
+  final GlobalKey _showsKey = GlobalKey();
+  final GlobalKey _aboutKey = GlobalKey();
+  final GlobalKey _teamKey = GlobalKey();
+  final GlobalKey _artisticKey = GlobalKey();
+  final GlobalKey _contactKey = GlobalKey();
+
   final List<String> tabTitles = [
     'Ana Sayfa',
     'Oyunlarımız',
-    'Ekibimiz',
     'Hakkımızda',
+    'Ekibimiz',
+    'Sanat Kürasyon',
     'İletişim',
   ];
 
@@ -34,8 +37,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
     _glowController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
-    )
-      ..repeat(reverse: true);
+    )..repeat(reverse: true);
 
     _scrollController.addListener(() {
       setState(() {
@@ -49,6 +51,17 @@ class _WebTabNavigationState extends State<WebTabNavigation>
     _glowController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollTo(final GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
@@ -70,7 +83,15 @@ class _WebTabNavigationState extends State<WebTabNavigation>
           controller: _scrollController,
           slivers: [
             _buildHeader(),
-            SliverToBoxAdapter(child: _buildTabContent()),
+            SliverToBoxAdapter(
+              child: HomePage(
+                showsKey: _showsKey,
+                aboutKey: _aboutKey,
+                teamKey: _teamKey,
+                artisticKey: _artisticKey,
+                contactKey: _contactKey,
+              ),
+            ),
             SliverToBoxAdapter(child: _buildFooter()),
           ],
         ),
@@ -132,28 +153,23 @@ class _WebTabNavigationState extends State<WebTabNavigation>
         if (isNarrow) {
           return PopupMenuButton<int>(
             icon: const Icon(Icons.menu, color: AppWebLightColors.primaryGold),
-            onSelected: (final index) => setState(() => currentTab = index),
-            itemBuilder: (final context) =>
-                tabTitles
-                    .asMap()
-                    .entries
-                    .map(
-                      (final entry) =>
-                      PopupMenuItem<int>(
-                        value: entry.key,
-                        child: Text(entry.value),
-                      ),
+            onSelected: (final index) => _onTabSelected(index),
+            itemBuilder: (final context) => tabTitles
+                .asMap()
+                .entries
+                .map(
+                  (final entry) => PopupMenuItem<int>(
+                    value: entry.key,
+                    child: Text(entry.value),
+                  ),
                 )
-                    .toList(),
+                .toList(),
           );
         }
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: tabTitles
-              .asMap()
-              .entries
-              .map((final entry) {
+          children: tabTitles.asMap().entries.map((final entry) {
             final int index = entry.key;
             final String title = entry.value;
             final bool isActive = currentTab == index;
@@ -168,20 +184,20 @@ class _WebTabNavigationState extends State<WebTabNavigation>
     );
   }
 
-  Widget _buildNavButton(final String title, final int index,
-      final bool isActive) {
+  Widget _buildNavButton(
+      final String title, final int index, final bool isActive) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       child: ElevatedButton(
-        onPressed: () => setState(() => currentTab = index),
+        onPressed: () => _onTabSelected(index),
         style: ElevatedButton.styleFrom(
           backgroundColor:
-          isActive ? AppWebLightColors.primaryGold : Colors.transparent,
+              isActive ? AppWebLightColors.primaryGold : Colors.transparent,
           foregroundColor: isActive
               ? AppWebLightColors.darkBlueBackground
               : AppWebLightColors.primaryGold,
           side:
-          const BorderSide(color: AppWebLightColors.primaryGold, width: 2),
+              const BorderSide(color: AppWebLightColors.primaryGold, width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
@@ -200,21 +216,33 @@ class _WebTabNavigationState extends State<WebTabNavigation>
     );
   }
 
-  // ---------------- TAB CONTENT ----------------
-  Widget _buildTabContent() {
-    switch (currentTab) {
+  void _onTabSelected(final int index) {
+    setState(() {
+      currentTab = index;
+    });
+
+    switch (index) {
       case 0:
-        return HomePage();
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+        break;
       case 1:
-        return ShowsPage();
+        _scrollTo(_showsKey);
+        break;
       case 2:
-        return TeamPage();
+        _scrollTo(_aboutKey);
+        break;
       case 3:
-        return AboutPage();
+        _scrollTo(_teamKey);
+        break;
       case 4:
-        return ContentPage();
-      default:
-        return HomePage();
+        _scrollTo(_artisticKey);
+      case 5:
+        _scrollTo(_contactKey);
+        break;
     }
   }
 
