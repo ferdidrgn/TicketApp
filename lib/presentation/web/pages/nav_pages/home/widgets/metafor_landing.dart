@@ -19,7 +19,7 @@ class MetaforLanding extends StatelessWidget {
                 Text(
                   'SAHNENİN KALBİNDEN\nYENİ BİR HİKAYE',
                   style: TextStyle(
-                    fontSize: 44,
+                    fontSize: 40,
                     fontWeight: FontWeight.bold,
                     color: Colors.blue,
                     height: 1.2,
@@ -30,7 +30,7 @@ class MetaforLanding extends StatelessWidget {
                 Text(
                   'METAFOR',
                   style: TextStyle(
-                    fontSize: 64,
+                    fontSize: 60,
                     fontWeight: FontWeight.w900,
                     fontFamily: 'Times New Roman',
                     fontStyle: FontStyle.italic,
