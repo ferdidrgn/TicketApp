@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../../../../domain/entities/show.dart';
 
 class TheaterGamesSlider extends StatefulWidget {
-  const TheaterGamesSlider({super.key});
+  final List<Show> shows;
+
+  const TheaterGamesSlider({super.key, required this.shows});
 
   @override
   State<TheaterGamesSlider> createState() => _TheaterGamesSliderState();
@@ -36,9 +39,16 @@ class _TheaterGamesSliderState extends State<TheaterGamesSlider> {
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 60),
-            itemBuilder: (final _, final index) => _buildGameCard(index),
+            itemCount: widget.shows.length,
             separatorBuilder: (final _, final __) => const SizedBox(width: 20),
-            itemCount: 5,
+            itemBuilder: (final _, final index) {
+              final show = widget.shows[index];
+              return tasarimWeb(
+                show.imageUrl ?? '',
+                show.name ?? '',
+                show.description ?? '',
+              );
+            },
           ),
         ),
         Positioned(
@@ -61,28 +71,14 @@ class _TheaterGamesSliderState extends State<TheaterGamesSlider> {
     );
   }
 
-  Widget _buildGameCard(final int index) {
-    final titles = [
-      'Romeo ve Juliet',
-      'Bir Yaz Gecesi Rüyası',
-      'Martı',
-      'Kral Lear',
-      'Ay Işığında Şamata',
-    ];
-    final images = [
-      'assets/images/play1.jpg',
-      'assets/images/play2.jpg',
-      'assets/images/play3.jpg',
-      'assets/images/play4.jpg',
-      'assets/images/play5.jpg',
-    ];
 
+  Widget tasarimWeb(final String imageUrl,final String gameName, final String desc){
     return Container(
       width: 240,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         image: DecorationImage(
-          image: AssetImage(images[index]),
+          image: NetworkImage(imageUrl),
           fit: BoxFit.cover,
         ),
       ),
@@ -98,7 +94,7 @@ class _TheaterGamesSliderState extends State<TheaterGamesSlider> {
           ),
         ),
         child: Text(
-          titles[index],
+          gameName,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
