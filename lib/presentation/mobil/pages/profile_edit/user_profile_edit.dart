@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/widgets/custom_elevated_button.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../core/widgets/custom_art_words_card.dart';
-import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../data/providers/user/user_provider.dart';
 import '../../../../domain/entities/user.dart';
@@ -148,11 +148,9 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
             ),
             const SizedBox(height: 20),
             Center(
-              child: CustomButton(
+              child: CustomElevatedButton(
                 text: 'Güncelle',
                 onPressed: _updateProfile,
-                backgroundColor: Theme.of(context).primaryColor,
-                textColor: Colors.white,
               ),
             ),
           ],
