@@ -43,7 +43,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Future<void> _fetchShowData() async {
     try {
       final showService =
-      ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
+          ShowRemoteDataSourceImpl(firestore: firestore, storage: strorage);
       final show = (await showService.getShowsByIds([widget.showId]))?.first;
       setState(() {
         showData = show?.toEntity();
@@ -65,15 +65,13 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     try {
       if (playersId != null) {
         final player = await playerService?.getPlayersByIds(playersId.toList());
-        if (player != null)
-          setState(() {
-            nowPlayerDataList?.addAll(
-                player.map((final e) => e?.toEntity()).toList().whereType<Player>());
-          });
-        else
-          setState(() {
-            nowPlayerDataList = [];
-          });
+        setState(() {
+          nowPlayerDataList?.addAll(player
+                  ?.map((final e) => e?.toEntity())
+                  .toList()
+                  .whereType<Player>() ??
+              []);
+        });
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -84,15 +82,14 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Future<void> _fetchOldPlayers(final List<String>? playersId) async {
     try {
       if (playersId != null) {
-        final player = await playerService?.getPlayersByIds(playersId.toList());
-        if (player != null)
-          setState(() {
-            oldPlayerDataList?.addAll(
-                player.map((final e) => e?.toEntity()).toList().whereType<Player>());
-          });
-      } else {
+        final players =
+            await playerService?.getPlayersByIds(playersId.toList());
         setState(() {
-          oldPlayerDataList = [];
+          oldPlayerDataList?.addAll(players
+                  ?.map((final e) => e?.toEntity())
+                  .toList()
+                  .whereType<Player>() ??
+              []);
         });
       }
     } catch (error) {
@@ -147,7 +144,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           fit: BoxFit.cover,
           placeholder: (final context, final url) => ShimmerLoading(),
           errorWidget: (final context, final url, final error) =>
-          const Icon(Icons.error),
+              const Icon(Icons.error),
         ),
       ),
     );
@@ -166,10 +163,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
       padding: const EdgeInsets.only(top: 20),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Theme
-            .of(context)
-            .colorScheme
-            .surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(50),
           topRight: Radius.circular(50),
@@ -195,7 +189,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             const SizedBox(height: 16),
             Column(
               children:
-              List.generate(showData?.eventsId.length ?? 0, (final index) {
+                  List.generate(showData?.eventsId.length ?? 0, (final index) {
                 return _buildEventCard(
                     "15.04.2004".toString(),
                     "Şubat".toString(),
@@ -226,9 +220,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (final context) =>
-                  SeatSelectionScreen(
-                      showId: showData?.id ?? '', eventId: eventId)),
+              builder: (final context) => SeatSelectionScreen(
+                  showId: showData?.id ?? '', eventId: eventId)),
         );
       },
       child: Container(
@@ -293,32 +286,30 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   Widget _buildNowPlayers() {
     return nowPlayerDataList!.isNotEmpty
         ? SizedBox(
-      height: 195,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: nowPlayerDataList?.length ?? 0,
-        itemBuilder: (final context, final index) {
-          return CustomStageCard(
-              text:
-              '${nowPlayerDataList?[index].firstName ??
-                  ''} ${nowPlayerDataList?[index].lastName ?? ''}',
-              imageUrl: nowPlayerDataList?[index].imageUrl ?? '',
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (final context) =>
-                            PlayerDetailPage(
-                                playerId:
-                                nowPlayerDataList?[index].id ?? '')));
-              });
-        },
-      ),
-    )
+            height: 195,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: nowPlayerDataList?.length ?? 0,
+              itemBuilder: (final context, final index) {
+                return CustomStageCard(
+                    text:
+                        '${nowPlayerDataList?[index].firstName ?? ''} ${nowPlayerDataList?[index].lastName ?? ''}',
+                    imageUrl: nowPlayerDataList?[index].imageUrl ?? '',
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (final context) => PlayerDetailPage(
+                                  playerId:
+                                      nowPlayerDataList?[index].id ?? '')));
+                    });
+              },
+            ),
+          )
         : const Center(
-      child: Text('Oyuncu bilgisi mevcut değil.'),
-    );
+            child: Text('Oyuncu bilgisi mevcut değil.'),
+          );
   }
 
   Widget _buildOldPlayers() {
@@ -332,16 +323,14 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           return Stack(children: [
             CustomStageCard(
               text:
-              '${oldPlayerDataList?[index].firstName ??
-                  ''} ${oldPlayerDataList?[index].lastName ?? ''}',
+                  '${oldPlayerDataList?[index].firstName ?? ''} ${oldPlayerDataList?[index].lastName ?? ''}',
               imageUrl: oldPlayerDataList?[index].imageUrl ?? '',
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (final context) =>
-                          PlayerDetailPage(
-                              playerId: oldPlayerDataList?[index].id ?? '')),
+                      builder: (final context) => PlayerDetailPage(
+                          playerId: oldPlayerDataList?[index].id ?? '')),
                 );
               },
             ),
@@ -393,7 +382,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             fit: BoxFit.cover,
             placeholder: (final context, final url) => ShimmerLoading(),
             errorWidget: (final context, final url, final error) =>
-            const Icon(Icons.error),
+                const Icon(Icons.error),
           ),
         ),
       ),
@@ -423,7 +412,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                   fit: BoxFit.contain, // Görseli tam boyutta göster
                   placeholder: (final context, final url) => ShimmerLoading(),
                   errorWidget: (final context, final url, final error) =>
-                  const Icon(Icons.error),
+                      const Icon(Icons.error),
                 ),
               ),
             ),
