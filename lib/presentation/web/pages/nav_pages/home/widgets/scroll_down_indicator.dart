@@ -52,7 +52,7 @@ class _AnimatedArrowState extends State<_AnimatedArrow>
             'Aşağı kaydır',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.w500,
               shadows: [
                 Shadow(blurRadius: 8, color: Colors.black),

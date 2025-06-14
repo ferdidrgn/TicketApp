@@ -80,7 +80,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
             ),
           ),
 
-          // Başlık ve ikon
+          // Başlık ve ikon (orta üst)
           Align(
             alignment: Alignment.topCenter,
             child: Padding(
@@ -89,7 +89,8 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.theater_comedy_rounded, size: 60, color: Colors.white),
+                  const Icon(Icons.theater_comedy_rounded,
+                      size: 60, color: Colors.white),
                   const SizedBox(height: 16),
                   AnimatedTitle(
                     glowAnimation: _glowAnimation,
@@ -102,7 +103,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
 
           // Scroll oku
           const Positioned(
-            bottom: 30,
+            bottom: 40,
             left: 0,
             right: 0,
             child: Center(child: ScrollDownIndicator()),

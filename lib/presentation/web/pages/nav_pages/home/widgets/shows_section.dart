@@ -5,16 +5,14 @@ import 'package:ticketapp/core/widgets/shimmer.dart';
 import '../../../../../../data/providers/show/show_provider.dart';
 import '../../../../../../domain/entities/show.dart';
 
-class WebTheaterGamesSection extends ConsumerStatefulWidget {
-  const WebTheaterGamesSection({super.key});
+class ShowsSection extends ConsumerStatefulWidget {
+  const ShowsSection({super.key});
 
   @override
-  ConsumerState<WebTheaterGamesSection> createState() =>
-      _WebTheaterGamesSectionState();
+  ConsumerState<ShowsSection> createState() => _WebTheaterGamesSectionState();
 }
 
-class _WebTheaterGamesSectionState
-    extends ConsumerState<WebTheaterGamesSection> {
+class _WebTheaterGamesSectionState extends ConsumerState<ShowsSection> {
   final ScrollController _scrollController = ScrollController();
 
   void _scrollLeft() {
@@ -66,19 +64,22 @@ class _WebTheaterGamesSectionState
       children: [
         SizedBox(
           height: 320,
-          child: ListView.separated(
+          child: SingleChildScrollView(
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 60),
-            itemCount: shows.length,
-            separatorBuilder: (final _, final __) => const SizedBox(width: 20),
-            itemBuilder: (final _, final index) {
-              final show = shows[index];
-              return _ShowCard(
-                imageUrl: show.imageUrl ?? '',
-                gameName: show.name ?? '',
-              );
-            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ...shows.map((final show) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: _ShowCard(
+                        imageUrl: show.imageUrl ?? '',
+                        gameName: show.name ?? '',
+                      ),
+                    )),
+              ],
+            ),
           ),
         ),
         Positioned(

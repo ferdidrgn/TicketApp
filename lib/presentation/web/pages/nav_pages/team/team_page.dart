@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 
 import '../../../../../core/theme/app_theme.dart';
+import '../../claude.dart';
 
 class TeamPage extends StatelessWidget {
   const TeamPage({super.key});
@@ -52,6 +53,7 @@ class TeamPage extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(height: 40),
+          TeamIntroSection(),
           CustomSectionTitle(title: 'Ekibimiz'),
           SizedBox(height: 40),
           LayoutBuilder(
