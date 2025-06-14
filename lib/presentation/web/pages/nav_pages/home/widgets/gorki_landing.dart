@@ -46,7 +46,7 @@ class GorkiLanding extends StatelessWidget {
               children: [
                 Positioned.fill(
                   child: Image.network(
-                    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtW6qeVqO0J_THuQUhkwC5HedVCi1dPlqy4g&s',
+                    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
                     fit: BoxFit.cover,
                   ),
                 ),
