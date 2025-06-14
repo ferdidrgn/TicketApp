@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/about_cart.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/artistic_showcase.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/contact_card.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/goz_kap_vaz_yap_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/hero_video_section.dart';
@@ -64,7 +63,6 @@ class HomePage extends StatelessWidget {
           TeamCard(key: teamKey),
 
           // Artistik Bölüm
-          ArtisticShowcase(key: artisticKey),
 
           // İletişim
           ContactCard(key: contactKey)
