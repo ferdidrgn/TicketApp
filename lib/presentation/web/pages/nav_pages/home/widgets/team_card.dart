@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
-import '../../../../../../core/widgets/custom_stage_card.dart';
 import '../../../../../../data/datasources/player/player_remote_data_source_and_impl.dart';
 import '../../../../../../data/datasources/show/show_remote_data_source_and_impl.dart';
 import '../../../../../../domain/entities/player.dart';
@@ -18,7 +17,7 @@ class _TeamCardState extends State<TeamCard> {
   final firestore = FirebaseFirestore.instance;
   final storage = FirebaseStorage.instance;
   late final PlayerRemoteDataSourceImpl playerService;
-  List<Player> nowPlayerDataList = [];
+  List<Player?> nowPlayerDataList = [];
   bool isLoading = true;
 
   @override
@@ -95,7 +94,7 @@ class _TeamCardState extends State<TeamCard> {
   }
 
   Widget _buildScrollableRow() {
-    return nowPlayerDataList!.isNotEmpty
+    return nowPlayerDataList.isNotEmpty
         ? SizedBox(
             height: 320,
             child: SingleChildScrollView(
@@ -106,7 +105,7 @@ class _TeamCardState extends State<TeamCard> {
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
                 itemBuilder: (final context, final index) {
-                  return _TeamCard(member:nowPlayerDataList[index]);
+                  return _TeamCard(member: nowPlayerDataList[index]);
                 },
               ),
             ),
@@ -118,7 +117,7 @@ class _TeamCardState extends State<TeamCard> {
 }
 
 class _TeamCard extends StatelessWidget {
-  final Player member;
+  final Player? member;
 
   const _TeamCard({required this.member});
 
@@ -130,15 +129,20 @@ class _TeamCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final initials = _getInitials('${member.firstName} ${member.lastName}');
+    final initials = _getInitials('${member?.firstName} ${member?.lastName}');
 
     return Container(
       width: 240,
-      padding: const EdgeInsets.all(20),
+      height: 330,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.amber.shade400, width: 2),
+        image: member?.imageUrl != null
+            ? DecorationImage(
+                image: NetworkImage(member?.imageUrl ?? ''),
+                fit: BoxFit.cover,
+              )
+            : null,
         boxShadow: [
           BoxShadow(
               color: Colors.red.withOpacity(0.2),
@@ -152,35 +156,60 @@ class _TeamCard extends StatelessWidget {
               offset: const Offset(0, 12)),
         ],
       ),
-      child: Column(
+      child: Stack(
         children: [
+          // Siyah transparan katman
           Container(
-            width: 72,
-            height: 72,
             decoration: BoxDecoration(
-                color: Colors.amber.shade400, shape: BoxShape.circle),
-            child: Center(
-              child: Text(
-                initials,
-                style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
-              ),
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.black.withOpacity(0.5),
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            member.firstName,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            member.bio,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 13, height: 1.5, color: Colors.grey.shade600),
+          // İçerik
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade400,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  member?.firstName ?? '',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  member?.bio ?? '',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
