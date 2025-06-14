@@ -9,20 +9,12 @@ class AboutCard extends StatelessWidget {
   Widget build(final BuildContext context) {
     return Column(
       children: [
-        Container(
-          color: Colors.white,
-          width: double.infinity,
-          child: const SizedBox(height: 20),
-        ),
         Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
               CustomSectionTitle(
-                title: 'Hakkımızda',
-                textColor: Colors.yellow,
-                fontSize: 50,
-              ),
+                  title: 'Hakkımızda', textColor: Colors.amber, fontSize: 50),
               const SizedBox(height: 40),
               LayoutBuilder(
                 builder: (final context, final constraints) {

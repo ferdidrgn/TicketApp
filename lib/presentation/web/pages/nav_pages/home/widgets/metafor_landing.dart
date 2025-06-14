@@ -71,7 +71,7 @@ class MetaforLanding extends StatelessWidget {
                   children: [
                     Text(
                       'Hayatın kırılgan aynasında yankılanan “Metafor”, bir sahafın raflarında başlayan ve her karakterin kendi gerçeğiyle yüzleştiği büyülü bir anlatı sunuyor. '
-                      'Alman kızın içsel yalnızlığı, genç adamın kayıpları ve anlatıcının zamansız gözlemleriyle; izleyiciyi sezgisel bir düşün dünyasına davet ediyor.',
+                          'Alman kızın içsel yalnızlığı, genç adamın kayıpları ve anlatıcının zamansız gözlemleriyle; izleyiciyi sezgisel bir düşün dünyasına davet ediyor.',
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.blue,
@@ -81,7 +81,7 @@ class MetaforLanding extends StatelessWidget {
                     const SizedBox(height: 24),
                     Text(
                       'Usta kalem Yekta Kopan’ın kelimeleri, yönetmen Gürkan Candan’ın sahne vizyonuyla birleşerek metaforlarla örülü bir evrene dönüşüyor. '
-                      'Yazar, aynı zamanda anlatıcı rolünde, zamanın sınırlarını eğip bükerek sahnede geçmişle bugünü iç içe geçiriyor.',
+                          'Yazar, aynı zamanda anlatıcı rolünde, zamanın sınırlarını eğip bükerek sahnede geçmişle bugünü iç içe geçiriyor.',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.blue,
@@ -100,7 +100,7 @@ class MetaforLanding extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       'Sahafçı, Alman kız, annesini yitirmiş genç adam ve anlatıcı-yazar... '
-                      'Her biri kendi metaforunu taşıyor; her biri izleyicinin zihninde iz bırakıyor.',
+                          'Her biri kendi metaforunu taşıyor; her biri izleyicinin zihninde iz bırakıyor.',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.blue,

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
+import '../../../../../../core/theme/app_theme.dart';
+import '../../../claude.dart';
 
-import '../../../../../core/theme/app_theme.dart';
-import '../../claude.dart';
-
-class TeamPage extends StatelessWidget {
-  const TeamPage({super.key});
+class TeamCard extends StatelessWidget {
+  const TeamCard({super.key});
 
   @override
   Widget build(final BuildContext context) {

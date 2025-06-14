@@ -354,7 +354,7 @@ class TeamValuesSection extends StatelessWidget {
                 'HAYAT',
                 'Sanatın günlük yaşamı dönüştürme gücüne inanıyoruz',
                 Icons.wb_sunny_outlined,
-                Colors.yellow.shade600,
+                Colors.amber.shade600,
               ),
             ],
           ),

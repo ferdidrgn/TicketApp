@@ -8,80 +8,82 @@ class GozYapVazYapLanding extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    return LayoutBuilder(
-      builder: (final context, final constraints) {
-        final width = constraints.maxWidth;
-        final height = width / (isMobile ? 0.8 : 2.0);
+    return Column(
+      children: [
+        LayoutBuilder(
+          builder: (final context, final constraints) {
+            final width = constraints.maxWidth;
+            final height = width / (isMobile ? 0.8 : 2.0);
 
-        return SizedBox(
-          height: height,
-          child: isMobile
-              ? Column(
-                  children: [
-                    Image.network(
-                      'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: height * 0.4,
-                    ),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      child: _TextSection(
-                        title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
-                        location: '1889 SES TİYATROSU\n(TAKSİM)',
-                        fontSize: 14,
-                        headerSize: 16,
-                        textColor: Colors.white,
-                      ),
-                    ),
-                    Image.network(
-                      'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: height * 0.4,
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    // Sol görsel
-                    Expanded(
-                      flex: 2,
-                      child: Image.network(
-                        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae',
-                        fit: BoxFit.cover,
-                        height: double.infinity,
-                      ),
-                    ),
-                    // Orta metin alanı (koyu mavi zemin)
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24.0, vertical: 40),
-                        child: _TextSection(
-                          title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
-                          location: '1889 SES TİYATROSU\n(TAKSİM)',
-                          fontSize: 14,
-                          headerSize: 16,
-                          textColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                    // Sağ görsel
-                    Expanded(
-                      flex: 2,
-                      child: Image.network(
-                        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27',
-                        fit: BoxFit.cover,
-                        height: double.infinity,
-                      ),
-                    ),
-                  ],
-                ),
-        );
-      },
+            return SizedBox(
+              height: height,
+              child:
+                  isMobile ? _buildMobileLayout(height) : _buildDesktopLayout(),
+            );
+          },
+        ),
+        Container(height: 20, color: Colors.white),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(final double height) {
+    const imageUrl =
+        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae';
+
+    return Column(
+      children: [
+        Image.network(imageUrl,
+            fit: BoxFit.cover, width: double.infinity, height: height * 0.4),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          child: const _TextSection(
+            title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
+            location: '1889 SES TİYATROSU\n(TAKSİM)',
+            fontSize: 14,
+            headerSize: 16,
+            textColor: Colors.white,
+          ),
+        ),
+        Image.network(imageUrl,
+            fit: BoxFit.cover, width: double.infinity, height: height * 0.4),
+      ],
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    const imageLeft =
+        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae';
+    const imageRight =
+        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27';
+
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: Image.network(imageLeft,
+              fit: BoxFit.cover, height: double.infinity),
+        ),
+        Expanded(
+          flex: 3,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40),
+            child: const _TextSection(
+              title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
+              location: '1889 SES TİYATROSU\n(TAKSİM)',
+              fontSize: 14,
+              headerSize: 16,
+              textColor: Colors.white,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Image.network(imageRight,
+              fit: BoxFit.cover, height: double.infinity),
+        ),
+      ],
     );
   }
 }
@@ -109,27 +111,42 @@ class _TextSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title.toUpperCase(),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: headerSize + 10,
-                  color: textColor,
-                  letterSpacing: 1.5,
-                )),
+            Text(
+              title.toUpperCase(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: headerSize + 10,
+                color: textColor,
+                letterSpacing: 1.5,
+              ),
+            ),
             const SizedBox(height: 12),
-            Text(location,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: fontSize + 4,
-                  color: textColor.withOpacity(0.85),
-                )),
+            Text(
+              location,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: fontSize + 4,
+                color: textColor.withOpacity(0.85),
+              ),
+            ),
             const SizedBox(height: 20),
-            Text('Yazan: Haldun Taner\nYönetmen: Efsun Kaygusuz\n\n'
-                "Haldun Taner’in bu iki perdelik oyunu, Türkiye’nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.\n\n İki çocukluk arkadaşı olan baş karakterlerden Vicdani, saf, iyi niyetli, dürüst ve uysal bir kişiliğe sahipken;Efruz ise köşe dönücü, iş bitirici ve fırsatçı biridir.\n\n Oyun, bu karakterler üzerinden devleti sömürenler ile devlete itaat edenler arasındaki dengesizliği gözler önüne seriyor"),
+            const Text(
+              'Yazan: Haldun Taner\nYönetmen: Efsun Kaygusuz\n\n'
+              'Haldun Taner’in bu iki perdelik oyunu, Türkiye’nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.\n\n'
+              'İki çocukluk arkadaşı olan baş karakterlerden Vicdani, saf, iyi niyetli, dürüst ve uysal bir kişiliğe sahipken; Efruz ise köşe dönücü, iş bitirici ve fırsatçı biridir.\n\n'
+              'Oyun, bu karakterler üzerinden devleti sömürenler ile devlete itaat edenler arasındaki dengesizliği gözler önüne seriyor',
+            ),
             const SizedBox(height: 20),
             Divider(color: textColor.withOpacity(0.5)),
-            Text(
-              '.\n\n Yazar: Haldun Taner\n Yönetmen: Efsun Kaygusuz\n Işık Tasarımı: Emre Kahraman\n Ses & Efekt Tasarımı: Gökhan Şener\n Afiş Tasarımı: Tayfun Kızıldağ\n Dansçı: Burcu Koçyiğit\n\nOyuncular:\nSELİN GÜL, DENİZ KORKMAZ, MERT AYDIN',
+            const Text(
+              '.\n\n'
+              'Yazar: Haldun Taner\n'
+              'Yönetmen: Efsun Kaygusuz\n'
+              'Işık Tasarımı: Emre Kahraman\n'
+              'Ses & Efekt Tasarımı: Gökhan Şener\n'
+              'Afiş Tasarımı: Tayfun Kızıldağ\n'
+              'Dansçı: Burcu Koçyiğit\n\n'
+              'Oyuncular:\nSELİN GÜL, DENİZ KORKMAZ, MERT AYDIN',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],

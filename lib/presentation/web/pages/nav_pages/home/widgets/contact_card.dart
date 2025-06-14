@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
+import '../../../../../../core/theme/app_theme.dart';
 
-import '../../../../../core/theme/app_theme.dart';
-
-class ContentPage extends StatelessWidget {
-  const ContentPage({super.key});
+class ContactCard extends StatelessWidget {
+  const ContactCard({super.key});
 
   @override
   Widget build(final BuildContext context) {
@@ -13,7 +12,8 @@ class ContentPage extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(height: 40),
-          CustomSectionTitle(title: 'İletişim'),
+          CustomSectionTitle(
+              title: 'İletişim', textColor: Colors.amber, fontSize: 50),
           SizedBox(height: 40),
           LayoutBuilder(
             builder: (final context, final constraints) {
@@ -181,7 +181,7 @@ class ContentPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border(
                   left: BorderSide(
-                      color: AppWebLightColors.primaryGold, width: 4),
+                      color: AppWebLightColors.primaryGold, width: 5),
                 ),
               ),
               child: Row(
@@ -189,7 +189,7 @@ class ContentPage extends StatelessWidget {
                 children: [
                   Text(
                     contact['icon']!,
-                    style: TextStyle(fontSize: 20),
+                    style: TextStyle(fontSize: 20, color: Colors.amber),
                   ),
                   SizedBox(width: 10),
                   Expanded(

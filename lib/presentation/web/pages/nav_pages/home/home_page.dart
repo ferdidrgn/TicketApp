@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/about_cart.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/artistic_showcase.dart';
+import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/contact_card.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/goz_kap_vaz_yap_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/hero_video_section.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/kurtar_beni_doktor_landing.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_news_landing.dart';
+import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
+import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 
@@ -49,30 +51,29 @@ class HomePage extends StatelessWidget {
           ShowsSection(key: showsKey),
           const SizedBox(height: 40),
 
-          MetaforNewsLanding(),
+          MetaforLanding(),
           const SizedBox(height: 40),
 
           const KurtarBeniDoktorLanding(),
           GozYapVazYapLanding(),
 
+          Container(
+            color: Colors.white,
+            width: double.infinity,
+            child: const SizedBox(height: 20),
+          ),
+
           // Hakkımızda
           AboutCard(key: aboutKey),
 
+          //Ekip
+          TeamCard(key: teamKey),
+
           // Artistik Bölüm
           ArtisticShowcase(key: artisticKey),
-          const SizedBox(height: 50),
 
           // İletişim
-          Container(
-            key: contactKey,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-            color: Colors.black26,
-            child: const Text(
-              'İletişim\n\n📧 info@sahnesanatlari.com\n📍 İstanbul, Türkiye',
-              style: TextStyle(fontSize: 18, color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-          ),
+          ContactCard(key: contactKey)
         ],
       ),
     );

@@ -71,13 +71,13 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
               ),
             )
           else
-            const Center(child: CircularProgressIndicator()),
+            Center(
+                child: Image.network(
+                    "https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_205137.jpg?alt=media&token=79e2c500-6f44-42a3-a28d-8b62c84867af")),
 
           // Siyah overlay
           Positioned.fill(
-            child: Container(
-              color: Colors.black.withOpacity(0.4),
-            ),
+            child: Container(color: Colors.black.withOpacity(0.4)),
           ),
 
           // Başlık ve ikon (orta üst)
@@ -90,7 +90,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
               child: Column(
                 children: [
                   const Icon(Icons.theater_comedy_rounded,
-                      size: 60, color: Colors.white),
+                      size: 60, color: Colors.amber),
                   const SizedBox(height: 16),
                   AnimatedTitle(
                     glowAnimation: _glowAnimation,
