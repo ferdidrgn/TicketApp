@@ -1,153 +1,218 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
-import '../../../../../../core/theme/app_theme.dart';
-import '../../../claude.dart';
 
 class TeamCard extends StatelessWidget {
   const TeamCard({super.key});
 
+  final teamRow1 = const <TeamMember>[
+    TeamMember(
+      name: 'Ahmet Kaya',
+      role: 'YÖNETMEN',
+      description: 'Sahneye hayat veren vizyon sahibi yönetmen',
+      color: Colors.blue,
+    ),
+    TeamMember(
+      name: 'Elif Demir',
+      role: 'IŞIK TASARIM',
+      description: 'Işığın büyüsü ile atmosfer yaratan sanatçı',
+      color: Colors.yellow,
+    ),
+    TeamMember(
+      name: 'Murat Özkan',
+      role: 'SES TASARIM',
+      description: 'Sesle duyguları harekete geçiren teknisyen',
+      color: Colors.green,
+    ),
+  ];
+
+  final List<TeamMember> teamRow2 = const [
+    TeamMember(
+      name: 'Zeynep Yılmaz',
+      role: 'KOSTÜM TASARIM',
+      description: 'Karaktere ruh veren kostüm ustası',
+      color: Colors.purple,
+    ),
+    TeamMember(
+      name: 'Ali Vural',
+      role: 'OYUNCU',
+      description: 'Rolüne hayat veren güçlü oyunculuk',
+      color: Colors.orange,
+    ),
+    TeamMember(
+      name: 'Merve Yıldız',
+      role: 'OYUNCU',
+      description: 'Seyirciyle bağ kuran etkileyici sahne dili',
+      color: Colors.orange,
+    ),
+  ];
+
   @override
   Widget build(final BuildContext context) {
-    final team = [
-      {
-        'name': 'Mehmet Kaya',
-        'role': 'Kurucu & Sanat Yönetmeni',
-        'initials': 'MK',
-        'bio': '15 yıllık tiyatro deneyimi. İstanbul Devlet Tiyatrosu mezunu.',
-      },
-      {
-        'name': 'Ayşe Demir',
-        'role': 'Baş Oyuncu',
-        'initials': 'AD',
-        'bio': 'Sahne sanatları alanında 12 yıllık deneyim.',
-      },
-      {
-        'name': 'Zeynep Yılmaz',
-        'role': 'Dramatik Oyuncu',
-        'initials': 'ZY',
-        'bio': 'Tiyatro akademisi mezunu. Dramatik rollerdeki başarısı.',
-      },
-      {
-        'name': 'Emre Çelik',
-        'role': 'Yönetmen Asistanı',
-        'initials': 'EÇ',
-        'bio': 'Genç ve dinamik tiyatro insanı.',
-      },
-      {
-        'name': 'Deniz Öztürk',
-        'role': 'Sahne Tasarımcısı',
-        'initials': 'DO',
-        'bio': 'Güzel Sanatlar Akademisi mezunu.',
-      },
-      {
-        'name': 'Selin Kara',
-        'role': 'Kostüm & Makyaj',
-        'initials': 'SK',
-        'bio': 'Moda tasarımı kökenli sanatçı.',
-      },
-    ];
-
     return Padding(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(height: 40),
-          TeamIntroSection(),
-          CustomSectionTitle(title: 'Ekibimiz'),
-          SizedBox(height: 40),
-          LayoutBuilder(
-            builder: (final context, final constraints) {
-              final int crossAxisCount = constraints.maxWidth > 1000
-                  ? 3
-                  : constraints.maxWidth > 600
-                      ? 2
-                      : 1;
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 20,
-                  mainAxisSpacing: 20,
-                  childAspectRatio: 0.8,
-                ),
-                itemCount: team.length,
-                itemBuilder: (final context, final index) {
-                  return _buildTeamCard(team[index]);
-                },
-              );
-            },
+          const CustomSectionTitle(
+              title: 'SANATIMIZDAKİ RUHLAR',
+              textColor: Colors.amber,
+              fontSize: 50),
+          const SizedBox(height: 20),
+          Text(
+            'Her oyunun arkasında tutkulu bir hikaye, her karakterin içinde deneyimli bir sanatçı var',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.amber.shade600,
+              height: 1.6,
+            ),
           ),
+          const SizedBox(height: 40),
+
+          // İlk satır
+          _buildScrollableRow(teamRow1),
+
+          const SizedBox(height: 40),
+
+          // İkinci satır
+          _buildScrollableRow(teamRow2),
         ],
       ),
     );
   }
 
-  Widget _buildTeamCard(final Map<String, String> member) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-            color: AppWebLightColors.primaryGold.withOpacity(0.3), width: 1),
+  Widget _buildScrollableRow(final List<TeamMember> members) {
+    return SizedBox(
+      height: 320,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: members.length,
+        separatorBuilder: (final _, final __) => const SizedBox(width: 20),
+        itemBuilder: (final context, final index) {
+          return _TeamCard(member: members[index]);
+        },
       ),
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppWebLightColors.primaryGold, Color(0xFFf4d03f)],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  member['initials']!,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppWebLightColors.darkBlueBackground,
-                  ),
-                ),
-              ),
+    );
+  }
+}
+
+class TeamMember {
+  final String name;
+  final String role;
+  final String description;
+  final Color color;
+
+  const TeamMember({
+    required this.name,
+    required this.role,
+    required this.description,
+    required this.color,
+  });
+}
+
+class _TeamCard extends StatelessWidget {
+  final TeamMember member;
+
+  const _TeamCard({required this.member});
+
+  String _getInitials(final String name) {
+    final parts = name.split(' ');
+    final initials = parts.map((final e) => e.isNotEmpty ? e[0] : '').join();
+    return initials.toUpperCase();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final initials = _getInitials(member.name);
+
+    return Container(
+      width: 240,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.amber.shade400, width: 2),
+        boxShadow: [
+          // Üst ve yanlara hafif gölge
+          BoxShadow(
+            color: Colors.red.withOpacity(0.2),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 4),
+          ),
+          // Alt kısma ekstra güçlü gölge
+          BoxShadow(
+            color: Colors.red.withOpacity(0.3),
+            blurRadius: 24,
+            spreadRadius: 4,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Sarı daire ve baş harfler
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: Colors.amber.shade400,
+              shape: BoxShape.circle,
             ),
-            SizedBox(height: 16),
-            Text(
-              member['name']!,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppWebLightColors.whiteText,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8),
-            Text(
-              member['role']!,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppWebLightColors.primaryGold,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 12),
-            Expanded(
+            child: Center(
               child: Text(
-                member['bio']!,
-                style: TextStyle(
-                  color: AppWebLightColors.whiteText.withOpacity(0.9),
-                  height: 1.4,
+                initials,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 20),
+
+          // Rol etiketi
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: member.color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              member.role,
+              style: TextStyle(
+                color: member.color,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // İsim
+          Text(
+            member.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Açıklama
+          Text(
+            member.description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
       ),
     );
   }
