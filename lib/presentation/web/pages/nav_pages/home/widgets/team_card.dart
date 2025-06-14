@@ -19,6 +19,7 @@ class _TeamCardState extends State<TeamCard> {
   late final PlayerRemoteDataSourceImpl playerService;
   List<Player?> nowPlayerDataList = [];
   bool isLoading = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -39,9 +40,9 @@ class _TeamCardState extends State<TeamCard> {
       else
         print("No show found.");
     } catch (error) {
-      print('Error fetching shows: $error');
+      print('Error fetching shows: \$error');
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching shows: $error')));
+          SnackBar(content: Text('Error fetching shows: \$error')));
     } finally {
       setState(() {
         isLoading = false;
@@ -62,9 +63,25 @@ class _TeamCardState extends State<TeamCard> {
         });
       } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error fetching players: $error')));
+            SnackBar(content: Text('Error fetching players: \$error')));
       }
     }
+  }
+
+  void _scrollLeft() {
+    _scrollController.animateTo(
+      _scrollController.offset - 300,
+      duration: Duration(milliseconds: 500),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _scrollRight() {
+    _scrollController.animateTo(
+      _scrollController.offset + 300,
+      duration: Duration(milliseconds: 500),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -96,18 +113,31 @@ class _TeamCardState extends State<TeamCard> {
   Widget _buildScrollableRow() {
     return nowPlayerDataList.isNotEmpty
         ? SizedBox(
-            height: 320,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: nowPlayerDataList.length,
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                itemBuilder: (final context, final index) {
-                  return _TeamCard(member: nowPlayerDataList[index]);
-                },
-              ),
+            height: 340,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back_ios, color: Colors.amber),
+                  onPressed: _scrollLeft,
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: nowPlayerDataList.length,
+                    itemBuilder: (final context, final index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: _TeamCard(member: nowPlayerDataList[index]),
+                      );
+                    },
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.arrow_forward_ios, color: Colors.amber),
+                  onPressed: _scrollRight,
+                ),
+              ],
             ),
           )
         : const Center(
@@ -133,7 +163,7 @@ class _TeamCard extends StatelessWidget {
 
     return Container(
       width: 240,
-      height: 330,
+      height: 320,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.amber.shade400, width: 2),
@@ -158,14 +188,12 @@ class _TeamCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Siyah transparan katman
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               color: Colors.black.withOpacity(0.5),
             ),
           ),
-          // İçerik
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
