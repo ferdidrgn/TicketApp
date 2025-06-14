@@ -145,7 +145,6 @@ class _RightMenu extends StatelessWidget {
   final double headerSize;
 
   const _RightMenu({
-    super.key,
     required this.fontSize,
     required this.headerSize,
   });
@@ -153,30 +152,32 @@ class _RightMenu extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return SingleChildScrollView(
-      child: DefaultTextStyle(
-        style: TextStyle(fontSize: fontSize, color: Colors.black),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('SPIELPLAN',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: headerSize)),
-            const SizedBox(height: 4),
-            const Text(
-                'Yazan ANTON ÇEHOV\n\nUyarlayan ve Yöneten\nİSKENDER ATİLLA ATASOY'),
-            const Divider(height: 30),
-            Text('GORKI KIOSK',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: headerSize)),
-            const SizedBox(height: 4),
-            const Text(
-                'Yönetmen Yardımcı\nUĞUR KILIÇ-EBRU AKGÜN\n\nMakyaj\nDİALRA SEKMEN\n\nKostüm\nDERYA DİNÇER\n\n Işık\nSEYİT ÇOLAK\n\nAsistan\nDUYGU ŞAHİN'),
-            const Divider(height: 30),
-            Text(
-              'Oyuncular\n\nADEM SOY\nNEVZAT KAYAOKAY\nGÜRKAN CANDAN\nZEYNEP ÜĞÜDÜR\nSİTEM ARSLAN GENÇ\n...',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
+      child: Container(
+        height: MediaQuery.of(context).size.height,
+        child: DefaultTextStyle(
+          style: TextStyle(fontSize: fontSize, color: Colors.black),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('YAZAN - UYARLAYAN & YÖNETEN',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: headerSize)),
+              const SizedBox(height: 4),
+              const Text('ANTON ÇEHOV\n\nİSKENDER ATİLLA ATASOY'),
+              const Divider(height: 30),
+              Text('CAST',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: headerSize)),
+              const SizedBox(height: 4),
+              const Text(
+                  'Yönetmen Yardımcı\nUĞUR KILIÇ-EBRU AKGÜN\n\nMakyaj\nDİALRA SEKMEN\n\nKostüm\nDERYA DİNÇER\n\n Işık\nSEYİT ÇOLAK\n\nAsistan\nDUYGU ŞAHİN'),
+              const Divider(height: 30),
+              Text(
+                'Oyuncular\n\nADEM SOY\nNEVZAT KAYAOKAY\nGÜRKAN CANDAN\nZEYNEP ÜĞÜDÜR\nSİTEM ARSLAN GENÇ\n...',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       ),
     );

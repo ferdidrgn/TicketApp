@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/widgets/custom_title.dart';
-import 'widgets/kurtar_beni_doktor_landing.dart';
+import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/goz_kap_vaz_yap_landing.dart';
+import '../home/widgets/kurtar_beni_doktor_landing.dart';
 
 class ShowsPage extends StatelessWidget {
   const ShowsPage({super.key});
@@ -11,8 +11,7 @@ class ShowsPage extends StatelessWidget {
       padding: EdgeInsets.all(20),
       child: Column(
         children: [
-          SizedBox(height: 40),
-          CustomSectionTitle(title: 'Oyunlarımız', textColor: Colors.yellow),
+          const GozYapVazYapLanding(),
           SizedBox(height: 40),
           const KurtarBeniDoktorLanding(),
         ],
