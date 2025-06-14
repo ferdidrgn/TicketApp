@@ -27,7 +27,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
     'Oyunlarımız',
     'Hakkımızda',
     'Ekibimiz',
-    'Sanat Kürasyon',
+    'Kürasyon',
     'İletişim',
   ];
 
@@ -125,8 +125,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
               Row(
                 children: const [
                   Text('🎭',
-                      style:
-                          TextStyle(fontSize: 24, color: Colors.amber)),
+                      style: TextStyle(fontSize: 24, color: Colors.amber)),
                   SizedBox(width: 8),
                   Text(
                     'Sahne Sanatları',
