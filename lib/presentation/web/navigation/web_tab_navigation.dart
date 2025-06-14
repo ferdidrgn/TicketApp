@@ -124,7 +124,9 @@ class _WebTabNavigationState extends State<WebTabNavigation>
               // Logo + Başlık
               Row(
                 children: const [
-                  Text('🎭', style: TextStyle(fontSize: 24)),
+                  Text('🎭',
+                      style:
+                          TextStyle(fontSize: 24, color: Colors.amber)),
                   SizedBox(width: 8),
                   Text(
                     'Sahne Sanatları',

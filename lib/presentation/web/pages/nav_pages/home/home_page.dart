@@ -40,7 +40,7 @@ class HomePage extends StatelessWidget {
             child: Text(
               '"Hikayelerimizle kalplere dokunuyor,\nsanatla hayata anlam katıyoruz"',
               style: TextStyle(
-                fontSize: 25,
+                fontSize: 30,
                 color: AppWebLightColors.whiteText.withOpacity(0.9),
               ),
             ),
