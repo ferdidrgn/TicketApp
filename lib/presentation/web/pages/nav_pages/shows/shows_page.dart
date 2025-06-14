@@ -12,9 +12,11 @@ class ShowsPage extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(height: 40),
-          CustomSectionTitle(title: 'Oyunlarımız'),
+          CustomSectionTitle(title: 'Oyunlarımız', textColor: Colors.yellow),
           SizedBox(height: 40),
           const KurtarBeniDoktorLanding(),
-        ],),);
+        ],
+      ),
+    );
   }
 }
