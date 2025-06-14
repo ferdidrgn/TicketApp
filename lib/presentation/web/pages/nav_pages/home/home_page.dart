@@ -57,12 +57,6 @@ class HomePage extends StatelessWidget {
           const KurtarBeniDoktorLanding(),
           GozYapVazYapLanding(),
 
-          Container(
-            color: Colors.white,
-            width: double.infinity,
-            child: const SizedBox(height: 20),
-          ),
-
           // Hakkımızda
           AboutCard(key: aboutKey),
 
