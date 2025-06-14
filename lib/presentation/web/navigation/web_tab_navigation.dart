@@ -3,7 +3,7 @@ import '../../../core/theme/app_theme.dart';
 import '../pages/nav_pages/about/about_page.dart';
 import '../pages/nav_pages/content/content_page.dart';
 import '../pages/nav_pages/home/home_page.dart';
-import '../pages/nav_pages/player/players_page.dart';
+import '../pages/nav_pages/shows/shows_page.dart';
 import '../pages/nav_pages/team/team_page.dart';
 
 class WebTabNavigation extends StatefulWidget {
@@ -206,7 +206,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
       case 0:
         return HomePage();
       case 1:
-        return PlayersPage();
+        return ShowsPage();
       case 2:
         return TeamPage();
       case 3:

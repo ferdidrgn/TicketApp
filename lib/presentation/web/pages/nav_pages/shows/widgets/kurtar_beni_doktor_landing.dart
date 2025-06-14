@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class GorkiLanding extends StatelessWidget {
-  const GorkiLanding({super.key});
+class KurtarBeniDoktorLanding extends StatelessWidget {
+  const KurtarBeniDoktorLanding({super.key});
 
   @override
   Widget build(final BuildContext context) {
@@ -27,7 +27,7 @@ class GorkiLanding extends StatelessWidget {
             child: RotatedBox(
               quarterTurns: 3,
               child: Text(
-                'ALL PLAYS WITH\nENGLISH SUBTITLES',
+                'PRÖMİYERİMİZ\n“Yalnızlık bazen en iyi doktordur; insan kendini o zaman daha iyi tanır.”',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.grey.shade500,
@@ -54,7 +54,7 @@ class GorkiLanding extends StatelessWidget {
                   top: 40,
                   left: 40,
                   child: Text(
-                    'GORKI',
+                    'KURTAR BENİ DOKTOR',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 64,
@@ -67,7 +67,7 @@ class GorkiLanding extends StatelessWidget {
                   bottom: 30,
                   left: 30,
                   child: Text(
-                    'BÜHNENSCHIMPF\n(ÜBERE ICH ES NICHT)',
+                    'KADIKÖY\n(İSTANBUL)',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -81,7 +81,7 @@ class GorkiLanding extends StatelessWidget {
 
           // Sağ Menü
           Container(
-            width: 160,
+            width: 200,
             color: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 12),
             child: Column(
@@ -92,17 +92,17 @@ class GorkiLanding extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                const Text('Zur Programmübersicht'),
+                const Text('Yazan ANTON ÇEHOV\n\nUyarlayan ve Yöneten\nİSKENDER ATİLLA ATASOY'),
                 const Divider(height: 30),
                 Text(
                   'GORKI KIOSK',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                const Text('Theaterkasse, Merchshop & Lounge'),
+                const Text('Yönetmen Yardımcı\nUĞUR KILIÇ-EBRU AKGÜN\n\nMakyaj\nDİALRA SEKMEN\n\nKostüm\nDERYA DİNÇER\n\n Işık\nSEYİT ÇOLAK\n\nAsistan\nDUYGU ŞAHİN'),
                 const Divider(height: 30),
                 Text(
-                  'CAN DÜNDARS\nTHEATER\nKOLUMNE',
+                  'Oyuncular\n\nADEM SOY\nNEVZAT KAYAOKAY\nGÜRKAN CANDAN\nZEYNEP ÜĞÜDÜR\nSİTEM ARSLAN GENÇ\n...',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],

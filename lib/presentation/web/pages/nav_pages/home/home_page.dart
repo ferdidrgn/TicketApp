@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/gorki_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/hero_video_section.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_landing.dart';
+import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_news_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
+import 'package:ticketapp/presentation/web/pages/nav_pages/shows/widgets/kurtar_beni_doktor_landing.dart';
 import '../../../../../core/theme/app_theme.dart';
 
 class HomePage extends StatelessWidget {
@@ -28,9 +28,9 @@ class HomePage extends StatelessWidget {
           const SizedBox(height: 40),
           ShowsSection(),
           const SizedBox(height: 40),
-          MetaforLanding(),
+          MetaforNewsLanding(),
           const SizedBox(height: 40),
-          const GorkiLanding(),
+          const KurtarBeniDoktorLanding(),
           const SizedBox(height: 50),
         ],
       ),

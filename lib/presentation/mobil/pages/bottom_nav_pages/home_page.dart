@@ -92,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final id = url.split('/').last;
     Widget detailPage;
 
-    if (url.contains('player'))
+    if (url.contains('shows'))
       detailPage = PlayerDetailPage(playerId: id);
     else if (url.contains('stage'))
       detailPage = StageDetailPage(stageId: id);
