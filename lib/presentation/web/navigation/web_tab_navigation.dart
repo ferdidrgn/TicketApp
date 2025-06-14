@@ -102,6 +102,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
   // ---------------- HEADER ----------------
   Widget _buildHeader() {
     return SliverAppBar(
+      automaticallyImplyLeading: false,
       expandedHeight: 0,
       floating: true,
       pinned: true,
@@ -175,7 +176,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
             final bool isActive = currentTab == index;
 
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: _buildNavButton(title, index, isActive),
             );
           }).toList(),
@@ -207,7 +208,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
         child: Text(
           title,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             letterSpacing: 1,
           ),
