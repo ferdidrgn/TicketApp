@@ -1,16 +1,20 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/widgets/shimmer.dart';
+import '../../../../../../data/providers/show/show_provider.dart';
 import '../../../../../../domain/entities/show.dart';
 
-class TheaterGamesSlider extends StatefulWidget {
-  final List<Show> shows;
-
-  const TheaterGamesSlider({super.key, required this.shows});
+class WebTheaterGamesSection extends ConsumerStatefulWidget {
+  const WebTheaterGamesSection({super.key});
 
   @override
-  State<TheaterGamesSlider> createState() => _TheaterGamesSliderState();
+  ConsumerState<WebTheaterGamesSection> createState() =>
+      _WebTheaterGamesSectionState();
 }
 
-class _TheaterGamesSliderState extends State<TheaterGamesSlider> {
+class _WebTheaterGamesSectionState
+    extends ConsumerState<WebTheaterGamesSection> {
   final ScrollController _scrollController = ScrollController();
 
   void _scrollLeft() {
@@ -30,7 +34,34 @@ class _TheaterGamesSliderState extends State<TheaterGamesSlider> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      ref.read(showProvider.notifier).loadShows(true);
+    });
+  }
+
+  @override
   Widget build(final BuildContext context) {
+    final showState = ref.watch(showProvider);
+
+    if (showState.isLoading)
+      return const ShimmerLoading();
+    else if (showState.hasError) {
+      return Center(
+        child: Text(
+          showState.errorMessage ?? 'Bir hata oluştu',
+          style: const TextStyle(color: Colors.red),
+          textAlign: TextAlign.center,
+        ),
+      );
+    } else if (showState.isListEmpty)
+      return const Center(
+        child: Text('Gösteri verisi bulunamadı.'),
+      );
+
+    final shows = showState.dataList!.cast<Show>();
+
     return Stack(
       children: [
         SizedBox(
@@ -39,14 +70,13 @@ class _TheaterGamesSliderState extends State<TheaterGamesSlider> {
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 60),
-            itemCount: widget.shows.length,
+            itemCount: shows.length,
             separatorBuilder: (final _, final __) => const SizedBox(width: 20),
             itemBuilder: (final _, final index) {
-              final show = widget.shows[index];
-              return tasarimWeb(
-                show.imageUrl ?? '',
-                show.name ?? '',
-                show.description ?? '',
+              final show = shows[index];
+              return _ShowCard(
+                imageUrl: show.imageUrl ?? '',
+                gameName: show.name ?? '',
               );
             },
           ),
@@ -70,15 +100,25 @@ class _TheaterGamesSliderState extends State<TheaterGamesSlider> {
       ],
     );
   }
+}
 
+class _ShowCard extends StatelessWidget {
+  final String imageUrl;
+  final String gameName;
 
-  Widget tasarimWeb(final String imageUrl,final String gameName, final String desc){
+  const _ShowCard({
+    required this.imageUrl,
+    required this.gameName,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
     return Container(
       width: 240,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         image: DecorationImage(
-          image: NetworkImage(imageUrl),
+          image: CachedNetworkImageProvider(imageUrl),
           fit: BoxFit.cover,
         ),
       ),
@@ -103,6 +143,8 @@ class _TheaterGamesSliderState extends State<TheaterGamesSlider> {
               Shadow(color: Colors.black, blurRadius: 6),
             ],
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

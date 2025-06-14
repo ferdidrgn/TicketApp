@@ -34,7 +34,8 @@ class _WebTabNavigationState extends State<WebTabNavigation>
     _glowController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
-    )..repeat(reverse: true);
+    )
+      ..repeat(reverse: true);
 
     _scrollController.addListener(() {
       setState(() {
@@ -132,22 +133,27 @@ class _WebTabNavigationState extends State<WebTabNavigation>
           return PopupMenuButton<int>(
             icon: const Icon(Icons.menu, color: AppWebLightColors.primaryGold),
             onSelected: (final index) => setState(() => currentTab = index),
-            itemBuilder: (final context) => tabTitles
-                .asMap()
-                .entries
-                .map(
-                  (final entry) => PopupMenuItem<int>(
-                    value: entry.key,
-                    child: Text(entry.value),
-                  ),
+            itemBuilder: (final context) =>
+                tabTitles
+                    .asMap()
+                    .entries
+                    .map(
+                      (final entry) =>
+                      PopupMenuItem<int>(
+                        value: entry.key,
+                        child: Text(entry.value),
+                      ),
                 )
-                .toList(),
+                    .toList(),
           );
         }
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: tabTitles.asMap().entries.map((final entry) {
+          children: tabTitles
+              .asMap()
+              .entries
+              .map((final entry) {
             final int index = entry.key;
             final String title = entry.value;
             final bool isActive = currentTab == index;
@@ -162,20 +168,20 @@ class _WebTabNavigationState extends State<WebTabNavigation>
     );
   }
 
-  Widget _buildNavButton(
-      final String title, final int index, final bool isActive) {
+  Widget _buildNavButton(final String title, final int index,
+      final bool isActive) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       child: ElevatedButton(
         onPressed: () => setState(() => currentTab = index),
         style: ElevatedButton.styleFrom(
           backgroundColor:
-              isActive ? AppWebLightColors.primaryGold : Colors.transparent,
+          isActive ? AppWebLightColors.primaryGold : Colors.transparent,
           foregroundColor: isActive
               ? AppWebLightColors.darkBlueBackground
               : AppWebLightColors.primaryGold,
           side:
-              const BorderSide(color: AppWebLightColors.primaryGold, width: 2),
+          const BorderSide(color: AppWebLightColors.primaryGold, width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
@@ -198,13 +204,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
   Widget _buildTabContent() {
     switch (currentTab) {
       case 0:
-        return HomePage(
-          onDiscoverPlays: () {
-            setState(() {
-              currentTab = 1;
-            });
-          },
-        );
+        return HomePage();
       case 1:
         return PlayersPage();
       case 2:
@@ -214,13 +214,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
       case 4:
         return ContentPage();
       default:
-        return HomePage(
-          onDiscoverPlays: () {
-            setState(() {
-              currentTab = 1;
-            });
-          },
-        );
+        return HomePage();
     }
   }
 

@@ -89,7 +89,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.theaters, size: 60, color: Colors.white),
+                  const Icon(Icons.theater_comedy_rounded, size: 60, color: Colors.white),
                   const SizedBox(height: 16),
                   AnimatedTitle(
                     glowAnimation: _glowAnimation,

@@ -1,8 +1,8 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import '../pages/bottom_nav_pages/discovery_page.dart';
-import '../pages/bottom_nav_pages/home_screen.dart';
-import '../pages/bottom_nav_pages/nearby_events.dart';
+import '../pages/bottom_nav_pages/home_page.dart';
+import '../pages/bottom_nav_pages/nearby_events_page.dart';
 import '../pages/bottom_nav_pages/profile_page.dart';
 
 class BottomNavBar extends StatefulWidget {
