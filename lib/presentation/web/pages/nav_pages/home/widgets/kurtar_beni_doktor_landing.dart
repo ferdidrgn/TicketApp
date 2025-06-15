@@ -17,6 +17,23 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
+          // Başlık
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            color: Colors.black,
+            child: Text(
+              'KURTAR BENİ DOKTOR',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
           // Ana görsel bölümü
           Container(
             height: MediaQuery.of(context).size.height * 0.6,
@@ -26,7 +43,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
                 Positioned.fill(
                   child: Image.network(
                     'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
-                    fit: BoxFit.contain,
+                    fit: BoxFit.fill,
                     errorBuilder:
                         (final context, final error, final stackTrace) {
                       return Container(
@@ -38,81 +55,49 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
                     },
                   ),
                 ),
-                // Gradient overlay for better text readability
-                Positioned.fill(
+
+                // Sevgili Doktor yazısı - sol tarafta
+                Positioned(
+                  right: 10,
                   child: Container(
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.3),
-                          Colors.black.withOpacity(0.6),
-                        ],
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'SEVGİLİ DOKTOR\n"Yalnızlık bazen en iyi doktordur;\ninsan kendini o zaman daha iyi tanır."',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
                       ),
                     ),
                   ),
                 ),
+
                 Positioned(
-                  top: 40,
+                  bottom: 20,
                   left: 20,
-                  right: 20,
-                  child: Text(
-                    'KURTAR BENİ DOKTOR',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(1, 1),
-                          blurRadius: 3,
-                          color: Colors.black.withOpacity(0.7),
-                        ),
-                      ],
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                Positioned(
-                  bottom: 30,
-                  left: 20,
-                  child: Text(
-                    'KADIKÖY\n(İSTANBUL)',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(1, 1),
-                          blurRadius: 3,
-                          color: Colors.black.withOpacity(0.7),
-                        ),
-                      ],
+                    child: Text(
+                      'KADIKÖY\n(İSTANBUL)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ],
-            ),
-          ),
-
-          // Prömiyerimiz bölümü
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            color: Colors.grey.shade100,
-            child: Text(
-              'PRÖMİYERİMİZ\n"Yalnızlık bazen en iyi doktordur; insan kendini o zaman daha iyi tanır."',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 14,
-                fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
             ),
           ),
 
