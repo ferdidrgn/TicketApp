@@ -56,11 +56,13 @@ class _WebTabNavigationState extends State<WebTabNavigation>
   void _scrollTo(final GlobalKey key) {
     final ctx = key.currentContext;
     if (ctx != null) {
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((final _) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      });
     }
   }
 
@@ -81,6 +83,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
         ),
         child: CustomScrollView(
           controller: _scrollController,
+          key: const PageStorageKey('WebHomeScroll'),
           slivers: [
             _buildHeader(),
             SliverToBoxAdapter(
@@ -242,6 +245,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
         break;
       case 4:
         _scrollTo(_artisticKey);
+        break;
       case 5:
         _scrollTo(_contactKey);
         break;

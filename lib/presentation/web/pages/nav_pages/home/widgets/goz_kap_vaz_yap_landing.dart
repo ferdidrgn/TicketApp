@@ -142,24 +142,27 @@ class GozYapVazYapLanding extends StatelessWidget {
           ),
           Expanded(
             flex: 3,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.purple.shade800,
-                    Colors.indigo.shade900,
-                  ],
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.purple.shade800,
+                      Colors.indigo.shade900,
+                    ],
+                  ),
                 ),
-              ),
-              child: const _TextSection(
-                title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
-                location: '1889 SES TİYATROSU\n(TAKSİM)',
-                fontSize: 14,
-                headerSize: 16,
-                textColor: Colors.white,
+                child: const _TextSection(
+                  title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
+                  location: '1889 SES TİYATROSU\n(TAKSİM)',
+                  fontSize: 14,
+                  headerSize: 16,
+                  textColor: Colors.white,
+                ),
               ),
             ),
           ),
