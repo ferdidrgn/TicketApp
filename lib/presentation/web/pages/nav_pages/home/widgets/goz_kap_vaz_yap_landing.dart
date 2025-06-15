@@ -23,62 +23,56 @@ class GozYapVazYapLanding extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Başlık bölümü
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.purple.shade800,
-                  Colors.indigo.shade900,
-                ],
+          Stack(
+            children: [
+              // Ana görsel
+              Container(
+                height: MediaQuery.of(context).size.height * 0.4,
+                width: double.infinity,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.none,
+                  errorBuilder: (final context, final error, final stackTrace) {
+                    return Container(
+                      color: Colors.grey.shade300,
+                      child: const Center(
+                        child: Icon(Icons.image_not_supported, size: 50),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                  textAlign: TextAlign.center,
+              Container(
+                width: double.infinity,
+                color: Colors.black.withOpacity(0.5),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  children: [
+                    Text(
+                      'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.1,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '1889 SES TİYATROSU\n(TAKSİM)',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  '1889 SES TİYATROSU\n(TAKSİM)',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-
-          // Ana görsel
-          Container(
-            height: MediaQuery.of(context).size.height * 0.4,
-            width: double.infinity,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (final context, final error, final stackTrace) {
-                return Container(
-                  color: Colors.grey.shade300,
-                  child: const Center(
-                    child: Icon(Icons.image_not_supported, size: 50),
-                  ),
-                );
-              },
-            ),
+              ),
+            ],
           ),
 
           // İçerik bölümü
@@ -104,7 +98,7 @@ class GozYapVazYapLanding extends StatelessWidget {
             width: double.infinity,
             child: Image.network(
               'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27',
-              fit: BoxFit.cover,
+              fit: BoxFit.none,
               errorBuilder: (final context, final error, final stackTrace) {
                 return Container(
                   color: Colors.grey.shade300,
@@ -260,7 +254,7 @@ class _MobileTextSection extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return DefaultTextStyle(
-      style: const TextStyle(fontSize: 14, color: Colors.black87),
+      style: const TextStyle(fontSize: 14, color: Colors.white),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -269,7 +263,7 @@ class _MobileTextSection extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
-              color: Colors.black,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 20),
@@ -293,22 +287,11 @@ class _MobileTextSection extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: Colors.black,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 12),
           _buildCrewSection(),
-          const SizedBox(height: 24),
-          const Text(
-            'OYUNCULAR',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildActorsList(),
         ],
       ),
     );
@@ -329,32 +312,7 @@ class _MobileTextSection extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   item,
-                  style: const TextStyle(color: Colors.black54, height: 1.3),
-                ),
-              ))
-          .toList(),
-    );
-  }
-
-  Widget _buildActorsList() {
-    final actors = [
-      'SELİN GÜL',
-      'DENİZ KORKMAZ',
-      'MERT AYDIN',
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: actors
-          .map((final actor) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  actor,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                    fontSize: 15,
-                  ),
+                  style: const TextStyle(color: Colors.white, height: 1.3),
                 ),
               ))
           .toList(),
