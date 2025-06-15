@@ -25,7 +25,7 @@ class GozYapVazYapLanding extends StatelessWidget {
         children: [
           Stack(
             children: [
-              // Ana görsel
+              // Main image
               Container(
                 height: MediaQuery.of(context).size.height * 0.4,
                 width: double.infinity,
@@ -75,7 +75,7 @@ class GozYapVazYapLanding extends StatelessWidget {
             ],
           ),
 
-          // İçerik bölümü
+          // Content section
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -92,7 +92,7 @@ class GozYapVazYapLanding extends StatelessWidget {
             child: _MobileTextSection(),
           ),
 
-          // Alt görsel
+          // Bottom image
           Container(
             height: MediaQuery.of(context).size.height * 0.3,
             width: double.infinity,
@@ -144,7 +144,8 @@ class GozYapVazYapLanding extends StatelessWidget {
             flex: 3,
             child: SingleChildScrollView(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
                 height: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -234,7 +235,7 @@ class _TextSection extends StatelessWidget {
               "Haldun Taner'in bu iki perdelik oyunu, Türkiye'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.\n\nİki çocukluk arkadaşı olan baş karakterlerden Vicdani, saf, iyi niyetli, dürüst ve uysal bir kişiliğe sahipken; Efruz ise köşe dönücü, iş bitirici ve fırsatçı biridir.\n\nOyun, bu karakterler üzerinden devleti sömürenler ile devlete itaat edenler arasındaki dengesizliği gözler önüne seriyor",
             ),
             const SizedBox(height: 20),
-            Divider(color: textColor.withOpacity(0.5)),
+            Divider(color: Colors.white.withOpacity(0.5)),
             const SizedBox(height: 16),
             const Text(
               'KADRO\n\n'
