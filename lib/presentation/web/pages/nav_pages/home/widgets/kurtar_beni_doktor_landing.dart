@@ -8,134 +8,212 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    return LayoutBuilder(
-      builder: (final context, final constraints) {
-        final width = constraints.maxWidth;
-        final height = width / (isMobile ? 0.7 : 1.8);
+    return isMobile
+        ? _buildMobileLayout(context)
+        : _buildDesktopLayout(context);
+  }
 
-        return SizedBox(
-          height: height,
-          child: isMobile
-              ? Column(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Image.network(
-                              'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 32,
-                            left: 20,
-                            child: Text(
-                              'KURTAR BENİ DOKTOR',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 24,
-                            left: 20,
-                            child: Text(
-                              'KADIKÖY\n(İSTANBUL)',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: _RightMenu(fontSize: 14, headerSize: 16),
-                    )
-                  ],
-                )
-              : Row(
-                  children: [
-                    Container(
-                      width: width * 0.04,
-                      color: Colors.grey.shade100,
-                      alignment: Alignment.center,
-                      child: RotatedBox(
-                        quarterTurns: 3,
-                        child: Text(
-                          'PRÖMİYERİMİZ\n“Yalnızlık bazen en iyi doktordur; insan kendini o zaman daha iyi tanır.”',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.1,
-                          ),
+  Widget _buildMobileLayout(final BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Ana görsel bölümü
+          Container(
+            height: MediaQuery.of(context).size.height * 0.6,
+            width: double.infinity,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.network(
+                    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
+                    fit: BoxFit.contain,
+                    errorBuilder:
+                        (final context, final error, final stackTrace) {
+                      return Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported, size: 50),
                         ),
-                      ),
-                    ),
-                    // Orta görsel
-                    Expanded(
-                      flex: 3,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Image.network(
-                              'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const Positioned(
-                            top: 40,
-                            left: 40,
-                            child: Text(
-                              'KURTAR BENİ DOKTOR',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 48,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ),
-                          const Positioned(
-                            bottom: 30,
-                            left: 30,
-                            child: Text(
-                              'KADIKÖY\n(İSTANBUL)',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                      );
+                    },
+                  ),
+                ),
+                // Gradient overlay for better text readability
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.3),
+                          Colors.black.withOpacity(0.6),
                         ],
                       ),
                     ),
-                    // Sağ Menü
-                    Container(
-                      width: width * 0.10,
-                      color: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 40,
-                        horizontal: 12,
-                      ),
-                      child: const _RightMenu(fontSize: 14, headerSize: 16),
-                    )
-                  ],
+                  ),
                 ),
-        );
-      },
+                Positioned(
+                  top: 40,
+                  left: 20,
+                  right: 20,
+                  child: Text(
+                    'KURTAR BENİ DOKTOR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(1, 1),
+                          blurRadius: 3,
+                          color: Colors.black.withOpacity(0.7),
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Positioned(
+                  bottom: 30,
+                  left: 20,
+                  child: Text(
+                    'KADIKÖY\n(İSTANBUL)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(1, 1),
+                          blurRadius: 3,
+                          color: Colors.black.withOpacity(0.7),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Prömiyerimiz bölümü
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            color: Colors.grey.shade100,
+            child: Text(
+              'PRÖMİYERİMİZ\n"Yalnızlık bazen en iyi doktordur; insan kendini o zaman daha iyi tanır."',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
+          ),
+
+          // İçerik bölümü
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            color: Colors.white,
+            child: _MobileRightMenu(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout(final BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+
+    return SizedBox(
+      height: height,
+      child: Row(
+        children: [
+          Container(
+            width: width * 0.04,
+            color: Colors.grey.shade100,
+            alignment: Alignment.center,
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: Text(
+                'PRÖMİYERİMİZ\n"Yalnızlık bazen en iyi doktordur; insan kendini o zaman daha iyi tanır."',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ),
+          ),
+          // Orta görsel
+          Expanded(
+            flex: 3,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.network(
+                    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (final context, final error, final stackTrace) {
+                      return Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported, size: 100),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const Positioned(
+                  top: 40,
+                  left: 40,
+                  child: Text(
+                    'KURTAR BENİ DOKTOR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  bottom: 30,
+                  left: 30,
+                  child: Text(
+                    'KADIKÖY\n(İSTANBUL)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Sağ Menü
+          Container(
+            width: width * 0.10,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              vertical: 40,
+              horizontal: 12,
+            ),
+            child: const _RightMenu(fontSize: 14, headerSize: 16),
+          )
+        ],
+      ),
     );
   }
 }
@@ -170,16 +248,129 @@ class _RightMenu extends StatelessWidget {
                       fontWeight: FontWeight.bold, fontSize: headerSize)),
               const SizedBox(height: 4),
               const Text(
-                  'Yönetmen Yardımcı\nUĞUR KILIÇ-EBRU AKGÜN\n\nMakyaj\nDİALRA SEKMEN\n\nKostüm\nDERYA DİNÇER\n\n Işık\nSEYİT ÇOLAK\n\nAsistan\nDUYGU ŞAHİN'),
+                  'Yönetmen Yardımcı\nUĞUR KILIÇ-EBRU AKGÜN\n\nMakyaj\nDİALRA SEKMEN\n\nKostüm\nDERYA DİNÇER\n\nIşık\nSEYİT ÇOLAK\n\nAsistan\nDUYGU ŞAHİN'),
               const Divider(height: 30),
               Text(
-                'Oyuncular\n\nADEM SOY\nNEVZAT KAYAOKAY\nGÜRKAN CANDAN\nZEYNEP ÜĞÜDÜR\nSİTEM ARSLAN GENÇ\n...',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'Oyuncular',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: headerSize),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'ADEM SOY\nNEVZAT KAYAOKAY\nGÜRKAN CANDAN\nZEYNEP ÜĞÜDÜR\nSİTEM ARSLAN GENÇ\n...',
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MobileRightMenu extends StatelessWidget {
+  @override
+  Widget build(final BuildContext context) {
+    return DefaultTextStyle(
+      style: const TextStyle(fontSize: 14, color: Colors.black),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'YAZAN - UYARLAYAN & YÖNETEN',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'ANTON ÇEHOV\n\nİSKENDER ATİLLA ATASOY',
+            style: TextStyle(height: 1.4),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'CAST',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildCastSection('Yönetmen Yardımcı', 'UĞUR KILIÇ - EBRU AKGÜN'),
+          _buildCastSection('Makyaj', 'DİALRA SEKMEN'),
+          _buildCastSection('Kostüm', 'DERYA DİNÇER'),
+          _buildCastSection('Işık', 'SEYİT ÇOLAK'),
+          _buildCastSection('Asistan', 'DUYGU ŞAHİN'),
+          const SizedBox(height: 24),
+          const Text(
+            'OYUNCULAR',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildActorsList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCastSection(final String title, final String name) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            name,
+            style: const TextStyle(
+              color: Colors.black54,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActorsList() {
+    final actors = [
+      'ADEM SOY',
+      'NEVZAT KAYAOKAY',
+      'GÜRKAN CANDAN',
+      'ZEYNEP ÜĞÜDÜR',
+      'SİTEM ARSLAN GENÇ',
+      '...',
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: actors
+          .map((final actor) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  actor,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                    height: 1.3,
+                  ),
+                ),
+              ))
+          .toList(),
     );
   }
 }
