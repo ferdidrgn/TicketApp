@@ -35,7 +35,12 @@ class _WebTheaterGamesSectionState extends ConsumerState<ShowsSection> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      ref.read(showProvider.notifier).loadShows(true);
+      final state = ref.read(showProvider);
+      if (!state.isLoading && state.dataList == null) {
+        ref
+            .read(showProvider.notifier)
+            .loadShows(false);
+      }
     });
   }
 
