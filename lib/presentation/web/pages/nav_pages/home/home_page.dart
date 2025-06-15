@@ -7,7 +7,6 @@ import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/kurtar_b
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
-
 import '../../../../../core/theme/app_theme.dart';
 
 class HomePage extends StatelessWidget {
