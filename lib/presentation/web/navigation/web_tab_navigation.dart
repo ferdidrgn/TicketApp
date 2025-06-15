@@ -56,13 +56,11 @@ class _WebTabNavigationState extends State<WebTabNavigation>
   void _scrollTo(final GlobalKey key) {
     final ctx = key.currentContext;
     if (ctx != null) {
-      WidgetsBinding.instance.addPostFrameCallback((final _) {
-        Scrollable.ensureVisible(
-          ctx,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      });
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
