@@ -128,7 +128,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
             child: RotatedBox(
               quarterTurns: 3,
               child: Text(
-                'PRÖMİYERİMİZ\n"Yalnızlık bazen en iyi doktordur; insan kendini o zaman daha iyi tanır."',
+                'SEVGİLİ DOKTOR\n"Yalnızlık bazen en iyi doktordur; insan kendini o zaman daha iyi tanır."',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.grey.shade500,
