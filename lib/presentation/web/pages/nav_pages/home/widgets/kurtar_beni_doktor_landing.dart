@@ -20,13 +20,13 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
           // Başlık
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
             color: Colors.black,
             child: Text(
               'KURTAR BENİ DOKTOR',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 24,
+                fontSize: 22, // Font size reduced
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
               ),
@@ -60,7 +60,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
                 Positioned(
                   right: 10,
                   child: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(6), // Padding reduced
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(8),
@@ -69,10 +69,11 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
                       'SEVGİLİ DOKTOR\n"Yalnızlık bazen en iyi doktordur;\ninsan kendini o zaman daha iyi tanır."',
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 12,
+                        fontSize: 10,
+                        // Font size reduced
                         fontStyle: FontStyle.italic,
                         fontWeight: FontWeight.w500,
-                        height: 1.4,
+                        height: 1.3, // Line height adjusted
                       ),
                     ),
                   ),
@@ -82,7 +83,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
                   bottom: 20,
                   left: 20,
                   child: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(6), // Padding reduced
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(4),
@@ -91,7 +92,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
                       'KADIKÖY\n(İSTANBUL)',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 14, // Font size reduced
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -104,7 +105,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
           // İçerik bölümü
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(15), // Padding reduced
             color: Colors.white,
             child: _MobileRightMenu(),
           ),
@@ -225,13 +226,13 @@ class _RightMenu extends StatelessWidget {
               Text('YAZAN - UYARLAYAN & YÖNETEN',
                   style: TextStyle(
                       fontWeight: FontWeight.bold, fontSize: headerSize)),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2), // Spacing reduced
               const Text('ANTON ÇEHOV\n\nİSKENDER ATİLLA ATASOY'),
               const Divider(height: 30),
               Text('CAST',
                   style: TextStyle(
                       fontWeight: FontWeight.bold, fontSize: headerSize)),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2), // Spacing reduced
               const Text(
                   'Yönetmen Yardımcı\nUĞUR KILIÇ-EBRU AKGÜN\n\nMakyaj\nDİALRA SEKMEN\n\nKostüm\nDERYA DİNÇER\n\nIşık\nSEYİT ÇOLAK\n\nAsistan\nDUYGU ŞAHİN'),
               const Divider(height: 30),
@@ -240,7 +241,7 @@ class _RightMenu extends StatelessWidget {
                 style: TextStyle(
                     fontWeight: FontWeight.bold, fontSize: headerSize),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 2), // Spacing reduced
               const Text(
                 'ADEM SOY\nNEVZAT KAYAOKAY\nGÜRKAN CANDAN\nZEYNEP ÜĞÜDÜR\nSİTEM ARSLAN GENÇ\n...',
                 style: TextStyle(fontWeight: FontWeight.w500),
@@ -269,12 +270,12 @@ class _MobileRightMenu extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8), // Spacing reduced
           const Text(
             'ANTON ÇEHOV\n\nİSKENDER ATİLLA ATASOY',
-            style: TextStyle(height: 1.4),
+            style: TextStyle(height: 1.3), // Line height adjusted
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Spacing reduced
           const Text(
             'CAST',
             style: TextStyle(
@@ -283,13 +284,13 @@ class _MobileRightMenu extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8), // Spacing reduced
           _buildCastSection('Yönetmen Yardımcı', 'UĞUR KILIÇ - EBRU AKGÜN'),
           _buildCastSection('Makyaj', 'DİALRA SEKMEN'),
           _buildCastSection('Kostüm', 'DERYA DİNÇER'),
           _buildCastSection('Işık', 'SEYİT ÇOLAK'),
           _buildCastSection('Asistan', 'DUYGU ŞAHİN'),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Spacing reduced
           const Text(
             'OYUNCULAR',
             style: TextStyle(
@@ -298,7 +299,7 @@ class _MobileRightMenu extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8), // Spacing reduced
           _buildActorsList(),
         ],
       ),
@@ -307,7 +308,7 @@ class _MobileRightMenu extends StatelessWidget {
 
   Widget _buildCastSection(final String title, final String name) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8), // Padding reduced
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -318,12 +319,12 @@ class _MobileRightMenu extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2), // Spacing reduced
           Text(
             name,
             style: const TextStyle(
               color: Colors.black54,
-              height: 1.3,
+              height: 1.2, // Line height adjusted
             ),
           ),
         ],
@@ -345,13 +346,13 @@ class _MobileRightMenu extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: actors
           .map((final actor) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 4), // Padding reduced
                 child: Text(
                   actor,
                   style: const TextStyle(
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
-                    height: 1.3,
+                    height: 1.2, // Line height adjusted
                   ),
                 ),
               ))
