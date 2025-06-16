@@ -40,9 +40,9 @@ class _TeamCardState extends State<TeamCard> {
       else
         print("No show found.");
     } catch (error) {
-      print('Error fetching shows: \$error');
+      print('Error fetching shows: $error');
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching shows: \$error')));
+          SnackBar(content: Text('Error fetching shows: $error')));
     } finally {
       setState(() {
         isLoading = false;
@@ -63,7 +63,7 @@ class _TeamCardState extends State<TeamCard> {
         });
       } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error fetching players: \$error')));
+            SnackBar(content: Text('Error fetching players: $error')));
       }
     }
   }
@@ -112,8 +112,17 @@ class _TeamCardState extends State<TeamCard> {
 
   Widget _buildScrollableRow() {
     return nowPlayerDataList.isNotEmpty
-        ? SizedBox(
+        ? Container(
             height: 340,
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 25,
+                    spreadRadius: 15,
+                    offset: const Offset(3, 25)),
+              ],
+            ),
             child: Row(
               children: [
                 IconButton(
@@ -173,21 +182,10 @@ class _TeamCard extends StatelessWidget {
                 fit: BoxFit.cover,
               )
             : null,
-        boxShadow: [
-          BoxShadow(
-              color: Colors.red.withOpacity(0.2),
-              blurRadius: 10,
-              spreadRadius: 1,
-              offset: const Offset(0, 4)),
-          BoxShadow(
-              color: Colors.red.withOpacity(0.3),
-              blurRadius: 24,
-              spreadRadius: 4,
-              offset: const Offset(0, 12)),
-        ],
       ),
       child: Stack(
         children: [
+          // Overlay for better text visibility
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
