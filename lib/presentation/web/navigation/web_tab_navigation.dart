@@ -253,22 +253,59 @@ class _WebTabNavigationState extends State<WebTabNavigation>
   // ---------------- FOOTER ----------------
   Widget _buildFooter() {
     return Container(
-      height: 120,
-      alignment: Alignment.center,
+      height: 150,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
             AppWebLightColors.darkBlueBackground,
             Color(0xFF16213e),
-            Color(0xFF0f3460)
+            Color(0xFF0f3460),
           ],
         ),
       ),
-      child: const Text(
-        "© 2025 Sahne Sanatları - Tüm Hakları Saklıdır.",
-        style: TextStyle(color: Colors.white70, fontSize: 14),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            "Sahne Sanatları",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.location_on, color: Colors.white, size: 16),
+              SizedBox(width: 4),
+              Text(
+                "İstanbul, Türkiye",
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.email, color: Colors.white, size: 16),
+              SizedBox(width: 4),
+              Text(
+                "info@sahnesanatlari.com",
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "© 2025 Sahne Sanatları - Tüm Hakları Saklıdır.",
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
       ),
     );
   }
