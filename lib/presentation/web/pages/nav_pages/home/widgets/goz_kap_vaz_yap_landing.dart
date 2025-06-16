@@ -27,7 +27,7 @@ class GozYapVazYapLanding extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Image.network(imageTop,
-              fit: BoxFit.cover, width: double.infinity, height: height * 0.6),
+              fit: BoxFit.none, width: double.infinity, height: height * 0.6),
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -50,7 +50,7 @@ class GozYapVazYapLanding extends StatelessWidget {
             ),
           ),
           Image.network(imageBottom,
-              fit: BoxFit.cover, width: double.infinity, height: height * 0.6),
+              fit: BoxFit.none, width: double.infinity, height: height * 0.6),
           const SizedBox(height: 20),
         ],
       ),
@@ -70,7 +70,7 @@ class GozYapVazYapLanding extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Image.network(imageLeft,
-                fit: BoxFit.cover, height: double.infinity),
+                fit: BoxFit.none, height: double.infinity),
           ),
           Expanded(
             flex: 4,
@@ -98,7 +98,7 @@ class GozYapVazYapLanding extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Image.network(imageRight,
-                fit: BoxFit.cover, height: double.infinity),
+                fit: BoxFit.none, height: double.infinity),
           ),
         ],
       ),
@@ -118,7 +118,7 @@ class GozYapVazYapLanding extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Image.network(imageLeft,
-                fit: BoxFit.cover, height: double.infinity),
+                fit: BoxFit.none, height: double.infinity),
           ),
           Expanded(
             flex: 3,
@@ -147,7 +147,7 @@ class GozYapVazYapLanding extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Image.network(imageRight,
-                fit: BoxFit.cover, height: double.infinity),
+                fit: BoxFit.none, height: double.infinity),
           ),
         ],
       ),
