@@ -64,7 +64,7 @@ class HomePage extends StatelessWidget {
           // Artistik Bölüm
 
           // İletişim
-          ContactCard(key: contactKey)
+          ContactCard(key: contactKey),
         ],
       ),
     );
