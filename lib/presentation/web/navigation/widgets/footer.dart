@@ -152,19 +152,17 @@ class ArtFooter extends StatelessWidget {
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const Divider(color: Colors.white24, height: 30),
-        const Text(
-          'Hızlı Linkler',
-          style: TextStyle(
-            color: Colors.amberAccent,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.location_on, color: Colors.white, size: 16),
+            SizedBox(width: 4),
+            Text(
+              "İstanbul, Türkiye",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ],
         ),
-        const SizedBox(height: 10),
-        _footerLink('Hakkımızda'),
-        _footerLink('Etkinlikler'),
-        _footerLink('Biletler'),
-        _footerLink('İletişim'),
         const Divider(color: Colors.white24, height: 30),
         const Text(
           'İletişim',
