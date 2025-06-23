@@ -171,14 +171,16 @@ class MetaforLanding extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hayatın kırılgan aynasında yankılanan “Metafor”, bir sahafın raflarında başlayan ve her karakterin kendi gerçeğiyle yüzleştiği büyülü bir anlatı sunuyor. '
-            'Alman kızın içsel yalnızlığı, genç adamın kayıpları ve anlatıcının zamansız gözlemleriyle; izleyiciyi sezgisel bir düşün dünyasına davet ediyor.',
+            'Zamanın olmadığı bir yerde, eski kitaplarla dolu tozlu bir sahaf dükkânında üç kişi bir araya gelir: '
+            'Hayata küsmüş, geçmişin sayfalarına sığınmış içedönük bir sahaf; yanından hiç ayrılmayan, yazar olma hayaliyle dolu genç bir adam; '
+            've geçmişin gölgesinden çıkıp gelen bir genç kadın.',
             style: TextStyle(fontSize: 16, color: Colors.white, height: 1.5),
           ),
           SizedBox(height: 16),
           Text(
-            'Usta kalem Yekta Kopan’ın kelimeleri, yönetmen Gürkan Candan’ın sahne vizyonuyla birleşerek metaforlarla örülü bir evrene dönüşüyor. '
-            'Yazar, aynı zamanda anlatıcı rolünde, zamanın sınırlarını eğip bükerek sahnede geçmişle bugünü iç içe geçiriyor.',
+            'Kadın, annesinin geçmişine dair cevaplar ararken, sahaf yıllardır sakladığı sessizliğiyle yüzleşmek zorunda kalır. '
+            'Genç adam ve genç kadın arasında filizlenen kırılgan bir aşk,  saklı kalan sırlar ve zamanın dışında salınan hayatlar…, '
+            '“Metafor”, dram ve mizahın iç içe geçtiği bu oyunla, hafızanın labirentlerinde gezinirken insan olmanın karmaşık duygularını sahneye taşıyor.',
             style: TextStyle(fontSize: 15, color: Colors.white, height: 1.5),
           ),
           SizedBox(height: 16),
@@ -189,15 +191,21 @@ class MetaforLanding extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            'Sahafçı, Alman kız, annesini yitirmiş genç adam ve anlatıcı-yazar... '
-            'Her biri kendi metaforunu taşıyor; her biri izleyicinin zihninde iz bırakıyor.',
+            'Sahaf, genç adam, genç kadın... Her biri kendi geçmişinin yükünü taşıyor. '
+            'Kelimelerle, sessizlikle ve zamanla örülmüş bir hikâyede izleyicinin zihnine işleyen metaforlar sunuyorlar.',
             style: TextStyle(fontSize: 15, color: Colors.white, height: 1.4),
           ),
           SizedBox(height: 16),
           Text(
-            'Yazar: Yekta Kopan\nYönetmen: Gürkan Candan',
+            'Yazar: Yekta Kopan\nYönetmen: Gürkan Candan\nIşık-Ses: Ferdi Durgun',
             style: TextStyle(
                 fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Yekta Kopan’ın güçlü kalemi, zaman kavramını eğip bükerek insan ruhunun en kırılgan yönlerine dokunuyor. '
+            'Gürkan Candan’ın yönetmenliğindeki sahne dili ise bu derin metni görsel ve duyusal bir anlatıya dönüştürüyor.',
+            style: TextStyle(fontSize: 15, color: Colors.white, height: 1.4),
           ),
         ],
       ),
