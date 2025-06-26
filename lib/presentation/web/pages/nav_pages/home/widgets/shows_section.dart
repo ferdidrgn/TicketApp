@@ -37,9 +37,7 @@ class _WebTheaterGamesSectionState extends ConsumerState<ShowsSection> {
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       final state = ref.read(showProvider);
       if (!state.isLoading && state.dataList == null) {
-        ref
-            .read(showProvider.notifier)
-            .loadShows(false);
+        ref.read(showProvider.notifier).loadShows(false);
       }
     });
   }
@@ -48,9 +46,25 @@ class _WebTheaterGamesSectionState extends ConsumerState<ShowsSection> {
   Widget build(final BuildContext context) {
     final showState = ref.watch(showProvider);
 
-    if (showState.isLoading)
-      return const ShimmerLoading();
-    else if (showState.hasError) {
+    if (showState.isLoading) {
+      return SizedBox(
+        height: 320,
+        width: double.infinity,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            5,
+            (final index) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: const SizedBox(
+                width: 240,
+                child: ShimmerLoading(),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else if (showState.hasError) {
       return Center(
         child: Text(
           showState.errorMessage ?? 'Bir hata oluştu',
