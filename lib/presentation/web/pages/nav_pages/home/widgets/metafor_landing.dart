@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MetaforLanding extends StatelessWidget {
   const MetaforLanding({super.key});
@@ -38,7 +39,7 @@ class MetaforLanding extends StatelessWidget {
           height: 220,
         ),
         const SizedBox(height: 24),
-
+        _buildPremiereAnnouncement(),
         // Text Content
         Container(
           decoration: BoxDecoration(
@@ -100,7 +101,13 @@ class MetaforLanding extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: _buildTextContent(), // This is where your text will go
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildPremiereAnnouncement(), // 👈 burada
+                      _buildTextContent(),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -158,6 +165,67 @@ class MetaforLanding extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.4),
               borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiereAnnouncement() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade900.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '🎭 PRÖMİYER DUYURUSU 🎭',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Metafor, ilk kez 27 Haziran 2025 Cuma akşamı saat 20.00’de\n'
+            'Altunizade Kültür Merkezi’nde seyirciyle buluşuyor!\n\n'
+            '🎫 Ücretsizdir, davetiye ya da bilet gerekmez.\n'
+            'Gelin, bu özel gecede zamanın ötesinde bir hikâyeye birlikte tanıklık edelim.',
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.white,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () async {
+              const url = 'https://maps.app.goo.gl/CnW99UqhxyBJt1fL6';
+              if (await canLaunchUrl(Uri.parse(url))) {
+                await launchUrl(Uri.parse(url),
+                    mode: LaunchMode.externalApplication);
+              }
+            },
+            child: Row(
+              children: [
+                const Icon(Icons.location_pin, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(
+                  'Konumu Google Haritalarda Aç',
+                  style: TextStyle(
+                    color: Colors.white,
+                    decoration: TextDecoration.underline,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

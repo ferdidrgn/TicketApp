@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/scroll_down_indicator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../../../core/widgets/custom_animated_title.dart';
 
@@ -94,7 +95,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
                   const SizedBox(height: 16),
                   AnimatedTitle(
                     glowAnimation: _glowAnimation,
-                    text: 'Sahne Sanatları\nTiyatro Topluluğu',
+                    text: 'TiyatRol Sahne Sanatları\nTiyatro Topluluğu',
                   ),
                 ],
               ),
@@ -108,7 +109,96 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
             right: 0,
             child: Center(child: ScrollDownIndicator()),
           ),
+
+          _buildPremiereTag()
         ],
+      ),
+    );
+  }
+
+  Widget _buildPremiereTag() {
+    final isWeb = MediaQuery.of(context).size.width >= 800;
+
+    return Positioned(
+      top: isWeb ? 60 : 20,
+      right: isWeb ? 40 : 15,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isWeb ? 24 : 15,
+          vertical: isWeb ? 20 : 10,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.red.withOpacity(0.5),
+              blurRadius: 16,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        constraints: BoxConstraints(
+          maxWidth: isWeb ? 320 : 260,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '🎬 PRÖMİYER',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: isWeb ? 20 : 16,
+                letterSpacing: 1.3,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '27 Haziran 2025, Cuma\nSaat 20.00\nAltunizade Kültür Merkezi',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: isWeb ? 16 : 14,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '🎫 Ücretsiz! Biletsiz katılım',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: isWeb ? 14 : 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Google Maps Link
+            GestureDetector(
+              onTap: () async {
+                const url = 'https://maps.app.goo.gl/CnW99UqhxyBJt1fL6';
+                if (await canLaunchUrl(Uri.parse(url))) {
+                  await launchUrl(Uri.parse(url),
+                      mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Row(
+                children: [
+                  const Icon(Icons.location_pin, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Konumu Aç (Google Haritalar)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      decoration: TextDecoration.underline,
+                      fontSize: isWeb ? 14 : 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
