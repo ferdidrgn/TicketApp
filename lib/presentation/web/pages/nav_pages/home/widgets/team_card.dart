@@ -185,7 +185,6 @@ class _TeamCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Overlay for better text visibility
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -195,7 +194,9 @@ class _TeamCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Daire
                 Container(
                   width: 72,
                   height: 72,
@@ -215,23 +216,29 @@ class _TeamCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text(
-                  '${member?.firstName ?? ''} ${member?.lastName ?? ''}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  member?.bio ?? '',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.5,
-                    color: Colors.white70,
-                  ),
+                // İsim ve Bio sola hizalı, ama daireye göre biraz içeride
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${member?.firstName ?? ''} ${member?.lastName ?? ''}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      member?.bio ?? '',
+                      textAlign: TextAlign.start,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
