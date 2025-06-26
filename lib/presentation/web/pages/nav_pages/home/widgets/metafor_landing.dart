@@ -27,7 +27,7 @@ class MetaforLanding extends StatelessWidget {
         // First Image
         _buildImageWithOverlay(
           url:
-              'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fmetafor.png?alt=media&token=0e834168-3918-4a3c-96b9-1fe990afcac2',
+              'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fmetafor%20afiş.jpg?alt=media&token=b7f46ce1-df8f-48ea-87c1-89bc39ec294a',
           height: 220,
         ),
         const SizedBox(height: 24),
@@ -67,7 +67,7 @@ class MetaforLanding extends StatelessWidget {
               const SizedBox(height: 32),
               _buildImageWithOverlay(
                 url:
-                    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fmetafor.png?alt=media&token=0e834168-3918-4a3c-96b9-1fe990afcac2',
+                    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fmetafor%20afiş.jpg?alt=media&token=b7f46ce1-df8f-48ea-87c1-89bc39ec294a',
                 height: 400,
               ),
             ],
