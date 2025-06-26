@@ -130,7 +130,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
                       style: TextStyle(fontSize: 24, color: Colors.amber)),
                   SizedBox(width: 8),
                   Text(
-                    'Sahne Sanatları',
+                    'TiyatRol Sahne Sanatları',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
