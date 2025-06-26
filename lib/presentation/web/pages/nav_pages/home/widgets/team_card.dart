@@ -216,10 +216,9 @@ class _TeamCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  member?.firstName ?? '',
-                  textAlign: TextAlign.center,
+                  '${member?.firstName ?? ''} ${member?.lastName ?? ''}',
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
