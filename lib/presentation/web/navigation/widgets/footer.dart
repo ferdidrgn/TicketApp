@@ -40,7 +40,7 @@ class ArtFooter extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
               Text(
-                'Sahne Sanatları',
+                'TiyatRol Sahne Sanatları',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -50,7 +50,7 @@ class ArtFooter extends StatelessWidget {
               ),
               SizedBox(height: 8),
               Text(
-                '© 2025 Sahne Sanatları - Tüm Hakları Saklıdır.',
+                '© 2025 TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır. - Ferdi Durgun',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
@@ -66,7 +66,7 @@ class ArtFooter extends StatelessWidget {
               Icon(Icons.location_on, color: Colors.white, size: 16),
               SizedBox(width: 4),
               Text(
-                "İstanbul, Türkiye",
+                "Ataşehir, İSTANBUL, Türkiye",
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
@@ -88,13 +88,13 @@ class ArtFooter extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 10),
-              Text('E-posta: info@sahnesanatlari.com',
+              Text('E-posta: ----@----.com',
                   style: TextStyle(color: Colors.white70)),
               SizedBox(height: 6),
-              Text('Telefon: +90 212 123 45 67',
+              Text('Telefon: +90 -----',
                   style: TextStyle(color: Colors.white70)),
               SizedBox(height: 6),
-              Text('Adres: Taksim, İstanbul, Türkiye',
+              Text('Adres: Ataşehir, İSTANBUL, Türkiye',
                   style: TextStyle(color: Colors.white70)),
             ],
           ),
@@ -138,7 +138,7 @@ class ArtFooter extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Sahne Sanatları',
+          'TiyatRol Sahne Sanatları',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -148,7 +148,7 @@ class ArtFooter extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          '© 2025 Sahne Sanatları - Tüm Hakları Saklıdır.',
+          '© 2025 TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır. - Ferdi Durgun',
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const Divider(color: Colors.white24, height: 30),
@@ -158,7 +158,7 @@ class ArtFooter extends StatelessWidget {
             Icon(Icons.location_on, color: Colors.white, size: 16),
             SizedBox(width: 4),
             Text(
-              "İstanbul, Türkiye",
+              "Ataşehir, İSTANBUL, Türkiye",
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ],
@@ -173,13 +173,13 @@ class ArtFooter extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const Text('E-posta: info@sahnesanatlari.com',
+        const Text('E-posta: ----@----.com',
             style: TextStyle(color: Colors.white70)),
         const SizedBox(height: 6),
-        const Text('Telefon: +90 212 123 45 67',
+        const Text('Telefon: +90 ----',
             style: TextStyle(color: Colors.white70)),
         const SizedBox(height: 6),
-        const Text('Adres: Taksim, İstanbul, Türkiye',
+        const Text('Adres: Ataşehir, İSTANBUL, Türkiye',
             style: TextStyle(color: Colors.white70)),
         const Divider(color: Colors.white24, height: 30),
         const Text(

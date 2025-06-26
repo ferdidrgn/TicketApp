@@ -53,7 +53,7 @@ class AboutCard extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          'Sahne Sanatları Tiyatro Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.',
+          'TiyatRol Sahne Sanatları Tiyatro Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren amatör - profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri ya da farklı oyunları modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.',
           style: TextStyle(
             fontSize: 16,
             color: AppWebLightColors.whiteText.withOpacity(0.9),

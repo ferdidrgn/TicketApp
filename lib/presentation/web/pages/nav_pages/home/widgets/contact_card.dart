@@ -64,7 +64,7 @@ class ContactCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Bize Ulaşın',
+            'Bize Ulaşın (!HENÜZ AKTİF DEĞİLDİR!)',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -150,15 +150,11 @@ class ContactCard extends StatelessWidget {
         'icon': '📍',
         'title': 'Adres',
         'info':
-            'Beyoğlu Kültür Merkezi\nİstiklal Caddesi No: 123\nBeyoğlu/İSTANBUL'
+            '---------\ ----- Caddesi No: ---\nAtaşehir/İSTANBUL'
       },
-      {'icon': '📞', 'title': 'Telefon', 'info': '+90 212 555 0123'},
-      {'icon': '✉️', 'title': 'E-posta', 'info': 'info@sahnesanatlari.com'},
-      {
-        'icon': '🎫',
-        'title': 'Bilet Rezervasyon',
-        'info': 'bilet@sahnesanatlari.com\n+90 212 555 0124'
-      },
+      {'icon': '📞', 'title': 'Telefon', 'info': '+90 -----'},
+      {'icon': '✉️', 'title': 'E-posta', 'info': '----@-----'},
+      {'icon': '🎫', 'title': 'Bilet Rezervasyon', 'info': '----@----\n+90 ------'},
     ];
 
     return Column(
