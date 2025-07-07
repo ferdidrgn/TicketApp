@@ -196,7 +196,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         title: const Text('Arama', style: TextStyle(fontSize: 20)),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -239,7 +239,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           height: 195,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 5,
+            itemCount: 10,
             itemBuilder: (final context, final index) => Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: ShimmerLoading()),

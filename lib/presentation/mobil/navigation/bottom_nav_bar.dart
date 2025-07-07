@@ -61,6 +61,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         index: _selectedIndex,
         children: _pages,
       ),
+      extendBody: true, //BottomNavBar backgorund transparent
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: Colors.transparent,
         color: bottomNavBarTheme.selectedItemColor!,

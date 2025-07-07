@@ -19,7 +19,7 @@ import '../../../../domain/entities/stage.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
-import 'search_page.dart';
+import '../search_page/search_page.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
