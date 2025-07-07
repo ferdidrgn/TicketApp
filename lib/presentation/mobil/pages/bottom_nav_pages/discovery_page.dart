@@ -16,7 +16,6 @@ class DiscoveryPage extends ConsumerStatefulWidget {
 
 class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   List<String> selectedCategories = [];
-  String? type;
   double minPrice = 0;
   double maxPrice = 5200;
   DateTime? startDate;
@@ -35,9 +34,9 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
   void _fetchData() {
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      final List<Show>? data = ref.read(showProvider).dataList;
-      if (data == null || data.isEmpty)
-        ref.read(showProvider.notifier).searchShows(selectedCategories, type);
+      final shows = ref.read(showProvider).dataList;
+      if (shows == null || shows.isEmpty)
+        ref.read(showProvider.notifier).searchShows(selectedCategories, null);
     });
   }
 
@@ -53,18 +52,17 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+
             const SizedBox(height: 10),
             if (showState.isLoading)
               const Center(child: CircularProgressIndicator())
-            else if (showState.errorMessage != null)
-              Center(
-                  child: Text(showState.errorMessage!,
-                      style: textTheme.bodyMedium))
+            else if (showState.hasError)
+              Center(child: Text(showState.errorMessage ?? 'Bir hata oluştu'))
             else if (showState.dataList?.isEmpty ?? true)
-                Text('Bu kategori için etkinlik bulunamadı.',
-                    style: textTheme.bodyMedium)
-              else
-                Expanded(child: _buildScrollableItems(showState.dataList!)),
+              Text('Bu kategori için etkinlik bulunamadı.',
+                  style: textTheme.bodyMedium)
+            else
+              Expanded(child: _buildEventList(showState.dataList!)),
           ],
         ),
       ),
@@ -84,11 +82,11 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     );
   }
 
-  Widget _buildScrollableItems(final List<Show> items) {
+  Widget _buildEventList(final List<Show> shows) {
     return ListView.builder(
-      itemCount: items.length,
+      itemCount: shows.length,
       itemBuilder: (final context, final index) {
-        final show = items[index];
+        final show = shows[index];
         return EventCard(
           imageUrl: show.imageUrl,
           showName: show.name,
@@ -205,7 +203,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 },
                 child: Container(
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: selectedCategories.contains(category)
