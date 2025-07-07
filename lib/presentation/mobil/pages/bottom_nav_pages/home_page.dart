@@ -60,7 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _setupPageControllerListener() {
-    _startAutoScroll();
+    _setupAutoScroll();
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page?.round() ?? 0;
@@ -68,42 +68,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  void _startAutoScroll() {
+  void _setupAutoScroll() {
     final CampaignState campaignState = ref.read(campaignProvider);
-    if (campaignState.isListEmpty)
-      return;
+    if (campaignState.isListEmpty) return;
     _timer = Timer.periodic(const Duration(seconds: 10), (final timer) {
       setState(() {
         _currentPage = (_currentPage + 1) % campaignState.dataList!.length;
       });
       _pageController.animateToPage(
         _currentPage,
-        duration: const Duration(seconds: 1),
+        duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOut,
       );
     });
   }
 
-  void _navigateToSearch() =>
-    Navigator.push(
-        context, MaterialPageRoute(builder: (final context) => const SearchPage()));
-
-  void _navigateToDetailPage(final String url) {
+  Widget _resolveDetailPage(final String url) {
     final id = url.split('/').last;
-    Widget detailPage;
-
-    if (url.contains('shows'))
-      detailPage = PlayerDetailPage(playerId: id);
-    else if (url.contains('stage'))
-      detailPage = StageDetailPage(stageId: id);
-    else if (url.contains('show'))
-      detailPage = ShowDetailPage(showId: id);
-    else
-      throw Exception('Unknown URL: $url');
-
-    Navigator.push(
-        context, MaterialPageRoute(builder: (final context) => detailPage));
+    if (url.contains('shows')) return PlayerDetailPage(playerId: id);
+    if (url.contains('stage')) return StageDetailPage(stageId: id);
+    if (url.contains('show')) return ShowDetailPage(showId: id);
+    throw Exception('Unknown URL: $url');
   }
+
+  void _navigateTo(final Widget page) =>
+      Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
 
   @override
   Widget build(final BuildContext context) {
@@ -111,11 +100,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final showState = ref.watch(showProvider);
     final stageState = ref.watch(stageProvider);
 
-    if (campaignState.isLoading || showState.isLoading || stageState.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    if ([campaignState, showState, stageState].any((final s) => s.isLoading))
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     if (showState.hasError) {
       return Scaffold(
@@ -123,15 +109,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(showState.errorMessage ?? 'Bir hata oluştu',
+              Text(
+                showState.errorMessage ?? 'Bir hata oluştu',
                 style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _initializeData,
-                child: const Text('Tekrar Dene'),
-              ),
+                  onPressed: _initializeData, child: const Text('Tekrar Dene')),
             ],
           ),
         ),
@@ -158,18 +143,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(15),
         child: Column(
           children: [
-            _buildCampaignSlider(campaignState.dataList!.cast<Campaign>()),
-            CustomSearchBar(onSearchTap: _navigateToSearch),
+            if (campaignState.dataList != null)
+              _buildCampaignSlider(campaignState.dataList),
+            CustomSearchBar(onSearchTap: () => _navigateTo(const SearchPage())),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Kategoriler'),
             const CategoryCardBuilder(),
             const CustomSectionTitle(title: 'Yeni Gösteriler'),
             _buildNewShows(showState.dataList),
             const CustomSectionTitle(title: 'Sahneler'),
-            _buildStageSection(stageState.dataList!.cast<Stage>()),
+            _buildStageSection(stageState.dataList),
             const CustomSectionTitle(title: 'Oyunlardan Kareler'),
             _buildGamesPhotoSection(),
             const SizedBox(height: 50),
@@ -182,7 +168,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildCampaignSlider(final List<Campaign>? campaigns) {
     if (campaigns == null || campaigns.isEmpty) return const SizedBox();
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(20),
       width: double.infinity,
       height: MediaQuery.of(context).size.height * 0.3,
       child: Column(
@@ -191,66 +177,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: campaigns.length,
-              itemBuilder: (final context, final index) {
-                return _buildCampaignPage(campaigns[index]);
-              },
+              itemBuilder: (final _, final index) => GestureDetector(
+                onTap: () =>
+                    _navigateTo(_resolveDetailPage(campaigns[index].url)),
+                child: Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: campaigns[index].imageUrl,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        placeholder: (final _, final __) => ShimmerLoading(),
+                        errorWidget: (final _, final __, final ___) =>
+                            const Icon(Icons.error),
+                      ),
+                      Container(
+                        color: Colors.black54,
+                        padding: const EdgeInsets.all(8),
+                        child: Text(
+                          campaigns[index].title,
+                          style: TextStyle(
+                              fontSize: 24,
+                              color: Theme.of(context).colorScheme.onPrimary),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 10),
-          _buildDotsIndicator(campaigns.length),
+          DotsIndicator(
+            controller: _pageController,
+            itemCount: campaigns.length,
+            onPageSelected: (final page) => setState(() => _currentPage = page),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCampaignPage(final Campaign? campaign) {
-    if (campaign == null) return const SizedBox();
-
-    return GestureDetector(
-      onTap: () => _navigateToDetailPage(campaign.url),
-      child: Card(
-        elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            CachedNetworkImage(
-              imageUrl: campaign.imageUrl,
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (final context, final url) => ShimmerLoading(),
-              errorWidget: (final context, final url, final error) => const Icon(Icons.error),
-            ),
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                campaign.title,
-                style: const TextStyle(fontSize: 24, color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDotsIndicator(final int itemCount) {
-    return DotsIndicator(
-      controller: _pageController,
-      itemCount: itemCount,
-      onPageSelected: (final page) {
-        setState(() {
-          _currentPage = page;
-        });
-        _pageController.animateToPage(
-          page,
-          duration: const Duration(seconds: 1),
-          curve: Curves.easeInOut,
-        );
-      },
     );
   }
 
@@ -260,7 +230,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 15),
         itemCount: shows.length,
         itemBuilder: (final context, final index) {
           return GestureDetector(
@@ -327,7 +297,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildGamePhotoCard(final int index) {
     return Container(
       width: 160,
-      margin: const EdgeInsets.only(right: 16),
+      margin: const EdgeInsets.only(right: 15),
       child: Card(
         elevation: 8,
         child: Column(
@@ -342,12 +312,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 width: double.infinity,
                 fit: BoxFit.cover,
                 placeholder: (final context, final url) => ShimmerLoading(),
-                errorWidget: (final context, final url, final error) => const Icon(Icons.error),
+                errorWidget: (final context, final url, final error) =>
+                    const Icon(Icons.error),
               ),
             ),
             const SizedBox(height: 5),
             Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               child: Text('Oyun $index', style: const TextStyle(fontSize: 16)),
             ),
           ],
