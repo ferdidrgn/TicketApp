@@ -23,22 +23,17 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   DateTime? endDate;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (widget.selectedCategory != null &&
         widget.selectedCategory != 'Tümünü Keşfet' &&
-        widget.selectedCategory != 'Trendler') {
+        widget.selectedCategory != 'Trendler')
       selectedCategories.add(widget.selectedCategory!);
-    }
-    _fetchdata();
+
+    _fetchData();
   }
 
-  void _fetchdata() {
+  void _fetchData() {
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       final List<Show>? data = ref.read(showProvider).dataList;
       if (data == null || data.isEmpty)
@@ -49,6 +44,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   @override
   Widget build(final BuildContext context) {
     final showState = ref.watch(showProvider);
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       body: Padding(
@@ -57,16 +53,18 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+            const SizedBox(height: 10),
             if (showState.isLoading)
               const Center(child: CircularProgressIndicator())
             else if (showState.errorMessage != null)
-              Center(child: Text(showState.errorMessage!))
-            else if (showState.dataList == null)
-              Text('Bu kategori için etkinlik bulunamadı.')
+              Center(
+                  child: Text(showState.errorMessage!,
+                      style: textTheme.bodyMedium))
             else if (showState.dataList?.isEmpty ?? true)
-              Text('Bu kategori için etkinlik bulunamadı.')
-            else if (showState.dataList != null)
-              Expanded(child: _buildScrollableItems(showState.dataList!)),
+                Text('Bu kategori için etkinlik bulunamadı.',
+                    style: textTheme.bodyMedium)
+              else
+                Expanded(child: _buildScrollableItems(showState.dataList!)),
           ],
         ),
       ),
@@ -125,7 +123,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                   endDate = filters.endDate;
                 });
                 Navigator.pop(context);
-                _fetchdata();
+                _fetchData();
               },
             );
           },
@@ -207,7 +205,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 },
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: selectedCategories.contains(category)
