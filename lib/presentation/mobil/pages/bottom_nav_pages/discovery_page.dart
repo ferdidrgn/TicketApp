@@ -47,7 +47,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -204,9 +204,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   });
                 },
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(right: 5, top: 5),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Theme.of(context).colorScheme.error
@@ -219,7 +218,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 15),
         Text('Seçilen Kategoriler: ${selectedCategories.join(', ')}'),
       ],
     );
@@ -328,14 +327,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   @override
   Widget build(final BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Filtrele',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
+          const CustomSectionTitle(
+              title: "Filitrele", fontWeight: FontWeight.bold),
           const SizedBox(height: 20),
           _buildCategoryFilter(widget.setModalState),
           const SizedBox(height: 20),
@@ -355,7 +352,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 ),
               );
             },
-            child: const Text('Uygula'),
+            child: CustomSectionTitle(
+                title: 'Uygula',
+                fontSize: 20,
+                textColor: Theme.of(context).colorScheme.error,
+                fontWeight: FontWeight.bold,
+                alignment: Alignment.center),
           ),
         ],
       ),

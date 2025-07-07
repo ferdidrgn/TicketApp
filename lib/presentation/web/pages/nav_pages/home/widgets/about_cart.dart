@@ -13,7 +13,7 @@ class AboutCard extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              CustomSectionTitle(
+              const CustomSectionTitle(
                   title: 'Hakkımızda', textColor: Colors.amber, fontSize: 50),
               const SizedBox(height: 40),
               LayoutBuilder(

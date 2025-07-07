@@ -12,7 +12,7 @@ class ContactCard extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(height: 40),
-          CustomSectionTitle(
+          const CustomSectionTitle(
               title: 'İletişim', textColor: Colors.amber, fontSize: 50),
           SizedBox(height: 40),
           LayoutBuilder(
