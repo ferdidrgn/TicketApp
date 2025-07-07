@@ -114,16 +114,14 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         padding: const EdgeInsets.symmetric(horizontal: 5),
         child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
           _buildShowImage(),
-          const SizedBox(height: 16),
           _buildShowTitle(),
-          const SizedBox(height: 16),
           _buildBottomSheetCard(context)
         ]));
   }
 
   Widget _buildShowImage() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       child: AspectRatio(
         aspectRatio: 9 / 13,
         child: Container(
@@ -151,16 +149,20 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   Widget _buildShowTitle() {
-    return CustomSectionTitle(
-        title: showData?.name ?? 'Show Title',
-        fontSize: 28,
-        alignment: Alignment.center,
-        fontWeight: FontWeight.bold);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 15),
+      child: CustomSectionTitle(
+          title: showData?.name ?? 'Show Title',
+          fontSize: 28,
+          alignment: Alignment.center,
+          fontWeight: FontWeight.bold),
+    );
   }
 
   Widget _buildBottomSheetCard(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(top: 20),
+      margin: const EdgeInsets.only(top: 15),
       width: double.infinity,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -177,7 +179,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -186,7 +188,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                     'No description available'),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 22),
-            const SizedBox(height: 16),
+            const SizedBox(height: 15),
             Column(
               children:
                   List.generate(showData?.eventsId.length ?? 0, (final index) {
@@ -263,7 +265,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 15),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +291,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             height: 195,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               itemCount: nowPlayerDataList?.length ?? 0,
               itemBuilder: (final context, final index) {
                 return CustomStageCard(
@@ -353,7 +355,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
       width: double.infinity,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 15),
         itemCount: photoDataList?.length,
         itemBuilder: (final context, final index) {
           final photoUrl = photoDataList?[index] ?? '';
@@ -399,9 +401,9 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
       barrierColor: Colors.black.withOpacity(0.3),
       pageBuilder: (final context, final _, final __) {
         return GestureDetector(
-          onTap: () {
-            Navigator.of(context).pop(); // Ekrana tıklayınca dialog kapansın
-          },
+          // Ekrana tıklayınca dialog kapansın
+          onTap: () => Navigator.of(context).pop(),
+
           child: Scaffold(
             backgroundColor: Colors.black.withOpacity(0.3),
             // Arkaplan rengini ayarlamak için
