@@ -52,7 +52,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-
             const SizedBox(height: 10),
             if (showState.isLoading)
               const Center(child: CircularProgressIndicator())
@@ -173,15 +172,16 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   }
 
   Widget _buildCategoryFilter(final StateSetter setModalState) {
-    final List<String> categories = [
+    final categories = [
       'Tiyatro',
       'Konser',
       'Festival',
       'Sinema',
       'Çocuk',
       'Spor',
-      'Etkinlik'
+      'Etkinlik',
     ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -193,10 +193,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             itemCount: categories.length,
             itemBuilder: (final context, final index) {
               final category = categories[index];
+              final isSelected = selectedCategories.contains(category);
+
               return GestureDetector(
                 onTap: () {
                   setModalState(() {
-                    selectedCategories.contains(category)
+                    isSelected
                         ? selectedCategories.remove(category)
                         : selectedCategories.add(category);
                   });
@@ -206,7 +208,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: selectedCategories.contains(category)
+                    color: isSelected
                         ? Theme.of(context).colorScheme.error
                         : Theme.of(context).focusColor,
                     borderRadius: BorderRadius.circular(15),
@@ -249,7 +251,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   }
 
   Widget _buildDateRangePicker(final StateSetter setModalState) {
-    final themeOf = Theme.of(context);
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -259,77 +261,63 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           children: [
             ElevatedButton(
               onPressed: () async {
-                final DateTime? newStartDate = await showDatePicker(
+                final newStartDate = await showDatePicker(
                   context: context,
                   initialDate: startDate ?? DateTime.now(),
                   firstDate: DateTime(2020),
                   lastDate: DateTime(2100),
-                  builder: (final BuildContext context, final Widget? child) {
-                    return Theme(
-                      data: themeOf.copyWith(
-                        colorScheme: ColorScheme.light(
-                          primary: themeOf.colorScheme.error,
-                          // Seçili tarih butonlarının rengi
-                          onPrimary: themeOf.colorScheme.onPrimary,
-                          // Seçili tarih buton yazı rengi
-                          surface: themeOf.colorScheme.secondary,
-                          // Diyalog arka plan rengi
-                          onSurface: themeOf.colorScheme
-                              .onSurface, // Tarihlerin varsayılan yazı rengi
-                        ),
-                        textButtonTheme: TextButtonThemeData(
-                          style: TextButton.styleFrom(
-                            foregroundColor: themeOf.colorScheme
-                                .onSurface, //butonlarının yazı rengi
-                          ),
-                        ),
+                  builder: (final context, final child) => Theme(
+                    data: theme.copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: theme.colorScheme.error,
+                        onPrimary: theme.colorScheme.onPrimary,
+                        surface: theme.colorScheme.secondary,
+                        onSurface: theme.colorScheme.onSurface,
                       ),
-                      child: child!,
-                    );
-                  },
+                      textButtonTheme: TextButtonThemeData(
+                        style: TextButton.styleFrom(
+                            foregroundColor: theme.colorScheme.onSurface),
+                      ),
+                    ),
+                    child: child!,
+                  ),
                 );
                 setModalState(() => startDate = newStartDate);
               },
               child: Text(
-                  'Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}',
-                  style: TextStyle(color: themeOf.colorScheme.onSurface)),
+                'Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}',
+                style: TextStyle(color: theme.colorScheme.onSurface),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
-                final DateTime? newEndDate = await showDatePicker(
+                final newEndDate = await showDatePicker(
                   context: context,
                   initialDate: endDate ?? DateTime.now(),
                   firstDate: startDate ?? DateTime(2020),
                   lastDate: DateTime(2100),
-                  builder: (final BuildContext context, final Widget? child) {
-                    return Theme(
-                      data: themeOf.copyWith(
-                        colorScheme: ColorScheme.light(
-                          primary: themeOf.colorScheme.error,
-                          // Seçili tarih butonlarının rengi
-                          onPrimary: themeOf.colorScheme.onPrimary,
-                          // Seçili tarih buton yazı rengi
-                          surface: themeOf.colorScheme.secondary,
-                          // Diyalog arka plan rengi
-                          onSurface: themeOf.colorScheme
-                              .onSurface, // Tarihlerin varsayılan yazı rengi
-                        ),
-                        textButtonTheme: TextButtonThemeData(
-                          style: TextButton.styleFrom(
-                            foregroundColor: themeOf.colorScheme
-                                .onSurface, //butonlarının yazı rengi
-                          ),
-                        ),
+                  builder: (final context, final child) => Theme(
+                    data: theme.copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: theme.colorScheme.error,
+                        onPrimary: theme.colorScheme.onPrimary,
+                        surface: theme.colorScheme.secondary,
+                        onSurface: theme.colorScheme.onSurface,
                       ),
-                      child: child!,
-                    );
-                  },
+                      textButtonTheme: TextButtonThemeData(
+                        style: TextButton.styleFrom(
+                            foregroundColor: theme.colorScheme.onSurface),
+                      ),
+                    ),
+                    child: child!,
+                  ),
                 );
                 setModalState(() => endDate = newEndDate);
               },
               child: Text(
-                  'Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}',
-                  style: TextStyle(color: themeOf.colorScheme.onSurface)),
+                'Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}',
+                style: TextStyle(color: theme.colorScheme.onSurface),
+              ),
             ),
           ],
         ),
@@ -344,8 +332,10 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Filtrele',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Text(
+            'Filtrele',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 20),
           _buildCategoryFilter(widget.setModalState),
           const SizedBox(height: 20),
