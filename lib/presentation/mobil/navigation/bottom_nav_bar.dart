@@ -18,56 +18,46 @@ class BottomNavBar extends StatefulWidget {
 
 class _BottomNavBarState extends State<BottomNavBar> {
   int _selectedIndex = 0;
-  String? selectedCategoryTitle; // DiscoveryPage'e aktarılacak başlık
+  String? selectedCategoryTitle;
 
-  late final List<Widget> _pages;
-
-  @override
-  void initState() {
-    super.initState();
-    _pages = <Widget>[
-      const HomeScreen(),
-      DiscoveryPage(selectedCategory: selectedCategoryTitle),
-      const NearbyEventsPage(),
-      const ProfilePage(),
-    ];
-  }
-
-  // Bu metot ile sekme değiştirebiliriz ve başlık gönderebiliriz
   void changeTabWithCategory(final int index, final String? categoryTitle) {
     setState(() {
       _selectedIndex = index;
-      selectedCategoryTitle = categoryTitle; // Seçilen başlığı sakla
-      _pages[1] = DiscoveryPage(selectedCategory: selectedCategoryTitle);
+      selectedCategoryTitle = categoryTitle;
     });
   }
 
-  void _onItemTapped(final int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+  void _onItemTapped(final int index) => setState(() => _selectedIndex = index);
+
+  List<Widget> get _pages => [
+        const HomeScreen(),
+        DiscoveryPage(selectedCategory: selectedCategoryTitle),
+        const NearbyEventsPage(),
+        const ProfilePage(),
+      ];
 
   @override
   Widget build(final BuildContext context) {
     final bottomNavBarTheme = Theme.of(context).bottomNavigationBarTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bilet Satış Uygulaması'),
+        title: Text(
+          'TiyatRol ',
+          style: textTheme.headlineLarge,
+        ),
+        centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
-      extendBody: true, //BottomNavBar backgorund transparent
+      body: IndexedStack(index: _selectedIndex, children: _pages),
+      extendBody: true, //BottomNavBar background transparent
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: Colors.transparent,
         color: bottomNavBarTheme.selectedItemColor!,
         buttonBackgroundColor: bottomNavBarTheme.selectedItemColor,
         height: 50,
-        items: const <Widget>[
+        items: const [
           Icon(Icons.home, size: 30),
           Icon(Icons.event_seat_sharp, size: 30),
           Icon(Icons.location_city, size: 30),
