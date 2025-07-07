@@ -77,7 +77,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const CustomSectionTitle(title: 'Keşfet', fontSize: 22),
+        const CustomSectionTitle(title: 'Keşfet'),
         IconButton(
           icon: const Icon(Icons.filter_list),
           onPressed: () => _showFilterPopup(context),

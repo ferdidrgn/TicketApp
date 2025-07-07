@@ -113,10 +113,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 5),
         child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: _buildShowImage(),
-          ),
+          _buildShowImage(),
           const SizedBox(height: 16),
           _buildShowTitle(),
           const SizedBox(height: 16),
@@ -125,37 +122,40 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
   }
 
   Widget _buildShowImage() {
-    return AspectRatio(
-      aspectRatio: 9 / 13,
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.8),
-              blurRadius: 5,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: CachedNetworkImage(
-          imageUrl: showData?.imageUrl ?? '',
-          fit: BoxFit.cover,
-          placeholder: (final context, final url) => ShimmerLoading(),
-          errorWidget: (final context, final url, final error) =>
-              const Icon(Icons.error),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: AspectRatio(
+        aspectRatio: 9 / 13,
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.8),
+                blurRadius: 5,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: CachedNetworkImage(
+            imageUrl: showData?.imageUrl ?? '',
+            fit: BoxFit.cover,
+            placeholder: (final context, final url) => ShimmerLoading(),
+            errorWidget: (final context, final url, final error) =>
+                const Icon(Icons.error),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildShowTitle() {
-    return Text(
-      showData?.name ?? 'Show Title',
-      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-      textAlign: TextAlign.center,
-    );
+    return CustomSectionTitle(
+        title: showData?.name ?? 'Show Title',
+        fontSize: 28,
+        alignment: Alignment.center,
+        fontWeight: FontWeight.bold);
   }
 
   Widget _buildBottomSheetCard(final BuildContext context) {
@@ -185,7 +185,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                 description: showData?.description.replaceAll('\\n', '\n') ??
                     'No description available'),
             const SizedBox(height: 20),
-            const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 20),
+            const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 22),
             const SizedBox(height: 16),
             Column(
               children:
@@ -198,13 +198,13 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               }),
             ),
             const SizedBox(height: 20),
-            const CustomSectionTitle(title: 'Ekip', fontSize: 20),
+            const CustomSectionTitle(title: 'Ekip', fontSize: 22),
             _buildNowPlayers(),
             const SizedBox(height: 10),
-            const CustomSectionTitle(title: 'Eski Ekip', fontSize: 20),
+            const CustomSectionTitle(title: 'Eski Ekip', fontSize: 22),
             _buildOldPlayers(),
             const SizedBox(height: 20),
-            const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 20),
+            const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 22),
             _buildGamePhotoSection(),
           ],
         ),
