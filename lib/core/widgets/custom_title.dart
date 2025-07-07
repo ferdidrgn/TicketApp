@@ -4,7 +4,7 @@ class CustomSectionTitle extends StatelessWidget {
   final String title;
   final double fontSize;
   final Color backgroundColor;
-  final Color textColor;
+  final Color? textColor;
 
   // Constructor
   const CustomSectionTitle({
@@ -12,7 +12,7 @@ class CustomSectionTitle extends StatelessWidget {
     required this.title,
     this.fontSize = 24,
     this.backgroundColor = Colors.transparent,
-    this.textColor = Colors.black,
+    this.textColor,
   });
 
   @override
