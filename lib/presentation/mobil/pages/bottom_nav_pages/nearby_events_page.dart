@@ -24,7 +24,8 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CustomSectionTitle(title: 'Kategoriler:'),
+              Text('Kategoriler:',
+                  style: Theme.of(context).textTheme.bodyMedium),
               ...categories.map(
                 (final cat) => CheckboxListTile(
                   title:
@@ -72,21 +73,14 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
   Widget build(final BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(15),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(
-              'Yakınınızdaki Etkinlikler',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
+            const CustomSectionTitle(title: 'Yakınınızdaki Etkinlikler'),
             IconButton(
                 icon: const Icon(Icons.filter_list),
                 onPressed: _showFilterDialog),
           ]),
-          const SizedBox(height: 16),
           Expanded(
             child: ListView(
               children: const [
