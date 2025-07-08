@@ -92,7 +92,10 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
           player != null
               ? '${player!.firstName} ${player!.lastName}'
               : 'Player Details',
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(context)
+              .textTheme
+              .headlineMedium
+              ?.copyWith(color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -123,8 +126,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     );
   }
 
-  Widget _buildBottomSheet(
-      final ScrollController scrollController) {
+  Widget _buildBottomSheet(final ScrollController scrollController) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
