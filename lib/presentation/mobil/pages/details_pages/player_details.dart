@@ -22,10 +22,10 @@ class PlayerDetailPage extends StatefulWidget {
 
 class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Player? player;
-  List<Show>? nowShowsDataList = [];
-  List<Show>? oldShowsDataList = [];
-  final firestore = FirebaseFirestore.instance;
-  final storage = FirebaseStorage.instance;
+  final List<Show> nowShowsDataList = [];
+  final List<Show> oldShowsDataList = [];
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseStorage storage = FirebaseStorage.instance;
   bool isLoading = true;
   double _sheetProgress = 0.1;
 
@@ -41,10 +41,10 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
           (await PlayerRemoteDataSourceImpl(firestore: firestore)
                   .getPlayersByIds([widget.playerId]))
               ?.first;
-      if (fetchedPlayer?.nowShowsId != null) {
-        setState(() {
-          player = fetchedPlayer?.toEntity();
-        });
+
+      if (fetchedPlayer != null) {
+        setState(() => player = fetchedPlayer.toEntity());
+
         await Future.wait([
           _fetchShows(player!.nowShowsId, nowShowsDataList),
           _fetchShows(player!.oldShowsId, oldShowsDataList),
@@ -53,25 +53,25 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     } catch (error) {
       _showErrorSnackbar('Veri alınırken bir hata oluştu: $error');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
   Future<void> _fetchShows(
-      final List<String>? showsIds, final List<Show>? showsList) async {
+      final List<String>? showsIds, final List<Show> showsList) async {
+    if (showsIds == null || showsIds.isEmpty) return;
+
     try {
-      if (showsIds == null) return;
       final shows =
           await ShowRemoteDataSourceImpl(firestore: firestore, storage: storage)
-              .getShowsByIds(showsIds.toList());
+              .getShowsByIds(showsIds);
+
       setState(() {
-        showsList?.addAll(shows
-                ?.map((final show) => show?.toEntity())
-                .toList()
-                .whereType<Show>() ??
-            []);
+        showsList.addAll(
+            shows?.map((final e) => e?.toEntity()).toList().whereType<Show>() ??
+                []);
       });
     } catch (error) {
       _showErrorSnackbar('Gösteri verisi alınırken bir hata oluştu: $error');
@@ -79,6 +79,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   }
 
   void _showErrorSnackbar(final String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
@@ -87,9 +88,12 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(player != null
-            ? '${player!.firstName} ${player!.lastName}'
-            : 'Player Details'),
+        title: Text(
+          player != null
+              ? '${player!.firstName} ${player!.lastName}'
+              : 'Player Details',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: true,
       ),
       body: isLoading
@@ -106,9 +110,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
                       return NotificationListener<
                           DraggableScrollableNotification>(
                         onNotification: (final notification) {
-                          setState(() {
-                            _sheetProgress = notification.extent;
-                          });
+                          setState(() => _sheetProgress = notification.extent);
                           return true;
                         },
                         child: _buildBottomSheet(scrollController),
@@ -121,16 +123,18 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     );
   }
 
-  Widget _buildBottomSheet(final ScrollController scrollController) {
+  Widget _buildBottomSheet(
+      final ScrollController scrollController) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(50)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -5))
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
         ],
       ),
       child: ListView(
@@ -142,24 +146,18 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
           _buildPlayerBio(),
           const SizedBox(height: 24),
           const CustomSectionTitle(title: "Gösterileri"),
-          SizedBox(
-            height: 200,
-            child: _buildShowsSection(nowShowsDataList),
-          ),
+          SizedBox(height: 200, child: _buildShowsSection(nowShowsDataList)),
           const SizedBox(height: 10),
           const CustomSectionTitle(title: "Eski Gösterileri"),
-          SizedBox(
-            height: 200,
-            child: _buildShowsSection(oldShowsDataList),
-          ),
+          SizedBox(height: 200, child: _buildShowsSection(oldShowsDataList)),
         ],
       ),
     );
   }
 
   Widget _buildTopSection() {
-    final double imageSize = 250 - (130 * _sheetProgress);
-    final double topPosition =
+    final imageSize = 250 - (130 * _sheetProgress);
+    final topPosition =
         MediaQuery.of(context).size.height * 0.30 * (0.8 - _sheetProgress);
 
     return Positioned(
@@ -199,8 +197,8 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
             ? CachedNetworkImage(
                 imageUrl: player!.imageUrl,
                 fit: BoxFit.cover,
-                placeholder: (final context, final url) => ShimmerLoading(),
-                errorWidget: (final context, final url, final error) =>
+                placeholder: (final _, final __) => const ShimmerLoading(),
+                errorWidget: (final _, final __, final ___) =>
                     const Icon(Icons.error),
               )
             : const Icon(Icons.person, size: 50),
@@ -209,9 +207,14 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
   }
 
   Widget _buildPlayerName() {
-    return Text('${player?.firstName} ${player?.lastName}',
-        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
-        textAlign: TextAlign.center);
+    return Text(
+      '${player?.firstName ?? ''} ${player?.lastName ?? ''}',
+      style: Theme.of(context)
+          .textTheme
+          .headlineMedium
+          ?.copyWith(fontWeight: FontWeight.w500),
+      textAlign: TextAlign.center,
+    );
   }
 
   Widget _buildPlayerBio() {
@@ -219,35 +222,36 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Text(
         player?.bio ?? '',
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400),
+        style: Theme.of(context).textTheme.bodyMedium,
         textAlign: TextAlign.center,
       ),
     );
   }
 
-  Widget _buildShowsSection(final List<Show>? showsList) {
-    return SizedBox(
-      height: 200,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: showsList?.length ?? 0,
-        itemBuilder: (final context, final index) {
-          final show = showsList?[index];
-          return CustomVerticalShowCard(
-            imageUrl: show?.imageUrl ?? '',
-            gameName: show?.name ?? '',
+  Widget _buildShowsSection(final List<Show> showsList) {
+    if (showsList.isEmpty) return Center(child: Text('Gösteri bulunamadı.'));
+
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: showsList.length,
+      itemBuilder: (final context, final index) {
+        final show = showsList[index];
+        return Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: CustomVerticalShowCard(
+            imageUrl: show.imageUrl,
+            gameName: show.name,
             borderRadius: const BorderRadius.all(Radius.circular(20)),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (final context) =>
-                        ShowDetailPage(showId: show?.id ?? '')),
+                    builder: (final _) => ShowDetailPage(showId: show.id)),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -259,7 +263,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
             ? Icons.keyboard_double_arrow_up
             : Icons.keyboard_double_arrow_down,
         size: 30,
-        color: Colors.black,
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
       ),
     );
   }
