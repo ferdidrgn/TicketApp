@@ -28,7 +28,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  final _pageController = PageController();
+  final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
 
@@ -67,6 +67,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  void _navigateToPage(final Widget page) =>
+      Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
+
   Widget _resolveDetailPage(final String url) {
     final id = url.split('/').last;
     if (url.contains('shows')) return PlayerDetailPage(playerId: id);
@@ -74,9 +77,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (url.contains('show')) return ShowDetailPage(showId: id);
     throw Exception('Unknown URL: $url');
   }
-
-  void _navigateTo(final Widget page) =>
-      Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
 
   @override
   Widget build(final BuildContext context) {
@@ -116,14 +116,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             if (campaignState.dataList != null)
               _buildCampaignSlider(campaignState.dataList!.cast<Campaign>()),
-            CustomSearchBar(onSearchTap: () => _navigateTo(const SearchPage())),
+            CustomSearchBar(
+                onSearchTap: () => _navigateToPage(const SearchPage())),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Kategoriler'),
             const CategoryCardBuilder(),
             const CustomSectionTitle(title: 'Yeni Gösteriler'),
-            _showList(items: showState.dataList!.cast<Show>()),
+            _buildShowList(showState.dataList ?? []),
             const CustomSectionTitle(title: 'Sahneler'),
-            _stageList(items: stageState.dataList!.cast<Stage>()),
+            _buildStageList(stageState.dataList ?? []),
             const CustomSectionTitle(title: 'Oyunlardan Kareler'),
             _buildHorizontalList(
               items: List.generate(6, (final index) => index),
@@ -136,29 +137,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _showList({required final List<Show> items}) {
-    return _buildHorizontalList(
-      items: items,
-      itemBuilder: (final show) => CustomVerticalShowCard(
-        imageUrl: show.imageUrl,
-        gameName: show.name,
-        onTap: () => _navigateTo(ShowDetailPage(showId: show.id)),
-      ),
-    );
-  }
-
-  Widget _stageList({required final List<Stage> items}) {
-    return _buildHorizontalList(
-      items: items,
-      itemBuilder: (final stage) => CustomStageCard(
-        text: stage.name,
-        imageUrl: stage.imageUrl,
-        onPressed: () => _navigateTo(StageDetailPage(stageId: stage.id)),
-      ),
-    );
-  }
-
   Widget _buildCampaignSlider(final List<Campaign> campaigns) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(20),
       width: double.infinity,
@@ -171,43 +152,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               itemCount: campaigns.length,
               onPageChanged: (final index) =>
                   setState(() => _currentPage = index),
-              itemBuilder: (final _, final index) => GestureDetector(
-                onTap: () =>
-                    _navigateTo(_resolveDetailPage(campaigns[index].url)),
-                child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
-                  child: Stack(
-                    alignment: Alignment.bottomCenter,
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: campaigns[index].imageUrl,
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                        placeholder: (final _, final __) => ShimmerLoading(),
-                        errorWidget: (final _, final __, final ___) =>
-                            const Icon(Icons.error),
-                      ),
-                      Container(
-                        color: Colors.black54,
-                        padding: const EdgeInsets.all(8),
-                        child: Text(
-                          campaigns[index].title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary),
-                          textAlign: TextAlign.center,
+              itemBuilder: (final context, final index) {
+                final campaign = campaigns[index];
+                return GestureDetector(
+                  onTap: () =>
+                      _navigateToPage(_resolveDetailPage(campaign.url)),
+                  child: Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: campaign.imageUrl,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: (final _, final __) =>
+                              const ShimmerLoading(),
+                          errorWidget: (final _, final __, final ___) =>
+                              const Icon(Icons.error),
                         ),
-                      ),
-                    ],
+                        Container(
+                          color: Colors.black54,
+                          padding: const EdgeInsets.all(8),
+                          child: Text(
+                            campaign.title,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: theme.colorScheme.onPrimary
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 10),
@@ -227,6 +209,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Widget _buildShowList(final List<Show> shows) {
+    return _buildHorizontalList(
+      items: shows,
+      itemBuilder: (final show) => CustomVerticalShowCard(
+        imageUrl: show.imageUrl,
+        gameName: show.name,
+        onTap: () => _navigateToPage(ShowDetailPage(showId: show.id)),
+      ),
+    );
+  }
+
+  Widget _buildStageList(final List<Stage> stages) {
+    return _buildHorizontalList(
+      items: stages,
+      itemBuilder: (final stage) => CustomStageCard(
+        text: stage.name,
+        imageUrl: stage.imageUrl,
+        onPressed: () => _navigateToPage(StageDetailPage(stageId: stage.id)),
+      ),
+    );
+  }
+
   Widget _buildHorizontalList<T>({
     required final List<T> items,
     required final Widget Function(T) itemBuilder,
@@ -237,7 +241,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 15),
           itemCount: items.length,
-          itemBuilder: (final _, final i) => itemBuilder(items[i]),
+          itemBuilder: (final _, final index) => itemBuilder(items[index]),
         ),
       );
 
@@ -256,7 +260,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               height: 140,
               width: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (final _, final __) => ShimmerLoading(),
+              placeholder: (final _, final __) => const ShimmerLoading(),
               errorWidget: (final _, final __, final ___) =>
                   const Icon(Icons.error),
             ),
