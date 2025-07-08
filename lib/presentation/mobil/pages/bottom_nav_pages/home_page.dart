@@ -37,13 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       _loadAllData();
-      _setupAutoScroll();
-
-      _pageController.addListener(() {
-        setState(() {
-          _currentPage = _pageController.page?.round() ?? 0;
-        });
-      });
+      _startAutoScroll();
     });
   }
 
@@ -60,14 +54,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(stageProvider.notifier).loadStages(true);
   }
 
-  void _setupAutoScroll() {
-    final campaigns = ref.read(campaignProvider).dataList;
-    if (campaigns == null || campaigns.isEmpty) return;
-
+  void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 10), (final _) {
-      final nextPage = (_currentPage + 1) % campaigns.length;
+      final campaigns = ref.read(campaignProvider).dataList;
+      if (campaigns == null || campaigns.isEmpty) return;
+      _currentPage = (_currentPage + 1) % campaigns.length;
       _pageController.animateToPage(
-        nextPage,
+        _currentPage,
         duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOut,
       );
@@ -107,7 +100,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                  onPressed: _loadAllData, child: const Text('Tekrar Dene')),
+                onPressed: _loadAllData,
+                child: const Text('Tekrar Dene'),
+              ),
             ],
           ),
         ),
@@ -120,7 +115,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           children: [
             if (campaignState.dataList != null)
-              _buildCampaignSlider(campaignState.dataList),
+              _buildCampaignSlider(campaignState.dataList!.cast<Campaign>()),
             CustomSearchBar(onSearchTap: () => _navigateTo(const SearchPage())),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Kategoriler'),
@@ -141,35 +136,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _showList({required final List<Show?> items}) {
+  Widget _showList({required final List<Show> items}) {
     return _buildHorizontalList(
       items: items,
       itemBuilder: (final show) => CustomVerticalShowCard(
-        imageUrl: show?.imageUrl ?? "",
-        gameName: show?.name ?? "",
-        onTap: () {
-          if (show?.id != null) _navigateTo(ShowDetailPage(showId: show!.id));
-        },
+        imageUrl: show.imageUrl,
+        gameName: show.name,
+        onTap: () => _navigateTo(ShowDetailPage(showId: show.id)),
       ),
     );
   }
 
-  Widget _stageList({required final List<Stage?> items}) {
+  Widget _stageList({required final List<Stage> items}) {
     return _buildHorizontalList(
       items: items,
       itemBuilder: (final stage) => CustomStageCard(
-        text: stage?.name ?? "",
-        imageUrl: stage?.imageUrl ?? "",
-        onPressed: () {
-          if (stage?.id != null)
-            _navigateTo(StageDetailPage(stageId: stage!.id));
-        },
+        text: stage.name,
+        imageUrl: stage.imageUrl,
+        onPressed: () => _navigateTo(StageDetailPage(stageId: stage.id)),
       ),
     );
   }
 
-  Widget _buildCampaignSlider(final List<Campaign>? campaigns) {
-    if (campaigns == null || campaigns.isEmpty) return const SizedBox();
+  Widget _buildCampaignSlider(final List<Campaign> campaigns) {
     return Container(
       padding: const EdgeInsets.all(20),
       width: double.infinity,
@@ -180,6 +169,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: campaigns.length,
+              onPageChanged: (final index) =>
+                  setState(() => _currentPage = index),
               itemBuilder: (final _, final index) => GestureDetector(
                 onTap: () =>
                     _navigateTo(_resolveDetailPage(campaigns[index].url)),
