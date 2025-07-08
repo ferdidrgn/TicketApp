@@ -236,31 +236,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
 
   Widget _buildGamePhotoCard(final int index) {
-    return Container(
+    return SizedBox(
       width: 160,
-      margin: const EdgeInsets.only(right: 15),
+      height: 200,
       child: Card(
         elevation: 8,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-              child: CachedNetworkImage(
-                imageUrl:
-                    'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (final context, final url) => ShimmerLoading(),
-                errorWidget: (final context, final url, final error) =>
-                    const Icon(Icons.error),
-              ),
+            CachedNetworkImage(
+              imageUrl:
+                  'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
+              height: 140,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => ShimmerLoading(),
+              errorWidget: (_, __, ___) => const Icon(Icons.error),
             ),
             const SizedBox(height: 5),
             Padding(
-              padding: const EdgeInsets.all(10),
-              child: Text('Oyun $index', style: const TextStyle(fontSize: 16)),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                'Oyun $index',
+                style: const TextStyle(fontSize: 14),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
