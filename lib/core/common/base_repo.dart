@@ -13,15 +13,14 @@ abstract class BaseRepository {
       try {
         final result = await action();
 
-        if ((result is List && result.isEmpty) || result == null) {
-          Left(ServerFailure('No data found')); // Hata döndür
-        }
+        if ((result is List && result.isEmpty) || result == null)
+          return Left(ServerFailure('No data found'));
 
         return Right(result);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
     } else
-      return const Left(NetworkFailure('No internet connection'));
+      return const Left(NetworkFailure('İnternet Bağlantısı Bulunamamıştır'));
   }
 }
