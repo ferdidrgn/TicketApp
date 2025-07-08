@@ -38,6 +38,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       _loadAllData();
       _setupAutoScroll();
+
+      _pageController.addListener(() {
+        setState(() {
+          _currentPage = _pageController.page?.round() ?? 0;
+        });
+      });
     });
   }
 
@@ -59,9 +65,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (campaigns == null || campaigns.isEmpty) return;
 
     _timer = Timer.periodic(const Duration(seconds: 10), (final _) {
-      _currentPage = (_currentPage + 1) % campaigns.length;
+      final nextPage = (_currentPage + 1) % campaigns.length;
       _pageController.animateToPage(
-        _currentPage,
+        nextPage,
         duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOut,
       );
@@ -215,9 +221,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(height: 10),
           DotsIndicator(
-            controller: _pageController,
             itemCount: campaigns.length,
-            onPageSelected: (final page) => setState(() => _currentPage = page),
+            currentIndex: _currentPage,
+            onPageSelected: (final page) {
+              _pageController.animateToPage(
+                page,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+              );
+            },
           ),
         ],
       ),
