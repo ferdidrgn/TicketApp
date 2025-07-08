@@ -12,10 +12,8 @@ abstract class BaseRepository {
     if (await internetService.isConnected) {
       try {
         final result = await action();
-
         if ((result is List && result.isEmpty) || result == null)
           return Left(ServerFailure('No data found'));
-
         return Right(result);
       } catch (e) {
         return Left(ServerFailure(e.toString()));
