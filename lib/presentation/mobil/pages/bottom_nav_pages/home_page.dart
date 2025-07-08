@@ -3,9 +3,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/data/providers/campaign/campaign_provider.dart';
-import 'package:ticketapp/data/providers/campaign/campaign_state.dart';
 import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
+import 'package:ticketapp/domain/entities/stage.dart';
 import '../../../../core/widgets/custom_category_card.dart';
 import '../../../../core/widgets/custom_dots_indicator.dart';
 import '../../../../core/widgets/custom_search.dart';
@@ -15,7 +15,6 @@ import '../../../../core/widgets/custom_title.dart';
 import '../../../../core/widgets/shimmer.dart';
 import '../../../../domain/entities/campaign.dart';
 import '../../../../domain/entities/show.dart';
-import '../../../../domain/entities/stage.dart';
 import '../details_pages/player_details.dart';
 import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
@@ -36,7 +35,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      _loadAllData();
+      _setupAutoScroll();
+    });
   }
 
   @override
@@ -46,35 +48,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  void _initializeData() {
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _loadAllData();
-      _setupPageControllerListener();
-    });
-  }
-
   void _loadAllData() {
     ref.read(campaignProvider.notifier).loadCampaigns();
     ref.read(showProvider.notifier).loadShows(true);
     ref.read(stageProvider.notifier).loadStages(true);
   }
 
-  void _setupPageControllerListener() {
-    _setupAutoScroll();
-    _pageController.addListener(() {
-      setState(() {
-        _currentPage = _pageController.page?.round() ?? 0;
-      });
-    });
-  }
-
   void _setupAutoScroll() {
-    final CampaignState campaignState = ref.read(campaignProvider);
-    if (campaignState.isListEmpty) return;
-    _timer = Timer.periodic(const Duration(seconds: 10), (final timer) {
-      setState(() {
-        _currentPage = (_currentPage + 1) % campaignState.dataList!.length;
-      });
+    final campaigns = ref.read(campaignProvider).dataList;
+    if (campaigns == null || campaigns.isEmpty) return;
+
+    _timer = Timer.periodic(const Duration(seconds: 10), (final _) {
+      _currentPage = (_currentPage + 1) % campaigns.length;
       _pageController.animateToPage(
         _currentPage,
         duration: const Duration(milliseconds: 600),
@@ -111,30 +96,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               Text(
                 showState.errorMessage ?? 'Bir hata oluştu',
-                style: const TextStyle(color: Colors.red),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                  onPressed: _initializeData, child: const Text('Tekrar Dene')),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (showState.isListEmpty) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Henüz veri bulunmamaktadır.'),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _loadAllData,
-                child: const Text('Verileri Yükle'),
-              ),
+                  onPressed: _loadAllData, child: const Text('Tekrar Dene')),
             ],
           ),
         ),
@@ -153,14 +120,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const CustomSectionTitle(title: 'Kategoriler'),
             const CategoryCardBuilder(),
             const CustomSectionTitle(title: 'Yeni Gösteriler'),
-            _buildNewShows(showState.dataList),
+            _showList(items: showState.dataList!.cast<Show>()),
             const CustomSectionTitle(title: 'Sahneler'),
-            _buildStageSection(stageState.dataList),
+            _stageList(items: stageState.dataList!.cast<Stage>()),
             const CustomSectionTitle(title: 'Oyunlardan Kareler'),
-            _buildGamesPhotoSection(),
+            _buildHorizontalList(
+              items: List.generate(6, (final index) => index),
+              itemBuilder: _buildGamePhotoCard,
+            ),
             const SizedBox(height: 50),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _showList({required final List<Show?> items}) {
+    return _buildHorizontalList(
+      items: items,
+      itemBuilder: (final show) => CustomVerticalShowCard(
+        imageUrl: show?.imageUrl ?? "",
+        gameName: show?.name ?? "",
+        onTap: () {
+          if (show?.id != null) _navigateTo(ShowDetailPage(showId: show!.id));
+        },
+      ),
+    );
+  }
+
+  Widget _stageList({required final List<Stage?> items}) {
+    return _buildHorizontalList(
+      items: items,
+      itemBuilder: (final stage) => CustomStageCard(
+        text: stage?.name ?? "",
+        imageUrl: stage?.imageUrl ?? "",
+        onPressed: () {
+          if (stage?.id != null)
+            _navigateTo(StageDetailPage(stageId: stage!.id));
+        },
       ),
     );
   }
@@ -224,75 +221,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildNewShows(final List<Show>? shows) {
-    if (shows == null || shows.isEmpty) return const SizedBox();
-    return SizedBox(
-      height: 200,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        itemCount: shows.length,
-        itemBuilder: (final context, final index) {
-          return GestureDetector(
-            child: CustomVerticalShowCard(
-              imageUrl: shows[index].imageUrl,
-              gameName: shows[index].name,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (final context) =>
-                        ShowDetailPage(showId: shows[index].id),
-                  ),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStageSection(final List<Stage>? stages) {
-    if (stages == null || stages.isEmpty) return const SizedBox();
-    return SizedBox(
-      height: 200,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: stages.length,
-        itemBuilder: (final context, final index) {
-          return CustomStageCard(
-            text: stages[index].name,
-            imageUrl: stages[index].imageUrl,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (final context) =>
-                      StageDetailPage(stageId: stages[index].id),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildGamesPhotoSection() {
-    return SizedBox(
-      height: 210,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: 6,
-        itemBuilder: (final context, final index) {
-          return _buildGamePhotoCard(index);
-        },
-      ),
-    );
-  }
+  Widget _buildHorizontalList<T>({
+    required final List<T> items,
+    required final Widget Function(T) itemBuilder,
+  }) =>
+      SizedBox(
+        height: 200,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          itemCount: items.length,
+          itemBuilder: (final _, final i) => itemBuilder(items[i]),
+        ),
+      );
 
   Widget _buildGamePhotoCard(final int index) {
     return Container(
