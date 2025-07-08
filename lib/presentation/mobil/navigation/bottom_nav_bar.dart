@@ -45,7 +45,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
       appBar: AppBar(
         title: Text(
           'TiyatRol ',
-          style: textTheme.headlineLarge,
+          style: textTheme.headlineLarge
+              ?.copyWith(fontSize: 30, color: Colors.white),
         ),
         centerTitle: true,
         automaticallyImplyLeading: false,
