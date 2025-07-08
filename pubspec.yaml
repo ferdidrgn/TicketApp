@@ -65,7 +65,7 @@ dependencies:
   firebase_auth:  # Firebase kimlik doğrulama.
 
   # Google
-  google_sign_in:  # Google ile giriş yapma.
+  google_sign_in: ^5.0.0  # Google ile giriş yapma.
   google_maps_flutter:  # Google Haritalar entegrasyonu.
 
   # Diğer bağımlılıklar
