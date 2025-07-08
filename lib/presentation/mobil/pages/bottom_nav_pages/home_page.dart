@@ -198,9 +198,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         padding: const EdgeInsets.all(8),
                         child: Text(
                           campaigns[index].title,
-                          style: TextStyle(
-                              fontSize: 24,
-                              color: Theme.of(context).colorScheme.onPrimary),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -250,15 +253,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               height: 140,
               width: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (_, __) => ShimmerLoading(),
-              errorWidget: (_, __, ___) => const Icon(Icons.error),
+              placeholder: (final _, final __) => ShimmerLoading(),
+              errorWidget: (final _, final __, final ___) =>
+                  const Icon(Icons.error),
             ),
             const SizedBox(height: 5),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
                 'Oyun $index',
-                style: const TextStyle(fontSize: 14),
+                style: Theme.of(context).textTheme.bodyMedium,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
