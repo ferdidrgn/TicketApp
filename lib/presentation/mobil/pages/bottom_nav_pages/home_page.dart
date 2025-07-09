@@ -6,12 +6,15 @@ import 'package:ticketapp/data/providers/campaign/campaign_provider.dart';
 import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
 import 'package:ticketapp/domain/entities/stage.dart';
+import '../../../../core/common/base_loadable_state.dart';
 import '../../../../core/widgets/custom_category_card.dart';
 import '../../../../core/widgets/custom_dots_indicator.dart';
+import '../../../../core/widgets/custom_floating_action_button.dart';
 import '../../../../core/widgets/custom_search.dart';
 import '../../../../core/widgets/custom_show_card.dart';
 import '../../../../core/widgets/custom_stage_card.dart';
 import '../../../../core/widgets/custom_title.dart';
+import '../../../../core/widgets/internet_aware_mixin.dart';
 import '../../../../core/widgets/shimmer.dart';
 import '../../../../domain/entities/campaign.dart';
 import '../../../../domain/entities/show.dart';
@@ -20,14 +23,14 @@ import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 import '../search_page/search_page.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+class HomePage extends ConsumerStatefulWidget {
+  const HomePage({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomePage> createState() => _MainPageState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _MainPageState extends ConsumerState<HomePage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
@@ -55,6 +58,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _startAutoScroll() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 10), (final _) {
       final campaigns = ref.read(campaignProvider).dataList;
       if (campaigns == null || campaigns.isEmpty) return;
@@ -87,8 +91,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if ([campaignState, showState, stageState].any((final s) => s.isLoading))
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    if (showState.hasError) {
+    if (<LoadableState>[campaignState, showState, stageState]
+        .any((final state) => state.hasError)) {
       return Scaffold(
+        floatingActionButton:
+            CustomFloatingActionButton(onPressed: _loadAllData),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -110,6 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return Scaffold(
+      floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(15),
         child: Column(
@@ -179,9 +187,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           padding: const EdgeInsets.all(8),
                           child: Text(
                             campaign.title,
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: theme.colorScheme.onPrimary
-                            ),
+                            style: theme.textTheme.headlineMedium
+                                ?.copyWith(color: theme.colorScheme.onPrimary),
                             textAlign: TextAlign.center,
                           ),
                         ),
