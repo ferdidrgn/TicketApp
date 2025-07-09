@@ -30,7 +30,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   void _onItemTapped(final int index) => setState(() => _selectedIndex = index);
 
   List<Widget> get _pages => [
-        const HomeScreen(),
+        const HomePage(),
         DiscoveryPage(selectedCategory: selectedCategoryTitle),
         const NearbyEventsPage(),
         const ProfilePage(),
