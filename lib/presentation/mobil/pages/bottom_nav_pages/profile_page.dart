@@ -22,12 +22,6 @@ class ProfilePage extends ConsumerWidget {
     if (loginState.isLoading)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    if (loginState.errorMessage != null)
-      return Scaffold(
-          body: Center(
-              child: Text(loginState.errorMessage!,
-                  style: theme.textTheme.bodyMedium)));
-
     return Scaffold(
       body: ListView(
         padding: const EdgeInsets.all(20),
