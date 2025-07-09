@@ -18,7 +18,7 @@ class SeatsState extends BaseState{
     return SeatsState(
       seats: seats ?? this.seats,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

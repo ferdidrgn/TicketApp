@@ -20,7 +20,7 @@ class TicketState extends LoadableState<Ticket, List<Ticket>> {
       ticket: dataSingle ?? this.dataSingle,
       tickets: dataList ?? this.dataList,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

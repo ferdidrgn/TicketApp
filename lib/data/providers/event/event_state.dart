@@ -34,7 +34,7 @@ class EventState extends BaseState{
       seatStatus: seatStatus ?? this.seatStatus,
       purchasedSeats: purchasedSeats ?? this.purchasedSeats,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

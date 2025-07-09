@@ -20,7 +20,7 @@ class PlayerState extends LoadableState<Player, List<Player>> {
       player: dataSingle ?? this.dataSingle,
       players: dataList ?? this.dataList,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

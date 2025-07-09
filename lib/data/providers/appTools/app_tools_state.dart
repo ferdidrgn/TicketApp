@@ -22,7 +22,7 @@ class AppToolsState extends BaseState{
       privacyPolicy: privacyPolicy ?? this.privacyPolicy,
       termsCondition: termsCondition ?? this.termsCondition,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

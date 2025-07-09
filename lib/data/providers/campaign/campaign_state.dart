@@ -20,7 +20,7 @@ class CampaignState extends LoadableState<Campaign, List<Campaign>> {
       campaign: dataSingle ?? this.dataSingle,
       campaigns: dataList ?? this.dataList,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

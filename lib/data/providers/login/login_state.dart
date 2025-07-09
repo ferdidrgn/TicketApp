@@ -24,7 +24,7 @@ class LoginState extends BaseState {
       user: user ?? this.user,
       googleUser: googleUser ?? this.googleUser,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

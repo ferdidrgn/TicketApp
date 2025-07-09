@@ -20,7 +20,7 @@ class UserState extends LoadableState<User, List<User>> {
       user: dataSingle?? this.dataSingle,
       users: dataList ?? this.dataList,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

@@ -20,7 +20,7 @@ class TeamState extends LoadableState<Team, List<Team>> {
       team: dataSingle ?? dataSingle,
       teams: dataList ?? this.dataList,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

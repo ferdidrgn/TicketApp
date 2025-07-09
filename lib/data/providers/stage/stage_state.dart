@@ -20,7 +20,7 @@ class StageState extends LoadableState<Stage, List<Stage>> {
       stage: dataSingle ?? this.dataSingle,
       stages: dataList ?? this.dataList,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }
