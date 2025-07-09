@@ -20,7 +20,7 @@ abstract class BaseNotifier<T extends BaseState> extends StateNotifier<T> {
         (final failure) => _setErrorState(failure.message),
         (final success) {
           onSuccess?.call(success);
-          _setLoadingState(false);
+          _setSuccessState();
         },
       );
     } catch (e) {
@@ -28,15 +28,13 @@ abstract class BaseNotifier<T extends BaseState> extends StateNotifier<T> {
     }
   }
 
-  void _setLoadingState(final bool isLoading) {
-    state = state.copyWith(isLoading: isLoading, errorMessage: null) as T;
-  }
+  void _setLoadingState(final bool isLoading) =>
+      state = state.copyWith(isLoading: isLoading, errorMessage: null) as T;
+
+  void _setSuccessState() =>
+      state = state.copyWith(isLoading: false, errorMessage: null) as T;
 
   // Private method to set error state
-  void _setErrorState(final String errorMessage) {
-    state = state.copyWith(
-      errorMessage: errorMessage,
-      isLoading: false,
-    ) as T;
-  }
+  void _setErrorState(final String errorMessage) =>
+      state = state.copyWith(errorMessage: errorMessage, isLoading: false) as T;
 }
