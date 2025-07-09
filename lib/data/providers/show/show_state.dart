@@ -18,7 +18,7 @@ class ShowState extends LoadableState<Show, List<Show>> {
   }) {
     return ShowState(
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
       show: dataSingle ?? this.dataSingle,
       shows: dataList ?? this.dataList,
     );
