@@ -1,45 +1,45 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../../../core/errors/failures.dart';
+import '../network/internet_service.dart';
 import 'base_state.dart';
 
 abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     extends StateNotifier<T> {
-  BaseNotifierWithNetworkChecker(final T initialState) : super(initialState) {
-    _startPeriodicInternetCheck();
+  final InternetService _internetService;
+
+  BaseNotifierWithNetworkChecker(
+    this._internetService,
+    final T initialState,
+  ) : super(initialState) {
+    _startListening();
   }
 
-  Timer? _internetCheckTimer;
+  StreamSubscription<InternetConnectionStatus>? _subscription;
   bool _wasOffline = false;
   Timer? _debounceTimer;
 
-  void _startPeriodicInternetCheck() {
-    _internetCheckTimer?.cancel();
-    _internetCheckTimer = Timer.periodic(
-        const Duration(seconds: 5), (final _) => _checkInternet());
-  }
-
-  Future<void> _checkInternet() async {
-    try {
-      final result = await InternetAddress.lookup('google.com');
-      final isOnline = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-
-      if (isOnline && _wasOffline) {// Internet restore oldu
+  void _startListening() {
+    _subscription = _internetService.connectionStream.listen((final status) {
+      final isOnline = status == InternetConnectionStatus.connected;
+      if (isOnline && _wasOffline) {
         _debounceTimer?.cancel();
         _debounceTimer = Timer(const Duration(seconds: 2), onInternetRestored);
         _wasOffline = false;
-      } else if (!isOnline && !_wasOffline) {// Internet kesildi
+      } else if (!isOnline && !_wasOffline) {
         _wasOffline = true;
         onInternetLost();
       }
-    } catch (e) {
-      if (!_wasOffline) {
-        _wasOffline = true;
-        onInternetLost();
-      }
-    }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   void onInternetRestored() => reloadData();
@@ -64,21 +64,13 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
   // Manual internet check method
   Future<bool> checkInternet() async {
     try {
-      final result = await InternetAddress.lookup('google.com');
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      return await _internetService.isConnected;
     } catch (e) {
       return false;
     }
   }
 
-  @override
-  void dispose() {
-    _internetCheckTimer?.cancel();
-    _debounceTimer?.cancel();
-    super.dispose();
-  }
-
-  // Network operasyonları için wrapper
+  /// Network operasyonları için wrapper
   Future<void> executeWithInternetCheck<R>(
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,
@@ -102,7 +94,8 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
         },
       );
     } catch (e) {
-      _setErrorState('Unexpected error occurred: ${e.toString()}');
+      _setErrorState(
+          'Beklenmeyen bir hata oluştu (Unexpected error occurred): ${e.toString()}');
     }
   }
 }
