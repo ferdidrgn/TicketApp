@@ -14,7 +14,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    Future.microtask(() => _loadData());
   }
 
   void _loadData() {
@@ -44,9 +44,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
     );
   }
 
-  Widget _buildErrorState(final String message) {
-    return Center(child: Text(message));
-  }
+  Widget _buildErrorState(final String message) => Center(child: Text(message));
 
   Widget _buildContentState(
     final BuildContext context,
