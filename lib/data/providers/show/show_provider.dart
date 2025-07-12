@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/internet_service_provider.dart';
 import '../../../domain/useCase/show/add_show_use_case_impl.dart';
 import '../../../domain/useCase/show/delete_show_use_case_impl.dart';
 import '../../../domain/useCase/show/get_search_show_use_case_impl.dart';
@@ -9,8 +10,10 @@ import '../../repository/show/show_repository_provider.dart';
 import 'show_notifier.dart';
 import 'show_state.dart';
 
-final showProvider = StateNotifierProvider<ShowNotifier, ShowState>((final ref) {
+final showProvider =
+    StateNotifierProvider<ShowNotifier, ShowState>((final ref) {
   return ShowNotifier(
+    ref.read(internetServiceProvider),
     ref.watch(addShowUseCaseProvider),
     ref.watch(deleteShowUseCaseProvider),
     ref.watch(updateShowUseCaseProvider),
@@ -36,7 +39,8 @@ final updateShowUseCaseProvider = Provider<UpdateShowUseCase>((final ref) {
   return UpdateShowUseCaseImpl(repository);
 });
 
-final getShowsByIdsUseCaseProvider = Provider<GetShowsByIdsUseCase>((final ref) {
+final getShowsByIdsUseCaseProvider =
+    Provider<GetShowsByIdsUseCase>((final ref) {
   final repository = ref.watch(showRepositoryProvider);
   return GetShowsByIdsUseCaseImpl(repository);
 });
@@ -46,7 +50,8 @@ final getShowsUseCaseProvider = Provider<GetShowsUseCase>((final ref) {
   return GetShowsUseCaseImpl(repository);
 });
 
-final getSearchShowUseCaseProvider = Provider<GetSearchShowUseCase>((final ref) {
+final getSearchShowUseCaseProvider =
+    Provider<GetSearchShowUseCase>((final ref) {
   final repository = ref.watch(showRepositoryProvider);
   return GetSearchShowUseCaseImpl(repository);
 });
