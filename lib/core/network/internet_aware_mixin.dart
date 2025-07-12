@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../network/internet_service.dart';
 
+//FOR UI. Not use ViewModel
 mixin InternetAwareMixin<T extends StatefulWidget> on State<T> {
-  late void Function(bool) _internetListener;
+  late final void Function(bool) _internetListener;
+
   bool _hasTriggeredRestore = false;
   Timer? _debounceTimer;
 
@@ -12,11 +14,10 @@ mixin InternetAwareMixin<T extends StatefulWidget> on State<T> {
     super.initState();
 
     InternetService.instance.startListening();
-    _internetListener = (final bool isConnected) {
-      if (isConnected) _handleInternetRestored();
-      else _handleInternetLost();
-    };
 
+    _internetListener = _onInternetStatusChanged;
+
+    // İnternet durum değişikliklerini dinlemeye başla.
     InternetService.instance.addListener(_internetListener);
   }
 
@@ -26,6 +27,9 @@ mixin InternetAwareMixin<T extends StatefulWidget> on State<T> {
     _debounceTimer?.cancel();
     super.dispose();
   }
+
+  void _onInternetStatusChanged(final isConnected) =>
+      isConnected ? _handleInternetRestored() : _handleInternetLost();
 
   void _handleInternetRestored() {
     if (_hasTriggeredRestore) return;
