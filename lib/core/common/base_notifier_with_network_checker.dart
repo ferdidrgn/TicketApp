@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/failures.dart';
 import 'base_state.dart';
 
-abstract class InternetAwareBaseNotifier<T extends BaseState>
+abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     extends StateNotifier<T> {
-  InternetAwareBaseNotifier(final T initialState) : super(initialState) {
+  BaseNotifierWithNetworkChecker(final T initialState) : super(initialState) {
     _startPeriodicInternetCheck();
   }
 
