@@ -6,10 +6,3 @@ import 'internet_service.dart';
 final internetServiceProvider = Provider<InternetService>((final ref) {
   return InternetService.instance;
 });
-
-// StreamProvider for real-time connection updates
-final networkInfoStreamProvider =
-    StreamProvider<InternetConnectionStatus>((final ref) {
-  final internetService = ref.watch(internetServiceProvider);
-  return internetService.connectionStream;
-});
