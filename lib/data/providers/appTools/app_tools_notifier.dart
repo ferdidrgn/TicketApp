@@ -16,11 +16,11 @@ class AppToolsNotifier extends BaseNotifierWithNetworkChecker<AppToolsState> {
 
   @override
   void reloadData() {
-    _fetchPrivacyPolicy();
-    _fetchTermsCondition();
+    fetchPrivacyPolicy();
+    fetchTermsCondition();
   }
 
-  Future<void> _fetchPrivacyPolicy() => executeWithInternetCheck(
+  Future<void> fetchPrivacyPolicy() => executeWithInternetCheck(
         () => _getPrivacyPolicyUseCase.call(),
         onSuccess: (final policy) {
           if (policy != state.privacyPolicy)
@@ -28,7 +28,7 @@ class AppToolsNotifier extends BaseNotifierWithNetworkChecker<AppToolsState> {
         },
       );
 
-  Future<void> _fetchTermsCondition() => executeWithInternetCheck(
+  Future<void> fetchTermsCondition() => executeWithInternetCheck(
         () => _getTermsConditionUseCase.call(),
         onSuccess: (final terms) {
           if (terms != state.termsCondition)

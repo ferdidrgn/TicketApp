@@ -3,29 +3,56 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_html_css/simple_html_css.dart';
 import '../../../../data/providers/appTools/app_tools_provider.dart';
 
-class ContractsPage extends ConsumerWidget {
+class ContractsPage extends ConsumerStatefulWidget {
   const ContractsPage({super.key});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<ContractsPage> createState() => _ContractsPageState();
+}
+
+class _ContractsPageState extends ConsumerState<ContractsPage> {
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
+    final notifier = ref.read(appToolsProvider.notifier);
+    notifier.fetchPrivacyPolicy();
+    notifier.fetchTermsCondition();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
     final appToolsState = ref.watch(appToolsProvider);
 
-    return Scaffold(
-        body: appToolsState.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : appToolsState.errorMessage != null
-                ? _buildErrorState(appToolsState.errorMessage!)
-                : _buildContentState(context, appToolsState.privacyPolicy,
-                    appToolsState.termsCondition));
+    if (appToolsState.isLoading)
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+
+    if (appToolsState.errorMessage != null)
+      return Scaffold(
+        body: _buildErrorState(appToolsState.errorMessage!),
+      );
+
+    return _buildContentState(
+      context,
+      appToolsState.privacyPolicy,
+      appToolsState.termsCondition,
+    );
   }
 
   Widget _buildErrorState(final String message) {
     return Center(child: Text(message));
   }
 
-  // Content state with the actual HTML content
-  Widget _buildContentState(final BuildContext context,
-      final String? privacyPolicy, final String? termsCondition) {
+  Widget _buildContentState(
+    final BuildContext context,
+    final String? privacyPolicy,
+    final String? termsCondition,
+  ) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Privacy Policy & Terms & Conditions'),
@@ -35,30 +62,31 @@ class ContractsPage extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildPrivacyPolicyAndTermsConditionCard(
-                context, privacyPolicy, true),
+            _buildContractCard(context, privacyPolicy, true),
             const Divider(height: 2, thickness: 1),
-            _buildPrivacyPolicyAndTermsConditionCard(
-                context, termsCondition, false),
+            _buildContractCard(context, termsCondition, false),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPrivacyPolicyAndTermsConditionCard(final BuildContext context,
-      final String? privacyPolicyOrTermsCondition, final bool isPrivacyPolicy) {
+  Widget _buildContractCard(
+    final BuildContext context,
+    final String? content,
+    final bool isPrivacyPolicy,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle(
             isPrivacyPolicy ? 'Privacy Policy' : 'Terms and Conditions'),
         const SizedBox(height: 10),
-        if (privacyPolicyOrTermsCondition != null)
+        if (content != null)
           RichText(
             text: HTML.toTextSpan(
               context,
-              privacyPolicyOrTermsCondition,
+              content,
               defaultTextStyle: const TextStyle(
                   fontSize: 18, decoration: TextDecoration.none),
             ),
