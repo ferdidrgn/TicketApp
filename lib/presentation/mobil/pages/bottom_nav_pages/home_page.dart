@@ -7,6 +7,7 @@ import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
 import 'package:ticketapp/domain/entities/stage.dart';
 import '../../../../core/common/base_loadable_state.dart';
+import '../../../../core/network/internet_aware_mixin.dart';
 import '../../../../core/widgets/custom_category_card.dart';
 import '../../../../core/widgets/custom_dots_indicator.dart';
 import '../../../../core/widgets/custom_floating_action_button.dart';
@@ -14,7 +15,6 @@ import '../../../../core/widgets/custom_search.dart';
 import '../../../../core/widgets/custom_show_card.dart';
 import '../../../../core/widgets/custom_stage_card.dart';
 import '../../../../core/widgets/custom_title.dart';
-import '../../../../core/widgets/internet_aware_mixin.dart';
 import '../../../../core/widgets/shimmer.dart';
 import '../../../../domain/entities/campaign.dart';
 import '../../../../domain/entities/show.dart';
@@ -27,13 +27,15 @@ class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  ConsumerState<HomePage> createState() => _MainPageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _MainPageState extends ConsumerState<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> with InternetAwareMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
+  bool _hasTriggeredRestore = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -50,6 +52,24 @@ class _MainPageState extends ConsumerState<HomePage> {
     _pageController.dispose();
     super.dispose();
   }
+
+  // Mixin'den gelen metodlar
+  @override
+  void onInternetRestored() {
+    if (_hasTriggeredRestore) return;
+
+    _hasTriggeredRestore = true;
+
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(seconds: 2), () {
+      _hasTriggeredRestore = false;
+    });
+
+    _loadAllData();
+  }
+
+  @override
+  void onInternetLost() => _timer?.cancel(); // Auto-scroll'u durdur
 
   void _loadAllData() {
     ref.read(campaignProvider.notifier).loadCampaigns();
@@ -91,57 +111,42 @@ class _MainPageState extends ConsumerState<HomePage> {
     if ([campaignState, showState, stageState].any((final s) => s.isLoading))
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    if (<LoadableState>[campaignState, showState, stageState]
-        .any((final state) => state.hasError)) {
-      return Scaffold(
-        floatingActionButton:
-            CustomFloatingActionButton(onPressed: _loadAllData),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
+    return Scaffold(
+      floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
+      body: (<LoadableState>[campaignState, showState, stageState]
+              .any((final state) => state.hasError))
+          ? Center(
+              child: Text(
                 showState.errorMessage ?? 'Bir hata oluştu',
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _loadAllData,
-                child: const Text('Tekrar Dene'),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                children: [
+                  if (campaignState.dataList != null)
+                    _buildCampaignSlider(
+                        campaignState.dataList!.cast<Campaign>()),
+                  CustomSearchBar(
+                      onSearchTap: () => _navigateToPage(const SearchPage())),
+                  const SizedBox(height: 20),
+                  const CustomSectionTitle(title: 'Kategoriler'),
+                  const CategoryCardBuilder(),
+                  const CustomSectionTitle(title: 'Yeni Gösteriler'),
+                  _buildShowList(showState.dataList ?? []),
+                  const CustomSectionTitle(title: 'Sahneler'),
+                  _buildStageList(stageState.dataList ?? []),
+                  const CustomSectionTitle(title: 'Oyunlardan Kareler'),
+                  _buildHorizontalList(
+                    items: List.generate(6, (final index) => index),
+                    itemBuilder: _buildGamePhotoCard,
+                  ),
+                  const SizedBox(height: 50),
+                ],
               ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          children: [
-            if (campaignState.dataList != null)
-              _buildCampaignSlider(campaignState.dataList!.cast<Campaign>()),
-            CustomSearchBar(
-                onSearchTap: () => _navigateToPage(const SearchPage())),
-            const SizedBox(height: 20),
-            const CustomSectionTitle(title: 'Kategoriler'),
-            const CategoryCardBuilder(),
-            const CustomSectionTitle(title: 'Yeni Gösteriler'),
-            _buildShowList(showState.dataList ?? []),
-            const CustomSectionTitle(title: 'Sahneler'),
-            _buildStageList(stageState.dataList ?? []),
-            const CustomSectionTitle(title: 'Oyunlardan Kareler'),
-            _buildHorizontalList(
-              items: List.generate(6, (final index) => index),
-              itemBuilder: _buildGamePhotoCard,
             ),
-            const SizedBox(height: 50),
-          ],
-        ),
-      ),
     );
   }
 

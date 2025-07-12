@@ -6,6 +6,7 @@ import 'package:ticketapp/core/widgets/custom_show_card.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/datasources/show/show_remote_data_source_and_impl.dart';
 import 'package:ticketapp/presentation/mobil/pages/details_pages/show_details.dart';
+import '../../../../core/network/internet_aware_mixin.dart';
 import '../../../../core/widgets/shimmer.dart';
 import '../../../../data/datasources/player/player_remote_data_source_and_impl.dart';
 import '../../../../domain/entities/player.dart';
@@ -20,13 +21,15 @@ class PlayerDetailPage extends StatefulWidget {
   _PlayerDetailPageState createState() => _PlayerDetailPageState();
 }
 
-class _PlayerDetailPageState extends State<PlayerDetailPage> {
+class _PlayerDetailPageState extends State<PlayerDetailPage>
+    with InternetAwareMixin {
   Player? player;
   final List<Show> nowShowsDataList = [];
   final List<Show> oldShowsDataList = [];
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
   bool isLoading = true;
+  bool hasError = false;
   double _sheetProgress = 0.1;
 
   @override
@@ -35,7 +38,22 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
     _fetchPlayerData();
   }
 
+  @override
+  void onInternetRestored() {
+    if (hasError) _fetchPlayerData();
+  }
+
+  @override
+  void onInternetLost() => setState(() {
+        hasError = true;
+      });
+
   Future<void> _fetchPlayerData() async {
+    setState(() {
+      isLoading = true;
+      hasError = false;
+    });
+
     try {
       final fetchedPlayer =
           (await PlayerRemoteDataSourceImpl(firestore: firestore)
@@ -52,10 +70,9 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       }
     } catch (error) {
       _showErrorSnackbar('Veri alınırken bir hata oluştu: $error');
+      setState(() => hasError = true);
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -91,7 +108,7 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
         title: Text(
           player != null
               ? '${player!.firstName} ${player!.lastName}'
-              : 'Player Details',
+              : 'Oyuncu Detayı',
           style: Theme.of(context)
               .textTheme
               .headlineMedium
@@ -101,28 +118,54 @@ class _PlayerDetailPageState extends State<PlayerDetailPage> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: Stack(
-                children: [
-                  _buildTopSection(),
-                  DraggableScrollableSheet(
-                    initialChildSize: 0.1,
-                    minChildSize: 0.1,
-                    maxChildSize: 0.8,
-                    builder: (final context, final scrollController) {
-                      return NotificationListener<
-                          DraggableScrollableNotification>(
-                        onNotification: (final notification) {
-                          setState(() => _sheetProgress = notification.extent);
-                          return true;
-                        },
-                        child: _buildBottomSheet(scrollController),
-                      );
-                    },
-                  ),
-                ],
-              ),
+          : hasError
+              ? _buildErrorContent()
+              : _buildContent(),
+    );
+  }
+
+  Widget _buildErrorContent() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off, size: 64, color: Colors.redAccent),
+            const SizedBox(height: 16),
+            const Text(
+              'İnternet bağlantısı yok',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+            const Text('Bağlantı kurulunca otomatik olarak yenilenecek.'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return SafeArea(
+      child: Stack(
+        children: [
+          _buildTopSection(),
+          DraggableScrollableSheet(
+            initialChildSize: 0.1,
+            minChildSize: 0.1,
+            maxChildSize: 0.8,
+            builder: (final context, final scrollController) {
+              return NotificationListener<DraggableScrollableNotification>(
+                onNotification: (final notification) {
+                  setState(() => _sheetProgress = notification.extent);
+                  return true;
+                },
+                child: _buildBottomSheet(scrollController),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
