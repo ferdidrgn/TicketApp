@@ -1,18 +1,22 @@
-import 'package:ticketapp/core/common/base_notifier.dart';
+import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
 
+import '../../../core/network/internet_service.dart';
 import '../../../domain/useCase/campaign/get_campaigns_use_case_impl.dart';
 import 'campaign_state.dart';
 
-class CampaignNotifier extends BaseNotifier<CampaignState> {
+class CampaignNotifier extends BaseNotifierWithNetworkChecker<CampaignState> {
   final GetCampaignsUseCase getCampaignsUseCase;
 
-  CampaignNotifier(this.getCampaignsUseCase) : super(CampaignState());
+  CampaignNotifier(
+      final InternetService internetService, this.getCampaignsUseCase)
+      : super(internetService, CampaignState());
 
-  Future<void> loadCampaigns() async {
-    await handleOperation(
-      () => getCampaignsUseCase.call(),
-      onSuccess: (final campaigns) =>
-          state = state.copyWith(dataList: campaigns),
-    );
-  }
+  @override
+  void reloadData() => loadCampaigns();
+
+  Future<void> loadCampaigns() => executeWithInternetCheck(
+        () => getCampaignsUseCase.call(),
+        onSuccess: (final campaigns) =>
+            state = state.copyWith(dataList: campaigns),
+      );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/internet_service_provider.dart';
 import '../../../domain/useCase/player/get_player_by_id_use_case_impl.dart';
 import '../../../domain/useCase/player/get_players_use_case_impl.dart';
 import '../../repository/player/player_repository_provider.dart';
@@ -8,6 +9,7 @@ import 'player_state.dart';
 final playerProvider =
     StateNotifierProvider<PlayerNotifier, PlayerState>((final ref) {
   return PlayerNotifier(
+    ref.read(internetServiceProvider),
     ref.watch(getPlayerByIdUseCaseProvider),
     ref.watch(getPlayersUseCaseProvider),
   );

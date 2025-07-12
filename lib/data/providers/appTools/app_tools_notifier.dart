@@ -1,31 +1,38 @@
-import 'package:ticketapp/core/common/base_notifier.dart';
+import '../../../core/common/base_notifier_with_network_checker.dart';
+import '../../../core/network/internet_service.dart';
 import '../../../domain/useCase/appTools/get_privacy_policy_use_case_impl.dart';
 import '../../../domain/useCase/appTools/get_terms_condition_use_case_impl.dart';
 import 'app_tools_state.dart';
 
-class AppToolsNotifier extends BaseNotifier<AppToolsState> {
-  final GetPrivacyPolicyUseCase getPrivacyPolicyUseCase;
-  final GetTermsConditionUseCase getTermsConditionUseCase;
+class AppToolsNotifier extends BaseNotifierWithNetworkChecker<AppToolsState> {
+  final GetPrivacyPolicyUseCase _getPrivacyPolicyUseCase;
+  final GetTermsConditionUseCase _getTermsConditionUseCase;
 
   AppToolsNotifier(
-    this.getPrivacyPolicyUseCase,
-    this.getTermsConditionUseCase,
-  ) : super(AppToolsState()) {
-    fetchPrivacyPolicy();
-    fetchTermsCondition();
+    final InternetService internetService,
+    this._getPrivacyPolicyUseCase,
+    this._getTermsConditionUseCase,
+  ) : super(internetService, AppToolsState());
+
+  @override
+  void reloadData() {
+    _fetchPrivacyPolicy();
+    _fetchTermsCondition();
   }
 
-  Future<void> fetchPrivacyPolicy() async {
-    await handleOperation(
-      () => getPrivacyPolicyUseCase.call(),
-      onSuccess: (final policy) =>
-          state = state.copyWith(privacyPolicy: policy),
-    );
-  }
+  Future<void> _fetchPrivacyPolicy() => executeWithInternetCheck(
+        () => _getPrivacyPolicyUseCase.call(),
+        onSuccess: (final policy) {
+          if (policy != state.privacyPolicy)
+            state = state.copyWith(privacyPolicy: policy, errorMessage: null);
+        },
+      );
 
-  Future<void> fetchTermsCondition() async {
-    await handleOperation(() => getTermsConditionUseCase.call(),
-        onSuccess: (final terms) =>
-        state = state.copyWith(termsCondition: terms));
-  }
+  Future<void> _fetchTermsCondition() => executeWithInternetCheck(
+        () => _getTermsConditionUseCase.call(),
+        onSuccess: (final terms) {
+          if (terms != state.termsCondition)
+            state = state.copyWith(termsCondition: terms, errorMessage: null);
+        },
+      );
 }

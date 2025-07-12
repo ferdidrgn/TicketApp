@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/internet_service_provider.dart';
 import '../../../domain/useCase/user/delete_user_use_case_impl.dart';
 import '../../../domain/useCase/user/get_user_by_id_use_case_impl.dart';
 import '../../../domain/useCase/user/save_user_use_case_impl.dart';
@@ -9,6 +10,7 @@ import 'user_state.dart';
 final userProvider =
     StateNotifierProvider<UserNotifier, UserState>((final ref) {
   return UserNotifier(
+    ref.read(internetServiceProvider),
     ref.watch(saveUserUseCaseProvider),
     ref.watch(getUserByIdUseCaseProvider),
     ref.watch(deleteUserUseCaseProvider),

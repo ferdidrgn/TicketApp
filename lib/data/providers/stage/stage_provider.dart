@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/internet_service_provider.dart';
 import '../../../domain/useCase/stage/get_search_stage_use_case_impl.dart';
 import '../../../domain/useCase/stage/get_stage_by_id_use_case_impl.dart';
 import '../../../domain/useCase/stage/get_stages_use_case_impl.dart';
@@ -9,6 +10,7 @@ import 'stage_state.dart';
 final stageProvider =
     StateNotifierProvider<StageNotifier, StageState>((final ref) {
   return StageNotifier(
+    ref.read(internetServiceProvider),
     ref.watch(getStagesUseCaseProvider),
     ref.watch(getStageByIdUseCaseProvider),
     ref.watch(getSearchStageUseCaseProvider),
@@ -21,7 +23,8 @@ final getStagesUseCaseProvider = Provider<GetStagesUseCase>((final ref) {
   return GetStagesUseCaseImpl(repository);
 });
 
-final getStageByIdUseCaseProvider = Provider<GetStagesByIdsUseCase>((final ref) {
+final getStageByIdUseCaseProvider =
+    Provider<GetStagesByIdsUseCase>((final ref) {
   final repository = ref.watch(stageRepositoryProvider);
   return GetStageByIdUseCaseImpl(repository);
 });

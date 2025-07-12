@@ -28,7 +28,7 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
       : super(internetService, const ShowState());
 
   @override // Internet restore olduğunda yapılacak işlemler
-  void reloadData() => loadShows(true);
+  void reloadData() => loadShows(false);
 
   Future<void> addShow(final ShowModel show, final Uri? imageUrl) =>
       executeWithInternetCheck(() => _addShowUseCase.call(show, imageUrl));

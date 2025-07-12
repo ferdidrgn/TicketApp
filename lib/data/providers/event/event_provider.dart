@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/internet_service_provider.dart';
 import '../../../domain/useCase/event/cancel_reservation_use_case_impl.dart';
 import '../../../domain/useCase/event/get_event_date_use_case_impl.dart';
 import '../../../domain/useCase/event/get_event_price_use_case_impl.dart';
@@ -15,6 +16,7 @@ import 'event_state.dart';
 final eventProvider =
     StateNotifierProvider<EventNotifier, EventState>((final ref) {
   return EventNotifier(
+    ref.read(internetServiceProvider),
     ref.watch(getEventPriceUseCaseProvider),
     ref.watch(getEventDateUseCaseProvider),
     ref.watch(getStageIdUseCaseProvider),
