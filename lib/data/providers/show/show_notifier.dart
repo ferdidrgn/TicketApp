@@ -24,8 +24,8 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
       this._updateShowUseCase,
       this._getShowsByIdsUseCase,
       this._getShowsUseCase,
-      this._getSearchShowUseCase,
-      ) : super(internetService, const ShowState());
+      this._getSearchShowUseCase)
+      : super(internetService, const ShowState());
 
   @override // Internet restore olduğunda yapılacak işlemler
   void reloadData() => loadShows(true);
@@ -36,23 +36,24 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
   Future<void> deleteShow(final String? showId) =>
       executeWithInternetCheck(() => _deleteShowUseCase.call(showId));
 
-  Future<void> updateShow(final String showId, final Map<String, dynamic> updatedData) =>
+  Future<void> updateShow(
+          final String showId, final Map<String, dynamic> updatedData) =>
       executeWithInternetCheck(
-              () => _updateShowUseCase.call(showId, updatedData));
+          () => _updateShowUseCase.call(showId, updatedData));
 
   Future<void> loadShowsByIds(final List<String> showsIds) =>
       executeWithInternetCheck(
-            () => _getShowsByIdsUseCase.call(showsIds),
+        () => _getShowsByIdsUseCase.call(showsIds),
         onSuccess: (final shows) => state = state.copyWith(dataList: shows),
       );
 
   Future<void> loadShows(final isLimit) => executeWithInternetCheck(
         () => _getShowsUseCase.call(isLimit),
-    onSuccess: (final shows) => state = state.copyWith(dataList: shows),
-  );
+        onSuccess: (final shows) => state = state.copyWith(dataList: shows),
+      );
 
   Future<void> searchShows(final List<String> categories, final String? type) =>
       executeWithInternetCheck(
-            () => _getSearchShowUseCase.call(categories, type),
+        () => _getSearchShowUseCase.call(categories, type),
       );
 }
