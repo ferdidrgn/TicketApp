@@ -10,11 +10,21 @@ class ContractsPage extends ConsumerStatefulWidget {
   ConsumerState<ContractsPage> createState() => _ContractsPageState();
 }
 
-class _ContractsPageState extends ConsumerState<ContractsPage> {
+class _ContractsPageState extends ConsumerState<ContractsPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     Future.microtask(() => _loadData());
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   void _loadData() {
@@ -26,95 +36,318 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
   @override
   Widget build(final BuildContext context) {
     final appToolsState = ref.watch(appToolsProvider);
+    final theme = Theme.of(context);
 
-    if (appToolsState.isLoading)
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-
-    if (appToolsState.errorMessage != null)
-      return Scaffold(
-        body: _buildErrorState(appToolsState.errorMessage!),
-      );
-
-    return _buildContentState(
-      context,
-      appToolsState.privacyPolicy,
-      appToolsState.termsCondition,
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(
+        title: const Text(
+          'Legal Dökümantasyonlarımız',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: theme.colorScheme.primary,
+              ),
+              indicatorPadding:
+                  const EdgeInsets.symmetric(horizontal: -10, vertical: 5),
+              indicatorSize: TabBarIndicatorSize.tab,
+              tabAlignment: TabAlignment.fill,
+              labelColor: theme.colorScheme.onPrimary,
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.privacy_tip, size: 20),
+                  text: 'Privacy Policy',
+                ),
+                Tab(
+                  icon: Icon(Icons.description, size: 20),
+                  text: 'Terms & Conditions',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: _buildBody(context, appToolsState, theme),
     );
   }
 
-  Widget _buildErrorState(final String message) => Center(child: Text(message));
+  Widget _buildBody(
+      final BuildContext context, final appToolsState, final ThemeData theme) {
+    if (appToolsState.isLoading) return _buildLoadingState(theme);
 
-  Widget _buildContentState(
-    final BuildContext context,
-    final String? privacyPolicy,
-    final String? termsCondition,
-  ) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Privacy Policy & Terms & Conditions'),
-        centerTitle: true,
+    if (appToolsState.errorMessage != null)
+      return _buildErrorState(appToolsState.errorMessage!, theme);
+
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        _buildContentTab(
+          context,
+          appToolsState.privacyPolicy,
+          'Privacy Policy',
+          Icons.privacy_tip,
+          theme,
+        ),
+        _buildContentTab(
+          context,
+          appToolsState.termsCondition,
+          'Terms & Conditions',
+          Icons.description,
+          theme,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingState(final ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: theme.colorScheme.primary,
+            strokeWidth: 3,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Loading legal documents...',
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+    );
+  }
+
+  Widget _buildErrorState(final String message, final ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildContractCard(context, privacyPolicy, true),
-            const Divider(height: 2, thickness: 1),
-            _buildContractCard(context, termsCondition, false),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 48,
+                color: theme.colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Unable to load documents',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadData,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildContractCard(
+  Widget _buildContentTab(
     final BuildContext context,
     final String? content,
-    final bool isPrivacyPolicy,
+    final String title,
+    final IconData icon,
+    final ThemeData theme,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle(
-            isPrivacyPolicy ? 'Privacy Policy' : 'Terms and Conditions'),
-        const SizedBox(height: 10),
-        if (content != null)
-          RichText(
-            text: HTML.toTextSpan(
-              context,
-              content,
-              defaultTextStyle: const TextStyle(
-                  fontSize: 18, decoration: TextDecoration.none),
-            ),
-          )
-        else
-          const Center(child: CircularProgressIndicator()),
-      ],
+    if (content == null) {
+      return _buildLoadingState(theme);
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDocumentHeader(title, icon, theme),
+          const SizedBox(height: 24),
+          _buildDocumentContent(context, content, theme),
+          const SizedBox(height: 32),
+          _buildLastUpdated(theme),
+        ],
+      ),
     );
   }
 
-  // Common title widget for sections
-  Widget _buildSectionTitle(final String title) {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+  Widget _buildDocumentHeader(
+      final String title, final IconData icon, final ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primaryContainer,
+            theme.colorScheme.primaryContainer.withOpacity(0.7),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 28,
+              color: theme.colorScheme.primary,
             ),
           ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Please read carefully',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color:
+                        theme.colorScheme.onPrimaryContainer.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentContent(
+      final BuildContext context, final String content, final ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
         ),
+      ),
+      child: RichText(
+        text: HTML.toTextSpan(
+          context,
+          content,
+          defaultTextStyle: TextStyle(
+            fontSize: 16,
+            height: 1.6,
+            color: theme.colorScheme.onSurface,
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLastUpdated(final ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 20,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'This document was last updated on ${DateTime.now().toString().split(' ')[0]}',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
