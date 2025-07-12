@@ -7,7 +7,6 @@ import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
 import 'package:ticketapp/domain/entities/stage.dart';
 import '../../../../core/common/base_loadable_state.dart';
-import '../../../../core/network/internet_aware_mixin.dart';
 import '../../../../core/widgets/custom_category_card.dart';
 import '../../../../core/widgets/custom_dots_indicator.dart';
 import '../../../../core/widgets/custom_floating_action_button.dart';
@@ -30,12 +29,10 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> with InternetAwareMixin {
+class _HomePageState extends ConsumerState<HomePage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
-  bool _hasTriggeredRestore = false;
-  Timer? _debounce;
 
   @override
   void initState() {
@@ -52,24 +49,6 @@ class _HomePageState extends ConsumerState<HomePage> with InternetAwareMixin {
     _pageController.dispose();
     super.dispose();
   }
-
-  // Mixin'den gelen metodlar
-  @override
-  void onInternetRestored() {
-    if (_hasTriggeredRestore) return;
-
-    _hasTriggeredRestore = true;
-
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(seconds: 2), () {
-      _hasTriggeredRestore = false;
-    });
-
-    _loadAllData();
-  }
-
-  @override
-  void onInternetLost() => _timer?.cancel(); // Auto-scroll'u durdur
 
   void _loadAllData() {
     ref.read(campaignProvider.notifier).loadCampaigns();
