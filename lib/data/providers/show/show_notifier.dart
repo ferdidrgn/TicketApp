@@ -1,4 +1,6 @@
-import '../../../core/common/base_notifier.dart';
+import 'package:flutter/material.dart';
+import '../../../core/common/base_notifier_with_network_checker.dart';
+import '../../../core/network/internet_service.dart';
 import '../../../domain/useCase/show/add_show_use_case_impl.dart';
 import '../../../domain/useCase/show/delete_show_use_case_impl.dart';
 import '../../../domain/useCase/show/get_search_show_use_case_impl.dart';
@@ -8,7 +10,8 @@ import '../../../domain/useCase/show/update_show_use_case_impl.dart';
 import '../../model/show_model.dart';
 import 'show_state.dart';
 
-class ShowNotifier extends BaseNotifier<ShowState> {
+class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
+  final InternetService internetService;
   final AddShowUseCase addShowUseCase;
   final DeleteShowUseCase deleteShowUseCase;
   final UpdateShowUseCase updateShowUseCase;
@@ -17,39 +20,48 @@ class ShowNotifier extends BaseNotifier<ShowState> {
   final GetSearchShowUseCase getSearchShowUseCase;
 
   ShowNotifier(
-    this.addShowUseCase,
-    this.deleteShowUseCase,
-    this.updateShowUseCase,
-    this.getShowsByIdsUseCase,
-    this.getShowsUseCase,
-    this.getSearchShowUseCase,
-  ) : super(ShowState());
+      this.internetService,
+      this.addShowUseCase,
+      this.deleteShowUseCase,
+      this.updateShowUseCase,
+      this.getShowsByIdsUseCase,
+      this.getShowsUseCase,
+      this.getSearchShowUseCase)
+      : super(internetService, ShowState());
+
+  @override // Internet restore olduğunda yapılacak işlemler
+  void reloadData() => loadShows(true);
 
   Future<void> addShow(final ShowModel show, final Uri? imageUrl) async =>
-      handleOperation(() => addShowUseCase.call(show, imageUrl));
+      executeWithInternetCheck(
+        () => addShowUseCase.call(show, imageUrl),
+      );
 
-  Future<void> deleteShow(final String? showId) async =>
-      handleOperation(() => deleteShowUseCase.call(showId));
+  Future<void> deleteShow(final String? showId) async {
+    await executeWithInternetCheck(
+      () => deleteShowUseCase.call(showId),
+    );
+  }
 
   Future<void> updateShow(
           final String showId, final Map<String, dynamic> updatedData) async =>
-      handleOperation(() => updateShowUseCase.call(showId, updatedData));
+      executeWithInternetCheck(
+        () => updateShowUseCase.call(showId, updatedData),
+      );
 
-  Future<void> loadShowsByIds(final List<String> showsIds) async {
-    await handleOperation(
-      () => getShowsByIdsUseCase.call(showsIds),
-      onSuccess: (final shows) => state = state.copyWith(dataList: shows),
-    );
-  }
+  Future<void> loadShowsByIds(final List<String> showsIds) async =>
+      executeWithInternetCheck(
+        () => getShowsByIdsUseCase.call(showsIds),
+        onSuccess: (final shows) => state = state.copyWith(dataList: shows),
+      );
 
-  Future<void> loadShows(final isLimit) async {
-    await handleOperation(
-      () => getShowsUseCase.call(isLimit),
-      onSuccess: (final shows) => state = state.copyWith(dataList: shows),
-    );
-  }
+  Future<void> loadShows(final isLimit) async => executeWithInternetCheck(
+        () => getShowsUseCase.call(isLimit),
+        onSuccess: (final shows) => state = state.copyWith(dataList: shows),
+      );
 
   Future<void> searchShows(
-      final List<String> categories, final String? type) async =>
-      handleOperation(() => getSearchShowUseCase.call(categories, type));
+          final List<String> categories, final String? type) async =>
+      executeWithInternetCheck(
+          () => getSearchShowUseCase.call(categories, type));
 }
