@@ -1,6 +1,6 @@
 import 'package:ticketapp/core/common/base_state.dart';
 
-class AppToolsState extends BaseState{
+class AppToolsState extends BaseState {
   String? privacyPolicy;
   String? termsCondition;
 
