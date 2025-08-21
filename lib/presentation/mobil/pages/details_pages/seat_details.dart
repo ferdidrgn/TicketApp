@@ -181,6 +181,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         _buildSelectedSeatsText(),
         const SizedBox(height: 10),
         _buildTotalPriceText(),
+        const SizedBox(height: 10),
+        _buildSeatLegend(),
         const SizedBox(height: 20),
         _buildSeatLayout(),
       ],
@@ -213,6 +215,46 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     return Text(
       'Toplam Fiyat: $totalPrice TL',
       style: const TextStyle(fontSize: 16),
+    );
+  }
+
+  Widget _buildSeatLegend() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: [
+            _legendItem(Colors.green, "Boş"),
+            const SizedBox(width: 10),
+            _legendItem(Colors.blue, "Seçili"),
+            const SizedBox(width: 10),
+            _legendItem(Colors.black12, "Satılmış"),
+            const SizedBox(width: 10),
+            _legendItem(Colors.purple, "Başka Sepette"),
+            const SizedBox(width: 10),
+            _legendItem(Colors.red, "Hata var! Lütfen ss alıp bize bildiriniz")
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _legendItem(final Color color, final String label) {
+    return Row(
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 14)),
+      ],
     );
   }
 
