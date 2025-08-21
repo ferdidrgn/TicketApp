@@ -6,8 +6,8 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-def flutterVersionCode = 2
-def flutterVersionName = "1.2"
+def flutterVersionCode = 3
+def flutterVersionName = "1.3"
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -27,7 +27,7 @@ android {
 
     defaultConfig {
         applicationId = "com.ferdidrgn.ticketapp"
-        minSdkVersion 23
+        minSdkVersion flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode
         versionName = flutterVersionName

@@ -38,11 +38,19 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     try {
       if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
 
-      final eventDoc = await firestore.doc(eventId).get();
+      final eventDoc = await FirebaseFirestore.instance
+          .collection('Event').doc(eventId).get();
+
+      print("Initialize document exists: ${eventDoc.exists}");
+
       if (!eventDoc.exists) throw Exception('Event not found.');
 
       final eventData = eventDoc.data();
-      if (eventData == null || eventData['seats'] == null || (eventData['seats'] as Map).isEmpty) {
+
+      if (eventData == null ||
+          eventData['seats'] == null ||
+          (eventData['seats'] as Map).isEmpty) {
+
         final stageSeats = await SeatRemoteDataSourceImpl(firestore: firestore)
             .getSeatsByStage(eventData?['stageId']);
 
@@ -52,12 +60,17 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
         for (final entry in stageSeats.entries) {
           final seats = entry.value;
-          if (seats is List)
+          if (seats is List) {
             for (final seat in seats!.whereType<String>())
               seatStatus[seat] = {'status': 'available', 'customerId': null};
+          }
         }
 
-        await firestore.doc(eventId).update({'seats': seatStatus});
+        await FirebaseFirestore.instance
+            .collection('Event')
+            .doc(eventId)
+            .update({'seats': seatStatus});
+
       }
     } catch (e) {
       throw Exception('Error initializing event seats: ${e.toString()}');
@@ -70,18 +83,27 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     try {
       if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
 
-      final doc = await firestore.doc(eventId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('Event') // ← BU KISMI DEĞİŞTİRİN!
+          .doc(eventId)
+          .get();
+
       if (!doc.exists) throw Exception('Event not found.');
 
       final data = doc.data()!;
+
       final seatStatus = <String, Map<String, dynamic>>{};
 
       if (data['seats'] is Map) {
-        data['seats'].forEach((final seatId, final seatInfo) {
-          if (seatInfo is Map<String, dynamic>) seatStatus[seatId] = seatInfo;
+        final seatsMap = data['seats'] as Map<String, dynamic>;
+
+        seatsMap.forEach((final seatId, final seatInfo) {
+          if (seatInfo is Map<String, dynamic>)
+            seatStatus[seatId] = seatInfo;
         });
-      } else
-        throw Exception('Seat status is not a valid map.');
+
+      } else throw Exception('Seat status is not a valid map.');
+
       return seatStatus;
     } catch (e) {
       throw Exception('Error fetching seat status: ${e.toString()}');
@@ -146,12 +168,14 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
 
     try {
-      final docSnapshot = await firestore.doc(eventId).get();
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('Event').doc(eventId).get();
 
       if (!docSnapshot.exists) throw Exception("Stage data not found");
 
       final eventData = docSnapshot.data()!;
-      return eventData['stageId'] as String;
+
+      return eventData['stageId'] as String?;
     } catch (error) {
       throw Exception("Error fetching stage data: ${error.toString()}");
     }
@@ -162,12 +186,14 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
 
     try {
-      final docSnapshot = await firestore.doc(eventId).get();
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('Event').doc(eventId).get();
 
       if (!docSnapshot.exists) return null;
 
       final eventData = docSnapshot.data()!;
-      return eventData['price'] as String;
+
+      return eventData['price'] as String?;
     } catch (error) {
       throw Exception("Error fetching event price: ${error.toString()}");
     }
@@ -177,12 +203,17 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   Future<Map<String, String>?> getEventDate(final String eventId,
       {final bool formatWithMonthName = false}) async {
     try {
-      final docSnapshot = await firestore.doc(eventId).get();
+
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('Event').doc(eventId).get();
 
       if (!docSnapshot.exists) return null;
 
       final eventData = docSnapshot.data()!;
-      final date = eventData['date'] as String;
+      final date = eventData['date'] as String?;
+
+      if (date == null) return null;
+
       return DateFormatter.parseFormattedDateTime(date,
           formatWithMonthName: formatWithMonthName);
     } catch (error) {

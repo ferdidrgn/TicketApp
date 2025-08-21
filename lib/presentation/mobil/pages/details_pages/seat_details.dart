@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/data/datasources/event/event_remote_data_source_and_impl.dart';
-import 'package:ticketapp/data/datasources/seat/seat_remote_data_source_and_impl.dart';
 import 'package:ticketapp/data/datasources/ticket/ticket_remote_data_source_and_impl.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../domain/entities/ticket.dart';
@@ -23,12 +21,10 @@ class SeatSelectionScreen extends StatefulWidget {
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   final firestore = FirebaseFirestore.instance;
-  late final EventRemoteDataSourceImpl? eventService;
-  late final SeatRemoteDataSourceImpl? seatService;
   Map<String, List<String?>?>? seats = {};
   Map<String, Map<String, dynamic>>? seatStatus = {};
   Set<String> selectedSeats = {};
-  late String stageId;
+  String? stageId;
   Timer? reservationTimer;
   int remainingTime = 600; // 10 dakika
   double totalPrice = 0.0;
@@ -39,8 +35,6 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    eventService = EventRemoteDataSourceImpl(firestore: firestore);
-    seatService = SeatRemoteDataSourceImpl(firestore: firestore);
     _fetchSeats();
     _startReservationTimer();
   }
@@ -52,31 +46,42 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   Future<void> _fetchSeats() async {
-    await eventService?.initializeAndGetEventSeats(widget.eventId);
-    final fetchStageId = await eventService?.getStageId(widget.eventId);
-    if (fetchStageId == null) return;
-    final fetchedSeats = await seatService?.getSeatsByStage(fetchStageId);
-    final fetchedSeatStatus =
-        await eventService?.getSeatStatusByEvent(widget.eventId);
-    final fetchPrice = await eventService?.getEventPrice(widget.eventId);
-    final Map<String, String>? fetchDate =
-        await eventService?.getEventDate(widget.eventId);
+    try {
+      await initializeAndGetEventSeats(widget.eventId);
+      final fetchStageId = await getStageId(widget.eventId);
 
-    setState(() {
-      stageId = fetchStageId;
-      seats = fetchedSeats;
-      seatStatus = fetchedSeatStatus;
-      seatPrice = fetchPrice != null ? double.parse(fetchPrice) : 0.0;
-      date = fetchDate?['date'].toString() ?? '';
-      time = fetchDate?['time'].toString() ?? '';
-    });
+      if (fetchStageId == null) return;
+
+      final fetchedSeats = await getSeatsByStage(fetchStageId);
+
+      final fetchedSeatStatus =
+          await getSeatStatusByEvent(widget.eventId);
+
+      final fetchPrice = await getEventPrice(widget.eventId);
+
+      final Map<String, String>? fetchDate = await getEventDate(widget.eventId);
+
+      setState(() {
+        stageId = fetchStageId;
+        seats = fetchedSeats;
+        seatStatus = fetchedSeatStatus;
+        seatPrice = fetchPrice != null ? double.parse(fetchPrice) : 0.0;
+        date = fetchDate?['date'].toString() ?? '';
+        time = fetchDate?['time'].toString() ?? '';
+      });
+
+    } catch (e) {
+      throw Exception("Error fetching stage data: ${e.toString()}");
+    }
   }
 
   void _startReservationTimer() {
     reservationTimer =
         Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (remainingTime > 0) setState(() => remainingTime--);
-      else _handleTimeUp(timer);
+      if (remainingTime > 0)
+        setState(() => remainingTime--);
+      else
+        _handleTimeUp(timer);
     });
   }
 
@@ -109,7 +114,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _cancelReservations() {
     for (final String seatId in selectedSeats) {
-      eventService?.updateSeatStatus(widget.eventId, seatId, 'available');
+      updateSeatStatus(widget.eventId, seatId, 'available');
     }
     setState(() => selectedSeats.clear());
   }
@@ -127,14 +132,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _removeSeat(final String seatId) {
     selectedSeats.remove(seatId);
-    eventService?.updateSeatStatus(widget.eventId, seatId, 'available');
+    updateSeatStatus(widget.eventId, seatId, 'available');
     totalPrice -= seatPrice;
   }
 
   void _addSeat(final String seatId) {
     selectedSeats.add(seatId);
-    eventService?.updateSeatStatus(widget.eventId, seatId, 'reserved',
-        customerId: "test");
+    updateSeatStatus(widget.eventId, seatId, 'reserved', customerId: "test");
     totalPrice += seatPrice;
   }
 
@@ -325,17 +329,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Color _getSeatColor(
       final String status, final String? reservedById, final bool isSelected) {
-    if (status == 'sold') {
+    if (status == 'sold')
       return Colors.white30; // Satılmış koltuk
-    } else if (status == 'reserved' &&
-        reservedById == null &&
-        reservedById != 'test') {
+    else if (status == 'reserved' &&
+        reservedById != null &&
+        reservedById != 'test')
       return Colors.purple; // Başka biri tarafından rezerve edilmiş koltuk
-    } else if (isSelected) {
+    else if (isSelected)
       return Colors.blue; // Seçili koltuk
-    } else {
+    else
       return Colors.green; // Boş koltuk
-    }
   }
 
   Future<void> _showPaymentBottomSheet() async {
@@ -388,19 +391,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
     if (selectedMethod != null) {
       final confirmed = await _showConfirmationDialog();
-      if (confirmed != null && confirmed == true) {
+      if (confirmed != null && confirmed == true)
         await _processPayment(selectedMethod);
-      }
     }
   }
 
   Future<void> _processPayment(final String method) async {
     try {
       // 1. Koltukları satıldı olarak güncelle
-      for (final String seatId in selectedSeats) {
-        await eventService?.updateSeatStatus(widget.eventId, seatId, 'sold',
-            customerId: "test");
-      }
+      for (final String seatId in selectedSeats)
+        await updateSeatStatus(widget.eventId, seatId, 'sold', customerId: "test");
 
       // 2. Bilet oluşturma işlemi
       final ticketService = TicketRemoteDataSourceImpl(firestore: firestore);
@@ -473,11 +473,311 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       id: '',
       showId: widget.showId,
       customerId: 'customer_id',
-      stageId: stageId,
+      stageId: stageId ?? '',
       eventId: widget.eventId,
       orderPrice: totalPrice.toString(),
       orderMethod: 'google_play',
       isPast: false,
     );
+  }
+}
+
+/// ------------------- FIREBASE FUNKSIYONLARI ------------------------
+
+Future<Map<String, List<String?>?>?> getSeatsByStage(
+    final String stageId) async {
+  try {
+    if (stageId.isEmpty) throw Exception('Stage ID boş olamaz.');
+
+    final DocumentSnapshot doc =
+        await FirebaseFirestore.instance.collection('Seats').doc(stageId).get();
+
+    if (doc.exists) {
+      final Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
+      final Map<String, List<String>> seats = {};
+      data.forEach((final row, final seatList) {
+        seats[row] = List<String>.from(seatList);
+      });
+
+      if (seats.isEmpty) throw Exception('Sahne bulunamadı.');
+      return seats;
+    } else
+      throw Exception('Belirtilen sahne bulunamadı.');
+  } catch (e) {
+    throw Exception('Error fetching seats: $e');
+  }
+}
+
+Future<void> reserveSeat(
+    final String eventId, final String seatId, final String customerId) async {
+  await FirebaseFirestore.instance.doc(eventId).update({
+    'seats.$seatId': {
+      'status': 'reserved',
+      'customerId': customerId,
+    }
+  });
+}
+
+Future<void> cancelReservation(
+    final String eventId, final String seatId) async {
+  await FirebaseFirestore.instance.doc(eventId).update({
+    'seats.$seatId': {'status': 'available', 'customerId': null}
+  });
+}
+
+Future<List<String?>?> getPurchasedSeatsByCustomerId(
+    final String eventId, final String customerId) async {
+  try {
+    if (eventId.isEmpty || customerId.isEmpty)
+      throw Exception('Event ID and Customer ID cannot be empty.');
+
+    final DocumentSnapshot doc =
+        await FirebaseFirestore.instance.doc(eventId).get();
+
+    if (doc.exists) {
+      final Map<String, dynamic> eventData =
+          doc.data()! as Map<String, dynamic>;
+
+      if (eventData['seats'] != null) {
+        final List<String> purchasedSeats = [];
+
+        eventData['seats'].forEach((final seatId, final seatInfo) {
+          if (seatInfo['customerId'] == customerId) purchasedSeats.add(seatId);
+        });
+
+        return purchasedSeats;
+      } else {
+        throw Exception('Seat data not found.');
+      }
+    } else {
+      throw Exception('Event not found.');
+    }
+  } catch (e) {
+    throw Exception('Error fetching seats by customerId: ${e.toString()}');
+  }
+}
+
+Future<void> updateSeatStatus(
+    final String eventId, final String seatId, final String status,
+    {final String? customerId}) async {
+  if (eventId.isEmpty || seatId.isEmpty || status.isEmpty)
+    throw Exception('Event ID, Seat ID, and Status cannot be empty.');
+
+  try {
+    final Map<String, dynamic> seatUpdate = {'status': status};
+
+    if (customerId != null) seatUpdate['customerId'] = customerId;
+
+    await FirebaseFirestore.instance.doc(eventId).update({
+      'seats.$seatId': seatUpdate,
+    });
+  } catch (e) {
+    throw Exception('Error updating seat status: ${e.toString()}');
+  }
+}
+
+Future<String?> getStageId(final String eventId) async {
+  if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
+  try {
+    print("Getting stageId for eventId: $eventId");
+
+    // BURADA COLLECTİON ADINI BELİRTMENİZ GEREKİYOR!
+    // Örnek: 'events', 'Events', 'performances' vb.
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('Event') // ← BU KISMI DEĞİŞTİRİN!
+        .doc(eventId)
+        .get();
+
+    print("Document exists: ${docSnapshot.exists}");
+
+    if (!docSnapshot.exists) {
+      print("Document not found for eventId: $eventId");
+      throw Exception("Stage data not found");
+    }
+
+    final eventData = docSnapshot.data()!;
+    print("Full event data: $eventData");
+    print("StageId from data: ${eventData['stageId']}");
+
+    return eventData['stageId'] as String?;
+  } catch (error) {
+    print("getStageId ERROR: $error");
+    throw Exception("Error fetching stage data: ${error.toString()}");
+  }
+}
+
+Future<String?> getEventPrice(final String eventId) async {
+  if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
+  try {
+    print("Getting price for eventId: $eventId");
+
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('Event') // ← BU KISMI DEĞİŞTİRİN!
+        .doc(eventId)
+        .get();
+
+    print("Price document exists: ${docSnapshot.exists}");
+
+    if (!docSnapshot.exists) {
+      print("Price document not found for eventId: $eventId");
+      return null;
+    }
+
+    final eventData = docSnapshot.data()!;
+    print("Price from data: ${eventData['price']}");
+
+    return eventData['price'] as String?;
+  } catch (error) {
+    print("getEventPrice ERROR: $error");
+    throw Exception("Error fetching event price: ${error.toString()}");
+  }
+}
+
+Future<Map<String, String>?> getEventDate(final String eventId,
+    {final bool formatWithMonthName = false}) async {
+  try {
+    print("Getting date for eventId: $eventId");
+
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('Event') // ← BU KISMI DEĞİŞTİRİN!
+        .doc(eventId)
+        .get();
+
+    print("Date document exists: ${docSnapshot.exists}");
+
+    if (!docSnapshot.exists) {
+      print("Date document not found for eventId: $eventId");
+      return null;
+    }
+
+    final eventData = docSnapshot.data()!;
+    final date = eventData['date'] as String?;
+
+    print("Date from data: $date");
+
+    if (date == null) {
+      print("Date field is null in document");
+      return null;
+    }
+
+    return DateFormatter.parseFormattedDateTime(date,
+        formatWithMonthName: formatWithMonthName);
+  } catch (error) {
+    print("getEventDate ERROR: $error");
+    throw Exception("Error fetching event date: ${error.toString()}");
+  }
+}
+
+Future<Map<String, Map<String, dynamic>>?> getSeatStatusByEvent(
+    final String eventId) async {
+  try {
+    if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
+    print("Getting seat status for eventId: $eventId");
+
+    final doc = await FirebaseFirestore.instance
+        .collection('Event') // ← BU KISMI DEĞİŞTİRİN!
+        .doc(eventId)
+        .get();
+
+    print("Seat status document exists: ${doc.exists}");
+
+    if (!doc.exists) {
+      print("Seat status document not found for eventId: $eventId");
+      throw Exception('Event not found.');
+    }
+
+    final data = doc.data()!;
+    print("Full document data: $data");
+    print("Seats field: ${data['seats']}");
+    print("Seats type: ${data['seats'].runtimeType}");
+
+    final seatStatus = <String, Map<String, dynamic>>{};
+
+    if (data['seats'] is Map) {
+      final seatsMap = data['seats'] as Map<String, dynamic>;
+      print("Processing ${seatsMap.length} seats");
+
+      seatsMap.forEach((final seatId, final seatInfo) {
+        print("Processing seat: $seatId with info: $seatInfo");
+        if (seatInfo is Map<String, dynamic>) {
+          seatStatus[seatId] = seatInfo;
+        }
+      });
+
+      print("Final seat status: $seatStatus");
+    } else {
+      print("Seats field is not a Map. Type: ${data['seats'].runtimeType}");
+      throw Exception('Seat status is not a valid map.');
+    }
+
+    return seatStatus;
+  } catch (e) {
+    print("getSeatStatusByEvent ERROR: $e");
+    throw Exception('Error fetching seat status: ${e.toString()}');
+  }
+}
+
+Future<void> initializeAndGetEventSeats(final String eventId) async {
+  try {
+    if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
+    print("Initializing seats for eventId: $eventId");
+
+    final eventDoc = await FirebaseFirestore.instance
+        .collection('Event') // ← BU KISMI DEĞİŞTİRİN!
+        .doc(eventId)
+        .get();
+
+    print("Initialize document exists: ${eventDoc.exists}");
+
+    if (!eventDoc.exists) {
+      print("Initialize document not found for eventId: $eventId");
+      throw Exception('Event not found.');
+    }
+
+    final eventData = eventDoc.data();
+    print("Initialize event data: $eventData");
+
+    if (eventData == null ||
+        eventData['seats'] == null ||
+        (eventData['seats'] as Map).isEmpty) {
+      print("Seats data is empty, initializing...");
+
+      final stageSeats = await getSeatsByStage(eventData?['stageId']);
+      print("Stage seats: $stageSeats");
+
+      if (stageSeats == null || stageSeats.isEmpty) {
+        print("No stage seats found, returning");
+        return;
+      }
+
+      final seatStatus = <String, Map<String, dynamic>>{};
+
+      for (final entry in stageSeats.entries) {
+        final seats = entry.value;
+        if (seats is List) {
+          for (final seat in seats!.whereType<String>()) {
+            seatStatus[seat] = {'status': 'available', 'customerId': null};
+          }
+        }
+      }
+
+      print("Updating document with seat status: $seatStatus");
+
+      await FirebaseFirestore.instance
+          .collection('Event') // ← BU KISMI DEĞİŞTİRİN!
+          .doc(eventId)
+          .update({'seats': seatStatus});
+
+      print("Document updated successfully");
+    } else {
+      print("Seats data already exists, skipping initialization");
+    }
+  } catch (e) {
+    print("initializeAndGetEventSeats ERROR: $e");
+    throw Exception('Error initializing event seats: ${e.toString()}');
   }
 }
