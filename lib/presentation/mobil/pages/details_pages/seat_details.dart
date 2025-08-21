@@ -334,10 +334,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       final String status, final String? reservedById, final bool isSelected) {
     if (status == 'sold')
       return Colors.white30; // Satılmış koltuk
-    else if (status == 'reserved' &&
-        reservedById == null &&
-        reservedById != 'test')
+    else if (status == 'reserved' && reservedById != null)
       return Colors.purple; // Başka biri tarafından rezerve edilmiş koltuk
+    else if (status == 'reserved' && reservedById == null)
+      return Colors.red; //Bir hata var demek. Rezerve ama kim rezerve etti
     else if (isSelected)
       return Colors.blue; // Seçili koltuk
     else
@@ -485,4 +485,3 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 }
-

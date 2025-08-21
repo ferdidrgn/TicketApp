@@ -38,8 +38,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     try {
       if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
 
-      final eventDoc = await FirebaseFirestore.instance
-          .collection('Event').doc(eventId).get();
+      final eventDoc = await firestore.collection('Event').doc(eventId).get();
 
       print("Initialize document exists: ${eventDoc.exists}");
 
@@ -83,10 +82,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     try {
       if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
 
-      final doc = await FirebaseFirestore.instance
-          .collection('Event') // ← BU KISMI DEĞİŞTİRİN!
-          .doc(eventId)
-          .get();
+      final doc = await firestore.collection('Event').doc(eventId).get();
 
       if (!doc.exists) throw Exception('Event not found.');
 
@@ -117,7 +113,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       if (eventId.isEmpty || customerId.isEmpty)
         throw Exception('Event ID and Customer ID cannot be empty.');
 
-      final DocumentSnapshot doc = await firestore.doc(eventId).get();
+      final DocumentSnapshot doc = await firestore.collection('Event').doc(eventId).get();
 
       if (doc.exists) {
         final Map<String, dynamic> eventData =
@@ -155,7 +151,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
       if (customerId != null) seatUpdate['customerId'] = customerId;
 
-      await firestore.doc(eventId).update({
+      await firestore.collection('Event').doc(eventId).update({
         'seats.$seatId': seatUpdate,
       });
     } catch (e) {
@@ -168,8 +164,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
 
     try {
-      final docSnapshot = await FirebaseFirestore.instance
-          .collection('Event').doc(eventId).get();
+      final docSnapshot = await firestore.collection('Event').doc(eventId).get();
 
       if (!docSnapshot.exists) throw Exception("Stage data not found");
 
@@ -186,8 +181,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
 
     try {
-      final docSnapshot = await FirebaseFirestore.instance
-          .collection('Event').doc(eventId).get();
+      final docSnapshot = await firestore.collection('Event').doc(eventId).get();
 
       if (!docSnapshot.exists) return null;
 
@@ -204,8 +198,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       {final bool formatWithMonthName = false}) async {
     try {
 
-      final docSnapshot = await FirebaseFirestore.instance
-          .collection('Event').doc(eventId).get();
+      final docSnapshot = await firestore.collection('Event').doc(eventId).get();
 
       if (!docSnapshot.exists) return null;
 
@@ -224,7 +217,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<void> reserveSeat(final String eventId, final String seatId,
       final String customerId) async {
-    await firestore.doc(eventId).update({
+    await firestore.collection('Event').doc(eventId).update({
       'seats.$seatId': {
         'status': 'reserved',
         'customerId': customerId,
@@ -235,7 +228,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<void> cancelReservation(
       final String eventId, final String seatId) async {
-    await firestore.doc(eventId).update({
+    await firestore.collection('Event').doc(eventId).update({
       'seats.$seatId': {'status': 'available', 'customerId': null}
     });
   }
