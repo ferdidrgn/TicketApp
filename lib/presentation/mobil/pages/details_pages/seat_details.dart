@@ -220,10 +220,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Widget _buildSeatLegend() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 15),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Row(
           children: [
             _legendItem(Colors.green, "Boş"),
