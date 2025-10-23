@@ -1,5 +1,6 @@
 import 'base_state.dart';
 
+/// Tekil ve liste verisi tutabilen generic state sınıfı
 abstract class LoadableState<T, R> extends BaseState {
   final T? dataSingle;
   final R? dataList;
@@ -21,5 +22,5 @@ abstract class LoadableState<T, R> extends BaseState {
 
   bool get hasError => (errorMessage != null && errorMessage!.isNotEmpty);
   bool get isSingleNull => dataSingle == null;
-  bool get isListEmpty => dataList == null || (dataList != null && (dataList as List).isEmpty);
+  bool get isListEmpty => dataList == null || (dataList != null && (dataList! as List).isEmpty);
 }
