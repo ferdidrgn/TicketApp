@@ -59,7 +59,7 @@ dependencies:
   internet_connection_checker: ^3.0.1  # İnternet bağlantısını kontrol eder.
 
   # Firebase
-  firebase_core:  # Firebase temel yapı.
+  firebase_core: ^4.2.0  # Firebase temel yapı.
   cloud_firestore:   # Firebase'in NoSQL veritabanı.
   firebase_storage:   # Firebase dosya depolama hizmeti.
   firebase_auth:  # Firebase kimlik doğrulama.
