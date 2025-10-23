@@ -6,81 +6,103 @@ import '../../../core/errors/failures.dart';
 import '../network/internet_service.dart';
 import 'base_state.dart';
 
+/// Tüm ViewModel'ler için merkezi internet kontrolü ve state yönetimi sağlayan base sınıf
+/// Internet bağlantısı kesilip geri geldiğinde otomatik retry mekanizması sunar
 abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
-    extends StateNotifier<T> {
-  final InternetService _internetService;
-
-  BaseNotifierWithNetworkChecker(
-    this._internetService,
-    final T initialState,
-  ) : super(initialState) {
-    _startListening();
-  }
-
+    extends Notifier<T> {
   StreamSubscription<InternetConnectionStatus>? _subscription;
   bool _wasOffline = false;
   Timer? _debounceTimer;
 
-  void _startListening() {
-    _subscription = _internetService.connectionStream.listen((final status) {
-      final isOnline = status == InternetConnectionStatus.connected;
-      if (isOnline && _wasOffline) {
-        _debounceTimer?.cancel();
-        _debounceTimer = Timer(const Duration(seconds: 2), onInternetRestored);
-        _wasOffline = false;
-      } else if (!isOnline && !_wasOffline) {
-        _wasOffline = true;
-        onInternetLost();
-      }
-    });
-  }
-
   @override
-  void dispose() {
-    _subscription?.cancel();
-    _debounceTimer?.cancel();
-    super.dispose();
+  T build() {
+    _initializeNetworkListener();
+    _registerCleanup();
+    return initialState();
   }
 
-  void onInternetRestored() => reloadData();
-
-  void onInternetLost() => _setOfflineState();
+  T initialState();
 
   void reloadData();
 
-  void _setLoadingState(final bool isLoading) =>
-      state = state.copyWith(isLoading: isLoading, errorMessage: null) as T;
+  void _initializeNetworkListener() {
+    _subscription = InternetService.instance.connectionStream
+        .listen(_handleConnectionChange);
+  }
 
-  void _setSuccessState() =>
-      state = state.copyWith(isLoading: false, errorMessage: null) as T;
+  void _registerCleanup() {
+    ref.onDispose(() {
+      _subscription?.cancel();
+      _debounceTimer?.cancel();
+    });
+  }
 
-  // Private method to set error state
-  void _setErrorState(final String errorMessage) =>
-      state = state.copyWith(errorMessage: errorMessage, isLoading: false) as T;
+  void _handleConnectionChange(final InternetConnectionStatus status) {
+    final isOnline = status == InternetConnectionStatus.connected;
 
-  void _setOfflineState() => state = state.copyWith(
-      isLoading: false, errorMessage: 'İnternet Bağlantısı Yok!') as T;
+    if (isOnline && _wasOffline) {
+      _scheduleReload();
+      _wasOffline = false;
+    } else if (!isOnline && !_wasOffline) {
+      _wasOffline = true;
+      _handleOffline();
+    }
+  }
 
-  // Manual internet check method
-  Future<bool> checkInternet() async {
+  void _scheduleReload() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(
+      const Duration(seconds: 2),
+      () => reloadData(),
+    );
+  }
+
+  void _handleOffline() {
+    state = state.copyWith(
+      isLoading: false,
+      errorMessage: 'İnternet Bağlantısı Yok!',
+    ) as T;
+  }
+
+  Future<bool> _hasInternetConnection() async {
     try {
-      return await _internetService.isConnected;
-    } catch (e) {
+      return await InternetService.instance.isConnected;
+    } catch (_) {
       return false;
     }
   }
 
-  /// Network operasyonları için wrapper
+  void _setLoadingState() {
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+    ) as T;
+  }
+
+  void _setSuccessState() {
+    state = state.copyWith(
+      isLoading: false,
+      errorMessage: null,
+    ) as T;
+  }
+
+  void _setErrorState(final String errorMessage) {
+    state = state.copyWith(
+      errorMessage: errorMessage,
+      isLoading: false,
+    ) as T;
+  }
+
   Future<void> executeWithInternetCheck<R>(
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,
   }) async {
     try {
-      _setLoadingState(true);
-      final hasInternet = await checkInternet();
+      _setLoadingState();
 
+      final hasInternet = await _hasInternetConnection();
       if (!hasInternet) {
-        _setOfflineState();
+        _handleOffline();
         return;
       }
 
@@ -95,7 +117,8 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
       );
     } catch (e) {
       _setErrorState(
-          'Beklenmeyen bir hata oluştu (Unexpected error occurred): ${e.toString()}');
+        'Beklenmeyen bir hata oluştu: ${e.toString()}',
+      );
     }
   }
 }
