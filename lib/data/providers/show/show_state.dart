@@ -15,12 +15,11 @@ class ShowState extends LoadableState<Show, List<Show>> {
     final String? errorMessage,
     final Show? dataSingle,
     final List<Show>? dataList,
-  }) {
-    return ShowState(
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-      show: dataSingle ?? this.dataSingle,
-      shows: dataList ?? this.dataList,
-    );
-  }
+  }) =>
+      ShowState(
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+        show: dataSingle ?? this.dataSingle,
+        shows: dataList ?? this.dataList,
+      );
 }

@@ -25,17 +25,13 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
 
   void reloadData();
 
-  void _initializeNetworkListener() {
-    _subscription = InternetService.instance.connectionStream
-        .listen(_handleConnectionChange);
-  }
+  void _initializeNetworkListener() => _subscription =
+      InternetService.instance.connectionStream.listen(_handleConnectionChange);
 
-  void _registerCleanup() {
-    ref.onDispose(() {
-      _subscription?.cancel();
-      _debounceTimer?.cancel();
-    });
-  }
+  void _registerCleanup() => ref.onDispose(() {
+        _subscription?.cancel();
+        _debounceTimer?.cancel();
+      });
 
   void _handleConnectionChange(final InternetConnectionStatus status) {
     final isOnline = status == InternetConnectionStatus.connected;
@@ -57,12 +53,8 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     );
   }
 
-  void _handleOffline() {
-    state = state.copyWith(
-      isLoading: false,
-      errorMessage: 'İnternet Bağlantısı Yok!',
-    ) as T;
-  }
+  void _handleOffline() => state = state.copyWith(
+      isLoading: false, errorMessage: 'İnternet Bağlantısı Yok!') as T;
 
   Future<bool> _hasInternetConnection() async {
     try {
@@ -72,27 +64,16 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     }
   }
 
-  void _setLoadingState() {
-    state = state.copyWith(
-      isLoading: true,
-      errorMessage: null,
-    ) as T;
-  }
+  void _setLoadingState() =>
+      state = state.copyWith(isLoading: true, errorMessage: null) as T;
 
-  void _setSuccessState() {
-    state = state.copyWith(
-      isLoading: false,
-      errorMessage: null,
-    ) as T;
-  }
+  void _setSuccessState() =>
+      state = state.copyWith(isLoading: false, errorMessage: null) as T;
 
-  void _setErrorState(final String errorMessage) {
-    state = state.copyWith(
-      errorMessage: errorMessage,
-      isLoading: false,
-    ) as T;
-  }
+  void _setErrorState(final String errorMessage) =>
+      state = state.copyWith(errorMessage: errorMessage, isLoading: false) as T;
 
+  /// Network operasyonları için wrapper
   Future<void> executeWithInternetCheck<R>(
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,

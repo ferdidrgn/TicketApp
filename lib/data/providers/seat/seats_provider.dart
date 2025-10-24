@@ -6,14 +6,9 @@ import 'seats_notifier.dart';
 import 'seats_state.dart';
 
 final seatsProvider =
-    StateNotifierProvider<SeatsNotifier, SeatsState>((final ref) {
-  return SeatsNotifier(ref.read(internetServiceProvider),
-      ref.watch(getSeatsByStageUseCaseProvider));
-});
+    NotifierProvider<SeatsNotifier, SeatsState>(SeatsNotifier.new);
 
 // GetSeatsByStageUseCase provider
-final getSeatsByStageUseCaseProvider =
-    Provider<GetSeatsByStageUseCase>((final ref) {
-  final repository = ref.watch(seatRepositoryProvider);
-  return GetSeatsByStageUseCaseImpl(repository);
-});
+final getSeatsByStageUseCaseProvider = Provider<GetSeatsByStageUseCase>(
+  (final ref) => GetSeatsByStageUseCaseImpl(ref.watch(seatRepositoryProvider)),
+);

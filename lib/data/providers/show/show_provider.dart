@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/internet_service_provider.dart';
 import '../../../domain/useCase/show/add_show_use_case_impl.dart';
 import '../../../domain/useCase/show/delete_show_use_case_impl.dart';
 import '../../../domain/useCase/show/get_search_show_use_case_impl.dart';
@@ -10,48 +9,31 @@ import '../../repository/show/show_repository_provider.dart';
 import 'show_notifier.dart';
 import 'show_state.dart';
 
+/// Ana Show Notifier provider
 final showProvider =
-    StateNotifierProvider<ShowNotifier, ShowState>((final ref) {
-  return ShowNotifier(
-    ref.read(internetServiceProvider),
-    ref.watch(addShowUseCaseProvider),
-    ref.watch(deleteShowUseCaseProvider),
-    ref.watch(updateShowUseCaseProvider),
-    ref.watch(getShowsByIdsUseCaseProvider),
-    ref.watch(getShowsUseCaseProvider),
-    ref.watch(getSearchShowUseCaseProvider),
-  );
-});
+    NotifierProvider<ShowNotifier, ShowState>(ShowNotifier.new);
 
-// Use case providers
-final addShowUseCaseProvider = Provider<AddShowUseCase>((final ref) {
-  final repository = ref.watch(showRepositoryProvider);
-  return AddShowUseCaseImpl(repository);
-});
+/// Use case provider'ları
+final addShowUseCaseProvider = Provider<AddShowUseCase>(
+  (final ref) => AddShowUseCaseImpl(ref.watch(showRepositoryProvider)),
+);
 
-final deleteShowUseCaseProvider = Provider<DeleteShowUseCase>((final ref) {
-  final repository = ref.watch(showRepositoryProvider);
-  return DeleteShowUseCaseImpl(repository);
-});
+final deleteShowUseCaseProvider = Provider<DeleteShowUseCase>(
+  (final ref) => DeleteShowUseCaseImpl(ref.watch(showRepositoryProvider)),
+);
 
-final updateShowUseCaseProvider = Provider<UpdateShowUseCase>((final ref) {
-  final repository = ref.watch(showRepositoryProvider);
-  return UpdateShowUseCaseImpl(repository);
-});
+final updateShowUseCaseProvider = Provider<UpdateShowUseCase>(
+  (final ref) => UpdateShowUseCaseImpl(ref.watch(showRepositoryProvider)),
+);
 
-final getShowsByIdsUseCaseProvider =
-    Provider<GetShowsByIdsUseCase>((final ref) {
-  final repository = ref.watch(showRepositoryProvider);
-  return GetShowsByIdsUseCaseImpl(repository);
-});
+final getShowsByIdsUseCaseProvider = Provider<GetShowsByIdsUseCase>(
+  (final ref) => GetShowsByIdsUseCaseImpl(ref.watch(showRepositoryProvider)),
+);
 
-final getShowsUseCaseProvider = Provider<GetShowsUseCase>((final ref) {
-  final repository = ref.watch(showRepositoryProvider);
-  return GetShowsUseCaseImpl(repository);
-});
+final getShowsUseCaseProvider = Provider<GetShowsUseCase>(
+  (final ref) => GetShowsUseCaseImpl(ref.watch(showRepositoryProvider)),
+);
 
-final getSearchShowUseCaseProvider =
-    Provider<GetSearchShowUseCase>((final ref) {
-  final repository = ref.watch(showRepositoryProvider);
-  return GetSearchShowUseCaseImpl(repository);
-});
+final getSearchShowUseCaseProvider = Provider<GetSearchShowUseCase>(
+  (final ref) => GetSearchShowUseCaseImpl(ref.watch(showRepositoryProvider)),
+);

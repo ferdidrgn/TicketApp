@@ -15,12 +15,11 @@ class CampaignState extends LoadableState<Campaign, List<Campaign>> {
     final List<Campaign>? dataList,
     final bool? isLoading,
     final String? errorMessage,
-  }) {
-    return CampaignState(
-      campaign: dataSingle ?? this.dataSingle,
-      campaigns: dataList ?? this.dataList,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      CampaignState(
+        campaign: dataSingle ?? this.dataSingle,
+        campaigns: dataList ?? this.dataList,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }

@@ -15,12 +15,11 @@ class StageState extends LoadableState<Stage, List<Stage>> {
     final List<Stage>? dataList,
     final bool? isLoading,
     final String? errorMessage,
-  }) {
-    return StageState(
-      stage: dataSingle ?? this.dataSingle,
-      stages: dataList ?? this.dataList,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      StageState(
+        stage: dataSingle ?? this.dataSingle,
+        stages: dataList ?? this.dataList,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }

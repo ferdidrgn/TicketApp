@@ -1,6 +1,6 @@
 import 'package:ticketapp/core/common/base_state.dart';
 
-class SeatsState extends BaseState{
+class SeatsState extends BaseState {
   Map<String, List<String>>? seats;
 
   SeatsState({
@@ -14,11 +14,10 @@ class SeatsState extends BaseState{
     final Map<String, List<String>>? seats,
     final bool? isLoading,
     final String? errorMessage,
-  }) {
-    return SeatsState(
-      seats: seats ?? this.seats,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      SeatsState(
+        seats: seats ?? this.seats,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }

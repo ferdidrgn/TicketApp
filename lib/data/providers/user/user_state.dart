@@ -15,12 +15,11 @@ class UserState extends LoadableState<User, List<User>> {
     final List<User>? dataList,
     final bool? isLoading,
     final String? errorMessage,
-  }) {
-    return UserState(
-      user: dataSingle?? this.dataSingle,
-      users: dataList ?? this.dataList,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      UserState(
+        user: dataSingle ?? this.dataSingle,
+        users: dataList ?? this.dataList,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }

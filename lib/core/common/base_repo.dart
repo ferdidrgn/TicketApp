@@ -19,6 +19,6 @@ abstract class BaseRepository {
         return Left(ServerFailure(e.toString()));
       }
     } else
-      return const Left(NetworkFailure('İnternet Bağlantısı Bulunamamıştır'));
+      return const Left(NetworkFailure('İnternet Bağlantısı Bulunamadı'));
   }
 }

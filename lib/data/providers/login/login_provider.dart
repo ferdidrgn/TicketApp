@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/internet_service_provider.dart';
 import '../../../domain/useCase/login/get_current_user_use_case_impl.dart';
 import '../../../domain/useCase/login/sign_in_with_google_use_case_impl.dart';
 import '../../../domain/useCase/login/sign_out_use_case_impl.dart';
@@ -9,14 +8,29 @@ import '../../repository/login/login_repository_provider.dart';
 import 'login_notifier.dart';
 import 'login_state.dart';
 
-final loginProvider =
-    StateNotifierProvider<LoginNotifier, LoginState>((final ref) {
-  return LoginNotifier(
-    ref.read(internetServiceProvider),
-    SignInWithGoogleUseCaseImpl(ref.watch(loginRepositoryProvider)),
-    SignOutUseCaseImpl(ref.watch(loginRepositoryProvider)),
-    GetCurrentUserUseCaseImpl(ref.watch(loginRepositoryProvider)),
-    VerifyPhoneUseCaseImpl(ref.watch(loginRepositoryProvider)),
-    VerifyOtpUseCaseImpl(ref.watch(loginRepositoryProvider)),
-  );
-});
+/// Ana Login Notifier Provider
+final loginProvider = NotifierProvider<LoginNotifier, LoginState>(
+  LoginNotifier.new,
+);
+
+/// Use case provider’ları
+final signInWithGoogleUseCaseProvider = Provider<SignInWithGoogleUseCase>(
+  (final ref) =>
+      SignInWithGoogleUseCaseImpl(ref.watch(loginRepositoryProvider)),
+);
+
+final signOutUseCaseProvider = Provider<SignOutUseCase>(
+  (final ref) => SignOutUseCaseImpl(ref.watch(loginRepositoryProvider)),
+);
+
+final getCurrentUserUseCaseProvider = Provider<GetCurrentUserUseCase>(
+  (final ref) => GetCurrentUserUseCaseImpl(ref.watch(loginRepositoryProvider)),
+);
+
+final verifyPhoneUseCaseProvider = Provider<VerifyPhoneUseCase>(
+  (final ref) => VerifyPhoneUseCaseImpl(ref.watch(loginRepositoryProvider)),
+);
+
+final verifyOtpUseCaseProvider = Provider<VerifyOtpUseCase>(
+  (final ref) => VerifyOtpUseCaseImpl(ref.watch(loginRepositoryProvider)),
+);

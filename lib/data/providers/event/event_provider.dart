@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/internet_service_provider.dart';
 import '../../../domain/useCase/event/cancel_reservation_use_case_impl.dart';
 import '../../../domain/useCase/event/get_event_date_use_case_impl.dart';
 import '../../../domain/useCase/event/get_event_price_use_case_impl.dart';
@@ -13,70 +12,51 @@ import '../../repository/event/event_repository_provider.dart';
 import 'event_notifier.dart';
 import 'event_state.dart';
 
-final eventProvider =
-    StateNotifierProvider<EventNotifier, EventState>((final ref) {
-  return EventNotifier(
-    ref.read(internetServiceProvider),
-    ref.watch(getEventPriceUseCaseProvider),
-    ref.watch(getEventDateUseCaseProvider),
-    ref.watch(getStageIdUseCaseProvider),
-    ref.watch(getSeatStatusByEventUseCaseProvider),
-    ref.watch(getPurchasedSeatsByCustomerIdUseCaseProvider),
-    ref.watch(initializeAndGetEventSeatsUseCaseProvider),
-    ref.watch(updateSeatStatusUseCaseProvider),
-    ref.watch(reserveSeatUseCaseProvider),
-    ref.watch(cancelReservationUseCaseProvider),
-  );
-});
+final eventProvider = NotifierProvider<EventNotifier, EventState>(
+  EventNotifier.new,
+);
 
 // Use case providers
-final getEventPriceUseCaseProvider =
-    Provider<GetEventPriceUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return GetEventPriceUseCaseImpl(repository);
-});
+final getEventPriceUseCaseProvider = Provider<GetEventPriceUseCase>(
+  (final ref) => GetEventPriceUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);
 
-final getEventDateUseCaseProvider = Provider<GetEventDateUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return GetEventDateUseCaseImpl(repository);
-});
+final getEventDateUseCaseProvider = Provider<GetEventDateUseCase>(
+  (final ref) => GetEventDateUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);
 
-final getStageIdUseCaseProvider = Provider<GetStageIdUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return GetStageIdUseCaseImpl(repository);
-});
+final getStageIdUseCaseProvider = Provider<GetStageIdUseCase>(
+  (final ref) => GetStageIdUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);
 
 final getSeatStatusByEventUseCaseProvider =
-    Provider<GetSeatStatusByEventUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return GetSeatStatusByEventUseCaseImpl(repository);
-});
+    Provider<GetSeatStatusByEventUseCase>(
+  (final ref) =>
+      GetSeatStatusByEventUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);
 
 final getPurchasedSeatsByCustomerIdUseCaseProvider =
-    Provider<GetPurchasedSeatsByCustomerIdUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return GetPurchasedSeatsByCustomerIdUseCaseImpl(repository);
-});
+    Provider<GetPurchasedSeatsByCustomerIdUseCase>(
+  (final ref) => GetPurchasedSeatsByCustomerIdUseCaseImpl(
+      ref.watch(eventRepositoryProvider)),
+);
 
 final initializeAndGetEventSeatsUseCaseProvider =
-    Provider<InitializeAndGetEventSeatsUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return InitializeAndGetEventSeatsUseCaseImpl(repository);
-});
+    Provider<InitializeAndGetEventSeatsUseCase>(
+  (final ref) =>
+      InitializeAndGetEventSeatsUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);
 
-final updateSeatStatusUseCaseProvider =
-    Provider<UpdateSeatStatusUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return UpdateSeatStatusUseCaseImpl(repository);
-});
+final updateSeatStatusUseCaseProvider = Provider<UpdateSeatStatusUseCase>(
+  (final ref) =>
+      UpdateSeatStatusUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);
 
-final reserveSeatUseCaseProvider = Provider<ReserveSeatUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return ReserveSeatUseCaseImpl(repository);
-});
+final reserveSeatUseCaseProvider = Provider<ReserveSeatUseCase>(
+  (final ref) => ReserveSeatUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);
 
-final cancelReservationUseCaseProvider =
-    Provider<CancelReservationUseCase>((final ref) {
-  final repository = ref.watch(eventRepositoryProvider);
-  return CancelReservationUseCaseImpl(repository);
-});
+final cancelReservationUseCaseProvider = Provider<CancelReservationUseCase>(
+  (final ref) =>
+      CancelReservationUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);

@@ -1,45 +1,29 @@
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
-import '../../../core/network/internet_service.dart';
-import '../../../domain/useCase/login/get_current_user_use_case_impl.dart';
-import '../../../domain/useCase/login/sign_in_with_google_use_case_impl.dart';
-import '../../../domain/useCase/login/sign_out_use_case_impl.dart';
-import '../../../domain/useCase/login/verify_otp_use_case_impl.dart';
-import '../../../domain/useCase/login/verify_phone_use_case_impl.dart';
+import '../player/player_state.dart';
+import 'login_provider.dart';
 import 'login_state.dart';
 
 class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
-  final SignInWithGoogleUseCase _signInWithGoogleUseCase;
-  final SignOutUseCase _signOutUseCase;
-  final GetCurrentUserUseCase _getCurrentUserUseCase;
-  final VerifyPhoneUseCase _verifyPhoneUseCase;
-  final VerifyOtpUseCase _verifyOtpUseCase;
-
-  LoginNotifier(
-    final InternetService internetService,
-    this._signInWithGoogleUseCase,
-    this._signOutUseCase,
-    this._getCurrentUserUseCase,
-    this._verifyPhoneUseCase,
-    this._verifyOtpUseCase,
-  ) : super(internetService, LoginState());
+  @override
+  LoginState initialState() => LoginState();
 
   @override
   void reloadData() => getCurrentUser();
 
   Future<void> getCurrentUser() => executeWithInternetCheck(
-        () => _getCurrentUserUseCase.call(),
+        () => ref.read(getCurrentUserUseCaseProvider).call(),
         onSuccess: (final user) =>
             state = state.copyWith(user: user, errorMessage: null),
       );
 
   Future<void> signInWithGoogle() => executeWithInternetCheck(
-        () => _signInWithGoogleUseCase.call(),
+        () => ref.read(signInWithGoogleUseCaseProvider).call(),
         onSuccess: (final googleUser) => _handleGoogleSignInSuccess(googleUser),
       );
 
   Future<void> _handleGoogleSignInSuccess(final googleUser) async {
     state = state.copyWith(googleUser: googleUser);
-    final userResult = await _getCurrentUserUseCase.call();
+    final userResult = await ref.read(getCurrentUserUseCaseProvider).call();
     userResult.fold(
       (final failure) => state =
           state.copyWith(isLoading: false, errorMessage: failure.message),
@@ -49,8 +33,8 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
   }
 
   Future<void> signOut() => executeWithInternetCheck(
-        () => _signOutUseCase.call(),
-        onSuccess: (_) =>
+        () => ref.read(signOutUseCaseProvider).call(),
+        onSuccess: (final _) =>
             state = state.copyWith(user: null, errorMessage: null),
       );
 
@@ -61,22 +45,18 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
     final Function(String) onAutoRetrievalTimeout,
   ) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-    final result = await _verifyPhoneUseCase.call(
-      phoneNumber,
-      onVerificationCompleted,
-      onCodeSent,
-      onAutoRetrievalTimeout,
-    );
+    final result = await ref.read(verifyPhoneUseCaseProvider).call(phoneNumber,
+        onVerificationCompleted, onCodeSent, onAutoRetrievalTimeout);
     result.fold(
       (final failure) => state =
           state.copyWith(isLoading: false, errorMessage: failure.message),
-      (_) => state = state.copyWith(isLoading: false, errorMessage: null),
+      (final _) => state = state.copyWith(isLoading: false, errorMessage: null),
     );
   }
 
   Future<void> verifyOtp(final String verificationId, final String otp) =>
       executeWithInternetCheck(
-        () => _verifyOtpUseCase.call(verificationId, otp),
+        () => ref.read(verifyOtpUseCaseProvider).call(verificationId, otp),
         onSuccess: (final success) => _handleOtpVerificationResult(success),
       );
 
@@ -86,10 +66,28 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
       return;
     }
 
-    final userResult = await _getCurrentUserUseCase.call();
+    final userResult = await ref.read(getCurrentUserUseCaseProvider).call();
     userResult.fold(
       (final failure) => state = state.copyWith(errorMessage: failure.message),
       (final user) => state = state.copyWith(user: user, errorMessage: null),
     );
   }
+}
+
+extension PlayerStateX on PlayerState {
+  bool hasPlayer(final String playerId) {
+    if (dataList == null) return false;
+    return dataList!.any((final player) => player.id == playerId);
+  }
+
+  dynamic getPlayerById(final String playerId) {
+    if (dataList == null) return null;
+    try {
+      return dataList!.firstWhere((final player) => player.id == playerId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  int get playerCount => dataList?.length ?? 0;
 }

@@ -15,12 +15,11 @@ class TeamState extends LoadableState<Team, List<Team>> {
     final List<Team>? dataList,
     final bool? isLoading,
     final String? errorMessage,
-  }) {
-    return TeamState(
-      team: dataSingle ?? dataSingle,
-      teams: dataList ?? this.dataList,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      TeamState(
+        team: dataSingle ?? dataSingle,
+        teams: dataList ?? this.dataList,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }

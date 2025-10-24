@@ -1,6 +1,6 @@
 import 'package:ticketapp/core/common/base_state.dart';
 
-class EventState extends BaseState{
+class EventState extends BaseState {
   String? price;
   Map<String, String>? date;
   String? stageId;
@@ -26,15 +26,14 @@ class EventState extends BaseState{
     final List<String>? purchasedSeats,
     final bool? isLoading,
     final String? errorMessage,
-  }) {
-    return EventState(
-      price: price ?? this.price,
-      date: date ?? this.date,
-      stageId: stageId ?? this.stageId,
-      seatStatus: seatStatus ?? this.seatStatus,
-      purchasedSeats: purchasedSeats ?? this.purchasedSeats,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      EventState(
+        price: price ?? this.price,
+        date: date ?? this.date,
+        stageId: stageId ?? this.stageId,
+        seatStatus: seatStatus ?? this.seatStatus,
+        purchasedSeats: purchasedSeats ?? this.purchasedSeats,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }

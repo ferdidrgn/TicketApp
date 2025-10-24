@@ -1,4 +1,5 @@
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'package:ticketapp/data/providers/user/user_provider.dart';
 import '../../../core/network/internet_service.dart';
 import '../../../data/model/user_model.dart';
 import '../../../domain/entities/user.dart';
@@ -8,17 +9,8 @@ import '../../../domain/useCase/user/save_user_use_case_impl.dart';
 import 'user_state.dart';
 
 class UserNotifier extends BaseNotifierWithNetworkChecker<UserState> {
-  final SaveUserUseCase _saveUserUseCase;
-  final GetUserByIdUseCase _getUserByIdUseCase;
-  final DeleteUserUseCase _deleteUserUseCase;
-
-  UserNotifier(
-    final InternetService internetService,
-    this._saveUserUseCase,
-    this._getUserByIdUseCase,
-    this._deleteUserUseCase,
-  ) : super(internetService, const UserState());
-
+  @override
+  UserState initialState() => const UserState();
 
   @override
   void reloadData() {
@@ -26,7 +18,7 @@ class UserNotifier extends BaseNotifierWithNetworkChecker<UserState> {
   }
 
   Future<void> loadUserById(final String userId) => executeWithInternetCheck(
-        () => _getUserByIdUseCase.call(userId),
+        () => ref.read(getUserByIdUseCaseProvider).call(userId),
         onSuccess: (final user) =>
             state = state.copyWith(dataSingle: user, errorMessage: null),
       );
@@ -34,11 +26,11 @@ class UserNotifier extends BaseNotifierWithNetworkChecker<UserState> {
   Future<void> saveUser(final User user, final String downloadUrl,
           {final bool isUpdate = false}) =>
       executeWithInternetCheck(
-        () => _saveUserUseCase.call(UserModel.fromEntity(user), downloadUrl,
-            isUpdate: isUpdate),
+        () => ref
+            .read(saveUserUseCaseProvider)
+            .call(UserModel.fromEntity(user), downloadUrl, isUpdate: isUpdate),
       );
 
-  Future<void> deleteUser(final String userId) =>
-      executeWithInternetCheck(() => _deleteUserUseCase.call(userId));
-
+  Future<void> deleteUser(final String userId) => executeWithInternetCheck(
+      () => ref.read(deleteUserUseCaseProvider).call(userId));
 }

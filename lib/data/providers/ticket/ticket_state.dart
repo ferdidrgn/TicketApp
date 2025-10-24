@@ -15,12 +15,11 @@ class TicketState extends LoadableState<Ticket, List<Ticket>> {
     final List<Ticket>? dataList,
     final bool? isLoading,
     final String? errorMessage,
-  }) {
-    return TicketState(
-      ticket: dataSingle ?? this.dataSingle,
-      tickets: dataList ?? this.dataList,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      TicketState(
+        ticket: dataSingle ?? this.dataSingle,
+        tickets: dataList ?? this.dataList,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }

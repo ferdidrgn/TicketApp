@@ -1,18 +1,10 @@
-import '../../../core/common/base_notifier_with_network_checker.dart';
-import '../../../core/network/internet_service.dart';
-import '../../../domain/useCase/appTools/get_privacy_policy_use_case_impl.dart';
-import '../../../domain/useCase/appTools/get_terms_condition_use_case_impl.dart';
+import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'app_tools_provider.dart';
 import 'app_tools_state.dart';
 
 class AppToolsNotifier extends BaseNotifierWithNetworkChecker<AppToolsState> {
-  final GetPrivacyPolicyUseCase _getPrivacyPolicyUseCase;
-  final GetTermsConditionUseCase _getTermsConditionUseCase;
-
-  AppToolsNotifier(
-    final InternetService internetService,
-    this._getPrivacyPolicyUseCase,
-    this._getTermsConditionUseCase,
-  ) : super(internetService, AppToolsState());
+  @override
+  AppToolsState initialState() => const AppToolsState();
 
   @override
   void reloadData() {
@@ -20,19 +12,36 @@ class AppToolsNotifier extends BaseNotifierWithNetworkChecker<AppToolsState> {
     fetchTermsCondition();
   }
 
-  Future<void> fetchPrivacyPolicy() => executeWithInternetCheck(
-        () => _getPrivacyPolicyUseCase.call(),
-        onSuccess: (final policy) {
-          if (policy != state.privacyPolicy)
-            state = state.copyWith(privacyPolicy: policy, errorMessage: null);
-        },
-      );
+  Future<void> fetchPrivacyPolicy() async {
+    await executeWithInternetCheck(
+      () => ref.read(getPrivacyPolicyUseCaseProvider).call(),
+      onSuccess: (final policy) {
+        if (policy != state.privacyPolicy) {
+          state = state.copyWith(privacyPolicy: policy);
+        }
+      },
+    );
+  }
 
-  Future<void> fetchTermsCondition() => executeWithInternetCheck(
-        () => _getTermsConditionUseCase.call(),
-        onSuccess: (final terms) {
-          if (terms != state.termsCondition)
-            state = state.copyWith(termsCondition: terms, errorMessage: null);
-        },
-      );
+  Future<void> fetchTermsCondition() async {
+    await executeWithInternetCheck(
+      () => ref.read(getTermsConditionUseCaseProvider).call(),
+      onSuccess: (final terms) {
+        if (terms != state.termsCondition) {
+          state = state.copyWith(termsCondition: terms);
+        }
+      },
+    );
+  }
+}
+
+/// AppToolsState için yardımcı metodlar
+extension AppToolsStateX on AppToolsState {
+  // Condit,on, var mı diye kontrol eder.// null değilse ve boş değilse true döner.
+  bool get hasPrivacy => privacyPolicy != null && privacyPolicy!.isNotEmpty;
+  bool get hasTerms => termsCondition != null && termsCondition!.isNotEmpty;
+
+  /// Hangi veri varsa döndüren genel helper
+  String get privacyOrEmpty => privacyPolicy ?? '';
+  String get termsOrEmpty => termsCondition ?? '';
 }

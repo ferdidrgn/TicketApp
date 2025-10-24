@@ -57,7 +57,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    WidgetsBinding.instance.addPostFrameCallback((final _) => _initializeData());
+    WidgetsBinding.instance
+        .addPostFrameCallback((final _) => _initializeData());
   }
 
   @override
@@ -97,10 +98,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   Future<void> _initializeData() async {
     if (_isInitialized) return;
+
     setState(() {
       _isLoading = true;
-      ref.read(searchQueryProvider.notifier).state = "";
+      ref.read(searchQueryProvider.notifier).setQuery("");
     });
+
+    // Eğer listeler boşsa yükle
     try {
       await Future.wait([
         if (ref.read(showProvider).isListEmpty)
@@ -112,8 +116,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         if (ref.read(teamProvider).isListEmpty)
           ref.read(teamProvider.notifier).loadTeams(true),
       ]);
+
       _initializePaginationControllers();
       _resetPagination();
+
       setState(() => _isInitialized = true);
     } catch (e) {
       debugPrint('Data loading error: $e');
@@ -126,7 +132,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void _onSearchChanged(final String query) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      ref.read(searchQueryProvider.notifier).state = query.toLowerCase();
+      ref.read(searchQueryProvider.notifier).setQuery(query.toLowerCase());
       // Reset pagination when search query changes
       _resetPagination();
     });
@@ -155,7 +161,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         _isLoading;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Arama', style: Theme.of(context).textTheme.headlineSmall)),
+      appBar: AppBar(
+          title:
+              Text('Arama', style: Theme.of(context).textTheme.headlineSmall)),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
@@ -190,7 +198,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         children: [
           const SizedBox(height: 16),
           Text(title,
-              style: Theme.of(context).textTheme.labelSmall
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall
                   ?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           SizedBox(
@@ -212,8 +222,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         playersPagination?.currentItems,
         (final p) => '${p.firstName} ${p.lastName}',
         query);
-    final List<Stage>? filteredStages =
-        _filterItems(stagesPagination?.currentItems, (final s) => s.name, query);
+    final List<Stage>? filteredStages = _filterItems(
+        stagesPagination?.currentItems, (final s) => s.name, query);
     final List<Team>? filteredTeams =
         _filterItems(teamsPagination?.currentItems, (final t) => t.name, query);
     final filteredCategories = _categories
@@ -235,12 +245,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             if (filteredShows?.isNotEmpty ?? false)
-              _buildSection( 'Eşleşen Etkinlikler', filteredShows!, _buildShowCard,
+              _buildSection(
+                  'Eşleşen Etkinlikler', filteredShows!, _buildShowCard,
                   showAllAction: _buildShowAllButton()),
             if (filteredPlayers?.isNotEmpty ?? false)
               _buildSection('Oyuncular', filteredPlayers!, _buildPlayerCard),
             if (filteredStages?.isNotEmpty ?? false)
-              _buildSection('Gösteri Mekanları', filteredStages!, _buildVenueCard),
+              _buildSection(
+                  'Gösteri Mekanları', filteredStages!, _buildVenueCard),
             if (filteredTeams?.isNotEmpty ?? false)
               _buildSection('Ekipler', filteredTeams!, _buildTeamCard),
             if (filteredCategories.isNotEmpty)
@@ -249,7 +261,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 children: [
                   const SizedBox(height: 16),
                   Text('Kategoriler',
-                      style: Theme.of(context).textTheme.titleMedium
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
                           ?.copyWith(fontWeight: FontWeight.bold)),
                   CategoryCardBuilder(categories: filteredCategories),
                 ],
@@ -260,8 +274,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  List<T>? _filterItems<T>(
-      final List<T>? items, final String Function(T) selector, final String query) {
+  List<T>? _filterItems<T>(final List<T>? items,
+      final String Function(T) selector, final String query) {
     if (items == null) return null;
     if (query.isEmpty) return items;
     return items
@@ -280,7 +294,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       children: [
         const SizedBox(height: 16),
         Text(title,
-            style: Theme.of(context).textTheme.titleMedium
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
                 ?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         SizedBox(
@@ -288,7 +304,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
-            itemBuilder: (final context, final index) => itemBuilder(context, items[index]),
+            itemBuilder: (final context, final index) =>
+                itemBuilder(context, items[index]),
           ),
         ),
         if (showAllAction != null) ...[
@@ -304,11 +321,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         key: ValueKey(show.id),
         gameName: show.name,
         imageUrl: show.imageUrl,
-        onTap: () => Navigator.push(context,
-            MaterialPageRoute(builder: (final _) => ShowDetailPage(showId: show.id))),
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (final _) => ShowDetailPage(showId: show.id))),
       );
 
-  Widget _buildVenueCard(final BuildContext context, final Stage stage) => CustomStageCard(
+  Widget _buildVenueCard(final BuildContext context, final Stage stage) =>
+      CustomStageCard(
         text: stage.name,
         imageUrl: stage.imageUrl,
         onPressed: () => Navigator.push(
