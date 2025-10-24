@@ -100,12 +100,12 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
           if (seatInfo != null &&
               seatInfo['status'] == 'reserved' &&
-              seatInfo['customerId'] == state.customerId)
+              seatInfo['customerId'] == state.customerId) {
             currentReservations.add(seatId);
+          }
         }
 
         // 2. Fiyatı, mevcut state'teki koltuk fiyatına göre yeniden hesapla
-        // (Bu fiyat _loadInitialData'da yüklenecek)
         final newTotalPrice = currentReservations.length * state.seatPrice;
 
         // 3. State'i güncelle
@@ -167,20 +167,44 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
   Future<void> toggleSeatSelection(final String seatId) async {
     final currentSelected = Set<String>.from(state.selectedSeats);
 
-    // Koltuk zaten seçiliyse, kaldır
+    // 1. Durum: Koltuk zaten MAVİ ise (yerel listede seçili)
+    // Bu, onu kaldırmak istediğimiz anlamına gelir.
     if (currentSelected.contains(seatId)) {
       await _removeSeat(seatId, currentSelected);
       return;
     }
 
-    // Maximum 3 koltuk kontrolü
-    if (currentSelected.length >= 3) {
-      _showTemporaryError("En fazla 3 koltuk seçebilirsiniz.");
-      return;
+    // 2. Durum: Koltuk MAVİ DEĞİL (yani YEŞİL).
+    // Tıklanabilir (isAvailable) olduğu için bu koltuğun
+    // ya 'available' ya da 'reserved' (bana ait) olduğunu biliyoruz.
+    // Emin olmak için state'den gerçek durumunu kontrol edelim.
+
+    final seatInfo = state.seatStatus[seatId];
+    final status = seatInfo?['status'] ?? 'available';
+    final isMyReservation = seatInfo?['customerId'] == state.customerId;
+
+    if (status == 'available') {
+      // 3. Alt Durum: Koltuk YEŞİL ve gerçekten 'available'.
+      // Onu EKLEMEYİ denemeliyiz.
+
+      // Maximum 3 koltuk kontrolü
+      if (currentSelected.length >= 3) {
+        _showTemporaryError("En fazla 3 koltuk seçebilirsiniz.");
+        return;
+      }
+      // Yeni koltuk ekle
+      await _addSeat(seatId, currentSelected);
+    } else if (status == 'reserved' && isMyReservation) {
+      // 4. Alt Durum: Koltuk YEŞİL ama 'bana ait reserved' (yerel state senkronize olmamış).
+      // Bu tıklama, onu KALDIRMAK istediğimiz anlamına gelir.
+
+      // _removeSeat'in çalışması için önce sete eklemeliyiz.
+      currentSelected.add(seatId);
+      await _removeSeat(seatId, currentSelected);
     }
 
-    // Yeni koltuk ekle
-    await _addSeat(seatId, currentSelected);
+    // Not: 'sold' veya 'reserved by other' durumları 'isAvailable' filtresine
+    // (UI tarafında) takılacağı için bu fonksiyona hiç gelmemelidir.
   }
 
   // Koltuk ekleme
