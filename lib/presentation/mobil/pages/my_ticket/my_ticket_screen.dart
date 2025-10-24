@@ -84,9 +84,11 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage> {
           }
 
           final tickets = snapshot.data!;
-          final upcomingTickets =
-              tickets.where((final t) => !t!.isPast.toString().contains('true'));
-          final pastTickets = tickets.where((final t) => t!.isPast.toString() == 'true').toList();
+          final upcomingTickets = tickets
+              .where((final t) => !t!.isPast.toString().contains('true'));
+          final pastTickets = tickets
+              .where((final t) => t!.isPast.toString() == 'true')
+              .toList();
 
           return SingleChildScrollView(
             child: Padding(
@@ -135,9 +137,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage> {
   Widget _buildTicketCard(final Ticket ticket) {
     return FutureBuilder<List<dynamic>>(
       future: Future.wait([
-        eventService.getEventDate(ticket.eventId),
-        //eventService.getEventPrice(ticket.eventId),
-        //eventService.getStageId(ticket.stageId),
+        eventService.getEventDetails(ticket.eventId),
       ]),
       builder: (final context, final snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -178,8 +178,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage> {
                   children: [
                     Icon(
                       (ticket.isPast) ? Icons.history : Icons.event,
-                      color:
-                          (ticket.isPast) ? Colors.grey : Colors.green,
+                      color: (ticket.isPast) ? Colors.grey : Colors.green,
                       size: 40,
                     ),
                     const SizedBox(height: 8),

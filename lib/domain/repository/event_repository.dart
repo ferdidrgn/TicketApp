@@ -5,7 +5,7 @@ abstract class EventRepository {
   Future<Either<Failure, void>> initializeAndGetEventSeats(
       final String eventId);
 
-  Future<Either<Failure, Map<String, String>?>> getEventDate(
+  Future<Either<Failure, Map<String, dynamic>?>> getEventDetails(
       final String eventId,
       {final bool formatWithMonthName = false});
 

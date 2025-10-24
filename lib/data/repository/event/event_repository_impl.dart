@@ -19,10 +19,10 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   }
 
   @override
-  Future<Either<Failure, Map<String, String>?>> getEventDate(
+  Future<Either<Failure, Map<String, dynamic>?>> getEventDetails(
       final String eventId,
       {final bool formatWithMonthName = false}) async {
-    return execute(() => remoteDataSource.getEventDate(eventId,
+    return execute(() => remoteDataSource.getEventDetails(eventId,
         formatWithMonthName: formatWithMonthName));
   }
 

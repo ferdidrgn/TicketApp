@@ -35,26 +35,37 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
   // Başlangıç verilerini yükle
   Future<void> _loadInitialData() async {
-    // 1. Stream'i hemen başlat (initialize edilmiş data'yı dinle)
+    // 1. Stream'i hemen başlat
     _subscribeSeatStatus();
 
-    // 2. Tarih ve diğer bilgileri al (opsiyonel)
+    // 2. Statik event verilerini (Tarih, Fiyat, StageId) al
     try {
-      final dateResult =
-          await ref.read(getEventDateUseCaseProvider).call(state.eventId);
+      // ✅ getEventDateUseCaseProvider yerine getEventDetailsUseCaseProvider kullandığımızı varsayalım
+      final detailsResult =
+          await ref.read(getEventDetailsUseCaseProvider).call(state.eventId);
 
       if (!_isDisposed) {
-        // ✅ Either'dan değeri çıkar
-        dateResult.fold(
+        detailsResult.fold(
           (final failure) {
             state = state.copyWith(
-              eventDate: null,
               isLoading: false,
+              errorMessage: "Etkinlik detayları yüklenemedi.",
             );
           },
-          (final date) {
+          (final details) {
+            // ✅ Gelen Fiyat ve StageId'yi state'e işle
+            final newEventPrice = details?['eventPrice'] as String?;
+            final newSeatPrice = double.tryParse(newEventPrice ?? "0") ?? 0;
+
+            // ✅ Fiyat yüklendiğinde, totalPrice'ı yeniden hesapla
+            final newTotalPrice = state.selectedSeats.length * newSeatPrice;
+
             state = state.copyWith(
-              eventDate: date,
+              eventDate: details?['eventDate'] as Map<String, String>?,
+              eventPrice: newEventPrice,
+              stageId: details?['stageId'] as String?,
+              totalPrice: newTotalPrice,
+              // ✅ Fiyatı güncelle
               isLoading: false,
             );
           },
@@ -77,12 +88,37 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
     _seatStatusSubscription = stream.listen(
       (final seatStatusMap) {
-        if (!_isDisposed)
-          state = state.copyWith(
-            seatStatus: seatStatusMap,
-            errorMessage: null,
-            isLoading: false, // ✅ Koltuklar gelince loading'i kapat
-          );
+        if (_isDisposed) return; // Disposed ise işlem yapma
+
+        // --- GÜNCELLENEN BÖLÜM ---
+
+        // 1. Stream'den gelen veriye göre yerel seçili koltukları bul
+        final currentReservations = <String>{};
+        for (final entry in seatStatusMap.entries) {
+          final seatId = entry.key;
+          final seatInfo = entry.value;
+
+          if (seatInfo != null &&
+              seatInfo['status'] == 'reserved' &&
+              seatInfo['customerId'] == state.customerId)
+            currentReservations.add(seatId);
+        }
+
+        // 2. Fiyatı, mevcut state'teki koltuk fiyatına göre yeniden hesapla
+        // (Bu fiyat _loadInitialData'da yüklenecek)
+        final newTotalPrice = currentReservations.length * state.seatPrice;
+
+        // 3. State'i güncelle
+        state = state.copyWith(
+          seatStatus: seatStatusMap,
+          selectedSeats: currentReservations,
+          // ✅ Yerel seti senkronize et
+          totalPrice: newTotalPrice,
+          // ✅ Fiyatı senkronize et
+          errorMessage: null,
+          isLoading: false,
+        );
+        // --- GÜNCELLEME BİTTİ ---
       },
       onError: (final e) {
         if (!_isDisposed)

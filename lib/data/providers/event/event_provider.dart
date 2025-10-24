@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/useCase/event/attempt_reservation_use_case_impl.dart';
 import '../../../domain/useCase/event/confirm_purchase_case_impl.dart';
-import '../../../domain/useCase/event/get_event_date_use_case_impl.dart';
+import '../../../domain/useCase/event/get_event_details_use_case_impl.dart';
 import '../../../domain/useCase/event/get_seat_status_by_event_use_case_impl.dart';
 import '../../../domain/useCase/event/initialize_and_get_event_seats_use_case_impl.dart';
 import '../../../domain/useCase/event/release_reservation_use_case_impl.dart';
@@ -21,8 +21,8 @@ final initializeAndGetEventSeatsUseCaseProvider =
       InitializeAndGetEventSeatsUseCaseImpl(ref.watch(eventRepositoryProvider)),
 );
 
-final getEventDateUseCaseProvider = Provider<GetEventDateUseCase>(
-  (final ref) => GetEventDateUseCaseImpl(ref.watch(eventRepositoryProvider)),
+final getEventDetailsUseCaseProvider = Provider<GetEventDetailsUseCase>(
+  (final ref) => GetEventDetailsUseCaseImpl(ref.watch(eventRepositoryProvider)),
 );
 
 final getEventSeatStatusStreamUseCaseProvider =
