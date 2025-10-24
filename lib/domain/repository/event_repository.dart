@@ -1,22 +1,29 @@
 import 'package:dartz/dartz.dart';
-import '../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
 
 abstract class EventRepository {
-  Future<Either<Failure, void>> initializeAndGetEventSeats(final String eventId);
+  Future<Either<Failure, void>> initializeAndGetEventSeats(
+      final String eventId);
 
-  Future<Either<Failure, Map<String, Map<String, dynamic>>?>> getSeatStatusByEvent(final String eventId);
+  Future<Either<Failure, Map<String, String>?>> getEventDate(
+      final String eventId,
+      {final bool formatWithMonthName = false});
 
-  Future<Either<Failure, List<String?>?>> getPurchasedSeatsByCustomerId(final String eventId, final String customerId);
+  /// Koltuk durumlarını anlık olarak dinler.
+  /// Stream'ler genellikle Either ile sarmalanmaz,
+  /// hata yönetimi stream'in kendi mekanizmasıyla (onError) yapılır.
+  Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
+      final String eventId);
 
-  Future<Either<Failure, void>> updateSeatStatus(final String eventId, final String seatId, final String status, {final String? customerId});
+  /// Bir koltuğu rezerve etmeyi dener. Başarılı olursa true döner.
+  Future<Either<Failure, bool>> attemptReservation(
+      final String eventId, final String seatId, final String customerId);
 
-  Future<Either<Failure, String?>> getStageId(final String eventId);
+  /// Bir rezervasyonu iptal eder.
+  Future<Either<Failure, void>> releaseReservation(
+      final String eventId, final String seatId, final String customerId);
 
-  Future<Either<Failure, String?>> getEventPrice(final String eventId);
-
-  Future<Either<Failure, Map<String, String>?>> getEventDate(final String eventId, {final bool formatWithMonthName = false});
-
-  Future<Either<Failure, void>> reserveSeat(final String eventId, final String seatId, final String customerId);
-
-  Future<Either<Failure, void>> cancelReservation(final String eventId, final String seatId);
+  /// Satın almayı onaylar ve koltukları 'sold' yapar.
+  Future<Either<Failure, void>> confirmPurchase(final String eventId,
+      final List<String> seatIds, final String customerId);
 }

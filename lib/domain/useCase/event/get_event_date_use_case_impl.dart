@@ -3,7 +3,8 @@ import '../../../../core/errors/failures.dart';
 import '../../repository/event_repository.dart';
 
 abstract class GetEventDateUseCase {
-  Future<Either<Failure, Map<String, String>?>> call(final String eventId, {final bool formatWithMonthName = false});
+  Future<Either<Failure, Map<String, String>?>> call(final String eventId,
+      {final bool formatWithMonthName = false});
 }
 
 class GetEventDateUseCaseImpl implements GetEventDateUseCase {
@@ -12,7 +13,8 @@ class GetEventDateUseCaseImpl implements GetEventDateUseCase {
   GetEventDateUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, String>?>> call(final String eventId, {final bool formatWithMonthName = false}) async {
-    return repository.getEventDate(eventId, formatWithMonthName: formatWithMonthName);
-  }
+  Future<Either<Failure, Map<String, String>?>> call(final String eventId,
+          {final bool formatWithMonthName = false}) =>
+      repository.getEventDate(eventId,
+          formatWithMonthName: formatWithMonthName);
 }

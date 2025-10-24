@@ -1,191 +1,121 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/data/datasources/ticket/ticket_remote_data_source_and_impl.dart';
-import '../../../../core/util/date_formatter.dart';
-import '../../../../data/datasources/event/event_remote_data_source_and_impl.dart';
-import '../../../../data/datasources/seat/seat_remote_data_source_and_impl.dart';
-import '../../../../domain/entities/ticket.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/data/providers/event/event_notifier.dart';
+import '../../../../data/providers/event/event_provider.dart';
+import '../../../../data/providers/event/event_state.dart';
 
-class SeatSelectionScreen extends StatefulWidget {
+class SeatSelectionScreen extends ConsumerStatefulWidget {
   final String showId;
   final String eventId;
+  final String customerId;
 
   const SeatSelectionScreen({
     super.key,
     required this.showId,
     required this.eventId,
+    required this.customerId,
   });
 
   @override
-  _SeatSelectionScreenState createState() => _SeatSelectionScreenState();
+  ConsumerState<SeatSelectionScreen> createState() =>
+      _SeatSelectionScreenState();
 }
 
-class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
-  final firestore = FirebaseFirestore.instance;
-  late final EventRemoteDataSourceImpl? eventService;
-  late final SeatRemoteDataSourceImpl? seatService;
-  Map<String, List<String?>?>? seats = {};
-  Map<String, Map<String, dynamic>>? seatStatus = {};
-  Set<String> selectedSeats = {};
-  late String stageId;
-  Timer? reservationTimer;
-  int remainingTime = 600; // 10 dakika
-  double totalPrice = 0.0;
-  double seatPrice = 0.0;
-  String date = "";
-  String time = "";
-
+class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    eventService = EventRemoteDataSourceImpl(firestore: firestore);
-    seatService = SeatRemoteDataSourceImpl(firestore: firestore);
-    _fetchSeats();
-    _startReservationTimer();
-  }
-
-  @override
-  void dispose() {
-    reservationTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _fetchSeats() async {
-    try {
-      await eventService?.initializeAndGetEventSeats(widget.eventId);
-      final fetchStageId = await eventService?.getStageId(widget.eventId);
-      if (fetchStageId == null) return;
-      final fetchedSeats = await seatService?.getSeatsByStage(fetchStageId);
-      final fetchedSeatStatus =
-          await eventService?.getSeatStatusByEvent(widget.eventId);
-      final fetchPrice = await eventService?.getEventPrice(widget.eventId);
-      final Map<String, String>? fetchDate =
-          await eventService?.getEventDate(widget.eventId);
-
-      setState(() {
-        stageId = fetchStageId;
-        seats = fetchedSeats;
-        seatStatus = fetchedSeatStatus;
-        seatPrice = fetchPrice != null ? double.parse(fetchPrice) : 0.0;
-        date = fetchDate?['date'].toString() ?? '';
-        time = fetchDate?['time'].toString() ?? '';
-      });
-    } catch (e) {
-      throw Exception("Error fetching stage data: ${e.toString()}");
-    }
-  }
-
-  void _startReservationTimer() {
-    reservationTimer =
-        Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (remainingTime > 0)
-        setState(() => remainingTime--);
-      else
-        _handleTimeUp(timer);
+    // Widget build edilmeden önce state'i initialize et
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      ref.initializeEventNotifier(
+        eventId: widget.eventId,
+        showId: widget.showId,
+        customerId: widget.customerId,
+      );
     });
-  }
-
-  void _handleTimeUp(final Timer timer) {
-    _showTimeUpDialog();
-    timer.cancel();
-    _cancelReservations();
-  }
-
-  void _showTimeUpDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (final context) {
-        return AlertDialog(
-          title: const Text('İşlem Süresi Doldu'),
-          content: const Text('Oyun bilgilerine yönlendiriliyorsunuz.'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Tamam'),
-              onPressed: () {
-                Navigator.of(context).popUntil((final route) => route.isFirst);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _cancelReservations() {
-    for (final String seatId in selectedSeats) {
-      eventService?.updateSeatStatus(widget.eventId, seatId, 'available');
-    }
-    setState(() => selectedSeats.clear());
-  }
-
-  void _toggleSeatSelection(final String seatId) {
-    setState(() {
-      if (selectedSeats.contains(seatId))
-        _removeSeat(seatId);
-      else if (selectedSeats.length < 3)
-        _addSeat(seatId);
-      else
-        _showMaxSeatsSnackbar();
-    });
-  }
-
-  void _removeSeat(final String seatId) {
-    selectedSeats.remove(seatId);
-    eventService?.updateSeatStatus(widget.eventId, seatId, 'available');
-    totalPrice -= seatPrice;
-  }
-
-  void _addSeat(final String seatId) {
-    selectedSeats.add(seatId);
-    eventService?.updateSeatStatus(widget.eventId, seatId, 'reserved',
-        customerId: "test");
-    totalPrice += seatPrice;
-  }
-
-  void _showMaxSeatsSnackbar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('En fazla 3 koltuk seçebilirsiniz.')),
-    );
-  }
-
-  String _formatRemainingTime() {
-    final minutes = remainingTime ~/ 60;
-    final seconds = remainingTime % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(final BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Koltuk Seçimi')),
-      body: seats?.isEmpty ?? true
-          ? const Center(child: Text('Tekrar Deneyiniz'))
-          : _buildSeatSelectionView(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: selectedSeats.isNotEmpty ? _showPaymentBottomSheet : null,
-        label: const Text('Ödemeye Geç'),
-        icon: const Icon(Icons.payment),
-      ),
-    );
-  }
+    final state = ref.watch(eventNotifierProvider);
+    final notifier = ref.read(eventNotifierProvider.notifier);
 
-  Widget _buildSeatSelectionView() {
-    return Column(
-      children: [
-        _buildStageImage(),
-        const SizedBox(height: 20),
-        _buildRemainingTimeText(),
-        const SizedBox(height: 10),
-        _buildSelectedSeatsText(),
-        const SizedBox(height: 10),
-        _buildTotalPriceText(),
-        const SizedBox(height: 10),
-        _buildSeatLegend(),
-        const SizedBox(height: 20),
-        _buildSeatLayout(),
-      ],
+    // Hata mesajı listener
+    ref.listen<SeatSelectionState>(
+      eventNotifierProvider,
+      (final previous, final next) {
+        if (next.errorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(next.errorMessage!)),
+          );
+        }
+
+        // Süre dolduğunda dialog göster
+        if (next.isTimeUp && (previous?.isTimeUp == false)) {
+          _showTimeUpDialog();
+        }
+
+        // Ödeme başarılı olduğunda dialog göster
+        if (next.paymentSuccessful && (previous?.paymentSuccessful == false)) {
+          _showPaymentSuccessDialog();
+        }
+      },
+    );
+
+    if (state.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Koltuk Seçimi'),
+        actions: [
+          // Kalan süre göstergesi
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                state.formattedTime,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Sahne görseli
+          _buildStageImage(),
+          const SizedBox(height: 20),
+
+          // Seçim bilgileri
+          _buildSelectionInfo(state),
+          const SizedBox(height: 10),
+
+          // Koltuk göstergesi
+          _buildSeatLegend(),
+          const SizedBox(height: 20),
+
+          // Koltuk düzeni
+          Expanded(
+            child: _buildSeatLayout(state, notifier),
+          ),
+        ],
+      ),
+      floatingActionButton: state.hasSelectedSeats
+          ? FloatingActionButton.extended(
+              onPressed: () => _showPaymentBottomSheet(state, notifier),
+              label: Text(
+                  'Ödemeye Geç (${state.totalPrice.toStringAsFixed(2)} TL)'),
+              icon: const Icon(Icons.payment),
+            )
+          : null,
     );
   }
 
@@ -193,49 +123,49 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     return SizedBox(
       width: double.infinity,
       height: 200,
-      child: Image.asset('assets/images/stage_diagram.jpg', fit: BoxFit.cover),
+      child: Image.asset(
+        'assets/images/stage_diagram.jpg',
+        fit: BoxFit.cover,
+      ),
     );
   }
 
-  Widget _buildRemainingTimeText() {
-    return Text(
-      'Kalan Süre: ${_formatRemainingTime()}',
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-    );
-  }
-
-  Widget _buildSelectedSeatsText() {
-    return Text(
-      'Seçilen Koltuklar: ${selectedSeats.join(", ")}',
-      style: const TextStyle(fontSize: 16),
-    );
-  }
-
-  Widget _buildTotalPriceText() {
-    return Text(
-      'Toplam Fiyat: $totalPrice TL',
-      style: const TextStyle(fontSize: 16),
+  Widget _buildSelectionInfo(final SeatSelectionState state) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          Text(
+            'Seçilen Koltuklar: ${state.selectedSeats.join(", ")}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Toplam Fiyat: ${state.totalPrice.toStringAsFixed(2)} TL',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSeatLegend() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 15),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _legendItem(Colors.green, "Boş"),
-            const SizedBox(width: 10),
-            _legendItem(Colors.blue, "Seçili"),
-            const SizedBox(width: 10),
-            _legendItem(Colors.black12, "Satılmış"),
-            const SizedBox(width: 10),
-            _legendItem(Colors.purple, "Başka Sepette"),
-            const SizedBox(width: 10),
-            _legendItem(Colors.red, "Hata var! Lütfen ss alıp bize bildiriniz")
-          ],
-        ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _legendItem(Colors.green, "Boş"),
+          const SizedBox(width: 10),
+          _legendItem(Colors.blue, "Seçili"),
+          const SizedBox(width: 10),
+          _legendItem(Colors.black12, "Satılmış"),
+          const SizedBox(width: 10),
+          _legendItem(Colors.purple, "Başka Sepette"),
+        ],
       ),
     );
   }
@@ -257,101 +187,157 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
-  Widget _buildSeatLayout() {
-    final seatsByRow = _groupSeatsByRow();
-
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[300],
-          borderRadius: BorderRadius.circular(10),
-        ),
+  Widget _buildSeatLayout(
+      final SeatSelectionState state, final EventNotifier notifier) {
+    if (state.seatStatus.isEmpty)
+      return const Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildStageLabel(),
-            const SizedBox(height: 20),
-            _buildRows(seatsByRow),
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Koltuklar yükleniyor...'),
           ],
         ),
-      ),
-    );
-  }
+      );
 
-  Map<String, List<String>> _groupSeatsByRow() {
-    final seatsByRow = <String, List<String>>{};
+    final seatsByRow = _groupSeatsFromStatus(
+        state.seatStatus.cast<String, Map<String, dynamic>?>());
 
-    if (seats == null) return seatsByRow;
-    for (final String seat in seats!.values
-        .expand((final element) => element?.whereType<String>() ?? [])) {
-      final String row = seat[0];
-      seatsByRow.putIfAbsent(row, () => []).add(seat);
-    }
-
-    return seatsByRow;
-  }
-
-  Widget _buildStageLabel() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(8),
-      color: Colors.grey[400],
-      child: const Center(
-        child: Text(
-          'SAHNE',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(10),
       ),
-    );
-  }
-
-  Widget _buildRows(final Map<String, List<String>> seatsByRow) {
-    final rows = seatsByRow.keys.toList()..sort();
-
-    return SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: Center(
-            child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: rows
-                        .map(
-                            (final row) => _buildSeatRow(row, seatsByRow[row]!))
-                        .toList()))));
-  }
-
-  Widget _buildSeatRow(final String row, final List<String> rowSeats) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          SizedBox(
-            width: 30,
-            child:
-                Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
+          // Sahne etiketi
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8),
+            color: Colors.grey[400],
+            child: const Center(
+              child: Text(
+                'SAHNE',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
           ),
-          Row(
-              children:
-                  rowSeats.map((final seatId) => _buildSeat(seatId)).toList()),
+          const SizedBox(height: 20),
+
+          // Koltuk satırları
+          Expanded(
+            child: SingleChildScrollView(
+              child: Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Column(
+                    children: seatsByRow.entries.map((final entry) {
+                      return _buildSeatRow(
+                        entry.key,
+                        entry.value,
+                        state,
+                        notifier,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSeat(final String seatId) {
-    final status = seatStatus?[seatId]?['status'] ?? 'available';
-    final reservedById = seatStatus?[seatId]?['customerId'];
+  // ✅ seatStatus'tan koltukları grupla (seatLayout yerine)
+  Map<String, List<String>> _groupSeatsFromStatus(
+    final Map<String, Map<String, dynamic>?> seatStatus,
+  ) {
+    final seatsByRow = <String, List<String>>{};
 
-    final isAvailable = status == 'available' ||
-        (status == 'reserved' && reservedById == 'test');
+    // 1. Koltukları row'lara göre grupla
+    for (final seatId in seatStatus.keys) {
+      if (seatId.isEmpty) continue;
 
-    final isSelected = selectedSeats.contains(seatId);
-    final seatColor = _getSeatColor(status, reservedById, isSelected);
+      final row = seatId[0]; // İlk karakter row (A, B, C, ...)
+      seatsByRow.putIfAbsent(row, () => []).add(seatId);
+    }
+
+    // 2. Row'ları alfabetik sırala (A, B, C, ...)
+    final sortedRows = seatsByRow.keys.toList()..sort();
+
+    final result = <String, List<String>>{};
+
+    // 3. Her row içindeki koltukları NUMERIC olarak sırala
+    for (final row in sortedRows) {
+      final seats = seatsByRow[row]!;
+
+      // ✅ Numeric sorting - A1, A2, A3, ..., A10, A11
+      seats.sort((a, b) {
+        // Koltuk numarasını çıkar (A1 -> 1, A10 -> 10)
+        final numA = int.tryParse(a.substring(1)) ?? 0;
+        final numB = int.tryParse(b.substring(1)) ?? 0;
+        return numA.compareTo(numB);
+      });
+
+      result[row] = seats;
+    }
+
+    return result;
+  }
+
+  Widget _buildSeatRow(
+    final String row,
+    final List<String> seats,
+    final SeatSelectionState state,
+    final EventNotifier notifier,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 30,
+            child: Text(
+              row,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          ...seats.map((final seatId) => _buildSeat(seatId, state, notifier)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeat(
+    final String seatId,
+    final SeatSelectionState state,
+    final EventNotifier notifier,
+  ) {
+    final seatInfo = state.seatStatus[seatId];
+    final status = seatInfo?['status'] ?? 'available';
+    final reservedById = seatInfo?['customerId'];
+
+    final isSelected = state.selectedSeats.contains(seatId);
+    final isMyReservation = reservedById == state.customerId;
+    final isAvailable =
+        status == 'available' || (status == 'reserved' && isMyReservation);
+
+    Color seatColor;
+    if (status == 'sold') {
+      seatColor = Colors.black12;
+    } else if (isSelected) {
+      seatColor = Colors.blue;
+    } else if (status == 'reserved' && !isMyReservation) {
+      seatColor = Colors.purple;
+    } else {
+      seatColor = Colors.green;
+    }
 
     return GestureDetector(
-      onTap: isAvailable ? () => _toggleSeatSelection(seatId) : null,
+      onTap: isAvailable ? () => notifier.toggleSeatSelection(seatId) : null,
       child: Container(
         width: 40,
         height: 40,
@@ -364,119 +350,110 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           child: Text(
             seatId.substring(1),
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Color _getSeatColor(
-      final String status, final String? reservedById, final bool isSelected) {
-    if (status == 'sold')
-      return Colors.white30; // Satılmış koltuk
-    else if (status == 'reserved' && reservedById != null)
-      return Colors.purple; // Başka biri tarafından rezerve edilmiş koltuk
-    else if (status == 'reserved' && reservedById == null)
-      return Colors.red; //Bir hata var demek. Rezerve ama kim rezerve etti
-    else if (isSelected)
-      return Colors.blue; // Seçili koltuk
-    else
-      return Colors.green; // Boş koltuk
-  }
-
-  Future<void> _showPaymentBottomSheet() async {
-    await showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        builder: (final BuildContext context) {
-          return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(16),
-              width: double.infinity,
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Ödeme Bilgileri',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    Text('Seçilen Koltuklar: ${selectedSeats.join(", ")}'),
-                    Text('Tarih: $date'),
-                    Text('Saat: $time'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                        onPressed: _showPaymentMethods,
-                        child: const Text('Ödeme Seçenekleri'))
-                  ]));
-        });
-  }
-
-  Future<void> _showPaymentMethods() async {
-    final String? selectedMethod = await showDialog<String>(
+  void _showPaymentBottomSheet(
+    final SeatSelectionState state,
+    final EventNotifier notifier,
+  ) {
+    showModalBottomSheet(
       context: context,
-      builder: (final BuildContext context) {
+      isScrollControlled: true,
+      builder: (final context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ödeme Bilgileri',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Text('Seçilen Koltuklar: ${state.selectedSeats.join(", ")}'),
+              Text('Tarih: ${state.eventDate?['date'] ?? ''}'),
+              Text('Saat: ${state.eventDate?['time'] ?? ''}'),
+              Text(
+                'Toplam: ${state.totalPrice.toStringAsFixed(2)} TL',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _showPaymentMethods(notifier),
+                  child: const Text('Ödeme Yöntemi Seç'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showPaymentMethods(final EventNotifier notifier) async {
+    final selectedMethod = await showDialog<String>(
+      context: context,
+      builder: (final context) {
         return AlertDialog(
-            title: const Text('Ödeme Yöntemi Seçin'),
-            content: Column(mainAxisSize: MainAxisSize.min, children: [
+          title: const Text('Ödeme Yöntemi Seçin'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               ListTile(
-                  title: const Text('Google Play'),
-                  onTap: () => Navigator.of(context).pop('Google Play')),
+                title: const Text('Google Play'),
+                onTap: () => Navigator.pop(context, 'google_play'),
+              ),
               ListTile(
-                  title: const Text('Kredi Kartı'),
-                  onTap: () => Navigator.of(context).pop('Kredi Kartı')),
+                title: const Text('Kredi Kartı'),
+                onTap: () => Navigator.pop(context, 'credit_card'),
+              ),
               ListTile(
-                  title: const Text('IBAN'),
-                  onTap: () => Navigator.of(context).pop('IBAN')),
-            ]));
+                title: const Text('IBAN'),
+                onTap: () => Navigator.pop(context, 'iban'),
+              ),
+            ],
+          ),
+        );
       },
     );
 
     if (selectedMethod != null) {
       final confirmed = await _showConfirmationDialog();
-      if (confirmed != null && confirmed == true)
-        await _processPayment(selectedMethod);
+      if (confirmed ?? false) {
+        Navigator.pop(context); // Bottom sheet'i kapat
+        await notifier.processPayment(selectedMethod);
+      }
     }
-  }
-
-  Future<void> _processPayment(final String method) async {
-    try {
-      // 1. Koltukları satıldı olarak güncelle
-      for (final String seatId in selectedSeats)
-        await eventService?.updateSeatStatus(widget.eventId, seatId, 'sold',
-            customerId: "test");
-
-      // 2. Bilet oluşturma işlemi
-      final ticketService = TicketRemoteDataSourceImpl(firestore: firestore);
-      await ticketService.createTicket(_createNewTicket());
-
-      // Başarılı mesajını göster
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Bilet başarıyla oluşturuldu")));
-      Navigator.pop(context); // BottomSheet'i kapat
-      _handlePaymentSuccess(); // Başarılı ödeme dialogunu göster
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Hata: $e")));
-    }
-    Navigator.pop(context); // BottomSheet'i kapat
   }
 
   Future<bool?> _showConfirmationDialog() {
     return showDialog<bool>(
       context: context,
-      builder: (final BuildContext context) {
+      builder: (final context) {
         return AlertDialog(
           title: const Text('Onay'),
           content: const Text('Ödeme işlemini onaylıyor musunuz?'),
-          actions: <Widget>[
+          actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('Hayır'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.pop(context, true),
               child: const Text('Evet'),
             ),
           ],
@@ -485,23 +462,20 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
-  void _handlePaymentSuccess() {
+  void _showTimeUpDialog() {
     showDialog(
       context: context,
-      builder: (final BuildContext context) {
+      barrierDismissible: false,
+      builder: (final context) {
         return AlertDialog(
-          title: const Text('Ödeme Başarılı'),
-          content: const Text('Ödemeniz başarıyla tamamlandı.'),
-          actions: <Widget>[
+          title: const Text('İşlem Süresi Doldu'),
+          content: const Text('Rezervasyonlarınız iptal edildi.'),
+          actions: [
             TextButton(
-              child: const Text('Anasayfa'),
               onPressed: () {
                 Navigator.of(context).popUntil((final route) => route.isFirst);
               },
-            ),
-            TextButton(
-              child: const Text('Biletlerim'),
-              onPressed: () {},
+              child: const Text('Tamam'),
             ),
           ],
         );
@@ -509,20 +483,32 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
-  Ticket _createNewTicket() {
-    final nowTime = DateFormatter.nowFormatDateTime();
-
-    return Ticket(
-      createdAt: nowTime,
-      updatedAt: nowTime,
-      id: '',
-      showId: widget.showId,
-      customerId: 'customer_id',
-      stageId: stageId ?? '',
-      eventId: widget.eventId,
-      orderPrice: totalPrice.toString(),
-      orderMethod: 'google_play',
-      isPast: false,
+  void _showPaymentSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (final context) {
+        return AlertDialog(
+          title: const Text('Ödeme Başarılı'),
+          content: const Text('Ödemeniz başarıyla tamamlandı.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).popUntil((final route) => route.isFirst);
+              },
+              child: const Text('Anasayfa'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Biletlerim sayfasına git
+                Navigator.of(context).popUntil((final route) => route.isFirst);
+                // Navigator.pushNamed(context, '/tickets');
+              },
+              child: const Text('Biletlerim'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

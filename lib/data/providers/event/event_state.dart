@@ -1,39 +1,95 @@
+import 'package:flutter/foundation.dart';
 import 'package:ticketapp/core/common/base_state.dart';
 
-class EventState extends BaseState {
-  String? price;
-  Map<String, String>? date;
-  String? stageId;
-  Map<String, Map<String, dynamic>>? seatStatus;
-  List<String>? purchasedSeats;
+typedef EventSeatStatus = Map<String, Map<String, dynamic>?>;
 
-  EventState({
-    this.price,
-    this.date,
+@immutable
+class SeatSelectionState extends BaseState {
+  // Statik veriler (bir kez yüklenir)
+  final Map<String, List<String?>?>?
+      seatLayout; // Artık kullanılmıyor ama uyumluluk için tutalım
+  final String? eventPrice; // ✅ Bunu ekle
+  final Map<String, String>? eventDate;
+  final String? stageId;
+
+  // Context bilgileri (constructor'dan gelir, değişmez)
+  final String eventId;
+  final String showId;
+  final String customerId;
+
+  // Real-time veri (stream'den gelir)
+  final EventSeatStatus seatStatus;
+
+  // Oturum (Session) verisi
+  final Set<String> selectedSeats;
+  final int remainingTime;
+  final double totalPrice;
+
+  // Ödeme başarılı flag'i
+  final bool paymentSuccessful;
+
+  const SeatSelectionState({
+    required this.eventId,
+    required this.showId,
+    required this.customerId,
+    this.seatLayout,
+    this.eventPrice, // ✅ Bunu ekle
+    this.eventDate,
     this.stageId,
-    this.seatStatus,
-    this.purchasedSeats = const [],
+    this.seatStatus = const {},
+    this.selectedSeats = const {},
+    this.remainingTime = 600,
+    this.totalPrice = 0.0,
+    this.paymentSuccessful = false,
     super.isLoading = false,
     super.errorMessage,
   });
 
   @override
-  EventState copyWith({
-    final String? price,
-    final Map<String, String>? date,
+  SeatSelectionState copyWith({
+    final String? eventId,
+    final String? showId,
+    final String? customerId,
+    final Map<String, List<String?>?>? seatLayout,
+    final String? eventPrice, // ✅ Bunu ekle
+    final Map<String, String>? eventDate,
     final String? stageId,
-    final Map<String, Map<String, dynamic>>? seatStatus,
-    final List<String>? purchasedSeats,
+    final EventSeatStatus? seatStatus,
+    final Set<String>? selectedSeats,
+    final int? remainingTime,
+    final double? totalPrice,
+    final bool? paymentSuccessful,
     final bool? isLoading,
     final String? errorMessage,
   }) =>
-      EventState(
-        price: price ?? this.price,
-        date: date ?? this.date,
+      SeatSelectionState(
+        eventId: eventId ?? this.eventId,
+        showId: showId ?? this.showId,
+        customerId: customerId ?? this.customerId,
+        seatLayout: seatLayout ?? this.seatLayout,
+        eventPrice: eventPrice ?? this.eventPrice,
+        // ✅ Bunu ekle
+        eventDate: eventDate ?? this.eventDate,
         stageId: stageId ?? this.stageId,
         seatStatus: seatStatus ?? this.seatStatus,
-        purchasedSeats: purchasedSeats ?? this.purchasedSeats,
+        selectedSeats: selectedSeats ?? this.selectedSeats,
+        remainingTime: remainingTime ?? this.remainingTime,
+        totalPrice: totalPrice ?? this.totalPrice,
+        paymentSuccessful: paymentSuccessful ?? this.paymentSuccessful,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );
+
+  // Computed properties
+  double get seatPrice => double.tryParse(eventPrice ?? "0") ?? 0;
+
+  bool get hasSelectedSeats => selectedSeats.isNotEmpty;
+
+  bool get isTimeUp => remainingTime <= 0;
+
+  String get formattedTime {
+    final minutes = remainingTime ~/ 60;
+    final seconds = remainingTime % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 }

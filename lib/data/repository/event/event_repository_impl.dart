@@ -13,74 +13,55 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   });
 
   @override
-  Future<Either<Failure, void>> initializeAndGetEventSeats(final String eventId) async {
-    return execute(() async {
-      if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
-      await remoteDataSource.initializeAndGetEventSeats(eventId);
-    });
+  Future<Either<Failure, void>> initializeAndGetEventSeats(
+      final String eventId) async {
+    return execute(() => remoteDataSource.initializeAndGetEventSeats(eventId));
   }
 
   @override
-  Future<Either<Failure, Map<String, Map<String, dynamic>>?>> getSeatStatusByEvent(final String eventId) async {
-    return execute(() async {
-      if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
-      return remoteDataSource.getSeatStatusByEvent(eventId);
-    });
+  Future<Either<Failure, Map<String, String>?>> getEventDate(
+      final String eventId,
+      {final bool formatWithMonthName = false}) async {
+    return execute(() => remoteDataSource.getEventDate(eventId,
+        formatWithMonthName: formatWithMonthName));
   }
 
   @override
-  Future<Either<Failure, List<String?>?>> getPurchasedSeatsByCustomerId(final String eventId, final String customerId) async {
-    return execute(() async {
-      if (eventId.isEmpty || customerId.isEmpty) throw Exception('Event ID and Customer ID cannot be empty.');
-      return remoteDataSource.getPurchasedSeatsByCustomerId(eventId, customerId);
-    });
+  Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
+      final String eventId) {
+    // Stream'ler 'execute' bloğuna sarılmaz çünkü anlık veri akışıdırlar,
+    // tek seferlik bir 'Future' değillerdir.
+    // Hata yönetimi, stream'i dinleyen Notifier/Bloc katmanında
+    // .listen(onError: ...) ile yapılır.
+    try {
+      return remoteDataSource.getEventSeatStatusStream(eventId);
+    } catch (e) {
+      // Data source'daki senkron bir hata (örn: eventId boş) fırlatılırsa
+      // bunu yakalayıp bir hata stream'i olarak döndürürüz.
+      return Stream.error(e);
+    }
   }
 
   @override
-  Future<Either<Failure, void>> updateSeatStatus(final String eventId, final String seatId, final String status, {final String? customerId}) async {
-    return execute(() async {
-      if (eventId.isEmpty || seatId.isEmpty || status.isEmpty) throw Exception('Event ID, Seat ID, and Status cannot be empty.');
-      await remoteDataSource.updateSeatStatus(eventId, seatId, status, customerId: customerId);
-    });
+  Future<Either<Failure, bool>> attemptReservation(final String eventId,
+      final String seatId, final String customerId) async {
+    // execute bloğu, data source'dan gelen 'bool' değerini (başarılı/başarısız)
+    // otomatik olarak Either<Failure, bool> içine saracaktır.
+    return execute(
+        () => remoteDataSource.attemptReservation(eventId, seatId, customerId));
   }
 
   @override
-  Future<Either<Failure, String?>> getStageId(final String eventId) async {
-    return execute(() async {
-      if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
-      return remoteDataSource.getStageId(eventId);
-    });
+  Future<Either<Failure, void>> releaseReservation(final String eventId,
+      final String seatId, final String customerId) async {
+    return execute(
+        () => remoteDataSource.releaseReservation(eventId, seatId, customerId));
   }
 
   @override
-  Future<Either<Failure, String?>> getEventPrice(final String eventId) async {
-    return execute(() async {
-      if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
-      return remoteDataSource.getEventPrice(eventId);
-    });
-  }
-
-  @override
-  Future<Either<Failure, Map<String, String>?>> getEventDate(final String eventId, {final bool formatWithMonthName = false}) async {
-    return execute(() async {
-      if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
-      return remoteDataSource.getEventDate(eventId, formatWithMonthName: formatWithMonthName);
-    });
-  }
-
-  @override
-  Future<Either<Failure, void>> reserveSeat(final String eventId, final String seatId, final String customerId) async {
-    return execute(() async {
-      if (eventId.isEmpty || seatId.isEmpty || customerId.isEmpty) throw Exception('Event ID, Seat ID, and Customer ID cannot be empty.');
-      await remoteDataSource.reserveSeat(eventId, seatId, customerId);
-    });
-  }
-
-  @override
-  Future<Either<Failure, void>> cancelReservation(final String eventId, final String seatId) async {
-    return execute(() async {
-      if (eventId.isEmpty || seatId.isEmpty) throw Exception('Event ID and Seat ID cannot be empty.');
-      await remoteDataSource.cancelReservation(eventId, seatId);
-    });
+  Future<Either<Failure, void>> confirmPurchase(final String eventId,
+      final List<String> seatIds, final String customerId) async {
+    return execute(
+        () => remoteDataSource.confirmPurchase(eventId, seatIds, customerId));
   }
 }

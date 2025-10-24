@@ -1,20 +1,16 @@
-import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
 import '../../repository/event_repository.dart';
 
-abstract class GetSeatStatusByEventUseCase {
-  Future<Either<Failure, Map<String, Map<String, dynamic>>?>>
-  call(final String eventId);
+abstract class GetEventSeatStatusStreamUseCase {
+  Stream<Map<String, Map<String, dynamic>?>> call(final String eventId);
 }
 
-class GetSeatStatusByEventUseCaseImpl implements GetSeatStatusByEventUseCase {
+class GetEventSeatStatusStreamUseCaseImpl
+    implements GetEventSeatStatusStreamUseCase {
   final EventRepository repository;
 
-  GetSeatStatusByEventUseCaseImpl(this.repository);
+  GetEventSeatStatusStreamUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, Map<String, dynamic>>?>>
-  call(final String eventId) async {
-    return repository.getSeatStatusByEvent(eventId);
-  }
+  Stream<Map<String, Map<String, dynamic>?>> call(final String eventId) =>
+      repository.getEventSeatStatusStream(eventId);
 }
