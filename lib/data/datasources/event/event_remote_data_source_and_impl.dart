@@ -5,7 +5,7 @@ import '../seat/seat_remote_data_source_and_impl.dart';
 abstract class EventRemoteDataSource {
   Future<void> initializeAndGetEventSeats(final String eventId);
 
-  Future<Map<String, String>?> getEventDate(final String eventId,
+  Future<Map<String, dynamic>?> getEventDetails(final String eventId,
       {final bool formatWithMonthName = false});
 
   // --- YENİ ATOMİK VE REAL-TIME METODLAR ---
@@ -74,7 +74,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   @override
-  Future<Map<String, String>?> getEventDate(final String eventId,
+  Future<Map<String, dynamic>?> getEventDetails(final String eventId,
       {final bool formatWithMonthName = false}) async {
     try {
       final docSnapshot =
@@ -85,12 +85,23 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       final eventData = docSnapshot.data()!;
       final date = eventData['date'] as String?;
 
-      if (date == null) return null;
+      // ✅ Fiyat ve StageId'yi de al
+      final price = eventData['price']?.toString();
+      final stageId = eventData['stageId'] as String?;
 
-      return DateFormatter.parseFormattedDateTime(date,
-          formatWithMonthName: formatWithMonthName);
+      final formattedDate = (date == null)
+          ? null
+          : DateFormatter.parseFormattedDateTime(date,
+              formatWithMonthName: formatWithMonthName);
+
+      // ✅ Tüm verileri bir map olarak dön
+      return {
+        'eventDate': formattedDate,
+        'eventPrice': price,
+        'stageId': stageId,
+      };
     } catch (error) {
-      throw Exception("Error fetching event date: ${error.toString()}");
+      throw Exception("Error fetching event details: ${error.toString()}");
     }
   }
 
