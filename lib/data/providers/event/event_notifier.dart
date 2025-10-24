@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // YENİ: Timestamp tipi için bu import gerekli
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
 import 'package:ticketapp/data/model/ticket_model.dart';
 import '../ticket/ticket_provider.dart';
@@ -40,7 +41,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
     // 2. Statik event verilerini (Tarih, Fiyat, StageId) al
     try {
-      // ✅ getEventDateUseCaseProvider yerine getEventDetailsUseCaseProvider kullandığımızı varsayalım
       final detailsResult =
           await ref.read(getEventDetailsUseCaseProvider).call(state.eventId);
 
@@ -53,11 +53,8 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
             );
           },
           (final details) {
-            // ✅ Gelen Fiyat ve StageId'yi state'e işle
             final newEventPrice = details?['eventPrice'] as String?;
             final newSeatPrice = double.tryParse(newEventPrice ?? "0") ?? 0;
-
-            // ✅ Fiyat yüklendiğinde, totalPrice'ı yeniden hesapla
             final newTotalPrice = state.selectedSeats.length * newSeatPrice;
 
             state = state.copyWith(
@@ -65,7 +62,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
               eventPrice: newEventPrice,
               stageId: details?['stageId'] as String?,
               totalPrice: newTotalPrice,
-              // ✅ Fiyatı güncelle
               isLoading: false,
             );
           },
@@ -79,7 +75,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     _startReservationTimer();
   }
 
-  // Seat status stream subscription
+  // GÜNCELLENDİ: Seat status stream subscription (Akıllı Sayaç için)
   void _subscribeSeatStatus() {
     _seatStatusSubscription?.cancel();
 
@@ -91,9 +87,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
         if (_isDisposed) return; // Disposed ise işlem yapma
 
         // --- GÜNCELLENEN BÖLÜM ---
-
-        // 1. Stream'den gelen veriye göre yerel seçili koltukları bul
         final currentReservations = <String>{};
+        DateTime? earliestTimestamp; // En eski zamanı bulmak için
+
         for (final entry in seatStatusMap.entries) {
           final seatId = entry.key;
           final seatInfo = entry.value;
@@ -102,19 +98,27 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
               seatInfo['status'] == 'reserved' &&
               seatInfo['customerId'] == state.customerId) {
             currentReservations.add(seatId);
+
+            // En eski rezervasyon zamanını bul
+            final reservedAt = seatInfo['reservedAt'] as Timestamp?;
+            if (reservedAt != null) {
+              final reservationDate = reservedAt.toDate();
+              if (earliestTimestamp == null ||
+                  reservationDate.isBefore(earliestTimestamp!)) {
+                earliestTimestamp = reservationDate;
+              }
+            }
           }
         }
 
-        // 2. Fiyatı, mevcut state'teki koltuk fiyatına göre yeniden hesapla
         final newTotalPrice = currentReservations.length * state.seatPrice;
 
-        // 3. State'i güncelle
         state = state.copyWith(
           seatStatus: seatStatusMap,
           selectedSeats: currentReservations,
-          // ✅ Yerel seti senkronize et
           totalPrice: newTotalPrice,
-          // ✅ Fiyatı senkronize et
+          firstReservationTime: earliestTimestamp,
+          // State'e kaydet
           errorMessage: null,
           isLoading: false,
         );
@@ -130,7 +134,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     );
   }
 
-  // Rezervasyon timer'ı
+  // GÜNCELLENDİ: Rezervasyon timer'ı (Akıllı Sayaç)
   void _startReservationTimer() {
     _reservationTimer?.cancel();
     _reservationTimer = Timer.periodic(
@@ -141,9 +145,24 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
           return;
         }
 
-        if (!state.isTimeUp) {
-          state = state.copyWith(remainingTime: state.remainingTime - 1);
+        int newRemainingTime;
+        if (state.firstReservationTime != null) {
+          // Bir rezervasyon varsa, o zamandan bu yana geçen süreyi hesapla
+          final elapsedSeconds =
+              DateTime.now().difference(state.firstReservationTime!).inSeconds;
+
+          // Kalan süreyi 600 saniyeden (10dk) çıkararak bul
+          newRemainingTime = 600 - elapsedSeconds;
         } else {
+          // Hiç rezervasyon yoksa, sayaç 600'de kalsın
+          newRemainingTime = 600;
+        }
+
+        // State'i yeni hesaplanan kalan süre ile güncelle
+        state = state.copyWith(remainingTime: newRemainingTime);
+
+        // Kalan süre 0 veya daha az ise süreyi bitir
+        if (state.isTimeUp) {
           timer.cancel();
           _handleTimeUp();
         }
@@ -151,38 +170,50 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     );
   }
 
-  // Süre dolduğunda
+  // GÜNCELLENDİ: Süre dolduğunda (Akıllı Sayaç için)
   void _handleTimeUp() {
-    cancelAllReservations();
+    cancelAllReservations(); // İptal işlemlerini başlat
     if (!_isDisposed) {
       state = state.copyWith(
         errorMessage: "Süreniz doldu. Rezervasyonlarınız iptal edildi.",
         selectedSeats: {},
         totalPrice: 0,
+        firstReservationTime: null,
+        // Rezervasyon sayacını sıfırla
+        remainingTime: 600, // Sayacı UI'da 600'e ayarla
       );
     }
   }
 
-  // Koltuk seçimi toggle
+  // GÜNCELLENDİ: Koltuk seçimi toggle (Hızlı basma / 3 limit sorunu için)
   Future<void> toggleSeatSelection(final String seatId) async {
-    // YENİ: Eğer koltuk zaten işlemdeyse, tekrar basmayı engelle
+    // 1. Koltuk zaten işlemdeyse, tekrar basmayı engelle
     if (state.processingSeats.contains(seatId)) return;
 
     // Stream'den gelen güncel duruma göre karar ver
     final bool isCurrentlySelected = state.selectedSeats.contains(seatId);
 
-    if (isCurrentlySelected) // Koltuk MAVİ (seçili), o halde KALDIRMAK istiyoruz
+    if (isCurrentlySelected) {
+      // Koltuk MAVİ (seçili), o halde KALDIRMAK istiyoruz
       await _removeSeat(seatId);
-    else {
-      if (state.selectedSeats.length >= 3) {
+    } else {
+      // Koltuk MAVİ DEĞİL (yani YEŞİL), o halde EKLEMEK istiyoruz
+
+      // DÜZELTME: Sadece seçili olanları değil, işlemde olanları da say.
+      final totalPendingAndSelected =
+          state.selectedSeats.length + state.processingSeats.length;
+
+      if (totalPendingAndSelected >= 3) {
         _showTemporaryError("En fazla 3 koltuk seçebilirsiniz.");
-        return;
+        return; // Fonksiyondan hemen çık
       }
-      await _addSeat(seatId); // Yeni koltuk ekle
+
+      // Limit aşılmadıysa koltuğu eklemeyi dene
+      await _addSeat(seatId);
     }
   }
 
-  // Koltuk ekleme
+  // GÜNCELLENDİ: Koltuk ekleme (Koltuk bazlı loading ve Either hatası için)
   Future<void> _addSeat(final String seatId) async {
     if (_isDisposed) return;
 
@@ -193,7 +224,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
         errorMessage: null, // Hataları temizle
       );
 
-      // 2. Ağ işlemini (useCase) çağır.
+      // 2. Ağ işlemini (useCase) çağır
       final result = await ref.read(attemptReservationUseCaseProvider).call(
             state.eventId,
             seatId,
@@ -204,33 +235,35 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
       result.fold(
         // 3a. Başarısızlık (Failure) durumu (Sol taraf)
         (final failure) {
-          if (!_isDisposed)
-            // Hata mesajını 'failure' objesinden al
+          if (!_isDisposed) {
             _showTemporaryError(failure.message);
+          }
         },
         // 3b. Başarı (Success) durumu (Sağ taraf)
         (final success) {
           // Buradaki 'success' artık 'bool' tipindedir
-          if (!_isDisposed && !success)
-            // UseCase 'false' döndürürse (örn: transaction başarısız oldu)
+          if (!_isDisposed && !success) {
             _showTemporaryError("Koltuk başkası tarafından seçildi.");
+          }
           // 'success' true ise hiçbir şey yapmıyoruz.
           // Değişikliğin stream'den gelip UI'ı güncellemesini bekliyoruz.
         },
       );
     } catch (e) {
-      if (!_isDisposed)
+      if (!_isDisposed) {
         _showTemporaryError("Rezervasyon hatası: ${e.toString()}");
+      }
     } finally {
-      // 4. İşlem bittiğinde (başarılı veya başarısız), koltuğu "işlemde" listesinden çıkar
-      if (!_isDisposed)
+      // 4. İşlem bittiğinde koltuğu "işlemde" listesinden çıkar
+      if (!_isDisposed) {
         state = state.copyWith(
           processingSeats: {...state.processingSeats}..remove(seatId),
         );
+      }
     }
   }
 
-  // Koltuk çıkarma (GÜNCELLENDİ)
+  // GÜNCELLENDİ: Koltuk çıkarma (Koltuk bazlı loading ve Either hatası için)
   Future<void> _removeSeat(final String seatId) async {
     if (_isDisposed) return;
 
@@ -252,7 +285,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
       result.fold(
         // 3a. Başarısızlık (Failure) durumu
         (final failure) {
-          if (!_isDisposed) _showTemporaryError(failure.message);
+          if (!_isDisposed) {
+            _showTemporaryError(failure.message);
+          }
         },
         // 3b. Başarı (Success) durumu
         (final _) {
@@ -260,21 +295,24 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
         },
       );
     } catch (e) {
-      if (!_isDisposed) _showTemporaryError("İptal hatası: ${e.toString()}");
+      if (!_isDisposed) {
+        _showTemporaryError("İptal hatası: ${e.toString()}");
+      }
     } finally {
       // 4. İşlem bittiğinde koltuğu "işlemde" listesinden çıkar
-      if (!_isDisposed)
+      if (!_isDisposed) {
         state = state.copyWith(
           processingSeats: {...state.processingSeats}..remove(seatId),
         );
+      }
     }
   }
 
-  // Ödeme işlemi
+  // Ödeme işlemi (Burada global isLoading kullanılması DOĞRUDUR)
   Future<void> processPayment(final String paymentMethod) async {
     if (!state.hasSelectedSeats) return;
 
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true); // Global loading AÇ
 
     await executeWithInternetCheck(
       () async {
@@ -303,9 +341,14 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
             totalPrice: 0,
             paymentSuccessful: true,
             isLoading: false,
+            firstReservationTime: null,
+            // Ödeme başarılı, sayacı sıfırla
+            remainingTime: 600, // Sayacı sıfırla
           );
         }
       },
+      // executeWithInternetCheck, 'isLoading: false' ve 'errorMessage'
+      // ayarlarını hata durumunda otomatik yapar.
     );
   }
 
@@ -331,8 +374,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     if (!state.hasSelectedSeats) return;
 
     final cancellationFutures = <Future<dynamic>>[];
+    final seatsToCancel = Set<String>.from(state.selectedSeats);
 
-    for (final seatId in state.selectedSeats) {
+    for (final seatId in seatsToCancel) {
       cancellationFutures.add(
         ref.read(releaseReservationUseCaseProvider).call(
               state.eventId,
@@ -342,7 +386,13 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
       );
     }
 
-    await Future.wait(cancellationFutures);
+    try {
+      await Future.wait(cancellationFutures);
+    } catch (e) {
+      print("Tüm rezervasyonları iptal ederken hata oluştu: $e");
+      // Hata olsa bile state'in sıfırlanması gerekir,
+      // çünkü stream bir süre sonra bunu düzeltecektir.
+    }
   }
 
   // Geçici hata mesajı göster (2 saniye sonra temizle)
@@ -351,7 +401,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
     state = state.copyWith(errorMessage: message);
     Future.delayed(const Duration(seconds: 2), () {
-      if (!_isDisposed) {
+      if (!_isDisposed && state.errorMessage == message) {
         state = state.copyWith(errorMessage: null);
       }
     });
@@ -372,7 +422,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
   }
 }
 
-// Helper method to initialize with params
+// Helper method to initialize with params (Değişiklik yok)
 extension EventNotifierX on WidgetRef {
   void initializeEventNotifier({
     required final String eventId,
