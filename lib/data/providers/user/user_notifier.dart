@@ -1,11 +1,7 @@
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
 import 'package:ticketapp/data/providers/user/user_provider.dart';
-import '../../../core/network/internet_service.dart';
 import '../../../data/model/user_model.dart';
 import '../../../domain/entities/user.dart';
-import '../../../domain/useCase/user/delete_user_use_case_impl.dart';
-import '../../../domain/useCase/user/get_user_by_id_use_case_impl.dart';
-import '../../../domain/useCase/user/save_user_use_case_impl.dart';
 import 'user_state.dart';
 
 class UserNotifier extends BaseNotifierWithNetworkChecker<UserState> {
