@@ -15,12 +15,11 @@ class PlayerState extends LoadableState<Player, List<Player>> {
     final List<Player>? dataList,
     final bool? isLoading,
     final String? errorMessage,
-  }) {
-    return PlayerState(
-      player: dataSingle ?? this.dataSingle,
-      players: dataList ?? this.dataList,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      PlayerState(
+        player: dataSingle ?? this.dataSingle,
+        players: dataList ?? this.dataList,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }
