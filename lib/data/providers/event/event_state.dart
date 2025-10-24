@@ -6,11 +6,9 @@ typedef EventSeatStatus = Map<String, Map<String, dynamic>?>;
 @immutable
 class SeatSelectionState extends BaseState {
   // Statik veriler (bir kez yüklenir)
-  final Map<String, List<String?>?>?
-      seatLayout; // Artık kullanılmıyor ama uyumluluk için tutalım
-  final String? eventPrice; // ✅ Bunu ekle
-  final Map<String, String>? eventDate;
-  final String? stageId;
+  final String? eventPrice; // ✅ Fiyat hesaplaması için GEREKLİ
+  final Map<String, String>? eventDate; // ✅ GEREKLİ
+  final String? stageId; // ✅ Bilet oluşturmak için GEREKLİ
 
   // Context bilgileri (constructor'dan gelir, değişmez)
   final String eventId;
@@ -32,10 +30,9 @@ class SeatSelectionState extends BaseState {
     required this.eventId,
     required this.showId,
     required this.customerId,
-    this.seatLayout,
-    this.eventPrice, // ✅ Bunu ekle
+    this.eventPrice, // ✅
     this.eventDate,
-    this.stageId,
+    this.stageId, // ✅
     this.seatStatus = const {},
     this.selectedSeats = const {},
     this.remainingTime = 600,
@@ -50,8 +47,7 @@ class SeatSelectionState extends BaseState {
     final String? eventId,
     final String? showId,
     final String? customerId,
-    final Map<String, List<String?>?>? seatLayout,
-    final String? eventPrice, // ✅ Bunu ekle
+    final String? eventPrice,
     final Map<String, String>? eventDate,
     final String? stageId,
     final EventSeatStatus? seatStatus,
@@ -65,12 +61,10 @@ class SeatSelectionState extends BaseState {
       SeatSelectionState(
         eventId: eventId ?? this.eventId,
         showId: showId ?? this.showId,
-        customerId: customerId ?? this.customerId,
-        seatLayout: seatLayout ?? this.seatLayout,
-        eventPrice: eventPrice ?? this.eventPrice,
-        // ✅ Bunu ekle
-        eventDate: eventDate ?? this.eventDate,
         stageId: stageId ?? this.stageId,
+        customerId: customerId ?? this.customerId,
+        eventPrice: eventPrice ?? this.eventPrice,
+        eventDate: eventDate ?? this.eventDate,
         seatStatus: seatStatus ?? this.seatStatus,
         selectedSeats: selectedSeats ?? this.selectedSeats,
         remainingTime: remainingTime ?? this.remainingTime,
