@@ -180,26 +180,30 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         if (!snapshot.exists) throw Exception("Event not found!");
 
         final data = snapshot.data();
-        if (data == null ||
-            data['seats'] == null ||
-            data['seats'][seatId] == null)
-          throw Exception("Seat data not found or event not initialized.");
+        if (data == null) throw Exception("Event data is null.");
 
-        final seatData = data['seats'][seatId] as Map<String, dynamic>;
+        // Refaktör: 'seats' haritasına ve içindeki 'seatId'ye daha güvenli erişim
+        final seatData = data['seats']?[seatId];
+
+        // Koltuk verisinin hem varlığını hem de tipini kontrol et
+        if (seatData == null || seatData is! Map<String, dynamic>)
+          throw Exception("Seat data not found or is invalid.");
+
         final currentStatus = seatData['status'] as String?;
+        final currentCustomerId = seatData['customerId'] as String?;
 
-        if (currentStatus == 'available') {
+        if (currentStatus == 'available' && currentCustomerId == null)
           transaction.update(eventRef, {
             'seats.$seatId.status': 'reserved',
             'seats.$seatId.customerId': customerId,
             'seats.$seatId.reservedAt': FieldValue.serverTimestamp(),
           });
-        } else {
+        else // Koltuk rezerve edilmek için uygun değil
           throw Exception("Seat is not available.");
-        }
       });
-      return true;
+      return true; // İşlem başarılı olursa
     } catch (e) {
+      // İşlem sırasında herhangi bir "throw" olursa burası çalışır
       print("Reservation failed: $e");
       return false;
     }

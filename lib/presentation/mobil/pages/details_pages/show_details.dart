@@ -223,7 +223,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           context,
           MaterialPageRoute(
               builder: (final context) => SeatSelectionScreen(
-                  showId: showData?.id ?? '', eventId: eventId)),
+                  showId: showData?.id ?? '', eventId: eventId, customerId: "test 22")),
         );
       },
       child: Container(
