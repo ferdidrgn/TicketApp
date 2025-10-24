@@ -325,19 +325,22 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     final isAvailable =
         status == 'available' || (status == 'reserved' && isMyReservation);
 
+    // Bu koltuk şu anda işlemde mi?
+    final bool isSeatProcessing = state.processingSeats.contains(seatId);
+
     Color seatColor;
-    if (status == 'sold') {
-      seatColor = Colors.black12;
-    } else if (isSelected) {
-      seatColor = Colors.blue;
-    } else if (status == 'reserved' && !isMyReservation) {
-      seatColor = Colors.purple;
-    } else {
-      seatColor = Colors.green;
-    }
+    if (status == 'sold') seatColor = Colors.black12;
+    else if (isSelected) seatColor = Colors.blue;
+    else if (status == 'reserved' && !isMyReservation) seatColor = Colors.purple;
+    else seatColor = Colors.green;
+
+    // YENİ: Tıklanabilirlik durumu
+    // Koltuk hem "müsait" OLMALI hem de "işlemde OLMAMALI"
+    final bool canTap = isAvailable && !isSeatProcessing;
 
     return GestureDetector(
-      onTap: isAvailable ? () => notifier.toggleSeatSelection(seatId) : null,
+      // Sadece 'canTap' true ise tıkla
+      onTap: canTap ? () => notifier.toggleSeatSelection(seatId) : null,
       child: Container(
         width: 40,
         height: 40,
@@ -347,14 +350,24 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
-          child: Text(
-            seatId.substring(1),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
+          // YENİ: 'isSeatProcessing' true ise yazı yerine spinner göster
+          child: isSeatProcessing
+              ? const SizedBox(
+                  width: 20, // Spinner boyutunu ayarla
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Text(
+                  seatId.substring(1), // Koltuk numarası
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
         ),
       ),
     );

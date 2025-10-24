@@ -26,6 +26,9 @@ class SeatSelectionState extends BaseState {
   // Ödeme başarılı flag'i
   final bool paymentSuccessful;
 
+  // YENİ: Hangi koltukların ağ işlemi (ekleme/kaldırma) beklediğini tutar
+  final Set<String> processingSeats;
+
   const SeatSelectionState({
     required this.eventId,
     required this.showId,
@@ -35,9 +38,10 @@ class SeatSelectionState extends BaseState {
     this.stageId, // ✅
     this.seatStatus = const {},
     this.selectedSeats = const {},
-    this.remainingTime = 600,
+    this.remainingTime = 10,
     this.totalPrice = 0.0,
     this.paymentSuccessful = false,
+    this.processingSeats = const {},
     super.isLoading = false,
     super.errorMessage,
   });
@@ -55,6 +59,7 @@ class SeatSelectionState extends BaseState {
     final int? remainingTime,
     final double? totalPrice,
     final bool? paymentSuccessful,
+    final Set<String>? processingSeats,
     final bool? isLoading,
     final String? errorMessage,
   }) =>
@@ -70,6 +75,7 @@ class SeatSelectionState extends BaseState {
         remainingTime: remainingTime ?? this.remainingTime,
         totalPrice: totalPrice ?? this.totalPrice,
         paymentSuccessful: paymentSuccessful ?? this.paymentSuccessful,
+        processingSeats: processingSeats ?? this.processingSeats,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );

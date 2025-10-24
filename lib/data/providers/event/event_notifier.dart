@@ -165,92 +165,109 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
   // Koltuk seçimi toggle
   Future<void> toggleSeatSelection(final String seatId) async {
-    final currentSelected = Set<String>.from(state.selectedSeats);
+    // YENİ: Eğer koltuk zaten işlemdeyse, tekrar basmayı engelle
+    if (state.processingSeats.contains(seatId)) return;
 
-    // 1. Durum: Koltuk zaten MAVİ ise (yerel listede seçili)
-    // Bu, onu kaldırmak istediğimiz anlamına gelir.
-    if (currentSelected.contains(seatId)) {
-      await _removeSeat(seatId, currentSelected);
-      return;
-    }
+    // Stream'den gelen güncel duruma göre karar ver
+    final bool isCurrentlySelected = state.selectedSeats.contains(seatId);
 
-    // 2. Durum: Koltuk MAVİ DEĞİL (yani YEŞİL).
-    // Tıklanabilir (isAvailable) olduğu için bu koltuğun
-    // ya 'available' ya da 'reserved' (bana ait) olduğunu biliyoruz.
-    // Emin olmak için state'den gerçek durumunu kontrol edelim.
-
-    final seatInfo = state.seatStatus[seatId];
-    final status = seatInfo?['status'] ?? 'available';
-    final isMyReservation = seatInfo?['customerId'] == state.customerId;
-
-    if (status == 'available') {
-      // 3. Alt Durum: Koltuk YEŞİL ve gerçekten 'available'.
-      // Onu EKLEMEYİ denemeliyiz.
-
-      // Maximum 3 koltuk kontrolü
-      if (currentSelected.length >= 3) {
+    if (isCurrentlySelected) // Koltuk MAVİ (seçili), o halde KALDIRMAK istiyoruz
+      await _removeSeat(seatId);
+    else {
+      if (state.selectedSeats.length >= 3) {
         _showTemporaryError("En fazla 3 koltuk seçebilirsiniz.");
         return;
       }
-      // Yeni koltuk ekle
-      await _addSeat(seatId, currentSelected);
-    } else if (status == 'reserved' && isMyReservation) {
-      // 4. Alt Durum: Koltuk YEŞİL ama 'bana ait reserved' (yerel state senkronize olmamış).
-      // Bu tıklama, onu KALDIRMAK istediğimiz anlamına gelir.
-
-      // _removeSeat'in çalışması için önce sete eklemeliyiz.
-      currentSelected.add(seatId);
-      await _removeSeat(seatId, currentSelected);
+      await _addSeat(seatId); // Yeni koltuk ekle
     }
-
-    // Not: 'sold' veya 'reserved by other' durumları 'isAvailable' filtresine
-    // (UI tarafında) takılacağı için bu fonksiyona hiç gelmemelidir.
   }
 
   // Koltuk ekleme
-  Future<void> _addSeat(
-    final String seatId,
-    final Set<String> currentSelected,
-  ) async {
-    await executeWithInternetCheck(
-      () => ref.read(attemptReservationUseCaseProvider).call(
+  Future<void> _addSeat(final String seatId) async {
+    if (_isDisposed) return;
+
+    try {
+      // 1. Koltuğu "işlemde" olarak ayarla
+      state = state.copyWith(
+        processingSeats: {...state.processingSeats, seatId},
+        errorMessage: null, // Hataları temizle
+      );
+
+      // 2. Ağ işlemini (useCase) çağır.
+      final result = await ref.read(attemptReservationUseCaseProvider).call(
             state.eventId,
             seatId,
             state.customerId,
-          ),
-      onSuccess: (final success) {
-        if (!_isDisposed && success) {
-          currentSelected.add(seatId);
-          state = state.copyWith(
-            selectedSeats: currentSelected,
-            totalPrice: state.totalPrice + state.seatPrice,
           );
-        } else if (!_isDisposed) {
-          _showTemporaryError("Koltuk başkası tarafından seçildi.");
-        }
-      },
-    );
+
+      // 3. 'Either' sonucunu 'fold' ile işle
+      result.fold(
+        // 3a. Başarısızlık (Failure) durumu (Sol taraf)
+        (final failure) {
+          if (!_isDisposed)
+            // Hata mesajını 'failure' objesinden al
+            _showTemporaryError(failure.message);
+        },
+        // 3b. Başarı (Success) durumu (Sağ taraf)
+        (final success) {
+          // Buradaki 'success' artık 'bool' tipindedir
+          if (!_isDisposed && !success)
+            // UseCase 'false' döndürürse (örn: transaction başarısız oldu)
+            _showTemporaryError("Koltuk başkası tarafından seçildi.");
+          // 'success' true ise hiçbir şey yapmıyoruz.
+          // Değişikliğin stream'den gelip UI'ı güncellemesini bekliyoruz.
+        },
+      );
+    } catch (e) {
+      if (!_isDisposed)
+        _showTemporaryError("Rezervasyon hatası: ${e.toString()}");
+    } finally {
+      // 4. İşlem bittiğinde (başarılı veya başarısız), koltuğu "işlemde" listesinden çıkar
+      if (!_isDisposed)
+        state = state.copyWith(
+          processingSeats: {...state.processingSeats}..remove(seatId),
+        );
+    }
   }
 
-  // Koltuk çıkarma
-  Future<void> _removeSeat(
-    final String seatId,
-    final Set<String> currentSelected,
-  ) async {
-    currentSelected.remove(seatId);
+  // Koltuk çıkarma (GÜNCELLENDİ)
+  Future<void> _removeSeat(final String seatId) async {
+    if (_isDisposed) return;
 
-    if (!_isDisposed) {
+    try {
+      // 1. Koltuğu "işlemde" olarak ayarla
       state = state.copyWith(
-        selectedSeats: currentSelected,
-        totalPrice: state.totalPrice - state.seatPrice,
+        processingSeats: {...state.processingSeats, seatId},
+        errorMessage: null, // Hataları temizle
       );
-    }
 
-    await ref.read(releaseReservationUseCaseProvider).call(
-          state.eventId,
-          seatId,
-          state.customerId,
+      // 2. Ağ işlemini çağır
+      final result = await ref.read(releaseReservationUseCaseProvider).call(
+            state.eventId,
+            seatId,
+            state.customerId,
+          );
+
+      // 3. 'Either' sonucunu işle (Sadece hata durumunu yakalamak için)
+      result.fold(
+        // 3a. Başarısızlık (Failure) durumu
+        (final failure) {
+          if (!_isDisposed) _showTemporaryError(failure.message);
+        },
+        // 3b. Başarı (Success) durumu
+        (final _) {
+          // Başarılıysa bir şey yapma, stream'in güncellemesini bekle.
+        },
+      );
+    } catch (e) {
+      if (!_isDisposed) _showTemporaryError("İptal hatası: ${e.toString()}");
+    } finally {
+      // 4. İşlem bittiğinde koltuğu "işlemde" listesinden çıkar
+      if (!_isDisposed)
+        state = state.copyWith(
+          processingSeats: {...state.processingSeats}..remove(seatId),
         );
+    }
   }
 
   // Ödeme işlemi
