@@ -17,18 +17,12 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.ferdidrgn.ticketapp"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
+    compileSdk = 36 // flutter.compileSdkVersion yerine direkt sayı
 
     defaultConfig {
         applicationId = "com.ferdidrgn.ticketapp"
-        minSdkVersion flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdkVersion = flutter.minSdkVersion // flutter.minSdkVersion yerine
+        targetSdk = 36 // flutter.targetSdkVersion yerine
         versionCode = flutterVersionCode
         versionName = flutterVersionName
         multiDexEnabled true
