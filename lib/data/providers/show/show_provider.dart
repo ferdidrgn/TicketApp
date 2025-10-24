@@ -11,7 +11,7 @@ import 'show_state.dart';
 
 /// Ana Show Notifier provider
 final showProvider =
-    NotifierProvider<ShowNotifier, ShowState>(ShowNotifier.new);
+    NotifierProvider.autoDispose<ShowNotifier, ShowState>(ShowNotifier.new);
 
 /// Use case provider'ları
 final addShowUseCaseProvider = Provider<AddShowUseCase>(

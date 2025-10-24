@@ -59,13 +59,12 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage> {
     );*/
   }
 
-  Future _fetchPurchasedSeat(final String eventId) async {
-    final fetchPurchasedSeats = await eventService
-        .getPurchasedSeatsByCustomerId(eventId, widget.userId);
+  /*Future _fetchPurchasedSeat(final String eventId) async {
+    final fetchPurchasedSeats = await eventService.getPurchasedSeatsByCustomerId(eventId, widget.userId);
     setState(() {
       purchasedSeats = fetchPurchasedSeats;
     });
-  }
+  }*/
 
   @override
   Widget build(final BuildContext context) {
@@ -137,8 +136,8 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage> {
     return FutureBuilder<List<dynamic>>(
       future: Future.wait([
         eventService.getEventDate(ticket.eventId),
-        eventService.getEventPrice(ticket.eventId),
-        eventService.getStageId(ticket.stageId),
+        //eventService.getEventPrice(ticket.eventId),
+        //eventService.getStageId(ticket.stageId),
       ]),
       builder: (final context, final snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {

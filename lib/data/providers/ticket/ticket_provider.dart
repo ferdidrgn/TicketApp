@@ -6,7 +6,7 @@ import 'ticket_notifier.dart';
 import 'ticket_state.dart';
 
 final ticketProvider =
-    NotifierProvider<TicketNotifier, TicketState>(TicketNotifier.new);
+    NotifierProvider.autoDispose<TicketNotifier, TicketState>(TicketNotifier.new);
 
 // Use case providers
 final getTicketByIdUseCaseProvider = Provider<GetTicketsByIdsUseCase>(

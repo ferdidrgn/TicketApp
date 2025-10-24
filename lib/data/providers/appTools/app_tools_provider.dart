@@ -7,7 +7,7 @@ import 'app_tools_notifier.dart';
 import 'app_tools_state.dart';
 
 /// Uygulama araçları ViewModel provider'ı
-final appToolsProvider = NotifierProvider<AppToolsNotifier, AppToolsState>(
+final appToolsProvider = NotifierProvider.autoDispose<AppToolsNotifier, AppToolsState>(
   AppToolsNotifier.new,
 );
 

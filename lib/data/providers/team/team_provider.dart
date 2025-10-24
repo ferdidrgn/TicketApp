@@ -6,7 +6,7 @@ import 'team_notifier.dart';
 import 'team_state.dart';
 
 final teamProvider =
-    NotifierProvider<TeamNotifier, TeamState>(TeamNotifier.new);
+    NotifierProvider.autoDispose<TeamNotifier, TeamState>(TeamNotifier.new);
 
 // Use case providers
 final getTeamsUseCaseProvider = Provider<GetTeamsUseCase>(

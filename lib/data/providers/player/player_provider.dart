@@ -6,7 +6,7 @@ import 'player_notifier.dart';
 import 'player_state.dart';
 
 /// Ana Player ViewModel provider'ı
-final playerProvider = NotifierProvider<PlayerNotifier, PlayerState>(
+final playerProvider = NotifierProvider.autoDispose<PlayerNotifier, PlayerState>(
   PlayerNotifier.new,
 );
 

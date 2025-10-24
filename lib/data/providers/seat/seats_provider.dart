@@ -5,7 +5,7 @@ import 'seats_notifier.dart';
 import 'seats_state.dart';
 
 final seatsProvider =
-    NotifierProvider<SeatsNotifier, SeatsState>(SeatsNotifier.new);
+    NotifierProvider.autoDispose<SeatsNotifier, SeatsState>(SeatsNotifier.new);
 
 // GetSeatsByStageUseCase provider
 final getSeatsByStageUseCaseProvider = Provider<GetSeatsByStageUseCase>(

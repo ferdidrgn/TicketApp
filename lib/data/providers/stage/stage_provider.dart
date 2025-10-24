@@ -7,7 +7,7 @@ import 'stage_notifier.dart';
 import 'stage_state.dart';
 
 final stageProvider =
-    NotifierProvider<StageNotifier, StageState>(StageNotifier.new);
+    NotifierProvider.autoDispose<StageNotifier, StageState>(StageNotifier.new);
 
 // Use case providers
 final getStagesUseCaseProvider = Provider<GetStagesUseCase>(
