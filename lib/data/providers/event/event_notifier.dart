@@ -355,6 +355,19 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
   // Bilet oluştur
   TicketModel _createTicket(final String paymentMethod) {
     final now = DateTime.now();
+
+    // Kahve ücretini veya ücretsiz durumu belirle
+    String finalPrice;
+    String finalMethod = paymentMethod;
+
+    if (paymentMethod == 'free_ticket')
+      finalPrice = "0.0";
+    else if (paymentMethod.startsWith('coffee_')) {
+      // "coffee_20" -> 20.0
+      finalPrice = paymentMethod.split('_').last;
+      finalMethod = 'coffee_donation'; // Yöntemi grupla
+    } else finalPrice = state.totalPrice.toStringAsFixed(2);
+
     return TicketModel(
       createdAt: now.toString(),
       updatedAt: now.toString(),
@@ -363,8 +376,8 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
       customerId: state.customerId,
       stageId: state.stageId ?? '',
       eventId: state.eventId,
-      orderPrice: state.totalPrice.toString(),
-      orderMethod: paymentMethod,
+      orderPrice: finalPrice,
+      orderMethod: finalMethod,
       isPast: false,
     );
   }

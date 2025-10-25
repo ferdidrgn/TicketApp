@@ -275,7 +275,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       final seats = seatsByRow[row]!;
 
       // ✅ Numeric sorting - A1, A2, A3, ..., A10, A11
-      seats.sort((a, b) {
+      seats.sort((final a, final b) {
         // Koltuk numarasını çıkar (A1 -> 1, A10 -> 10)
         final numA = int.tryParse(a.substring(1)) ?? 0;
         final numB = int.tryParse(b.substring(1)) ?? 0;
@@ -329,10 +329,14 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     final bool isSeatProcessing = state.processingSeats.contains(seatId);
 
     Color seatColor;
-    if (status == 'sold') seatColor = Colors.black12;
-    else if (isSelected) seatColor = Colors.blue;
-    else if (status == 'reserved' && !isMyReservation) seatColor = Colors.purple;
-    else seatColor = Colors.green;
+    if (status == 'sold')
+      seatColor = Colors.black12;
+    else if (isSelected)
+      seatColor = Colors.blue;
+    else if (status == 'reserved' && !isMyReservation)
+      seatColor = Colors.purple;
+    else
+      seatColor = Colors.green;
 
     // YENİ: Tıklanabilirlik durumu
     // Koltuk hem "müsait" OLMALI hem de "işlemde OLMAMALI"
@@ -422,21 +426,49 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       context: context,
       builder: (final context) {
         return AlertDialog(
-          title: const Text('Ödeme Yöntemi Seçin'),
+          backgroundColor: Colors.white,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Ödeme Yöntemi Seçin',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                title: const Text('Google Play'),
+              _buildPaymentOption(
+                context,
+                icon: Icons.account_balance_wallet,
+                color: Colors.green.shade600,
+                label: 'Google Play',
                 onTap: () => Navigator.pop(context, 'google_play'),
               ),
-              ListTile(
-                title: const Text('Kredi Kartı'),
+              const SizedBox(height: 8),
+              _buildPaymentOption(
+                context,
+                icon: Icons.credit_card,
+                color: Colors.blue.shade600,
+                label: 'Kredi Kartı',
                 onTap: () => Navigator.pop(context, 'credit_card'),
               ),
-              ListTile(
-                title: const Text('IBAN'),
+              const SizedBox(height: 8),
+              _buildPaymentOption(
+                context,
+                icon: Icons.account_balance,
+                color: Colors.orange.shade700,
+                label: 'IBAN / Banka',
                 onTap: () => Navigator.pop(context, 'iban'),
+              ),
+              const SizedBox(height: 8),
+              _buildPaymentOption(
+                context,
+                icon: Icons.coffee,
+                color: Colors.brown.shade600,
+                label: 'Kahve Ismarlama ☕ (Ücretsiz Etkinlik)',
+                onTap: () => Navigator.pop(context, 'free_coffee'),
               ),
             ],
           ),
@@ -447,10 +479,49 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     if (selectedMethod != null) {
       final confirmed = await _showConfirmationDialog();
       if (confirmed ?? false) {
-        Navigator.pop(context); // Bottom sheet'i kapat
+        Navigator.pop(context); // bottom sheet’i kapat
         await notifier.processPayment(selectedMethod);
       }
     }
+  }
+
+  /// 🔹 Tekrarlanan ödeme seçenekleri için yardımcı widget
+  Widget _buildPaymentOption(
+    final BuildContext context, {
+    required final IconData icon,
+    required final Color color,
+    required final String label,
+    required final VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 26),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: color),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<bool?> _showConfirmationDialog() {
