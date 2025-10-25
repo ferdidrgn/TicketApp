@@ -98,22 +98,27 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     }
   }
 
+  // EventRemoteDataSourceImpl içinde
+
   @override
   Future<List<EventModel?>?> getEventsByIds(final List<String> eventIds) async {
     try {
       if (eventIds.isEmpty) throw Exception('Event ID cannot be empty.');
 
-      final result = await firestore.collection('Event').where(FieldPath.documentId, whereIn: eventIds).get();
+      final result = await firestore
+          .collection('Event')
+          .where(FieldPath.documentId, whereIn: eventIds)
+          .get();
 
-      if (result.docs.isEmpty) return [];
-      return _convertQuerySnapshotToStageList(result);
+      if (result.docs.isEmpty)
+        return []; // Döküman bulunamazsa boş liste döndür
+      return _convertQuerySnapshotToEventList(result); // <-- ADI DÜZELTİLDİ
     } catch (error) {
-      throw Exception('Error fetching event: $error');
+      throw Exception('Error fetching events: $error');
     }
   }
 
-// Convert Firestore document to EventModel
-  List<EventModel> _convertQuerySnapshotToStageList(
+  List<EventModel?> _convertQuerySnapshotToEventList(
       final QuerySnapshot snapshot) {
     return snapshot.docs.map((final doc) {
       return EventModel.fromFirestore(doc.data()! as Map<String, dynamic>);
