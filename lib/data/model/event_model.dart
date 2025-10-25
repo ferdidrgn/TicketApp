@@ -6,7 +6,7 @@ class EventModel {
   final String? showId;
   final String? date;
   final String? price;
-  final Map<String, dynamic>? seatStatus;
+  final Map<String, dynamic>? seats;
 
   const EventModel({
     this.id,
@@ -14,7 +14,7 @@ class EventModel {
     this.showId,
     this.date,
     this.price,
-    this.seatStatus,
+    this.seats,
   });
 
   factory EventModel.fromFirestore(final Map<String, dynamic>? data) {
@@ -25,7 +25,7 @@ class EventModel {
       showId: data['showId'] as String?,
       date: data['date'] as String?,
       price: data['price'] as String?,
-      seatStatus: data['seatStatus'] as Map<String, dynamic>?,
+      seats: data['seats'] as Map<String, dynamic>?,
     );
   }
 
@@ -35,7 +35,7 @@ class EventModel {
         'showId': showId,
         'date': date,
         'price': price,
-        'seatStatus': seatStatus,
+        'seats': seats,
       };
 
   Event toEntity() => Event(
@@ -44,7 +44,7 @@ class EventModel {
         showId: showId ?? '0',
         date: date ?? 'Tarih bulunamadı',
         price: price ?? 'Fiyat bulunamadı',
-        seatStatus: seatStatus ?? {},
+    seats: seats ?? {},
       );
 
   factory EventModel.fromEntity(final Event event) => EventModel(
@@ -53,6 +53,6 @@ class EventModel {
         showId: event.showId,
         date: event.date,
         price: event.price,
-        seatStatus: event.seatStatus,
+    seats: event.seats,
       );
 }

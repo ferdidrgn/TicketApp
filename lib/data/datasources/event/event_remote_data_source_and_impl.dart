@@ -103,10 +103,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     try {
       if (eventIds.isEmpty) throw Exception('Event ID cannot be empty.');
 
-      final result = await firestore
-          .collection('Event')
-          .where(FieldPath.documentId, whereIn: eventIds)
-          .get();
+      final result = await firestore.collection('Event').where(FieldPath.documentId, whereIn: eventIds).get();
 
       if (result.docs.isEmpty) return [];
       return _convertQuerySnapshotToStageList(result);
