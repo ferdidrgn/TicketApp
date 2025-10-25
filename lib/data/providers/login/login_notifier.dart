@@ -73,21 +73,3 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
     );
   }
 }
-
-extension PlayerStateX on PlayerState {
-  bool hasPlayer(final String playerId) {
-    if (dataList == null) return false;
-    return dataList!.any((final player) => player.id == playerId);
-  }
-
-  dynamic getPlayerById(final String playerId) {
-    if (dataList == null) return null;
-    try {
-      return dataList!.firstWhere((final player) => player.id == playerId);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  int get playerCount => dataList?.length ?? 0;
-}

@@ -41,24 +41,21 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     // Not: Burada 'ref.watch' ile alınan 'state', en güncel 'state'dir.
     // Biz bu 'state'i bir anlık görüntü (snapshot) olarak alıp
     // ödeme fonksiyonlarına aktaracağız.
-    final state = ref.watch(eventNotifierProvider);
-    final notifier = ref.read(eventNotifierProvider.notifier);
+    final state = ref.watch(eventProvider);
+    final notifier = ref.read(eventProvider.notifier);
 
     // Hata mesajı listener
     ref.listen<EventState>(
-      eventNotifierProvider,
+      eventProvider,
       (final previous, final next) {
-        if (next.errorMessage != null) {
+        if (next.errorMessage != null)
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(next.errorMessage!)),
           );
-        }
-        if (next.isTimeUp && (previous?.isTimeUp == false)) {
-          _showTimeUpDialog();
-        }
-        if (next.paymentSuccessful && (previous?.paymentSuccessful == false)) {
+
+        if (next.isTimeUp && (previous?.isTimeUp == false)) _showTimeUpDialog();
+        if (next.paymentSuccessful && (previous?.paymentSuccessful == false))
           _showPaymentSuccessDialog();
-        }
       },
     );
 

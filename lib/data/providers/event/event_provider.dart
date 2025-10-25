@@ -10,7 +10,7 @@ import '../../repository/event/event_repository_provider.dart';
 import 'event_notifier.dart';
 import 'event_state.dart';
 
-final eventNotifierProvider =
+final eventProvider =
     NotifierProvider.autoDispose<EventNotifier, EventState>(
   EventNotifier.new,
 );

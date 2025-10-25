@@ -147,6 +147,19 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
+  Future<void> loadEventsByIds(final List<String> eventIds) async {
+    if (eventIds.isEmpty) {
+      state = state.copyWith(isLoading: false, dataList: []);
+      return;
+    }
+
+    await executeWithInternetCheck(
+      () => ref.read(getEventsByIdsUesCaseProvider).call(eventIds),
+      onSuccess: (final events) =>
+          state = state.copyWith(dataList: events, errorMessage: null),
+    );
+  }
+
   // Koltuk seçimi (Değişiklik yok)
   Future<void> toggleSeatSelection(final String seatId) async {
     if (state.processingSeats.contains(seatId)) return;
@@ -405,7 +418,7 @@ extension EventNotifierX on WidgetRef {
     required final String showId,
     required final String customerId,
   }) {
-    read(eventNotifierProvider.notifier).initializeWithParams(
+    read(eventProvider.notifier).initializeWithParams(
       eventId: eventId,
       showId: showId,
       customerId: customerId,

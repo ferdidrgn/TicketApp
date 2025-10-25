@@ -110,7 +110,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         if (ref.read(showProvider).isListEmpty)
           ref.read(showProvider.notifier).loadShows(true),
         if (ref.read(playerProvider).isListEmpty)
-          ref.read(playerProvider.notifier).loadPlayers(true),
+          ref.read(playerProvider.notifier).getPlayers(true),
         if (ref.read(stageProvider).isListEmpty)
           ref.read(stageProvider.notifier).loadStages(true),
         if (ref.read(teamProvider).isListEmpty)

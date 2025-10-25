@@ -10,16 +10,16 @@ class PlayerNotifier extends BaseNotifierWithNetworkChecker<PlayerState> {
   PlayerState initialState() => const PlayerState();
 
   @override
-  void reloadData() => loadPlayers(false);
+  void reloadData() => getPlayers(false);
 
-  Future<void> refresh() => loadPlayers(false);
+  Future<void> refresh() => getPlayers(false);
 
-  Future<void> loadPlayers(final isLimit) => executeWithInternetCheck(
+  Future<void> getPlayers(final isLimit) => executeWithInternetCheck(
         () => ref.read(getPlayersUseCaseProvider).call(isLimit),
         onSuccess: _handlePlayersLoaded,
       );
 
-  Future<void> loadPlayersByIds(final List<String> playerIds) async {
+  Future<void> getPlayersByIds(final List<String> playerIds) async {
     if (playerIds.isEmpty) {
       _handleEmptyPlayerIds();
       return;
@@ -46,15 +46,6 @@ extension PlayerStateX on PlayerState {
   bool hasPlayer(final String playerId) {
     if (dataList == null) return false;
     return dataList!.any((final player) => player.id == playerId);
-  }
-
-  dynamic getPlayerById(final String playerId) {
-    if (dataList == null) return null;
-    try {
-      return dataList!.firstWhere((final player) => player.id == playerId);
-    } catch (_) {
-      return null;
-    }
   }
 
   int get playerCount => dataList?.length ?? 0;

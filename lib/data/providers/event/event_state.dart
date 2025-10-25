@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:ticketapp/core/common/base_state.dart';
+import '../../../core/common/base_loadable_state.dart';
+import '../../../domain/entities/event.dart';
 
 typedef EventSeatStatus = Map<String, Map<String, dynamic>?>;
 
 @immutable
-class EventState extends BaseState {
+class EventState extends LoadableState<Event, List<Event>> {
   // Statik veriler (bir kez yüklenir)
   final String? eventPrice;
   final Map<String, String>? eventDate;
@@ -19,6 +20,8 @@ class EventState extends BaseState {
   final EventSeatStatus seatStatus;
 
   // Oturum (Session) verisi
+  final List<Event>? events;
+  final Event? event;
   final Set<String> selectedSeats;
   final int remainingTime;
   final double totalPrice;
@@ -39,6 +42,8 @@ class EventState extends BaseState {
     required this.eventId,
     required this.showId,
     required this.customerId,
+    this.events,
+    this.event,
     this.eventPrice,
     this.eventDate,
     this.stageId,
@@ -59,6 +64,8 @@ class EventState extends BaseState {
     final String? eventId,
     final String? showId,
     final String? customerId,
+    final Event? dataSingle,
+    final List<Event>? dataList,
     final String? eventPrice,
     final Map<String, String>? eventDate,
     final String? stageId,
@@ -78,6 +85,8 @@ class EventState extends BaseState {
         showId: showId ?? this.showId,
         stageId: stageId ?? this.stageId,
         customerId: customerId ?? this.customerId,
+        event: dataSingle ?? this.dataSingle,
+        events: dataList ?? this.dataList,
         eventPrice: eventPrice ?? this.eventPrice,
         eventDate: eventDate ?? this.eventDate,
         seatStatus: seatStatus ?? this.seatStatus,
