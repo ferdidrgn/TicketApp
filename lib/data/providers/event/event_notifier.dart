@@ -44,13 +44,13 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
       if (!_isDisposed) {
         detailsResult.fold(
-          (failure) {
+          (final failure) {
             state = state.copyWith(
               isLoading: false,
               errorMessage: "Etkinlik detayları yüklenemedi.",
             );
           },
-          (details) {
+          (final details) {
             final newEventPrice = details?['eventPrice'] as String?;
             state = state.copyWith(
               eventDate: details?['eventDate'] as Map<String, String>?,
@@ -68,7 +68,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     _startReservationTimer(); // Aptal sayaç
   }
 
-  // GÜNCELLENDİ: Sayaç artma ve sıfırlanma hataları düzeltildi
   void _subscribeSeatStatus() {
     _seatStatusSubscription?.cancel();
 
@@ -76,11 +75,10 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
         ref.read(getEventSeatStatusStreamUseCaseProvider).call(state.eventId);
 
     _seatStatusSubscription = stream.listen(
-      (seatStatusMap) {
+      (final seatStatusMap) {
         if (_isDisposed) return;
 
         final currentReservations = <String>{};
-        DateTime? earliestTimestamp;
 
         for (final entry in seatStatusMap.entries) {
           final seatId = entry.key;
@@ -90,51 +88,10 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
               seatInfo['status'] == 'reserved' &&
               seatInfo['customerId'] == state.customerId) {
             currentReservations.add(seatId);
-
-            final reservedAt = seatInfo['reservedAt'] as Timestamp?;
-            if (reservedAt != null) {
-              final reservationDate = reservedAt.toDate();
-              if (earliestTimestamp == null ||
-                  reservationDate.isBefore(earliestTimestamp))
-                earliestTimestamp = reservationDate;
-            }
           }
         }
 
         final newTotalPrice = currentReservations.length * state.seatPrice;
-
-        // --- YENİ VE NİHAİ SAYAÇ MANTIĞI ---
-
-        // 1. Varsayılan olarak, mevcut sayaca dokunma. Bırak saysın.
-        int newRemainingTime = state.remainingTime;
-
-        if (earliestTimestamp != null) {
-          // 2. Rezervasyon Bulundu: Süreyi hesapla
-          final elapsedSeconds =
-              DateTime.now().difference(earliestTimestamp).inSeconds;
-
-          if (elapsedSeconds >= 0) {
-            // 2a. Zaman gerçekten geçmiş (Telefon saati geride değil)
-            int calculatedTime = 600 - elapsedSeconds;
-
-            // 2b. Sadece DÜŞÜR, asla ARTIRMA.
-            // (Eğer hesaplanan süre 590 ise ama sayaç 580'deyse, 580'de kalır)
-            if (calculatedTime < state.remainingTime) {
-              newRemainingTime = calculatedTime;
-            }
-          }
-          // 2c. 'elapsedSeconds' negatifse (telefon saati gerideyse),
-          //     'newRemainingTime' değişmez (state.remainingTime).
-          //     Bu, "10:23 olma" sorununu çözer.
-        }
-        // 3. Rezervasyon Yoksa ('earliestTimestamp' null ise):
-        //    'newRemainingTime' değişmez (state.remainingTime).
-        //    Bu, "kaldırınca 10:00 olma" sorununu çözer.
-
-        if (newRemainingTime <= 0 && !state.isTimeUp) {
-          newRemainingTime = 0; // Süre dolmuşsa 0'a kilitle
-        }
-        // --- SAYAÇ MANTIĞI BİTTİ ---
 
         final currentLayout = state.seatLayout.isEmpty ||
                 state.seatStatus.keys.length != seatStatusMap.keys.length
@@ -146,15 +103,12 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
           seatStatus: seatStatusMap,
           selectedSeats: currentReservations,
           totalPrice: newTotalPrice,
-          firstReservationTime: earliestTimestamp,
-          remainingTime: newRemainingTime,
-          // Düzeltilmiş değeri ata
           seatLayout: currentLayout,
           errorMessage: null,
-          isLoading: false, // Stream'den ilk veri geldi, yüklenme bitti.
+          isLoading: false,
         );
       },
-      onError: (e) {
+      onError: (final e) {
         if (!_isDisposed)
           state = state.copyWith(
             errorMessage: e.toString(),
@@ -164,28 +118,19 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     );
   }
 
-  // Bu "Aptal Sayaç"tır ve DOĞRUDUR. Değişiklik yok.
   void _startReservationTimer() {
     _reservationTimer?.cancel();
-    _reservationTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) {
-        if (_isDisposed) {
-          timer.cancel();
-          return;
-        }
+    _reservationTimer =
+        Timer.periodic(const Duration(seconds: 1), (final timer) {
+      if (_isDisposed || state.remainingTime <= 0) {
+        timer.cancel();
+        return;
+      }
 
-        // Sayaç sadece state'deki süreyi 1 azaltır.
-        final newTime = state.remainingTime - 1;
-        state = state.copyWith(remainingTime: newTime);
+      state = state.copyWith(remainingTime: state.remainingTime - 1);
 
-        // state güncellendikten sonra 'isTimeUp' kontrol edilir
-        if (state.isTimeUp) {
-          timer.cancel(); // Önce sayacı durdur
-          _handleTimeUp(); // Sonra süre doldu işlemini yap
-        }
-      },
-    );
+      if (state.remainingTime <= 0) _handleTimeUp();
+    });
   }
 
   // Süre doldu (Değişiklik yok)
@@ -240,24 +185,22 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
           );
 
       result.fold(
-        (failure) {
+        (final failure) {
           if (!_isDisposed) _showTemporaryError(failure.message);
         },
-        (success) {
-          if (!_isDisposed && !success) {
+        (final success) {
+          if (!_isDisposed && !success)
             _showTemporaryError("Koltuk başkası tarafından seçildi.");
-          }
         },
       );
     } catch (e) {
       if (!_isDisposed)
         _showTemporaryError("Rezervasyon hatası: ${e.toString()}");
     } finally {
-      if (!_isDisposed) {
+      if (!_isDisposed)
         state = state.copyWith(
           processingSeats: {...state.processingSeats}..remove(seatId),
         );
-      }
     }
   }
 
@@ -278,17 +221,15 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     );
 
     try {
-      final result = await ref.read(releaseReservationUseCaseProvider).call(
-            state.eventId,
-            seatId,
-            state.customerId,
-          );
+      final result = await ref
+          .read(releaseReservationUseCaseProvider)
+          .call(state.eventId, seatId, state.customerId);
 
       result.fold(
-        (failure) {
+        (final failure) {
           if (!_isDisposed) _showTemporaryError(failure.message);
         },
-        (_) {},
+        (final _) {},
       );
     } catch (e) {
       if (!_isDisposed) _showTemporaryError("İptal hatası: ${e.toString()}");
@@ -312,7 +253,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     final result = <String, List<String>>{};
     for (final row in sortedRows) {
       final seats = seatsByRow[row]!;
-      seats.sort((a, b) {
+      seats.sort((final a, final b) {
         final numA = int.tryParse(a.substring(1)) ?? 0;
         final numB = int.tryParse(b.substring(1)) ?? 0;
         return numA.compareTo(numB);
@@ -361,7 +302,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
           return ticketResult;
         },
-        onSuccess: (_) {
+        onSuccess: (final _) {
           _reservationTimer?.cancel();
           if (!_isDisposed)
             state = state.copyWith(
