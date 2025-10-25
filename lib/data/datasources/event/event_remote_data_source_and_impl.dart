@@ -112,7 +112,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
       if (result.docs.isEmpty)
         return []; // Döküman bulunamazsa boş liste döndür
-      return _convertQuerySnapshotToEventList(result); // <-- ADI DÜZELTİLDİ
+      return _convertQuerySnapshotToEventList(result);
     } catch (error) {
       throw Exception('Error fetching events: $error');
     }
