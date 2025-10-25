@@ -42,13 +42,28 @@ class PlayerNotifier extends BaseNotifierWithNetworkChecker<PlayerState> {
 }
 
 /// PlayerState için yardımcı metodlar sağlayan extension
+/// PlayerState için extension metodlar
 extension PlayerStateX on PlayerState {
-  bool hasPlayer(final String playerId) {
-    if (dataList == null) return false;
-    return dataList!.any((final player) => player.id == playerId);
+  bool get hasData => dataList != null && dataList!.isNotEmpty;
+
+  /// Verilen ID'ye sahip oyuncuyu state'ten bulur
+  Player? getPlayerById(final String playerId) {
+    if (dataList == null) return null;
+    try {
+      return dataList!.firstWhere((final player) => player.id == playerId);
+    } catch (_) {
+      return null;
+    }
   }
 
-  int get playerCount => dataList?.length ?? 0;
+  /// Verilen ID listesine sahip oyuncuları state'ten bulur
+  /// (Hatanın çözümü bu metoddur)
+  List<Player> getPlayersByIds(final List<String> playerIds) {
+    if (dataList == null) return [];
+    return dataList!
+        .where((final player) => playerIds.contains(player.id))
+        .toList();
+  }
 }
 
 // ==============================================================================
