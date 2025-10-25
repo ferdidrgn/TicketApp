@@ -21,7 +21,8 @@ class PlayerNotifier extends BaseNotifierWithNetworkChecker<PlayerState> {
 
   Future<void> getPlayersByIds(final List<String> playerIds) async {
     if (playerIds.isEmpty) {
-      _handleEmptyPlayerIds();
+      state = state.copyWith(
+          isLoading: false, errorMessage: 'Oyuncu ID listesi boş olamaz');
       return;
     }
 
@@ -31,14 +32,8 @@ class PlayerNotifier extends BaseNotifierWithNetworkChecker<PlayerState> {
     );
   }
 
-  void clearPlayers() =>
-      state = state.copyWith(dataList: const [], dataSingle: null);
-
   void _handlePlayersLoaded(final List<Player>? players) =>
       state = state.copyWith(dataList: players);
-
-  void _handleEmptyPlayerIds() => state = state.copyWith(
-      isLoading: false, errorMessage: 'Oyuncu ID listesi boş olamaz');
 }
 
 /// PlayerState için yardımcı metodlar sağlayan extension
