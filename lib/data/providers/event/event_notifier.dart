@@ -338,9 +338,8 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
           paymentMethod.split('_').last.replaceAll(RegExp(r'[^0-9]'), '');
       if (finalPrice.isEmpty) finalPrice = "20.0";
       finalMethod = 'coffee_donation';
-    } else {
+    } else
       finalPrice = totalPriceSnapshot.toStringAsFixed(2);
-    }
 
     return TicketModel(
       createdAt: now.toString(),
@@ -363,11 +362,10 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     final cancellationFutures = <Future<dynamic>>[];
     final seatsToCancel = Set<String>.from(state.selectedSeats);
 
-    for (final seatId in seatsToCancel) {
+    for (final seatId in seatsToCancel)
       cancellationFutures.add(ref
           .read(releaseReservationUseCaseProvider)
           .call(state.eventId, seatId, state.customerId));
-    }
 
     try {
       await Future.wait(cancellationFutures);
