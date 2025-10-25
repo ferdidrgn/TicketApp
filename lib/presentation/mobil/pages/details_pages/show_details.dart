@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,34 +43,36 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   Future<void> _fetchData() async {
     Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
+    // Show verisi yoksa yükle ve bekle
     if (showData == null) {
       print("Show data not found in state, fetching from network...");
       try {
+        // Sadece Show yüklemesini bekle
         await ref.read(showProvider.notifier).loadShowsByIds([widget.showId]);
         showData = ref.read(showProvider).getShowById(widget.showId);
-        if (showData != null) {
-          print("Show data fetched successfully.");
-        } else {
+        if (showData == null) {
           print("Show data still null after fetch attempt.");
+          return; // Show yüklenemezse devam etme
         }
+        print("Show data fetched successfully.");
       } catch (e) {
         print("Error fetching show data: $e");
-        return;
+        return; // Hata varsa devam etme
       }
     } else {
       print("Show data found in state.");
     }
 
-    if (showData == null) {
-      print("Cannot proceed without show data.");
-      return;
-    }
+    // Show verisi artık var (veya state'te zaten vardı).
+    // Diğerlerini tetikle ama bekleme.
+    print("Triggering related events and players fetch...");
 
-    print("Fetching related events and players...");
-
+    // --- DEĞİŞİKLİK 1: `await` kaldırıldı ---
     if (showData.eventsId.isNotEmpty) {
-      print("Fetching events with IDs: ${showData.eventsId}");
-      await ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId);
+      print("Triggering events fetch with IDs: ${showData.eventsId}");
+      // Arka planda çalışması için await KULLANMA
+      unawaited(
+          ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId));
     } else {
       print("No Event IDs to fetch.");
     }
@@ -77,10 +80,12 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     final allPlayerIds =
         [...showData.nowPlayersId, ...showData.oldPlayersId].toSet().toList();
 
+    // --- DEĞİŞİKLİK 2: `await` kaldırıldı ve DOĞRU METOD çağrıldı ---
     if (allPlayerIds.isNotEmpty) {
-      print("Fetching players with IDs: $allPlayerIds");
-      // DÜZELTME: Doğru Notifier metodunu çağır (getPlayersByIds değil, loadPlayersByIds varsayıyoruz)
-      await ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds);
+      print("Triggering players fetch with IDs: $allPlayerIds");
+      // Arka planda çalışması için await KULLANMA ve doğru metodu çağır
+      unawaited(
+          ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
     } else {
       print("No Player IDs to fetch.");
     }
@@ -88,6 +93,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   @override
   Widget build(final BuildContext context) {
+    // State'leri izle (Değişiklik yok)
     final showState = ref.watch(showProvider);
     final eventState = ref.watch(eventProvider);
     final playerState = ref.watch(playerProvider);
@@ -95,6 +101,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
     final showData = showState.getShowById(widget.showId);
 
+    // Stage yüklemesini Event'e göre tetikle (Değişiklik yok)
     ref.listen<EventState>(eventProvider, (final previous, final next) {
       final bool justLoadedEvents = (previous == null ||
               previous.dataList == null ||
@@ -104,23 +111,27 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       if (justLoadedEvents) {
         final stageIds =
             next.dataList!.map((final e) => e.stageId).toSet().toList();
-        ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
+        // Stage yüklemesini de bekleme (arka planda çalışsın)
+        unawaited(ref.read(stageProvider.notifier).loadStagesByIds(stageIds));
       }
     });
 
     return Scaffold(
       appBar: AppBar(
           title: Text(showData?.name ?? 'Show Detayı'), centerTitle: true),
-      // Ana yükleme göstergesi hala CircularProgressIndicator olabilir, çünkü tüm sayfa etkilenir
+      // Ana yükleme göstergesi: Sadece ilk Show verisi beklenirken gösterilir
       body: showState.isLoading && showData == null
           ? const Center(child: CircularProgressIndicator())
           : (showData == null)
               ? const Center(
                   child: Text('Gösteri bulunamadı veya yüklenemedi.'))
+              // Show verisi geldiği anda detayları (Shimmer'lar dahil) göster
               : _buildShowDetails(
                   showData, eventState, playerState, stageState),
     );
   }
+
+  // --- Kalan Widget Metodları (Değişiklik Yok) ---
 
   Widget _buildShowDetails(final Show showData, final EventState eventState,
       final PlayerState playerState, final StageState stageState) {
@@ -154,7 +165,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           child: CachedNetworkImage(
             imageUrl: imageUrl,
             fit: BoxFit.cover,
-            // Placeholder olarak ShimmerLoading kullanılıyor (bu doğru)
             placeholder: (final context, final url) => const ShimmerLoading(
                 width: double.infinity, height: double.infinity),
             errorWidget: (final context, final url, final error) =>
@@ -244,7 +254,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             const SizedBox(height: 15),
 
             // --- Event Bölümü ---
-            // DÜZELTME: CircularProgressIndicator yerine _buildShimmerList kullan
+            // Shimmer koşulu: Yükleniyor VE henüz veri yoksa
             if (eventState.isLoading && !eventState.hasData)
               _buildShimmerList() // <-- Shimmer burada
             else if (eventState.errorMessage != null)
@@ -281,51 +291,45 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             const SizedBox(height: 10),
 
             // --- Player Bölümü ---
-            // DÜZELTME: CircularProgressIndicator yerine _buildShimmerRow kullan
+            // Shimmer koşulu: Yükleniyor VE ilgili liste boşsa
             if (playerState.isLoading && nowPlayerDataList.isEmpty)
-              _buildShimmerRow() // <-- Shimmer burada
+              _buildShimmerRow()
             else
-              _buildNowPlayers(nowPlayerDataList),
+              _buildNowPlayers(nowPlayerDataList), // Veri/Boş mesajı
 
             const SizedBox(height: 10),
             const CustomSectionTitle(title: 'Eski Ekip', fontSize: 22),
             const SizedBox(height: 10),
 
-            // DÜZELTME: CircularProgressIndicator yerine _buildShimmerRow kullan
             if (playerState.isLoading && oldPlayerDataList.isEmpty)
-              _buildShimmerRow() // <-- Shimmer burada
+              _buildShimmerRow()
             else
-              _buildOldPlayers(oldPlayerDataList),
+              _buildOldPlayers(oldPlayerDataList), // Veri/Boş mesajı
 
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 22),
             const SizedBox(height: 10),
-            _buildGamePhotoSection(showData.photosShowId),
+            _buildGamePhotoSection(showData.photosShowId), // Veri/Boş mesajı
           ],
         ),
       ),
     );
   }
 
+  // --- _buildEventCard ---
   Widget _buildEventCard(
     final String date,
     final String eventId,
     final String showId,
-    final String eventName,
-    final String city, // Parametre olarak city alındı
+    final String eventName, // Bu artık Sahne Adı
+    final String city,
   ) {
-    // 1. Yeni metodu kullanarak tarihi tek seferde parçala
+    // Tarih formatlama ve onTap aynı
     final Map<String, String> formattedDate =
-        DateFormatter.formatForEventCard(date); // <-- DOĞRU METODU KULLAN
-
-    final String dayText = formattedDate['day']!;
-    final String monthText = formattedDate['monthName']!;
-    final String timeText = formattedDate['time']!;
-
-    // Hata durumunda bile null gelmemesi için ?? ile kontrol ekleyebiliriz
-    // final String dayText = formattedDate['day'] ?? '?';
-    // final String monthText = formattedDate['monthName'] ?? 'Hata';
-    // final String timeText = formattedDate['time'] ?? '--:--';
+        DateFormatter.formatForEventCard(date);
+    final String dayText = formattedDate['day'] ?? '?';
+    final String monthText = formattedDate['monthName'] ?? 'Hata';
+    final String timeText = formattedDate['time'] ?? '--:--';
 
     return GestureDetector(
       onTap: () {
@@ -358,7 +362,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         child: Row(
           children: [
             Container(
-              // Tarih kısmı (Değişiklik yok)
               width: 80,
               padding: const EdgeInsets.symmetric(vertical: 12),
               alignment: Alignment.center,
@@ -384,7 +387,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             ),
             const SizedBox(width: 15),
             Expanded(
-              // Etkinlik adı, şehir ve saat
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -394,7 +396,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                           fontWeight: FontWeight.bold,
                           color: Colors.black)),
                   const SizedBox(height: 4),
-                  // DÜZELTME: Sabit "İstanbul" yerine 'city' parametresini kullan
                   Text(
                     "$city • $timeText",
                     style: const TextStyle(fontSize: 14, color: Colors.black54),
