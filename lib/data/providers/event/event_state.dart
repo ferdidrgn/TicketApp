@@ -36,9 +36,9 @@ class SeatSelectionState extends BaseState {
     required this.eventId,
     required this.showId,
     required this.customerId,
-    this.eventPrice, // ✅
+    this.eventPrice,
     this.eventDate,
-    this.stageId, // ✅
+    this.stageId,
     this.seatStatus = const {},
     this.selectedSeats = const {},
     this.remainingTime = 600,

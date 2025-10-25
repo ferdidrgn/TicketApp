@@ -103,17 +103,37 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           const SizedBox(height: 20),
 
           // Koltuk düzeni
-          Expanded(
-            child: _buildSeatLayout(state, notifier),
-          ),
+          Expanded(child: _buildSeatLayout(state, notifier)),
         ],
       ),
       floatingActionButton: state.hasSelectedSeats
           ? FloatingActionButton.extended(
-              onPressed: () => _showPaymentBottomSheet(state, notifier),
-              label: Text(
-                  'Ödemeye Geç (${state.totalPrice.toStringAsFixed(2)} TL)'),
-              icon: const Icon(Icons.payment),
+              onPressed: state.processingSeats
+                      .isEmpty // 'processingSeats' e göre Buton devre dışı
+
+                  ? () => _showPaymentBottomSheet(state, notifier)
+                  : null,
+
+              label: state.processingSeats
+                      .isEmpty // Buton etiketini duruma göre değiştir
+                  ? Text(
+                      'Ödemeye Geç (${state.totalPrice.toStringAsFixed(2)} TL)')
+                  : const Text('Koltuk güncelleniyor...'),
+              // İşlem sırasında metni değiştir
+
+              icon: state.processingSeats.isEmpty //İkonu duruma göre değiştir
+                  ? const Icon(Icons.payment)
+                  : SizedBox(
+                      width: 20, // Küçük bir spinner
+                      height: 20,
+                      child: const CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2.5),
+                    ),
+
+              backgroundColor: state.processingSeats
+                      .isEmpty //İşlem devam ederken butonun rengini soluklaştır
+                  ? Theme.of(context).floatingActionButtonTheme.backgroundColor
+                  : Colors.grey.shade600,
             )
           : null,
     );
@@ -123,10 +143,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     return SizedBox(
       width: double.infinity,
       height: 200,
-      child: Image.asset(
-        'assets/images/stage_diagram.jpg',
-        fit: BoxFit.cover,
-      ),
+      child: Image.asset('assets/images/stage_diagram.jpg', fit: BoxFit.cover),
     );
   }
 
