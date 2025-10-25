@@ -8,23 +8,15 @@ abstract class EventRemoteDataSource {
   Future<Map<String, dynamic>?> getEventDetails(final String eventId,
       {final bool formatWithMonthName = false});
 
-  // --- YENİ ATOMİK VE REAL-TIME METODLAR ---
-
-  /// Koltuk durumlarını anlık olarak dinler.
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);
 
-  /// Bir koltuğu 'reserved' olarak işaretlemeyi dener.
-  /// Sadece 'available' ise başarılı olur (true döner).
   Future<bool> attemptReservation(
       final String eventId, final String seatId, final String customerId);
 
-  /// 'reserved' durumdaki bir koltuğu 'available' yapar.
-  /// Sadece rezervasyonu yapan müşteri iptal edebilir.
   Future<void> releaseReservation(
       final String eventId, final String seatId, final String customerId);
 
-  /// Seçilen koltukları 'sold' olarak işaretler.
   Future<void> confirmPurchase(final String eventId, final List<String> seatIds,
       final String customerId);
 }
@@ -34,13 +26,46 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
   EventRemoteDataSourceImpl({required this.firestore});
 
+  // ---------------- HELPER METHODS ----------------
+
+  void _validateParams(final Map<String, String> params) =>
+      params.forEach((final key, final value) {
+        if (value.isEmpty) throw Exception('$key cannot be empty.');
+      });
+
+  Map<String, Map<String, dynamic>> _parseSeatStatus(
+          final Map<String, dynamic> seatsMap) =>
+      Map.fromEntries(
+        seatsMap.entries
+            .where((final e) => e.value is Map<String, dynamic>)
+            .map((final e) => MapEntry(e.key, e.value as Map<String, dynamic>)),
+      );
+
+  Map<String, dynamic> _getSeatData(
+      final Map<String, dynamic> eventData, final String seatId) {
+    final seatData = eventData['seats']?[seatId];
+    if (seatData == null || seatData is! Map<String, dynamic>)
+      throw Exception("Seat data not found or is invalid.");
+    return seatData;
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _ensureSeatsInitialized(
+      final String eventId) async {
+    await initializeAndGetEventSeats(eventId);
+    final updatedDoc = await firestore.collection('Event').doc(eventId).get();
+    final updatedData = updatedDoc.data();
+    if (updatedData == null || updatedData['seats'] == null) return {};
+    return _parseSeatStatus(updatedData['seats'] as Map<String, dynamic>);
+  }
+
+  // ---------------- INTERFACE METHODS ----------------
+
   @override
   Future<void> initializeAndGetEventSeats(final String eventId) async {
+    _validateParams({'Event ID': eventId});
+
     try {
-      if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
-
       final eventDoc = await firestore.collection('Event').doc(eventId).get();
-
       if (!eventDoc.exists) throw Exception('Event not found.');
 
       final eventData = eventDoc.data();
@@ -54,16 +79,13 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         if (stageSeats == null || stageSeats.isEmpty) return;
 
         final seatStatus = <String, Map<String, dynamic>>{};
+        stageSeats.forEach((final _, final seats) {
+          (seats as List?)?.whereType<String>().forEach((final seat) {
+            seatStatus[seat] = {'status': 'available', 'customerId': null};
+          });
+        });
 
-        for (final entry in stageSeats.entries) {
-          final seats = entry.value;
-          if (seats is List) {
-            for (final seat in seats!.whereType<String>())
-              seatStatus[seat] = {'status': 'available', 'customerId': null};
-          }
-        }
-
-        await FirebaseFirestore.instance
+        await firestore
             .collection('Event')
             .doc(eventId)
             .update({'seats': seatStatus});
@@ -76,16 +98,15 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<Map<String, dynamic>?> getEventDetails(final String eventId,
       {final bool formatWithMonthName = false}) async {
+    _validateParams({'Event ID': eventId});
+
     try {
       final docSnapshot =
           await firestore.collection('Event').doc(eventId).get();
-
       if (!docSnapshot.exists) return null;
 
       final eventData = docSnapshot.data()!;
       final date = eventData['date'] as String?;
-
-      // ✅ Fiyat ve StageId'yi de al
       final price = eventData['price']?.toString();
       final stageId = eventData['stageId'] as String?;
 
@@ -94,7 +115,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
           : DateFormatter.parseFormattedDateTime(date,
               formatWithMonthName: formatWithMonthName);
 
-      // ✅ Tüm verileri bir map olarak dön
       return {
         'eventDate': formattedDate,
         'eventPrice': price,
@@ -105,44 +125,23 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     }
   }
 
-  /// Koltuk durumlarını tek seferlik çekmek YERİNE anlık dinler.
-  /// UI bu stream'i dinleyecek.
   @override
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId) {
-    if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+    _validateParams({'Event ID': eventId});
 
     try {
       final docStream = firestore.collection('Event').doc(eventId).snapshots();
 
       return docStream.asyncMap((final doc) async {
         if (!doc.exists) throw Exception('Event not found.');
-
         final data = doc.data();
 
         // Eğer seats yoksa veya boşsa, initialize et ve BEKLEYEREk tekrar oku
-        if (data == null || data['seats'] == null || data['seats'] is! Map) {
-          try {
-            await initializeAndGetEventSeats(eventId);
+        if (data == null || data['seats'] == null || data['seats'] is! Map)
+          return await _ensureSeatsInitialized(eventId);
 
-            // Initialize ettikten sonra güncel veriyi al
-            final updatedDoc =
-                await firestore.collection('Event').doc(eventId).get();
-            final updatedData = updatedDoc.data();
-
-            if (updatedData == null || updatedData['seats'] == null)
-              return <String, Map<String, dynamic>>{};
-
-            return _parseSeatStatus(
-                updatedData['seats'] as Map<String, dynamic>);
-          } catch (e) {
-            return <String, Map<String, dynamic>>{};
-          }
-        }
-
-        // Data zaten varsa direkt parse et
-        final seatsMap = data['seats'] as Map<String, dynamic>;
-        return _parseSeatStatus(seatsMap);
+        return _parseSeatStatus(data['seats'] as Map<String, dynamic>);
       });
     } catch (e) {
       return Stream.error(
@@ -150,45 +149,23 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     }
   }
 
-// Helper method
-  Map<String, Map<String, dynamic>> _parseSeatStatus(
-      final Map<String, dynamic> seatsMap) {
-    final seatStatus = <String, Map<String, dynamic>>{};
-
-    seatsMap.forEach((final seatId, final seatInfo) {
-      if (seatInfo is Map<String, dynamic>) {
-        seatStatus[seatId] = seatInfo;
-      }
-    });
-
-    return seatStatus;
-  }
-
-  /// BİR KOLTUĞU GÜVENLİ BİR ŞEKİLDE REZERVE ETME (ATOMIC)
   @override
   Future<bool> attemptReservation(final String eventId, final String seatId,
       final String customerId) async {
-    if (eventId.isEmpty || seatId.isEmpty || customerId.isEmpty)
-      throw Exception('Event ID, Seat ID, and Customer ID cannot be empty.');
+    _validateParams(
+        {'Event ID': eventId, 'Seat ID': seatId, 'Customer ID': customerId});
 
     final eventRef = firestore.collection('Event').doc(eventId);
 
     try {
       await firestore.runTransaction((final transaction) async {
         final snapshot = await transaction.get(eventRef);
-
         if (!snapshot.exists) throw Exception("Event not found!");
 
         final data = snapshot.data();
         if (data == null) throw Exception("Event data is null.");
 
-        // Refaktör: 'seats' haritasına ve içindeki 'seatId'ye daha güvenli erişim
-        final seatData = data['seats']?[seatId];
-
-        // Koltuk verisinin hem varlığını hem de tipini kontrol et
-        if (seatData == null || seatData is! Map<String, dynamic>)
-          throw Exception("Seat data not found or is invalid.");
-
+        final seatData = _getSeatData(data, seatId);
         final currentStatus = seatData['status'] as String?;
         final currentCustomerId = seatData['customerId'] as String?;
 
@@ -198,74 +175,65 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
             'seats.$seatId.customerId': customerId,
             'seats.$seatId.reservedAt': FieldValue.serverTimestamp(),
           });
-        else // Koltuk rezerve edilmek için uygun değil
+        else
           throw Exception("Seat is not available.");
       });
-      return true; // İşlem başarılı olursa
+      return true;
     } catch (e) {
-      // İşlem sırasında herhangi bir "throw" olursa burası çalışır
       print("Reservation failed: $e");
       return false;
     }
   }
 
-  /// BİR REZERVASYONU GÜVENLİ BİR ŞEKİLDE İPTAL ETME (ATOMIC)
   @override
   Future<void> releaseReservation(final String eventId, final String seatId,
       final String customerId) async {
-    if (eventId.isEmpty || seatId.isEmpty || customerId.isEmpty) {
-      throw Exception('Event ID, Seat ID, and Customer ID cannot be empty.');
-    }
+    _validateParams(
+        {'Event ID': eventId, 'Seat ID': seatId, 'Customer ID': customerId});
 
     final eventRef = firestore.collection('Event').doc(eventId);
 
     try {
       await firestore.runTransaction((final transaction) async {
         final snapshot = await transaction.get(eventRef);
-
         if (!snapshot.exists) throw Exception("Event not found!");
 
         final data = snapshot.data();
-        if (data == null ||
-            data['seats'] == null ||
-            data['seats'][seatId] == null) {
+        if (data == null || data['seats'] == null)
           throw Exception("Seat data not found.");
-        }
+        final seatData = _getSeatData(data, seatId);
 
-        final seatData = data['seats'][seatId] as Map<String, dynamic>;
         final currentStatus = seatData['status'] as String?;
         final currentCustomerId = seatData['customerId'] as String?;
 
-        if (currentStatus == 'reserved' && currentCustomerId == customerId) {
+        if (currentStatus == 'reserved' && currentCustomerId == customerId)
           transaction.update(eventRef, {
             'seats.$seatId.status': 'available',
             'seats.$seatId.customerId': null,
             'seats.$seatId.reservedAt': null,
           });
-        }
       });
     } catch (e) {
       print("Error releasing reservation: $e");
     }
   }
 
-  /// ÖDEME SONRASI KOLTUKLARI 'SOLD' OLARAK İŞARETLEME (BATCHED WRITE)
   @override
   Future<void> confirmPurchase(final String eventId, final List<String> seatIds,
       final String customerId) async {
-    if (eventId.isEmpty || seatIds.isEmpty || customerId.isEmpty)
-      throw Exception('Invalid data for confirmation.');
+    _validateParams({'Event ID': eventId, 'Customer ID': customerId});
+    if (seatIds.isEmpty) throw Exception('Seat IDs cannot be empty.');
 
     final eventRef = firestore.collection('Event').doc(eventId);
     final batch = firestore.batch();
 
-    for (final seatId in seatIds) {
+    for (final seatId in seatIds)
       batch.update(eventRef, {
         'seats.$seatId.status': 'sold',
         'seats.$seatId.customerId': customerId,
         'seats.$seatId.reservedAt': null,
       });
-    }
+
     await batch.commit();
   }
 }

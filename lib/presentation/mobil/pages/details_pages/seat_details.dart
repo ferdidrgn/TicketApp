@@ -63,11 +63,10 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       },
     );
 
-    if (state.isLoading) {
+    if (state.isLoading)
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -77,59 +76,43 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                state.formattedTime,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: Text(state.formattedTime,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Sahne görseli
-          _buildStageImage(),
+          _buildStageImage(), // Sahne görseli
+
           const SizedBox(height: 20),
 
-          // Seçim bilgileri
-          _buildSelectionInfo(state),
+          _buildSelectionInfo(state), // Seçim bilgileri
           const SizedBox(height: 10),
 
-          // Koltuk göstergesi
-          _buildSeatLegend(),
+          _buildSeatLegend(), // Koltuk göstergesi
           const SizedBox(height: 20),
 
-          // Koltuk düzeni
-          Expanded(child: _buildSeatLayout(state, notifier)),
+          Expanded(child: _buildSeatLayout(state, notifier)), // Koltuk düzeni
         ],
       ),
       floatingActionButton: state.hasSelectedSeats
           ? FloatingActionButton.extended(
-              onPressed: state.processingSeats
-                      .isEmpty // 'processingSeats' e göre Buton devre dışı
-
+              onPressed: (state.processingSeats.isEmpty && !state.isLoading)
                   ? () => _showPaymentBottomSheet(state, notifier)
                   : null,
-
-              label: state.processingSeats
-                      .isEmpty // Buton etiketini duruma göre değiştir
+              label: (state.processingSeats.isEmpty && !state.isLoading)
                   ? Text(
                       'Ödemeye Geç (${state.totalPrice.toStringAsFixed(2)} TL)')
                   : const Text('Koltuk güncelleniyor...'),
-              // İşlem sırasında metni değiştir
-
-              icon: state.processingSeats.isEmpty //İkonu duruma göre değiştir
+              icon: state.processingSeats.isEmpty && !state.isLoading
                   ? const Icon(Icons.payment)
                   : SizedBox(
-                      width: 20, // Küçük bir spinner
+                      width: 20,
                       height: 20,
-                      child: const CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.5),
-                    ),
-
+                      child: const CircularProgressIndicator(strokeWidth: 2.5)),
               backgroundColor: state.processingSeats
                       .isEmpty //İşlem devam ederken butonun rengini soluklaştır
                   ? Theme.of(context).floatingActionButtonTheme.backgroundColor
