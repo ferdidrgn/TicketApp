@@ -252,17 +252,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   // Oyuncu listesi için Shimmer
   Widget _buildShimmerRow() => SizedBox(
-      height: 195,
+      height: 170,
       child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          itemCount: 3, // Kaç tane placeholder gösterilecek
+          itemCount: 4, // Kaç tane placeholder gösterilecek
           // Kenar boşlukları ayarlandı
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           itemBuilder: (final context, final index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                padding: const EdgeInsets.symmetric(horizontal: 5),
                 // Kartlar arasına boşluk
                 child: ShimmerLoading(
-                    height: 185, width: 140), // CustomStageCard boyutuna yakın
+                    height: 170, width: 120), // CustomStageCard boyutuna yakın
               )));
 
   // --- Alt Kart ve İçeriği ---

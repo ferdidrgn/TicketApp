@@ -20,8 +20,6 @@ class EventState extends LoadableState<Event, List<Event>> {
   final EventSeatStatus seatStatus;
 
   // Oturum (Session) verisi
-  final List<Event>? events;
-  final Event? event;
   final Set<String> selectedSeats;
   final int remainingTime;
   final double totalPrice;
@@ -42,8 +40,8 @@ class EventState extends LoadableState<Event, List<Event>> {
     required this.eventId,
     required this.showId,
     required this.customerId,
-    this.events,
-    this.event,
+    final List<Event>? dataList,
+    final Event? dataSingle,
     this.eventPrice,
     this.eventDate,
     this.stageId,
@@ -57,7 +55,7 @@ class EventState extends LoadableState<Event, List<Event>> {
     this.seatLayout = const {},
     super.isLoading = false,
     super.errorMessage,
-  });
+  }) : super(dataList: dataList, dataSingle: dataSingle);
 
   @override
   EventState copyWith({
@@ -85,8 +83,8 @@ class EventState extends LoadableState<Event, List<Event>> {
         showId: showId ?? this.showId,
         stageId: stageId ?? this.stageId,
         customerId: customerId ?? this.customerId,
-        event: dataSingle ?? this.dataSingle,
-        events: dataList ?? this.dataList,
+        dataSingle: dataSingle ?? this.dataSingle,
+        dataList: dataList ?? this.dataList,
         eventPrice: eventPrice ?? this.eventPrice,
         eventDate: eventDate ?? this.eventDate,
         seatStatus: seatStatus ?? this.seatStatus,
