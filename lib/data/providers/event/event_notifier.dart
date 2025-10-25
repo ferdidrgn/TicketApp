@@ -13,8 +13,12 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   bool _isProcessingPayment = false;
 
   @override
-  EventState initialState() =>
-      throw UnimplementedError('Use initializeWithParams instead');
+  EventState initialState() => const EventState(
+      eventId: '',
+      showId: '',
+      customerId: '',
+      isLoading: false,
+      remainingTime: 600);
 
   void initializeWithParams({
     required final String eventId,
@@ -26,7 +30,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       showId: showId,
       customerId: customerId,
       isLoading: true,
-      remainingTime: 600, // Sayacın 10:00'dan başlamasını garantile
+      remainingTime: 600,
     );
     _loadInitialData();
   }
