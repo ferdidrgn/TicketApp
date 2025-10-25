@@ -1,17 +1,19 @@
 import 'package:dartz/dartz.dart';
+import 'package:ticketapp/data/model/event_model.dart';
 import '../../../../core/errors/failures.dart';
 
 abstract class EventRepository {
   Future<Either<Failure, void>> initializeAndGetEventSeats(
       final String eventId);
 
+  Future<Either<Failure, List<EventModel?>?>> getEventsByIds(
+      final List<String> eventIds);
+
   Future<Either<Failure, Map<String, dynamic>?>> getEventDetails(
       final String eventId,
       {final bool formatWithMonthName = false});
 
-  /// Koltuk durumlarını anlık olarak dinler.
-  /// Stream'ler genellikle Either ile sarmalanmaz,
-  /// hata yönetimi stream'in kendi mekanizmasıyla (onError) yapılır.
+  /// Stream'ler genellikle Either ile sarmalanmaz,/// hata yönetimi stream'in kendi mekanizmasıyla (onError) yapılır.
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);
 

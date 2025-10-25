@@ -4,7 +4,7 @@ import 'package:ticketapp/core/common/base_state.dart';
 typedef EventSeatStatus = Map<String, Map<String, dynamic>?>;
 
 @immutable
-class SeatSelectionState extends BaseState {
+class EventState extends BaseState {
   // Statik veriler (bir kez yüklenir)
   final String? eventPrice;
   final Map<String, String>? eventDate;
@@ -35,7 +35,7 @@ class SeatSelectionState extends BaseState {
   // YENİ: Önceden hesaplanmış ve önbelleğe alınmış koltuk düzeni (CPU Optimizasyonu)
   final Map<String, List<String>> seatLayout;
 
-  const SeatSelectionState({
+  const EventState({
     required this.eventId,
     required this.showId,
     required this.customerId,
@@ -55,7 +55,7 @@ class SeatSelectionState extends BaseState {
   });
 
   @override
-  SeatSelectionState copyWith({
+  EventState copyWith({
     final String? eventId,
     final String? showId,
     final String? customerId,
@@ -73,7 +73,7 @@ class SeatSelectionState extends BaseState {
     final bool? isLoading,
     final String? errorMessage,
   }) =>
-      SeatSelectionState(
+      EventState(
         eventId: eventId ?? this.eventId,
         showId: showId ?? this.showId,
         stageId: stageId ?? this.stageId,

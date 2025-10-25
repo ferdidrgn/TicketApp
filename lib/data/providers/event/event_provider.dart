@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/domain/useCase/event/get_events_by_ids_use_case_impl.dart';
 import '../../../domain/useCase/event/attempt_reservation_use_case_impl.dart';
 import '../../../domain/useCase/event/confirm_purchase_case_impl.dart';
 import '../../../domain/useCase/event/get_event_details_use_case_impl.dart';
@@ -10,7 +11,7 @@ import 'event_notifier.dart';
 import 'event_state.dart';
 
 final eventNotifierProvider =
-    NotifierProvider.autoDispose<EventNotifier, SeatSelectionState>(
+    NotifierProvider.autoDispose<EventNotifier, EventState>(
   EventNotifier.new,
 );
 
@@ -23,6 +24,10 @@ final initializeAndGetEventSeatsUseCaseProvider =
 
 final getEventDetailsUseCaseProvider = Provider<GetEventDetailsUseCase>(
   (final ref) => GetEventDetailsUseCaseImpl(ref.watch(eventRepositoryProvider)),
+);
+
+final getEventsByIdsUesCaseProvider = Provider<GetEventsByIdsUseCase>(
+  (final ref) => GetEventsByIdsUseCaseImpl(ref.watch(eventRepositoryProvider)),
 );
 
 final getEventSeatStatusStreamUseCaseProvider =

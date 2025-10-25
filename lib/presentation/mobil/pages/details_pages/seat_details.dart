@@ -45,7 +45,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     final notifier = ref.read(eventNotifierProvider.notifier);
 
     // Hata mesajı listener
-    ref.listen<SeatSelectionState>(
+    ref.listen<EventState>(
       eventNotifierProvider,
       (final previous, final next) {
         if (next.errorMessage != null) {
@@ -131,7 +131,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-  Widget _buildSelectionInfo(final SeatSelectionState state) {
+  Widget _buildSelectionInfo(final EventState state) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -190,7 +190,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
 
   // GÜNCELLENDİ: CPU Optimizasyonu (Hesaplama yapmıyor, hazır veriyi okuyor)
   Widget _buildSeatLayout(
-      final SeatSelectionState state, final EventNotifier notifier) {
+      final EventState state, final EventNotifier notifier) {
     // state.seatLayout (önbellekli veri) kontrol ediliyor
     if (state.seatLayout.isEmpty)
       return const Center(
@@ -261,7 +261,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   Widget _buildSeatRow(
     final String row,
     final List<String> seats,
-    final SeatSelectionState state,
+    final EventState state,
     final EventNotifier notifier,
   ) {
     return Container(
@@ -283,7 +283,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
 
   Widget _buildSeat(
     final String seatId,
-    final SeatSelectionState state,
+    final EventState state,
     final EventNotifier notifier,
   ) {
     final seatInfo = state.seatStatus[seatId];
@@ -344,7 +344,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
 
   // GÜNCELLENDİ: 'state' snapshot'ını alır ve 'onPressed' ile sonrakine aktarır.
   void _showPaymentBottomSheet(
-    final SeatSelectionState stateSnapshot,
+    final EventState stateSnapshot,
     // Artık bu bir anlık görüntü (snapshot)
     final EventNotifier notifier,
   ) {
@@ -393,7 +393,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
 
   // GÜNCELLENDİ: 'stateSnapshot' parametresini alır ve 'processPayment'a aktarır
   Future<void> _showPaymentMethods(
-    final SeatSelectionState stateSnapshot,
+    final EventState stateSnapshot,
     // Snapshot'ı parametre olarak alır
     final EventNotifier notifier,
   ) async {

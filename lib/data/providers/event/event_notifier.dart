@@ -2,18 +2,19 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
 import 'package:ticketapp/data/model/ticket_model.dart';
+import '../../../domain/entities/event.dart';
 import '../ticket/ticket_provider.dart';
 import 'event_provider.dart';
 import 'event_state.dart';
 
-class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
+class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   Timer? _reservationTimer;
   StreamSubscription? _seatStatusSubscription;
   bool _isDisposed = false;
   bool _isProcessingPayment = false;
 
   @override
-  SeatSelectionState initialState() =>
+  EventState initialState() =>
       throw UnimplementedError('Use initializeWithParams instead');
 
   void initializeWithParams({
@@ -21,7 +22,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
     required final String showId,
     required final String customerId,
   }) {
-    state = SeatSelectionState(
+    state = EventState(
       eventId: eventId,
       showId: showId,
       customerId: customerId,
@@ -152,9 +153,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
 
     final isCurrentlySelected = state.selectedSeats.contains(seatId);
 
-    if (isCurrentlySelected) {
+    if (isCurrentlySelected)
       await _removeSeat(seatId);
-    } else {
+    else {
       final totalPendingAndSelected =
           state.selectedSeats.length + state.processingSeats.length;
 
@@ -265,7 +266,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<SeatSelectionState> {
   // Ödeme (Değişiklik yok)
   Future<void> processPayment(
     final String paymentMethod,
-    final SeatSelectionState paymentSnapshot,
+    final EventState paymentSnapshot,
   ) async {
     if (_isDisposed) return;
 

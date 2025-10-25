@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ticketapp/data/model/event_model.dart';
 import '../../../core/util/date_formatter.dart';
 import '../seat/seat_remote_data_source_and_impl.dart';
 
@@ -7,6 +8,8 @@ abstract class EventRemoteDataSource {
 
   Future<Map<String, dynamic>?> getEventDetails(final String eventId,
       {final bool formatWithMonthName = false});
+
+  Future<List<EventModel?>?> getEventsByIds(final List<String> eventIds);
 
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);
@@ -93,6 +96,31 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     } catch (e) {
       throw Exception('Error initializing event seats: ${e.toString()}');
     }
+  }
+
+  @override
+  Future<List<EventModel?>?> getEventsByIds(final List<String> eventIds) async {
+    try {
+      if (eventIds.isEmpty) throw Exception('Stage ID cannot be empty.');
+
+      final result = await firestore
+          .collection('Stage')
+          .where(FieldPath.documentId, whereIn: eventIds)
+          .get();
+
+      if (result.docs.isEmpty) return [];
+      return _convertQuerySnapshotToStageList(result);
+    } catch (error) {
+      throw Exception('Error fetching stage: $error');
+    }
+  }
+
+// Convert Firestore document to StageModel
+  List<EventModel> _convertQuerySnapshotToStageList(
+      final QuerySnapshot snapshot) {
+    return snapshot.docs.map((final doc) {
+      return EventModel.fromFirestore(doc.data()! as Map<String, dynamic>);
+    }).toList();
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:ticketapp/data/model/event_model.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../core/common/base_repo.dart';
 import '../../../domain/repository/event_repository.dart';
@@ -19,6 +20,12 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   }
 
   @override
+  Future<Either<Failure, List<EventModel?>?>> getEventsByIds(
+      final List<String> eventIds) async {
+    return execute(() => remoteDataSource.getEventsByIds(eventIds));
+  }
+
+  @override
   Future<Either<Failure, Map<String, dynamic>?>> getEventDetails(
       final String eventId,
       {final bool formatWithMonthName = false}) async {
@@ -29,15 +36,11 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   @override
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId) {
-    // Stream'ler 'execute' bloğuna sarılmaz çünkü anlık veri akışıdırlar,
-    // tek seferlik bir 'Future' değillerdir.
-    // Hata yönetimi, stream'i dinleyen Notifier/Bloc katmanında
-    // .listen(onError: ...) ile yapılır.
+    // Stream'ler 'execute' bloğuna sarılmaz çünkü anlık veri akışıdırlar
     try {
       return remoteDataSource.getEventSeatStatusStream(eventId);
     } catch (e) {
       // Data source'daki senkron bir hata (örn: eventId boş) fırlatılırsa
-      // bunu yakalayıp bir hata stream'i olarak döndürürüz.
       return Stream.error(e);
     }
   }
@@ -45,8 +48,6 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   @override
   Future<Either<Failure, bool>> attemptReservation(final String eventId,
       final String seatId, final String customerId) async {
-    // execute bloğu, data source'dan gelen 'bool' değerini (başarılı/başarısız)
-    // otomatik olarak Either<Failure, bool> içine saracaktır.
     return execute(
         () => remoteDataSource.attemptReservation(eventId, seatId, customerId));
   }
