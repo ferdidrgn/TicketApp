@@ -6,9 +6,9 @@ typedef EventSeatStatus = Map<String, Map<String, dynamic>?>;
 @immutable
 class SeatSelectionState extends BaseState {
   // Statik veriler (bir kez yüklenir)
-  final String? eventPrice; // ✅ Fiyat hesaplaması için GEREKLİ
-  final Map<String, String>? eventDate; // ✅ GEREKLİ
-  final String? stageId; // ✅ Bilet oluşturmak için GEREKLİ
+  final String? eventPrice;
+  final Map<String, String>? eventDate;
+  final String? stageId;
 
   // Context bilgileri (constructor'dan gelir, değişmez)
   final String eventId;
@@ -32,6 +32,9 @@ class SeatSelectionState extends BaseState {
   // Kullanıcının bu oturumdaki ilk rezervasyonunun zamanı
   final DateTime? firstReservationTime;
 
+  // YENİ: Önceden hesaplanmış ve önbelleğe alınmış koltuk düzeni (CPU Optimizasyonu)
+  final Map<String, List<String>> seatLayout;
+
   const SeatSelectionState({
     required this.eventId,
     required this.showId,
@@ -46,6 +49,7 @@ class SeatSelectionState extends BaseState {
     this.paymentSuccessful = false,
     this.processingSeats = const {},
     this.firstReservationTime,
+    this.seatLayout = const {},
     super.isLoading = false,
     super.errorMessage,
   });
@@ -65,6 +69,7 @@ class SeatSelectionState extends BaseState {
     final bool? paymentSuccessful,
     final Set<String>? processingSeats,
     final DateTime? firstReservationTime,
+    final Map<String, List<String>>? seatLayout,
     final bool? isLoading,
     final String? errorMessage,
   }) =>
@@ -82,6 +87,7 @@ class SeatSelectionState extends BaseState {
         paymentSuccessful: paymentSuccessful ?? this.paymentSuccessful,
         processingSeats: processingSeats ?? this.processingSeats,
         firstReservationTime: firstReservationTime ?? this.firstReservationTime,
+        seatLayout: seatLayout ?? this.seatLayout,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );
