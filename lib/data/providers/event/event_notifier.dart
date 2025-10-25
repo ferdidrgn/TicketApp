@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
 import 'package:ticketapp/data/model/ticket_model.dart';
-import '../../../domain/entities/event.dart';
 import '../ticket/ticket_provider.dart';
 import 'event_provider.dart';
 import 'event_state.dart';
