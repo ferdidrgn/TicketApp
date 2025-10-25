@@ -101,21 +101,21 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<List<EventModel?>?> getEventsByIds(final List<String> eventIds) async {
     try {
-      if (eventIds.isEmpty) throw Exception('Stage ID cannot be empty.');
+      if (eventIds.isEmpty) throw Exception('Event ID cannot be empty.');
 
       final result = await firestore
-          .collection('Stage')
+          .collection('Event')
           .where(FieldPath.documentId, whereIn: eventIds)
           .get();
 
       if (result.docs.isEmpty) return [];
       return _convertQuerySnapshotToStageList(result);
     } catch (error) {
-      throw Exception('Error fetching stage: $error');
+      throw Exception('Error fetching event: $error');
     }
   }
 
-// Convert Firestore document to StageModel
+// Convert Firestore document to EventModel
   List<EventModel> _convertQuerySnapshotToStageList(
       final QuerySnapshot snapshot) {
     return snapshot.docs.map((final doc) {
