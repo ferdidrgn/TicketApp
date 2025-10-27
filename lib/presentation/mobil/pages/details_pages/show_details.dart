@@ -354,12 +354,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     return InkWell(
       // Tıklama efekti için GestureDetector yerine InkWell
       onTap: () {
-        print("Tapped on Event Card: $eventId");
-        ref.read(eventProvider.notifier).initializeWithParams(
-              eventId: eventId,
-              showId: showId,
-              customerId: "test 2", // TODO: Gerçek müşteri ID'si
-            );
         Navigator.push(
           context,
           MaterialPageRoute(

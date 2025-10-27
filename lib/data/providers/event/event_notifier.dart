@@ -25,7 +25,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     required final String showId,
     required final String customerId,
   }) {
-    state = EventState(
+    state =state.copyWith(
       eventId: eventId,
       showId: showId,
       customerId: customerId,
@@ -39,7 +39,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   void reloadData() => _loadInitialData();
 
   Future<void> _loadInitialData() async {
-    _subscribeSeatStatus(); // Akıllı mantık
+    _subscribeSeatStatus();
 
     try {
       final detailsResult =
