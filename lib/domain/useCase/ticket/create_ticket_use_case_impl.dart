@@ -15,6 +15,6 @@ class CreateTicketUseCaseImpl implements CreateTicketUseCase {
 
   @override
   Future<Either<Failure, bool>> call(final Ticket ticket) async {
-    return repository.createTicket(ticket);
+    return repository.createTicket(TicketModel.fromEntity(ticket));
   }
 }
