@@ -16,15 +16,11 @@ class GetSearchStageUseCaseImpl implements GetSearchStageUseCase {
   Future<Either<Failure, List<Stage>>> call(final String query) async {
     final result = await repository.getSearchStage(query);
     return result.fold(
-      (final failure) => Left(failure),
-      (final stagesModels) {
-        final stages = stagesModels
+        (final failure) => Left(failure),
+        (final stagesModels) => Right(stagesModels
                 ?.map((final stageModel) => stageModel?.toEntity())
                 .whereType<Stage>()
                 .toList() ??
-            [];
-        return Right(stages);
-      },
-    );
+            []));
   }
 }

@@ -4,7 +4,7 @@ import '../../../../core/errors/failures.dart';
 import '../../repository/team_repository.dart';
 
 abstract class GetTeamsUseCase {
-  Future<Either<Failure, List<Team>>> call(final isLimit);
+  Future<Either<Failure, List<Team>>> call(final bool isLimit);
 }
 
 class GetTeamsUseCaseImpl implements GetTeamsUseCase {
@@ -13,18 +13,14 @@ class GetTeamsUseCaseImpl implements GetTeamsUseCase {
   GetTeamsUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Team>>> call(final isLimit) async {
+  Future<Either<Failure, List<Team>>> call(final bool isLimit) async {
     final result = await repository.getTeams(isLimit);
     return result.fold(
-      (final failure) => Left(failure),
-      (final teamsModels) {
-        final teams = teamsModels
+        (final failure) => Left(failure),
+        (final teamsModels) => Right(teamsModels
                 ?.map((final teamModel) => teamModel?.toEntity())
                 .whereType<Team>()
                 .toList() ??
-            [];
-        return Right(teams);
-      },
-    );
+            []));
   }
 }

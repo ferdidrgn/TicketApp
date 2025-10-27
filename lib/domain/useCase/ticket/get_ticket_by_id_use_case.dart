@@ -17,15 +17,11 @@ class GetTicketByIdUseCaseImpl implements GetTicketsByIdsUseCase {
       final List<String> ticketsIds) async {
     final result = await repository.getTicketsByIds(ticketsIds);
     return result.fold(
-      (final failure) => Left(failure),
-      (final ticketsModels) {
-        final tickets = ticketsModels
+        (final failure) => Left(failure),
+        (final ticketsModels) => Right(ticketsModels
                 ?.map((final ticketModel) => ticketModel?.toEntity())
                 .whereType<Ticket>()
                 .toList() ??
-            [];
-        return Right(tickets);
-      },
-    );
+            []));
   }
 }

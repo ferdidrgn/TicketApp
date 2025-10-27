@@ -4,7 +4,7 @@ import '../../entities/stage.dart';
 import '../../repository/stage_repository.dart';
 
 abstract class GetStagesUseCase {
-  Future<Either<Failure, List<Stage>>> call(final isLimit);
+  Future<Either<Failure, List<Stage>>> call(final bool isLimit);
 }
 
 class GetStagesUseCaseImpl implements GetStagesUseCase {
@@ -13,18 +13,14 @@ class GetStagesUseCaseImpl implements GetStagesUseCase {
   GetStagesUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Stage>>> call(final isLimit) async {
+  Future<Either<Failure, List<Stage>>> call(final bool isLimit) async {
     final result = await repository.getStages(isLimit);
     return result.fold(
-          (final failure) => Left(failure),
-          (final stagesModels) {
-        final stages = stagesModels
-            ?.map((final stageModel) => stageModel?.toEntity())
-            .whereType<Stage>()
-            .toList() ??
-            [];
-        return Right(stages);
-      },
-    );
+        (final failure) => Left(failure),
+        (final stagesModels) => Right(stagesModels
+                ?.map((final stageModel) => stageModel?.toEntity())
+                .whereType<Stage>()
+                .toList() ??
+            []));
   }
 }

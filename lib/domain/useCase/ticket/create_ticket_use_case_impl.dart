@@ -1,10 +1,11 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../data/model/ticket_model.dart';
+import '../../entities/ticket.dart';
 import '../../repository/ticket_repository.dart';
 
 abstract class CreateTicketUseCase {
-  Future<Either<Failure, void>> call(final TicketModel ticket);
+  Future<Either<Failure, bool>> call(final Ticket ticket);
 }
 
 class CreateTicketUseCaseImpl implements CreateTicketUseCase {
@@ -13,7 +14,7 @@ class CreateTicketUseCaseImpl implements CreateTicketUseCase {
   CreateTicketUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(final TicketModel ticket) async {
+  Future<Either<Failure, bool>> call(final Ticket ticket) async {
     return repository.createTicket(ticket);
   }
 }

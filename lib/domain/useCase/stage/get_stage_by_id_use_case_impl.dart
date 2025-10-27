@@ -17,15 +17,11 @@ class GetStageByIdUseCaseImpl implements GetStagesByIdsUseCase {
       final List<String> stagesIds) async {
     final result = await repository.getStagesByIds(stagesIds);
     return result.fold(
-      (final failure) => Left(failure),
-      (final stagesModels) {
-        final stages = stagesModels
+        (final failure) => Left(failure),
+        (final stagesModels) => Right(stagesModels
                 ?.map((final stageModel) => stageModel?.toEntity())
                 .whereType<Stage>()
                 .toList() ??
-            [];
-        return Right(stages);
-      },
-    );
+            []));
   }
 }

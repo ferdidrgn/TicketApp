@@ -17,17 +17,12 @@ class GetTeamByIdUseCaseImpl implements GetTeamByIdUseCase {
     final result = await repository.getTeamsByIds(teamsIds);
 
     return result.fold(
-      (final failure) => Left(failure),
-      // Hata durumunda olduğu gibi döndürülür.
-      (final teamsModels) {
-        // Eğer başarıyla sonuç aldıysak, her TeamModel'i Team entity'ye dönüştürüp yeni bir liste oluşturuyoruz.
-        final teams = teamsModels
+        (final failure) => Left(failure),
+        // Hata durumunda olduğu gibi döndürülür.
+        (final teamsModels) => Right(teamsModels
                 ?.map((final teamModel) => teamModel?.toEntity())
                 .whereType<Team>()
                 .toList() ??
-            [];
-        return Right(teams); // Success durumunda yeni Team listesi döndürülür.
-      },
-    );
+            []));
   }
 }

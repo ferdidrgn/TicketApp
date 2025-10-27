@@ -16,15 +16,11 @@ class GetPlayersUseCaseImpl implements GetPlayersUseCase {
   Future<Either<Failure, List<Player>>> call(final isLimit) async {
     final result = await repository.getPlayers(isLimit);
     return result.fold(
-      (final failure) => Left(failure),
-      (final playersModel) {
-        final players = playersModel
+        (final failure) => Left(failure),
+        (final playersModel) => Right(playersModel
                 ?.map((final playerModel) => playerModel?.toEntity())
                 .whereType<Player>()
                 .toList() ??
-            [];
-        return Right(players);
-      },
-    );
+            []));
   }
 }
