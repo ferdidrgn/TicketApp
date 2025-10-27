@@ -25,7 +25,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     required final String showId,
     required final String customerId,
   }) {
-    state =state.copyWith(
+    state = state.copyWith(
       eventId: eventId,
       showId: showId,
       customerId: customerId,
@@ -45,7 +45,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       final detailsResult =
           await ref.read(getEventDetailsUseCaseProvider).call(state.eventId);
 
-      if (!_isDisposed) {
+      if (!_isDisposed)
         detailsResult.fold(
           (final failure) {
             state = state.copyWith(
@@ -63,7 +63,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
             );
           },
         );
-      }
     } catch (e) {
       if (!_isDisposed) state = state.copyWith(isLoading: false);
     }
@@ -89,9 +88,8 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
           if (seatInfo != null &&
               seatInfo['status'] == 'reserved' &&
-              seatInfo['customerId'] == state.customerId) {
+              seatInfo['customerId'] == state.customerId)
             currentReservations.add(seatId);
-          }
         }
 
         final newTotalPrice = currentReservations.length * state.seatPrice;
@@ -103,13 +101,12 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
             : state.seatLayout;
 
         state = state.copyWith(
-          seatStatus: seatStatusMap,
-          selectedSeats: currentReservations,
-          totalPrice: newTotalPrice,
-          seatLayout: currentLayout,
-          errorMessage: null,
-          isLoading: false,
-        );
+            seatStatus: seatStatusMap,
+            selectedSeats: currentReservations,
+            totalPrice: newTotalPrice,
+            seatLayout: currentLayout,
+            errorMessage: null,
+            isLoading: false);
       },
       onError: (final e) {
         if (!_isDisposed)
@@ -139,7 +136,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   // Süre doldu (Değişiklik yok)
   void _handleTimeUp() {
     cancelAllReservations(); // Önce rezervasyonları iptal et
-    if (!_isDisposed) {
+    if (!_isDisposed)
       state = state.copyWith(
         errorMessage: "Süreniz doldu. Rezervasyonlarınız iptal edildi.",
         selectedSeats: {},
@@ -147,7 +144,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
         firstReservationTime: null,
         remainingTime: 600, // Sayacı bir sonraki oturum için sıfırla
       );
-    }
   }
 
   Future<void> loadEventsByIds(final List<String> eventIds) async {
@@ -346,9 +342,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     String finalPrice;
     String finalMethod = paymentMethod;
 
-    if (paymentMethod == 'free_ticket') {
+    if (paymentMethod == 'free_ticket')
       finalPrice = "0.0";
-    } else if (paymentMethod.startsWith('coffee_') ||
+    else if (paymentMethod.startsWith('coffee_') ||
         paymentMethod == 'free_coffee') {
       finalPrice =
           paymentMethod.split('_').last.replaceAll(RegExp(r'[^0-9]'), '');
@@ -422,9 +418,6 @@ extension EventNotifierX on WidgetRef {
     required final String customerId,
   }) {
     read(eventProvider.notifier).initializeWithParams(
-      eventId: eventId,
-      showId: showId,
-      customerId: customerId,
-    );
+        eventId: eventId, showId: showId, customerId: customerId);
   }
 }
