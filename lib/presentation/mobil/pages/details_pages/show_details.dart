@@ -7,6 +7,7 @@ import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/providers/player/player_notifier.dart';
 import 'package:ticketapp/data/providers/show/show_notifier.dart';
 import 'package:ticketapp/data/providers/stage/stage_notifier.dart';
+import 'package:ticketapp/domain/entities/stage.dart';
 import 'package:ticketapp/presentation/mobil/pages/details_pages/player_details.dart';
 import 'package:ticketapp/presentation/mobil/pages/details_pages/seat_details.dart';
 import '../../../../core/util/date_formatter.dart';
@@ -45,8 +46,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   Future<void> _fetchInitialData() async {
     Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
-    if (showData == null) {
-      print("ShowDetailPage: Show data not found in state, fetching...");
+    if (showData == null)
       try {
         await ref.read(showProvider.notifier).loadShowsByIds([widget.showId]);
         // Yüklendikten sonra state'i tekrar oku
@@ -61,11 +61,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             .setErrorState("Gösteri yüklenemedi: $e");
         return; // Hata varsa devam etme
       }
-    } else {
+    else
       ref
           .read(showProvider.notifier)
           .setErrorState("ShowDetailPage: Show data found in state.");
-    }
 
     if (showData.eventsId.isNotEmpty)
       // Arka planda çalışması için await KULLANMA
@@ -128,8 +127,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   Widget _buildShowDetails(final Show showData, final EventState eventState,
       final PlayerState playerState, final StageState stageState) {
     return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(), // Kaydırma efekti
-        padding: const EdgeInsets.symmetric(horizontal: 5).copyWith(bottom: 20), // Alta boşluk
+        physics: const BouncingScrollPhysics(),
+        // Kaydırma efekti
+        padding: const EdgeInsets.symmetric(horizontal: 5).copyWith(bottom: 20),
+        // Alta boşluk
         child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
           _buildShowImage(showData.imageUrl),
           _buildShowTitle(showData.name),
@@ -156,24 +157,19 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             ],
           ),
           child: ClipRRect(
-            // Kenarları yuvarlatılmış resim için
             borderRadius: BorderRadius.circular(20),
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              // Yüklenirken Shimmer göster
               placeholder: (final context, final url) => const ShimmerLoading(
                   width: double.infinity, height: double.infinity),
-              // Hata durumunda ikon göster
               errorWidget: (final context, final url, final error) => Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Center(
-                    child: Icon(Icons.broken_image_outlined,
-                        size: 50, color: Colors.grey)),
-              ),
+                  decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(20)),
+                  child: const Center(
+                      child: Icon(Icons.broken_image_outlined,
+                          size: 50, color: Colors.grey))),
             ),
           ),
         ),
@@ -230,7 +226,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       final EventState eventState,
       final PlayerState playerState,
       final StageState stageState) {
-    // Player verilerini state'ten al
     final nowPlayerDataList =
         playerState.getPlayersByIds(showData.nowPlayersId);
     final oldPlayerDataList =
@@ -238,15 +233,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
     return Container(
       padding: const EdgeInsets.only(top: 25, bottom: 20),
-      // Padding ayarlandı
       margin: const EdgeInsets.only(top: 10),
-      // Margin azaltıldı
       width: double.infinity,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        // Tema rengi
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-        // Yuvarlatma arttırıldı
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.15), // Gölge azaltıldı
@@ -257,79 +248,53 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25),
-        // Dikey padding kaldırıldı (Container'da var)
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Açıklama Kartı
             CustomDescriptionCard(
                 description: showData.description.replaceAll('\\n', '\n')),
             const SizedBox(height: 25),
-
-            // Etkinlik Takvimi Bölümü
             const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 22),
             const SizedBox(height: 15),
-            // Yükleniyorsa Shimmer göster
             if (eventState.isLoading && !eventState.hasData)
               _buildShimmerList()
-            // Hata varsa göster
             else if (eventState.errorMessage != null)
               _buildErrorWidget(
                   'Etkinlikler yüklenemedi: ${eventState.errorMessage}')
-            // Veri varsa listele
             else if (eventState.hasData &&
                 eventState.dataList!
                     .any((final e) => showData.eventsId.contains(e.id)))
               Column(
-                children: eventState.dataList!
-                    .where((final e) => showData.eventsId.contains(e.id))
-                    .map((final event) {
-                  final stage = stageState.getStageById(event.stageId);
-                  final stageName = stageState.isLoading && stage == null
-                      ? "Yükleniyor..."
-                      : (stage?.name ?? "Sahne?");
-                  return _buildEventCard(
-                    event.date.toString(),
-                    event.id,
-                    showData.id,
-                    stageName,
-                    "İstanbul",
-                  );
-                }).toList(),
-              )
-            // Veri yoksa veya filtrelenen kalmadıysa mesaj göster
+                  children: eventState.dataList!
+                      .where((final e) => showData.eventsId.contains(e.id))
+                      .map((final event) {
+                final Stage? stage = stageState.getStageById(event.stageId);
+                final stageName = stageState.isLoading
+                    ? "Yükleniyor..."
+                    : (stage?.name ?? "Sahne?");
+                return _buildEventCard(event.date.toString(), event.id,
+                    showData.id, stageName, "İstanbul");
+              }).toList())
             else
               _buildEmptyListWidget('Yaklaşan etkinlik bulunmamaktadır.'),
-
             const SizedBox(height: 25),
-
-            // Ekip Bölümü
             const CustomSectionTitle(title: 'Ekip', fontSize: 22),
             const SizedBox(height: 10),
-            // Yükleniyorsa Shimmer göster
             if (playerState.isLoading && nowPlayerDataList.isEmpty)
               _buildShimmerRow()
-            // Yoksa listeyi (veya boş mesajını) göster
             else
               _buildNowPlayers(nowPlayerDataList),
-
             const SizedBox(height: 20),
-
-            // Eski Ekip Bölümü
             const CustomSectionTitle(title: 'Eski Ekip', fontSize: 22),
             const SizedBox(height: 10),
             if (playerState.isLoading && oldPlayerDataList.isEmpty)
               _buildShimmerRow()
             else
               _buildOldPlayers(oldPlayerDataList),
-
             const SizedBox(height: 25),
-
-            // Oyundan Kareler Bölümü
             const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 22),
             const SizedBox(height: 10),
             _buildGamePhotoSection(showData.photosShowId),
-            // Kendi içinde Shimmer/boş kontrolü yapabilir
           ],
         ),
       ),
@@ -341,7 +306,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     final String date,
     final String eventId,
     final String showId,
-    final String eventName, // Sahne Adı
+    final String stageName,
     final String city,
   ) {
     final Map<String, String> formattedDate =
@@ -365,7 +330,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       // Tıklama efektinin kenarları için
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12), // Padding ayarlandı
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -382,7 +347,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             // Tarih Kutusu
             Container(
               width: 70,
-              // Genişlik azaltıldı
               padding: const EdgeInsets.symmetric(vertical: 10),
               alignment: Alignment.center,
               decoration: BoxDecoration(
@@ -402,7 +366,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white70)), // Renk açıldı
+                          color: Colors.white70)),
                 ],
               ),
             ),
@@ -412,11 +376,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(eventName, // Sahne Adı
+                  Text(stageName,
                       style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87), // Renk koyulaştırıldı
+                          color: Colors.black87),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 5),
@@ -424,12 +388,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                       style:
                           const TextStyle(fontSize: 14, color: Colors.black54),
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                      overflow: TextOverflow.ellipsis)
                 ],
               ),
             ),
             const SizedBox(width: 10),
-            // İleri ikonu
             Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
@@ -446,7 +409,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       height: 195,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        // Kenar boşlukları ayarlandı
         padding: const EdgeInsets.symmetric(horizontal: 10),
         itemCount: nowPlayerDataList.length,
         itemBuilder: (final context, final index) {
@@ -511,9 +473,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   // --- Oyun Kareleri ---
   Widget _buildGamePhotoSection(final List<String> photoDataList) {
-    if (photoDataList.isEmpty) {
+    if (photoDataList.isEmpty)
       return _buildEmptyListWidget('Oyundan kareler bulunamadı.');
-    }
+
     return SizedBox(
       height: 170, // Yükseklik biraz azaltıldı
       width: double.infinity,
@@ -524,14 +486,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         itemBuilder: (final context, final index) {
           final photoUrl = photoDataList[index];
           return Padding(
-            // Kartlar arasına boşluk
-            padding: const EdgeInsets.symmetric(horizontal: 5.0),
+            padding: const EdgeInsets.symmetric(horizontal: 5),
             child: GestureDetector(
-              child: _buildGamePhotoCard(photoUrl),
-              onTap: () {
-                _showFullImage(context, photoUrl);
-              },
-            ),
+                child: _buildGamePhotoCard(photoUrl),
+                onTap: () => _showFullImage(context, photoUrl)),
           );
         },
       ),
@@ -539,7 +497,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   }
 
   Widget _buildGamePhotoCard(final String? photoUrl) {
-    // Kart boyutu ayarlandı
     return SizedBox(
       width: 130,
       height: 160,
@@ -548,19 +505,16 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         clipBehavior: Clip.antiAlias, // Resmin taşmasını engelle
         child: CachedNetworkImage(
-          // Padding kaldırıldı, resim tüm kartı kaplasın
-          imageUrl: photoUrl ?? '',
-          height: double.infinity,
-          // Card boyutuna uyum sağla
-          width: double.infinity,
-          fit: BoxFit.cover,
-          placeholder: (final context, final url) => const ShimmerLoading(
-              width: double.infinity, height: double.infinity),
-          // Boyutlar ayarlandı
-          errorWidget: (final context, final url, final error) => const Center(
-              child:
-                  Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
-        ),
+            imageUrl: photoUrl ?? '',
+            height: double.infinity,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            placeholder: (final context, final url) => const ShimmerLoading(
+                width: double.infinity, height: double.infinity),
+            errorWidget: (final context, final url, final error) =>
+                const Center(
+                    child: Icon(Icons.image_not_supported_outlined,
+                        color: Colors.grey))),
       ),
     );
   }
@@ -568,14 +522,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   // --- Yardımcı Widget'lar (Boş Liste / Hata) ---
   Widget _buildEmptyListWidget(final String message) {
     return SizedBox(
-      height: 100, // Standart bir yükseklik verilebilir
+      height: 100,
       child: Center(
-        child: Text(
-          message,
-          style: TextStyle(color: Colors.grey[600], fontSize: 15),
-          textAlign: TextAlign.center,
-        ),
-      ),
+          child: Text(message,
+              style: TextStyle(color: Colors.grey[600], fontSize: 15),
+              textAlign: TextAlign.center)),
     );
   }
 
@@ -585,12 +536,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Text(
-            message,
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.error, fontSize: 15),
-            textAlign: TextAlign.center,
-          ),
+          child: Text(message,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.error, fontSize: 15),
+              textAlign: TextAlign.center),
         ),
       ),
     );
@@ -599,26 +548,24 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   // --- Tam Ekran Resim Gösterme Metodu ---
   void _showFullImage(final BuildContext context, final String photoUrl) {
     showDialog(
-      // showGeneralDialog yerine daha basit showDialog
       context: context,
       builder: (final BuildContext context) {
         return Dialog(
           backgroundColor: Colors.transparent, // Arka planı şeffaf yap
-          insetPadding: EdgeInsets.all(10), // Kenarlardan boşluk
+          insetPadding: EdgeInsets.all(10),
           child: GestureDetector(
             onTap: () => Navigator.of(context).pop(), // Tıklayınca kapat
             child: InteractiveViewer(
               // Zoom için
               child: CachedNetworkImage(
-                imageUrl: photoUrl,
-                fit: BoxFit.contain, // Ekrana sığdır
-                placeholder: (final context, final url) =>
-                    const Center(child: CircularProgressIndicator()),
-                errorWidget: (final context, final url, final error) =>
-                    const Center(
-                        child: Icon(Icons.error_outline,
-                            color: Colors.white, size: 50)),
-              ),
+                  imageUrl: photoUrl,
+                  fit: BoxFit.contain, // Ekrana sığdır
+                  placeholder: (final context, final url) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget: (final context, final url, final error) =>
+                      const Center(
+                          child: Icon(Icons.error_outline,
+                              color: Colors.white, size: 50))),
             ),
           ),
         );
