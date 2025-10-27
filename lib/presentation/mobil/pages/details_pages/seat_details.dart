@@ -29,29 +29,26 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     // Widget build edilmeden önce state'i initialize et
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       ref.initializeEventNotifier(
-        eventId: widget.eventId,
-        showId: widget.showId,
-        customerId: widget.customerId,
-      );
+          eventId: widget.eventId,
+          showId: widget.showId,
+          customerId: widget.customerId);
     });
   }
 
   @override
   Widget build(final BuildContext context) {
     // Not: Burada 'ref.watch' ile alınan 'state', en güncel 'state'dir.
-    // Biz bu 'state'i bir anlık görüntü (snapshot) olarak alıp
-    // ödeme fonksiyonlarına aktaracağız.
+    // Biz bu 'state'i bir anlık görüntü (snapshot) olarak alıp ödeme fonksiyonlarına aktaracağız.
     final state = ref.watch(eventProvider);
     final notifier = ref.read(eventProvider.notifier);
 
-    // Hata mesajı listener
     ref.listen<EventState>(
+      // Hata mesajı listener
       eventProvider,
       (final previous, final next) {
         if (next.errorMessage != null)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(next.errorMessage!)),
-          );
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(next.errorMessage!)));
 
         if (next.isTimeUp && (previous?.isTimeUp == false)) _showTimeUpDialog();
         if (next.paymentSuccessful && (previous?.paymentSuccessful == false))
@@ -60,22 +57,18 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
 
     if (state.isLoading)
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Koltuk Seçimi'),
         actions: [
           Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(state.formattedTime,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-          ),
+              child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(state.formattedTime,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold))))
         ],
       ),
       body: Column(
@@ -86,7 +79,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           const SizedBox(height: 10),
           _buildSeatLegend(),
           const SizedBox(height: 20),
-          // GÜNCELLENDİ: CPU optimizasyonu için 'state.seatLayout' kullanılıyor
+          //CPU optimizasyonu için 'state.seatLayout' kullanılıyor
           Expanded(child: _buildSeatLayout(state, notifier)),
         ],
       ),
@@ -107,9 +100,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                       width: 20,
                       height: 20,
                       child: const CircularProgressIndicator(
-                        color: Colors.white, // Renk düzeltmesi
-                        strokeWidth: 2.5,
-                      ),
+                          color: Colors.white, strokeWidth: 2.5),
                     ),
               backgroundColor: (state.processingSeats.isEmpty &&
                       !state.isLoading)
@@ -120,30 +111,22 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-  Widget _buildStageImage() {
-    return SizedBox(
+  Widget _buildStageImage() => SizedBox(
       width: double.infinity,
       height: 200,
-      child: Image.asset('assets/images/stage_diagram.jpg', fit: BoxFit.cover),
-    );
-  }
+      child: Image.asset('assets/images/stage_diagram.jpg', fit: BoxFit.cover));
 
   Widget _buildSelectionInfo(final EventState state) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          Text(
-            'Seçilen Koltuklar: ${state.selectedSeats.join(", ")}',
-            style: const TextStyle(fontSize: 16),
-          ),
+          Text('Seçilen Koltuklar: ${state.selectedSeats.join(", ")}',
+              style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 5),
           Text(
             'Toplam Fiyat: ${state.totalPrice.toStringAsFixed(2)} TL',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -172,20 +155,17 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     return Row(
       children: [
         Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(4))),
         const SizedBox(width: 5),
         Text(label, style: const TextStyle(fontSize: 14)),
       ],
     );
   }
 
-  // GÜNCELLENDİ: CPU Optimizasyonu (Hesaplama yapmıyor, hazır veriyi okuyor)
+// GÜNCELLENDİ: CPU Optimizasyonu (Hesaplama yapmıyor, hazır veriyi okuyor)
   Widget _buildSeatLayout(
       final EventState state, final EventNotifier notifier) {
     // state.seatLayout (önbellekli veri) kontrol ediliyor
@@ -213,16 +193,14 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       child: Column(
         children: [
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            color: Colors.grey[400],
-            child: const Center(
-              child: Text(
-                'SAHNE',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            ),
-          ),
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              color: Colors.grey[400],
+              child: const Center(
+                child: Text('SAHNE',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              )),
           const SizedBox(height: 20),
           Expanded(
             child: SingleChildScrollView(
@@ -232,11 +210,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   child: Column(
                     children: seatsByRow.entries.map((final entry) {
                       return _buildSeatRow(
-                        entry.key,
-                        entry.value,
-                        state,
-                        notifier,
-                      );
+                          entry.key, entry.value, state, notifier);
                     }).toList(),
                   ),
                 ),
@@ -247,13 +221,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       ),
     );
   }
-
-  // GEREKSİZ: Bu metot Notifier'a taşındı. Buradan silebilirsiniz.
-  /*
-  Map<String, List<String>> _groupSeatsFromStatus(
-    final Map<String, Map<String, dynamic>?> seatStatus,
-  ) { ... }
-  */
 
   Widget _buildSeatRow(
     final String row,
@@ -267,10 +234,8 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
         children: [
           SizedBox(
             width: 30,
-            child: Text(
-              row,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child:
+                Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           ...seats.map((final seatId) => _buildSeat(seatId, state, notifier)),
         ],
@@ -313,33 +278,26 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
         height: 40,
         margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
-          color: seatColor,
-          borderRadius: BorderRadius.circular(8),
-        ),
+            color: seatColor, borderRadius: BorderRadius.circular(8)),
         child: Center(
           child: isSeatProcessing
               ? const SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : Text(
-                  seatId.substring(1),
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
+              : Text(seatId.substring(1),
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12)),
         ),
       ),
     );
   }
 
-  // GÜNCELLENDİ: 'state' snapshot'ını alır ve 'onPressed' ile sonrakine aktarır.
+// 'state' snapshot'ını alır ve 'onPressed' ile sonrakine aktarır.
   void _showPaymentBottomSheet(
     final EventState stateSnapshot,
     // Artık bu bir anlık görüntü (snapshot)
@@ -355,28 +313,22 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Ödeme Bilgileri',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              const Text('Ödeme Bilgileri',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               // Snapshot'tan veriler okunuyor
               Text(
                   'Seçilen Koltuklar: ${stateSnapshot.selectedSeats.join(", ")}'),
               Text('Tarih: ${stateSnapshot.eventDate?['date'] ?? ''}'),
               Text('Saat: ${stateSnapshot.eventDate?['time'] ?? ''}'),
-              Text(
-                'Toplam: ${stateSnapshot.totalPrice.toStringAsFixed(2)} TL',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text('Toplam: ${stateSnapshot.totalPrice.toStringAsFixed(2)} TL',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  // DÜZELTME: Snapshot'ı bir sonraki fonksiyona aktar
+                  // Snapshot'ı bir sonraki fonksiyona aktar
                   onPressed: () => _showPaymentMethods(stateSnapshot, notifier),
                   child: const Text('Ödeme Yöntemi Seç'),
                 ),
@@ -388,7 +340,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-  // GÜNCELLENDİ: 'stateSnapshot' parametresini alır ve 'processPayment'a aktarır
+// 'stateSnapshot' parametresini alır ve 'processPayment'a aktarır
   Future<void> _showPaymentMethods(
     final EventState stateSnapshot,
     // Snapshot'ı parametre olarak alır
@@ -406,11 +358,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             isFree ? 'Etkinlik Ücretsiz' : 'Ödeme Yöntemi Seçin',
-            // Dinamik başlık
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -477,7 +425,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     }
   }
 
-  /// 🔹 Tekrarlanan ödeme seçenekleri için yardımcı widget
+  /// Tekrarlanan ödeme seçenekleri için yardımcı widget
   Widget _buildPaymentOption(
     final BuildContext context, {
     required final IconData icon,
@@ -500,16 +448,12 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
             Icon(icon, color: color, size: 26),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Icon(Icons.chevron_right, color: color),
+                child: Text(label,
+                    style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600))),
+            Icon(Icons.chevron_right, color: color)
           ],
         ),
       ),
@@ -525,13 +469,11 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           content: const Text('Ödeme işlemini onaylıyor musunuz?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Hayır'),
-            ),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Hayır')),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Evet'),
-            ),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Evet')),
           ],
         );
       },
@@ -548,11 +490,9 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           content: const Text('Rezervasyonlarınız iptal edildi.'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).popUntil((final route) => route.isFirst);
-              },
-              child: const Text('Tamam'),
-            ),
+                onPressed: () => Navigator.of(context)
+                    .popUntil((final route) => route.isFirst),
+                child: const Text('Tamam')),
           ],
         );
       },
@@ -569,19 +509,13 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           content: const Text('Ödemeniz başarıyla tamamlandı.'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).popUntil((final route) => route.isFirst);
-              },
-              child: const Text('Anasayfa'),
-            ),
+                onPressed: () => Navigator.of(context)
+                    .popUntil((final route) => route.isFirst),
+                child: const Text('Anasayfa')),
             TextButton(
-              onPressed: () {
-                // Biletlerim sayfasına git
-                Navigator.of(context).popUntil((final route) => route.isFirst);
-                // Navigator.pushNamed(context, '/tickets');
-              },
-              child: const Text('Biletlerim'),
-            ),
+                onPressed: () => Navigator.of(context)
+                    .popUntil((final route) => route.isFirst),
+                child: const Text('Biletlerim')),
           ],
         );
       },
