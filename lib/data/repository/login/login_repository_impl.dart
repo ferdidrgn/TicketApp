@@ -9,54 +9,51 @@ import '../../datasources/login/login_remote_data_source_and_impl.dart';
 class LoginRepositoryImpl extends BaseRepository implements LoginRepository {
   final LoginRemoteDataSource remoteDataSource;
 
-  LoginRepositoryImpl(
-      {required this.remoteDataSource, required super.internetService});
+  LoginRepositoryImpl({
+    required this.remoteDataSource,
+    required super.internetService,
+  });
 
   @override
-  Future<Either<Failure, User?>> getCurrentUser() async {
-    return execute(() async {
-      return remoteDataSource.getCurrentUser();
-    });
+  Future<Either<Failure, User?>> getCurrentUser() {
+    return execute(() => remoteDataSource.getCurrentUser());
   }
 
   @override
-  Future<Either<Failure, GoogleSignInAccount?>> signInWithGoogle() async {
-    return execute(() async {
-      return remoteDataSource.signInWithGoogle();
-    });
+  Future<Either<Failure, GoogleSignInAccount?>> signInWithGoogle() {
+    return execute(() => remoteDataSource.signInWithGoogle());
   }
 
   @override
-  Future<Either<Failure, bool>> signOut() async {
-    return execute(() async {
-      return remoteDataSource.signOut();
-    });
+  Future<Either<Failure, bool>> signOut() {
+    return execute(() => remoteDataSource.signOut());
   }
 
   @override
-  Future<Either<Failure, void>> verifyPhone(
-      final String phoneNumber,
-      final Function(String) onVerificationCompleted,
-      final Function(String) onCodeSent,
-      final Function(String) onAutoRetrievalTimeout,
-      ) async {
-    try {
-      return execute(() async {
-        if(phoneNumber.isEmpty) throw Exception('Telefon Numarası Boş Olamaz');
-       await remoteDataSource.verifyPhone(phoneNumber, onVerificationCompleted, onCodeSent, onAutoRetrievalTimeout);
-       const Right(null); // Başarılı
-      });
-    } catch (e) {
-      return Left(ServerFailure('Telefon Doğrulama Hatası: $e')); // Hata
-    }
+  Future<Either<Failure, bool>> verifyPhone(
+    final String phoneNumber, {
+    required final void Function(String) onVerificationCompleted,
+    required final void Function(String) onCodeSent,
+    required final void Function(String) onAutoRetrievalTimeout,
+  }) {
+    return execute(() async {
+      if (phoneNumber.isEmpty) throw Exception('Telefon Numarası Boş Olamaz');
+
+      return remoteDataSource.verifyPhone(
+        phoneNumber,
+        onVerificationCompleted: onVerificationCompleted,
+        onCodeSent: onCodeSent,
+        onAutoRetrievalTimeout: onAutoRetrievalTimeout,
+      );
+    });
   }
 
   @override
   Future<Either<Failure, bool>> verifyOtp(
-      final String verificationId, final String otp) async {
+      final String verificationId, final String otp) {
     return execute(() async {
       if (verificationId.isEmpty || otp.isEmpty)
-        throw Exception('Doğrulama Kodu Boş Olamaz');
+        throw Exception('Doğrulama Kodu veya ID Boş Olamaz');
       return remoteDataSource.verifyOtp(verificationId, otp);
     });
   }

@@ -3,7 +3,7 @@ import 'package:ticketapp/domain/repository/login_repository.dart';
 import '../../../../core/errors/failures.dart';
 
 abstract class VerifyPhoneUseCase {
-  Future<Either<Failure, void>> call(
+  Future<Either<Failure, bool>> call(
     final String phoneNumber,
     final Function(String) onVerificationCompleted,
     final Function(String) onCodeSent,
@@ -17,7 +17,7 @@ class VerifyPhoneUseCaseImpl implements VerifyPhoneUseCase {
   VerifyPhoneUseCaseImpl(this.remoteDataSource);
 
   @override
-  Future<Either<Failure, void>> call(
+  Future<Either<Failure, bool>> call(
     final String phoneNumber,
     final Function(String) onVerificationCompleted,
     final Function(String) onCodeSent,

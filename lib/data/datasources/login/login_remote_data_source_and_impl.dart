@@ -8,8 +8,9 @@ abstract class LoginRemoteDataSource {
 
   Future<bool> signOut();
 
-  Future<void> verifyPhone(
+  Future<bool> verifyPhone(
     final String phoneNumber, {
+    // Okunabilirlik için 'final' anahtar kelimeleri kaldırıldı.
     required final void Function(String code) onVerificationCompleted,
     required final void Function(String verificationId) onCodeSent,
     required final void Function(String verificationId) onAutoRetrievalTimeout,
@@ -33,11 +34,12 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
 
   @override
   Future<GoogleSignInAccount?> signInWithGoogle() async {
+    // Mevcut kullanıcı varsa tekrar giriş yapmayı engelle
     if (_auth.currentUser != null) return null;
 
     try {
       final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
+      if (googleUser == null) return null; // Kullanıcı pencereyi kapattı
 
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
@@ -48,19 +50,24 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
       await _auth.signInWithCredential(credential);
       return googleUser;
     } catch (e) {
+      // Hatanın Repository katmanı tarafından yakalanması için 'throw' kullanılır.
       throw Exception('Google giriş hatası: $e');
     }
   }
 
   @override
   Future<bool> signOut() async {
-    final user = await getCurrentUser();
-    if (user == null) return false;
+    final user = await getCurrentUser(); // Kendi metodunu kullan
+    if (user == null) return false; // Zaten çıkış yapılmış
 
     try {
+      // Kullanıcının Google ile giriş yapıp yapmadığını kontrol et
       final isGoogleUser =
           user.providerData.any((final p) => p.providerId == 'google.com');
-      if (isGoogleUser) await _googleSignIn.signOut();
+
+      if (isGoogleUser) {
+        await _googleSignIn.signOut();
+      }
       await _auth.signOut();
       return true;
     } catch (e) {
@@ -69,12 +76,13 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   }
 
   @override
-  Future<void> verifyPhone(
-      final String phoneNumber,
-      final Function(String) onVerificationCompleted,
-      final Function(String) onCodeSent,
-      final Function(String) onAutoRetrievalTimeout,
-      ) async {
+  Future<bool> verifyPhone(
+    final String phoneNumber, {
+    // Hatanın çözümü için imza abstract class ile aynı yapıldı.
+    required final void Function(String code) onVerificationCompleted,
+    required final void Function(String verificationId) onCodeSent,
+    required final void Function(String verificationId) onAutoRetrievalTimeout,
+  }) async {
     await _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (final PhoneAuthCredential credential) async {
@@ -82,7 +90,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
         onVerificationCompleted(credential.smsCode ?? '');
       },
       verificationFailed: (final FirebaseAuthException e) {
-        throw Exception(e.message);
+        throw Exception(e.message ?? 'Telefon doğrulaması başarısız oldu.');
       },
       codeSent: (final String verificationId, final int? resendToken) {
         onCodeSent(verificationId);
@@ -91,6 +99,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
         onAutoRetrievalTimeout(verificationId);
       },
     );
+    return true;
   }
 
   @override
