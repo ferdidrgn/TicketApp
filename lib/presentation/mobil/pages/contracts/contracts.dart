@@ -40,18 +40,15 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: _buildAppBar(theme),
-      body: _buildBody(state, theme),
-    );
+        backgroundColor: theme.colorScheme.surface,
+        appBar: _buildAppBar(theme),
+        body: _buildBody(state, theme));
   }
 
   PreferredSizeWidget _buildAppBar(final ThemeData theme) {
     return AppBar(
-      title: const Text(
-        'Legal Dökümanlar',
-        style: TextStyle(fontWeight: FontWeight.w600),
-      ),
+      title: const Text('Legal Dökümanlar',
+          style: TextStyle(fontWeight: FontWeight.w600)),
       centerTitle: true,
       backgroundColor: theme.colorScheme.surface,
       elevation: 0,
@@ -61,29 +58,23 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-            ),
+                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12)),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: theme.colorScheme.primary,
-              ),
+                  borderRadius: BorderRadius.circular(12),
+                  color: theme.colorScheme.primary),
               indicatorPadding:
                   const EdgeInsets.symmetric(horizontal: -10, vertical: 5),
               indicatorSize: TabBarIndicatorSize.tab,
               tabAlignment: TabAlignment.fill,
               labelColor: theme.colorScheme.onPrimary,
               unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              ),
+              labelStyle:
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              unselectedLabelStyle:
+                  const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
               tabs: const [
                 Tab(
                     icon: Icon(Icons.privacy_tip, size: 20),
@@ -101,13 +92,16 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
 
   Widget _buildBody(final AppToolsState state, final ThemeData theme) {
     if (state.isLoading) return _buildLoadingState(theme);
-    if (state.errorMessage != null) return _buildErrorState(state.errorMessage!, theme);
+    if (state.errorMessage != null)
+      return _buildErrorState(state.errorMessage!, theme);
 
     return TabBarView(
       controller: _tabController,
       children: [
-        _buildContentTab(state.privacyPolicy, 'Privacy Policy', Icons.privacy_tip, theme),
-        _buildContentTab(state.termsCondition, 'Terms & Conditions', Icons.description, theme)
+        _buildContentTab(
+            state.privacyPolicy, 'Privacy Policy', Icons.privacy_tip, theme),
+        _buildContentTab(state.termsCondition, 'Terms & Conditions',
+            Icons.description, theme)
       ],
     );
   }
@@ -119,13 +113,11 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
             CircularProgressIndicator(
                 color: theme.colorScheme.primary, strokeWidth: 3),
             const SizedBox(height: 16),
-            Text(
-              'Dökümanlar Yükleniyor...',
-              style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500),
-            ),
+            Text('Dökümanlar Yükleniyor...',
+                style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500)),
           ],
         ),
       );
@@ -186,7 +178,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
           const SizedBox(height: 24),
           _buildHtmlContent(content, theme),
           const SizedBox(height: 32),
-          _buildLastUpdated(theme),
+          _buildLastUpdated(theme)
         ],
       ),
     );
@@ -201,7 +193,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
           gradient: LinearGradient(
             colors: [
               theme.colorScheme.primaryContainer,
-              theme.colorScheme.primaryContainer.withOpacity(0.7),
+              theme.colorScheme.primaryContainer.withOpacity(0.7)
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -209,29 +201,27 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.shadow.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
+                color: theme.colorScheme.shadow.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 2)),
           ],
         ),
         child: Row(
           children: [
             _buildIcon(icon, theme),
             const SizedBox(width: 16),
-            _buildTitleText(title, theme),
+            _buildTitleText(title, theme)
           ],
         ),
       );
 
   Widget _buildIcon(final IconData icon, final ThemeData theme) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, size: 28, color: theme.colorScheme.primary),
-      );
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, size: 28, color: theme.colorScheme.primary));
 
   Widget _buildTitleText(final String title, final ThemeData theme) => Expanded(
         child: Column(

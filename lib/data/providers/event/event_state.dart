@@ -33,7 +33,7 @@ class EventState extends LoadableState<Event, List<Event>> {
   // Kullanıcının bu oturumdaki ilk rezervasyonunun zamanı
   final DateTime? firstReservationTime;
 
-  // YENİ: Önceden hesaplanmış ve önbelleğe alınmış koltuk düzeni (CPU Optimizasyonu)
+  // Önceden hesaplanmış ve önbelleğe alınmış koltuk düzeni (CPU Optimizasyonu)
   final Map<String, List<String>> seatLayout;
 
   const EventState({
