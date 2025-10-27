@@ -10,7 +10,6 @@ abstract class LoginRemoteDataSource {
 
   Future<bool> verifyPhone(
     final String phoneNumber, {
-    // Okunabilirlik için 'final' anahtar kelimeleri kaldırıldı.
     required final void Function(String code) onVerificationCompleted,
     required final void Function(String verificationId) onCodeSent,
     required final void Function(String verificationId) onAutoRetrievalTimeout,
