@@ -50,18 +50,18 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     }
 
     await ref.read(loginProvider.notifier).verifyPhone(
-      phoneNumber,
-      (final smsCode) => _verifyOtp(smsCode),
-      (final verificationId) {
-        setState(() {
-          _verificationId = verificationId;
-          _codeSent = true;
-        });
-        _startResendTimer();
-      },
-      (final verificationId) =>
-          setState(() => _verificationId = verificationId),
-    );
+          phoneNumber: phoneNumber,
+          onVerificationCompleted: (final smsCode) => _verifyOtp(smsCode),
+          onCodeSent: (final verificationId) {
+            setState(() {
+              _verificationId = verificationId;
+              _codeSent = true;
+            });
+            _startResendTimer();
+          },
+          onAutoRetrievalTimeout: (final verificationId) =>
+              setState(() => _verificationId = verificationId),
+        );
   }
 
   Future<void> _verifyOtp(final String otp) async {
@@ -82,9 +82,8 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           _navigateToEditProfile(account.uid);
         else
           _navigateToHome();
-      } else {
+      } else
         _showSnackBar('OTP kodu hatalı. Lütfen tekrar deneyin.');
-      }
     } catch (e) {
       _showSnackBar('Hatalı kod. Lütfen tekrar deneyin.');
     }
