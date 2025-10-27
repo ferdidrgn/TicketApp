@@ -4,11 +4,11 @@ import '../../../../core/errors/failures.dart';
 
 abstract class VerifyPhoneUseCase {
   Future<Either<Failure, bool>> call(
-    final String phoneNumber,
-    final Function(String) onVerificationCompleted,
-    final Function(String) onCodeSent,
-    final Function(String) onAutoRetrievalTimeout,
-  );
+    final String phoneNumber, {
+    required final void Function(String) onVerificationCompleted,
+    required final void Function(String) onCodeSent,
+    required final void Function(String) onAutoRetrievalTimeout,
+  });
 }
 
 class VerifyPhoneUseCaseImpl implements VerifyPhoneUseCase {
@@ -18,16 +18,16 @@ class VerifyPhoneUseCaseImpl implements VerifyPhoneUseCase {
 
   @override
   Future<Either<Failure, bool>> call(
-    final String phoneNumber,
-    final Function(String) onVerificationCompleted,
-    final Function(String) onCodeSent,
-    final Function(String) onAutoRetrievalTimeout,
-  ) async {
+    final String phoneNumber, {
+    required final void Function(String) onVerificationCompleted,
+    required final void Function(String) onCodeSent,
+    required final void Function(String) onAutoRetrievalTimeout,
+  }) {
     return remoteDataSource.verifyPhone(
       phoneNumber,
-      onVerificationCompleted,
-      onCodeSent,
-      onAutoRetrievalTimeout,
+      onVerificationCompleted: onVerificationCompleted,
+      onCodeSent: onCodeSent,
+      onAutoRetrievalTimeout: onAutoRetrievalTimeout,
     );
   }
 }
