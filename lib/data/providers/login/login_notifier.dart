@@ -1,5 +1,4 @@
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
-import '../player/player_state.dart';
 import 'login_provider.dart';
 import 'login_state.dart';
 
@@ -38,15 +37,22 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
             state = state.copyWith(user: null, errorMessage: null),
       );
 
-  Future<void> verifyPhone(
-    final String phoneNumber,
-    final Function(String) onVerificationCompleted,
-    final Function(String) onCodeSent,
-    final Function(String) onAutoRetrievalTimeout,
-  ) async {
+  Future<void> verifyPhone({
+    required final String phoneNumber,
+    required final Function(String) onVerificationCompleted,
+    required final Function(String) onCodeSent,
+    required final Function(String) onAutoRetrievalTimeout,
+  }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-    final result = await ref.read(verifyPhoneUseCaseProvider).call(phoneNumber,
-        onVerificationCompleted, onCodeSent, onAutoRetrievalTimeout);
+
+    final result = await ref.read(verifyPhoneUseCaseProvider).call(
+          phoneNumber,
+          onVerificationCompleted: onVerificationCompleted,
+          onCodeSent: onCodeSent,
+          onAutoRetrievalTimeout: onAutoRetrievalTimeout,
+          // onVerificationFailed: onVerificationFailed,
+        );
+
     result.fold(
       (final failure) => state =
           state.copyWith(isLoading: false, errorMessage: failure.message),
