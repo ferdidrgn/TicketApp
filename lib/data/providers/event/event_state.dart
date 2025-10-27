@@ -40,8 +40,6 @@ class EventState extends LoadableState<Event, List<Event>> {
     required this.eventId,
     required this.showId,
     required this.customerId,
-    final List<Event>? dataList,
-    final Event? dataSingle,
     this.eventPrice,
     this.eventDate,
     this.stageId,
@@ -53,9 +51,11 @@ class EventState extends LoadableState<Event, List<Event>> {
     this.processingSeats = const {},
     this.firstReservationTime,
     this.seatLayout = const {},
+    super.dataSingle,
+    super.dataList,
     super.isLoading = false,
     super.errorMessage,
-  }) : super(dataList: dataList, dataSingle: dataSingle);
+  });
 
   @override
   EventState copyWith({
@@ -96,7 +96,7 @@ class EventState extends LoadableState<Event, List<Event>> {
         firstReservationTime: firstReservationTime ?? this.firstReservationTime,
         seatLayout: seatLayout ?? this.seatLayout,
         isLoading: isLoading ?? this.isLoading,
-        errorMessage: errorMessage,
+        errorMessage: errorMessage ?? this.errorMessage,
       );
 
   // Computed properties
