@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
-import 'package:ticketapp/data/model/ticket_model.dart';
 import 'package:ticketapp/domain/entities/event.dart';
+import 'package:ticketapp/domain/entities/ticket.dart';
 import '../ticket/ticket_provider.dart';
 import 'event_provider.dart';
 import 'event_state.dart';
@@ -157,6 +157,16 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       errorMessage: null,
     );
 
+    executeWithInternetCheck(
+          () => ref
+              .read(attemptReservationUseCaseProvider)
+              .call(state.eventId, seatId, state.customerId),
+      onSuccess: (final success) {
+        if (!_isDisposed && !success)
+          _showTemporaryError("Koltuk başkası tarafından seçildi.");
+      },
+    );
+
     try {
       final result = await ref
           .read(attemptReservationUseCaseProvider)
@@ -299,7 +309,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   }
 
   // Bilet oluştur
-  TicketModel _createTicket(
+  Ticket _createTicket(
     final String paymentMethod,
     final double totalPriceSnapshot,
   ) {
@@ -318,7 +328,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     } else
       finalPrice = totalPriceSnapshot.toStringAsFixed(2);
 
-    return TicketModel(
+    return Ticket(
       createdAt: now.toString(),
       updatedAt: now.toString(),
       id: '',

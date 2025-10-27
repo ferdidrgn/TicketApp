@@ -3,8 +3,9 @@ import '../../../domain/entities/ticket.dart';
 import '../../model/ticket_model.dart';
 
 abstract class TicketRemoteDataSource {
-  Future<List<TicketModel?>?> getTicketsByIds(final List<String> ticketsIds);
-  Future<void> createTicket(final Ticket ticket);
+  Future<List<TicketModel?>?> getTicketsByIds(final List<String> ticketIds);
+
+  Future<bool> createTicket(final Ticket ticket);
 }
 
 class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
@@ -13,41 +14,34 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
   TicketRemoteDataSourceImpl({required this.firestore});
 
   @override
-  Future<List<TicketModel?>?> getTicketsByIds(final List<String> ticketsIds) async {
+  Future<List<TicketModel?>?> getTicketsByIds(
+      final List<String> ticketIds) async {
+    if (ticketIds.isEmpty) return [];
 
     try {
-      if (ticketsIds.isEmpty) throw Exception('Ticket ID cannot be empty.');
-
-      final result = await firestore
+      final snapshot = await firestore
           .collection('Ticket')
-          .where(FieldPath.documentId, whereIn: ticketsIds)
+          .where(FieldPath.documentId, whereIn: ticketIds)
           .get();
 
-      if (result.docs.isEmpty) return null;
-      return result.docs.map((final doc) {
-        return TicketModel.fromFirestore(doc.data());
-      }).toList();
-    } catch (error) {
-      throw Exception('Error fetching ticket: $error');
+      return snapshot.docs
+          .map((final doc) => TicketModel.fromFirestore(doc.data()))
+          .toList();
+    } catch (e) {
+      throw Exception('Error fetching tickets: $e');
     }
   }
 
   @override
-  Future<void> createTicket(final Ticket ticket) async {
+  Future<bool> createTicket(final Ticket ticket) async {
     try {
-      await firestore.collection('Ticket').add({
-        '_createdAt': ticket.createdAt,
-        '_updatedAt': ticket.updatedAt,
-        '_id': firestore.collection('Ticket').doc().id,
-        'showId': ticket.showId,
-        'customerId': ticket.customerId,
-        'stageId': ticket.stageId,
-        'eventId': ticket.eventId,
-        'orderMethod': ticket.orderMethod,
-        'orderPrice': ticket.orderPrice,
-      });
-    } catch (error) {
-      throw Exception('Error saving ticket: $error');
+      final docRef = firestore.collection('Ticket').doc();
+      final ticketMap = TicketModel.fromEntity(ticket).toFirestore()
+        ..['_id'] = docRef.id;
+      await docRef.set(ticketMap);
+      return true;
+    } catch (e) {
+      throw Exception('Error saving ticket: $e');
     }
   }
 }

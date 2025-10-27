@@ -18,10 +18,10 @@ abstract class EventRepository {
       final String eventId, final String seatId, final String customerId);
 
   /// Bir rezervasyonu iptal eder.
-  Future<Either<Failure, void>> releaseReservation(
+  Future<Either<Failure, bool>> releaseReservation(
       final String eventId, final String seatId, final String customerId);
 
   /// Satın almayı onaylar ve koltukları 'sold' yapar.
-  Future<Either<Failure, void>> confirmPurchase(final String eventId,
+  Future<Either<Failure, bool>> confirmPurchase(final String eventId,
       final List<String> seatIds, final String customerId);
 }

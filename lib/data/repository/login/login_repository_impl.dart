@@ -9,25 +9,26 @@ import '../../datasources/login/login_remote_data_source_and_impl.dart';
 class LoginRepositoryImpl extends BaseRepository implements LoginRepository {
   final LoginRemoteDataSource remoteDataSource;
 
-  LoginRepositoryImpl({required this.remoteDataSource, required super.internetService});
+  LoginRepositoryImpl(
+      {required this.remoteDataSource, required super.internetService});
 
   @override
   Future<Either<Failure, User?>> getCurrentUser() async {
     return execute(() async {
-     return remoteDataSource.getCurrentUser();
+      return remoteDataSource.getCurrentUser();
     });
   }
 
   @override
   Future<Either<Failure, GoogleSignInAccount?>> signInWithGoogle() async {
-    return  execute(() async {
+    return execute(() async {
       return remoteDataSource.signInWithGoogle();
     });
   }
 
   @override
-  Future<Either<Failure, void>> signOut() async {
-    return  execute(() async {
+  Future<Either<Failure, bool>> signOut() async {
+    return execute(() async {
       return remoteDataSource.signOut();
     });
   }
@@ -45,16 +46,17 @@ class LoginRepositoryImpl extends BaseRepository implements LoginRepository {
        await remoteDataSource.verifyPhone(phoneNumber, onVerificationCompleted, onCodeSent, onAutoRetrievalTimeout);
        const Right(null); // Başarılı
       });
-
     } catch (e) {
       return Left(ServerFailure('Telefon Doğrulama Hatası: $e')); // Hata
     }
   }
 
   @override
-  Future<Either<Failure, bool>> verifyOtp(final String verificationId, final String otp) async {
-    return  execute(() async {
-      if(verificationId.isEmpty || otp.isEmpty) throw Exception('Doğrulama Kodu Boş Olamaz');
+  Future<Either<Failure, bool>> verifyOtp(
+      final String verificationId, final String otp) async {
+    return execute(() async {
+      if (verificationId.isEmpty || otp.isEmpty)
+        throw Exception('Doğrulama Kodu Boş Olamaz');
       return remoteDataSource.verifyOtp(verificationId, otp);
     });
   }

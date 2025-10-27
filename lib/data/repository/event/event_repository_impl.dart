@@ -45,14 +45,14 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   }
 
   @override
-  Future<Either<Failure, void>> releaseReservation(final String eventId,
+  Future<Either<Failure, bool>> releaseReservation(final String eventId,
       final String seatId, final String customerId) async {
     return execute(
         () => remoteDataSource.releaseReservation(eventId, seatId, customerId));
   }
 
   @override
-  Future<Either<Failure, void>> confirmPurchase(final String eventId,
+  Future<Either<Failure, bool>> confirmPurchase(final String eventId,
       final List<String> seatIds, final String customerId) async {
     return execute(
         () => remoteDataSource.confirmPurchase(eventId, seatIds, customerId));

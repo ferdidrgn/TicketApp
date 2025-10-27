@@ -14,7 +14,8 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
   Future<void> addShow(final ShowModel show, final Uri? imageUrl) =>
       executeWithInternetCheck(
           () => ref.read(addShowUseCaseProvider).call(show, imageUrl));
-  success leri geitr
+
+  //success leri geitr
 
   Future<void> deleteShow(final String? showId) => executeWithInternetCheck(
       () => ref.read(deleteShowUseCaseProvider).call(showId));

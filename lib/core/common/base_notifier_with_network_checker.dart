@@ -81,7 +81,6 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
   Future<void> executeWithInternetCheck<R>(
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,
-    final Function(R)? onFaliure,
   }) async {
     try {
       _setLoadingState();

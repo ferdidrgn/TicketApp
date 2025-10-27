@@ -4,5 +4,5 @@ import '../../data/model/ticket_model.dart';
 
 abstract class TicketRepository {
   Future<Either<Failure, List<TicketModel?>?>> getTicketsByIds(final List<String> ticketIds);
-  Future<Either<Failure, void>> createTicket(final TicketModel ticket);
+  Future<Either<Failure, bool>> createTicket(final TicketModel ticket);
 }

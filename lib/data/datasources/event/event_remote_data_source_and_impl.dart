@@ -13,10 +13,10 @@ abstract class EventRemoteDataSource {
   Future<bool> attemptReservation(
       final String eventId, final String seatId, final String customerId);
 
-  Future<void> releaseReservation(
+  Future<bool> releaseReservation(
       final String eventId, final String seatId, final String customerId);
 
-  Future<void> confirmPurchase(final String eventId, final List<String> seatIds,
+  Future<bool> confirmPurchase(final String eventId, final List<String> seatIds,
       final String customerId);
 }
 
@@ -182,7 +182,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   @override
-  Future<void> releaseReservation(final String eventId, final String seatId,
+  Future<bool> releaseReservation(final String eventId, final String seatId,
       final String customerId) async {
     _validateParams(
         {'Event ID': eventId, 'Seat ID': seatId, 'Customer ID': customerId});
@@ -209,13 +209,15 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
             'seats.$seatId.reservedAt': null,
           });
       });
+      return true;
     } catch (e) {
       print("Error releasing reservation: $e");
+      return false;
     }
   }
 
   @override
-  Future<void> confirmPurchase(final String eventId, final List<String> seatIds,
+  Future<bool> confirmPurchase(final String eventId, final List<String> seatIds,
       final String customerId) async {
     _validateParams({'Event ID': eventId, 'Customer ID': customerId});
     if (seatIds.isEmpty) throw Exception('Seat IDs cannot be empty.');
@@ -231,5 +233,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       });
 
     await batch.commit();
+    return true;
   }
 }

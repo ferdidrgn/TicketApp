@@ -21,8 +21,9 @@ class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
             state = state.copyWith(dataList: tickets, errorMessage: null),
       );
 
-  Future<void> createTicket(final Ticket ticket) =>
-      executeWithInternetCheck(() => ref
-          .read(createTicketUseCaseProvider)
-          .call(TicketModel.fromEntity(ticket)));
+  Future<void> createTicket(final Ticket ticket) => executeWithInternetCheck(
+        () => ref.read(createTicketUseCaseProvider).call(ticket),
+        onSuccess: (final bool) =>
+            state = state.copyWith(isLoading: false, errorMessage: null),
+      );
 }

@@ -2,52 +2,69 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 abstract class LoginRemoteDataSource {
-  Future<GoogleSignInAccount?> signInWithGoogle();
-  Future<void> signOut();
   Future<User?> getCurrentUser();
+
+  Future<GoogleSignInAccount?> signInWithGoogle();
+
+  Future<bool> signOut();
+
   Future<void> verifyPhone(
-      final String phoneNumber,
-      final Function(String) onVerificationCompleted,
-      final Function(String) onCodeSent,
-      final Function(String) onAutoRetrievalTimeout,
-      );
+    final String phoneNumber, {
+    required final void Function(String code) onVerificationCompleted,
+    required final void Function(String verificationId) onCodeSent,
+    required final void Function(String verificationId) onAutoRetrievalTimeout,
+  });
+
   Future<bool> verifyOtp(final String verificationId, final String otp);
 }
 
 class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
-  final FirebaseAuth firebaseAuth;
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
 
-  LoginRemoteDataSourceImpl({required this.firebaseAuth});
+  LoginRemoteDataSourceImpl({
+    required final FirebaseAuth firebaseAuth,
+    final GoogleSignIn? googleSignIn,
+  })  : _auth = firebaseAuth,
+        _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   @override
-  Future<User?> getCurrentUser() async => firebaseAuth.currentUser;
+  Future<User?> getCurrentUser() async => _auth.currentUser;
 
   @override
   Future<GoogleSignInAccount?> signInWithGoogle() async {
-    final user = await getCurrentUser();
-    if (user != null) return null;
+    if (_auth.currentUser != null) return null;
 
-    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-    final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+    try {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
 
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth?.accessToken,
-      idToken: googleAuth?.idToken,
-    );
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
-    await firebaseAuth.signInWithCredential(credential);
-    return googleUser;
+      await _auth.signInWithCredential(credential);
+      return googleUser;
+    } catch (e) {
+      throw Exception('Google giriş hatası: $e');
+    }
   }
 
   @override
-  Future<void> signOut() async {
+  Future<bool> signOut() async {
     final user = await getCurrentUser();
-    if (user != null) {
-      for (final UserInfo userInfo in user.providerData) {
-        if (userInfo.providerId == 'google.com')
-             await GoogleSignIn().signOut(); // Kullanıcı Google ile giriş yapmış, Google'dan çıkış yap
-      }
-      await firebaseAuth.signOut();
+    if (user == null) return false;
+
+    try {
+      final isGoogleUser =
+          user.providerData.any((final p) => p.providerId == 'google.com');
+      if (isGoogleUser) await _googleSignIn.signOut();
+      await _auth.signOut();
+      return true;
+    } catch (e) {
+      throw Exception('Çıkış hatası: $e');
     }
   }
 
@@ -58,10 +75,10 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
       final Function(String) onCodeSent,
       final Function(String) onAutoRetrievalTimeout,
       ) async {
-    await firebaseAuth.verifyPhoneNumber(
+    await _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (final PhoneAuthCredential credential) async {
-        await firebaseAuth.signInWithCredential(credential);
+        await _auth.signInWithCredential(credential);
         onVerificationCompleted(credential.smsCode ?? '');
       },
       verificationFailed: (final FirebaseAuthException e) {
@@ -83,8 +100,8 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
         verificationId: verificationId,
         smsCode: otp,
       );
-      await firebaseAuth.signInWithCredential(credential);
-      return true; // Başarılı
+      await _auth.signInWithCredential(credential);
+      return true;
     } catch (e) {
       throw Exception('OTP doğrulama hatası: $e');
     }
