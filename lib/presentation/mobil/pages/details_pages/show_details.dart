@@ -61,10 +61,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             .setErrorState("Gösteri yüklenemedi: $e");
         return; // Hata varsa devam etme
       }
-    else
-      ref
-          .read(showProvider.notifier)
-          .setErrorState("ShowDetailPage: Show data found in state.");
 
     if (showData.eventsId.isNotEmpty)
       // Arka planda çalışması için await KULLANMA
@@ -269,9 +265,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                       .where((final e) => showData.eventsId.contains(e.id))
                       .map((final event) {
                 final Stage? stage = stageState.getStageById(event.stageId);
-                final stageName = stageState.isLoading
+                final stageName = stageState.isLoading && stage == null
                     ? "Yükleniyor..."
-                    : (stage?.name ?? "Sahne?");
+                    : (stage?.name ?? "Sahne adı verisi yok");
                 return _buildEventCard(event.date.toString(), event.id,
                     showData.id, stageName, "İstanbul");
               }).toList())
