@@ -1,13 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ticketapp/data/model/event_model.dart';
-import '../../../core/util/date_formatter.dart';
 import '../seat/seat_remote_data_source_and_impl.dart';
 
 abstract class EventRemoteDataSource {
   Future<void> initializeAndGetEventSeats(final String eventId);
-
-  Future<Map<String, dynamic>?> getEventDetails(final String eventId,
-      {final bool formatWithMonthName = false});
 
   Future<List<EventModel?>?> getEventsByIds(final List<String> eventIds);
 
@@ -123,36 +119,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     return snapshot.docs.map((final doc) {
       return EventModel.fromFirestore(doc.data()! as Map<String, dynamic>);
     }).toList();
-  }
-
-  @override
-  Future<Map<String, dynamic>?> getEventDetails(final String eventId,
-      {final bool formatWithMonthName = false}) async {
-    _validateParams({'Event ID': eventId});
-
-    try {
-      final docSnapshot =
-          await firestore.collection('Event').doc(eventId).get();
-      if (!docSnapshot.exists) return null;
-
-      final eventData = docSnapshot.data()!;
-      final date = eventData['date'] as String?;
-      final price = eventData['price']?.toString();
-      final stageId = eventData['stageId'] as String?;
-
-      final formattedDate = (date == null)
-          ? null
-          : DateFormatter.parseFormattedDateTime(date,
-              formatWithMonthName: formatWithMonthName);
-
-      return {
-        'eventDate': formattedDate,
-        'eventPrice': price,
-        'stageId': stageId,
-      };
-    } catch (error) {
-      throw Exception("Error fetching event details: ${error.toString()}");
-    }
   }
 
   @override

@@ -4,11 +4,11 @@ import '../../entities/show.dart';
 import '../../repository/show_repository.dart';
 
 abstract class GetShowsUseCase {
-  Future<Either<Failure, List<Show>>> call(final isLimit);
+  Future<Either<Failure, List<Show>>> call(final bool isLimit);
 }
 
 class GetShowsUseCaseImpl implements GetShowsUseCase {
-  ShowRepository repository;
+  final ShowRepository repository;
 
   GetShowsUseCaseImpl(this.repository);
 
@@ -16,15 +16,11 @@ class GetShowsUseCaseImpl implements GetShowsUseCase {
   Future<Either<Failure, List<Show>>> call(final isLimit) async {
     final result = await repository.getShows(isLimit);
     return result.fold(
-      (final failure) => Left(failure),
-      (final showsModels) {
-        final shows = showsModels
+        (final failure) => Left(failure),
+        (final showsModels) => Right(showsModels
                 ?.map((final showModel) => showModel?.toEntity())
                 .whereType<Show>()
                 .toList() ??
-            [];
-        return Right(shows);
-      },
-    );
+            [])); //Show a çevirdik.
   }
 }

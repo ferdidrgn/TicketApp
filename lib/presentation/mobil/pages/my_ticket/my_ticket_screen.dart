@@ -137,7 +137,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage> {
   Widget _buildTicketCard(final Ticket ticket) {
     return FutureBuilder<List<dynamic>>(
       future: Future.wait([
-        eventService.getEventDetails(ticket.eventId),
+        eventService.getEventsByIds([ticket.eventId]),
       ]),
       builder: (final context, final snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {

@@ -3,7 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../repository/event_repository.dart';
 
 abstract class ReleaseReservationUseCase {
-  Future<Either<Failure, void>> call(
+  Future<Either<Failure, bool>> call(
       final String eventId, final String seatId, final String customerId);
 }
 
@@ -13,7 +13,7 @@ class ReleaseReservationUseCaseImpl implements ReleaseReservationUseCase {
   ReleaseReservationUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(final String eventId, final String seatId,
+  Future<Either<Failure, bool>> call(final String eventId, final String seatId,
       final String customerId) async {
     return repository.releaseReservation(eventId, seatId, customerId);
   }

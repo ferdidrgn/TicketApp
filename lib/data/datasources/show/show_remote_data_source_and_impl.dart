@@ -7,16 +7,16 @@ abstract class ShowRemoteDataSource {
   Future<List<ShowModel?>?> getSearchShow(
       final List<String> categories, final String? type);
 
-  Future<List<ShowModel?>?> getShows(final isLimit);
+  Future<List<ShowModel?>?> getShows(final bool isLimit);
 
-  Future<List<ShowModel?>?> getShowsByIds(final List<String> showsIds);
+  Future<List<ShowModel?>?> getShowsByIds(final List<String> showIds);
 
-  Future<void> addShow(
+  Future<bool> addShow(
       final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
 
-  Future<void> deleteShow(final String showId);
+  Future<bool> deleteShow(final String showId);
 
-  Future<void> updateShow(
+  Future<bool> updateShow(
       final String showId, final Map<String, dynamic> updatedData);
 }
 
@@ -24,10 +24,7 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   final FirebaseFirestore firestore;
   final FirebaseStorage storage;
 
-  ShowRemoteDataSourceImpl({
-    required this.firestore,
-    required this.storage,
-  });
+  ShowRemoteDataSourceImpl({required this.firestore, required this.storage});
 
   @override
   Future<List<ShowModel?>?> getSearchShow(
@@ -35,30 +32,20 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
     try {
       Query query = firestore.collection('Show');
 
-      if (categories.isEmpty && type == null)
-        return getShows(false);
-      else {
-        if (categories.isNotEmpty)
-          query = query.where('category', whereIn: categories);
+      if (categories.isNotEmpty)
+        query = query.where('category', whereIn: categories);
+      if (type?.isNotEmpty ?? false)
+        query = query.where('type', isEqualTo: type);
 
-        if (type != null && type.isNotEmpty)
-          query = query.where('type', isEqualTo: type);
-
-        final result = await query.get();
-
-        if (result.docs.isEmpty) return [];
-        return result.docs
-            .map((final e) =>
-                ShowModel.fromFirestore(e.data()! as Map<String, dynamic>))
-            .toList();
-      }
+      final snapshot = await (query.get());
+      return _toShowList(snapshot);
     } catch (e) {
       throw Exception('Search Error: $e');
     }
   }
 
   @override
-  Future<List<ShowModel?>?> getShows(final isLimit) async {
+  Future<List<ShowModel?>?> getShows(final bool isLimit) async {
     try {
       final snapshot = isLimit
           ? await firestore
@@ -67,9 +54,7 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
               .limit(20)
               .get()
           : await firestore.collection('Show').get();
-
-      if (snapshot.docs.isEmpty) return [];
-      return _convertQuerySnapshotToShowList(snapshot);
+      return _toShowList(snapshot);
     } catch (e) {
       throw Exception('Error fetching shows: $e');
     }
@@ -78,95 +63,98 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   @override
   Future<List<ShowModel?>?> getShowsByIds(final List<String> showsIds) async {
     try {
-      if (showsIds.isEmpty) throw Exception('Shows IDs cannot be empty.');
-
-      // Firestore'dan birden fazla gösteriyi tek bir istekle çekmek
-      final snapshots = await firestore
+      final snapshot = await firestore
           .collection('Show')
           .where(FieldPath.documentId, whereIn: showsIds)
           .get();
-
-      if (snapshots.docs.isEmpty) return [];
-      return _convertQuerySnapshotToShowList(snapshots);
+      return _toShowList(snapshot);
     } catch (e) {
-      throw Exception('Error fetching shows ids: $e');
+      throw Exception('Error fetching shows by IDs: $e');
     }
   }
 
   @override
-  Future<void> addShow(
-      final ShowModel show, final Uri? showIdAddOrUpdateImgUrl) async {
-    if (show.id == null || show.id!.isEmpty) {
-      final String downloadUrl = await putStorageImage(
-          show.id, showIdAddOrUpdateImgUrl, show.imageUrl);
-
-      final Map<String, dynamic> showMap = show.toFirestore()
-        ..['imageUrl'] = downloadUrl;
-
-      await firestore.collection('Show').add(showMap).catchError((final error) {
-        throw Exception('Error adding show: $error');
-      });
-    }
-  }
-
-  @override
-  Future<void> deleteShow(final String showId) async {
+  Future<bool> addShow(final ShowModel show, final Uri? imageUri) async {
     try {
-      final QuerySnapshot showQuery = await firestore
-          .collection('Show')
-          .where(FieldPath.documentId, isEqualTo: showId)
-          .get();
+      // 1. Önce veriyi ekle
+      final data = show.toFirestore();
+      final docRef = await firestore.collection('Show').add(data);
 
-      if (showQuery.docs.isNotEmpty)
-        for (final document in showQuery.docs) {
-          await firestore.collection('Show').doc(document.id).delete();
-          await deleteStorageImage(showId);
-        }
+      // 2. Fotoğraf varsa yükle ve downloadUrl güncelle
+      if (imageUri != null) {
+        final downloadUrl =
+            await _uploadImage(docRef.id, imageUri, show.imageUrl);
+        await docRef.update({'imageUrl': downloadUrl});
+      }
+
+      return true;
     } catch (e) {
-      throw Exception('Error deleting show: $e');
+      print('Add show error: $e');
+      return false;
     }
   }
 
   @override
-  Future<void> updateShow(
+  Future<bool> deleteShow(final String showId) async {
+    try {
+      // 1. Fotoğrafı sil
+      final imageDeleted = await _deleteImage(showId);
+      if (!imageDeleted) return false; // Foto silinemedi, veri silinmesin
+
+      // 2. Veri sil
+      final docRef = firestore.collection('Show').doc(showId);
+      final snapshot = await docRef.get();
+      if (!snapshot.exists) return false;
+
+      await docRef.delete();
+      return true;
+    } catch (e) {
+      print('Delete show error: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> updateShow(
       final String showId, final Map<String, dynamic> updatedData) async {
-    await firestore.collection('Show').doc(showId).update({
-      ...updatedData,
-      '_updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  Future<String> putStorageImage(final String? showId,
-      final Uri? showIdAddOrUpdateImgUrl, final String? showIdImgUrl) async {
-    if (showId == null || showId.isEmpty) return '';
-    final String imageName = "ShowImages/$showId.jpg";
-    final Reference imagesRef = storage.ref().child(imageName);
-    String downloadUrl = '';
-
-    if (showIdAddOrUpdateImgUrl != null) {
-      await imagesRef.putFile(File.fromUri(showIdAddOrUpdateImgUrl));
-      downloadUrl = await imagesRef.getDownloadURL();
-    }
-
-    return (downloadUrl.isEmpty ? showIdImgUrl : downloadUrl) ?? '';
-  }
-
-  Future<void> deleteStorageImage(final String showId) async {
-    final String imageName = "ShowImages/$showId.jpg";
-    final Reference imagesRef = storage.ref().child(imageName);
-
     try {
-      await imagesRef.delete();
+      final docRef = firestore.collection('Show').doc(showId);
+      final snapshot = await docRef.get();
+      if (!snapshot.exists) return false;
+
+      await docRef.update({
+        ...updatedData,
+        '_updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
     } catch (e) {
-      throw Exception('Error deleting image: $e');
+      print('Update show error: $e');
+      return false;
     }
   }
 
-  // Convert Firestore document to Show model
-  List<ShowModel> _convertQuerySnapshotToShowList(
-      final QuerySnapshot<Map<String, dynamic>> snapshot) {
-    return snapshot.docs
-        .map((final doc) => ShowModel.fromFirestore(doc.data()))
-        .toList();
+  // Storage işlemleri
+  Future<String> _uploadImage(final String showId, final Uri? imageUri,
+      final String? currentUrl) async {
+    if (imageUri == null) return currentUrl ?? '';
+    final ref = storage.ref().child("ShowImages/$showId.jpg");
+    await ref.putFile(File.fromUri(imageUri));
+    return await ref.getDownloadURL();
   }
+
+  Future<bool> _deleteImage(final String showId) async {
+    try {
+      await storage.ref().child("ShowImages/$showId.jpg").delete();
+      return true; // Silme başarılı
+    } catch (e) {
+      print('Image delete failed: $e');
+      return false;
+    }
+  }
+
+  // Helper
+  List<ShowModel> _toShowList(final QuerySnapshot snapshot) => snapshot.docs
+      .map((final doc) =>
+          ShowModel.fromFirestore(doc.data() as Map<String, dynamic>))
+      .toList();
 }

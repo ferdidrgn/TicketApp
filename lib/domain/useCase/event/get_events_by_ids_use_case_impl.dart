@@ -16,15 +16,11 @@ class GetEventsByIdsUseCaseImpl implements GetEventsByIdsUseCase {
   Future<Either<Failure, List<Event>>> call(final List<String> eventIds) async {
     final result = await repository.getEventsByIds(eventIds);
     return result.fold(
-      (final failure) => Left(failure),
-      (final eventsModel) {
-        final events = eventsModel
+        (final failure) => Left(failure),
+        (final eventsModel) => Right(eventsModel
                 ?.map((final eventsModel) => eventsModel?.toEntity())
                 .whereType<Event>()
                 .toList() ??
-            [];
-        return Right(events);
-      },
-    );
+            []));
   }
 }

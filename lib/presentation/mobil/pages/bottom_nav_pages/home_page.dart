@@ -106,7 +106,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               padding: const EdgeInsets.all(15),
               child: Column(
                 children: [
-                  if (campaignState.hasCampaigns)
+                  if (campaignState.hasData)
                     _buildCampaignSlider(
                         campaignState.dataList!.cast<Campaign>()),
                   CustomSearchBar(

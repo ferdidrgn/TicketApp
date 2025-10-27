@@ -16,15 +16,11 @@ class GetShowsByIdsUseCaseImpl implements GetShowsByIdsUseCase {
   Future<Either<Failure, List<Show>>> call(final List<String> showsIds) async {
     final result = await repository.getShowsByIds(showsIds);
     return result.fold(
-      (final failure) => Left(failure),
-      (final showsModels) {
-        final shows = showsModels
+        (final failure) => Left(failure),
+        (final showsModels) => Right(showsModels
                 ?.map((final showModel) => showModel?.toEntity())
                 .whereType<Show>()
                 .toList() ??
-            [];
-        return Right(shows);
-      },
-    );
+            []));
   }
 }

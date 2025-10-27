@@ -6,10 +6,10 @@ abstract class LoadableState<T, R> extends BaseState {
   final R? dataList;
 
   const LoadableState({
-    super.isLoading = false,
-    super.errorMessage,
     this.dataSingle,
     this.dataList,
+    super.isLoading = false,
+    super.errorMessage,
   });
 
   @override
@@ -26,5 +26,8 @@ abstract class LoadableState<T, R> extends BaseState {
   bool get hasDataSingle => dataSingle != null;
 
   bool get hasData => !isListNullOrEmpty;
-  bool get isListNullOrEmpty => dataList == null || (dataList! as List).isEmpty;
+  bool get isListNullOrEmpty => dataList == null || ((dataList != null) as List).isEmpty;
+
+  int get dataListCount => ((dataList != null) as List).length;
+
 }

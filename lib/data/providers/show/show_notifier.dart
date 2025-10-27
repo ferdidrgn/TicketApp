@@ -14,6 +14,7 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
   Future<void> addShow(final ShowModel show, final Uri? imageUrl) =>
       executeWithInternetCheck(
           () => ref.read(addShowUseCaseProvider).call(show, imageUrl));
+  success leri geitr
 
   Future<void> deleteShow(final String? showId) => executeWithInternetCheck(
       () => ref.read(deleteShowUseCaseProvider).call(showId));
@@ -23,35 +24,30 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
       executeWithInternetCheck(
           () => ref.read(updateShowUseCaseProvider).call(showId, updatedData));
 
-  Future<void> loadShowsByIds(final List<String> showsIds) async {
-    if (showsIds.isEmpty) {
-      _handleEmptyShowIds();
-      return;
-    }
+  Future<void> loadShowsByIds(final List<String> showsIds) =>
+      executeWithInternetCheck(
+          () => ref.read(getShowsByIdsUseCaseProvider).call(showsIds),
+          onSuccess: (final shows) => _setShowOperations);
 
-    await executeWithInternetCheck(
-      () => ref.read(getShowsByIdsUseCaseProvider).call(showsIds),
-      onSuccess: _handleShowsLoaded,
-    );
-  }
-
-  Future<void> loadShows(final isLimit) => executeWithInternetCheck(
+  Future<void> loadShows(final bool isLimit) => executeWithInternetCheck(
       () => ref.read(getShowsUseCaseProvider).call(isLimit),
-      onSuccess: _handleShowsLoaded);
+      onSuccess: (final shows) => _setShowOperations);
 
   Future<void> searchShows(final List<String> categories, final String? type) =>
       executeWithInternetCheck(
           () => ref.read(getSearchShowUseCaseProvider).call(categories, type),
-          onSuccess: _handleShowsLoaded);
+          onSuccess: (final shows) => _setShowOperations);
 
   void clearShows() =>
       state = state.copyWith(dataList: const [], dataSingle: null);
 
-  void _handleShowsLoaded(final List<Show>? shows) =>
-      state = state.copyWith(dataList: shows, errorMessage: null);
-
-  void _handleEmptyShowIds() => state = state.copyWith(
-      isLoading: false, errorMessage: 'Show ID listesi boş olamaz');
+  void _setShowOperations(final List<Show>? shows) {
+    state = state.copyWith(
+      dataList: shows,
+      dataSingle: shows?.length == 1 ? shows!.first : state.dataSingle,
+      errorMessage: null,
+    );
+  }
 }
 
 /// ShowState için extension metodlar

@@ -3,7 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../repository/show_repository.dart';
 
 abstract class DeleteShowUseCase {
-  Future<Either<Failure, void>> call(final String? showId);
+  Future<Either<Failure, bool>> call(final String? showId);
 }
 
 class DeleteShowUseCaseImpl implements DeleteShowUseCase {
@@ -12,7 +12,7 @@ class DeleteShowUseCaseImpl implements DeleteShowUseCase {
   DeleteShowUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(final String? showId) async {
+  Future<Either<Failure, bool>> call(final String? showId) async {
     return repository.deleteShow(showId);
   }
 }

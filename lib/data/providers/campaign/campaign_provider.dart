@@ -4,7 +4,7 @@ import '../../repository/campaign/campaign_repository_provider.dart';
 import 'campaign_notifier.dart';
 import 'campaign_state.dart';
 
-final campaignProvider = NotifierProvider<CampaignNotifier, CampaignState>(
+final campaignProvider = NotifierProvider.autoDispose<CampaignNotifier, CampaignState>(
   CampaignNotifier.new,
 );
 

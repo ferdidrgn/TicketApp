@@ -9,10 +9,6 @@ abstract class EventRepository {
   Future<Either<Failure, List<EventModel?>?>> getEventsByIds(
       final List<String> eventIds);
 
-  Future<Either<Failure, Map<String, dynamic>?>> getEventDetails(
-      final String eventId,
-      {final bool formatWithMonthName = false});
-
   /// Stream'ler genellikle Either ile sarmalanmaz,/// hata yönetimi stream'in kendi mekanizmasıyla (onError) yapılır.
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);

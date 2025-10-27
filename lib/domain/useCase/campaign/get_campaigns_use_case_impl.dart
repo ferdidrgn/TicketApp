@@ -16,15 +16,11 @@ class GetCampaignsUseCaseImpl implements GetCampaignsUseCase {
   Future<Either<Failure, List<Campaign>?>> call() async {
     final result = await repository.getCampaigns();
     return result.fold(
-      (final failure) => Left(failure),
-      (final campaignsModels) {
-        final campaigns = campaignsModels
+        (final failure) => Left(failure),
+        (final campaignsModels) => Right(campaignsModels
                 ?.map((final campaignModel) => campaignModel?.toEntity())
                 .whereType<Campaign>()
                 .toList() ??
-            [];
-        return Right(campaigns);
-      },
-    );
+            []));
   }
 }

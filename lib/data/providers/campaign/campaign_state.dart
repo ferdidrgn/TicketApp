@@ -3,11 +3,11 @@ import 'package:ticketapp/domain/entities/campaign.dart';
 
 class CampaignState extends LoadableState<Campaign, List<Campaign>> {
   const CampaignState({
-    final Campaign? campaign,
-    final List<Campaign>? campaigns,
+    super.dataSingle,
+    super.dataList,
     super.isLoading = false,
     super.errorMessage,
-  }) : super(dataSingle: campaign, dataList: campaigns);
+  });
 
   @override
   CampaignState copyWith({
@@ -17,9 +17,9 @@ class CampaignState extends LoadableState<Campaign, List<Campaign>> {
     final String? errorMessage,
   }) =>
       CampaignState(
-        campaign: dataSingle ?? this.dataSingle,
-        campaigns: dataList ?? this.dataList,
+        dataSingle: dataSingle ?? this.dataSingle,
+        dataList: dataList ?? this.dataList,
         isLoading: isLoading ?? this.isLoading,
-        errorMessage: errorMessage,
+        errorMessage: errorMessage ?? this.errorMessage,
       );
 }

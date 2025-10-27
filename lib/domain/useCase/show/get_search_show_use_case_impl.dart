@@ -18,15 +18,11 @@ class GetSearchShowUseCaseImpl implements GetSearchShowUseCase {
       final List<String> categories, final String? type) async {
     final result = await repository.getSearchShow(categories, type);
     return result.fold(
-      (final failure) => Left(failure),
-      (final showsModels) {
-        final shows = showsModels
+        (final failure) => Left(failure),
+        (final showsModels) => Right(showsModels
                 ?.map((final showModel) => showModel?.toEntity())
                 .whereType<Show>()
                 .toList() ??
-            [];
-        return Right(shows);
-      },
-    );
+            []));
   }
 }

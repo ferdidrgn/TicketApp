@@ -3,7 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../repository/event_repository.dart';
 
 abstract class ConfirmPurchaseUseCase {
-  Future<Either<Failure, void>> call(final String eventId,
+  Future<Either<Failure, bool>> call(final String eventId,
       final List<String> seatIds, final String customerId);
 }
 
@@ -13,7 +13,7 @@ class ConfirmPurchaseUseCaseImpl implements ConfirmPurchaseUseCase {
   ConfirmPurchaseUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(final String eventId,
+  Future<Either<Failure, bool>> call(final String eventId,
           final List<String> seatIds, final String customerId) =>
       repository.confirmPurchase(eventId, seatIds, customerId);
 }
