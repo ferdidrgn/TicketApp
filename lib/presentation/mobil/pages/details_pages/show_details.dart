@@ -35,23 +35,16 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   @override
   void initState() {
     super.initState();
-    // initState bittikten sonra ilk veri çekmeyi başlat
-    // Bu, "Tried to modify a provider while the widget tree was building" hatasını önler.
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (mounted) {
-        // Widget hala ağaçta mı diye kontrol et
-        _fetchInitialData();
-      }
+      if (mounted) _fetchInitialData(); // Widget hala ağaçta mı diye kontrol et
     });
   }
 
   /// Ana veriyi (Show) çeker ve ardından ilişkili verileri (Event, Player)
   /// arka planda yüklemeyi tetikler.
   Future<void> _fetchInitialData() async {
-    // Önce Show verisini state'ten oku
     Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
-    // State'te yoksa, yüklemesini BEKLE
     if (showData == null) {
       print("ShowDetailPage: Show data not found in state, fetching...");
       try {
@@ -59,10 +52,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         // Yüklendikten sonra state'i tekrar oku
         showData = ref.read(showProvider).getShowById(widget.showId);
         if (showData == null) {
-          print(
-              "ShowDetailPage: Show data still null after fetch attempt. Stopping data fetch.");
-          // Hata durumunu state'e yansıtmak daha iyi olabilir
-          // ref.read(showProvider.notifier).setError("Gösteri yüklenemedi.");
+          ref.read(showProvider.notifier).setErrorState("Gösteri yüklenemedi.");
           return; // Show yüklenemezse devam etme
         }
         print("ShowDetailPage: Show data fetched successfully.");
