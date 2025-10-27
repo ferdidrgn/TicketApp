@@ -13,8 +13,7 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
 
   Future<void> addShow(final ShowModel show, final Uri? imageUrl) =>
       executeWithInternetCheck(
-        () => ref.read(addShowUseCaseProvider).call(show, imageUrl),
-      );
+          () => ref.read(addShowUseCaseProvider).call(show, imageUrl));
 
   Future<void> deleteShow(final String? showId) => executeWithInternetCheck(
       () => ref.read(deleteShowUseCaseProvider).call(showId));
@@ -37,15 +36,13 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
   }
 
   Future<void> loadShows(final isLimit) => executeWithInternetCheck(
-        () => ref.read(getShowsUseCaseProvider).call(isLimit),
-        onSuccess: _handleShowsLoaded,
-      );
+      () => ref.read(getShowsUseCaseProvider).call(isLimit),
+      onSuccess: _handleShowsLoaded);
 
   Future<void> searchShows(final List<String> categories, final String? type) =>
       executeWithInternetCheck(
-        () => ref.read(getSearchShowUseCaseProvider).call(categories, type),
-        onSuccess: _handleShowsLoaded,
-      );
+          () => ref.read(getSearchShowUseCaseProvider).call(categories, type),
+          onSuccess: _handleShowsLoaded);
 
   void clearShows() =>
       state = state.copyWith(dataList: const [], dataSingle: null);
