@@ -107,13 +107,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     // Eğer listeler boşsa yükle
     try {
       await Future.wait([
-        if (ref.read(showProvider).isListEmpty)
+        if (ref.read(showProvider).isListNullOrEmpty)
           ref.read(showProvider.notifier).loadShows(true),
-        if (ref.read(playerProvider).isListEmpty)
+        if (ref.read(playerProvider).isListNullOrEmpty)
           ref.read(playerProvider.notifier).getPlayers(true),
-        if (ref.read(stageProvider).isListEmpty)
+        if (ref.read(stageProvider).isListNullOrEmpty)
           ref.read(stageProvider.notifier).loadStages(true),
-        if (ref.read(teamProvider).isListEmpty)
+        if (ref.read(teamProvider).isListNullOrEmpty)
           ref.read(teamProvider.notifier).loadTeams(true),
       ]);
 

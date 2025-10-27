@@ -72,7 +72,7 @@ class _WebTheaterGamesSectionState extends ConsumerState<ShowsSection> {
           textAlign: TextAlign.center,
         ),
       );
-    } else if (showState.isListEmpty)
+    } else if (showState.isListNullOrEmpty)
       return const Center(
         child: Text('Gösteri verisi bulunamadı.'),
       );

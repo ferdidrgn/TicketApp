@@ -55,59 +55,38 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           ref.read(showProvider.notifier).setErrorState("Gösteri yüklenemedi.");
           return; // Show yüklenemezse devam etme
         }
-        print("ShowDetailPage: Show data fetched successfully.");
       } catch (e, s) {
-        print("ShowDetailPage: Error fetching show data: $e \n$s");
-        // Hata durumunu state'e yansıt
-        // ref.read(showProvider.notifier).setError("Gösteri yüklenemedi: $e");
+        ref
+            .read(showProvider.notifier)
+            .setErrorState("Gösteri yüklenemedi: $e");
         return; // Hata varsa devam etme
       }
     } else {
-      print("ShowDetailPage: Show data found in state.");
+      ref
+          .read(showProvider.notifier)
+          .setErrorState("ShowDetailPage: Show data found in state.");
     }
 
-    // Show verisi artık kesin var.
-    // Event ve Player yüklemelerini BAŞLAT ama bekleme (unawaited).
-    print(
-        "ShowDetailPage: Triggering related events and players fetch (async)...");
-
-    if (showData.eventsId.isNotEmpty) {
-      print(
-          "ShowDetailPage: Triggering events fetch with IDs: ${showData.eventsId}");
+    if (showData.eventsId.isNotEmpty)
       // Arka planda çalışması için await KULLANMA
       unawaited(
           ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId));
-    } else {
-      print("ShowDetailPage: No Event IDs to fetch.");
-      // Etkinlik ID'si yoksa event state'ini temizleyebilir veya boş olarak ayarlayabiliriz
-      // ref.read(eventProvider.notifier).clearEvents(); // Opsiyonel
-    }
 
     final allPlayerIds =
         [...showData.nowPlayersId, ...showData.oldPlayersId].toSet().toList();
 
-    if (allPlayerIds.isNotEmpty) {
-      print("ShowDetailPage: Triggering players fetch with IDs: $allPlayerIds");
-      // Not: Buradaki metod adı PlayerNotifier'daki ile aynı olmalı!
-      // 'loadPlayersByIds' olduğunu varsayıyoruz.
+    if (allPlayerIds.isNotEmpty)
       unawaited(
           ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
-    } else {
-      print("ShowDetailPage: No Player IDs to fetch.");
-      // Oyuncu ID'si yoksa player state'ini temizleyebilir veya boş olarak ayarlayabiliriz
-      // ref.read(playerProvider.notifier).clearPlayers(); // Opsiyonel
-    }
   }
 
   @override
   Widget build(final BuildContext context) {
-    // Tüm state'leri izle
     final showState = ref.watch(showProvider);
     final eventState = ref.watch(eventProvider);
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
 
-    // İlgili Show verisini state'ten al
     final showData = showState.getShowById(widget.showId);
 
     // Event listesi yüklendiğinde Stage'leri yükle (arka planda)
@@ -124,45 +103,33 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                 id.isNotEmpty && id != '0') // Geçersiz ID'leri filtrele
             .toSet()
             .toList();
-        if (stageIds.isNotEmpty) {
-          print(
-              "ShowDetailPage: Events loaded, triggering stage fetch for IDs: $stageIds");
+        if (stageIds.isNotEmpty)
           // Sahne yüklemesini de bekleme
           unawaited(ref.read(stageProvider.notifier).loadStagesByIds(stageIds));
-        } else {
-          print("ShowDetailPage: Events loaded, but no valid Stage IDs found.");
-        }
       }
     });
 
     return Scaffold(
-      appBar: AppBar(
-          title: Text(showData?.name ?? 'Show Detayı'), centerTitle: true),
-      // Ana yükleme göstergesi: Sadece ilk Show verisi beklenirken gösterilir
-      // Eğer showData null ise ama showState yüklenmiyorsa, hata mesajı gösterilir.
-      body: showState.isLoading && showData == null
-          ? const Center(child: CircularProgressIndicator())
-          : (showData == null)
-              ? Center(
-                  child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Text(showState.errorMessage ??
-                      'Gösteri bulunamadı veya yüklenemedi.'),
-                ))
-              // Show verisi geldiği anda detayları (Shimmer'lar dahil) göster
-              : _buildShowDetails(
-                  showData, eventState, playerState, stageState),
-    );
+        appBar: AppBar(
+            title: Text(showData?.name ?? 'Gösteri Detayları'),
+            centerTitle: true),
+        body: showState.isLoading && !showState.hasData
+            ? const Center(child: CircularProgressIndicator())
+            : (!showState.hasData)
+                ? Center(
+                    child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Text(showState.errorMessage ??
+                            'Gösteri bulunamadı veya yüklenemedi.')))
+                : _buildShowDetails(
+                    showData!, eventState, playerState, stageState));
   }
-
-  // --- Yardımcı Build Metodları ---
 
   Widget _buildShowDetails(final Show showData, final EventState eventState,
       final PlayerState playerState, final StageState stageState) {
     return SingleChildScrollView(
-        // physics: const BouncingScrollPhysics(), // Kaydırma efekti
-        padding: const EdgeInsets.symmetric(horizontal: 5).copyWith(bottom: 20),
-        // Alta boşluk
+        physics: const BouncingScrollPhysics(), // Kaydırma efekti
+        padding: const EdgeInsets.symmetric(horizontal: 5).copyWith(bottom: 20), // Alta boşluk
         child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
           _buildShowImage(showData.imageUrl),
           _buildShowTitle(showData.name),

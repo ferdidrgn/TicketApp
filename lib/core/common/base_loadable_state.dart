@@ -22,6 +22,6 @@ abstract class LoadableState<T, R> extends BaseState {
 
   bool get hasError => (errorMessage != null && errorMessage!.isNotEmpty);
   bool get isSingleNull => dataSingle == null;
-  bool get hasData => dataList != null && !isListEmpty;
-  bool get isListEmpty => dataList == null || (dataList! as List).isEmpty;
+  bool get hasData => !isListNullOrEmpty;
+  bool get isListNullOrEmpty => dataList == null || (dataList! as List).isEmpty;
 }
