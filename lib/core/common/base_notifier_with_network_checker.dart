@@ -6,8 +6,8 @@ import '../../../core/errors/failures.dart';
 import '../network/internet_service.dart';
 import 'base_state.dart';
 
-/// Tüm Notifier'lar için merkezi internet kontrolü, state yönetimi (loading, error, success)
-/// ve otomatik yeniden deneme mekanizması sağlayan base sınıf.
+/// Tüm ViewModel'ler için merkezi internet kontrolü ve state yönetimi sağlayan base sınıf
+/// Internet bağlantısı kesilip geri geldiğinde otomatik retry mekanizması sunar
 abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     extends Notifier<T> {
   StreamSubscription<InternetConnectionStatus>? _subscription;
@@ -27,7 +27,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
   void reloadData();
 
   /// Ağ dinleyicisini başlatır.    // Daha önce başlatıldıysa tekrar başlatma
-  void _initializeNetworkListener() => _subscription ??=
+  void _initializeNetworkListener() => _subscription =
       InternetService.instance.connectionStream.listen(_handleConnectionChange);
 
   /// Notifier dispose edildiğinde dinleyiciyi ve timer'ı temizler.
@@ -77,7 +77,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     }
   }
 
-  /// Network operasyonları için wrapper /// Genellikle Repository metodunu çağıran ve Either<Failure, R> döndüren fonksiyon.
+  /// Network operasyonları için wrapper. Genellikle Repository metodunu çağıran ve Either<Failure, R> döndüren fonksiyon.
   Future<void> executeWithInternetCheck<R>(
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,
@@ -97,6 +97,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
         (final failure) => setErrorState(failure.message),
         (final success) {
           try {
+            onSuccess?.call(success);
             _setSuccessState();
           } catch (e, s) {
             setErrorState("Veri işlenirken hata oluştu: $e");
