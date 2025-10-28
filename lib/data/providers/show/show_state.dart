@@ -3,23 +3,23 @@ import '../../../domain/entities/show.dart';
 
 class ShowState extends LoadableState<Show, List<Show>> {
   const ShowState({
-    final List<Show>? shows,
-    final Show? show,
+    super.dataList,
+    super.dataSingle,
     super.isLoading = false,
     super.errorMessage,
-  }) : super(dataSingle: show, dataList: shows);
+  });
 
   @override
   ShowState copyWith({
+    final List<Show>? dataList,
+    final Show? dataSingle,
     final bool? isLoading,
     final String? errorMessage,
-    final Show? dataSingle,
-    final List<Show>? dataList,
   }) =>
       ShowState(
+        dataList: dataList ?? this.dataList,
+        dataSingle: dataSingle ?? this.dataSingle,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
-        show: dataSingle ?? this.dataSingle,
-        shows: dataList ?? this.dataList,
       );
 }
