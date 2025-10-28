@@ -531,15 +531,12 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      // Kullanıcının dışarı tıklayarak kapatmasını engelle
       builder: (final context) {
-        // Standart AlertDialog yerine özel bir Dialog widget'ı kullanıyoruz
         return Dialog(
-          elevation: 8.0, // İstediğiniz 'elevation'
+          elevation: 8.0,
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0), // İstediğiniz 'radius'
-          ),
+            borderRadius: BorderRadius.circular(16.0)),
           child: Container(
             padding: const EdgeInsets.all(24.0),
             constraints: const BoxConstraints(maxWidth: 400),
@@ -547,7 +544,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min, // İçeriğe göre boyutu ayarla
               children: [
-                // 1. Başarı İkonu
                 const Icon(
                   Icons.check_circle_outline_rounded,
                   color: Colors.green,
@@ -555,7 +551,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 2. Başlık
                 const Text(
                   'Ödeme Başarılı',
                   style: TextStyle(
@@ -566,7 +561,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // 3. İçerik Metni
                 const Text(
                   'Ödemeniz başarıyla tamamlandı. Biletleriniz ilgili bölüme eklendi.',
                   textAlign: TextAlign.center,
@@ -577,12 +571,11 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 4. Butonlar (Daha modern görünüm)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue, // Ana buton
+                      backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -610,7 +603,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                       ),
                     ),
                     onPressed: () {
-                      // Önce dialog'u kapat, sonra anasayfaya git
                       Navigator.of(context).pop();
                       Navigator.of(context)
                           .popUntil((final route) => route.isFirst);
