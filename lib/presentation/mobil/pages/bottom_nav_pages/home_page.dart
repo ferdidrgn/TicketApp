@@ -171,60 +171,53 @@ class _HomePageState extends ConsumerState<HomePage> {
   // --- BÖLÜM (SECTION) BUILDER'LARI ---
 
   Widget _buildCampaignSection(final LoadableState state) {
-    if (state.isLoading) {
+    if (state.isLoading)
       return ShimmerLoading(
         height: MediaQuery.of(context).size.height * 0.3,
         width: double.infinity,
       );
-    }
-    if (state.hasError) {
+
+    if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Kampanyalar yüklenemedi');
-    }
 
     // GÜVENLİK KONTROLÜ (ve .cast<T> / 'bool' hatası düzeltmesi)
     if (state.dataList == null ||
         state.dataList is! List ||
-        state.dataList!.isEmpty) {
+        state.dataList!.isEmpty)
       return const SizedBox(height: 100);
-    }
+
 
     final campaigns = (state.dataList as List).cast<Campaign>();
     return _buildCampaignSlider(campaigns);
   }
 
   Widget _buildShowSection(final LoadableState state) {
-    if (state.isLoading) {
+    if (state.isLoading)
       return _buildHorizontalShimmerList();
-    }
-    if (state.hasError) {
+    if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Gösteriler yüklenemedi');
-    }
 
     // GÜVENLİK KONTROLÜ
     if (state.dataList == null ||
         state.dataList is! List ||
-        state.dataList!.isEmpty) {
+        state.dataList!.isEmpty)
       return const SizedBox(height: 10);
-    }
 
     final shows = (state.dataList as List).cast<Show>();
     return _buildShowList(shows);
   }
 
   Widget _buildStageSection(final LoadableState state) {
-    if (state.isLoading) {
+    if (state.isLoading)
       return _buildHorizontalShimmerList();
-    }
-    if (state.hasError) {
+    if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Sahneler yüklenemedi');
-    }
 
     // GÜVENLİK KONTROLÜ
     if (state.dataList == null ||
         state.dataList is! List ||
-        state.dataList!.isEmpty) {
+        state.dataList!.isEmpty)
       return const SizedBox(height: 10);
-    }
 
     final stages = (state.dataList as List).cast<Stage>();
     return _buildStageList(stages);
