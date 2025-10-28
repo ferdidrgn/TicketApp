@@ -123,7 +123,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
         () => ref.read(getEventsByIdsUesCaseProvider).call([state.eventId]),
         onSuccess: (final events) {
           _setEventsLoaded(events);
-          if (state.dataListCount == 1) _setEventLoaded(events.first);
+          if (state.dataListLength == 1) _setEventLoaded(events.first);
         },
       );
 

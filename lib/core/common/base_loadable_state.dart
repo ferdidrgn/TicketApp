@@ -28,6 +28,6 @@ abstract class LoadableState<T, R> extends BaseState {
   bool get hasData => !isListNullOrEmpty;
   bool get isListNullOrEmpty => dataList == null || ((dataList != null) as List).isEmpty;
 
-  int get dataListCount => ((dataList != null) as List).length;
+  int get dataListLength => ((dataList != null) as List).length;
 
 }
