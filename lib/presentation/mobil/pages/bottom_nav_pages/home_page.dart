@@ -59,20 +59,19 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _startAutoScroll() {
-    _autoScrollTimer?.cancel(); // Önceki timer'ı iptal et
+    _autoScrollTimer?.cancel();
     _autoScrollTimer =
         Timer.periodic(const Duration(seconds: 5), (final timer) {
       if (!_pageController.hasClients || !mounted) return;
 
-      final campaigns = ref.read(campaignProvider).dataList;
-      if (campaigns == null || campaigns is! List || campaigns.isEmpty) return;
+      final campaignState = ref.read(campaignProvider);
+      if (!campaignState.hasData) return;
 
+      final campaigns = campaignState.dataList!;
       final nextPage = (_pageController.page?.round() ?? 0) + 1;
-      _pageController.animateToPage(
-        nextPage % campaigns.length,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
+
+      _pageController.animateToPage(nextPage % campaigns.length,
+          duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     });
   }
 
@@ -162,7 +161,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // --- BÖLÜM (SECTION) BUILDER'LARI ---
 
-  Widget _buildCampaignSection(final LoadableState state) {
+  Widget _buildCampaignSection(
+      final LoadableState<dynamic, List<Campaign>> state) {
     if (state.isLoading)
       return ShimmerLoading(
         height: MediaQuery.of(context).size.height * 0.3,
@@ -172,40 +172,31 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Kampanyalar yüklenemedi');
 
-    // GÜVENLİK KONTROLÜ (ve .cast<T> / 'bool' hatası düzeltmesi)
-    if (state.dataList == null ||
-        state.dataList is! List ||
-        state.dataList!.isEmpty) return const SizedBox(height: 100);
+    if (!state.hasData) return const SizedBox(height: 100);
 
-    final campaigns = (state.dataList as List).cast<Campaign>();
+    final campaigns = state.dataList!;
     return _buildCampaignSlider(campaigns);
   }
 
-  Widget _buildShowSection(final LoadableState state) {
+  Widget _buildShowSection(final LoadableState<dynamic, List<Show>> state) {
     if (state.isLoading) return _buildHorizontalShimmerList();
     if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Gösteriler yüklenemedi');
 
-    // GÜVENLİK KONTROLÜ
-    if (state.dataList == null ||
-        state.dataList is! List ||
-        state.dataList!.isEmpty) return const SizedBox(height: 10);
+    if (!state.hasData) return const SizedBox(height: 10);
 
-    final shows = (state.dataList as List).cast<Show>();
+    final shows = state.dataList!;
     return _buildShowList(shows);
   }
 
-  Widget _buildStageSection(final LoadableState state) {
+  Widget _buildStageSection(final LoadableState<dynamic, List<Stage>> state) {
     if (state.isLoading) return _buildHorizontalShimmerList();
     if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Sahneler yüklenemedi');
 
-    // GÜVENLİK KONTROLÜ
-    if (state.dataList == null ||
-        state.dataList is! List ||
-        state.dataList!.isEmpty) return const SizedBox(height: 10);
+    if (!state.hasData) return const SizedBox(height: 10);
 
-    final stages = (state.dataList as List).cast<Stage>();
+    final stages = state.dataList!;
     return _buildStageList(stages);
   }
 

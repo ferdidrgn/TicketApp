@@ -44,35 +44,31 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   /// Ana veriyi (Show) çeker ve ardından ilişkili verileri (Event, Player)
   /// arka planda yüklemeyi tetikler.
   Future<void> _fetchInitialData() async {
+    final showNotifier = ref.read(showProvider.notifier);
     Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
-    if (showData == null)
+    if (showData == null) {
       try {
-        await ref.read(showProvider.notifier).loadShowsByIds([widget.showId]);
-        // Yüklendikten sonra state'i tekrar oku
+        await showNotifier.loadShowsByIds([widget.showId]);
         showData = ref.read(showProvider).getShowById(widget.showId);
         if (showData == null) {
-          ref.read(showProvider.notifier).setErrorState("Gösteri yüklenemedi.");
-          return; // Show yüklenemezse devam etme
+          showNotifier.setErrorState("Gösteri yüklenemedi.");
+          return;
         }
-      } catch (e, s) {
-        ref
-            .read(showProvider.notifier)
-            .setErrorState("Gösteri yüklenemedi: $e");
-        return; // Hata varsa devam etme
+      } catch (e) {
+        showNotifier.setErrorState("Gösteri yüklenemedi: $e");
+        return;
       }
+    }
 
     if (showData.eventsId.isNotEmpty)
-      // Arka planda çalışması için await KULLANMA
-      unawaited(
-          ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId));
+      unawaited(ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId));
 
-    final allPlayerIds =
-        [...showData.nowPlayersId, ...showData.oldPlayersId].toSet().toList();
 
+    final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}.toList();
     if (allPlayerIds.isNotEmpty)
-      unawaited(
-          ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
+      unawaited(ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
+
   }
 
   @override
