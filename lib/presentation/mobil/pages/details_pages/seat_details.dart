@@ -37,8 +37,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
 
   @override
   Widget build(final BuildContext context) {
-    // Not: Burada 'ref.watch' ile alınan 'state', en güncel 'state'dir.
-    // Biz bu 'state'i bir anlık görüntü (snapshot) olarak alıp ödeme fonksiyonlarına aktaracağız.
     final state = ref.watch(eventProvider);
     final notifier = ref.read(eventProvider.notifier);
 
@@ -56,7 +54,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       },
     );
 
-    if (state.isLoading)
+    if (state.seatLayout.isEmpty)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     return Scaffold(
@@ -85,9 +83,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       ),
       floatingActionButton: state.hasSelectedSeats
           ? FloatingActionButton.extended(
-              // Kilitler: Koltuk işlemdeyse VEYA genel yüklenme varsa butonu kilitle
-              onPressed: (state.processingSeats.isEmpty && !state.isLoading)
-                  // ÖNEMLİ: 'state' (o anki snapshot) ödeme akışına buradan veriliyor.
+              onPressed: (state.processingSeats.isEmpty)
                   ? () => _showPaymentBottomSheet(state, notifier)
                   : null,
               label: (state.processingSeats.isEmpty && !state.isLoading)
