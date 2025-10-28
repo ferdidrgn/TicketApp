@@ -19,6 +19,9 @@ class EventState extends LoadableState<Event, List<Event>> {
   // Real-time veri (stream'den gelir)
   final EventSeatStatus seatStatus;
 
+  // Kullanıcının bu etkinlik için önceden satın almış olduğu koltuk sayısı
+  final int purchasedSeatCount;
+
   // Oturum (Session) verisi
   final Set<String> selectedSeats;
   final int remainingTime;
@@ -51,6 +54,7 @@ class EventState extends LoadableState<Event, List<Event>> {
     this.processingSeats = const {},
     this.firstReservationTime,
     this.seatLayout = const {},
+    this.purchasedSeatCount = 0,
     super.dataSingle,
     super.dataList,
     super.isLoading = false,
@@ -68,6 +72,7 @@ class EventState extends LoadableState<Event, List<Event>> {
     final Map<String, String>? eventDate,
     final String? stageId,
     final EventSeatStatus? seatStatus,
+    final int? purchasedSeatCount,
     final Set<String>? selectedSeats,
     final int? remainingTime,
     final double? totalPrice,
@@ -88,6 +93,7 @@ class EventState extends LoadableState<Event, List<Event>> {
         eventPrice: eventPrice ?? this.eventPrice,
         eventDate: eventDate ?? this.eventDate,
         seatStatus: seatStatus ?? this.seatStatus,
+        purchasedSeatCount: purchasedSeatCount ?? this.purchasedSeatCount,
         selectedSeats: selectedSeats ?? this.selectedSeats,
         remainingTime: remainingTime ?? this.remainingTime,
         totalPrice: totalPrice ?? this.totalPrice,
