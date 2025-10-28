@@ -3,11 +3,11 @@ import '../../../domain/entities/ticket.dart';
 
 class TicketState extends LoadableState<Ticket, List<Ticket>> {
   const TicketState({
-    final Ticket? ticket,
-    final List<Ticket>? tickets,
+    super.dataList,
+    super.dataSingle,
     super.isLoading = false,
     super.errorMessage,
-  }) : super(dataSingle: ticket, dataList: tickets);
+  });
 
   @override
   TicketState copyWith({
@@ -17,8 +17,8 @@ class TicketState extends LoadableState<Ticket, List<Ticket>> {
     final String? errorMessage,
   }) =>
       TicketState(
-        ticket: dataSingle ?? this.dataSingle,
-        tickets: dataList ?? this.dataList,
+        dataSingle: dataSingle ?? this.dataSingle,
+        dataList: dataList ?? this.dataList,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );

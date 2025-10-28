@@ -3,11 +3,11 @@ import '../../../domain/entities/team.dart';
 
 class TeamState extends LoadableState<Team, List<Team>> {
   const TeamState({
-    final List<Team>? teams,
-    final Team? team,
+    super.dataList,
+    super.dataSingle,
     super.isLoading = false,
     super.errorMessage,
-  }) : super(dataSingle: team, dataList: teams);
+  });
 
   @override
   TeamState copyWith({
@@ -17,8 +17,8 @@ class TeamState extends LoadableState<Team, List<Team>> {
     final String? errorMessage,
   }) =>
       TeamState(
-        team: dataSingle ?? dataSingle,
-        teams: dataList ?? this.dataList,
+        dataSingle: dataSingle ?? dataSingle,
+        dataList: dataList ?? this.dataList,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );

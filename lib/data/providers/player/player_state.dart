@@ -3,11 +3,11 @@ import '../../../domain/entities/player.dart';
 
 class PlayerState extends LoadableState<Player, List<Player>> {
   const PlayerState({
-    final Player? player,
-    final List<Player>? players,
+    super.dataList,
+    super.dataSingle,
     super.isLoading,
     super.errorMessage,
-  }) : super(dataSingle: player, dataList: players);
+  });
 
   @override
   PlayerState copyWith({
@@ -17,8 +17,8 @@ class PlayerState extends LoadableState<Player, List<Player>> {
     final String? errorMessage,
   }) =>
       PlayerState(
-        player: dataSingle ?? this.dataSingle,
-        players: dataList ?? this.dataList,
+        dataSingle: dataSingle ?? this.dataSingle,
+        dataList: dataList ?? this.dataList,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );

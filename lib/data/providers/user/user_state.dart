@@ -3,11 +3,11 @@ import '../../../domain/entities/user.dart';
 
 class UserState extends LoadableState<User, List<User>> {
   const UserState({
+    super.dataList,
+    super.dataSingle,
     super.isLoading = false,
     super.errorMessage,
-    final User? user,
-    final List<User>? users,
-  }) : super(dataSingle: user, dataList: users);
+  });
 
   @override
   UserState copyWith({
@@ -17,8 +17,8 @@ class UserState extends LoadableState<User, List<User>> {
     final String? errorMessage,
   }) =>
       UserState(
-        user: dataSingle ?? this.dataSingle,
-        users: dataList ?? this.dataList,
+        dataSingle: dataSingle ?? this.dataSingle,
+        dataList: dataList ?? this.dataList,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );
