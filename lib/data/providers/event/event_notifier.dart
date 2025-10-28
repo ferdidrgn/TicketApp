@@ -32,6 +32,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       customerId: customerId,
       isLoading: true,
       remainingTime: 600,
+      dataList: state.dataList, // Önceki eventleri koru
     );
     _loadInitialData();
   }
@@ -41,7 +42,17 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
   Future<void> _loadInitialData() async {
     _subscribeSeatStatus();
-    await loadEventsByIds([state.eventId]);
+
+    // --- KRİTİK DEĞİŞİKLİK 1: 'loadEventsByIds' KULLANILMAYACAK ---
+    // 'loadEventsByIds' artık kümülatif liste içindir.
+    // 'SeatSelectionScreen'in 'dataSingle'a ihtiyacı var.
+
+    // Usecase'i doğrudan çağırıp 'dataSingle'ı ayarlayan yeni bir metot kullan:
+    await executeWithInternetCheck(
+        () => ref.read(getEventsByIdsUseCaseProvider).call([state.eventId]),
+        onSuccess: (final events) => _setSingleEventLoaded(events));
+    // --- DEĞİŞİKLİK SONU ---
+
     _startReservationTimer();
   }
 
@@ -118,13 +129,36 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       );
   }
 
+  /// BU METOT 'ShowDetailPage' İÇİN KULLANILIR VE KÜMÜLATİFTİR (LİSTEYE EKLER)
   Future<void> loadEventsByIds(final List<String> eventIds) async {
+    // Güvenlik: Geçersiz ID'leri filtrele
+    final validIds = eventIds
+        .where((id) => id.trim().isNotEmpty && id != '0')
+        .toSet()
+        .toList();
+    if (validIds.isEmpty) return;
+
     await executeWithInternetCheck(
-        () => ref.read(getEventsByIdsUseCaseProvider).call(eventIds),
-        onSuccess: (final events) => _setEventLoaded(events));
+      () => ref.read(getEventsByIdsUseCaseProvider).call(validIds),
+
+      // --- KRİTİK DEĞİŞİKLİK 2: KÜMÜLATİF (ADDITIVE) onSuccess ---
+      onSuccess: (final newEvents) {
+        if (!ref.mounted || newEvents == null || newEvents.isEmpty) return;
+
+        final currentList = state.dataList ?? <Event>[];
+        final existingIds = currentList.map((e) => e.id).toSet();
+
+        // Sadece state'te olmayan 'yeni' event'leri filtrele
+        final uniqueNewEvents =
+            newEvents.where((e) => !existingIds.contains(e.id));
+
+        // State'i (Mevcut Liste + Benzersiz Yeni Liste) ile güncelle
+        state = state.copyWith(dataList: [...currentList, ...uniqueNewEvents]);
+      },
+    );
   }
 
-  // Koltuk seçimi
+  // --- Koltuk seçimi, ekleme, çıkarma metotları (Değişiklik yok) ---
   Future<void> toggleSeatSelection(final String seatId) async {
     if (state.processingSeats.contains(seatId)) return;
 
@@ -343,10 +377,38 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
-  void _setEventLoaded(final List<Event>? events) => state = state.copyWith(
-      dataList: events,
-      dataSingle: events?.length == 1 ? events!.first : state.dataSingle,
-      errorMessage: null);
+  void _setSingleEventLoaded(final List<Event>? events) {
+    if (_isDisposed || events == null || events.isEmpty) return;
+
+    final singleEvent = events.first;
+
+    // 'dataSingle'ı ayarla (SeatSelectionScreen'in UI'ı için)
+    state = state.copyWith(
+      dataSingle: singleEvent,
+      errorMessage: null,
+      // 'dataList'e burada DOKUNMA, kümülatif olarak aşağıda ekle
+    );
+
+    // 'dataList'i de (mevcut değilse) kümülatif olarak güncelle
+    final currentList = state.dataList ?? <Event>[];
+    final existingIds = currentList.map((e) => e.id).toSet();
+
+    if (!existingIds.contains(singleEvent.id)) {
+      state = state.copyWith(dataList: [...currentList, singleEvent]);
+    }
+  }
+
+  /*
+  void _setEventLoaded(List<Event>? events) {
+  final mergedEvents = {...?state.dataList, ...?events}.toList();
+  state = state.copyWith(
+    dataList: mergedEvents,
+    dataSingle: events?.length == 1 ? events!.first : state.dataSingle,
+    errorMessage: null,
+  );
+}
+
+  */
 
   // Geçici hata göster
   void _showTemporaryError(final String message) {
