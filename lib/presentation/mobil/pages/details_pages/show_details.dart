@@ -251,9 +251,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             const SizedBox(height: 15),
             if (eventState.isLoading && !eventState.hasData)
               _buildShimmerList()
-            else if (eventState.errorMessage != null)
-              _buildErrorWidget(
-                  'Etkinlikler yüklenemedi: ${eventState.errorMessage}')
             else if (eventState.hasData &&
                 eventState.dataList!
                     .any((final e) => showData.eventsId.contains(e.id)))
