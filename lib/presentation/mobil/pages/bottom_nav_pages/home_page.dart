@@ -38,8 +38,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
 
-    // HATA DÜZELTMESİ: 'modify provider' hatasının ana çözümü budur.
-    // Veri yükleme, EKRAN ÇİZİLDİKTEN SONRA (ilk build bittikten sonra) başlamalı.
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       _loadAllData();
       _startAutoScroll();
@@ -53,7 +51,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
-  /// Tüm ana sayfa verilerini Notifier'lar aracılığıyla yükler.
   void _loadAllData() {
     // ref.read kullanmak burada doğrudur, çünkü sadece 'tetikleme' yapıyoruz.
     ref.read(campaignProvider.notifier).loadCampaigns();
@@ -61,7 +58,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     ref.read(stageProvider.notifier).loadStages(true);
   }
 
-  /// Kampanya slider'ı için otomatik kaydırmayı başlatır.
   void _startAutoScroll() {
     _autoScrollTimer?.cancel(); // Önceki timer'ı iptal et
     _autoScrollTimer =
@@ -80,7 +76,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
   }
 
-  /// Yeni bir sayfaya (Widget) yönlendirme yapar.
   void _navigateToPage(final Widget page) =>
       Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
 
@@ -109,9 +104,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     final campaignState = ref.watch(campaignProvider);
     final showState = ref.watch(showProvider);
     final stageState = ref.watch(stageProvider);
-
-    // HATA DÜZELTMESİ: Global 'isLoading' ve 'hasError' blokları kaldırıldı.
-    // Artık her bölüm kendi yükleme durumunu yönetecek.
 
     return Scaffold(
       floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
@@ -183,41 +175,35 @@ class _HomePageState extends ConsumerState<HomePage> {
     // GÜVENLİK KONTROLÜ (ve .cast<T> / 'bool' hatası düzeltmesi)
     if (state.dataList == null ||
         state.dataList is! List ||
-        state.dataList!.isEmpty)
-      return const SizedBox(height: 100);
-
+        state.dataList!.isEmpty) return const SizedBox(height: 100);
 
     final campaigns = (state.dataList as List).cast<Campaign>();
     return _buildCampaignSlider(campaigns);
   }
 
   Widget _buildShowSection(final LoadableState state) {
-    if (state.isLoading)
-      return _buildHorizontalShimmerList();
+    if (state.isLoading) return _buildHorizontalShimmerList();
     if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Gösteriler yüklenemedi');
 
     // GÜVENLİK KONTROLÜ
     if (state.dataList == null ||
         state.dataList is! List ||
-        state.dataList!.isEmpty)
-      return const SizedBox(height: 10);
+        state.dataList!.isEmpty) return const SizedBox(height: 10);
 
     final shows = (state.dataList as List).cast<Show>();
     return _buildShowList(shows);
   }
 
   Widget _buildStageSection(final LoadableState state) {
-    if (state.isLoading)
-      return _buildHorizontalShimmerList();
+    if (state.isLoading) return _buildHorizontalShimmerList();
     if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Sahneler yüklenemedi');
 
     // GÜVENLİK KONTROLÜ
     if (state.dataList == null ||
         state.dataList is! List ||
-        state.dataList!.isEmpty)
-      return const SizedBox(height: 10);
+        state.dataList!.isEmpty) return const SizedBox(height: 10);
 
     final stages = (state.dataList as List).cast<Stage>();
     return _buildStageList(stages);
