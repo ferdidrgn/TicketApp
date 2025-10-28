@@ -37,8 +37,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Widget tree tamamlandıktan sonra timer başlat
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
+
+    // HATA DÜZELTMESİ: 'modify provider' hatasının ana çözümü budur.
+    // Veri yükleme, EKRAN ÇİZİLDİKTEN SONRA (ilk build bittikten sonra) başlamalı.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // ref.read'i callback içinde kullanmak güvenlidir.
+      _loadAllData();
       _startAutoScroll();
     });
   }
@@ -50,89 +54,188 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
+  /// Tüm ana sayfa verilerini Notifier'lar aracılığıyla yükler.
   void _loadAllData() {
+    // ref.read kullanmak burada doğrudur, çünkü sadece 'tetikleme' yapıyoruz.
     ref.read(campaignProvider.notifier).loadCampaigns();
     ref.read(showProvider.notifier).loadShows(true);
     ref.read(stageProvider.notifier).loadStages(true);
   }
 
+  /// Kampanya slider'ı için otomatik kaydırmayı başlatır.
   void _startAutoScroll() {
-    final campaigns = ref.read(campaignProvider).dataList ?? [];
-    if (campaigns.isEmpty) return; // boşsa auto-scroll başlatma
+    _autoScrollTimer?.cancel(); // Önceki timer'ı iptal et
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!_pageController.hasClients || !mounted) return;
 
-    _autoScrollTimer = Timer.periodic(Duration(seconds: 3), (final _) {
-      if (!_pageController.hasClients) return;
+      final campaigns = ref.read(campaignProvider).dataList;
+      if (campaigns == null || campaigns is! List || campaigns.isEmpty) return;
+
       final nextPage = (_pageController.page?.round() ?? 0) + 1;
       _pageController.animateToPage(
         nextPage % campaigns.length,
-        duration: Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
     });
   }
 
-  void _navigateToPage(final Widget page) =>
-      Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
+  /// Yeni bir sayfaya (Widget) yönlendirme yapar.
+  void _navigateToPage(Widget page) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => page));
 
-  Widget _resolveDetailPage(final String url) {
-    final id = url.split('/').last;
-    if (url.contains('/shows')) return PlayerDetailPage(playerId: id);
-    if (url.contains('/show')) return ShowDetailPage(showId: id);
-    if (url.contains('/stage')) return StageDetailPage(stageId: id);
-    throw Exception('Unknown URL: $url');
+  /// URL'ye göre doğru detay sayfasını çözer.
+  Widget _resolveDetailPage(String url) {
+    try {
+      final id = url.split('/').last;
+      if (id.isEmpty) throw Exception('Geçersiz URL ID: $url');
+
+      if (url.contains('/shows')) return PlayerDetailPage(playerId: id);
+      if (url.contains('/show')) return ShowDetailPage(showId: id);
+      if (url.contains('/stage')) return StageDetailPage(stageId: id);
+
+      throw Exception('Bilinmeyen URL türü: $url');
+    } catch (e) {
+      debugPrint('Sayfa çözümlenemedi: $e');
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Sayfa yüklenemedi.')),
+      );
+    }
   }
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     final campaignState = ref.watch(campaignProvider);
     final showState = ref.watch(showProvider);
     final stageState = ref.watch(stageProvider);
 
-    if ([campaignState, showState, stageState].any((final s) => s.isLoading))
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    // HATA DÜZELTMESİ: Global 'isLoading' ve 'hasError' blokları kaldırıldı.
+    // Artık her bölüm kendi yükleme durumunu yönetecek.
 
     return Scaffold(
       floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
-      body: (<LoadableState>[campaignState, showState, stageState]
-              .any((final state) => state.hasError))
-          ? Center(
-              child: Text(
-                showState.errorMessage ?? 'Bir hata oluştu',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-                textAlign: TextAlign.center,
-              ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(15),
-              child: Column(
-                children: [
-                  if (campaignState.hasData)
-                    _buildCampaignSlider(campaignState.dataList ?? []),
-                  CustomSearchBar(
-                      onSearchTap: () => _navigateToPage(const SearchPage())),
-                  const SizedBox(height: 20),
-                  const CustomSectionTitle(title: 'Kategoriler'),
-                  const CategoryCardBuilder(),
-                  const CustomSectionTitle(title: 'Yeni Gösteriler'),
-                  _buildShowList(showState.dataList ?? []),
-                  const CustomSectionTitle(title: 'Sahneler'),
-                  _buildStageList(stageState.dataList ?? []),
-                  const CustomSectionTitle(title: 'Oyunlardan Kareler'),
-                  _buildHorizontalList(
-                      items: List.generate(6, (final index) => index),
-                      itemBuilder: _buildGamePhotoCard),
-                  const SizedBox(height: 50),
-                ],
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- 1. Kampanya Bölümü ---
+            _buildCampaignSection(campaignState),
+
+            // --- 2. Arama Çubuğu ---
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 20, 15, 10),
+              child: CustomSearchBar(
+                onSearchTap: () => _navigateToPage(const SearchPage()),
               ),
             ),
+
+            // --- 3. Kategoriler Bölümü ---
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 15),
+              child: CustomSectionTitle(title: 'Kategoriler'),
+            ),
+            const CategoryCardBuilder(),
+
+            // --- 4. Yeni Gösteriler Bölümü ---
+            const Padding(
+              padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
+              child: CustomSectionTitle(title: 'Yeni Gösteriler'),
+            ),
+            _buildShowSection(showState),
+
+            // --- 5. Sahneler Bölümü ---
+            const Padding(
+              padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
+              child: CustomSectionTitle(title: 'Sahneler'),
+            ),
+            _buildStageSection(stageState),
+
+            // --- 6. Oyunlardan Kareler (Statik) ---
+            const Padding(
+              padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
+              child: CustomSectionTitle(title: 'Oyunlardan Kareler'),
+            ),
+            _buildHorizontalList(
+              items: List.generate(6, (index) => index),
+              itemBuilder: _buildGamePhotoCard,
+            ),
+
+            const SizedBox(height: 50),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildCampaignSlider(final List<Campaign> campaigns) {
-    final theme = Theme.of(context);
+  // --- BÖLÜM (SECTION) BUILDER'LARI ---
 
+  Widget _buildCampaignSection(LoadableState state) {
+    if (state.isLoading) {
+      return ShimmerLoading(
+        height: MediaQuery.of(context).size.height * 0.3,
+        width: double.infinity,
+      );
+    }
+    if (state.hasError) {
+      return _buildErrorWidget(state.errorMessage ?? 'Kampanyalar yüklenemedi');
+    }
+
+    // GÜVENLİK KONTROLÜ (ve .cast<T> / 'bool' hatası düzeltmesi)
+    if (state.dataList == null ||
+        state.dataList is! List ||
+        state.dataList!.isEmpty) {
+      return const SizedBox(height: 100);
+    }
+
+    final campaigns = (state.dataList as List).cast<Campaign>();
+    return _buildCampaignSlider(campaigns);
+  }
+
+  Widget _buildShowSection(LoadableState state) {
+    if (state.isLoading) {
+      return _buildHorizontalShimmerList();
+    }
+    if (state.hasError) {
+      return _buildErrorWidget(state.errorMessage ?? 'Gösteriler yüklenemedi');
+    }
+
+    // GÜVENLİK KONTROLÜ
+    if (state.dataList == null ||
+        state.dataList is! List ||
+        state.dataList!.isEmpty) {
+      return const SizedBox(height: 10);
+    }
+
+    final shows = (state.dataList as List).cast<Show>();
+    return _buildShowList(shows);
+  }
+
+  Widget _buildStageSection(LoadableState state) {
+    if (state.isLoading) {
+      return _buildHorizontalShimmerList();
+    }
+    if (state.hasError) {
+      return _buildErrorWidget(state.errorMessage ?? 'Sahneler yüklenemedi');
+    }
+
+    // GÜVENLİK KONTROLÜ
+    if (state.dataList == null ||
+        state.dataList is! List ||
+        state.dataList!.isEmpty) {
+      return const SizedBox(height: 10);
+    }
+
+    final stages = (state.dataList as List).cast<Stage>();
+    return _buildStageList(stages);
+  }
+
+  // --- ORİJİNAL WIDGET BUILDER'LAR (İyileştirilmiş) ---
+
+  Widget _buildCampaignSlider(List<Campaign> campaigns) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       width: double.infinity,
       height: MediaQuery.of(context).size.height * 0.3,
       child: Column(
@@ -141,41 +244,52 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: campaigns.length,
-              onPageChanged: (final index) =>
-                  setState(() => _currentPage = index),
-              itemBuilder: (final context, final index) {
+              onPageChanged: (index) => setState(() => _currentPage = index),
+              itemBuilder: (context, index) {
                 final campaign = campaigns[index];
                 return GestureDetector(
                   onTap: () =>
                       _navigateToPage(_resolveDetailPage(campaign.url)),
-                  child: Card(
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
-                    child: Stack(
-                      alignment: Alignment.bottomCenter,
-                      children: [
-                        CachedNetworkImage(
-                          imageUrl: campaign.imageUrl,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          placeholder: (final _, final __) =>
-                              const ShimmerLoading(),
-                          errorWidget: (final _, final __, final ___) =>
-                              const Icon(Icons.error),
-                        ),
-                        Container(
-                          color: Colors.black54,
-                          padding: const EdgeInsets.all(8),
-                          child: Text(
-                            campaign.title,
-                            style: theme.textTheme.headlineMedium
-                                ?.copyWith(color: theme.colorScheme.onPrimary),
-                            textAlign: TextAlign.center,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                    child: Card(
+                      elevation: 8,
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          Positioned.fill(
+                            child: CachedNetworkImage(
+                              imageUrl: campaign.imageUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => const ShimmerLoading(),
+                              errorWidget: (_, __, ___) =>
+                                  const Icon(Icons.error, color: Colors.grey),
+                            ),
                           ),
-                        ),
-                      ],
+                          Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.black87, Colors.transparent],
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.center,
+                              ),
+                            ),
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            child: Text(
+                              campaign.title,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                  color: theme.colorScheme.onPrimary),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -185,8 +299,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(height: 10),
           DotsIndicator(
             itemCount: campaigns.length,
-            currentIndex: _currentPage,
-            onPageSelected: (final page) {
+            currentIndex: _currentPage % campaigns.length,
+            onPageSelected: (page) {
               if (!_pageController.hasClients) return;
               _pageController.animateToPage(
                 page,
@@ -200,10 +314,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildShowList(final List<Show> shows) {
+  Widget _buildShowList(List<Show> shows) {
     return _buildHorizontalList(
       items: shows,
-      itemBuilder: (final show) => CustomVerticalShowCard(
+      itemBuilder: (show) => CustomVerticalShowCard(
         imageUrl: show.imageUrl,
         gameName: show.name,
         onTap: () => _navigateToPage(ShowDetailPage(showId: show.id)),
@@ -211,10 +325,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildStageList(final List<Stage> stages) {
+  Widget _buildStageList(List<Stage> stages) {
     return _buildHorizontalList(
       items: stages,
-      itemBuilder: (final stage) => CustomStageCard(
+      itemBuilder: (stage) => CustomStageCard(
         text: stage.name,
         imageUrl: stage.imageUrl,
         onPressed: () => _navigateToPage(StageDetailPage(stageId: stage.id)),
@@ -223,41 +337,52 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildHorizontalList<T>({
-    required final List<T> items,
-    required final Widget Function(T) itemBuilder,
-  }) =>
-      SizedBox(
-        height: 200,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          itemCount: items.length,
-          itemBuilder: (final _, final index) => itemBuilder(items[index]),
-        ),
-      );
+    required List<T> items,
+    required Widget Function(T) itemBuilder,
+  }) {
+    if (items.isEmpty) return const SizedBox(height: 10);
 
-  Widget _buildGamePhotoCard(final int index) {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        itemCount: items.length,
+        itemBuilder: (_, index) => Padding(
+          padding: const EdgeInsets.only(right: 10.0),
+          child: itemBuilder(items[index]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGamePhotoCard(int index) {
+    const imageUrl =
+        'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw';
+
     return SizedBox(
       width: 160,
       height: 200,
       child: Card(
-        elevation: 8,
+        elevation: 4,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CachedNetworkImage(
-              imageUrl:
-                  'https://i.ytimg.com/vi/tzPpkRLf9a8/hq720.jpg?sqp=-oaymwE7CK4FEIIDSFryq4qpAy0IARUAAAAAGAElAADIQj0AgKJD8AEB-AH-CYAC0AWKAgwIABABGHIgWyg9MA8=&rs=AOn4CLCBnYXpB7USjvYDePL64AaVI7Epyw',
+            SizedBox(
               height: 140,
               width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (final _, final __) => const ShimmerLoading(),
-              errorWidget: (final _, final __, final ___) =>
-                  const Icon(Icons.error),
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => const ShimmerLoading(),
+                errorWidget: (_, __, ___) => const Icon(Icons.error),
+              ),
             ),
             const SizedBox(height: 5),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Text(
                 'Oyun $index',
                 style: Theme.of(context).textTheme.bodyMedium,
@@ -265,6 +390,44 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // --- YARDIMCI (HELPER) WIDGET'LAR ---
+
+  Widget _buildErrorWidget(String message) {
+    return Container(
+      height: 100,
+      width: double.infinity,
+      alignment: Alignment.center,
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onErrorContainer,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildHorizontalShimmerList() {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        itemCount: 3,
+        itemBuilder: (_, __) => const Padding(
+          padding: EdgeInsets.only(right: 10.0),
+          child: ShimmerLoading(width: 160, height: 200),
         ),
       ),
     );

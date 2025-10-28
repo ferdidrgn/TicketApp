@@ -13,10 +13,17 @@ class StageNotifier extends BaseNotifierWithNetworkChecker<StageState> {
       () => ref.read(getStagesUseCaseProvider).call(isLimit),
       onSuccess: (final stages) => state = state.copyWith(dataList: stages));
 
-  Future<void> loadStagesByIds(final List<String> stageIds) =>
-      executeWithInternetCheck(
-          () => ref.read(getStageByIdUseCaseProvider).call(stageIds),
-          onSuccess: (final stages) => state = state.copyWith(dataList: stages));
+  Future<void> loadStagesByIds(final List<String> stageIds) {
+    if (stageIds.isEmpty) return Future.value([]);
+
+    return executeWithInternetCheck(
+      () => ref.read(getStageByIdUseCaseProvider).call(stageIds),
+      onSuccess: (final stages) {
+        if (!ref.mounted) return;
+        state = state.copyWith(dataList: stages);
+      },
+    );
+  }
 
   Future<void> searchStage(final String query) => executeWithInternetCheck(
       () => ref.read(getSearchStageUseCaseProvider).call(query),
