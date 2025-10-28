@@ -18,20 +18,21 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       showId: '',
       customerId: '',
       isLoading: false,
-      remainingTime: 600);
+      remainingTime: 600,
+      purchasedSeatCount: 0);
 
   void initializeWithParams({
     required final String eventId,
     required final String showId,
     required final String customerId,
   }) {
-    // Sayfa her yüklendiğinde state'i sıfırla ve sayacı başlat
     state = EventState(
       eventId: eventId,
       showId: showId,
       customerId: customerId,
       isLoading: true,
-      remainingTime: 600, // Sayaç burada 600'e ayarlanır
+      remainingTime: 600,
+      purchasedSeatCount: 0,
     );
     _loadInitialData();
   }
@@ -41,9 +42,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
   Future<void> _loadInitialData() async {
     _subscribeSeatStatus();
-    // Event verisini (fiyat, tarih, stageId) yükle
     await loadEventsByIds([state.eventId]);
-    // Veri yüklendikten sonra sayacı başlat
     _startReservationTimer();
   }
 
@@ -58,18 +57,19 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
         if (_isDisposed) return;
 
         final currentReservations = <String>{};
+        int alreadyPurchasedCount = 0;
 
         for (final entry in seatStatusMap.entries) {
           final seatId = entry.key;
           final seatInfo = entry.value;
-
-          if (seatInfo != null &&
-              seatInfo['status'] == 'reserved' &&
-              seatInfo['customerId'] == state.customerId)
-            currentReservations.add(seatId);
+          if (seatInfo == null) continue; // Güvenlik kontrolü
+          if (seatInfo['customerId'] == state.customerId) {
+            if (seatInfo['status'] == 'reserved')
+              currentReservations.add(seatId);
+            else if (seatInfo['status'] == 'sold')
+              alreadyPurchasedCount++; // Bu müşterinin önceden satın aldıkları
+          }
         }
-
-        // Fiyat 'state.seatPrice' getter'ı üzerinden okunuyor
         final newTotalPrice = currentReservations.length * state.seatPrice;
 
         final currentLayout = state.seatLayout.isEmpty ||
@@ -77,7 +77,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
             ? _groupSeatsFromStatus(
                 seatStatusMap.cast<String, Map<String, dynamic>?>())
             : state.seatLayout;
-
         state = state.copyWith(
           seatStatus: seatStatusMap,
           selectedSeats: currentReservations,
@@ -89,10 +88,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       },
       onError: (final e) {
         if (!_isDisposed)
-          state = state.copyWith(
-            errorMessage: e.toString(),
-            isLoading: false,
-          );
+          state = state.copyWith(errorMessage: e.toString(), isLoading: false);
       },
     );
   }
@@ -102,7 +98,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
         () => ref.read(getEventsByIdsUseCaseProvider).call(eventIds),
         onSuccess: (final events) {
           if (_isDisposed) return;
-
           // 'mainEvent' null ise hata ver (güvenli kod)
           final mainEvent = events.firstWhere(
             (final e) => e.id == state.eventId,
@@ -111,16 +106,12 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
           );
 
           final String? newEventPrice = mainEvent.price.toString();
-
           final Map<String, String> newEventDate = {
             'date': mainEvent.date ?? 'Tarih Bilgisi Yok',
           };
-
-          final String newStageId = mainEvent.stageId;
-
+          final String? newStageId = mainEvent.stageId;
           final newSeatPrice = double.tryParse(newEventPrice ?? "0") ?? 0.0;
           final newTotalPrice = state.selectedSeats.length * newSeatPrice;
-
           state = state.copyWith(
             dataList: events,
             errorMessage: null,
@@ -132,10 +123,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
         },
       );
 
-  // --- GÜNCELLEME SONU ---
-
   void _startReservationTimer() {
     _reservationTimer?.cancel();
+
     _reservationTimer =
         Timer.periodic(const Duration(seconds: 1), (final timer) {
       if (_isDisposed) {
@@ -183,11 +173,16 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     if (isCurrentlySelected)
       await _removeSeat(seatId);
     else {
-      final totalPendingAndSelected =
+      const int totalAllowed = 3;
+      final int alreadyPurchased = state.purchasedSeatCount;
+      final int currentlyReserving =
           state.selectedSeats.length + state.processingSeats.length;
 
-      if (totalPendingAndSelected >= 3) {
-        _showTemporaryError("En fazla 3 koltuk seçebilirsiniz.");
+      // Önceden alınan + sepetteki = 3 veya fazlaysa ekleme yapma
+
+      if (alreadyPurchased + currentlyReserving >= totalAllowed) {
+        _showTemporaryError(
+            "Toplam 3 bilet hakkınız bulunmaktadır. (Satın alınan: $alreadyPurchased, Sepet: $currentlyReserving)");
         return;
       }
 
@@ -204,11 +199,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     );
 
     try {
-      final result = await ref.read(attemptReservationUseCaseProvider).call(
-            state.eventId,
-            seatId,
-            state.customerId,
-          );
+      final result = await ref
+          .read(attemptReservationUseCaseProvider)
+          .call(state.eventId, seatId, state.customerId);
 
       result.fold(
         (final failure) {
@@ -235,6 +228,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
     final newSelectedSeats = Set<String>.from(state.selectedSeats)
       ..remove(seatId);
+
     final newTotalPrice = newSelectedSeats.length * state.seatPrice;
     final newProcessingSeats = {...state.processingSeats, seatId};
 
@@ -266,15 +260,18 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   }
 
   // CPU Optimizasyonu (Değişiklik yok)
+
   Map<String, List<String>> _groupSeatsFromStatus(
       final Map<String, Map<String, dynamic>?> seatStatus) {
     // ... (Kodunuzda değişiklik yok)
+
     final seatsByRow = <String, List<String>>{};
     for (final seatId in seatStatus.keys) {
       if (seatId.isEmpty) continue;
       final row = seatId[0];
       seatsByRow.putIfAbsent(row, () => []).add(seatId);
     }
+
     final sortedRows = seatsByRow.keys.toList()..sort();
     final result = <String, List<String>>{};
     for (final row in sortedRows) {
@@ -294,7 +291,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     final EventState paymentSnapshot,
   ) async {
     if (_isDisposed) return;
-
     if (state.isTimeUp) {
       _showTemporaryError("Süreniz doldu, ödeme işlemi iptal edildi.");
       return;
@@ -304,14 +300,26 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       _showTemporaryError("Ödeme zaten işleniyor.");
       return;
     }
-    _isProcessingPayment = true;
 
+    _isProcessingPayment = true;
     final seatsToPurchase = List<String>.from(paymentSnapshot.selectedSeats);
     final double priceToPay = paymentSnapshot.totalPrice;
-
     if (seatsToPurchase.isEmpty) {
       _showTemporaryError("Sepetiniz boş.");
       _isProcessingPayment = false;
+      return;
+    }
+
+    const int totalAllowed = 3;
+    // Snapshot'tan okuyoruz
+
+    final int alreadyPurchased = paymentSnapshot.purchasedSeatCount;
+    final int totalToBuy = seatsToPurchase.length;
+    if (alreadyPurchased + totalToBuy > totalAllowed) {
+      _showTemporaryError(
+          "Satın alım başarısız. Toplam 3 bilet hakkınız var. (Önceden alınan: $alreadyPurchased, Sepette: $totalToBuy)");
+      _isProcessingPayment = false;
+      state = state.copyWith(isLoading: false);
       return;
     }
 
@@ -342,6 +350,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
             remainingTime: 0,
             selectedSeats: {},
             totalPrice: 0,
+            // Ödeme sonrası satın alınan koltuk sayısı güncellenmeli
+            // Stream bunu zaten yapacak ama biz de yapabiliriz
+            purchasedSeatCount: alreadyPurchased + totalToBuy,
           );
       });
     } catch (e) {
@@ -361,13 +372,13 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     final now = DateTime.now();
     String finalPrice;
     String finalMethod = paymentMethod;
-
     if (paymentMethod == 'free_ticket')
       finalPrice = "0.0";
     else if (paymentMethod.startsWith('coffee_') ||
         paymentMethod == 'free_coffee') {
       finalPrice =
           paymentMethod.split('_').last.replaceAll(RegExp(r'[^0-9]'), '');
+
       if (finalPrice.isEmpty) finalPrice = "20.0";
       finalMethod = 'coffee_donation';
     } else
@@ -388,13 +399,11 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     );
   }
 
-  // Tüm rezervasyonları iptal et
+// Tüm rezervasyonları iptal et
   Future<void> cancelAllReservations() async {
     if (!state.hasSelectedSeats) return;
-
     final cancellationFutures = <Future<dynamic>>[];
     final seatsToCancel = Set<String>.from(state.selectedSeats);
-
     for (final seatId in seatsToCancel)
       cancellationFutures.add(ref
           .read(releaseReservationUseCaseProvider)
@@ -407,10 +416,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
-  // Geçici hata göster (Değişiklik yok)
+// Geçici hata göster (Değişiklik yok)
   void _showTemporaryError(final String message) {
     if (_isDisposed) return;
-
     state = state.copyWith(errorMessage: message);
     Future.delayed(const Duration(seconds: 3), () {
       if (!_isDisposed && state.errorMessage == message) {
@@ -419,12 +427,12 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     });
   }
 
-  // Ödeme başarısını sıfırla (Değişiklik yok)
+// Ödeme başarısını sıfırla (Değişiklik yok)
   void resetPaymentSuccess() {
     if (!_isDisposed) state = state.copyWith(paymentSuccessful: false);
   }
 
-  // Temizle (Değişiklik yok)
+// Temizle (Değişiklik yok)
   void cleanup() {
     _isDisposed = true;
     _reservationTimer?.cancel();
