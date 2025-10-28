@@ -62,12 +62,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         Timer.periodic(const Duration(seconds: 5), (final timer) {
       if (!_pageController.hasClients || !mounted) return;
 
-      final campaigns = ref.read(campaignProvider).dataList;
-      if (campaigns == null || campaigns is! List || campaigns.isEmpty) return;
+      final campaignsState = ref.read(campaignProvider);
+      if (campaignsState.hasData || campaignsState.dataList is! List) return;
 
       final nextPage = (_pageController.page?.round() ?? 0) + 1;
       _pageController.animateToPage(
-        nextPage % campaigns.length,
+        nextPage % campaignsState.dataListLength,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
