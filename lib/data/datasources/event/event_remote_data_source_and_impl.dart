@@ -150,6 +150,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
             'seats.$seatId.status': 'reserved',
             'seats.$seatId.customerId': customerId,
             'seats.$seatId.reservedAt': FieldValue.serverTimestamp(),
+            //ya da DateTime.now().toIso8601String()
           });
         } else {
           throw Exception('Seat is not available.');
@@ -208,7 +209,8 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       batch.update(ref, {
         'seats.$id.status': 'sold',
         'seats.$id.customerId': customerId,
-        'seats.$id.reservedAt': null,
+        'seats.$id.reservedAt': FieldValue.serverTimestamp(),
+        //ya da DateTime.now().toIso8601String()
       });
 
     try {
