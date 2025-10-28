@@ -268,29 +268,37 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     final status = seatInfo?['status'] ?? 'available';
     final reservedById = seatInfo?['customerId'];
 
-    final isSelected = state.selectedSeats.contains(seatId);
-    final isMyReservation = reservedById == state.customerId;
-    final isAvailable =
-        status == 'available' || (status == 'reserved' && isMyReservation);
+    // Bu koltuk benim mi?
+    // Stream'den gelen 'customerId'yi kontrol ediyoruz
+    final bool isMyReservation = (reservedById == state.customerId);
 
+    // Hangi koltukların ağ işlemi (ekleme/kaldırma) beklediğini tutar
     final bool isSeatProcessing = state.processingSeats.contains(seatId);
 
+    // --- 1. RENK BELİRLEME (İsteğinize Göre) ---
     Color seatColor;
     if (status == 'sold')
+      // Satılmışsa (kimin aldığı fark etmez)
       seatColor = Colors.black12;
-    else if (isSelected)
+    else if (status == 'reserved' && isMyReservation)
+      // Benim sepetimdeyse
       seatColor = Colors.blue;
     else if (status == 'reserved' && !isMyReservation)
+      // Başkasının sepetindeyse
       seatColor = Colors.purple;
     else
+      // 'available' (Boş) ise
       seatColor = Colors.green;
 
-    // Satılmış veya başkası tarafından rezerve edilmişse tıklanamaz
+    // --- 2. TIKLANABİLİRLİK BELİRLEME (İsteğinize Göre) ---
+    // Bir koltuk, sadece 'boş' ise (available) VEYA 'benim sepetimde' (reserved by me)
+    // ise tıklanabilir.
+    // 'sold' (satılmış) veya 'başkasının sepetinde' (reserved by other) ise tıklanamaz.
     final bool canTap =
-        (status == 'available' || isMyReservation) && !isSeatProcessing;
+        (status == 'available' || (status == 'reserved' && isMyReservation)) &&
+            !isSeatProcessing; // İşlemde olan koltuklar da tıklanamaz
 
     return GestureDetector(
-      // Tıklama olayını doğrudan notifier'a gönder
       onTap: canTap ? () => notifier.toggleSeatSelection(seatId) : null,
       child: Container(
         width: 40,
@@ -306,7 +314,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   child: CircularProgressIndicator(
                       strokeWidth: 2.5,
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-              : Text(seatId.substring(1), // Sadece koltuk numarasını göster
+              : Text(seatId.substring(1),
                   style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -316,7 +324,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-  // 'stateSnapshot' alır
+// 'stateSnapshot' alır
   void _showPaymentBottomSheet(final EventState stateSnapshot) {
     // Not: 'notifier'ı burada tekrar almamıza gerek yok, en üstte tanımladık.
 
@@ -360,7 +368,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-  // 'stateSnapshot' parametresini alır ve 'processPayment'a aktarır
+// 'stateSnapshot' parametresini alır ve 'processPayment'a aktarır
   Future<void> _showPaymentMethods(final EventState stateSnapshot) async {
     // Fiyata göre dinamik seçenekleri belirle
     final bool isFree = stateSnapshot.totalPrice <= 0;
