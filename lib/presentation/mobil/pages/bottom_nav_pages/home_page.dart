@@ -37,6 +37,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
+
+    // HATA DÜZELTMESİ: 'modify provider' hatasının ana çözümü budur.
+    // Veri yükleme, EKRAN ÇİZİLDİKTEN SONRA (ilk build bittikten sonra) başlamalı.
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       _loadAllData();
       _startAutoScroll();
@@ -50,30 +53,34 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
+  /// Tüm ana sayfa verilerini Notifier'lar aracılığıyla yükler.
   void _loadAllData() {
+    // ref.read kullanmak burada doğrudur, çünkü sadece 'tetikleme' yapıyoruz.
     ref.read(campaignProvider.notifier).loadCampaigns();
     ref.read(showProvider.notifier).loadShows(true);
     ref.read(stageProvider.notifier).loadStages(true);
   }
 
+  /// Kampanya slider'ı için otomatik kaydırmayı başlatır.
   void _startAutoScroll() {
     _autoScrollTimer?.cancel(); // Önceki timer'ı iptal et
     _autoScrollTimer =
         Timer.periodic(const Duration(seconds: 5), (final timer) {
       if (!_pageController.hasClients || !mounted) return;
 
-      final campaignsState = ref.read(campaignProvider);
-      if (campaignsState.hasData || campaignsState.dataList is! List) return;
+      final campaigns = ref.read(campaignProvider).dataList;
+      if (campaigns == null || campaigns is! List || campaigns.isEmpty) return;
 
       final nextPage = (_pageController.page?.round() ?? 0) + 1;
       _pageController.animateToPage(
-        nextPage % campaignsState.dataListLength,
+        nextPage % campaigns.length,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
     });
   }
 
+  /// Yeni bir sayfaya (Widget) yönlendirme yapar.
   void _navigateToPage(final Widget page) =>
       Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
 
@@ -103,6 +110,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     final showState = ref.watch(showProvider);
     final stageState = ref.watch(stageProvider);
 
+    // HATA DÜZELTMESİ: Global 'isLoading' ve 'hasError' blokları kaldırıldı.
+    // Artık her bölüm kendi yükleme durumunu yönetecek.
+
     return Scaffold(
       floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
       body: SingleChildScrollView(
@@ -114,9 +124,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             // --- 2. Arama Çubuğu ---
             Padding(
-                padding: const EdgeInsets.fromLTRB(15, 20, 15, 10),
-                child: CustomSearchBar(
-                    onSearchTap: () => _navigateToPage(const SearchPage()))),
+              padding: const EdgeInsets.fromLTRB(15, 20, 15, 10),
+              child: CustomSearchBar(
+                onSearchTap: () => _navigateToPage(const SearchPage()),
+              ),
+            ),
 
             // --- 3. Kategoriler Bölümü ---
             const Padding(
@@ -127,23 +139,27 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             // --- 4. Yeni Gösteriler Bölümü ---
             const Padding(
-                padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
-                child: CustomSectionTitle(title: 'Yeni Gösteriler')),
+              padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
+              child: CustomSectionTitle(title: 'Yeni Gösteriler'),
+            ),
             _buildShowSection(showState),
 
             // --- 5. Sahneler Bölümü ---
             const Padding(
-                padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
-                child: CustomSectionTitle(title: 'Sahneler')),
+              padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
+              child: CustomSectionTitle(title: 'Sahneler'),
+            ),
             _buildStageSection(stageState),
 
             // --- 6. Oyunlardan Kareler (Statik) ---
             const Padding(
-                padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
-                child: CustomSectionTitle(title: 'Oyunlardan Kareler')),
+              padding: EdgeInsets.fromLTRB(15, 10, 15, 0),
+              child: CustomSectionTitle(title: 'Oyunlardan Kareler'),
+            ),
             _buildHorizontalList(
-                items: List.generate(6, (final index) => index),
-                itemBuilder: _buildGamePhotoCard),
+              items: List.generate(6, (final index) => index),
+              itemBuilder: _buildGamePhotoCard,
+            ),
 
             const SizedBox(height: 50),
           ],
@@ -155,24 +171,34 @@ class _HomePageState extends ConsumerState<HomePage> {
   // --- BÖLÜM (SECTION) BUILDER'LARI ---
 
   Widget _buildCampaignSection(final LoadableState state) {
-    if (state.isLoading)
+    if (state.isLoading) {
       return ShimmerLoading(
-          height: MediaQuery.of(context).size.height * 0.3,
-          width: double.infinity);
-
-    if (state.hasError)
+        height: MediaQuery.of(context).size.height * 0.3,
+        width: double.infinity,
+      );
+    }
+    if (state.hasError) {
       return _buildErrorWidget(state.errorMessage ?? 'Kampanyalar yüklenemedi');
+    }
 
-    if (state.hasData) return const SizedBox(height: 100);
+    // GÜVENLİK KONTROLÜ (ve .cast<T> / 'bool' hatası düzeltmesi)
+    if (state.dataList == null ||
+        state.dataList is! List ||
+        state.dataList!.isEmpty) {
+      return const SizedBox(height: 100);
+    }
 
     final campaigns = (state.dataList as List).cast<Campaign>();
     return _buildCampaignSlider(campaigns);
   }
 
   Widget _buildShowSection(final LoadableState state) {
-    if (state.isLoading) return _buildHorizontalShimmerList();
-    if (state.hasError)
+    if (state.isLoading) {
+      return _buildHorizontalShimmerList();
+    }
+    if (state.hasError) {
       return _buildErrorWidget(state.errorMessage ?? 'Gösteriler yüklenemedi');
+    }
 
     // GÜVENLİK KONTROLÜ
     if (state.dataList == null ||
@@ -186,10 +212,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildStageSection(final LoadableState state) {
-    if (state.isLoading) return _buildHorizontalShimmerList();
-
-    if (state.hasError)
+    if (state.isLoading) {
+      return _buildHorizontalShimmerList();
+    }
+    if (state.hasError) {
       return _buildErrorWidget(state.errorMessage ?? 'Sahneler yüklenemedi');
+    }
 
     // GÜVENLİK KONTROLÜ
     if (state.dataList == null ||
@@ -299,14 +327,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildStageList(final List<Stage> stages) => _buildHorizontalList(
-        items: stages,
-        itemBuilder: (final stage) => CustomStageCard(
-          text: stage.name,
-          imageUrl: stage.imageUrl,
-          onPressed: () => _navigateToPage(StageDetailPage(stageId: stage.id)),
-        ),
-      );
+  Widget _buildStageList(final List<Stage> stages) {
+    return _buildHorizontalList(
+      items: stages,
+      itemBuilder: (final stage) => CustomStageCard(
+        text: stage.name,
+        imageUrl: stage.imageUrl,
+        onPressed: () => _navigateToPage(StageDetailPage(stageId: stage.id)),
+      ),
+    );
+  }
 
   Widget _buildHorizontalList<T>({
     required final List<T> items,
@@ -321,8 +351,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 15),
         itemCount: items.length,
         itemBuilder: (final _, final index) => Padding(
-            padding: const EdgeInsets.only(right: 10.0),
-            child: itemBuilder(items[index])),
+          padding: const EdgeInsets.only(right: 10.0),
+          child: itemBuilder(items[index]),
+        ),
       ),
     );
   }
@@ -355,9 +386,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             const SizedBox(height: 5),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              child: Text('Oyun $index',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  overflow: TextOverflow.ellipsis),
+              child: Text(
+                'Oyun $index',
+                style: Theme.of(context).textTheme.bodyMedium,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -375,12 +408,16 @@ class _HomePageState extends ConsumerState<HomePage> {
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(10)),
-      child: Text(message,
-          style:
-              TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
-          textAlign: TextAlign.center),
+        color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onErrorContainer,
+        ),
+        textAlign: TextAlign.center,
+      ),
     );
   }
 
@@ -392,8 +429,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 15),
         itemCount: 3,
         itemBuilder: (final _, final __) => const Padding(
-            padding: EdgeInsets.only(right: 10.0),
-            child: ShimmerLoading(width: 160, height: 200)),
+          padding: EdgeInsets.only(right: 10.0),
+          child: ShimmerLoading(width: 160, height: 200),
+        ),
       ),
     );
   }
