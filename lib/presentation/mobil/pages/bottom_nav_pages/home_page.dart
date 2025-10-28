@@ -164,11 +164,14 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildCampaignSection(
       final LoadableState<dynamic, List<Campaign>> state) {
     if (state.isLoading)
-      return Center(
-          child: ShimmerLoading(
-        height: MediaQuery.of(context).size.height * 0.3,
-        width: MediaQuery.of(context).size.width * 0.5,
-      ));
+      return Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Center(
+            child: ShimmerLoading(
+          height: MediaQuery.of(context).size.height * 0.2,
+          width: MediaQuery.of(context).size.width * 0.9,
+        )),
+      );
 
     if (state.hasError)
       return _buildErrorWidget(state.errorMessage ?? 'Kampanyalar yüklenemedi');
