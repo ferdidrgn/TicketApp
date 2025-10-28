@@ -18,7 +18,6 @@ class GetTeamByIdUseCaseImpl implements GetTeamByIdUseCase {
 
     return result.fold(
         (final failure) => Left(failure),
-        // Hata durumunda olduğu gibi döndürülür.
         (final teamsModels) => Right(teamsModels
                 ?.map((final teamModel) => teamModel?.toEntity())
                 .whereType<Team>()

@@ -2,56 +2,56 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../model/player_model.dart';
 
 abstract class PlayerRemoteDataSource {
-  Future<List<PlayerModel?>?> getPlayers(final isLimit);
-  Future<List<PlayerModel?>?> getPlayersByIds(final List<String> playersIds);
+  Future<List<PlayerModel?>?> getPlayers(final bool isLimit);
+
+  Future<List<PlayerModel?>?> getPlayersByIds(final List<String> playerIds);
 }
 
 class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
-  final FirebaseFirestore firestore;
+  final FirebaseFirestore _firestore;
 
-  PlayerRemoteDataSourceImpl({required this.firestore});
+  const PlayerRemoteDataSourceImpl({required final FirebaseFirestore firestore})
+      : _firestore = firestore;
 
   @override
-  Future<List<PlayerModel>> getPlayers(final isLimit) async {
+  Future<List<PlayerModel?>?> getPlayers(final bool isLimit) async {
     try {
-      final querySnapshot = isLimit
-          ? await firestore
-              .collection('Player')
-              .orderBy('_createdAt', descending: true)
-              .limit(20)
-              .get()
-          : await firestore.collection('Player').get();
+      final query = _firestore.collection('Player');
+      final snapshot = isLimit
+          ? await query.orderBy('_createdAt', descending: true).limit(20).get()
+          : await query.get();
 
-      if (querySnapshot.docs.isEmpty) return [];
-      return _convertQuerySnapshotToPlayerList(querySnapshot);
+      return snapshot.docs.isEmpty ? [] : _mapToPlayers(snapshot);
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (getPlayers): ${e.message}');
     } catch (e) {
-      throw Exception('Error fetching players: ${e.toString()}');
+      throw Exception('Oyuncular alınamadı: $e');
     }
   }
 
   @override
-  Future<List<PlayerModel?>?> getPlayersByIds(final List<String> playersIds) async {
+  Future<List<PlayerModel?>?> getPlayersByIds(
+      final List<String> playerIds) async {
+    if (playerIds.isEmpty) return [];
 
     try {
-      if (playersIds.isEmpty) throw Exception('Players IDs cannot be empty.');
-
-      final querySnapshot = await firestore
+      final snapshot = await _firestore
           .collection('Player')
-          .where(FieldPath.documentId, whereIn: playersIds)
+          .where(FieldPath.documentId, whereIn: playerIds)
           .get();
 
-      if (querySnapshot.docs.isEmpty) return [];
-      return _convertQuerySnapshotToPlayerList(querySnapshot);
-    } catch (error) {
-      throw Exception('Error fetching players by IDs: ${error.toString()}');
+      return snapshot.docs.isEmpty ? [] : _mapToPlayers(snapshot);
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (getPlayersByIds): ${e.message}');
+    } catch (e) {
+      throw Exception('Belirtilen ID\'lerdeki oyuncular alınamadı: $e');
     }
   }
 
-  // Convert Firestore document to Player model
-  List<PlayerModel> _convertQuerySnapshotToPlayerList(
-      final QuerySnapshot<Map<String, dynamic>> snapshot) {
-    return snapshot.docs
-        .map((final doc) => PlayerModel.fromFirestore(doc.data()))
-        .toList();
-  }
+  /// Firestore belgelerini [PlayerModel] listesine dönüştürür.
+  List<PlayerModel> _mapToPlayers(
+          final QuerySnapshot<Map<String, dynamic>> snapshot) =>
+      snapshot.docs
+          .map((final doc) => PlayerModel.fromFirestore(doc.data()))
+          .toList();
 }

@@ -13,42 +13,40 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
 
   Future<void> addShow(final ShowModel show, final Uri? imageUrl) =>
       executeWithInternetCheck(
-          () => ref.read(addShowUseCaseProvider).call(show, imageUrl));
-
-  //success leri geitr
+          () => ref.read(addShowUseCaseProvider).call(show, imageUrl),
+          onSuccess: (final _) {});
 
   Future<void> deleteShow(final String? showId) => executeWithInternetCheck(
-      () => ref.read(deleteShowUseCaseProvider).call(showId));
+      () => ref.read(deleteShowUseCaseProvider).call(showId),
+      onSuccess: (final _) {});
 
   Future<void> updateShow(
           final String showId, final Map<String, dynamic> updatedData) =>
       executeWithInternetCheck(
-          () => ref.read(updateShowUseCaseProvider).call(showId, updatedData));
+          () => ref.read(updateShowUseCaseProvider).call(showId, updatedData),
+          onSuccess: (final _) {});
 
   Future<void> loadShowsByIds(final List<String> showsIds) =>
       executeWithInternetCheck(
           () => ref.read(getShowsByIdsUseCaseProvider).call(showsIds),
-          onSuccess: (final shows) => _setShowOperations);
+          onSuccess: (final shows) => _setShowLoaded(shows));
 
   Future<void> loadShows(final bool isLimit) => executeWithInternetCheck(
       () => ref.read(getShowsUseCaseProvider).call(isLimit),
-      onSuccess: (final shows) => _setShowOperations);
+      onSuccess: (final shows) => _setShowLoaded(shows));
 
   Future<void> searchShows(final List<String> categories, final String? type) =>
       executeWithInternetCheck(
           () => ref.read(getSearchShowUseCaseProvider).call(categories, type),
-          onSuccess: (final shows) => _setShowOperations);
+          onSuccess: (final shows) => _setShowLoaded(shows));
 
   void clearShows() =>
       state = state.copyWith(dataList: const [], dataSingle: null);
 
-  void _setShowOperations(final List<Show>? shows) {
-    state = state.copyWith(
+  void _setShowLoaded(final List<Show>? shows) => state = state.copyWith(
       dataList: shows,
       dataSingle: shows?.length == 1 ? shows!.first : state.dataSingle,
-      errorMessage: null,
-    );
-  }
+      errorMessage: null);
 }
 
 /// ShowState için extension metodlar

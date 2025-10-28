@@ -14,10 +14,11 @@ class UserRepositoryImpl extends BaseRepository implements UserRepository {
   });
 
   @override
-  Future<Either<Failure, void>> saveUser(final UserModel user, final String downloadUrl, {final bool isUpdate = false}) async {
-    return execute(() async {
-      await remoteDataSource.saveUser(user, downloadUrl, isUpdate: isUpdate);
-    });
+  Future<Either<Failure, bool>> saveUser(
+      final UserModel user, final String downloadUrl,
+      {final bool isUpdate = false}) async {
+    return execute(
+        () => remoteDataSource.saveUser(user, downloadUrl, isUpdate: isUpdate));
   }
 
   @override
@@ -29,10 +30,11 @@ class UserRepositoryImpl extends BaseRepository implements UserRepository {
   }
 
   @override
-  Future<Either<Failure, void>> deleteUser(final String userId) async {
+  Future<Either<Failure, bool>> deleteUser(final String userId) async {
     return execute(() async {
       if (userId.isEmpty) throw Exception('User ID cannot be empty.');
       await remoteDataSource.deleteUser(userId);
+      return true;
     });
   }
 }

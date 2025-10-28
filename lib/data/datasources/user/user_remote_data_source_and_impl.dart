@@ -2,59 +2,63 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../model/user_model.dart';
 
 abstract class UserRemoteDataSource {
-  Future<void> saveUser(final UserModel user, final String downloadUrl, {final bool isUpdate = false});
+  Future<bool> saveUser(final UserModel user, final String downloadUrl,
+      {final bool isUpdate = false});
+
   Future<UserModel?> getUserById(final String userId);
-  Future<void> deleteUser(final String userId);
+
+  Future<bool> deleteUser(final String userId);
 }
 
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
-  final FirebaseFirestore firestore;
+  final FirebaseFirestore _firestore;
+  static const _collection = 'User';
 
-  UserRemoteDataSourceImpl({required this.firestore});
+  UserRemoteDataSourceImpl({required final FirebaseFirestore firestore})
+      : _firestore = firestore;
 
   @override
-  Future<void> saveUser(final UserModel user, final String downloadUrl, {final bool isUpdate = false}) async {
+  Future<bool> saveUser(final UserModel user, final String downloadUrl,
+      {final bool isUpdate = false}) async {
+    final docRef = _firestore.collection(_collection).doc(user.id);
+
     try {
+      final exists = (await docRef.get()).exists;
+      if (exists && !isUpdate) return false;
 
-      final docRef = firestore.collection('User').doc(user.id);
-      final docSnapshot = await docRef.get();
+      final userMap = {
+        ...user.toFirestore(),
+        'imageUrl': downloadUrl,
+      };
 
-      if (docSnapshot.exists && !isUpdate) {
-        print('User with ID ${user.id} already exists. Skipping save operation.');
-        return;
-      }
-
-      final Map<String, dynamic> userMap = user.toFirestore()..['imageUrl'] = downloadUrl;
-
-      isUpdate ? await docRef.update(userMap) : await docRef.set(userMap);
-    } catch (e) {
-      throw Exception('Error saving user: ${e.toString()}');
+      await (isUpdate ? docRef.update(userMap) : docRef.set(userMap));
+      return true;
+    } catch (e, s) {
+      throw Exception('Failed to save user → $e\n$s');
     }
   }
 
   @override
   Future<UserModel?> getUserById(final String userId) async {
+    if (userId.isEmpty) throw Exception('User ID cannot be empty');
 
     try {
-      if (userId.isEmpty) throw Exception('User ID cannot be empty.');
-
-      final doc = await firestore.collection('User').doc(userId).get();
-      if (doc.exists) return UserModel.fromFirestore(doc.data());
-      else return  null;
-    } catch (e) {
-      throw Exception('Error fetching user: ${e.toString()}');
+      final doc = await _firestore.collection(_collection).doc(userId).get();
+      return doc.exists ? UserModel.fromFirestore(doc.data()) : null;
+    } catch (e, s) {
+      throw Exception('Failed to fetch user → $e\n$s');
     }
   }
 
   @override
-  Future<void> deleteUser(final String userId) async {
+  Future<bool> deleteUser(final String userId) async {
+    if (userId.isEmpty) throw Exception('User ID cannot be empty');
 
     try {
-      if (userId.isEmpty) throw Exception('User ID cannot be empty.');
-
-      await firestore.collection('User').doc(userId).delete();
-    } catch (e) {
-      throw Exception('Error deleting user: ${e.toString()}');
+      await _firestore.collection(_collection).doc(userId).delete();
+      return true;
+    } catch (e, s) {
+      throw Exception('Failed to delete user → $e\n$s');
     }
   }
 }

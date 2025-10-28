@@ -10,8 +10,6 @@ class CampaignNotifier extends BaseNotifierWithNetworkChecker<CampaignState> {
   void reloadData() => loadCampaigns();
 
   Future<void> loadCampaigns() => executeWithInternetCheck(
-        () => ref.read(getCampaignsUseCaseProvider).call(),
-        onSuccess: (final campaigns) =>
-            state = state.copyWith(dataList: campaigns),
-      );
+      () => ref.read(getCampaignsUseCaseProvider).call(),
+      onSuccess: (final campaigns) => state = state.copyWith(dataList: campaigns));
 }

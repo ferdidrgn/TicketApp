@@ -14,19 +14,17 @@ class UserNotifier extends BaseNotifierWithNetworkChecker<UserState> {
   }
 
   Future<void> loadUserById(final String userId) => executeWithInternetCheck(
-        () => ref.read(getUserByIdUseCaseProvider).call(userId),
-        onSuccess: (final user) =>
-            state = state.copyWith(dataSingle: user, errorMessage: null),
-      );
+      () => ref.read(getUserByIdUseCaseProvider).call(userId),
+      onSuccess: (final user) =>
+          state = state.copyWith(dataSingle: user, errorMessage: null));
 
   Future<void> saveUser(final User user, final String downloadUrl,
           {final bool isUpdate = false}) =>
-      executeWithInternetCheck(
-        () => ref
-            .read(saveUserUseCaseProvider)
-            .call(UserModel.fromEntity(user), downloadUrl, isUpdate: isUpdate),
-      );
+      executeWithInternetCheck(() => ref
+          .read(saveUserUseCaseProvider)
+          .call(UserModel.fromEntity(user), downloadUrl, isUpdate: isUpdate));
 
   Future<void> deleteUser(final String userId) => executeWithInternetCheck(
-      () => ref.read(deleteUserUseCaseProvider).call(userId));
+      () => ref.read(deleteUserUseCaseProvider).call(userId),
+      onSuccess: (final _) {});
 }

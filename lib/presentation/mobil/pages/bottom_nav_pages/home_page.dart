@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/data/providers/campaign/campaign_notifier.dart';
 import 'package:ticketapp/data/providers/campaign/campaign_provider.dart';
 import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
@@ -107,8 +106,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Column(
                 children: [
                   if (campaignState.hasData)
-                    _buildCampaignSlider(
-                        campaignState.dataList!.cast<Campaign>()),
+                    _buildCampaignSlider(campaignState.dataList ?? []),
                   CustomSearchBar(
                       onSearchTap: () => _navigateToPage(const SearchPage())),
                   const SizedBox(height: 20),
@@ -120,9 +118,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   _buildStageList(stageState.dataList ?? []),
                   const CustomSectionTitle(title: 'Oyunlardan Kareler'),
                   _buildHorizontalList(
-                    items: List.generate(6, (final index) => index),
-                    itemBuilder: _buildGamePhotoCard,
-                  ),
+                      items: List.generate(6, (final index) => index),
+                      itemBuilder: _buildGamePhotoCard),
                   const SizedBox(height: 50),
                 ],
               ),

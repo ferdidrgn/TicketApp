@@ -3,75 +3,75 @@ import '../../model/stage_model.dart';
 
 abstract class StageRemoteDataSource {
   Future<List<StageModel?>?> getSearchStage(final String query);
-  Future<List<StageModel?>?> getStages(final isLimit);
-  Future<List<StageModel?>?> getStagesByIds(final List<String> stagesIds);
+
+  Future<List<StageModel?>?> getStages(final bool isLimit);
+
+  Future<List<StageModel?>?> getStagesByIds(final List<String> stageIds);
 }
 
 class StageRemoteDataSourceImpl implements StageRemoteDataSource {
-  final FirebaseFirestore firestore;
+  final FirebaseFirestore _firestore;
+  static const _collection = 'Stage';
 
-  StageRemoteDataSourceImpl({required this.firestore});
+  const StageRemoteDataSourceImpl({required final FirebaseFirestore firestore})
+      : _firestore = firestore;
 
   @override
   Future<List<StageModel?>?> getSearchStage(final String query) async {
+    if (query.isEmpty) throw Exception('Arama sorgusu boş olamaz.');
 
     try {
-      if (query.isEmpty) throw Exception('Query cannot be empty.');
-
-      final snapshot = await firestore
-          .collection('Stage')
+      final snapshot = await _firestore
+          .collection(_collection)
           .where('name', isGreaterThanOrEqualTo: query)
           .where('name', isLessThanOrEqualTo: '$query\uf8ff')
           .get();
 
-      if (snapshot.docs.isEmpty) return [];
-      return _convertQuerySnapshotToStageList(snapshot);
+      return snapshot.docs.isEmpty ? [] : _mapToStages(snapshot);
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (getSearchStage): ${e.message}');
     } catch (e) {
-      throw Exception('Error fetching stages: $e');
+      throw Exception('Sahneler alınamadı: $e');
     }
   }
 
   @override
-  Future<List<StageModel?>?> getStages(final isLimit) async {
+  Future<List<StageModel?>?> getStages(final bool isLimit) async {
     try {
+      final query = _firestore.collection(_collection);
       final snapshot = isLimit
-          ? await firestore
-          .collection('Stage')
-          .orderBy('_createdAt', descending: true)
-          .limit(20)
-          .get()
-          : await firestore.collection('Stage').get();
+          ? await query.orderBy('_createdAt', descending: true).limit(20).get()
+          : await query.get();
 
-      if (snapshot.docs.isEmpty) return [];
-      return _convertQuerySnapshotToStageList(snapshot);
+      return snapshot.docs.isEmpty ? [] : _mapToStages(snapshot);
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (getStages): ${e.message}');
     } catch (e) {
-      throw Exception('Error fetching stages: $e');
+      throw Exception('Sahneler alınamadı: $e');
     }
   }
 
   @override
-  Future<List<StageModel?>?> getStagesByIds(final List<String> stagesIds) async {
+  Future<List<StageModel?>?> getStagesByIds(final List<String> stageIds) async {
+    if (stageIds.isEmpty) return [];
 
     try {
-      if (stagesIds.isEmpty) throw Exception('Stage ID cannot be empty.');
-
-      final result = await firestore
-          .collection('Stage')
-          .where(FieldPath.documentId, whereIn: stagesIds)
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where(FieldPath.documentId, whereIn: stageIds)
           .get();
 
-      if (result.docs.isEmpty) return [];
-      return _convertQuerySnapshotToStageList(result);
-    } catch (error) {
-      throw Exception('Error fetching stage: $error');
+      return snapshot.docs.isEmpty ? [] : _mapToStages(snapshot);
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (getStagesByIds): ${e.message}');
+    } catch (e) {
+      throw Exception('Belirtilen sahneler alınamadı: $e');
     }
   }
 
-// Convert Firestore document to StageModel
-  List<StageModel> _convertQuerySnapshotToStageList(
-      final QuerySnapshot snapshot) {
-    return snapshot.docs.map((final doc) {
-      return StageModel.fromFirestore(doc.data()! as Map<String, dynamic>);
-    }).toList();
-  }
+  /// Firestore belgelerini [StageModel] listesine dönüştürür
+  List<StageModel> _mapToStages(final QuerySnapshot snapshot) => snapshot.docs
+      .map((final doc) =>
+          StageModel.fromFirestore(doc.data()! as Map<String, dynamic>))
+      .toList();
 }

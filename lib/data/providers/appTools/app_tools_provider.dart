@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/data/repository/appTools/app_tools_provider.dart';
+import 'package:ticketapp/data/repository/appTools/app_tools_repository_provider.dart';
 import 'package:ticketapp/domain/useCase/appTools/get_privacy_policy_use_case_impl.dart';
 import 'package:ticketapp/domain/useCase/appTools/get_terms_condition_use_case_impl.dart';
 

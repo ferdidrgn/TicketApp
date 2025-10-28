@@ -8,18 +8,19 @@ abstract class CampaignRemoteDataSource {
 class CampaignRemoteDataSourceImpl implements CampaignRemoteDataSource {
   final FirebaseFirestore firestore;
 
-  CampaignRemoteDataSourceImpl({required this.firestore});
+  const CampaignRemoteDataSourceImpl({required this.firestore});
 
   @override
   Future<List<CampaignModel?>?> getCampaigns() async {
     try {
       final snapshot = await firestore.collection('Campaign').get();
-      if (snapshot.docs.isEmpty) return null;
       return snapshot.docs
           .map((final doc) => CampaignModel.fromFirestore(doc.data()))
           .toList();
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore error: ${e.message}');
     } catch (e) {
-      throw Exception('Error fetching campaigns: $e');
+      throw Exception('Unknown error fetching campaigns: $e');
     }
   }
 }

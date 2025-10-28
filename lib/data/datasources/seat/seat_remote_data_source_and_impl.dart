@@ -5,28 +5,39 @@ abstract class SeatRemoteDataSource {
 }
 
 class SeatRemoteDataSourceImpl implements SeatRemoteDataSource {
-  final FirebaseFirestore firestore;
+  final FirebaseFirestore _firestore;
+  static const _collection = 'Seats';
 
-  SeatRemoteDataSourceImpl({required this.firestore});
+  const SeatRemoteDataSourceImpl({required final FirebaseFirestore firestore})
+      : _firestore = firestore;
 
   @override
   Future<Map<String, List<String?>?>?> getSeatsByStage(final String stageId) async {
+    if (stageId.isEmpty) throw Exception('Stage ID boş olamaz.');
+
     try {
-      if (stageId.isEmpty) throw Exception('Stage ID boş olamaz.');
+      final doc = await _firestore.collection(_collection).doc(stageId).get();
 
-      final DocumentSnapshot doc = await firestore.collection('Seats').doc(stageId).get();
-      if (doc.exists) {
-        final Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
-        final Map<String, List<String>> seats = {};
-        data.forEach((final row, final seatList) {
-          seats[row] = List<String>.from(seatList);
-        });
+      if (!doc.exists) throw Exception('Belirtilen sahne bulunamadı.');
 
-        if (seats.isEmpty) throw Exception('Sahne bulunamadı.');
-        return seats;
-      } else throw Exception('Belirtilen sahne bulunamadı.');
+      final data = doc.data();
+      if (data == null || data.isEmpty)
+        throw Exception('Sahne verisi boş veya geçersiz.');
+
+      // Map<String, List<String>> olarak dönüştür
+      final seats = <String, List<String>>{};
+      data.forEach((final row, final seatList) {
+        if (seatList is List)
+          seats[row] = seatList.whereType<String>().toList();
+      });
+
+      if (seats.isEmpty) throw Exception('Sahne üzerinde koltuk bulunamadı.');
+
+      return seats;
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (getSeatsByStage): ${e.message}');
     } catch (e) {
-      throw Exception('Error fetching seats: $e');
+      throw Exception('Koltuklar alınamadı: $e');
     }
   }
 }

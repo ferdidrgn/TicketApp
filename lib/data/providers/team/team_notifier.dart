@@ -9,7 +9,7 @@ class TeamNotifier extends BaseNotifierWithNetworkChecker<TeamState> {
   @override
   void reloadData() => loadTeams(false);
 
-  Future<void> loadTeams(final isLimit) => executeWithInternetCheck(
+  Future<void> loadTeams(final bool isLimit) => executeWithInternetCheck(
         () => ref.read(getTeamsUseCaseProvider).call(isLimit),
         onSuccess: (final teams) => state = state.copyWith(dataList: teams),
       );

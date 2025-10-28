@@ -14,9 +14,9 @@ class PlayerNotifier extends BaseNotifierWithNetworkChecker<PlayerState> {
 
   Future<void> refresh() => getPlayers(false);
 
-  Future<void> getPlayers(final isLimit) => executeWithInternetCheck(
+  Future<void> getPlayers(final bool isLimit) => executeWithInternetCheck(
         () => ref.read(getPlayersUseCaseProvider).call(isLimit),
-        onSuccess: _handlePlayersLoaded,
+        onSuccess: (final players) => _setPlayersLoaded(players),
       );
 
   Future<void> getPlayersByIds(final List<String> playerIds) async {
@@ -28,12 +28,15 @@ class PlayerNotifier extends BaseNotifierWithNetworkChecker<PlayerState> {
 
     await executeWithInternetCheck(
       () => ref.read(getPlayerByIdUseCaseProvider).call(playerIds),
-      onSuccess: _handlePlayersLoaded,
+      onSuccess: (final players) => _setPlayersLoaded(players),
     );
   }
 
-  void _handlePlayersLoaded(final List<Player>? players) =>
-      state = state.copyWith(dataList: players);
+  void _setPlayersLoaded(final List<Player>? players) =>
+      state = state.copyWith(
+          dataList: players,
+          dataSingle: players?.length == 1 ? players!.first : state.dataSingle,
+          errorMessage: null);
 }
 
 /// PlayerState için yardımcı metodlar sağlayan extension

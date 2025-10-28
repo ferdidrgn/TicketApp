@@ -9,39 +9,42 @@ abstract class TicketRemoteDataSource {
 }
 
 class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
-  final FirebaseFirestore firestore;
+  final FirebaseFirestore _firestore;
+  static const _collection = 'Ticket';
 
-  TicketRemoteDataSourceImpl({required this.firestore});
+  TicketRemoteDataSourceImpl({required final FirebaseFirestore firestore})
+      : _firestore = firestore;
 
   @override
-  Future<List<TicketModel?>?> getTicketsByIds(
-      final List<String> ticketIds) async {
+  Future<List<TicketModel?>?> getTicketsByIds(final List<String> ticketIds) async {
     if (ticketIds.isEmpty) return [];
 
     try {
-      final snapshot = await firestore
-          .collection('Ticket')
+      final snapshot = await _firestore
+          .collection(_collection)
           .where(FieldPath.documentId, whereIn: ticketIds)
           .get();
 
       return snapshot.docs
           .map((final doc) => TicketModel.fromFirestore(doc.data()))
           .toList();
-    } catch (e) {
-      throw Exception('Error fetching tickets: $e');
+    } catch (e, s) {
+      throw Exception('Failed to fetch tickets → $e\n$s');
     }
   }
 
   @override
   Future<bool> createTicket(final Ticket ticket) async {
     try {
-      final docRef = firestore.collection('Ticket').doc();
-      final ticketMap = TicketModel.fromEntity(ticket).toFirestore()
-        ..['_id'] = docRef.id;
+      final docRef = _firestore.collection(_collection).doc();
+      final ticketMap = {
+        ...TicketModel.fromEntity(ticket).toFirestore(),
+        '_id': docRef.id,
+      };
       await docRef.set(ticketMap);
       return true;
-    } catch (e) {
-      throw Exception('Error saving ticket: $e');
+    } catch (e, s) {
+      throw Exception('Failed to create ticket → $e\n$s');
     }
   }
 }

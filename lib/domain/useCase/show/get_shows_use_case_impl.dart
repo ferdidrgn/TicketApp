@@ -13,7 +13,7 @@ class GetShowsUseCaseImpl implements GetShowsUseCase {
   GetShowsUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Show>>> call(final isLimit) async {
+  Future<Either<Failure, List<Show>>> call(final bool isLimit) async {
     final result = await repository.getShows(isLimit);
     return result.fold(
         (final failure) => Left(failure),

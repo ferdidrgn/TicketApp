@@ -41,7 +41,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
   Future<void> _loadInitialData() async {
     _subscribeSeatStatus();
-    loadEventsByIds([state.eventId]);
+    await loadEventsByIds([state.eventId]);
     _startReservationTimer();
   }
 
@@ -157,39 +157,24 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       errorMessage: null,
     );
 
-    executeWithInternetCheck(
-          () => ref
-              .read(attemptReservationUseCaseProvider)
-              .call(state.eventId, seatId, state.customerId),
-      onSuccess: (final success) {
-        if (!_isDisposed && !success)
-          _showTemporaryError("Koltuk başkası tarafından seçildi.");
-      },
-    );
-
-    try {
-      final result = await ref
+    await executeWithInternetCheck(
+      () => ref
           .read(attemptReservationUseCaseProvider)
-          .call(state.eventId, seatId, state.customerId);
-
-      result.fold(
-        (final failure) {
-          if (!_isDisposed) _showTemporaryError(failure.message);
-        },
-        (final success) {
+          .call(state.eventId, seatId, state.customerId),
+      onSuccess: (final success) {
+        try {
           if (!_isDisposed && !success)
             _showTemporaryError("Koltuk başkası tarafından seçildi.");
-        },
-      );
-    } catch (e) {
-      if (!_isDisposed)
-        _showTemporaryError("Rezervasyon hatası: ${e.toString()}");
-    } finally {
-      if (!_isDisposed)
-        state = state.copyWith(
-          processingSeats: {...state.processingSeats}..remove(seatId),
-        );
-    }
+        } catch (e) {
+          if (!_isDisposed)
+            _showTemporaryError("Rezervasyon hatası: ${e.toString()}");
+        } finally {
+          if (!_isDisposed)
+            state = state.copyWith(
+                processingSeats: {...state.processingSeats}..remove(seatId));
+        }
+      },
+    );
   }
 
   // Koltuk çıkar

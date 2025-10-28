@@ -1,3 +1,4 @@
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
 import 'login_provider.dart';
 import 'login_state.dart';
@@ -10,17 +11,16 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
   void reloadData() => getCurrentUser();
 
   Future<void> getCurrentUser() => executeWithInternetCheck(
-        () => ref.read(getCurrentUserUseCaseProvider).call(),
-        onSuccess: (final user) =>
-            state = state.copyWith(user: user, errorMessage: null),
-      );
+      () => ref.read(getCurrentUserUseCaseProvider).call(),
+      onSuccess: (final user) =>
+          state = state.copyWith(user: user, errorMessage: null));
 
   Future<void> signInWithGoogle() => executeWithInternetCheck(
-        () => ref.read(signInWithGoogleUseCaseProvider).call(),
-        onSuccess: (final googleUser) => _handleGoogleSignInSuccess(googleUser),
-      );
+      () => ref.read(signInWithGoogleUseCaseProvider).call(),
+      onSuccess: (final googleUser) => _handleGoogleSignInSuccess(googleUser));
 
-  Future<void> _handleGoogleSignInSuccess(final googleUser) async {
+  Future<void> _handleGoogleSignInSuccess(
+      final GoogleSignInAccount? googleUser) async {
     state = state.copyWith(googleUser: googleUser);
     final userResult = await ref.read(getCurrentUserUseCaseProvider).call();
     userResult.fold(
@@ -62,9 +62,8 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
 
   Future<void> verifyOtp(final String verificationId, final String otp) =>
       executeWithInternetCheck(
-        () => ref.read(verifyOtpUseCaseProvider).call(verificationId, otp),
-        onSuccess: (final success) => _handleOtpVerificationResult(success),
-      );
+          () => ref.read(verifyOtpUseCaseProvider).call(verificationId, otp),
+          onSuccess: (final success) => _handleOtpVerificationResult(success));
 
   Future<void> _handleOtpVerificationResult(final bool success) async {
     if (!success) {

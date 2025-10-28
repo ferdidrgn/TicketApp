@@ -23,7 +23,7 @@ class StageRepositoryImpl extends BaseRepository implements StageRepository {
   }
 
   @override
-  Future<Either<Failure, List<StageModel?>?>> getStages(final isLimit) async {
+  Future<Either<Failure, List<StageModel?>?>> getStages(final bool isLimit) async {
     return execute(() async {
       if (isLimit == null) throw Exception('isLimit cannot be null.');
       return remoteDataSource.getStages(isLimit);

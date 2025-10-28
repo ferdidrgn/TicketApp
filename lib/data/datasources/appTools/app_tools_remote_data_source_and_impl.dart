@@ -7,7 +7,6 @@ abstract class AppToolsRemoteDataSource {
 
 class AppToolsRemoteDataSourceImpl implements AppToolsRemoteDataSource {
   final FirebaseFirestore firestore;
-  final String docId = 'bgVYTTauB9gwd1qOyjix';
 
   AppToolsRemoteDataSourceImpl({required this.firestore});
 
@@ -18,17 +17,25 @@ class AppToolsRemoteDataSourceImpl implements AppToolsRemoteDataSource {
   Future<String?> getTermsCondition() => _getField('termsAndCondition');
 
   Future<String?> _getField(final String field) async {
-    final settings = await _getAppSettings();
-    return settings?[field] as String?;
+    try {
+      final settings = await _getAppSettings();
+      return settings?[field] as String?;
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>?> _getAppSettings() async {
     try {
-      final doc = await firestore.collection('AppTools').doc(docId).get();
-      return doc.exists ? doc.data() : null;
+      final doc = await firestore
+          .collection('AppTools')
+          .doc('bgVYTTauB9gwd1qOyjix')
+          .get();
+      return doc.data();
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore error: ${e.message}');
     } catch (e) {
-      throw Exception('Error fetching app settings: $e');
+      throw Exception('Unknown error fetching app settings: $e');
     }
   }
-
 }
