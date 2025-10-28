@@ -31,21 +31,21 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   final PageController _pageController = PageController();
+  Timer? _autoScrollTimer;
   int _currentPage = 0;
-  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    // Widget tree tamamlandıktan sonra timer başlat
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _loadAllData();
       _startAutoScroll();
     });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _autoScrollTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -57,14 +57,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _startAutoScroll() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 10), (final _) {
-      final campaigns = ref.read(campaignProvider).dataList;
-      if (campaigns == null || campaigns.isEmpty) return;
-      _currentPage = (_currentPage + 1) % campaigns.length;
+    final campaigns = ref.read(campaignProvider).dataList ?? [];
+    if (campaigns.isEmpty) return; // boşsa auto-scroll başlatma
+
+    _autoScrollTimer = Timer.periodic(Duration(seconds: 3), (final _) {
+      if (!_pageController.hasClients) return;
+      final nextPage = (_pageController.page?.round() ?? 0) + 1;
       _pageController.animateToPage(
-        _currentPage,
-        duration: const Duration(milliseconds: 600),
+        nextPage % campaigns.length,
+        duration: Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     });
@@ -75,9 +76,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _resolveDetailPage(final String url) {
     final id = url.split('/').last;
-    if (url.contains('shows')) return PlayerDetailPage(playerId: id);
-    if (url.contains('stage')) return StageDetailPage(stageId: id);
-    if (url.contains('show')) return ShowDetailPage(showId: id);
+    if (url.contains('/shows')) return PlayerDetailPage(playerId: id);
+    if (url.contains('/show')) return ShowDetailPage(showId: id);
+    if (url.contains('/stage')) return StageDetailPage(stageId: id);
     throw Exception('Unknown URL: $url');
   }
 
@@ -186,6 +187,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             itemCount: campaigns.length,
             currentIndex: _currentPage,
             onPageSelected: (final page) {
+              if (!_pageController.hasClients) return;
               _pageController.animateToPage(
                 page,
                 duration: const Duration(milliseconds: 500),
