@@ -205,13 +205,14 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     final ref = _eventCollection.doc(eventId);
     final batch = firestore.batch();
 
-    for (final id in seatIds)
+    for (final id in seatIds) {
       batch.update(ref, {
         'seats.$id.status': 'sold',
         'seats.$id.customerId': customerId,
         'seats.$id.reservedAt': FieldValue.serverTimestamp(),
         //ya da DateTime.now().toIso8601String()
       });
+    }
 
     try {
       await batch.commit();
