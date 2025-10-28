@@ -62,12 +62,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         Timer.periodic(const Duration(seconds: 5), (final timer) {
       if (!_pageController.hasClients || !mounted) return;
 
-      final campaignState = ref.read(campaignProvider);
-      if (campaignState.hasData || campaignState.dataList is! List) return;
+      final campaigns = ref.read(campaignProvider).dataList;
+      if (campaigns == null || campaigns is! List || campaigns.isEmpty) return;
 
       final nextPage = (_pageController.page?.round() ?? 0) + 1;
       _pageController.animateToPage(
-        nextPage % campaignState.dataListLength,
+        nextPage % campaigns.length,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
@@ -91,8 +91,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     } catch (e) {
       debugPrint('Sayfa çözümlenemedi: $e');
       return Scaffold(
-          appBar: AppBar(),
-          body: const Center(child: Text('Sayfa yüklenemedi.')));
+        appBar: AppBar(),
+        body: const Center(child: Text('Sayfa yüklenemedi.')),
+      );
     }
   }
 
@@ -174,7 +175,11 @@ class _HomePageState extends ConsumerState<HomePage> {
       return _buildErrorWidget(state.errorMessage ?? 'Gösteriler yüklenemedi');
 
     // GÜVENLİK KONTROLÜ
-    if (state.hasData) return const SizedBox(height: 10);
+    if (state.dataList == null ||
+        state.dataList is! List ||
+        state.dataList!.isEmpty) {
+      return const SizedBox(height: 10);
+    }
 
     final shows = (state.dataList as List).cast<Show>();
     return _buildShowList(shows);
@@ -187,7 +192,11 @@ class _HomePageState extends ConsumerState<HomePage> {
       return _buildErrorWidget(state.errorMessage ?? 'Sahneler yüklenemedi');
 
     // GÜVENLİK KONTROLÜ
-    if (state.hasData) return const SizedBox(height: 10);
+    if (state.dataList == null ||
+        state.dataList is! List ||
+        state.dataList!.isEmpty) {
+      return const SizedBox(height: 10);
+    }
 
     final stages = (state.dataList as List).cast<Stage>();
     return _buildStageList(stages);
@@ -237,18 +246,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                           Container(
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
-                                  colors: [Colors.black87, Colors.transparent],
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.center),
+                                colors: [Colors.black87, Colors.transparent],
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.center,
+                              ),
                             ),
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
-                            child: Text(campaign.title,
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                    color: theme.colorScheme.onPrimary),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              campaign.title,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                  color: theme.colorScheme.onPrimary),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -264,9 +276,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             currentIndex: _currentPage % campaigns.length,
             onPageSelected: (final page) {
               if (!_pageController.hasClients) return;
-              _pageController.animateToPage(page,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeInOut);
+              _pageController.animateToPage(
+                page,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+              );
             },
           ),
         ],

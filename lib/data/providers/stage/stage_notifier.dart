@@ -32,12 +32,6 @@ class StageNotifier extends BaseNotifierWithNetworkChecker<StageState> {
 }
 
 extension StageStateX on StageState {
-  /// Belirli bir stage var mı?
-  bool hasStage(final String stageId) {
-    if (dataList == null) return false;
-    return dataList!.any((final stage) => stage.id == stageId);
-  }
-
   /// Belirli bir stage'yi getir
   Stage? getStageById(final String stageId) {
     if (dataList == null) return null;
@@ -47,12 +41,6 @@ extension StageStateX on StageState {
       return null;
     }
   }
-
-  /// Toplam stage sayısı
-  int get stageCount => dataList?.length ?? 0;
-
-  /// Stage listesi boş mu değil mi?
-  bool get hasData => dataList != null && dataList!.isNotEmpty;
 
   /// Tüm stage ID'leri
   List<String> get stageIds =>
