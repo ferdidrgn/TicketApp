@@ -120,7 +120,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
   Future<void> loadEventsByIds(final List<String> eventIds) =>
       executeWithInternetCheck(
-        () => ref.read(getEventsByIdsUesCaseProvider).call([state.eventId]),
+        () => ref.read(getEventsByIdsUseCaseProvider).call(eventIds),
         onSuccess: (final events) {
           _setEventsLoaded(events);
           if (state.dataListLength == 1) _setEventLoaded(events.first);

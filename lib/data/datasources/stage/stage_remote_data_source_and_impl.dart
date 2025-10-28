@@ -53,15 +53,15 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
 
   @override
   Future<List<StageModel?>?> getStagesByIds(final List<String> stageIds) async {
-    if (stageIds.isEmpty) return [];
-
     try {
-      final snapshot = await _firestore
+      if (stageIds.isEmpty) throw Exception('Stage ID cannot be empty.');
+
+      final result = await _firestore
           .collection(_collection)
           .where(FieldPath.documentId, whereIn: stageIds)
           .get();
 
-      return snapshot.docs.isEmpty ? [] : _mapToStages(snapshot);
+      return result.docs.isEmpty ? [] : _mapToStages(result);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getStagesByIds): ${e.message}');
     } catch (e) {

@@ -20,7 +20,7 @@ final initializeAndGetEventSeatsUseCaseProvider =
       InitializeAndGetEventSeatsUseCaseImpl(ref.watch(eventRepositoryProvider)),
 );
 
-final getEventsByIdsUesCaseProvider = Provider<GetEventsByIdsUseCase>(
+final getEventsByIdsUseCaseProvider = Provider<GetEventsByIdsUseCase>(
   (final ref) => GetEventsByIdsUseCaseImpl(ref.watch(eventRepositoryProvider)),
 );
 

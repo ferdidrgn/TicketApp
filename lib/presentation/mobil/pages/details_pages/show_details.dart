@@ -62,13 +62,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     }
 
     if (showData.eventsId.isNotEmpty)
-      unawaited(ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId));
+      unawaited(
+          ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId));
 
-
-    final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}.toList();
+    final allPlayerIds =
+        {...showData.nowPlayersId, ...showData.oldPlayersId}.toList();
     if (allPlayerIds.isNotEmpty)
-      unawaited(ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
-
+      unawaited(
+          ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
   }
 
   @override
@@ -90,8 +91,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         // Geçerli stageId'leri topla
         final stageIds = next.dataList!
             .map((final e) => e.stageId)
-            .where((final id) =>
-                id.isNotEmpty && id != '0') // Geçersiz ID'leri filtrele
+            .whereType<String>()
+            .where((final id) => id.trim().isNotEmpty && id != '0')
             .toSet()
             .toList();
         if (stageIds.isNotEmpty)
