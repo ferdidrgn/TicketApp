@@ -118,14 +118,11 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       );
   }
 
-  Future<void> loadEventsByIds(final List<String> eventIds) =>
-      executeWithInternetCheck(
+  Future<void> loadEventsByIds(final List<String> eventIds) async {
+    await executeWithInternetCheck(
         () => ref.read(getEventsByIdsUseCaseProvider).call(eventIds),
-        onSuccess: (final events) {
-          _setEventsLoaded(events);
-          if (state.dataListLength == 1) _setEventLoaded(events.first);
-        },
-      );
+        onSuccess: (final events) => _setEventLoaded(events));
+  }
 
   // Koltuk seçimi
   Future<void> toggleSeatSelection(final String seatId) async {
@@ -346,11 +343,10 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
-  void _setEventLoaded(final Event event) =>
-      state = state.copyWith(dataSingle: event, errorMessage: null);
-
-  void _setEventsLoaded(final List<Event>? events) =>
-      state = state.copyWith(dataList: events, errorMessage: null);
+  void _setEventLoaded(final List<Event>? events) => state = state.copyWith(
+      dataList: events,
+      dataSingle: events?.length == 1 ? events!.first : state.dataSingle,
+      errorMessage: null);
 
   // Geçici hata göster
   void _showTemporaryError(final String message) {
