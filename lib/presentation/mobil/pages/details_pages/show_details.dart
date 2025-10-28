@@ -68,7 +68,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId));
 
     final allPlayerIds =
-        [...showData.nowPlayersId, ...showData.oldPlayersId].toSet().toList();
+    [...showData.nowPlayersId, ...showData.oldPlayersId].toSet().toList();
 
     if (allPlayerIds.isNotEmpty)
       unawaited(
@@ -87,19 +87,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     // Event listesi yüklendiğinde Stage'leri yükle (arka planda)
     ref.listen<EventState>(eventProvider, (final previous, final next) {
       // Sadece event listesi ilk kez dolduğunda tetikle
-      final bool justLoadedEvents = (previous?.dataList?.isEmpty ?? true) &&
-          (next.dataList?.isNotEmpty ?? false);
+      final bool justLoadedEvents =
+          (previous?.dataList?.isEmpty ?? true) && (next.hasData);
 
       if (justLoadedEvents) {
         // Geçerli stageId'leri topla
-        final stageIds = next.dataList!
+        final List<String> stageIds = next.dataList!
             .map((final e) => e.stageId)
-            .where((final id) =>
-                id.isNotEmpty && id != '0') // Geçersiz ID'leri filtrele
+            .where((final id) => id.isNotEmpty)
             .toSet()
             .toList();
-        if (stageIds.isNotEmpty)
-          // Sahne yüklemesini de bekleme
+        if (stageIds.isNotEmpty) // Sahne yüklemesini de bekleme
           unawaited(ref.read(stageProvider.notifier).loadStagesByIds(stageIds));
       }
     });
@@ -111,13 +109,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         body: showState.isLoading && !showState.hasData
             ? const Center(child: CircularProgressIndicator())
             : (!showState.hasData)
-                ? Center(
-                    child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Text(showState.errorMessage ??
-                            'Gösteri bulunamadı veya yüklenemedi.')))
-                : _buildShowDetails(
-                    showData!, eventState, playerState, stageState));
+            ? Center(
+            child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(showState.errorMessage ??
+                    'Gösteri bulunamadı veya yüklenemedi.')))
+            : _buildShowDetails(
+            showData!, eventState, playerState, stageState));
   }
 
   Widget _buildShowDetails(final Show showData, final EventState eventState,
@@ -157,15 +155,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              placeholder: (final context, final url) => const ShimmerLoading(
+              placeholder: (final context, final url) =>
+              const ShimmerLoading(
                   width: double.infinity, height: double.infinity),
-              errorWidget: (final context, final url, final error) => Container(
-                  decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(20)),
-                  child: const Center(
-                      child: Icon(Icons.broken_image_outlined,
-                          size: 50, color: Colors.grey))),
+              errorWidget: (final context, final url, final error) =>
+                  Container(
+                      decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(20)),
+                      child: const Center(
+                          child: Icon(Icons.broken_image_outlined,
+                              size: 50, color: Colors.grey))),
             ),
           ),
         ),
@@ -187,52 +187,59 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   // --- Shimmer Placeholder Widget Metodları ---
 
   // Etkinlik listesi için Shimmer
-  Widget _buildShimmerList() => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15.0),
-      child: Column(
-          children: List.generate(
-              2,
-              (final index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: ShimmerLoading(
-                        width: double.infinity,
-                        height: 90), // Kart yüksekliğine yakın
-                  ))));
+  Widget _buildShimmerList() =>
+      Padding(
+          padding: const EdgeInsets.symmetric(vertical: 15.0),
+          child: Column(
+              children: List.generate(
+                  2,
+                      (final index) =>
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: ShimmerLoading(
+                            width: double.infinity,
+                            height: 90), // Kart yüksekliğine yakın
+                      ))));
 
   // Oyuncu listesi için Shimmer
-  Widget _buildShimmerRow() => SizedBox(
-      height: 170,
-      child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: 4, // Kaç tane placeholder gösterilecek
-          // Kenar boşlukları ayarlandı
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          itemBuilder: (final context, final index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                // Kartlar arasına boşluk
-                child: ShimmerLoading(
-                    height: 170, width: 120), // CustomStageCard boyutuna yakın
-              )));
+  Widget _buildShimmerRow() =>
+      SizedBox(
+          height: 170,
+          child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 4, // Kaç tane placeholder gösterilecek
+              // Kenar boşlukları ayarlandı
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              itemBuilder: (final context, final index) =>
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    // Kartlar arasına boşluk
+                    child: ShimmerLoading(
+                        height: 170,
+                        width: 120), // CustomStageCard boyutuna yakın
+                  )));
 
   // --- Alt Kart ve İçeriği ---
 
-  Widget _buildBottomSheetCard(
-      final BuildContext context,
+  Widget _buildBottomSheetCard(final BuildContext context,
       final Show showData,
       final EventState eventState,
       final PlayerState playerState,
       final StageState stageState) {
     final nowPlayerDataList =
-        playerState.getPlayersByIds(showData.nowPlayersId);
+    playerState.getPlayersByIds(showData.nowPlayersId);
     final oldPlayerDataList =
-        playerState.getPlayersByIds(showData.oldPlayersId);
+    playerState.getPlayersByIds(showData.oldPlayersId);
 
     return Container(
       padding: const EdgeInsets.only(top: 25, bottom: 20),
       margin: const EdgeInsets.only(top: 10),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme
+            .of(context)
+            .colorScheme
+            .surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
         boxShadow: [
           BoxShadow(
@@ -254,25 +261,28 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             const SizedBox(height: 15),
             if (eventState.isLoading && !eventState.hasData)
               _buildShimmerList()
-            else if (eventState.errorMessage != null)
-              _buildErrorWidget(
-                  'Etkinlikler yüklenemedi: ${eventState.errorMessage}')
-            else if (eventState.hasData &&
-                eventState.dataList!
-                    .any((final e) => showData.eventsId.contains(e.id)))
-              Column(
-                  children: eventState.dataList!
-                      .where((final e) => showData.eventsId.contains(e.id))
-                      .map((final event) {
-                final Stage? stage = stageState.getStageById(event.stageId);
-                final stageName = stageState.isLoading && stage == null
-                    ? "Yükleniyor..."
-                    : (stage?.name ?? "Sahne adı verisi yok");
-                return _buildEventCard(event.date.toString(), event.id,
-                    showData.id, stageName, "İstanbul");
-              }).toList())
             else
-              _buildEmptyListWidget('Yaklaşan etkinlik bulunmamaktadır.'),
+              if (eventState.errorMessage != null)
+                _buildErrorWidget(
+                    'Etkinlikler yüklenemedi: ${eventState.errorMessage}')
+              else
+                if (eventState.hasData &&
+                    eventState.dataList!
+                        .any((final e) => showData.eventsId.contains(e.id)))
+                  Column(
+                      children: eventState.dataList!
+                          .where((final e) => showData.eventsId.contains(e.id))
+                          .map((final event) {
+                        final Stage? stage = stageState.getStageById(
+                            event.stageId);
+                        final stageName = stageState.isLoading && stage == null
+                            ? "Yükleniyor..."
+                            : (stage?.name ?? "Sahne adı verisi yok");
+                        return _buildEventCard(event.date.toString(), event.id,
+                            showData.id, stageName, "İstanbul");
+                      }).toList())
+                else
+                  _buildEmptyListWidget('Yaklaşan etkinlik bulunmamaktadır.'),
             const SizedBox(height: 25),
             const CustomSectionTitle(title: 'Ekip', fontSize: 22),
             const SizedBox(height: 10),
@@ -298,15 +308,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   }
 
   // --- Etkinlik Kartı ---
-  Widget _buildEventCard(
-    final String date,
-    final String eventId,
-    final String showId,
-    final String stageName,
-    final String city,
-  ) {
+  Widget _buildEventCard(final String date,
+      final String eventId,
+      final String showId,
+      final String stageName,
+      final String city,) {
     final Map<String, String> formattedDate =
-        DateFormatter.formatForEventCard(date);
+    DateFormatter.formatForEventCard(date);
     final String dayText = formattedDate['day'] ?? '?';
     final String monthText =
         formattedDate['monthName'] ?? '-'; // Hata durumunda daha kısa metin
@@ -318,8 +326,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (final context) => SeatSelectionScreen(
-                  showId: showId, eventId: eventId, customerId: "test 2")),
+              builder: (final context) =>
+                  SeatSelectionScreen(
+                      showId: showId, eventId: eventId, customerId: "test 2")),
         );
       },
       borderRadius: BorderRadius.circular(12),
@@ -346,7 +355,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
               padding: const EdgeInsets.symmetric(vertical: 10),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+                color: Theme
+                    .of(context)
+                    .primaryColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -382,7 +393,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                   const SizedBox(height: 5),
                   Text("$city • $timeText", // Şehir • Saat
                       style:
-                          const TextStyle(fontSize: 14, color: Colors.black54),
+                      const TextStyle(fontSize: 14, color: Colors.black54),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis)
                 ],
@@ -505,12 +516,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             height: double.infinity,
             width: double.infinity,
             fit: BoxFit.cover,
-            placeholder: (final context, final url) => const ShimmerLoading(
+            placeholder: (final context, final url) =>
+            const ShimmerLoading(
                 width: double.infinity, height: double.infinity),
             errorWidget: (final context, final url, final error) =>
-                const Center(
-                    child: Icon(Icons.image_not_supported_outlined,
-                        color: Colors.grey))),
+            const Center(
+                child: Icon(Icons.image_not_supported_outlined,
+                    color: Colors.grey))),
       ),
     );
   }
@@ -534,7 +546,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Text(message,
               style: TextStyle(
-                  color: Theme.of(context).colorScheme.error, fontSize: 15),
+                  color: Theme
+                      .of(context)
+                      .colorScheme
+                      .error, fontSize: 15),
               textAlign: TextAlign.center),
         ),
       ),
@@ -557,11 +572,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                   imageUrl: photoUrl,
                   fit: BoxFit.contain, // Ekrana sığdır
                   placeholder: (final context, final url) =>
-                      const Center(child: CircularProgressIndicator()),
+                  const Center(child: CircularProgressIndicator()),
                   errorWidget: (final context, final url, final error) =>
-                      const Center(
-                          child: Icon(Icons.error_outline,
-                              color: Colors.white, size: 50))),
+                  const Center(
+                      child: Icon(Icons.error_outline,
+                          color: Colors.white, size: 50))),
             ),
           ),
         );

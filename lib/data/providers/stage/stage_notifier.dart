@@ -1,5 +1,6 @@
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
+import '../../../domain/entities/stage.dart';
 import 'stage_state.dart';
 
 class StageNotifier extends BaseNotifierWithNetworkChecker<StageState> {
@@ -38,7 +39,7 @@ extension StageStateX on StageState {
   }
 
   /// Belirli bir stage'yi getir
-  dynamic getStageById(final String stageId) {
+  Stage? getStageById(final String stageId) {
     if (dataList == null) return null;
     try {
       return dataList!.firstWhere((final stage) => stage.id == stageId);
