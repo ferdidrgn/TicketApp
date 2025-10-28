@@ -28,34 +28,60 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     super.initState();
     // Widget build edilmeden önce state'i initialize et
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      ref.initializeEventNotifier(
-          eventId: widget.eventId,
-          showId: widget.showId,
-          customerId: widget.customerId);
+      if (mounted)
+        // mounted kontrolü eklemek her zaman iyidir
+        ref.initializeEventNotifier(
+            eventId: widget.eventId,
+            showId: widget.showId,
+            customerId: widget.customerId);
     });
   }
+
+  // Notifier'a erişimi kolaylaştır
+  EventNotifier get notifier => ref.read(eventProvider.notifier);
 
   @override
   Widget build(final BuildContext context) {
     final state = ref.watch(eventProvider);
-    final notifier = ref.read(eventProvider.notifier);
 
+    // --- DÜZELTME 2: SNACKBAR SORUNU ÇÖZÜMÜ ---
     ref.listen<EventState>(
-      // Hata mesajı listener
       eventProvider,
       (final previous, final next) {
-        if (next.errorMessage != null)
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+        // Sadece 'errorMessage' null'dan farklı bir değere AYARLANDIĞINDA göster.
+        if (next.errorMessage != null &&
+            previous?.errorMessage != next.errorMessage) {
+          // Mevcut snackbar'ları temizle ve yenisini göster
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(next.errorMessage!)),
+          );
+        }
+        // --- DÜZELTME 2 SONU ---
 
+        // Süre dolduğunda dialog göster
         if (next.isTimeUp && (previous?.isTimeUp == false)) _showTimeUpDialog();
-        if (next.paymentSuccessful && (previous?.paymentSuccessful == false))
+
+        // Ödeme başarılı olduğunda dialog göster
+        if (next.paymentSuccessful && (previous?.paymentSuccessful == false)) {
           _showPaymentSuccessDialog();
+          // Başarı durumunu notifier'da sıfırla ki tekrar gösterilmesin
+          notifier.resetPaymentSuccess();
+        }
       },
     );
 
-    if (state.seatLayout.isEmpty)
+    // Yükleme durumu: layout boş VE isLoading true ise
+    // (isLoading: false ve layout boş ise veri gelmemiş/hata demektir)
+    if (state.seatLayout.isEmpty && state.isLoading)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    // Yükleme bitmiş ama layout hala boşsa (veri yoksa)
+    if (state.seatLayout.isEmpty && !state.isLoading) {
+      return Scaffold(
+          appBar: AppBar(title: const Text('Koltuk Seçimi')),
+          body: const Center(child: Text('Koltuk planı yüklenemedi.')));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -77,25 +103,26 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           const SizedBox(height: 10),
           _buildSeatLegend(),
           const SizedBox(height: 20),
-          //CPU optimizasyonu için 'state.seatLayout' kullanılıyor
-          Expanded(child: _buildSeatLayout(state, notifier)),
+          Expanded(child: _buildSeatLayout(state)),
+          // notifier parametresi kaldırıldı
         ],
       ),
       floatingActionButton: state.hasSelectedSeats
           ? FloatingActionButton.extended(
-              onPressed: (state.processingSeats.isEmpty)
-                  ? () => _showPaymentBottomSheet(state, notifier)
+              // Butona basıldığında state'in en güncel anlık görüntüsünü al
+              onPressed: (state.processingSeats.isEmpty && !state.isLoading)
+                  ? () => _showPaymentBottomSheet(ref.read(eventProvider))
                   : null,
               label: (state.processingSeats.isEmpty && !state.isLoading)
                   ? Text(
                       'Ödemeye Geç (${state.totalPrice.toStringAsFixed(2)} TL)')
                   : const Text('Koltuk güncelleniyor...'),
-              icon: state.processingSeats.isEmpty && !state.isLoading
+              icon: (state.processingSeats.isEmpty && !state.isLoading)
                   ? const Icon(Icons.payment)
-                  : SizedBox(
+                  : const SizedBox(
                       width: 20,
                       height: 20,
-                      child: const CircularProgressIndicator(
+                      child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2.5),
                     ),
               backgroundColor: (state.processingSeats.isEmpty &&
@@ -120,6 +147,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           Text('Seçilen Koltuklar: ${state.selectedSeats.join(", ")}',
               style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 5),
+          // --- FİYAT DÜZELTMESİ ARTIK BURADA GÖRÜNECEK ---
           Text(
             'Toplam Fiyat: ${state.totalPrice.toStringAsFixed(2)} TL',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -134,6 +162,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center, // Ortala
         children: [
           _legendItem(Colors.green, "Boş"),
           const SizedBox(width: 10),
@@ -161,29 +190,14 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-// GÜNCELLENDİ: CPU Optimizasyonu (Hesaplama yapmıyor, hazır veriyi okuyor)
-  Widget _buildSeatLayout(
-      final EventState state, final EventNotifier notifier) {
-    // state.seatLayout (önbellekli veri) kontrol ediliyor
-    if (state.seatLayout.isEmpty)
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Koltuklar yükleniyor...'),
-          ],
-        ),
-      );
-
-    // Hesaplama kaldırıldı. Direkt hazır 'state.seatLayout' kullanılıyor.
+  Widget _buildSeatLayout(final EventState state) {
+    // state.seatLayout zaten hesaplanmış ve state içinde
     final seatsByRow = state.seatLayout;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[300],
+        color: Colors.grey[200], // Rengi biraz açtım
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -191,11 +205,17 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           Container(
               width: double.infinity,
               padding: const EdgeInsets.all(8),
-              color: Colors.grey[400],
+              decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(6),
+                      topRight: Radius.circular(6))),
               child: const Center(
                 child: Text('SAHNE',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.black87)),
               )),
           const SizedBox(height: 20),
           Expanded(
@@ -204,9 +224,9 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Column(
+                    // Her satır için _buildSeatRow çağır
                     children: seatsByRow.entries.map((final entry) {
-                      return _buildSeatRow(
-                          entry.key, entry.value, state, notifier);
+                      return _buildSeatRow(entry.key, entry.value, state);
                     }).toList(),
                   ),
                 ),
@@ -222,18 +242,19 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     final String row,
     final List<String> seats,
     final EventState state,
-    final EventNotifier notifier,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center, // Satırı ortala
         children: [
           SizedBox(
             width: 30,
             child:
                 Text(row, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
-          ...seats.map((final seatId) => _buildSeat(seatId, state, notifier)),
+          // Her koltuk için _buildSeat çağır
+          ...seats.map((final seatId) => _buildSeat(seatId, state)),
         ],
       ),
     );
@@ -242,7 +263,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   Widget _buildSeat(
     final String seatId,
     final EventState state,
-    final EventNotifier notifier,
   ) {
     final seatInfo = state.seatStatus[seatId];
     final status = seatInfo?['status'] ?? 'available';
@@ -265,9 +285,12 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     else
       seatColor = Colors.green;
 
-    final bool canTap = isAvailable && !isSeatProcessing;
+    // Satılmış veya başkası tarafından rezerve edilmişse tıklanamaz
+    final bool canTap =
+        (status == 'available' || isMyReservation) && !isSeatProcessing;
 
     return GestureDetector(
+      // Tıklama olayını doğrudan notifier'a gönder
       onTap: canTap ? () => notifier.toggleSeatSelection(seatId) : null,
       child: Container(
         width: 40,
@@ -283,7 +306,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   child: CircularProgressIndicator(
                       strokeWidth: 2.5,
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-              : Text(seatId.substring(1),
+              : Text(seatId.substring(1), // Sadece koltuk numarasını göster
                   style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -293,18 +316,17 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-// 'state' snapshot'ını alır ve 'onPressed' ile sonrakine aktarır.
-  void _showPaymentBottomSheet(
-    final EventState stateSnapshot,
-    // Artık bu bir anlık görüntü (snapshot)
-    final EventNotifier notifier,
-  ) {
+  // 'stateSnapshot' alır
+  void _showPaymentBottomSheet(final EventState stateSnapshot) {
+    // Not: 'notifier'ı burada tekrar almamıza gerek yok, en üstte tanımladık.
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (final context) {
         return Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(20, 20, 20,
+              MediaQuery.of(context).viewInsets.bottom + 20), // Klavye için
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,8 +337,10 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
               // Snapshot'tan veriler okunuyor
               Text(
                   'Seçilen Koltuklar: ${stateSnapshot.selectedSeats.join(", ")}'),
-              Text('Tarih: ${stateSnapshot.eventDate?['date'] ?? ''}'),
-              Text('Saat: ${stateSnapshot.eventDate?['time'] ?? ''}'),
+              // --- FİYAT DÜZELTMESİ İLE BURASI DOĞRU GELECEK ---
+              Text('Tarih: ${stateSnapshot.eventDate?['date'] ?? '...'}'),
+              Text('Saat: ${stateSnapshot.eventDate?['time'] ?? '...'}'),
+              const SizedBox(height: 8),
               Text('Toplam: ${stateSnapshot.totalPrice.toStringAsFixed(2)} TL',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold)),
@@ -325,7 +349,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   // Snapshot'ı bir sonraki fonksiyona aktar
-                  onPressed: () => _showPaymentMethods(stateSnapshot, notifier),
+                  onPressed: () => _showPaymentMethods(stateSnapshot),
                   child: const Text('Ödeme Yöntemi Seç'),
                 ),
               ),
@@ -336,12 +360,8 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-// 'stateSnapshot' parametresini alır ve 'processPayment'a aktarır
-  Future<void> _showPaymentMethods(
-    final EventState stateSnapshot,
-    // Snapshot'ı parametre olarak alır
-    final EventNotifier notifier,
-  ) async {
+  // 'stateSnapshot' parametresini alır ve 'processPayment'a aktarır
+  Future<void> _showPaymentMethods(final EventState stateSnapshot) async {
     // Fiyata göre dinamik seçenekleri belirle
     final bool isFree = stateSnapshot.totalPrice <= 0;
 
@@ -352,15 +372,14 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           backgroundColor: Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            isFree ? 'Etkinlik Ücretsiz' : 'Ödeme Yöntemi Seçin',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
+          title: Text(isFree ? 'Etkinlik Ücretsiz' : 'Ödeme Yöntemi Seçin',
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Fiyatlı bilet seçenekleri
-              if (!isFree)
+              if (!isFree) ...[
                 _buildPaymentOption(
                   context,
                   icon: Icons.account_balance_wallet,
@@ -368,8 +387,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   label: 'Google Play',
                   onTap: () => Navigator.pop(context, 'google_play'),
                 ),
-              if (!isFree) const SizedBox(height: 8),
-              if (!isFree)
+                const SizedBox(height: 8),
                 _buildPaymentOption(
                   context,
                   icon: Icons.credit_card,
@@ -377,8 +395,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   label: 'Kredi Kartı',
                   onTap: () => Navigator.pop(context, 'credit_card'),
                 ),
-              if (!isFree) const SizedBox(height: 8),
-              if (!isFree)
+                const SizedBox(height: 8),
                 _buildPaymentOption(
                   context,
                   icon: Icons.account_balance,
@@ -386,9 +403,10 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   label: 'IBAN / Banka',
                   onTap: () => Navigator.pop(context, 'iban'),
                 ),
+              ],
 
               // Ücretsiz bilet seçenekleri
-              if (isFree)
+              if (isFree) ...[
                 _buildPaymentOption(
                   context,
                   icon: Icons.coffee,
@@ -396,8 +414,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   label: 'Kahve Ismarla ☕',
                   onTap: () => Navigator.pop(context, 'free_coffee'),
                 ),
-              if (isFree) const SizedBox(height: 8),
-              if (isFree)
+                const SizedBox(height: 8),
                 _buildPaymentOption(
                   context,
                   icon: Icons.confirmation_number_outlined,
@@ -405,6 +422,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   label: 'Ücretsiz Bilet Al',
                   onTap: () => Navigator.pop(context, 'free_ticket'),
                 ),
+              ]
             ],
           ),
         );
@@ -414,8 +432,8 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     if (selectedMethod != null) {
       final confirmed = await _showConfirmationDialog();
       if (confirmed ?? false) {
+        if (!mounted) return; // Async sonrası context kontrolü
         Navigator.pop(context); // bottom sheet’i kapat
-        // DÜZELTME: 'processPayment'a hem 'selectedMethod' hem de 'stateSnapshot' gönderilir.
         await notifier.processPayment(selectedMethod, stateSnapshot);
       }
     }
@@ -445,7 +463,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
             const SizedBox(width: 12),
             Expanded(
                 child: Text(label,
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black87,
                         fontWeight: FontWeight.w600))),
@@ -477,17 +495,21 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   }
 
   void _showTimeUpDialog() {
+    if (!mounted) return; // Dialog göstermeden önce context'i kontrol et
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (final context) {
         return AlertDialog(
           title: const Text('İşlem Süresi Doldu'),
-          content: const Text('Rezervasyonlarınız iptal edildi.'),
+          content: const Text(
+              'Rezervasyonlarınız iptal edildi. Anasayfaya yönlendirileceksiniz.'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.of(context)
-                    .popUntil((final route) => route.isFirst),
+                onPressed: () {
+                  Navigator.of(context)
+                      .popUntil((final route) => route.isFirst);
+                },
                 child: const Text('Tamam')),
           ],
         );
@@ -496,6 +518,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   }
 
   void _showPaymentSuccessDialog() {
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
