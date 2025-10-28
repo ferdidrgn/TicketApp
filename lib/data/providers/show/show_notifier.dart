@@ -44,9 +44,10 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
       state = state.copyWith(dataList: const [], dataSingle: null);
 
   void _setShowLoaded(final List<Show>? shows) => state = state.copyWith(
-      dataList: shows,
-      dataSingle: shows?.length == 1 ? shows!.first : state.dataSingle,
-      errorMessage: null);
+        dataList: [...?shows], // null ise boş liste olur
+        dataSingle: (shows?.length == 1) ? shows!.first : state.dataSingle,
+        errorMessage: null,
+      );
 }
 
 /// ShowState için extension metodlar

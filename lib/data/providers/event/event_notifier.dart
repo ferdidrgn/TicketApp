@@ -21,6 +21,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       isLoading: false,
       remainingTime: 600);
 
+  // ------------------ Initialize ------------------
   void initializeWithParams({
     required final String eventId,
     required final String showId,
@@ -32,7 +33,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       customerId: customerId,
       isLoading: true,
       remainingTime: 600,
-      dataList: state.dataList, // Önceki eventleri koru
     );
     _loadInitialData();
   }
@@ -40,42 +40,59 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   @override
   void reloadData() => _loadInitialData();
 
+  // ------------------ Load Events ------------------
   Future<void> _loadInitialData() async {
     _subscribeSeatStatus();
 
-    // --- KRİTİK DEĞİŞİKLİK 1: 'loadEventsByIds' KULLANILMAYACAK ---
-    // 'loadEventsByIds' artık kümülatif liste içindir.
-    // 'SeatSelectionScreen'in 'dataSingle'a ihtiyacı var.
-
-    // Usecase'i doğrudan çağırıp 'dataSingle'ı ayarlayan yeni bir metot kullan:
     await executeWithInternetCheck(
         () => ref.read(getEventsByIdsUseCaseProvider).call([state.eventId]),
-        onSuccess: (final events) => _setSingleEventLoaded(events));
-    // --- DEĞİŞİKLİK SONU ---
+        onSuccess: _setSingleEventLoaded);
 
     _startReservationTimer();
   }
 
+  void _setSingleEventLoaded(final List<Event>? events) =>
+      state = state.copyWith(
+          dataList: [...?events],
+          dataSingle: events?.length == 1 ? events?.first : state.dataSingle,
+          errorMessage: null);
+
+  Future<void> loadEventsByIds(final List<String> eventIds) async {
+    final validIds = eventIds
+        .where((final id) => id.trim().isNotEmpty && id != '0')
+        .toSet()
+        .toList();
+    if (validIds.isEmpty) return;
+
+    await executeWithInternetCheck(
+      () => ref.read(getEventsByIdsUseCaseProvider).call(validIds),
+      onSuccess: (final newEvents) {
+        final currentList = state.dataList ?? [];
+        final existingIds = currentList.map((final e) => e.id).toSet();
+        final uniqueNewEvents =
+            newEvents.where((final e) => !existingIds.contains(e.id));
+
+        state = state.copyWith(dataList: [...currentList, ...uniqueNewEvents]);
+      },
+    );
+  }
+
+  // ------------------ Seat Management ------------------
   void _subscribeSeatStatus() {
     _seatStatusSubscription?.cancel();
 
     final stream =
         ref.read(getEventSeatStatusStreamUseCaseProvider).call(state.eventId);
-
     _seatStatusSubscription = stream.listen(
       (final seatStatusMap) {
         if (_isDisposed) return;
 
         final currentReservations = <String>{};
-
         for (final entry in seatStatusMap.entries) {
-          final seatId = entry.key;
           final seatInfo = entry.value;
-
-          if (seatInfo != null &&
-              seatInfo['status'] == 'reserved' &&
-              seatInfo['customerId'] == state.customerId)
-            currentReservations.add(seatId);
+          if (seatInfo?['status'] == 'reserved' &&
+              seatInfo?['customerId'] == state.customerId)
+            currentReservations.add(entry.key);
         }
 
         final newTotalPrice = currentReservations.length * state.seatPrice;
@@ -87,12 +104,13 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
             : state.seatLayout;
 
         state = state.copyWith(
-            seatStatus: seatStatusMap,
-            selectedSeats: currentReservations,
-            totalPrice: newTotalPrice,
-            seatLayout: currentLayout,
-            errorMessage: null,
-            isLoading: false);
+          seatStatus: seatStatusMap,
+          selectedSeats: currentReservations,
+          totalPrice: newTotalPrice,
+          seatLayout: currentLayout,
+          errorMessage: null,
+          isLoading: false,
+        );
       },
       onError: (final e) {
         if (!_isDisposed)
@@ -101,6 +119,93 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     );
   }
 
+  Future<void> toggleSeatSelection(final String seatId) async {
+    if (state.processingSeats.contains(seatId)) return;
+
+    final isSelected = state.selectedSeats.contains(seatId);
+    if (isSelected)
+      await _removeSeat(seatId);
+    else {
+      if ((state.selectedSeats.length + state.processingSeats.length) >= 3) {
+        _showTemporaryError("En fazla 3 koltuk seçebilirsiniz.");
+        return;
+      }
+      await _addSeat(seatId);
+    }
+  }
+
+  // Koltuk ekle
+  Future<void> _addSeat(final String seatId) async {
+    if (_isDisposed) return;
+
+    state = state.copyWith(
+        processingSeats: {...state.processingSeats, seatId},
+        errorMessage: null);
+
+    await executeWithInternetCheck(
+      () => ref
+          .read(attemptReservationUseCaseProvider)
+          .call(state.eventId, seatId, state.customerId),
+      onSuccess: (final success) {
+        if (!_isDisposed && !success)
+          _showTemporaryError("Koltuk başkası tarafından seçildi.");
+        state = state.copyWith(
+            processingSeats: {...state.processingSeats}..remove(seatId));
+      },
+    );
+  }
+
+  Future<void> _removeSeat(final String seatId) async {
+    if (_isDisposed) return;
+
+    final newSelectedSeats = {...state.selectedSeats}..remove(seatId);
+    final newTotalPrice = newSelectedSeats.length * state.seatPrice;
+    final newProcessingSeats = {...state.processingSeats, seatId};
+
+    state = state.copyWith(
+      selectedSeats: newSelectedSeats,
+      totalPrice: newTotalPrice,
+      processingSeats: newProcessingSeats,
+      errorMessage: null,
+    );
+
+    try {
+      final result = await ref
+          .read(releaseReservationUseCaseProvider)
+          .call(state.eventId, seatId, state.customerId);
+      result.fold(
+        (final failure) =>
+            !_isDisposed ? _showTemporaryError(failure.message) : null,
+        (final _) => null,
+      );
+    } catch (e) {
+      if (!_isDisposed) _showTemporaryError("İptal hatası: $e");
+    } finally {
+      if (!_isDisposed)
+        state = state.copyWith(
+            processingSeats: {...state.processingSeats}..remove(seatId));
+    }
+  }
+
+  Map<String, List<String>> _groupSeatsFromStatus(
+      final Map<String, Map<String, dynamic>?> seatStatus) {
+    final seatsByRow = <String, List<String>>{};
+    for (final seatId in seatStatus.keys) {
+      if (seatId.isEmpty) continue;
+      seatsByRow.putIfAbsent(seatId[0], () => []).add(seatId);
+    }
+
+    final result = <String, List<String>>{};
+    for (final row in seatsByRow.keys.toList()..sort()) {
+      final seats = seatsByRow[row]!
+        ..sort((final a, final b) => (int.tryParse(a.substring(1)) ?? 0)
+            .compareTo(int.tryParse(b.substring(1)) ?? 0));
+      result[row] = seats;
+    }
+    return result;
+  }
+
+  // ------------------ Timer ------------------
   void _startReservationTimer() {
     _reservationTimer?.cancel();
     _reservationTimer =
@@ -116,169 +221,27 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     });
   }
 
-  // Süre doldu
   void _handleTimeUp() {
-    cancelAllReservations(); // Önce rezervasyonları iptal et
+    cancelAllReservations();
     if (!_isDisposed)
       state = state.copyWith(
         errorMessage: "Süreniz doldu. Rezervasyonlarınız iptal edildi.",
         selectedSeats: {},
         totalPrice: 0,
         firstReservationTime: null,
-        remainingTime: 600, // Sayacı bir sonraki oturum için sıfırla
+        remainingTime: 600,
       );
   }
 
-  /// BU METOT 'ShowDetailPage' İÇİN KULLANILIR VE KÜMÜLATİFTİR (LİSTEYE EKLER)
-  Future<void> loadEventsByIds(final List<String> eventIds) async {
-    // Güvenlik: Geçersiz ID'leri filtrele
-    final validIds = eventIds
-        .where((id) => id.trim().isNotEmpty && id != '0')
-        .toSet()
-        .toList();
-    if (validIds.isEmpty) return;
-
-    await executeWithInternetCheck(
-      () => ref.read(getEventsByIdsUseCaseProvider).call(validIds),
-
-      // --- KRİTİK DEĞİŞİKLİK 2: KÜMÜLATİF (ADDITIVE) onSuccess ---
-      onSuccess: (final newEvents) {
-        if (!ref.mounted || newEvents == null || newEvents.isEmpty) return;
-
-        final currentList = state.dataList ?? <Event>[];
-        final existingIds = currentList.map((e) => e.id).toSet();
-
-        // Sadece state'te olmayan 'yeni' event'leri filtrele
-        final uniqueNewEvents =
-            newEvents.where((e) => !existingIds.contains(e.id));
-
-        // State'i (Mevcut Liste + Benzersiz Yeni Liste) ile güncelle
-        state = state.copyWith(dataList: [...currentList, ...uniqueNewEvents]);
-      },
-    );
-  }
-
-  // --- Koltuk seçimi, ekleme, çıkarma metotları (Değişiklik yok) ---
-  Future<void> toggleSeatSelection(final String seatId) async {
-    if (state.processingSeats.contains(seatId)) return;
-
-    final isCurrentlySelected = state.selectedSeats.contains(seatId);
-
-    if (isCurrentlySelected)
-      await _removeSeat(seatId);
-    else {
-      final totalPendingAndSelected =
-          state.selectedSeats.length + state.processingSeats.length;
-
-      if (totalPendingAndSelected >= 3) {
-        _showTemporaryError("En fazla 3 koltuk seçebilirsiniz.");
-        return;
-      }
-
-      await _addSeat(seatId);
-    }
-  }
-
-  // Koltuk ekle
-  Future<void> _addSeat(final String seatId) async {
-    if (_isDisposed) return;
-
-    state = state.copyWith(
-      processingSeats: {...state.processingSeats, seatId},
-      errorMessage: null,
-    );
-
-    await executeWithInternetCheck(
-      () => ref
-          .read(attemptReservationUseCaseProvider)
-          .call(state.eventId, seatId, state.customerId),
-      onSuccess: (final success) {
-        try {
-          if (!_isDisposed && !success)
-            _showTemporaryError("Koltuk başkası tarafından seçildi.");
-        } catch (e) {
-          if (!_isDisposed)
-            _showTemporaryError("Rezervasyon hatası: ${e.toString()}");
-        } finally {
-          if (!_isDisposed)
-            state = state.copyWith(
-                processingSeats: {...state.processingSeats}..remove(seatId));
-        }
-      },
-    );
-  }
-
-  // Koltuk çıkar
-  Future<void> _removeSeat(final String seatId) async {
-    if (_isDisposed) return;
-
-    final newSelectedSeats = Set<String>.from(state.selectedSeats)
-      ..remove(seatId);
-    final newTotalPrice = newSelectedSeats.length * state.seatPrice;
-    final newProcessingSeats = {...state.processingSeats, seatId};
-
-    state = state.copyWith(
-        selectedSeats: newSelectedSeats,
-        totalPrice: newTotalPrice,
-        processingSeats: newProcessingSeats,
-        errorMessage: null);
-
-    try {
-      final result = await ref
-          .read(releaseReservationUseCaseProvider)
-          .call(state.eventId, seatId, state.customerId);
-
-      result.fold(
-        (final failure) {
-          if (!_isDisposed) _showTemporaryError(failure.message);
-        },
-        (final _) {},
-      );
-    } catch (e) {
-      if (!_isDisposed) _showTemporaryError("İptal hatası: ${e.toString()}");
-    } finally {
-      if (!_isDisposed)
-        state = state.copyWith(
-            processingSeats: {...state.processingSeats}..remove(seatId));
-    }
-  }
-
-  // CPU Optimizasyonu
-  Map<String, List<String>> _groupSeatsFromStatus(
-      final Map<String, Map<String, dynamic>?> seatStatus) {
-    final seatsByRow = <String, List<String>>{};
-    for (final seatId in seatStatus.keys) {
-      if (seatId.isEmpty) continue;
-      final row = seatId[0];
-      seatsByRow.putIfAbsent(row, () => []).add(seatId);
-    }
-    final sortedRows = seatsByRow.keys.toList()..sort();
-    final result = <String, List<String>>{};
-    for (final row in sortedRows) {
-      final seats = seatsByRow[row]!;
-      seats.sort((final a, final b) {
-        final numA = int.tryParse(a.substring(1)) ?? 0;
-        final numB = int.tryParse(b.substring(1)) ?? 0;
-        return numA.compareTo(numB);
-      });
-      result[row] = seats;
-    }
-    return result;
-  }
-
-  // Ödeme
+  // ------------------ Payment ------------------
   Future<void> processPayment(
-    final String paymentMethod,
-    final EventState paymentSnapshot,
-  ) async {
-    if (_isDisposed) return;
-
-    if (_isProcessingPayment) {
+      final String paymentMethod, final EventState paymentSnapshot) async {
+    if (_isDisposed || _isProcessingPayment) {
       _showTemporaryError("Ödeme zaten işleniyor.");
       return;
     }
-    _isProcessingPayment = true;
 
+    _isProcessingPayment = true;
     final seatsToPurchase = List<String>.from(paymentSnapshot.selectedSeats);
     final double priceToPay = paymentSnapshot.totalPrice;
 
@@ -296,27 +259,22 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
           final confirmResult = await ref
               .read(confirmPurchaseUseCaseUseCaseProvider)
               .call(state.eventId, seatsToPurchase, state.customerId);
-
           if (confirmResult.isLeft()) return confirmResult;
 
           final ticket = _createTicket(paymentMethod, priceToPay);
-          final ticketResult =
-              await ref.read(createTicketUseCaseProvider).call(ticket);
-
-          return ticketResult;
+          return await ref.read(createTicketUseCaseProvider).call(ticket);
         },
         onSuccess: (final _) {
           _reservationTimer?.cancel();
           if (!_isDisposed)
             state = state.copyWith(
-              paymentSuccessful: true,
-              isLoading: false,
-              firstReservationTime: null,
-              remainingTime: 600,
-            );
+                paymentSuccessful: true,
+                isLoading: false,
+                firstReservationTime: null,
+                remainingTime: 600);
         },
       );
-    } catch (e) {
+    } catch (_) {
       if (!_isDisposed)
         _showTemporaryError("Ödeme sırasında beklenmedik bir hata oluştu.");
     } finally {
@@ -324,11 +282,8 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
-  // Bilet oluştur
   Ticket _createTicket(
-    final String paymentMethod,
-    final double totalPriceSnapshot,
-  ) {
+      final String paymentMethod, final double totalPriceSnapshot) {
     final now = DateTime.now();
     String finalPrice;
     String finalMethod = paymentMethod;
@@ -345,8 +300,8 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       finalPrice = totalPriceSnapshot.toStringAsFixed(2);
 
     return Ticket(
-      createdAt: now.toString(),
-      updatedAt: now.toString(),
+      createdAt: now.toIso8601String(),
+      updatedAt: now.toIso8601String(),
       id: '',
       showId: state.showId,
       customerId: state.customerId,
@@ -362,55 +317,20 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   Future<void> cancelAllReservations() async {
     if (!state.hasSelectedSeats) return;
 
-    final cancellationFutures = <Future<dynamic>>[];
-    final seatsToCancel = Set<String>.from(state.selectedSeats);
-
-    for (final seatId in seatsToCancel)
-      cancellationFutures.add(ref
+    final cancellationFutures = state.selectedSeats.map(
+      (final seatId) => ref
           .read(releaseReservationUseCaseProvider)
-          .call(state.eventId, seatId, state.customerId));
+          .call(state.eventId, seatId, state.customerId),
+    );
 
     try {
       await Future.wait(cancellationFutures);
     } catch (e) {
-      print("Tüm rezervasyonları iptal ederken hata oluştu: $e");
+      print("Tüm rezervasyonları iptal ederken hata: $e");
     }
   }
 
-  void _setSingleEventLoaded(final List<Event>? events) {
-    if (_isDisposed || events == null || events.isEmpty) return;
-
-    final singleEvent = events.first;
-
-    // 'dataSingle'ı ayarla (SeatSelectionScreen'in UI'ı için)
-    state = state.copyWith(
-      dataSingle: singleEvent,
-      errorMessage: null,
-      // 'dataList'e burada DOKUNMA, kümülatif olarak aşağıda ekle
-    );
-
-    // 'dataList'i de (mevcut değilse) kümülatif olarak güncelle
-    final currentList = state.dataList ?? <Event>[];
-    final existingIds = currentList.map((e) => e.id).toSet();
-
-    if (!existingIds.contains(singleEvent.id)) {
-      state = state.copyWith(dataList: [...currentList, singleEvent]);
-    }
-  }
-
-  /*
-  void _setEventLoaded(List<Event>? events) {
-  final mergedEvents = {...?state.dataList, ...?events}.toList();
-  state = state.copyWith(
-    dataList: mergedEvents,
-    dataSingle: events?.length == 1 ? events!.first : state.dataSingle,
-    errorMessage: null,
-  );
-}
-
-  */
-
-  // Geçici hata göster
+  // ------------------ Helpers ------------------
   void _showTemporaryError(final String message) {
     if (_isDisposed) return;
 
