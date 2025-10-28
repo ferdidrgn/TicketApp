@@ -383,6 +383,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       eventId: state.eventId,
       orderPrice: finalPrice,
       orderMethod: finalMethod,
+      buySeats:"",
       isPast: false,
     );
   }

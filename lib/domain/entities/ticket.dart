@@ -10,6 +10,7 @@ class Ticket extends Equatable {
   final String eventId;
   final String orderMethod;
   final String orderPrice;
+  final List<String> buySeats;
   final bool isPast;
 
   const Ticket({
@@ -22,6 +23,7 @@ class Ticket extends Equatable {
     required this.eventId,
     required this.orderMethod,
     required this.orderPrice,
+    required this.buySeats,
     required this.isPast,
   });
 
@@ -36,6 +38,7 @@ class Ticket extends Equatable {
         eventId,
         orderMethod,
         orderPrice,
+        buySeats,
         isPast,
       ];
 
@@ -49,6 +52,10 @@ class Ticket extends Equatable {
         eventId: data?['eventId'] as String? ?? '0',
         orderMethod: data?['orderMethod'] as String? ?? '0',
         orderPrice: data?['orderPrice'] as String? ?? '0',
+        buySeats: (data?['buySeats'] as List<dynamic>?)
+                ?.map((final e) => e as String)
+                .toList() ??
+            [],
         isPast: data?['isPast'] as bool? ?? false,
       );
 
@@ -62,6 +69,7 @@ class Ticket extends Equatable {
         'eventId': eventId,
         'orderMethod': orderMethod,
         'orderPrice': orderPrice,
+        'buySeats': buySeats,
         'isPast': isPast,
       };
 }

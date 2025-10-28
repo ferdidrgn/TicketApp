@@ -10,6 +10,7 @@ class TicketModel {
   final String? eventId;
   final String? orderMethod;
   final String? orderPrice;
+  final List<String?>? buySeats;
   final bool? isPast;
 
   const TicketModel({
@@ -22,6 +23,7 @@ class TicketModel {
     this.eventId,
     this.orderMethod,
     this.orderPrice,
+    this.buySeats,
     this.isPast,
   });
 
@@ -37,6 +39,8 @@ class TicketModel {
       eventId: data['eventId'] as String?,
       orderMethod: data['orderMethod'] as String?,
       orderPrice: data['orderPrice'] as String?,
+      buySeats:
+          (data['buySeats'] as List?)?.map((final e) => e as String?).toList(),
       isPast: data['isPast'] as bool?,
     );
   }
@@ -50,6 +54,7 @@ class TicketModel {
         'eventId': eventId,
         'orderMethod': orderMethod,
         'orderPrice': orderPrice,
+        'buySeats': buySeats,
         'isPast': isPast,
       };
 
@@ -63,6 +68,11 @@ class TicketModel {
         eventId: eventId ?? '0',
         orderMethod: orderMethod ?? '0',
         orderPrice: orderPrice ?? '0',
+        buySeats: buySeats
+                ?.where((final e) => e != null)
+                .map((final e) => e!)
+                .toList() ??
+            [],
         isPast: isPast ?? false,
       );
 
@@ -77,5 +87,6 @@ class TicketModel {
         orderMethod: ticket.orderMethod,
         orderPrice: ticket.orderPrice,
         isPast: ticket.isPast,
+        buySeats: ticket.buySeats,
       );
 }
