@@ -51,11 +51,19 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     _startReservationTimer();
   }
 
-  void _setSingleEventLoaded(final List<Event>? events) =>
-      state = state.copyWith(
-          dataList: [...?events],
-          dataSingle: events?.length == 1 ? events?.first : state.dataSingle,
-          errorMessage: null);
+  void _setSingleEventLoaded(final List<Event>? events) {
+    if (_isDisposed || events == null || events.isEmpty) return;
+
+    final singleEvent = events.first;
+
+    // Update dataSingle for current UI
+    state = state.copyWith(dataSingle: singleEvent, errorMessage: null);
+
+    // Merge with existing dataList
+    final currentList = state.dataList ?? [];
+    if (!currentList.any((final e) => e.id == singleEvent.id))
+      state = state.copyWith(dataList: [...currentList, singleEvent]);
+  }
 
   Future<void> loadEventsByIds(final List<String> eventIds) async {
     final validIds = eventIds
@@ -67,6 +75,8 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     await executeWithInternetCheck(
       () => ref.read(getEventsByIdsUseCaseProvider).call(validIds),
       onSuccess: (final newEvents) {
+        if (_isDisposed || newEvents == null || newEvents.isEmpty) return;
+
         final currentList = state.dataList ?? [];
         final existingIds = currentList.map((final e) => e.id).toSet();
         final uniqueNewEvents =
