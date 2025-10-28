@@ -99,31 +99,40 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
   Future<void> loadEventsByIds(final List<String> eventIds) =>
       executeWithInternetCheck(
-          () => ref.read(getEventsByIdsUseCaseProvider).call(eventIds),
-          onSuccess: (final events) {
-        if (_isDisposed) return;
+        () => ref.read(getEventsByIdsUseCaseProvider).call(eventIds),
+        onSuccess: (final events) {
+          if (_isDisposed) return;
 
-        final mainEvent = events.firstWhere((final e) => e.id == state.eventId,
-            orElse: () => events.first);
+          // 'mainEvent' null ise hata ver (güvenli kod)
+          final mainEvent = events.firstWhere(
+            (final e) => e.id == state.eventId,
+            orElse: () => events.first, // Kullanıcının kodu
+            // orElse: () => null, // Daha güvenli bir yöntem
+          );
 
-        //gerekirse bunları (örn: mainEvent.eventPrice) güncelleyin.
+          final String? newEventPrice = mainEvent.price.toString();
 
-        final String? newEventPrice = mainEvent.price.toString();
+          final Map<String, String> newEventDate = {
+            'date': mainEvent.date ?? 'Tarih Bilgisi Yok',
+          };
 
-        final Map<String, String> newEventDate = {
-          'date': mainEvent.date ?? 'Tarih Bilgisi Yok',
-        };
+          final String newStageId = mainEvent.stageId;
 
-        final String? newStageId = mainEvent.stageId;
+          final newSeatPrice = double.tryParse(newEventPrice ?? "0") ?? 0.0;
+          final newTotalPrice = state.selectedSeats.length * newSeatPrice;
 
-        state = state.copyWith(
-          dataList: events,
-          errorMessage: null,
-          eventPrice: newEventPrice,
-          eventDate: newEventDate,
-          stageId: newStageId,
-        );
-      });
+          state = state.copyWith(
+            dataList: events,
+            errorMessage: null,
+            eventPrice: newEventPrice,
+            eventDate: newEventDate,
+            stageId: newStageId,
+            totalPrice: newTotalPrice,
+          );
+        },
+      );
+
+  // --- GÜNCELLEME SONU ---
 
   void _startReservationTimer() {
     _reservationTimer?.cancel();
@@ -134,8 +143,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
         return;
       }
 
-      // Kalan süre 0 veya altındaysa (örneğin _handleTimeUp çalıştıysa)
-      // timer'ı durdur ve çık.
       if (state.remainingTime <= 0) {
         timer.cancel();
         return;
@@ -144,7 +151,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       final newTime = state.remainingTime - 1;
       state = state.copyWith(remainingTime: newTime);
 
-      // Süre *tam o an* bittiyse, timer'ı durdur ve 'handle' fonksiyonunu çağır.
       if (newTime <= 0) {
         timer.cancel();
         _handleTimeUp();
@@ -155,8 +161,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
   void _handleTimeUp() {
     cancelAllReservations(); // Önce rezervasyonları iptal et
     if (!_isDisposed) {
-      // UI (ref.listen) bunu yakalayacak.
-      // Sadece state'in geri kalanını temizle.
       state = state.copyWith(
         errorMessage: "Süreniz doldu. Rezervasyonlarınız iptal edildi.",
         selectedSeats: {},
@@ -166,12 +170,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
-  // --- DÜZELTME SONU ---
-
   Future<void> toggleSeatSelection(final String seatId) async {
     if (state.processingSeats.contains(seatId)) return;
 
-    // Süre dolduysa işlem yapma
     if (state.isTimeUp) {
       _showTemporaryError("Süreniz doldu, işlem yapamazsınız.");
       return;
@@ -234,7 +235,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
     final newSelectedSeats = Set<String>.from(state.selectedSeats)
       ..remove(seatId);
-    // 'state.seatPrice' getter'ı 'state.eventPrice' üzerinden doğru fiyatı alacak
     final newTotalPrice = newSelectedSeats.length * state.seatPrice;
     final newProcessingSeats = {...state.processingSeats, seatId};
 
@@ -265,9 +265,10 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
-  // CPU Optimizasyonu
+  // CPU Optimizasyonu (Değişiklik yok)
   Map<String, List<String>> _groupSeatsFromStatus(
       final Map<String, Map<String, dynamic>?> seatStatus) {
+    // ... (Kodunuzda değişiklik yok)
     final seatsByRow = <String, List<String>>{};
     for (final seatId in seatStatus.keys) {
       if (seatId.isEmpty) continue;
@@ -288,14 +289,12 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     return result;
   }
 
-  // Ödeme
   Future<void> processPayment(
     final String paymentMethod,
     final EventState paymentSnapshot,
   ) async {
     if (_isDisposed) return;
 
-    // Süre dolduysa ödeme almayı engelle
     if (state.isTimeUp) {
       _showTemporaryError("Süreniz doldu, ödeme işlemi iptal edildi.");
       return;
@@ -326,20 +325,21 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
 
         if (confirmResult.isLeft()) return confirmResult;
 
-        final ticket = _createTicket(paymentMethod, priceToPay);
+        final ticket =
+            _createTicket(paymentMethod, priceToPay, seatsToPurchase);
+
         final ticketResult =
             await ref.read(createTicketUseCaseProvider).call(ticket);
 
         return ticketResult;
       }, onSuccess: (final _) {
-        _reservationTimer?.cancel(); // Ödeme başarılıysa sayacı durdur
+        _reservationTimer?.cancel();
         if (!_isDisposed)
           state = state.copyWith(
             paymentSuccessful: true,
             isLoading: false,
             firstReservationTime: null,
             remainingTime: 0,
-            // Süreyi bitir
             selectedSeats: {},
             totalPrice: 0,
           );
@@ -353,10 +353,10 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
-  // Bilet oluştur
   Ticket _createTicket(
     final String paymentMethod,
     final double totalPriceSnapshot,
+    final List<String> seats,
   ) {
     final now = DateTime.now();
     String finalPrice;
@@ -383,7 +383,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
       eventId: state.eventId,
       orderPrice: finalPrice,
       orderMethod: finalMethod,
-      buySeats:"",
+      buySeats: seats,
       isPast: false,
     );
   }
@@ -407,31 +407,37 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     }
   }
 
-  // Geçici hata göster
+  // Geçici hata göster (Değişiklik yok)
   void _showTemporaryError(final String message) {
     if (_isDisposed) return;
 
     state = state.copyWith(errorMessage: message);
     Future.delayed(const Duration(seconds: 3), () {
-      if (!_isDisposed && state.errorMessage == message)
+      if (!_isDisposed && state.errorMessage == message) {
         state = state.copyWith(errorMessage: null);
+      }
     });
   }
 
-  // Ödeme başarısını sıfırla
+  // Ödeme başarısını sıfırla (Değişiklik yok)
   void resetPaymentSuccess() {
     if (!_isDisposed) state = state.copyWith(paymentSuccessful: false);
   }
 
-  // Temizle
+  // Temizle (Değişiklik yok)
   void cleanup() {
     _isDisposed = true;
     _reservationTimer?.cancel();
     _seatStatusSubscription?.cancel();
   }
+
+  void clearErrorMessage() {
+    if (_isDisposed) return;
+    if (state.errorMessage != null) state = state.copyWith(errorMessage: null);
+  }
 }
 
-// Helper Extentoins
+// Helper (Değişiklik yok)
 extension EventNotifierX on WidgetRef {
   void initializeEventNotifier({
     required final String eventId,
