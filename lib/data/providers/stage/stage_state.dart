@@ -3,11 +3,11 @@ import '../../../domain/entities/stage.dart';
 
 class StageState extends LoadableState<Stage, List<Stage>> {
   const StageState({
-    final Stage? stage,
-    final List<Stage>? stages,
+    super.dataList,
+    super.dataSingle,
     super.isLoading,
     super.errorMessage,
-  }) : super(dataSingle: stage, dataList: stages);
+  });
 
   @override
   StageState copyWith({
@@ -17,8 +17,8 @@ class StageState extends LoadableState<Stage, List<Stage>> {
     final String? errorMessage,
   }) =>
       StageState(
-        stage: dataSingle ?? this.dataSingle,
-        stages: dataList ?? this.dataList,
+        dataSingle: dataSingle ?? this.dataSingle,
+        dataList: dataList ?? this.dataList,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );
