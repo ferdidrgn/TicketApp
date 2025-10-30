@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
 import 'package:ticketapp/domain/entities/ticket.dart';
+import '../../../domain/entities/event.dart';
 import '../ticket/ticket_provider.dart';
 import 'event_provider.dart';
 import 'event_state.dart';
@@ -26,7 +27,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     required final String showId,
     required final String customerId,
   }) {
-    state = EventState(
+    state = state.copyWith(
       eventId: eventId,
       showId: showId,
       customerId: customerId,
@@ -98,11 +99,23 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
         () => ref.read(getEventsByIdsUseCaseProvider).call(eventIds),
         onSuccess: (final events) {
           if (_isDisposed) return;
-          // 'mainEvent' null ise hata ver (güvenli kod)
-          final mainEvent = events.firstWhere(
+
+          // Mevcut dataList (null olabilir)
+          final existing = state.dataList ?? <Event>[];
+
+          // Birleştir: id'ye göre unique
+          final Map<String, Event> mergedMap = {
+            for (final e in existing) e.id: e,
+            for (final e in events) e.id: e,
+          };
+
+          final mergedList = mergedMap.values.toList();
+
+          // mainEvent seçimi güvenli hale getir
+          final mainEvent = mergedList.firstWhere(
             (final e) => e.id == state.eventId,
-            orElse: () => events.first, // Kullanıcının kodu
-            // orElse: () => null, // Daha güvenli bir yöntem
+            orElse: () =>
+                mergedList.isNotEmpty ? mergedList.first : events.first,
           );
 
           final String? newEventPrice = mainEvent.price.toString();
@@ -112,8 +125,9 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
           final String? newStageId = mainEvent.stageId;
           final newSeatPrice = double.tryParse(newEventPrice ?? "0") ?? 0.0;
           final newTotalPrice = state.selectedSeats.length * newSeatPrice;
+
           state = state.copyWith(
-            dataList: events,
+            dataList: mergedList,
             errorMessage: null,
             eventPrice: newEventPrice,
             eventDate: newEventDate,
