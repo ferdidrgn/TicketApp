@@ -1159,31 +1159,28 @@ class _LargeQRCodeSection extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // QR KOD - ORTADA BÜYÜK
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.primary.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
+          Row(
+            children: [
+              // QR Kod
+              Container(
+                // GÜNCELLENDİ: Padding 16'dan 12'ye düşürüldü
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.shadow.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                QrImageView(
+                child: QrImageView(
                   data: ticketId,
                   version: QrVersions.auto,
-                  size: 200,
+                  // GÜNCELLENDİ: Boyut 110'dan 100'e düşürüldü
+                  size: 100,
                   eyeStyle: QrEyeStyle(
                     eyeShape: QrEyeShape.square,
                     color: theme.colorScheme.primary,
@@ -1193,97 +1190,72 @@ class _LargeQRCodeSection extends StatelessWidget {
                     color: theme.colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 20),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Text(
-                    'Giriş Kodu',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
+              ),
+              // GÜNCELLENDİ: Boşluk 24'ten 20'ye düşürüldü
+              const SizedBox(width: 20),
 
-          // AÇIKLAMA
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.surfaceVariant,
-                  theme.colorScheme.surfaceVariant.withOpacity(0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Bilet Kodu:',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  ticketId,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
+              // QR Kod bilgisi
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: Text(
-                        'QR kodu okutarak hızlı giriş yapabilirsiniz',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                        'GİRİŞ KODU',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Bu kodu girişte\ngösterin',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onPrimaryContainer,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.outline.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Text(
+                        ticketId,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            ],
+          )
         ],
       ),
     );
