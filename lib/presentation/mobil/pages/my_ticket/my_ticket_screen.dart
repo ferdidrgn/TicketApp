@@ -854,6 +854,12 @@ class _ElegantInfoRow extends StatelessWidget {
 // ============================================================
 // LUXURY TICKET MODAL - BÜYÜK VE ŞIK
 // ============================================================
+// ============================================================
+// LUXURY TICKET MODAL - TAM KOD
+// ============================================================
+// ============================================================
+// LUXURY TICKET MODAL - GÜNCELLENMİŞ
+// ============================================================
 
 class _LuxuryTicketModal extends StatelessWidget {
   final DetailedTicket ticket;
@@ -919,48 +925,12 @@ class _LuxuryTicketDetails extends StatelessWidget {
             ),
           ),
 
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary,
-                        theme.colorScheme.primaryContainer,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.confirmation_num_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    'Bilet Detayları',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 24,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
           Expanded(
             child: ListView(
               controller: controller,
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+              padding: EdgeInsets.zero,
               children: [
-                // Event Image - BÜYÜK
+                // Event Image - FULL WIDTH
                 _LargeEventImage(
                   imageUrl: ticket.show?.imageUrl ?? '',
                   title: ticket.show?.name ?? 'Gösteri Adı',
@@ -968,19 +938,27 @@ class _LuxuryTicketDetails extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // QR Code Section - BÜYÜK
-                _LargeQRCodeSection(
-                  ticketId: ticket.ticket.id,
-                  theme: theme,
-                ),
-                const SizedBox(height: 32),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      // QR Code Section
+                      _LargeQRCodeSection(
+                        ticketId: ticket.ticket.id,
+                        theme: theme,
+                      ),
+                      const SizedBox(height: 32),
 
-                // Ticket Details - BÜYÜK
-                _LargeTicketDetailsSection(
-                  ticket: ticket,
-                  dateText: dateText,
-                  timeText: timeText,
-                  theme: theme,
+                      // Ticket Details - ALT ALTA
+                      _LargeTicketDetailsSection(
+                        ticket: ticket,
+                        dateText: dateText,
+                        timeText: timeText,
+                        theme: theme,
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1006,9 +984,8 @@ class _LargeEventImage extends StatelessWidget {
   Widget build(final BuildContext context) {
     return Container(
       height: 240,
-      margin: const EdgeInsets.symmetric(horizontal: 0), // SAĞA SOLA 0
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(0), // KÖŞELERİ YUVARLAK DEĞİL
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -1024,124 +1001,101 @@ class _LargeEventImage extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRect(
-        // ClipRRect yerine ClipRect - köşeleri yuvarlak değil
-        child: Stack(
-          children: [
-            // Image - FULL WIDTH
-            CachedNetworkImage(
-              imageUrl: imageUrl,
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (final context, final url) => Container(
-                height: 240,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.colorScheme.surfaceVariant,
-                      theme.colorScheme.surfaceContainer,
-                    ],
-                  ),
+      child: Stack(
+        children: [
+          // Image - FULL WIDTH
+          CachedNetworkImage(
+            imageUrl: imageUrl,
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
+            placeholder: (final context, final url) => Container(
+              height: 240,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.surfaceVariant,
+                    theme.colorScheme.surfaceContainer,
+                  ],
                 ),
               ),
-              errorWidget: (final context, final url, final error) => Container(
-                height: 240,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.surfaceVariant,
-                      theme.colorScheme.surfaceContainer,
-                    ],
-                  ),
+            ),
+            errorWidget: (final context, final url, final error) => Container(
+              height: 240,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.surfaceVariant,
+                    theme.colorScheme.surfaceContainer,
+                  ],
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.broken_image_rounded,
-                      size: 64,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.broken_image_rounded,
+                    size: 64,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Görsel yüklenemedi',
+                    style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Görsel yüklenemedi',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // GÖLGE OYUNLARI - Gradient overlay
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.1),
-                      Colors.black.withOpacity(0.3),
-                      Colors.black.withOpacity(0.6),
-                    ],
-                    stops: const [0.0, 0.4, 0.6, 0.8, 1.0],
                   ),
-                ),
+                ],
               ),
             ),
+          ),
 
-            // SOL TARAFA IŞIK EFFECT
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 100,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Colors.white.withOpacity(0.1),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // BAŞLIK - ALT SOL KÖŞE
-            Positioned(
-              left: 24,
-              right: 24,
-              bottom: 24,
-              child: Text(
-                title,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 28,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withOpacity(0.5),
-                      blurRadius: 10,
-                      offset: const Offset(2, 2),
-                    ),
+          // Gradient overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.1),
+                    Colors.black.withOpacity(0.3),
+                    Colors.black.withOpacity(0.6),
                   ],
+                  stops: const [0.0, 0.4, 0.6, 0.8, 1.0],
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ],
-        ),
+          ),
+
+          // BAŞLIK - ALT SOL KÖŞE
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 24,
+            child: Text(
+              title,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 28,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 10,
+                    offset: const Offset(2, 2),
+                  ),
+                ],
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1159,24 +1113,25 @@ class _LargeQRCodeSection extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(28), // DAHA BÜYÜK PADDING
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.15),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         children: [
+          // BAŞLIK
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -1187,7 +1142,7 @@ class _LargeQRCodeSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  Icons.qr_code_2_rounded,
+                  Icons.qr_code_scanner_rounded,
                   color: Colors.white,
                   size: 24,
                 ),
@@ -1204,61 +1159,129 @@ class _LargeQRCodeSection extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // QR Code - BÜYÜK
+          // QR KOD - ORTADA BÜYÜK
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
+                  color: theme.colorScheme.primary.withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                ),
+                BoxShadow(
                   color: Colors.black.withOpacity(0.1),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
-            child: QrImageView(
-              data: ticketId,
-              version: QrVersions.auto,
-              size: 220,
-              // DAHA BÜYÜK QR
-              eyeStyle: QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color: theme.colorScheme.primary,
-              ),
-              dataModuleStyle: QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color: theme.colorScheme.primary,
-              ),
+            child: Column(
+              children: [
+                QrImageView(
+                  data: ticketId,
+                  version: QrVersions.auto,
+                  size: 200,
+                  eyeStyle: QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: theme.colorScheme.primary,
+                  ),
+                  dataModuleStyle: QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    'Giriş Kodu',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
 
-          Text(
-            'Bu kodu girişte gösteriniz',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 16),
-
+          // AÇIKLAMA
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              ticketId,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.surfaceVariant,
+                  theme.colorScheme.surfaceVariant.withOpacity(0.8),
+                ],
               ),
-              textAlign: TextAlign.center,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bilet Kodu:',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  ticketId,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'QR kodu okutarak hızlı giriş yapabilirsiniz',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -1298,6 +1321,7 @@ class _LargeTicketDetailsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // BAŞLIK VE İKON
           Row(
             children: [
               Container(
@@ -1328,6 +1352,8 @@ class _LargeTicketDetailsSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
+
+          // BİLET DETAYLARI - ALT ALTA
           _LargeDetailItem(
             icon: Icons.event_seat_rounded,
             title: 'Koltuk Numaraları',
@@ -1391,23 +1417,45 @@ class _LargeDetailItem extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20), // DAHA BÜYÜK
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.1),
+        ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12), // DAHA BÜYÜK
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.15),
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary.withOpacity(0.8),
+                  theme.colorScheme.primary,
+                ],
+              ),
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Icon(
               icon,
-              color: theme.colorScheme.primary,
-              size: 24, // DAHA BÜYÜK ICON
+              color: Colors.white,
+              size: 24,
             ),
           ),
           const SizedBox(width: 16),
