@@ -136,7 +136,7 @@ class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
     if (_lastRequestTime == null) return false;
 
     final timeSinceLastRequest = DateTime.now().difference(_lastRequestTime!);
-    return timeSinceLastRequest.inMilliseconds < 500;
+    return timeSinceLastRequest.inSeconds < 5; // 5 saniye
   }
 }
 

@@ -54,8 +54,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     final theme = Theme.of(context);
 
     // VIEWMODEL KULLANIMI
-    final ticketState = ref.watch(ticketProvider);
-    final viewModel = TicketViewModel(ticketState);
+    final viewModel = ref.watch(ticketViewModelProvider);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -310,7 +309,7 @@ class _ElegantEmptyState extends StatelessWidget {
   }
 }
 
-class _ElegantTicketList extends StatelessWidget {
+class _ElegantTicketList extends StatefulWidget {
   final List<DetailedTicket> tickets;
   final bool isPast;
   final bool isLoading;
@@ -324,22 +323,35 @@ class _ElegantTicketList extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    if (isLoading)
-      return ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: 3,
-          itemBuilder: (final context, final index) => ShimmerLoading());
+  _ElegantTicketListState createState() => _ElegantTicketListState();
+}
 
-    if (tickets.isEmpty) return _ElegantEmptyTab(isPast: isPast);
+class _ElegantTicketListState extends State<_ElegantTicketList>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(final BuildContext context) {
+    super.build(context); // keep alive için gerekli
+    if (widget.isLoading) {
+      return ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: 3,
+        itemBuilder: (final context, final index) => ShimmerLoading(),
+      );
+    }
+
+    if (widget.tickets.isEmpty) return _ElegantEmptyTab(isPast: widget.isPast);
 
     return ListView.builder(
       padding: const EdgeInsets.all(20),
-      itemCount: tickets.length,
+      itemCount: widget.tickets.length,
       itemBuilder: (final context, final index) => _LuxuryTicketCard(
-          detailedTicket: tickets[index],
-          isPast: isPast,
-          onTap: () => onTicketTap(tickets[index])),
+        detailedTicket: widget.tickets[index],
+        isPast: widget.isPast,
+        onTap: () => widget.onTicketTap(widget.tickets[index]),
+      ),
     );
   }
 }

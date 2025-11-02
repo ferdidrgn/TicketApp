@@ -2,20 +2,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/domain/useCase/ticket/get_tickets_by_customer_id_use_case.dart';
 import '../../../domain/useCase/ticket/create_ticket_use_case_impl.dart';
 import '../../../domain/useCase/ticket/get_ticket_by_id_use_case.dart';
+import '../../../presentation/mobil/pages/my_ticket/my_ticket_viewmodel.dart';
 import '../../repository/ticket/ticket_repository_provider.dart';
 import 'ticket_notifier.dart';
 import 'ticket_state.dart';
 
 final ticketProvider =
-    NotifierProvider.autoDispose<TicketNotifier, TicketState>(TicketNotifier.new);
+    NotifierProvider.autoDispose<TicketNotifier, TicketState>(
+        TicketNotifier.new);
+
+final ticketViewModelProvider = Provider<TicketViewModel>((final ref) {
+  final state = ref.watch(ticketProvider);
+  return TicketViewModel(state);
+});
 
 // Use case providers
 final getTicketByIdUseCaseProvider = Provider<GetTicketsByIdUseCase>(
   (final ref) => GetTicketsByIdUseCaseImpl(ref.watch(ticketRepositoryProvider)),
 );
 
-final getTicketByCustomerIdUseCaseProvider = Provider<GetTicketsByCustomerIdUseCase>(
-  (final ref) => GetTicketByCustomerIdUseCaseImpl(ref.watch(ticketRepositoryProvider)),
+final getTicketByCustomerIdUseCaseProvider =
+    Provider<GetTicketsByCustomerIdUseCase>(
+  (final ref) =>
+      GetTicketByCustomerIdUseCaseImpl(ref.watch(ticketRepositoryProvider)),
 );
 
 final createTicketUseCaseProvider = Provider<CreateTicketUseCase>(
