@@ -1189,8 +1189,7 @@ class _LargeQRCodeSection extends StatelessWidget {
                 children: [
                   // QR Kod
                   Container(
-                    // GÜNCELLENDİ: Padding 16'dan 12'ye düşürüldü
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
