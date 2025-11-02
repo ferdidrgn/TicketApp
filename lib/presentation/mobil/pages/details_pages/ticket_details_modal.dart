@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/util/date_formatter.dart';
-import '../my_ticket/ticket_viewmodel.dart';
+import '../my_ticket/my_ticket_viewmodel.dart';
 
 class TicketDetailsModal extends StatelessWidget {
   final DetailedTicket ticket;
