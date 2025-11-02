@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +15,7 @@ import '../../../../data/providers/ticket/ticket_notifier.dart';
 import '../../../../data/providers/ticket/ticket_state.dart';
 
 // ============================================================
-// MAIN PAGE
+// LÜKS & ŞIK TASARIM
 // ============================================================
 
 class MyTicketPage extends ConsumerStatefulWidget {
@@ -68,12 +68,10 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      extendBodyBehindAppBar: false,
       appBar: _buildAppBar(theme),
       body: RefreshIndicator(
         onRefresh: _loadTicketData,
         color: theme.colorScheme.primary,
-        backgroundColor: theme.colorScheme.surface,
         child: _buildBody(ticketState, upcomingTickets, pastTickets),
       ),
     );
@@ -83,17 +81,27 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     return AppBar(
       elevation: 0,
       backgroundColor: theme.colorScheme.surface,
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back_ios_new_rounded,
+            color: theme.colorScheme.onSurface),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      centerTitle: true,
       title: Text(
         'Biletlerim',
         style: theme.textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.onSurface,
         ),
       ),
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(72),
-        child: _GlassmorphicTabBar(
-          controller: _tabController,
-          theme: theme,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: _ElegantTabBar(
+            controller: _tabController,
+            theme: theme,
+          ),
         ),
       ),
     );
@@ -105,29 +113,29 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     final List<DetailedTicket> pastTickets,
   ) {
     if (state.isLoading && state.relatedShows == null) {
-      return const _LoadingShimmer();
+      return const _ElegantLoadingShimmer();
     }
 
     if (state.errorMessage != null && (state.dataList?.isEmpty ?? true)) {
-      return _ErrorWidget(
+      return _ElegantErrorWidget(
         error: state.errorMessage!,
         onRetry: _loadTicketData,
       );
     }
 
     if ((state.dataList?.isEmpty ?? true) && !state.isLoading) {
-      return const _EmptyStateWidget();
+      return const _ElegantEmptyState();
     }
 
     return TabBarView(
       controller: _tabController,
       children: [
-        _TicketListView(
+        _ElegantTicketList(
           tickets: upcomingTickets,
           isLoading: state.isLoading,
           onTicketTap: _showTicketDetails,
         ),
-        _TicketListView(
+        _ElegantTicketList(
           tickets: pastTickets,
           isPast: true,
           isLoading: state.isLoading,
@@ -178,6 +186,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
       final aDate = DateFormatter.parseDateString(a.event?.date ?? '');
       final bDate = DateFormatter.parseDateString(b.event?.date ?? '');
       if (aDate == null || bDate == null) return 0;
+      if (a.isPast) return bDate.compareTo(aDate);
       return aDate.compareTo(bDate);
     });
 
@@ -193,122 +202,101 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       enableDrag: true,
-      builder: (final _) => _TicketDetailsModal(ticket: ticket),
+      builder: (final _) => _LuxuryTicketModal(ticket: ticket),
     );
   }
 }
 
 // ============================================================
-// GLASSMORPHIC TAB BAR
+// ELEGANT TAB BAR - SİYAH ÇİZGİ KALDIRILDI
 // ============================================================
 
-class _GlassmorphicTabBar extends StatelessWidget {
+class _ElegantTabBar extends StatelessWidget {
   final TabController controller;
   final ThemeData theme;
 
-  const _GlassmorphicTabBar({
+  const _ElegantTabBar({
     required this.controller,
     required this.theme,
   });
 
   @override
   Widget build(final BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.1),
-            width: 1,
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: TabBar(
+        controller: controller,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withOpacity(0.8),
+            ],
           ),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.shadow.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.05),
-              blurRadius: 40,
+              color: theme.colorScheme.primary.withOpacity(0.4),
+              blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: TabBar(
-          controller: controller,
-          indicator: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.primary.withOpacity(0.8),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.2),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          indicatorPadding: const EdgeInsets.all(4),
-          labelColor: theme.colorScheme.onPrimary,
-          unselectedLabelColor:
-              theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            letterSpacing: 0.5,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-          dividerColor: Colors.transparent,
-          overlayColor: WidgetStateProperty.all(Colors.transparent),
-          tabs: const [
-            Tab(text: 'AKTİF'),
-            Tab(text: 'GEÇMİŞ'),
-          ],
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: theme.colorScheme.onPrimary,
+        unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+        labelStyle: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
         ),
+        unselectedLabelStyle: theme.textTheme.titleMedium,
+        // Alt çizgiyi kaldırmak için
+        dividerColor: Colors.transparent,
+        overlayColor: MaterialStateProperty.all(Colors.transparent),
+        tabs: const [
+          Tab(text: 'Yaklaşan Etkinlikler'),
+          Tab(text: 'Geçmiş Etkinlikler'),
+        ],
       ),
     );
   }
 }
 
 // ============================================================
-// LOADING SHIMMER
+// ELEGANT LOADING SHIMMER
 // ============================================================
 
-class _LoadingShimmer extends StatelessWidget {
-  const _LoadingShimmer();
+class _ElegantLoadingShimmer extends StatelessWidget {
+  const _ElegantLoadingShimmer();
 
   @override
   Widget build(final BuildContext context) {
     return ListView.builder(
-      padding: const EdgeInsets.all(15),
-      itemCount: 5,
+      padding: const EdgeInsets.all(20),
+      itemCount: 3,
       itemBuilder: (final context, final index) => Padding(
         padding: const EdgeInsets.only(bottom: 20),
         child: Container(
-          height: 160,
+          height: 180,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: const ShimmerLoading(
             width: double.infinity,
-            height: 160,
+            height: 180,
           ),
         ),
       ),
@@ -317,246 +305,17 @@ class _LoadingShimmer extends StatelessWidget {
 }
 
 // ============================================================
-// ERROR WIDGET
+// ELEGANT ERROR WIDGET
 // ============================================================
 
-class _ErrorWidget extends StatelessWidget {
+class _ElegantErrorWidget extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
 
-  const _ErrorWidget({
+  const _ElegantErrorWidget({
     required this.error,
     required this.onRetry,
   });
-
-  @override
-  Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.7,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colorScheme.errorContainer,
-                        theme.colorScheme.errorContainer.withOpacity(0.6),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.error.withOpacity(0.2),
-                        blurRadius: 32,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.cloud_off_rounded,
-                    size: 56,
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Bir Hata Oluştu',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  error,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 32),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colorScheme.primary,
-                        theme.colorScheme.primary.withOpacity(0.8),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.primary.withOpacity(0.4),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: onRetry,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.refresh_rounded,
-                              color: theme.colorScheme.onPrimary,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Tekrar Dene',
-                              style: TextStyle(
-                                color: theme.colorScheme.onPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================
-// EMPTY STATE WIDGET
-// ============================================================
-
-class _EmptyStateWidget extends StatelessWidget {
-  const _EmptyStateWidget();
-
-  @override
-  Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.7,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(40),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colorScheme.primaryContainer,
-                        theme.colorScheme.primaryContainer.withOpacity(0.4),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.primary.withOpacity(0.2),
-                        blurRadius: 40,
-                        offset: const Offset(0, 16),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.confirmation_num_outlined,
-                    size: 72,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Bilet Bulunamadı',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Henüz satın alınmış bir biletiniz\nbulunmamaktadır.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================
-// TICKET LIST VIEW
-// ============================================================
-
-class _TicketListView extends StatelessWidget {
-  final List<DetailedTicket> tickets;
-  final bool isPast;
-  final bool isLoading;
-  final Function(DetailedTicket) onTicketTap;
-
-  const _TicketListView({
-    required this.tickets,
-    required this.onTicketTap,
-    this.isPast = false,
-    this.isLoading = false,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    if (tickets.isEmpty && !isLoading) {
-      return _EmptyTabContent(isPast: isPast);
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: tickets.length,
-      itemBuilder: (final context, final index) => _PremiumTicketCard(
-        detailedTicket: tickets[index],
-        isPast: isPast,
-        onTap: () => onTicketTap(tickets[index]),
-      ),
-    );
-  }
-}
-
-class _EmptyTabContent extends StatelessWidget {
-  final bool isPast;
-
-  const _EmptyTabContent({required this.isPast});
 
   @override
   Widget build(final BuildContext context) {
@@ -569,33 +328,124 @@ class _EmptyTabContent extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color:
-                    theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.errorContainer,
+                    theme.colorScheme.errorContainer.withOpacity(0.7),
+                  ],
+                ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: theme.colorScheme.shadow.withOpacity(0.1),
-                    blurRadius: 30,
+                    color: theme.colorScheme.error.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Bir Sorun Oluştu',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              error,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: onRetry,
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+              child: Text(
+                'Tekrar Dene',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// ELEGANT EMPTY STATE
+// ============================================================
+
+class _ElegantEmptyState extends StatelessWidget {
+  const _ElegantEmptyState();
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primaryContainer,
+                    theme.colorScheme.primaryContainer.withOpacity(0.6),
+                  ],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    blurRadius: 25,
                     offset: const Offset(0, 10),
                   ),
                 ],
               ),
               child: Icon(
-                isPast ? Icons.history_rounded : Icons.event_available_rounded,
-                size: 64,
-                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                Icons.confirmation_num_outlined,
+                size: 48,
+                color: theme.colorScheme.onPrimaryContainer,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              isPast
-                  ? 'Geçmiş bilet bulunmamaktadır'
-                  : 'Aktif bilet bulunmamaktadır',
+              'Henüz Biletiniz Yok',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Satın aldığınız biletler burada görünecek',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
             ),
@@ -607,15 +457,84 @@ class _EmptyTabContent extends StatelessWidget {
 }
 
 // ============================================================
-// PREMIUM TICKET CARD
+// ELEGANT TICKET LIST
 // ============================================================
 
-class _PremiumTicketCard extends StatelessWidget {
+class _ElegantTicketList extends StatelessWidget {
+  final List<DetailedTicket> tickets;
+  final bool isPast;
+  final bool isLoading;
+  final Function(DetailedTicket) onTicketTap;
+
+  const _ElegantTicketList({
+    required this.tickets,
+    required this.onTicketTap,
+    this.isPast = false,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    if (tickets.isEmpty && !isLoading) {
+      return _ElegantEmptyTab(isPast: isPast);
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: tickets.length,
+      itemBuilder: (final context, final index) => _LuxuryTicketCard(
+        detailedTicket: tickets[index],
+        isPast: isPast,
+        onTap: () => onTicketTap(tickets[index]),
+      ),
+    );
+  }
+}
+
+class _ElegantEmptyTab extends StatelessWidget {
+  final bool isPast;
+
+  const _ElegantEmptyTab({required this.isPast});
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isPast
+                ? Icons.history_toggle_off_rounded
+                : Icons.event_available_rounded,
+            size: 80,
+            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.2),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isPast ? 'Geçmiş bilet bulunmuyor' : 'Yaklaşan bilet bulunmuyor',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// LUXURY TICKET CARD - SANATSAL TASARIM
+// ============================================================
+
+class _LuxuryTicketCard extends StatelessWidget {
   final DetailedTicket detailedTicket;
   final bool isPast;
   final VoidCallback onTap;
 
-  const _PremiumTicketCard({
+  const _LuxuryTicketCard({
     required this.detailedTicket,
     required this.onTap,
     this.isPast = false,
@@ -630,443 +549,325 @@ class _PremiumTicketCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
-      child: Container(
-        height: 160,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: isPast
-              ? []
-              : [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withOpacity(0.15),
-                    blurRadius: 30,
-                    offset: const Offset(0, 12),
-                    spreadRadius: -5,
-                  ),
-                  BoxShadow(
-                    color: theme.colorScheme.shadow.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Material(
-            color: Colors.transparent,
+      child: Stack(
+        children: [
+          // Ana Kart
+          Card(
+            elevation: 6,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: InkWell(
               onTap: onTap,
-              child: Stack(
-                children: [
-                  // Background gradient
-                  Positioned.fill(
-                    child: Container(
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                height: 160,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isPast
+                        ? [
+                            theme.colorScheme.surfaceVariant,
+                            theme.colorScheme.surfaceVariant.withOpacity(0.8),
+                          ]
+                        : [
+                            theme.colorScheme.surface,
+                            theme.colorScheme.surfaceContainer,
+                          ],
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Tarih Bölümü
+                    Container(
+                      width: 80,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: isPast
                               ? [
-                                  theme.colorScheme.surfaceContainerHigh,
-                                  theme.colorScheme.surfaceContainer,
+                                  Colors.grey.shade600,
+                                  Colors.grey.shade800,
                                 ]
                               : [
-                                  theme.colorScheme.surface,
-                                  theme.colorScheme.surfaceContainerLow,
+                                  theme.colorScheme.primary,
+                                  theme.colorScheme.primaryContainer,
                                 ],
                         ),
-                      ),
-                    ),
-                  ),
-
-                  // Content
-                  Row(
-                    children: [
-                      _ArtisticDateSection(
-                        dateInfo: dateInfo,
-                        isPast: isPast,
-                        theme: theme,
-                      ),
-                      Expanded(
-                        child: _TicketContent(
-                          detailedTicket: detailedTicket,
-                          isPast: isPast,
-                          theme: theme,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Decorative pattern overlay
-                  if (!isPast)
-                    Positioned(
-                      right: -20,
-                      bottom: -20,
-                      child: Opacity(
-                        opacity: 0.03,
-                        child: Icon(
-                          Icons.confirmation_num_rounded,
-                          size: 120,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ArtisticDateSection extends StatelessWidget {
-  final Map<String, String> dateInfo;
-  final bool isPast;
-  final ThemeData theme;
-
-  const _ArtisticDateSection({
-    required this.dateInfo,
-    required this.isPast,
-    required this.theme,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    return Container(
-      width: 100,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isPast
-              ? [
-                  theme.colorScheme.surfaceContainerHighest,
-                  theme.colorScheme.surfaceContainerHigh,
-                ]
-              : [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.primary.withOpacity(0.7),
-                ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isPast
-                ? Colors.transparent
-                : theme.colorScheme.primary.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(5, 0),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Decorative circles
-          Positioned(
-            top: -15,
-            right: -15,
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -20,
-            left: -20,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.05),
-              ),
-            ),
-          ),
-
-          // Date content
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  dateInfo['day'] ?? '?',
-                  style: theme.textTheme.displaySmall?.copyWith(
-                    color: isPast
-                        ? theme.colorScheme.onSurfaceVariant
-                        : Colors.white,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
-                    shadows: isPast
-                        ? []
-                        : [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isPast
-                        ? theme.colorScheme.surfaceContainer
-                        : Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    (dateInfo['monthName'] ?? '---').toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: isPast
-                          ? theme.colorScheme.onSurfaceVariant
-                          : Colors.white,
-                      letterSpacing: 1.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isPast
-                        ? theme.colorScheme.surfaceContainerHighest
-                        : Colors.black.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isPast
-                          ? Colors.transparent
-                          : Colors.white.withOpacity(0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.access_time_rounded,
-                        size: 14,
-                        color: isPast
-                            ? theme.colorScheme.onSurfaceVariant
-                            : Colors.white,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        dateInfo['time'] ?? '--:--',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: isPast
-                              ? theme.colorScheme.onSurfaceVariant
-                              : Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TicketContent extends StatelessWidget {
-  final DetailedTicket detailedTicket;
-  final bool isPast;
-  final ThemeData theme;
-
-  const _TicketContent({
-    required this.detailedTicket,
-    required this.isPast,
-    required this.theme,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final showName = detailedTicket.show?.name ?? 'Gösteri Yükleniyor...';
-    final stageName = detailedTicket.stage?.name ?? 'Sahne Yükleniyor...';
-    final seats = detailedTicket.ticket.buySeats.join(", ");
-
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  showName,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    decoration: isPast ? TextDecoration.lineThrough : null,
-                    decorationColor: theme.colorScheme.onSurfaceVariant,
-                    decorationThickness: 2,
-                    color: isPast
-                        ? theme.colorScheme.onSurfaceVariant
-                        : theme.colorScheme.onSurface,
-                    height: 1.2,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: isPast
-                      ? null
-                      : LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            theme.colorScheme.primaryContainer,
-                            theme.colorScheme.primaryContainer.withOpacity(0.5),
-                          ],
-                        ),
-                  color:
-                      isPast ? theme.colorScheme.surfaceContainerHighest : null,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: isPast
-                      ? []
-                      : [
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
                           BoxShadow(
-                            color: theme.colorScheme.primary.withOpacity(0.2),
-                            blurRadius: 12,
+                            color: isPast
+                                ? Colors.grey.withOpacity(0.4)
+                                : theme.colorScheme.primary.withOpacity(0.3),
+                            blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
                         ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            dateInfo['day'] ?? '??',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              fontSize: 24,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            (dateInfo['monthName'] ?? '---').toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+
+                    // İçerik
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            detailedTicket.show?.name ??
+                                'Gösteri Yükleniyor...',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 12),
+                          _ElegantInfoRow(
+                            icon: Icons.location_on_rounded,
+                            text: detailedTicket.stage?.name ??
+                                'Sahne Yükleniyor...',
+                            theme: theme,
+                          ),
+                          const SizedBox(height: 6),
+                          _ElegantInfoRow(
+                            icon: Icons.event_seat_rounded,
+                            text: detailedTicket.ticket.buySeats.join(", "),
+                            theme: theme,
+                            isHighlighted: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+          ),
+
+          // Sağ Üst Köşe Sanatsal Element - PARTİKÜL EFEKTİ
+          Positioned(
+            top: 12,
+            right: 12,
+            child: _ParticleDecoration(isPast: isPast, theme: theme),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// PARTİKÜL DECORATION WIDGET'ı
+class _ParticleDecoration extends StatefulWidget {
+  final bool isPast;
+  final ThemeData theme;
+
+  const _ParticleDecoration({required this.isPast, required this.theme});
+
+  @override
+  State<_ParticleDecoration> createState() => _ParticleDecorationState();
+}
+
+class _ParticleDecorationState extends State<_ParticleDecoration>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final List<Particle> _particles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    // Partikülleri oluştur
+    for (int i = 0; i < 8; i++) {
+      _particles.add(Particle());
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: widget.isPast
+                  ? [Colors.grey.shade400, Colors.grey.shade600]
+                  : [
+                      widget.theme.colorScheme.primary,
+                      widget.theme.colorScheme.primaryContainer,
+                    ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: widget.isPast
+                    ? Colors.grey.withOpacity(0.5)
+                    : widget.theme.colorScheme.primary.withOpacity(0.4),
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Partiküller
+              ..._particles.map((particle) {
+                final angle = particle.angle + _controller.value * 2 * pi;
+                final distance = 12 + particle.distance * _controller.value * 8;
+                final x = distance * cos(angle);
+                final y = distance * sin(angle);
+
+                return Positioned(
+                  left: 20 + x,
+                  top: 20 + y,
+                  child: Container(
+                    width: particle.size,
+                    height: particle.size,
+                    decoration: BoxDecoration(
+                      color: widget.isPast
+                          ? Colors.white.withOpacity(0.7)
+                          : Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                );
+              }).toList(),
+
+              // Merkez icon
+              Center(
                 child: Icon(
-                  Icons.arrow_forward_ios_rounded,
+                  widget.isPast
+                      ? Icons.history_rounded
+                      : Icons.celebration_rounded,
+                  color: Colors.white,
                   size: 18,
-                  color: isPast
-                      ? theme.colorScheme.onSurfaceVariant.withOpacity(0.5)
-                      : theme.colorScheme.primary,
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          _InfoChip(
-            icon: Icons.location_on_rounded,
-            text: stageName,
-            isPast: isPast,
-            theme: theme,
-          ),
-          const SizedBox(height: 8),
-          _InfoChip(
-            icon: Icons.event_seat_rounded,
-            text: seats,
-            isPast: isPast,
-            theme: theme,
-            highlighted: !isPast,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
+class Particle {
+  final double angle = Random().nextDouble() * 2 * pi;
+  final double distance = Random().nextDouble();
+  final double size = 2 + Random().nextDouble() * 3;
+}
+
+class _ElegantInfoRow extends StatelessWidget {
   final IconData icon;
   final String text;
-  final bool isPast;
   final ThemeData theme;
-  final bool highlighted;
+  final bool isHighlighted;
 
-  const _InfoChip({
+  const _ElegantInfoRow({
     required this.icon,
     required this.text,
-    required this.isPast,
     required this.theme,
-    this.highlighted = false,
+    this.isHighlighted = false,
   });
 
   @override
   Widget build(final BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: highlighted && !isPast
-            ? theme.colorScheme.primaryContainer.withOpacity(0.6)
-            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: highlighted && !isPast
-              ? theme.colorScheme.primary.withOpacity(0.3)
-              : theme.colorScheme.outline.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: isHighlighted
+                ? theme.colorScheme.primary.withOpacity(0.1)
+                : theme.colorScheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
             icon,
-            size: 16,
-            color: highlighted && !isPast
+            size: 14,
+            color: isHighlighted
                 ? theme.colorScheme.primary
-                : isPast
-                    ? theme.colorScheme.onSurfaceVariant.withOpacity(0.7)
-                    : theme.colorScheme.onSurfaceVariant,
+                : theme.colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              text,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: highlighted && !isPast
-                    ? theme.colorScheme.onPrimaryContainer
-                    : isPast
-                        ? theme.colorScheme.onSurfaceVariant.withOpacity(0.7)
-                        : theme.colorScheme.onSurfaceVariant,
-                fontWeight: highlighted ? FontWeight.w700 : FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isHighlighted
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+              fontWeight: isHighlighted ? FontWeight.w600 : FontWeight.normal,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 // ============================================================
-// TICKET DETAILS MODAL
+// LUXURY TICKET MODAL - BÜYÜK VE ŞIK
 // ============================================================
 
-class _TicketDetailsModal extends StatelessWidget {
+class _LuxuryTicketModal extends StatelessWidget {
   final DetailedTicket ticket;
 
-  const _TicketDetailsModal({required this.ticket});
+  const _LuxuryTicketModal({required this.ticket});
 
   @override
   Widget build(final BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.9,
+      initialChildSize: 0.95,
       minChildSize: 0.5,
-      maxChildSize: 0.95,
+      maxChildSize: 0.98,
       builder: (final context, final scrollController) {
-        return _TicketDetailsContent(
+        return _LuxuryTicketDetails(
           controller: scrollController,
           ticket: ticket,
         );
@@ -1075,11 +876,11 @@ class _TicketDetailsModal extends StatelessWidget {
   }
 }
 
-class _TicketDetailsContent extends StatelessWidget {
+class _LuxuryTicketDetails extends StatelessWidget {
   final ScrollController controller;
   final DetailedTicket ticket;
 
-  const _TicketDetailsContent({
+  const _LuxuryTicketDetails({
     required this.controller,
     required this.ticket,
   });
@@ -1088,47 +889,66 @@ class _TicketDetailsContent extends StatelessWidget {
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final dateInfo = DateFormatter.formatForEventCard(ticket.event?.date ?? '');
-    final dateText =
-        "${dateInfo['day']} ${dateInfo['monthName']} ${DateTime.now().year}";
+    final eventYear = DateFormatter.parseDateString(ticket.event?.date)?.year ??
+        DateTime.now().year;
+    final dateText = "${dateInfo['day']} ${dateInfo['monthName']} $eventYear";
     final timeText = dateInfo['time'] ?? '--:--';
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
+        color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.3),
-            blurRadius: 40,
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 30,
             offset: const Offset(0, -10),
           ),
         ],
       ),
       child: Column(
         children: [
-          // Artistic drag handle
+          // Drag handle
           Container(
             margin: const EdgeInsets.only(top: 16, bottom: 8),
-            child: Column(
+            width: 60,
+            height: 5,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
               children: [
                 Container(
-                  width: 48,
-                  height: 5,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        theme.colorScheme.primary.withOpacity(0.3),
-                        theme.colorScheme.primary.withOpacity(0.1),
+                        theme.colorScheme.primary,
+                        theme.colorScheme.primaryContainer,
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.confirmation_num_rounded,
+                    color: Colors.white,
+                    size: 28,
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  'Bilet Detayları',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Bilet Detayları',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 24,
+                    ),
                   ),
                 ),
               ],
@@ -1138,20 +958,25 @@ class _TicketDetailsContent extends StatelessWidget {
           Expanded(
             child: ListView(
               controller: controller,
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
               children: [
-                _HeroImageSection(
+                // Event Image - BÜYÜK
+                _LargeEventImage(
                   imageUrl: ticket.show?.imageUrl ?? '',
                   title: ticket.show?.name ?? 'Gösteri Adı',
                   theme: theme,
                 ),
                 const SizedBox(height: 32),
-                _LuxuryQRSection(
+
+                // QR Code Section - BÜYÜK
+                _LargeQRCodeSection(
                   ticketId: ticket.ticket.id,
                   theme: theme,
                 ),
                 const SizedBox(height: 32),
-                _DetailsSection(
+
+                // Ticket Details - BÜYÜK
+                _LargeTicketDetailsSection(
                   ticket: ticket,
                   dateText: dateText,
                   timeText: timeText,
@@ -1166,12 +991,12 @@ class _TicketDetailsContent extends StatelessWidget {
   }
 }
 
-class _HeroImageSection extends StatelessWidget {
+class _LargeEventImage extends StatelessWidget {
   final String imageUrl;
   final String title;
   final ThemeData theme;
 
-  const _HeroImageSection({
+  const _LargeEventImage({
     required this.imageUrl,
     required this.title,
     required this.theme,
@@ -1180,55 +1005,79 @@ class _HeroImageSection extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return Container(
+      height: 240,
+      margin: const EdgeInsets.symmetric(horizontal: 0), // SAĞA SOLA 0
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(0), // KÖŞELERİ YUVARLAK DEĞİL
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.2),
-            blurRadius: 40,
-            offset: const Offset(0, 16),
-            spreadRadius: -5,
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 25,
+            offset: const Offset(0, 10),
+            spreadRadius: 2,
           ),
           BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.15),
+            color: theme.colorScheme.primary.withOpacity(0.2),
             blurRadius: 30,
-            offset: const Offset(0, 12),
+            offset: const Offset(0, 15),
+            spreadRadius: -5,
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+      child: ClipRect(
+        // ClipRRect yerine ClipRect - köşeleri yuvarlak değil
         child: Stack(
           children: [
-            // Image with shimmer
+            // Image - FULL WIDTH
             CachedNetworkImage(
               imageUrl: imageUrl,
-              height: 240,
               width: double.infinity,
+              height: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (final context, final url) =>
-                  const ShimmerLoading(height: 240),
-              errorWidget: (final context, final url, final error) => Container(
+              placeholder: (final context, final url) => Container(
                 height: 240,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      theme.colorScheme.surfaceContainerHighest,
+                      theme.colorScheme.surfaceVariant,
                       theme.colorScheme.surfaceContainer,
                     ],
                   ),
                 ),
-                child: Icon(
-                  Icons.broken_image_rounded,
-                  size: 72,
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+              ),
+              errorWidget: (final context, final url, final error) => Container(
+                height: 240,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.surfaceVariant,
+                      theme.colorScheme.surfaceContainer,
+                    ],
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.broken_image_rounded,
+                      size: 64,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Görsel yüklenemedi',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
 
-            // Artistic gradient overlay
+            // GÖLGE OYUNLARI - Gradient overlay
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -1237,51 +1086,58 @@ class _HeroImageSection extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.1),
                       Colors.black.withOpacity(0.3),
-                      Colors.black.withOpacity(0.85),
+                      Colors.black.withOpacity(0.6),
                     ],
-                    stops: const [0.3, 0.6, 1.0],
+                    stops: const [0.0, 0.4, 0.6, 0.8, 1.0],
                   ),
                 ),
               ),
             ),
 
-            // Title with backdrop blur
+            // SOL TARAFA IŞIK EFFECT
             Positioned(
-              bottom: 0,
               left: 0,
-              right: 0,
-              child: ClipRRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.2),
-                          Colors.black.withOpacity(0.6),
-                        ],
-                      ),
-                    ),
-                    child: Text(
-                      title,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.5),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                    ),
+              top: 0,
+              bottom: 0,
+              width: 100,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.white.withOpacity(0.1),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
+              ),
+            ),
+
+            // BAŞLIK - ALT SOL KÖŞE
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 24,
+              child: Text(
+                title,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 28,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 10,
+                      offset: const Offset(2, 2),
+                    ),
+                  ],
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -1291,197 +1147,133 @@ class _HeroImageSection extends StatelessWidget {
   }
 }
 
-class _LuxuryQRSection extends StatelessWidget {
+class _LargeQRCodeSection extends StatelessWidget {
   final String ticketId;
   final ThemeData theme;
 
-  const _LuxuryQRSection({
+  const _LargeQRCodeSection({
     required this.ticketId,
     required this.theme,
   });
 
   @override
   Widget build(final BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.primary.withOpacity(0.7),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+    return Container(
+      padding: const EdgeInsets.all(28), // DAHA BÜYÜK PADDING
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primaryContainer,
+                    ],
                   ),
-                ],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.qr_code_2_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
-              child: Icon(
-                Icons.qr_code_rounded,
-                color: theme.colorScheme.onPrimary,
-                size: 20,
+              const SizedBox(width: 12),
+              Text(
+                'QR Kod',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Bilet QR Kodu',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primaryContainer.withOpacity(0.8),
-                theme.colorScheme.primaryContainer.withOpacity(0.4),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // QR Code - BÜYÜK
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: theme.colorScheme.primary.withOpacity(0.3),
-              width: 2,
+            child: QrImageView(
+              data: ticketId,
+              version: QrVersions.auto,
+              size: 220,
+              // DAHA BÜYÜK QR
+              eyeStyle: QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color: theme.colorScheme.primary,
+              ),
+              dataModuleStyle: QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square,
+                color: theme.colorScheme.primary,
+              ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.2),
-                blurRadius: 30,
-                offset: const Offset(0, 12),
-                spreadRadius: -5,
-              ),
-              BoxShadow(
-                color: theme.colorScheme.shadow.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  // QR Code with artistic frame
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.shadow.withOpacity(0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: QrImageView(
-                      data: ticketId,
-                      version: QrVersions.auto,
-                      size: 110,
-                      eyeStyle: QrEyeStyle(
-                        eyeShape: QrEyeShape.square,
-                        color: theme.colorScheme.primary,
-                      ),
-                      dataModuleStyle: QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.square,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 24),
+          const SizedBox(height: 24),
 
-                  // Information
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'GİRİŞ KODU',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Bu kodu girişte\ngösterin',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onPrimaryContainer,
-                            height: 1.3,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: theme.colorScheme.outline.withOpacity(0.2),
-                            ),
-                          ),
-                          child: Text(
-                            ticketId,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace',
-                              color: theme.colorScheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          Text(
+            'Bu kodu girişte gösteriniz',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              ticketId,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _DetailsSection extends StatelessWidget {
+class _LargeTicketDetailsSection extends StatelessWidget {
   final DetailedTicket ticket;
   final String dateText;
   final String timeText;
   final ThemeData theme;
 
-  const _DetailsSection({
+  const _LargeTicketDetailsSection({
     required this.ticket,
     required this.dateText,
     required this.timeText,
@@ -1490,191 +1282,154 @@ class _DetailsSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.tertiary,
-                    theme.colorScheme.tertiary.withOpacity(0.7),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.tertiary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primaryContainer,
+                    ],
                   ),
-                ],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
-              child: Icon(
-                Icons.info_outline_rounded,
-                color: theme.colorScheme.onTertiary,
-                size: 20,
+              const SizedBox(width: 12),
+              Text(
+                'Bilet Bilgileri',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Bilet Bilgileri',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _LuxuryDetailTile(
-          icon: Icons.event_seat_rounded,
-          title: 'Koltuk Numaraları',
-          subtitle: ticket.ticket.buySeats.join(", "),
-          color: theme.colorScheme.primary,
-          theme: theme,
-        ),
-        _LuxuryDetailTile(
-          icon: Icons.location_on_rounded,
-          title: 'Sahne',
-          subtitle: ticket.stage?.name ?? 'Yükleniyor...',
-          theme: theme,
-        ),
-        _LuxuryDetailTile(
-          icon: Icons.calendar_month_rounded,
-          title: 'Tarih',
-          subtitle: dateText,
-          theme: theme,
-        ),
-        _LuxuryDetailTile(
-          icon: Icons.access_time_filled_rounded,
-          title: 'Saat',
-          subtitle: timeText,
-          theme: theme,
-        ),
-        _LuxuryDetailTile(
-          icon: Icons.payments_rounded,
-          title: 'Ödenen Tutar',
-          subtitle: '${ticket.ticket.orderPrice} TL',
-          theme: theme,
-        ),
-        _LuxuryDetailTile(
-          icon: Icons.credit_card_rounded,
-          title: 'Ödeme Yöntemi',
-          subtitle: ticket.ticket.orderMethod,
-          theme: theme,
-          isLast: true,
-        ),
-      ],
+            ],
+          ),
+          const SizedBox(height: 24),
+          _LargeDetailItem(
+            icon: Icons.event_seat_rounded,
+            title: 'Koltuk Numaraları',
+            value: ticket.ticket.buySeats.join(", "),
+            theme: theme,
+          ),
+          const SizedBox(height: 16),
+          _LargeDetailItem(
+            icon: Icons.location_on_rounded,
+            title: 'Sahne',
+            value: ticket.stage?.name ?? 'Yükleniyor...',
+            theme: theme,
+          ),
+          const SizedBox(height: 16),
+          _LargeDetailItem(
+            icon: Icons.calendar_month_rounded,
+            title: 'Tarih',
+            value: dateText,
+            theme: theme,
+          ),
+          const SizedBox(height: 16),
+          _LargeDetailItem(
+            icon: Icons.access_time_rounded,
+            title: 'Saat',
+            value: timeText,
+            theme: theme,
+          ),
+          const SizedBox(height: 16),
+          _LargeDetailItem(
+            icon: Icons.payments_rounded,
+            title: 'Ödenen Tutar',
+            value: '${ticket.ticket.orderPrice} TL',
+            theme: theme,
+          ),
+          const SizedBox(height: 16),
+          _LargeDetailItem(
+            icon: Icons.credit_card_rounded,
+            title: 'Ödeme Yöntemi',
+            value: ticket.ticket.orderMethod,
+            theme: theme,
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _LuxuryDetailTile extends StatelessWidget {
+class _LargeDetailItem extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
-  final Color? color;
+  final String value;
   final ThemeData theme;
-  final bool isLast;
 
-  const _LuxuryDetailTile({
+  const _LargeDetailItem({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    required this.value,
     required this.theme,
-    this.color,
-    this.isLast = false,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final isHighlighted = color != null;
-    final tileColor = isHighlighted
-        ? color!.withOpacity(0.12)
-        : theme.colorScheme.surfaceContainerHighest.withOpacity(0.6);
-    final iconColor = isHighlighted ? color! : theme.colorScheme.primary;
-
     return Container(
-      margin: EdgeInsets.only(bottom: isLast ? 0 : 16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20), // DAHA BÜYÜK
       decoration: BoxDecoration(
-        color: tileColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isHighlighted
-              ? color!.withOpacity(0.3)
-              : theme.colorScheme.outline.withOpacity(0.1),
-          width: isHighlighted ? 2 : 1,
-        ),
-        boxShadow: isHighlighted
-            ? [
-                BoxShadow(
-                  color: color!.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withOpacity(0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12), // DAHA BÜYÜK
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  iconColor,
-                  iconColor.withOpacity(0.7),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: iconColor.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: theme.colorScheme.primary.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               icon,
-              color: Colors.white,
-              size: 24,
+              color: theme.colorScheme.primary,
+              size: 24, // DAHA BÜYÜK ICON
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: theme.textTheme.labelLarge?.copyWith(
+                  style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                    fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  subtitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: isHighlighted ? color : theme.colorScheme.onSurface,
+                  value,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
                   ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
