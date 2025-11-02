@@ -1101,6 +1101,7 @@ class _LargeEventImage extends StatelessWidget {
   }
 }
 
+/// Modal içindeki QR kod bölümü.
 class _LargeQRCodeSection extends StatelessWidget {
   final String ticketId;
   final ThemeData theme;
@@ -1112,152 +1113,179 @@ class _LargeQRCodeSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // BAŞLIK
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primaryContainer,
-                    ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary,
+                    theme.colorScheme.primary.withOpacity(0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.qr_code_scanner_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Text(
-                'QR Kod',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
-                ),
+              child: Icon(
+                Icons.qr_code_rounded,
+                color: theme.colorScheme.onPrimary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Bilet QR Kodu',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Container(
+          // GÜNCELLENDİ: Padding 24'ten 20'ye düşürüldü
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primaryContainer.withOpacity(0.8),
+                theme.colorScheme.primaryContainer.withOpacity(0.4),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: theme.colorScheme.primary.withOpacity(0.3),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.primary.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+                spreadRadius: -5,
+              ),
+              BoxShadow(
+                color: theme.colorScheme.shadow.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-
-          Row(
+          child: Column(
             children: [
-              // QR Kod
-              Container(
-                // GÜNCELLENDİ: Padding 16'dan 12'ye düşürüldü
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.shadow.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+              Row(
+                children: [
+                  // QR Kod
+                  Container(
+                    // GÜNCELLENDİ: Padding 16'dan 12'ye düşürüldü
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.shadow.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: QrImageView(
-                  data: ticketId,
-                  version: QrVersions.auto,
-                  // GÜNCELLENDİ: Boyut 110'dan 100'e düşürüldü
-                  size: 100,
-                  eyeStyle: QrEyeStyle(
-                    eyeShape: QrEyeShape.square,
-                    color: theme.colorScheme.primary,
+                    child: QrImageView(
+                      data: ticketId,
+                      version: QrVersions.auto,
+                      // GÜNCELLENDİ: Boyut 110'dan 100'e düşürüldü
+                      size: 100,
+                      eyeStyle: QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: theme.colorScheme.primary,
+                      ),
+                      dataModuleStyle: QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
                   ),
-                  dataModuleStyle: QrDataModuleStyle(
-                    dataModuleShape: QrDataModuleShape.square,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-              // GÜNCELLENDİ: Boşluk 24'ten 20'ye düşürüldü
-              const SizedBox(width: 20),
+                  // GÜNCELLENDİ: Boşluk 24'ten 20'ye düşürüldü
+                  const SizedBox(width: 20),
 
-              // QR Kod bilgisi
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'GİRİŞ KODU',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
+                  // QR Kod bilgisi
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'GİRİŞ KODU',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Bu kodu girişte\ngösterin',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimaryContainer,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.colorScheme.outline.withOpacity(0.2),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Bu kodu girişte\ngösterin',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onPrimaryContainer,
+                            height: 1.3,
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        ticketId,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontFamily: 'monospace',
-                          color: theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.colorScheme.outline.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Text(
+                            ticketId,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontFamily: 'monospace',
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
-          )
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }
