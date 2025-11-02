@@ -723,10 +723,10 @@ class _ParticleDecorationState extends State<_ParticleDecoration>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) {
+      builder: (final context, final child) {
         return Container(
           width: 40,
           height: 40,
@@ -753,7 +753,7 @@ class _ParticleDecorationState extends State<_ParticleDecoration>
           child: Stack(
             children: [
               // Partiküller
-              ..._particles.map((particle) {
+              ..._particles.map((final particle) {
                 final angle = particle.angle + _controller.value * 2 * pi;
                 final distance = 12 + particle.distance * _controller.value * 8;
                 final x = distance * cos(angle);
@@ -950,7 +950,7 @@ class _LuxuryTicketDetails extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // Ticket Details - ALT ALTA
-                      _LargeTicketDetailsSection(
+                      _DetailsSection(
                         ticket: ticket,
                         dateText: dateText,
                         timeText: timeText,
@@ -1119,35 +1119,23 @@ class _LargeQRCodeSection extends StatelessWidget {
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.primary.withOpacity(0.7),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primaryContainer
+                    ],
                   ),
-                ],
-              ),
-              child: Icon(
-                Icons.qr_code_rounded,
-                color: theme.colorScheme.onPrimary,
-                size: 20,
-              ),
-            ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.qr_code_scanner_rounded,
+                    color: Colors.white, size: 24)),
             const SizedBox(width: 12),
             Text(
               'Bilet QR Kodu',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w700, fontSize: 22),
             ),
           ],
         ),
@@ -1204,7 +1192,6 @@ class _LargeQRCodeSection extends StatelessWidget {
                     child: QrImageView(
                       data: ticketId,
                       version: QrVersions.auto,
-                      // GÜNCELLENDİ: Boyut 110'dan 100'e düşürüldü
                       size: 100,
                       eyeStyle: QrEyeStyle(
                         eyeShape: QrEyeShape.square,
@@ -1216,7 +1203,6 @@ class _LargeQRCodeSection extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // GÜNCELLENDİ: Boşluk 24'ten 20'ye düşürüldü
                   const SizedBox(width: 20),
 
                   // QR Kod bilgisi
@@ -1288,14 +1274,19 @@ class _LargeQRCodeSection extends StatelessWidget {
     );
   }
 }
+// ============================================================
+// DETAILS SECTION (YENİ TASARIM: DİKEY LİSTE)
+// ============================================================
 
-class _LargeTicketDetailsSection extends StatelessWidget {
+/// Modal içindeki bilet detaylarını (koltuk, sahne, tarih vb.)
+/// tek bir çerçeve içinde dikey bir liste olarak gösterir.
+class _DetailsSection extends StatelessWidget {
   final DetailedTicket ticket;
   final String dateText;
   final String timeText;
   final ThemeData theme;
 
-  const _LargeTicketDetailsSection({
+  const _DetailsSection({
     required this.ticket,
     required this.dateText,
     required this.timeText,
@@ -1304,185 +1295,214 @@ class _LargeTicketDetailsSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // BAŞLIK VE İKON
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primaryContainer,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Başlık
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary,
+                    theme.colorScheme.primaryContainer,
+                  ],
                 ),
-                child: Icon(
-                  Icons.info_outline_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 12),
-              Text(
-                'Bilet Bilgileri',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
-                ),
+              child: Icon(
+                Icons.info_outline_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Bilet Bilgileri',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 22,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // QR Kod stiline sahip yeni liste çerçevesi
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.surfaceContainer.withOpacity(0.8),
+                theme.colorScheme.surfaceContainer.withOpacity(0.4),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: theme.colorScheme.primary,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.shadow.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          child: Column(
+            children: [
+              _InfoListTile(
+                icon: Icons.event_seat_rounded,
+                title: 'Koltuk Numaraları',
+                subtitle: ticket.ticket.buySeats.join(", "),
+                theme: theme,
+                isHighlighted: true,
+              ),
+              const _CustomDivider(),
+              _InfoListTile(
+                icon: Icons.location_on_rounded,
+                title: 'Sahne',
+                subtitle: ticket.stage?.name ?? 'Yükleniyor...',
+                theme: theme,
+              ),
+              const _CustomDivider(),
+              _InfoListTile(
+                icon: Icons.calendar_month_rounded,
+                title: 'Tarih',
+                subtitle: dateText,
+                theme: theme,
+              ),
+              const _CustomDivider(),
+              _InfoListTile(
+                icon: Icons.access_time_filled_rounded,
+                title: 'Saat',
+                subtitle: timeText,
+                theme: theme,
+              ),
+              const _CustomDivider(),
+              _InfoListTile(
+                icon: Icons.payments_rounded,
+                title: 'Ödenen Tutar',
+                subtitle: '${ticket.ticket.orderPrice} TL',
+                theme: theme,
+                isHighlighted: true,
+              ),
+              const _CustomDivider(),
+              _InfoListTile(
+                icon: Icons.credit_card_rounded,
+                title: 'Ödeme Yöntemi',
+                subtitle: ticket.ticket.orderMethod,
+                theme: theme,
+                isLast: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-          // BİLET DETAYLARI - ALT ALTA
-          _LargeDetailItem(
-            icon: Icons.event_seat_rounded,
-            title: 'Koltuk Numaraları',
-            value: ticket.ticket.buySeats.join(", "),
-            theme: theme,
-          ),
-          const SizedBox(height: 16),
-          _LargeDetailItem(
-            icon: Icons.location_on_rounded,
-            title: 'Sahne',
-            value: ticket.stage?.name ?? 'Yükleniyor...',
-            theme: theme,
-          ),
-          const SizedBox(height: 16),
-          _LargeDetailItem(
-            icon: Icons.calendar_month_rounded,
-            title: 'Tarih',
-            value: dateText,
-            theme: theme,
-          ),
-          const SizedBox(height: 16),
-          _LargeDetailItem(
-            icon: Icons.access_time_rounded,
-            title: 'Saat',
-            value: timeText,
-            theme: theme,
-          ),
-          const SizedBox(height: 16),
-          _LargeDetailItem(
-            icon: Icons.payments_rounded,
-            title: 'Ödenen Tutar',
-            value: '${ticket.ticket.orderPrice} TL',
-            theme: theme,
-          ),
-          const SizedBox(height: 16),
-          _LargeDetailItem(
-            icon: Icons.credit_card_rounded,
-            title: 'Ödeme Yöntemi',
-            value: ticket.ticket.orderMethod,
-            theme: theme,
-          ),
-        ],
+/// Çerçeve içindeki listede kullanılacak ayırıcı (divider) widget'ı.
+class _CustomDivider extends StatelessWidget {
+  const _CustomDivider();
+
+  @override
+  Widget build(final BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Divider(
+        height: 1,
+        color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
       ),
     );
   }
 }
 
-class _LargeDetailItem extends StatelessWidget {
+/// Dikey liste içindeki her bir yatay bilgi satırı.
+class _InfoListTile extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String value;
+  final String subtitle;
   final ThemeData theme;
+  final bool isHighlighted;
+  final bool isLast;
 
-  const _LargeDetailItem({
+  const _InfoListTile({
     required this.icon,
     required this.title,
-    required this.value,
+    required this.subtitle,
     required this.theme,
+    this.isHighlighted = false,
+    this.isLast = false,
   });
 
   @override
   Widget build(final BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    // İkonun "arka plan" rengini belirler
+    final iconBackgroundColor =
+        isHighlighted ? theme.colorScheme.primary : theme.colorScheme.tertiary;
+
+    // Alt başlığın (değerin) rengini belirler
+    final subtitleColor =
+        isHighlighted ? theme.colorScheme.primary : theme.colorScheme.onSurface;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // İkon
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            // Arka plan rengi koşulludur
+            color: iconBackgroundColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(14),
           ),
-        ],
-        border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          child: Icon(
+            icon,
+            // İkonun "kendisi" her zaman 'primary' rengindedir
+            color: theme.colorScheme.primary,
+            size: 24,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primary.withOpacity(0.8),
-                  theme.colorScheme.primary,
-                ],
+        const SizedBox(width: 16),
+
+        // Başlık ve Alt Başlık
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title.toUpperCase(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.primary.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: subtitleColor,
+                  height: 1.2,
                 ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
-            ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  value,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
