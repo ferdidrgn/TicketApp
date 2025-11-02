@@ -4,7 +4,7 @@ import '../../model/ticket_model.dart';
 
 abstract class TicketRemoteDataSource {
   Future<List<TicketModel?>?> getTicketsByIds(final List<String> ticketIds);
-
+  Future<List<TicketModel?>?> getTicketsByCustomerId(final String customerId);
   Future<bool> createTicket(final Ticket ticket);
 }
 
@@ -16,7 +16,8 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
       : _firestore = firestore;
 
   @override
-  Future<List<TicketModel?>?> getTicketsByIds(final List<String> ticketIds) async {
+  Future<List<TicketModel?>?> getTicketsByIds(
+      final List<String> ticketIds) async {
     if (ticketIds.isEmpty) return [];
 
     try {
@@ -45,6 +46,33 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
       return true;
     } catch (e, s) {
       throw Exception('Failed to create ticket → $e\n$s');
+    }
+  }
+
+  @override
+  Future<List<TicketModel?>?> getTicketsByCustomerId(
+      final String customerId) async {
+    if (customerId.isEmpty) throw Exception('Customer ID cannot be empty.');
+
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('customerId', isEqualTo: customerId)
+          .get();
+
+      // Bilet bulunamadıysa boş liste dön.
+      if (snapshot.docs.isEmpty) return [];
+
+      return snapshot.docs
+          .map((final doc) => TicketModel.fromFirestore(doc.data()))
+          .toList();
+    } on FirebaseException catch (e) {
+      // Firebase'e özgü hataları yakala
+      throw Exception(
+          'Firestore hatası (getTicketsByCustomerId): ${e.message}');
+    } catch (e, s) {
+      // Diğer hataları yakala
+      throw Exception('Failed to fetch tickets by customerId → $e\n$s');
     }
   }
 }

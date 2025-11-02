@@ -18,11 +18,16 @@ class TicketRepositoryImpl extends BaseRepository implements TicketRepository {
       final List<String> ticketIds) async {
     return execute(() async {
       if (ticketIds.isEmpty) throw Exception('Ticket ID cannot be empty.');
-      return await remoteDataSource.getTicketsByIds(ticketIds);
+      return remoteDataSource.getTicketsByIds(ticketIds);
     });
   }
 
   @override
   Future<Either<Failure, bool>> createTicket(final TicketModel ticket) async =>
       execute(() => remoteDataSource.createTicket(ticket.toEntity()));
+
+  @override
+  Future<Either<Failure, List<TicketModel?>?>> getTicketsByCustomerId(
+          final String customerId) async =>
+      execute(() => remoteDataSource.getTicketsByCustomerId(customerId));
 }

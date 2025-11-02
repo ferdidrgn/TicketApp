@@ -3,19 +3,19 @@ import '../../../../core/errors/failures.dart';
 import '../../entities/ticket.dart';
 import '../../repository/ticket_repository.dart';
 
-abstract class GetTicketsByIdUseCase {
-  Future<Either<Failure, List<Ticket>>> call(final List<String> ticketsIds);
+abstract class GetTicketsByCustomerIdUseCase {
+  Future<Either<Failure, List<Ticket>>> call(final String ticketsIds);
 }
 
-class GetTicketsByIdUseCaseImpl implements GetTicketsByIdUseCase {
+class GetTicketByCustomerIdUseCaseImpl
+    implements GetTicketsByCustomerIdUseCase {
   final TicketRepository repository;
 
-  GetTicketsByIdUseCaseImpl(this.repository);
+  GetTicketByCustomerIdUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Ticket>>> call(
-      final List<String> ticketsIds) async {
-    final result = await repository.getTicketsByIds(ticketsIds);
+  Future<Either<Failure, List<Ticket>>> call(final String ticketsIds) async {
+    final result = await repository.getTicketsByCustomerId(ticketsIds);
     return result.fold(
         (final failure) => Left(failure),
         (final ticketsModels) => Right(ticketsModels
