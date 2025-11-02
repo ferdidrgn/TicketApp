@@ -1,5 +1,3 @@
-// core/util/date_formatter.dart
-
 mixin DateFormatter {
   // "dd.MM.yyyy, HH:mm" formatında şu anki tarih ve saati döndüren metod
   static String nowFormatDateTime() {
@@ -11,6 +9,34 @@ mixin DateFormatter {
     final String minute = dateTime.minute.toString().padLeft(2, '0');
 
     return "$day.$month.$year, $hour:$minute";
+  }
+
+  static DateTime? parseDateString(final String? dateString) {
+    if (dateString == null || dateString.isEmpty) return null;
+
+    try {
+      final List<String> parts = dateString.split(',');
+      if (parts.length != 2) return null; // Beklenen format değil
+
+      final String datePart = parts[0].trim();
+      final String timePart = parts[1].trim();
+
+      final List<String> dateParts = datePart.split('.');
+      final List<String> timeParts = timePart.split(':');
+      if (dateParts.length != 3 || timeParts.length != 2) return null;
+
+      final int year = int.parse(dateParts[2]);
+      final int month = int.parse(dateParts[1]);
+      final int day = int.parse(dateParts[0]);
+      final int hour = int.parse(timeParts[0]);
+      final int minute = int.parse(timeParts[1]);
+
+      // DateTime.parse() veya intl paketine göre daha az güvenli
+      return DateTime(year, month, day, hour, minute);
+    } catch (e) {
+      print("DateFormatter.parseEventDateString Hata ($dateString): $e");
+      return null;
+    }
   }
 
   // Formatlanmış veriyi tarih ve saat olarak bölen metod
@@ -50,7 +76,7 @@ mixin DateFormatter {
       // 1. Tarih ve Saati ayır ("dd.MM.yyyy" ve " HH:mm")
       final List<String> parts = formattedDateTime.split(',');
       if (parts.length < 2) {
-        // Eğer format bozuksa (virgül yoksa) hata ver
+      // Eğer format bozuksa (virgül yoksa) hata ver
         throw FormatException(
             "Invalid date time format: Comma separator missing.");
       }
@@ -60,7 +86,7 @@ mixin DateFormatter {
       // 2. Tarih parçalarını ayır ("dd", "MM", "yyyy")
       final List<String> dateParts = datePart.split('.');
       if (dateParts.length < 3) {
-        // Eğer format bozuksa (noktalar eksikse) hata ver
+      // Eğer format bozuksa (noktalar eksikse) hata ver
         throw FormatException("Invalid date format: Date parts missing.");
       }
       final String day = dateParts[0];
@@ -75,7 +101,7 @@ mixin DateFormatter {
         "time": timePart // Örn: "12:19"
       };
     } catch (e) {
-      // Hata oluşursa (örn: format bozuksa, parse hatası)
+    // Hata oluşursa (örn: format bozuksa, parse hatası)
       print("Error in formatForEventCard for input '$formattedDateTime': $e");
       return {"day": "?", "monthName": "Hata", "time": "--:--"};
     }
