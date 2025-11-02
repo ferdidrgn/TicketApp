@@ -9,56 +9,6 @@ import 'package:ticketapp/domain/entities/ticket.dart';
 import 'ticket_provider.dart';
 import 'ticket_state.dart';
 
-/// Bilet, Gösteri, Etkinlik ve Sahne verilerini birleştiren bir yardımcı sınıf.
-/// UI katmanı için optimize edilmiş bir ViewModel görevi görür.
-class DetailedTicket {
-  final Ticket ticket;
-  final Show? show;
-  final Event? event;
-  final Stage? stage;
-  final bool isPast;
-
-  const DetailedTicket({
-    required this.ticket,
-    this.show,
-    this.event,
-    this.stage,
-    required this.isPast,
-  });
-
-  /// Factory constructor ile hızlı oluşturma
-  factory DetailedTicket.fromTicket(
-    final Ticket ticket, {
-    final Show? show,
-    final Event? event,
-    final Stage? stage,
-    required final bool isPast,
-  }) =>
-      DetailedTicket(
-        ticket: ticket,
-        show: show,
-        event: event,
-        stage: stage,
-        isPast: isPast,
-      );
-
-  /// CopyWith metodu - immutable güncellemeler için
-  DetailedTicket copyWith({
-    final Ticket? ticket,
-    final Show? show,
-    final Event? event,
-    final Stage? stage,
-    final bool? isPast,
-  }) =>
-      DetailedTicket(
-        ticket: ticket ?? this.ticket,
-        show: show ?? this.show,
-        event: event ?? this.event,
-        stage: stage ?? this.stage,
-        isPast: isPast ?? this.isPast,
-      );
-}
-
 /// Ticket state yönetimi için optimize edilmiş notifier.
 ///
 /// PERFORMANS İYİLEŞTİRMELERİ:
@@ -67,7 +17,6 @@ class DetailedTicket {
 /// - Efficient error handling
 /// - Memory-efficient data structures
 class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
-  /// Concurrent request limiter
   String? _lastLoadedCustomerId;
   DateTime? _lastRequestTime;
 
@@ -76,7 +25,7 @@ class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
 
   @override
   void reloadData() {
-    if (_lastLoadedCustomerId != null && _lastLoadedCustomerId!.isNotEmpty)
+    if (_lastLoadedCustomerId != null)
       loadTicketsAndDetailsByCustomerId(_lastLoadedCustomerId!);
   }
 
@@ -90,57 +39,44 @@ class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
   ///
   /// [customerId] - Müşterinin benzersiz ID'si
   Future<void> loadTicketsAndDetailsByCustomerId(
-    final String customerId,
-  ) async {
-    // Validation
-    if (customerId.isEmpty || customerId == '0') {
+      final String customerId) async {
+    if (customerId.isEmpty) {
       _clearState();
       return;
     }
 
-    // Debouncing - Aynı customer için çok sık istek yapılmasını önle
     if (_isRecentlyLoaded(customerId)) return;
-
     _lastLoadedCustomerId = customerId;
 
     await executeWithInternetCheck(
-        () => ref.read(getTicketByCustomerIdUseCaseProvider).call(customerId),
-        onSuccess: (final tickets) => _handleTicketsLoaded(tickets));
+      () => ref.read(getTicketByCustomerIdUseCaseProvider).call(customerId),
+      onSuccess: (final tickets) => _handleTicketsLoaded(tickets),
+    );
   }
 
-  /// Biletler yüklendikten sonra detayları getirir
   Future<void> _handleTicketsLoaded(final List<Ticket> tickets) async {
-    // Boş liste kontrolü
     if (tickets.isEmpty) {
       _clearState();
       return;
     }
 
-    // Biletleri state'e yaz (loading indicator için)
-    state =
-        state.copyWith(dataList: tickets, errorMessage: null, isLoading: true);
+    state = state.copyWith(dataList: tickets, isLoading: true);
 
     try {
-      // ID'leri topla ve unique yap (Set kullanarak O(1) lookup)
       final entityIds = _extractEntityIds(tickets);
-
-      // Paralel yükleme - Tüm detayları aynı anda getir
       final relatedData = await _loadRelatedData(entityIds);
 
-      // Final state güncellemesi
       state = state.copyWith(
         relatedShows: relatedData.shows,
         relatedEvents: relatedData.events,
         relatedStages: relatedData.stages,
         isLoading: false,
-        errorMessage: null,
       );
     } catch (e) {
       setErrorState("Bilet detayları yüklenirken hata oluştu: $e");
     }
   }
 
-  /// Entity ID'lerini toplar ve temizler
   _EntityIds _extractEntityIds(final List<Ticket> tickets) {
     final showIds = <String>{};
     final eventIds = <String>{};
@@ -153,15 +89,12 @@ class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
     }
 
     return _EntityIds(
-        showIds: showIds.toList(),
-        eventIds: eventIds.toList(),
-        stageIds: stageIds.toList());
+      showIds: showIds.toList(),
+      eventIds: eventIds.toList(),
+      stageIds: stageIds.toList(),
+    );
   }
 
-  /// İlgili tüm verileri paralel olarak yükler
-  ///
-  /// PERFORMANS: Future.wait ile paralel yükleme
-  /// Network latency'i minimize eder
   Future<_RelatedData> _loadRelatedData(final _EntityIds ids) async {
     final results = await Future.wait([
       _loadShows(ids.showIds),
@@ -176,116 +109,37 @@ class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
     );
   }
 
-  /// Show'ları yükler
   Future<List<Show>> _loadShows(final List<String> ids) async {
     if (ids.isEmpty) return [];
-
     final result = await ref.read(getShowsByIdsUseCaseProvider).call(ids);
-    return result.fold(
-      (final failure) {
-        debugPrint('Show yükleme hatası: $failure');
-        return <Show>[];
-      },
-      (final shows) => shows,
-    );
+    return result.fold((final failure) => <Show>[], (final shows) => shows);
   }
 
-  /// Event'leri yükler
   Future<List<Event>> _loadEvents(final List<String> ids) async {
     if (ids.isEmpty) return [];
-
     final result = await ref.read(getEventsByIdsUseCaseProvider).call(ids);
-    return result.fold(
-      (final failure) {
-        debugPrint('Event yükleme hatası: $failure');
-        return <Event>[];
-      },
-      (final events) => events,
-    );
+    return result.fold((final failure) => <Event>[], (final events) => events);
   }
 
-  /// Stage'leri yükler
   Future<List<Stage>> _loadStages(final List<String> ids) async {
     if (ids.isEmpty) return [];
-
     final result = await ref.read(getStageByIdUseCaseProvider).call(ids);
-    return result.fold(
-      (final failure) {
-        debugPrint('Stage yükleme hatası: $failure');
-        return <Stage>[];
-      },
-      (final stages) => stages,
-    );
+    return result.fold((final failure) => <Stage>[], (final stages) => stages);
   }
 
-  /// State'i temizler
   void _clearState() {
-    state = state.copyWith(
-      dataList: [],
-      relatedShows: [],
-      relatedEvents: [],
-      relatedStages: [],
-      isLoading: false,
-      errorMessage: null,
-    );
+    state = const TicketState();
   }
 
-  /// Son 500ms içinde aynı customer için istek yapıldı mı?
   bool _isRecentlyLoaded(final String customerId) {
-    if (_lastLoadedCustomerId != customerId) {
-      _lastLoadedCustomerId = customerId;
-      _lastRequestTime = DateTime.now();
-      return false;
-    }
+    if (_lastLoadedCustomerId != customerId) return false;
+    if (_lastRequestTime == null) return false;
 
-    // Son istek 500ms içinde mi?
-    if (_lastRequestTime != null) {
-      final timeSinceLastRequest = DateTime.now().difference(_lastRequestTime!);
-      if (timeSinceLastRequest.inMilliseconds < 500) return true;
-    }
-
-    _lastRequestTime = DateTime.now();
-    return false;
-  }
-
-  /// Yeni bilet oluşturur
-  ///
-  /// Optimistic update pattern - önce UI'ı güncelle, sonra backend'e gönder
-  Future<void> createTicket(final Ticket ticket) async {
-    // Optimistic update
-    final currentTickets = state.dataList ?? [];
-    state = state.copyWith(dataList: [...currentTickets, ticket]);
-
-    await executeWithInternetCheck(
-      () => ref.read(createTicketUseCaseProvider).call(ticket),
-      onSuccess: (final _) {},
-    );
-  }
-
-  /// Deprecated - Geriye dönük uyumluluk için tutuldu
-  @Deprecated('Use loadTicketsAndDetailsByCustomerId instead')
-  Future<void> loadTicketsAndDetails(final List<String> ticketIds) async {
-    if (ticketIds.isEmpty) {
-      _clearState();
-      return;
-    }
-
-    await executeWithInternetCheck(
-      () => ref.read(getTicketByIdUseCaseProvider).call(ticketIds),
-      onSuccess: (final tickets) {
-        if (tickets.isNotEmpty)
-          loadTicketsAndDetailsByCustomerId(tickets.first.customerId);
-        else
-          _clearState();
-      },
-    );
+    final timeSinceLastRequest = DateTime.now().difference(_lastRequestTime!);
+    return timeSinceLastRequest.inMilliseconds < 500;
   }
 }
 
-// ============================================================
-// HELPER CLASSES - Internal use only
-
-/// ID koleksiyonları için helper class
 class _EntityIds {
   final List<String> showIds;
   final List<String> eventIds;
@@ -298,7 +152,6 @@ class _EntityIds {
   });
 }
 
-/// İlgili veri koleksiyonları için helper class
 class _RelatedData {
   final List<Show> shows;
   final List<Event> events;
