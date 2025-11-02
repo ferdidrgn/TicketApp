@@ -129,15 +129,9 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     final tickets = state.dataList ?? [];
     if (tickets.isEmpty) return ([], []);
 
-    final showMap = {
-      for (final s in state.relatedShows ?? []) s.id: s,
-    };
-    final eventMap = {
-      for (final e in state.relatedEvents ?? []) e.id: e,
-    };
-    final stageMap = {
-      for (final s in state.relatedStages ?? []) s.id: s,
-    };
+    final showMap = {for (final s in state.relatedShows ?? []) s.id: s};
+    final eventMap = {for (final e in state.relatedEvents ?? []) e.id: e};
+    final stageMap = {for (final s in state.relatedStages ?? []) s.id: s};
 
     final now = DateTime.now();
     final detailedTickets = <DetailedTicket>[];
