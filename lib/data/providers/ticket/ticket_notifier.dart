@@ -10,6 +10,23 @@ import 'package:ticketapp/domain/entities/ticket.dart';
 import 'ticket_provider.dart';
 import 'ticket_state.dart';
 
+/// Bilet, Gösteri, Etkinlik ve Sahne verilerini birleştiren bir yardımcı sınıf (View Model).
+class DetailedTicket {
+  final Ticket ticket;
+  final Show? show;
+  final Event? event;
+  final Stage? stage;
+  final bool isPast;
+
+  DetailedTicket({
+    required this.ticket,
+    this.show,
+    this.event,
+    this.stage,
+    required this.isPast,
+  });
+}
+
 class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
   @override
   TicketState initialState() => const TicketState();

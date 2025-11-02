@@ -3,33 +3,17 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/core/widgets/shimmer.dart';
 import 'package:ticketapp/data/providers/ticket/ticket_provider.dart';
 import 'package:ticketapp/domain/entities/event.dart';
 import 'package:ticketapp/domain/entities/show.dart';
 import 'package:ticketapp/domain/entities/stage.dart';
 import 'package:ticketapp/domain/entities/ticket.dart';
-
-/// Bilet, Gösteri, Etkinlik ve Sahne verilerini birleştiren bir yardımcı sınıf (View Model).
-class _DetailedTicket {
-  final Ticket ticket;
-  final Show? show;
-  final Event? event;
-  final Stage? stage;
-  final bool isPast;
-
-  _DetailedTicket({
-    required this.ticket,
-    this.show,
-    this.event,
-    this.stage,
-    required this.isPast,
-  });
-}
+import '../../../../core/util/date_formatter.dart';
+import '../../../../data/providers/ticket/ticket_notifier.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {
-  final String userId; // Bu artık customerId olarak kullanılacak
+  final String userId;
 
   const MyTicketPage({super.key, required this.userId});
 
@@ -47,9 +31,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     _tabController = TabController(length: 2, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (mounted)
-        // 1. Adım: Veri yüklemeyi 'customerId' (yani userId) ile tetikle
-        _loadTicketData();
+      if (mounted) _loadTicketData();
     });
   }
 
@@ -65,44 +47,18 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     // Eğer biletler zaten yükleniyorsa tekrar tetikleme
     if (currentState.isLoading) return;
 
-    // Notifier'daki YENİ metodu çağır
-    // (RefreshIndicator için await ekliyoruz)
     await ref
         .read(ticketProvider.notifier)
         .loadTicketsAndDetailsByCustomerId(widget.userId);
-  }
-
-  /// Verilen tarih string'ini (örn: "04.11.2024, 13:50") DateTime nesnesine çevirir.
-  DateTime? _parseDate(final String? dateString) {
-    if (dateString == null || dateString.isEmpty) return null;
-    try {
-      final List<String> parts = dateString.split(',');
-      if (parts.length != 2) return null;
-      final List<String> dateParts = parts[0].split('.');
-      final List<String> timeParts = parts[1].trim().split(':');
-      if (dateParts.length != 3 || timeParts.length != 2) return null;
-      return DateTime(
-        int.parse(dateParts[2]), // Yıl
-        int.parse(dateParts[1]), // Ay
-        int.parse(dateParts[0]), // Gün
-        int.parse(timeParts[0]), // Saat
-        int.parse(timeParts[1]), // Dakika
-      );
-    } catch (e) {
-      debugPrint("Tarih ayrıştırma hatası ($dateString): $e");
-      return null;
-    }
   }
 
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
 
-    // Artık sadece 'ticketProvider'ı izliyoruz.
     final ticketState = ref.watch(ticketProvider);
 
-    // VERİ BİRLEŞTİRME (AGGREGATION)
-    // Verileri artık ticketState'in içinden al
+    // VERİ BİRLEŞTİRME (AGGREGATION). Verileri artık ticketState'in içinden al
     final List<Ticket> userTickets = ticketState.dataList ?? [];
 
     // Hızlı erişim için Map'leri TICKET STATE'den oluştur
@@ -110,17 +66,16 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     final eventMap = {for (final e in ticketState.relatedEvents ?? []) e.id: e};
     final stageMap = {for (final s in ticketState.relatedStages ?? []) s.id: s};
 
-    final List<_DetailedTicket> detailedTickets = [];
+    final List<DetailedTicket> detailedTickets = [];
     final now = DateTime.now();
 
     for (final ticket in userTickets) {
       final event = eventMap[ticket.eventId];
-      final eventDate = _parseDate(event?.date);
-
+      final eventDate = DateFormatter.parseDateString(event?.date);
       final bool isPast = eventDate != null ? eventDate.isBefore(now) : false;
 
       detailedTickets.add(
-        _DetailedTicket(
+        DetailedTicket(
           ticket: ticket,
           show: showMap[ticket.showId],
           event: event,
@@ -175,7 +130,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
       body: RefreshIndicator(
         onRefresh: _loadTicketData,
         child: Builder(
-          builder: (context) {
+          builder: (final context) {
             // Yükleniyorsa
             // (relatedShows == null kontrolü, detayların yüklendiğinden emin olmak için)
             if (ticketState.isLoading && ticketState.relatedShows == null) {
@@ -208,7 +163,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     return ListView.builder(
       padding: const EdgeInsets.all(16.0),
       itemCount: 5,
-      itemBuilder: (context, index) => Padding(
+      itemBuilder: (final context, final index) => Padding(
         padding: const EdgeInsets.only(bottom: 16.0),
         child: ShimmerLoading(width: double.infinity, height: 120),
       ),
@@ -291,7 +246,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   }
 
   /// Bilet listesini (dikey) oluşturan widget
-  Widget _buildTicketListView(final List<_DetailedTicket> tickets,
+  Widget _buildTicketListView(final List<DetailedTicket> tickets,
       {final bool isPast = false}) {
     if (tickets.isEmpty && !ref.read(ticketProvider).isLoading) {
       return Center(
@@ -326,7 +281,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 
   /// Bilet detaylarını gösteren modern, kaydırılabilir modal pop-up
   void _showTicketDetailsModal(
-      final BuildContext context, final _DetailedTicket ticket) {
+      final BuildContext context, final DetailedTicket ticket) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // true olmalı
@@ -351,7 +306,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 
 /// Bilet listesi için modern kart tasarımı
 class _ModernTicketCard extends StatelessWidget {
-  final _DetailedTicket detailedTicket;
+  final DetailedTicket detailedTicket;
   final bool isPast;
   final VoidCallback onTap;
 
@@ -486,7 +441,7 @@ class _ModernTicketCard extends StatelessWidget {
 
   Widget _buildInfoRow(
       final BuildContext context, final IconData icon, final String text,
-      {bool isPast = false}) {
+      {final bool isPast = false}) {
     final theme = Theme.of(context);
     final color =
         isPast ? Colors.grey.shade500 : theme.textTheme.bodySmall?.color;
@@ -507,10 +462,9 @@ class _ModernTicketCard extends StatelessWidget {
   }
 }
 
-/// Modal Pop-up'ın içeriğini oluşturan widget
 class _TicketDetailsModalContent extends StatelessWidget {
   final ScrollController controller;
-  final _DetailedTicket ticket;
+  final DetailedTicket ticket;
 
   const _TicketDetailsModalContent({
     required this.controller,
@@ -518,7 +472,7 @@ class _TicketDetailsModalContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final Map<String, String> formattedDate =
@@ -549,9 +503,10 @@ class _TicketDetailsModalContent extends StatelessWidget {
                   height: 200,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) =>
+                  placeholder: (final context, final url) =>
                       const ShimmerLoading(height: 200),
-                  errorWidget: (context, url, error) => Container(
+                  errorWidget: (final context, final url, final error) =>
+                      Container(
                     height: 200,
                     color: Colors.grey.shade300,
                     child: const Icon(Icons.broken_image, size: 50),
@@ -685,11 +640,11 @@ class _TicketDetailsModalContent extends StatelessWidget {
   }
 
   Widget _buildDetailTile(
-    ThemeData theme, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    Color? color,
+    final ThemeData theme, {
+    required final IconData icon,
+    required final String title,
+    required final String subtitle,
+    final Color? color,
   }) {
     final bool isHeavy = color != null;
     final tileColor = isHeavy ? color!.withOpacity(0.1) : theme.cardColor;
