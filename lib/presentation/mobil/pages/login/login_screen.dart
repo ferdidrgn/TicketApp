@@ -109,7 +109,7 @@ class LoginScreen extends ConsumerWidget {
         if (!context.mounted) return;
 
         if (loginState.user != null) {
-          Navigator.pushReplacementNamed(context, '/home');
+          await Navigator.pushReplacementNamed(context, '/home');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content:
