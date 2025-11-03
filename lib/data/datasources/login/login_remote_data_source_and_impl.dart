@@ -1,21 +1,29 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 abstract class LoginRemoteDataSource {
   Future<User?> getCurrentUser();
 
+  Future<User?> signInAnonymously();
+
   Future<GoogleSignInAccount?> signInWithGoogle();
 
   Future<bool> signOut();
 
-  Future<bool> verifyPhone(
-    final String phoneNumber, {
-    required final void Function(String code) onVerificationCompleted,
-    required final void Function(String verificationId) onCodeSent,
-    required final void Function(String verificationId) onAutoRetrievalTimeout,
-  });
+  Future<bool> deleteAccount();
 
   Future<bool> verifyOtp(final String verificationId, final String otp);
+
+  // ✅ Named parametre olarak düzeltildi
+  Future<String> verifyPhone({
+    required final String phoneNumber,
+    required final void Function(PhoneAuthCredential) onVerificationCompleted,
+    required final void Function(
+            String verificationId, int? forceResendingToken)
+        onCodeSent,
+    required final void Function(String verificationId) onAutoRetrievalTimeout,
+  });
 }
 
 class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
@@ -32,24 +40,67 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   Future<User?> getCurrentUser() async => _auth.currentUser;
 
   @override
+  Future<User?> signInAnonymously() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser != null && !currentUser.isAnonymous)
+        throw Exception('Zaten giriş yapılmış. Önce çıkış yapın.');
+
+      if (currentUser != null && currentUser.isAnonymous) return currentUser;
+
+      final userCredential = await _auth.signInAnonymously();
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'operation-not-allowed':
+          throw Exception(
+              'Anonymous giriş desteklenmiyor. Firebase konsoldan etkinleştirin.');
+        case 'network-request-failed':
+          throw Exception(
+              'İnternet bağlantısı yok. Lütfen bağlantınızı kontrol edin.');
+        default:
+          throw Exception('Anonymous giriş başarısız: ${e.message}');
+      }
+    } catch (e) {
+      throw Exception('Anonymous giriş başarısız: $e');
+    }
+  }
+
+  @override
   Future<GoogleSignInAccount?> signInWithGoogle() async {
-    // Mevcut kullanıcı varsa tekrar giriş yapmayı engelle
-    if (_auth.currentUser != null) return null;
+    final currentUser = _auth.currentUser;
+    if (currentUser != null && !currentUser.isAnonymous)
+      throw Exception('Zaten giriş yapılmış. Önce çıkış yapın.');
 
     try {
       final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null; // Kullanıcı pencereyi kapattı
+      if (googleUser == null) return null;
 
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
 
-      await _auth.signInWithCredential(credential);
+      if (currentUser != null && currentUser.isAnonymous)
+        await currentUser.linkWithCredential(credential);
+      else
+        await _auth.signInWithCredential(credential);
+
       return googleUser;
     } on FirebaseAuthException catch (e) {
-      throw Exception('FirebaseAuth hatası: ${e.message}');
+      switch (e.code) {
+        case 'account-exists-with-different-credential':
+          throw Exception('Bu email ile farklı bir giriş yöntemi kayıtlı.');
+        case 'invalid-credential':
+          throw Exception('Geçersiz kimlik bilgisi.');
+        case 'operation-not-allowed':
+          throw Exception('Google girişi desteklenmiyor.');
+        case 'user-disabled':
+          throw Exception('Hesap devre dışı bırakılmış.');
+        case 'user-not-found':
+          throw Exception('Kullanıcı bulunamadı.');
+        default:
+          throw Exception('Google ile giriş başarısız: ${e.message}');
+      }
     } catch (e) {
       throw Exception('Google ile giriş başarısız: $e');
     }
@@ -58,7 +109,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   @override
   Future<bool> signOut() async {
     final user = _auth.currentUser;
-    if (user == null) return false; // Zaten çıkış yapılmış
+    if (user == null) return false;
 
     try {
       if (user.providerData.any((final p) => p.providerId == 'google.com'))
@@ -74,25 +125,72 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   }
 
   @override
-  Future<bool> verifyPhone(
-    final String phoneNumber, {
-    required final void Function(String code) onVerificationCompleted,
-    required final void Function(String verificationId) onCodeSent,
+  Future<bool> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      await user.delete();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw Exception(
+            'Hesabı silmek için son zamanlarda giriş yapmalısınız. Lütfen tekrar giriş yapın.');
+      }
+      throw Exception('Hesap silme başarısız: ${e.message}');
+    } catch (e) {
+      throw Exception('Hesap silme başarısız: $e');
+    }
+  }
+
+  // ✅ Named parametre olarak güncellendi
+  @override
+  Future<String> verifyPhone({
+    required final String phoneNumber,
+    required final void Function(PhoneAuthCredential) onVerificationCompleted,
+    required final void Function(
+            String verificationId, int? forceResendingToken)
+        onCodeSent,
     required final void Function(String verificationId) onAutoRetrievalTimeout,
   }) async {
+    final completer = Completer<String>();
+
     try {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
-        verificationCompleted: (final credential) async {
-          await _auth.signInWithCredential(credential);
-          onVerificationCompleted(credential.smsCode ?? '');
+        verificationCompleted: (final PhoneAuthCredential credential) async {
+          onVerificationCompleted(credential);
+
+          final currentUser = _auth.currentUser;
+          if (currentUser != null && currentUser.isAnonymous) {
+            await currentUser.linkWithCredential(credential);
+          } else {
+            await _auth.signInWithCredential(credential);
+          }
+
+          if (!completer.isCompleted) {
+            completer.complete(credential.verificationId ?? '');
+          }
         },
-        verificationFailed: (final e) =>
-            throw Exception(e.message ?? 'Telefon doğrulaması başarısız.'),
-        codeSent: (final verificationId, final _) => onCodeSent(verificationId),
-        codeAutoRetrievalTimeout: onAutoRetrievalTimeout,
+        verificationFailed: (final FirebaseAuthException e) {
+          if (!completer.isCompleted) {
+            completer.completeError(e);
+          }
+        },
+        codeSent:
+            (final String verificationId, final int? forceResendingToken) {
+          onCodeSent(verificationId, forceResendingToken);
+          if (!completer.isCompleted) {
+            completer.complete(verificationId);
+          }
+        },
+        codeAutoRetrievalTimeout: (final String verificationId) {
+          onAutoRetrievalTimeout(verificationId);
+        },
+        timeout: const Duration(seconds: 60),
       );
-      return true;
+
+      return await completer.future;
     } on FirebaseAuthException catch (e) {
       throw Exception('FirebaseAuth telefon doğrulama hatası: ${e.message}');
     } catch (e) {
@@ -105,10 +203,26 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
     try {
       final credential = PhoneAuthProvider.credential(
           verificationId: verificationId, smsCode: otp);
-      await _auth.signInWithCredential(credential);
+
+      final currentUser = _auth.currentUser;
+      if (currentUser != null && currentUser.isAnonymous) {
+        await currentUser.linkWithCredential(credential);
+      } else {
+        await _auth.signInWithCredential(credential);
+      }
+
       return true;
     } on FirebaseAuthException catch (e) {
-      throw Exception('FirebaseAuth OTP hatası: ${e.message}');
+      switch (e.code) {
+        case 'invalid-verification-code':
+          throw Exception('Geçersiz OTP kodu.');
+        case 'invalid-verification-id':
+          throw Exception('Geçersiz doğrulama ID.');
+        case 'session-expired':
+          throw Exception('OTP süresi dolmuş. Lütfen yeniden kod isteyin.');
+        default:
+          throw Exception('OTP doğrulama başarısız: ${e.message}');
+      }
     } catch (e) {
       throw Exception('OTP doğrulama başarısız: $e');
     }
