@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_notifier.dart';
 import '../../../../core/widgets/custom_elevated_button.dart';
 import '../../../../data/providers/login/login_provider.dart';
+import '../../../../data/providers/login/login_state.dart';
 import '../contracts/contracts.dart';
 import '../my_favorites/favorite_screen.dart';
-import '../my_ticket/my_ticket_screen.dart';
+import '../my_ticket/my_ticket_page.dart';
 import '../profile_edit/user_profile_edit.dart';
 import '../settings/app_settings.dart';
 import '../settings/permission_settings.dart';
@@ -26,7 +27,7 @@ class ProfilePage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _profileCard(loginState.user, theme, context),
+          _profileCard(loginState.user, theme, loginState, context),
           const SizedBox(height: 20),
           if (loginState.user != null) ...[
             _btn(
@@ -56,6 +57,11 @@ class ProfilePage extends ConsumerWidget {
           _btn('Destek ve Bağış', Icons.coffee, () {}),
           const SizedBox(height: 20),
           _themeSelectorCard(context, ref, theme),
+
+          // HESAP SİLME BUTONU - Sadece giriş yapmış ve misafir olmayan kullanıcılar görebilir
+          if (loginState.user != null && !loginState.isGuest)
+            _deleteAccountButton(context, ref),
+
           _btn(
             loginState.user != null ? 'Çıkış Yap' : 'Giriş Yap',
             loginState.user != null ? Icons.logout : Icons.login,
@@ -70,7 +76,7 @@ class ProfilePage extends ConsumerWidget {
   }
 
   Widget _profileCard(final User? firebaseUser, final ThemeData theme,
-      final BuildContext context) {
+      final LoginState loginState, final BuildContext context) {
     final textTheme = theme.textTheme;
     final radius = BorderRadius.circular(15);
 
@@ -121,6 +127,25 @@ class ProfilePage extends ConsumerWidget {
             Text(firebaseUser.email ?? 'Mail bilgisi bulunamadı',
                 style: textTheme.bodyMedium
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            if (loginState.isGuest) ...[
+              const SizedBox(height: 5),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange),
+                ),
+                child: Text(
+                  'Misafir Modu',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -164,6 +189,18 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
+  Widget _deleteAccountButton(final BuildContext context, final WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: CustomElevatedButton(
+        text: 'Hesabı Sil',
+        iconData: Icons.delete_forever,
+        backgroundColor: Colors.red,
+        onPressed: () => _showDeleteAccountDialog(context, ref),
+      ),
+    );
+  }
+
   void _showThemeDialog(final BuildContext context, final WidgetRef ref) {
     showDialog(
       context: context,
@@ -185,6 +222,59 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
+  void _showDeleteAccountDialog(
+      final BuildContext context, final WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (final context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Hesabı Sil', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hesabınızı silmek istediğinizden emin misiniz?',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• Tüm kişisel verileriniz silinecek\n'
+                '• Satın aldığınız biletler kaybolacak\n'
+                '• Favori etkinlikleriniz silinecek\n'
+                '• Bu işlem geri alınamaz!',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('İptal', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context); // Dialog'u kapat
+                await _deleteAccount(context, ref);
+              },
+              child: Text(
+                'HESABI SİL',
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _themeOption(final BuildContext context, final WidgetRef ref,
       final String title, final ThemeMode mode) {
     return ListTile(
@@ -200,7 +290,7 @@ class ProfilePage extends ConsumerWidget {
       Navigator.of(context).push(MaterialPageRoute(builder: (final _) => page));
 
   void _navigateToLogin(final BuildContext context) =>
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushReplacementNamed('/login');
 
   Future<void> _signOut(final BuildContext context, final WidgetRef ref) async {
     try {
@@ -210,6 +300,44 @@ class ProfilePage extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Çıkış yaparken bir hata oluştu: $e')),
       );
+    }
+  }
+
+  Future<void> _deleteAccount(
+      final BuildContext context, final WidgetRef ref) async {
+    try {
+      // Loading göster
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (final context) => AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Hesap siliniyor...'),
+            ],
+          ),
+        ),
+      );
+
+      await ref.read(loginProvider.notifier).deleteAccount();
+
+      // Loading'i kapat (context mounted kontrolü)
+      if (context.mounted) {
+        Navigator.pop(context); // Loading dialog'unu kapat
+      }
+    } catch (e) {
+      // Hata durumunda loading'i kapat ve hatayı göster
+      if (context.mounted) {
+        Navigator.pop(context); // Loading dialog'unu kapat
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hesap silinirken hata oluştu: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
