@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/data/providers/login/login_provider.dart';
 
+import '../../../../data/providers/login/login_state.dart';
+
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -13,6 +15,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  bool _isNavigationHandled = false; // ✅ Çift yönlendirmeyi önle
 
   @override
   void initState() {
@@ -28,7 +31,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       curve: Curves.easeInOut,
     );
 
-    // Kullanıcıyı getir
+    // Kullanıcıyı kontrol et
     Future.microtask(() {
       ref.read(loginProvider.notifier).getCurrentUser();
     });
@@ -42,11 +45,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(final BuildContext context) {
-    ref.listen(loginProvider, (final previous, final next) {
-      //if (next.user != null)
-        Navigator.of(context).pushReplacementNamed('/home');
-      //else if (!next.isLoading)
-        //Navigator.of(context).pushReplacementNamed('/login');
+    ref.listen<LoginState>(loginProvider, (final previous, final next) {
+      // ✅ Çift yönlendirmeyi önle
+      if (_isNavigationHandled) return;
+
+      // ✅ Loading bittiğinde ve hata yoksa yönlendir
+      if (!next.isLoading) {
+        _isNavigationHandled = true;
+
+        if (next.user != null) {
+          // Kullanıcı zaten giriş yapmış - home'a git
+          print('🟢 User already logged in, going to home');
+          Navigator.of(context).pushReplacementNamed('/home');
+        } else {
+          // Kullanıcı giriş yapmamış - login'e git
+          print('🟡 No user found, going to login');
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
+      }
     });
 
     return Scaffold(
@@ -57,7 +73,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           child: SizedBox(
             width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.height,
-            child: Image.asset('assets/images/app_logo.jpg', fit: BoxFit.cover),
+            child: Image.asset(
+              'assets/images/app_logo.jpg',
+              fit: BoxFit.cover,
+              errorBuilder: (final context, final error, final stackTrace) {
+                // ✅ Eğer resim yoksa placeholder göster
+                return Container(
+                  color: Colors.white,
+                  child: const Center(
+                    child: Text(
+                      'Ticket App',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),

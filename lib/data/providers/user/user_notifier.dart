@@ -24,7 +24,13 @@ class UserNotifier extends BaseNotifierWithNetworkChecker<UserState> {
           .read(saveUserUseCaseProvider)
           .call(UserModel.fromEntity(user), downloadUrl, isUpdate: isUpdate));
 
-  Future<void> deleteUser(final String userId) => executeWithInternetCheck(
-      () => ref.read(deleteUserUseCaseProvider).call(userId),
-      onSuccess: (final _) {});
+  Future<bool> deleteUser(final String userId) async {
+    bool? result;
+
+    await executeWithInternetCheck(
+        () => ref.read(deleteUserUseCaseProvider).call(userId),
+        onSuccess: (final success) => result = success);
+
+    return result ?? false;
+  }
 }

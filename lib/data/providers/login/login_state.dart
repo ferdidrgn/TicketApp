@@ -11,6 +11,7 @@ class LoginState extends BaseState {
   final String? phoneNumber;
   final bool isCodeSent;
   final bool isGuest;
+  final bool isAccountDeleted;
   final LoginMethod? loginMethod;
 
   LoginState({
@@ -20,6 +21,7 @@ class LoginState extends BaseState {
     this.phoneNumber,
     this.isCodeSent = false,
     this.isGuest = false,
+    this.isAccountDeleted = false,
     this.loginMethod,
     super.isLoading = false,
     super.errorMessage,
@@ -33,6 +35,7 @@ class LoginState extends BaseState {
     final String? phoneNumber,
     final bool? isCodeSent,
     final bool? isGuest,
+    final bool? isAccountDeleted,
     final LoginMethod? loginMethod,
     final bool? isLoading,
     final String? errorMessage,
@@ -45,6 +48,7 @@ class LoginState extends BaseState {
         isCodeSent: isCodeSent ?? this.isCodeSent,
         isGuest: isGuest ?? this.isGuest,
         loginMethod: loginMethod ?? this.loginMethod,
+        isAccountDeleted: isAccountDeleted ?? this.isAccountDeleted,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage ?? this.errorMessage,
       );

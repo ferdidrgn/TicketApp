@@ -50,8 +50,15 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
     await ref.read(loginProvider.notifier).verifyPhone(
           phoneNumber: phone,
-          onVerificationCompleted: _verifyOtp,
-          onCodeSent: (final verificationId) {
+          onVerificationCompleted: (final credential) {
+            // ✅ PhoneAuthCredential alıyor, String değil
+            final smsCode = credential.smsCode;
+            if (smsCode != null && smsCode.isNotEmpty) {
+              _verifyOtp(smsCode);
+            }
+          },
+          onCodeSent: (final verificationId, final forceResendingToken) {
+            // ✅ İki parametre alıyor
             setState(() {
               _verificationId = verificationId;
               _codeSent = true;
@@ -70,23 +77,26 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     }
 
     try {
-      await ref.read(loginProvider.notifier).verifyOtp(_verificationId, otp);
+      // ✅ Artık sadece otp parametresi alıyor, verificationId state'ten geliyor
+      await ref.read(loginProvider.notifier).verifyOtp(otp);
       final loginState = ref.read(loginProvider);
 
       final auth.User? currentUser = auth.FirebaseAuth.instance.currentUser;
-      if (currentUser == null || loginState.user == null) {
+      if (currentUser == null) {
         _showSnack('OTP kodu hatalı. Tekrar deneyin.');
         return;
       }
 
       await _saveUser(currentUser);
 
-      if (loginState.errorMessage != null)
+      // Hata mesajı kontrolü - eğer hata varsa profile yönlendir
+      if (loginState.errorMessage != null) {
         _navigateToEditProfile(currentUser.uid);
-      else
+      } else {
         _navigateToHome();
-    } catch (_) {
-      _showSnack('Hatalı kod. Lütfen tekrar deneyin.');
+      }
+    } catch (e) {
+      _showSnack('Hatalı kod. Lütfen tekrar deneyin: $e');
     }
   }
 
@@ -166,7 +176,10 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         const Text("Lütfen size gönderilen kodu giriniz:",
             textAlign: TextAlign.center),
         const SizedBox(height: 16),
-        Pinput(length: 6, onCompleted: _verifyOtp),
+        Pinput(
+          length: 6,
+          onCompleted: _verifyOtp,
+        ),
         const SizedBox(height: 16),
         TextButton(
             onPressed: _resendCountdown == 0 ? _verifyPhone : null,

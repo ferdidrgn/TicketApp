@@ -1,4 +1,4 @@
-// PARTİKÜL DECORATION WIDGET'ı
+// PARTİKÜL DECORATION WIDGET
 import 'dart:math';
 import 'package:flutter/material.dart';
 
