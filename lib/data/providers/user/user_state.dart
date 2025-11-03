@@ -22,4 +22,27 @@ class UserState extends LoadableState<User, List<User>> {
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage,
       );
+
+
+  String get userFullName {
+    if (dataSingle == null) return 'Kullanıcı';
+
+    final firstName = dataSingle!.firstName;
+    final lastName = dataSingle!.lastName;
+
+    // ✅ İkisi de doluysa boşlukla birleştir
+    if (firstName.isNotEmpty && lastName.isNotEmpty)
+      return '$firstName $lastName';
+
+    // ✅ Sadece isim varsa
+    else if (firstName.isNotEmpty)
+      return firstName;
+
+    // ✅ Sadece soyisim varsa
+    else if (lastName.isNotEmpty)
+      return lastName;
+    // ✅ Hiçbiri yoksa
+    else
+      return 'Kullanıcı';
+  }
 }
