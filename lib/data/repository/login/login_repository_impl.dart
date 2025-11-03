@@ -35,6 +35,11 @@ class LoginRepositoryImpl extends BaseRepository implements LoginRepository {
   }
 
   @override
+  Future<Either<Failure, bool>> deleteAccount() {
+    return execute(() => remoteDataSource.deleteAccount());
+  }
+
+  @override
   Future<Either<Failure, String>> verifyPhone({
     required final String phoneNumber,
     required final void Function(PhoneAuthCredential) onVerificationCompleted,

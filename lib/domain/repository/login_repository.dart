@@ -8,6 +8,7 @@ abstract class LoginRepository {
   Future<Either<Failure, User?>> signInAnonymously();
   Future<Either<Failure, GoogleSignInAccount?>> signInWithGoogle();
   Future<Either<Failure, bool>> signOut();
+  Future<Either<Failure, bool>> deleteAccount();
   Future<Either<Failure, String>> verifyPhone({
     required final String phoneNumber,
     required final void Function(PhoneAuthCredential) onVerificationCompleted,

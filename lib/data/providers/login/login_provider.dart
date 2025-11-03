@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../domain/useCase/login/delete_account_use_case.dart';
 import '../../../domain/useCase/login/get_current_user_use_case_impl.dart';
 import '../../../domain/useCase/login/sign_in_anonymously_use_case.dart';
 import '../../../domain/useCase/login/sign_in_with_google_use_case_impl.dart';
@@ -22,6 +23,10 @@ final signInWithGoogleUseCaseProvider = Provider<SignInWithGoogleUseCase>(
 
 final signOutUseCaseProvider = Provider<SignOutUseCase>(
   (final ref) => SignOutUseCaseImpl(ref.watch(loginRepositoryProvider)),
+);
+
+final deleteAccountUseCaseProvider = Provider<DeleteAccountUseCase>(
+  (final ref) => DeleteAccountUseCaseImpl(ref.watch(loginRepositoryProvider)),
 );
 
 final getCurrentUserUseCaseProvider = Provider<GetCurrentUserUseCase>(

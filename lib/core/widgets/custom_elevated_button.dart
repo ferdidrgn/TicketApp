@@ -5,6 +5,11 @@ class CustomElevatedButton extends StatelessWidget {
   final IconData? iconData;
   final Widget? iconAsset;
   final VoidCallback onPressed;
+  final Color? backgroundColor;
+  final Color? iconColor;
+  final Color? textColor;
+  final Color? arrowColor;
+  final bool showArrow;
 
   const CustomElevatedButton({
     super.key,
@@ -12,12 +17,20 @@ class CustomElevatedButton extends StatelessWidget {
     this.iconData,
     this.iconAsset,
     required this.onPressed,
+    this.backgroundColor,
+    this.iconColor,
+    this.textColor,
+    this.arrowColor,
+    this.showArrow = true,
   });
 
   @override
   Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+
     return Card(
       elevation: 5,
+      color: backgroundColor ?? theme.cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -29,9 +42,8 @@ class CustomElevatedButton extends StatelessWidget {
             children: [
               if (iconData != null)
                 Icon(iconData,
-                    color: Theme.of(context)
-                        .bottomNavigationBarTheme
-                        .selectedItemColor,
+                    color: iconColor ??
+                        theme.bottomNavigationBarTheme.selectedItemColor,
                     size: 24)
               else if (iconAsset != null)
                 iconAsset!
@@ -42,12 +54,19 @@ class CustomElevatedButton extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 16),
                   child: Text(
                     text,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: textColor ?? theme.textTheme.bodyLarge?.color),
                   ),
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, size: 20),
+              if (showArrow)
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 20,
+                  color: arrowColor ?? theme.iconTheme.color?.withOpacity(0.6),
+                ),
             ],
           ),
         ),
