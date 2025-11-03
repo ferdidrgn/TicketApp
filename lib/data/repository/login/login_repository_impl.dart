@@ -20,6 +20,11 @@ class LoginRepositoryImpl extends BaseRepository implements LoginRepository {
   }
 
   @override
+  Future<Either<Failure, User?>> signInAnonymously() async {
+    return execute(() => remoteDataSource.signInAnonymously());
+  }
+
+  @override
   Future<Either<Failure, GoogleSignInAccount?>> signInWithGoogle() {
     return execute(() => remoteDataSource.signInWithGoogle());
   }
@@ -30,17 +35,19 @@ class LoginRepositoryImpl extends BaseRepository implements LoginRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> verifyPhone(
-    final String phoneNumber, {
-    required final void Function(String) onVerificationCompleted,
-    required final void Function(String) onCodeSent,
-    required final void Function(String) onAutoRetrievalTimeout,
+  Future<Either<Failure, String>> verifyPhone({
+    required final String phoneNumber,
+    required final void Function(PhoneAuthCredential) onVerificationCompleted,
+    required final void Function(
+            String verificationId, int? forceResendingToken)
+        onCodeSent,
+    required final void Function(String verificationId) onAutoRetrievalTimeout,
   }) {
     return execute(() async {
       if (phoneNumber.isEmpty) throw Exception('Telefon Numarası Boş Olamaz');
 
       return remoteDataSource.verifyPhone(
-        phoneNumber,
+        phoneNumber: phoneNumber,
         onVerificationCompleted: onVerificationCompleted,
         onCodeSent: onCodeSent,
         onAutoRetrievalTimeout: onAutoRetrievalTimeout,

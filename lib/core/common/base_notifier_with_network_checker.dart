@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../../../core/errors/failures.dart';
 import '../network/internet_service.dart';
+import '../network/internet_service_provider.dart';
 import 'base_state.dart';
 
 /// Tüm ViewModel'ler için merkezi internet kontrolü ve state yönetimi sağlayan base sınıf
@@ -68,15 +69,6 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     );
   }
 
-  /// Cihazın internet bağlantısını kontrol eder.
-  Future<bool> _hasInternetConnection() async {
-    try {
-      return await InternetService.instance.isConnected;
-    } catch (e) {
-      return false; // Hata durumunda internet yok varsay
-    }
-  }
-
   /// Network operasyonları için wrapper. Genellikle Repository metodunu çağıran ve Either<Failure, R> döndüren fonksiyon.
   Future<void> executeWithInternetCheck<R>(
     final Future<Either<Failure, R>> Function() operation, {
@@ -85,7 +77,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     try {
       _setLoadingState();
 
-      final hasInternet = await _hasInternetConnection();
+      final hasInternet = await ref.read(internetServiceProvider).isConnected;
       if (!hasInternet) {
         setErrorState('İnternet Bağlantısı Yok!');
         return;
@@ -94,7 +86,8 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
       final result = await operation(); // İnternet varsa işlemi gerçekleştir
 
       result.fold(
-        (final failure) => setErrorState("Sistemimizi kitledik. Meraklılarımıza kodlarımız: ${failure.message}"),
+        (final failure) => setErrorState(
+            "Sistemimizi kitledik. Meraklılarımıza kodlarımız: ${failure.message}"),
         (final success) {
           try {
             onSuccess?.call(success);

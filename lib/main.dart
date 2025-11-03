@@ -36,6 +36,10 @@ class MyApp extends ConsumerWidget {
         '/onboarding': (final context) => const OnboardingContainer(),
         '/home': (final context) => const WebOrMobilCheck(),
       },
+      onUnknownRoute: (final settings) {
+        return MaterialPageRoute(
+            builder: (final context) => const LoginScreen());
+      },
     );
   }
 }

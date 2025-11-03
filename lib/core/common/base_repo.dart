@@ -22,3 +22,24 @@ abstract class BaseRepository {
       return const Left(NetworkFailure('İnternet Bağlantısı Bulunamadı'));
   }
 }
+
+/*
+//İnternet kontrolünü BaseNotifier yapıyor
+import 'package:dartz/dartz.dart';
+import '../errors/failures.dart';
+
+abstract class BaseRepository {
+  Future<Either<Failure, T>> execute<T>(
+      Future<T> Function() action, {
+        bool checkInternet = true,
+      }) async {
+    try {
+      return Right(await action());
+    } catch (e) {
+      // ✅ Sadece gerçek exception'ları error olarak döndür
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+}
+
+ */

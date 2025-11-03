@@ -3,5 +3,12 @@ import 'internet_service.dart';
 
 // Singleton for Internet Connection Checker
 final internetServiceProvider = Provider<InternetService>((final ref) {
-  return InternetService.instance;
+  final service = InternetService.instance;
+
+  // App kapatıldığında cleanup
+  ref.onDispose(() {
+    service.stopListening();
+  });
+
+  return service;
 });

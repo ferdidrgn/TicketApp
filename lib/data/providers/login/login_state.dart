@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ticketapp/core/common/base_state.dart';
 
+import '../../../core/common/enums.dart';
+
 class LoginState extends BaseState {
   final User? user;
   final GoogleSignInAccount? googleUser;
@@ -9,6 +11,7 @@ class LoginState extends BaseState {
   final String? phoneNumber;
   final bool isCodeSent;
   final bool isGuest;
+  final LoginMethod? loginMethod;
 
   LoginState({
     this.user,
@@ -17,6 +20,7 @@ class LoginState extends BaseState {
     this.phoneNumber,
     this.isCodeSent = false,
     this.isGuest = false,
+    this.loginMethod,
     super.isLoading = false,
     super.errorMessage,
   });
@@ -29,6 +33,7 @@ class LoginState extends BaseState {
     final String? phoneNumber,
     final bool? isCodeSent,
     final bool? isGuest,
+    final LoginMethod? loginMethod,
     final bool? isLoading,
     final String? errorMessage,
   }) =>
@@ -39,11 +44,14 @@ class LoginState extends BaseState {
         phoneNumber: phoneNumber ?? this.phoneNumber,
         isCodeSent: isCodeSent ?? this.isCodeSent,
         isGuest: isGuest ?? this.isGuest,
+        loginMethod: loginMethod ?? this.loginMethod,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage ?? this.errorMessage,
       );
 
   bool get isLoggedIn => user != null;
-  bool get isGoogleSignedIn => googleUser != null;
-  bool get isPhoneVerified => phoneNumber != null;
+  bool get isGoogleSignedIn => loginMethod == LoginMethod.google;
+  bool get isPhoneVerified => loginMethod == LoginMethod.phone;
+  bool get isAnonymous => loginMethod == LoginMethod.anonymous;
+  bool get hasError => errorMessage != null && errorMessage!.isNotEmpty;
 }
