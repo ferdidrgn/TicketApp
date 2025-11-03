@@ -3,6 +3,7 @@ import 'package:ticketapp/domain/entities/event.dart';
 import 'package:ticketapp/domain/entities/show.dart';
 import 'package:ticketapp/domain/entities/stage.dart';
 import 'package:ticketapp/domain/entities/ticket.dart';
+import '../../../../core/util/date_formatter.dart';
 
 /// PRESENTATION LAYER - Sadece UI için optimize edilmiş
 
@@ -100,9 +101,7 @@ class TicketViewModel {
     final now = DateTime.now();
     return tickets.map((final ticket) {
       final event = eventMap[ticket.eventId];
-      final eventDate =
-          event?.date != null ? DateTime.tryParse(event!.date) : null;
-      final isPast = eventDate?.isBefore(now) ?? false;
+      final isPast = _isEventPast(event, now);
 
       return DetailedTicket(
         ticket: ticket,
@@ -112,6 +111,17 @@ class TicketViewModel {
         isPast: isPast,
       );
     }).toList();
+  }
+
+  // Etkinliğin geçmiş olup olmadığını kontrol eden metod
+  bool _isEventPast(final Event? event, final DateTime now) {
+    if (event?.date == null) return false;
+
+    final eventDate = DateFormatter.parseDateString(event!.date);
+    if (eventDate == null) return false;
+
+    // Etkinlik tarihi şu anki tarihten önceyse geçmiş say
+    return eventDate.isBefore(now);
   }
 
   List<DetailedTicket> get upcomingTickets =>
@@ -124,9 +134,7 @@ class TicketViewModel {
     try {
       final ticket = tickets.firstWhere((final t) => t.id == ticketId);
       final event = eventMap[ticket.eventId];
-      final eventDate =
-          event?.date != null ? DateTime.tryParse(event!.date) : null;
-      final isPast = eventDate?.isBefore(DateTime.now()) ?? false;
+      final isPast = _isEventPast(event, DateTime.now());
 
       return DetailedTicket(
         ticket: ticket,
@@ -137,6 +145,27 @@ class TicketViewModel {
       );
     } catch (e) {
       return null;
+    }
+  }
+
+  // TicketViewModel'e debug metodu ekleyin
+  void debugTicketDates() {
+    final now = DateTime.now();
+    print('=== TICKET DATE DEBUG ===');
+    print('Current time: $now');
+
+    for (final ticket in tickets) {
+      final event = eventMap[ticket.eventId];
+      final eventDate = event?.date != null
+          ? DateFormatter.parseDateString(event!.date)
+          : null;
+      final isPast = _isEventPast(event, now);
+
+      print('Ticket: ${ticket.id}');
+      print('Event Date: ${event?.date}');
+      print('Parsed Date: $eventDate');
+      print('Is Past: $isPast');
+      print('---');
     }
   }
 }

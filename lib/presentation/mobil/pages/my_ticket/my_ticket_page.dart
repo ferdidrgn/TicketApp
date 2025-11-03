@@ -52,9 +52,12 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   Widget build(final BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
-
-    // VIEWMODEL KULLANIMI
     final viewModel = ref.watch(ticketViewModelProvider);
+
+    // Debug için - istersek kaldırabiliriz
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (viewModel.isSuccess) viewModel.debugTicketDates();
+    });
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
