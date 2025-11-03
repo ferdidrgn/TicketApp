@@ -6,13 +6,20 @@ import 'package:ticketapp/presentation/mobil/pages/onboarding/onboarding_contain
 import 'package:ticketapp/presentation/mobil/pages/splash/splash_screen.dart';
 import 'package:ticketapp/web_or_mobil_check.dart';
 import 'core/constants/app_constants.dart';
+import 'core/services/local_storage_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_notifier.dart';
 import 'firebase_options.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  try {
+    await LocalStorageService.init();
+  } catch (e) {
+    debugPrint('LocalStorageService initialization failed: $e');
+  }
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -25,20 +32,27 @@ class MyApp extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
 
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      initialRoute: '/',
-      routes: {
-        '/': (final context) => const SplashScreen(),
-        '/login': (final context) => const LoginScreen(),
-        '/onboarding': (final context) => const OnboardingContainer(),
-        '/home': (final context) => const WebOrMobilCheck(),
-      },
-      onUnknownRoute: (final settings) {
-        return MaterialPageRoute(
-            builder: (final context) => const LoginScreen());
+      onGenerateRoute: (final settings) {
+        switch (settings.name) {
+          case '/':
+            return MaterialPageRoute(
+                builder: (final _) => const SplashScreen());
+          case '/login':
+            return MaterialPageRoute(builder: (final _) => const LoginScreen());
+          case '/onboarding':
+            return MaterialPageRoute(
+                builder: (final _) => const OnboardingContainer());
+          case '/home':
+            return MaterialPageRoute(
+                builder: (final _) => const WebOrMobilCheck());
+          default:
+            return MaterialPageRoute(builder: (final _) => const LoginScreen());
+        }
       },
     );
   }
