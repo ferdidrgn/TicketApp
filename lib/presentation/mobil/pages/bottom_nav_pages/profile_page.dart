@@ -143,7 +143,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   ) {
     final textTheme = theme.textTheme;
 
-    // ✅ SADECE LOGIN STATE KULLAN - LOCAL'DEN ALMA!
     final displayName = firebaseUser?.displayName ??
         _localUserData?['displayName'] ??
         'İsimsiz Kullanıcı';
@@ -164,8 +163,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isGuest
-                ? [Colors.orange.shade100, Colors.white]
-                : [theme.primaryColor.withOpacity(0.1), Colors.white],
+                ? [Colors.white, Colors.orange.shade100]
+                : [Colors.white, theme.primaryColor.withOpacity(0.1)],
           ),
           borderRadius: BorderRadius.circular(20),
         ),
