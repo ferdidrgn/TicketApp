@@ -160,8 +160,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment(1, -0.5),
+            end: Alignment(0.1, 0.7),
+            //stops: [0.2, 0.8],  // ✅ %20 beyaz, %80 renk
             colors: isGuest
                 ? [Colors.white, Colors.orange.shade100]
                 : [Colors.white, theme.primaryColor.withOpacity(0.1)],
