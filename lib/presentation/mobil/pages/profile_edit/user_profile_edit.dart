@@ -155,8 +155,15 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
             child: CustomSuccessDialog(
               message: 'İşlem başarıyla tamamlandı!',
               onConfirm: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pushReplacementNamed('/home');
+                // Dialog context'ini kullanmak yerine, root context kullan
+                Navigator.of(context).pop(); // Dialog'u kapat
+
+                // Global key veya root navigator kullan
+                Navigator.of(context, rootNavigator: true)
+                    .pushNamedAndRemoveUntil(
+                  '/home',
+                  (final route) => false,
+                );
               },
             ),
           ),
