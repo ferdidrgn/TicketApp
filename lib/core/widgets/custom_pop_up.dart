@@ -193,7 +193,7 @@ class _CustomSuccessDialogState extends State<CustomSuccessDialog>
     ));
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(1.0, 0.0), // Sağdan gel
+      begin: const Offset(-1.0, 0.0), // Soldan gel
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,

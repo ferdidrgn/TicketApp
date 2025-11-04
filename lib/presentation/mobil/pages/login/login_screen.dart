@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:ticketapp/presentation/mobil/pages/login/phone_login_page.dart';
 import '../../../../core/widgets/custom_elevated_button.dart';
 import '../../../../data/providers/login/login_provider.dart';
+import '../../../../data/providers/login/login_state.dart';
 import '../profile_edit/user_profile_edit.dart';
 
 class LoginScreen extends ConsumerWidget {
@@ -11,21 +13,43 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     final loginState = ref.watch(loginProvider);
+    final isProcessing = ref.watch(loginProcessingProvider);
 
-    if (loginState.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    // Kullanıcı giriş yaptığında otomatik yönlendir
+    _handleAutoNavigation(loginState, context);
+
+    if (loginState.isLoading || isProcessing) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
     return Scaffold(
-      body: _buildContent(context, ref),
+      body: _buildContent(context, ref, isProcessing),
     );
   }
 
-  Widget _buildContent(final BuildContext context, final WidgetRef ref) {
+  void _handleAutoNavigation(
+      final LoginState loginState, final BuildContext context) {
+    if (loginState.user != null) {
+      WidgetsBinding.instance.addPostFrameCallback((final _) {
+        _navigateAfterLogin(
+          context,
+          'Giriş başarılı',
+          loginState.user!.uid,
+        );
+      });
+    }
+  }
+
+  Widget _buildContent(final BuildContext context, final WidgetRef ref,
+      final bool isProcessing) {
     return Stack(
       children: [
         _buildBackgroundImage(),
-        _buildLoginForm(context, ref),
+        _buildLoginForm(context, ref, isProcessing),
       ],
     );
   }
@@ -45,7 +69,8 @@ class LoginScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildLoginForm(final BuildContext context, final WidgetRef ref) {
+  Widget _buildLoginForm(final BuildContext context, final WidgetRef ref,
+      final bool isProcessing) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -61,11 +86,11 @@ class LoginScreen extends ConsumerWidget {
             children: [
               _buildWelcomeText(),
               const SizedBox(height: 20),
-              _buildGoogleSignInButton(context, ref),
+              _buildGoogleSignInButton(context, ref, isProcessing),
               const SizedBox(height: 20),
-              _buildPhoneLoginButton(context),
+              _buildPhoneLoginButton(context, isProcessing),
               const SizedBox(height: 20),
-              _buildGuestLoginButton(context, ref),
+              _buildGuestLoginButton(context, ref, isProcessing),
             ],
           ),
         ),
@@ -85,8 +110,8 @@ class LoginScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGoogleSignInButton(
-      final BuildContext context, final WidgetRef ref) {
+  Widget _buildGoogleSignInButton(final BuildContext context,
+      final WidgetRef ref, final bool isProcessing) {
     return CustomElevatedButton(
       text: 'Google ile Giriş Yap',
       iconData: Icons.g_mobiledata,
@@ -94,7 +119,8 @@ class LoginScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPhoneLoginButton(final BuildContext context) {
+  Widget _buildPhoneLoginButton(
+      final BuildContext context, final bool isProcessing) {
     return CustomElevatedButton(
       text: 'Telefon ile Giriş Yap',
       iconData: Icons.phone,
@@ -102,8 +128,8 @@ class LoginScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGuestLoginButton(
-      final BuildContext context, final WidgetRef ref) {
+  Widget _buildGuestLoginButton(final BuildContext context, final WidgetRef ref,
+      final bool isProcessing) {
     return CustomElevatedButton(
       text: 'Misafir Olarak Devam Et',
       iconData: Icons.person_outline,
@@ -113,20 +139,33 @@ class LoginScreen extends ConsumerWidget {
 
   Future<void> _handleGoogleSignIn(
       final BuildContext context, final WidgetRef ref) async {
+    ref.read(loginProcessingProvider.notifier).state = true;
+
     try {
       await ref.read(loginProvider.notifier).signInWithGoogle();
+
+      // State değişikliğini bekle
+      await Future.delayed(const Duration(milliseconds: 500));
+
       final loginState = ref.read(loginProvider);
 
       if (!context.mounted) return;
 
-      if (loginState.user != null)
+      if (loginState.user != null) {
         _navigateAfterLogin(
             context, 'Google ile giriş başarılı', loginState.user!.uid);
-      else
-        _showErrorSnackbar(context, 'Google ile giriş başarısız');
+      } else {
+        _showErrorSnackbar(
+            context, loginState.errorMessage ?? 'Google ile giriş başarısız');
+      }
     } catch (e) {
-      if (context.mounted)
+      if (context.mounted) {
         _showErrorSnackbar(context, 'Google ile giriş sırasında hata: $e');
+      }
+    } finally {
+      if (context.mounted) {
+        ref.read(loginProcessingProvider.notifier).state = false;
+      }
     }
   }
 
@@ -139,40 +178,65 @@ class LoginScreen extends ConsumerWidget {
 
   Future<void> _handleGuestLogin(
       final BuildContext context, final WidgetRef ref) async {
+    ref.read(loginProcessingProvider.notifier).state = true;
+
     try {
       await ref.read(loginProvider.notifier).signInAnonymously();
+
+      // State değişikliğini bekle
+      await Future.delayed(const Duration(milliseconds: 500));
+
       final loginState = ref.read(loginProvider);
 
       if (!context.mounted) return;
 
-      if (loginState.user != null)
+      if (loginState.user != null) {
         _navigateAfterLogin(
-            context, 'Google ile giriş başarılı', loginState.user!.uid);
-      else
-        _showErrorSnackbar(context, 'Misafir girişi başarısız');
+            context, 'Misafir girişi başarılı', loginState.user!.uid);
+      } else {
+        _showErrorSnackbar(
+            context, loginState.errorMessage ?? 'Misafir girişi başarısız');
+      }
     } catch (e) {
-      if (context.mounted)
+      if (context.mounted) {
         _showErrorSnackbar(context, 'Misafir girişi sırasında hata: $e');
+      }
+    } finally {
+      if (context.mounted) {
+        ref.read(loginProcessingProvider.notifier).state = false;
+      }
     }
   }
 
   void _navigateAfterLogin(
       final BuildContext context, final String message, final String userId) {
+    // Snackbar göster
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (final context) => UserProfileEditScreen(userId: userId),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
       ),
     );
+
+    // Navigasyon işlemi
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (final context) => UserProfileEditScreen(userId: userId),
+        ),
+      );
+    });
   }
 
   void _showErrorSnackbar(final BuildContext context, final String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 }

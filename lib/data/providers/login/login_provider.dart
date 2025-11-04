@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../../../domain/useCase/login/delete_account_use_case.dart';
 import '../../../domain/useCase/login/get_current_user_use_case_impl.dart';
 import '../../../domain/useCase/login/sign_in_anonymously_use_case.dart';
@@ -14,6 +15,9 @@ import 'login_state.dart';
 final loginProvider = NotifierProvider<LoginNotifier, LoginState>(
   LoginNotifier.new,
 );
+
+// İşlem durumu için yeni provider
+final loginProcessingProvider = StateProvider<bool>((final ref) => false);
 
 /// Use case provider’ları
 final signInWithGoogleUseCaseProvider = Provider<SignInWithGoogleUseCase>(
