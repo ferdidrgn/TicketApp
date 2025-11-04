@@ -10,13 +10,13 @@ class InspirationalQuoteView extends StatelessWidget {
     required this.word,
     required this.author,
     this.imageUrl =
-        'https://www.stockvault.net/data/2013/09/06/147743/preview16.jpg',
+        'https://avatars.mds.yandex.net/get-entity_search/10349888/1168254232/SUx150_2x',
   });
 
   @override
   Widget build(final BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         height: 250,
         width: double.infinity,

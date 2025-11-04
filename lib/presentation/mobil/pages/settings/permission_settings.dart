@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../../../core/widgets/custom_art_inspirational_quote_view.dart';
 import '../../../../core/widgets/custom_art_words_card.dart';
 
 class PermissionSettingsScreen extends StatelessWidget {
@@ -15,6 +16,12 @@ class PermissionSettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            InspirationalQuoteView(
+              word: "Hayal gücü, bilmekten daha önemlidir.",
+              author: "Albert Einstein",
+              imageUrl:
+                  'https://avatars.mds.yandex.net/get-entity_search/10349888/1168254232/SUx150_2x', // Farklı bir görsel
+            ),
             const CustomArtWordsCard(
                 word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
             const SizedBox(height: 30),
