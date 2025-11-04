@@ -9,9 +9,7 @@ class PermissionSettingsScreen extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bildirim Ayarları'),
-      ),
+      appBar: AppBar(title: const Text('Bildirim Ayarları')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
