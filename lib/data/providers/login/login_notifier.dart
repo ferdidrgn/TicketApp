@@ -46,7 +46,8 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
         onSuccess: (final googleUser) => _handleGoogleSignInSuccess(googleUser),
       );
 
-  Future<void> _handleGoogleSignInSuccess(final GoogleSignInAccount? googleUser) async {
+  Future<void> _handleGoogleSignInSuccess(
+      final GoogleSignInAccount? googleUser) async {
     state = state.copyWith(googleUser: googleUser, isGuest: false);
 
     await executeWithInternetCheck(
@@ -197,36 +198,23 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
     try {
       state = state.copyWith(isLoading: true, user: null);
 
-      // ✅ FIREBASE'DEN ÇIKIŞ
-      await FirebaseAuth.instance.signOut();
-      print('✅ [SIGNOUT] Firebase signOut tamam');
-
-      // ✅ GOOGLE SIGN IN'DEN ÇIK
-      try {
-        await GoogleSignIn().signOut();
-        await GoogleSignIn().disconnect();
-        print('✅ [SIGNOUT] Google SignOut tamam');
-      } catch (e) {
-        print('⚠️ [SIGNOUT] Google çıkış hatası: $e');
-      }
-
-      // ✅ LOCAL STORAGE'I TEMİZLE
-      await _clearPersistedData();
-
-      // ✅ STATE'I TAMAMEN SIFIRLA - MANUEL OLARAK
-      state = LoginState(
-        user: null,
-        googleUser: null,
-        isLoading: false,
-        errorMessage: null,
-        isGuest: false,
-        isCodeSent: false,
-        verificationId: null,
-        phoneNumber: null,
-        isPersisted: false,
-        userRole: null,
-        isAccountDeleted: false,
-      );
+      final result = await ref.read(signOutUseCaseProvider).call();
+      result.fold((final failure) {}, (final success) {
+        // ✅ STATE'I TAMAMEN SIFIRLA - MANUEL OLARAK
+        state = LoginState(
+          user: null,
+          googleUser: null,
+          isLoading: false,
+          errorMessage: null,
+          isGuest: false,
+          isCodeSent: false,
+          verificationId: null,
+          phoneNumber: null,
+          isPersisted: false,
+          userRole: null,
+          isAccountDeleted: false,
+        );
+      });
     } catch (e) {
       // Hata durumunda da state'i sıfırla
       state = LoginState(
@@ -264,4 +252,6 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
   Future<void> _clearPersistedData() async {
     await LocalStorageService.clearAllUserData();
   }
+
+  void clearLoginState() => state = LoginState();
 }

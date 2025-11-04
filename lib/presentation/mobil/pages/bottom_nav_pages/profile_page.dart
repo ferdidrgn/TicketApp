@@ -52,9 +52,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final loginState = ref.watch(loginProvider);
     final theme = Theme.of(context);
 
-    if (loginState.isLoading || _isLoadingLocalData) {
+    if (loginState.isLoading || _isLoadingLocalData)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
 
     return Scaffold(
       body: ListView(
@@ -62,12 +61,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         children: [
           _profileCard(loginState.user, theme, loginState),
           const SizedBox(height: 20),
-          if (loginState.user != null) ..._buildUserSpecificButtons(loginState.user!.uid),
+          if (loginState.user != null)
+            ..._buildUserSpecificButtons(loginState.user!.uid),
           ..._buildGeneralButtons(),
           _themeSelectorCard(ref, theme),
           _buildAuthButton(loginState),
-          if (loginState.user != null && loginState.isGuest)
-            ..._buildDangerZone(loginState),
+          if (loginState.user != null) ..._buildDangerZone(loginState),
           _buildLocalStorageInfo(),
           const SizedBox(height: 50),
         ],
@@ -75,7 +74,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  // ✅ REFACTORED: User-specific buttons
   List<Widget> _buildUserSpecificButtons(final String userId) {
     return [
       _btn(
@@ -97,7 +95,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     ];
   }
 
-  // ✅ REFACTORED: General buttons
   List<Widget> _buildGeneralButtons() {
     return [
       _btn(
@@ -123,7 +120,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     ];
   }
 
-  // ✅ REFACTORED: Auth button
   Widget _buildAuthButton(final LoginState loginState) {
     return _btn(
       loginState.user != null ? 'Çıkış Yap' : 'Giriş Yap',
@@ -132,62 +128,186 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  // ✅ REFACTORED: Danger zone buttons
   List<Widget> _buildDangerZone(final LoginState loginState) {
     return [
       const SizedBox(height: 30),
-      _deleteAccountButton(loginState.user!.uid),
+      if (loginState.user?.uid != null)
+        _deleteAccountButton(loginState.user!.uid),
     ];
   }
 
+  // 🎨 TEMİZ VE ORTALANMIŞ TASARIM
   Widget _profileCard(
     final User? firebaseUser,
     final ThemeData theme,
     final LoginState loginState,
   ) {
     final textTheme = theme.textTheme;
-    final radius = BorderRadius.circular(15);
-
-    // User data with fallbacks
     final userData = _getUserData(firebaseUser);
-    final bool isGuest = loginState.isGuest || userData.isGuest;
 
-    if (firebaseUser == null && _localUserData == null) {
-      return _buildLoginPromptCard(theme, textTheme, radius);
-    }
+    // 🐛 DEBUG: Misafir durumunu kontrol et
+    print('🔍 DEBUG Profile Card:');
+    print('  - loginState.isGuest: ${loginState.isGuest}');
+    print('  - firebaseUser: ${firebaseUser?.uid}');
+    print('  - localUserData isGuest: ${_localUserData?['isGuest']}');
+    print('  - userData.isGuest: ${userData.isGuest}');
+
+    if (firebaseUser == null && _localUserData == null)
+      return _buildLoginPromptCard(theme, textTheme);
+
+    final bool isGuest = loginState.isGuest;
 
     return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: radius),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isGuest
+                ? [Colors.orange.shade100, Colors.white]
+                : [theme.primaryColor.withOpacity(0.1), Colors.white],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundImage: NetworkImage(userData.photoURL),
+            // Avatar
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (isGuest ? Colors.orange : theme.primaryColor)
+                        .withOpacity(0.3),
+                    blurRadius: 15,
+                    spreadRadius: 3,
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.white,
+                child: CircleAvatar(
+                  radius: 47,
+                  backgroundImage: NetworkImage(userData.photoURL),
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
+
+            // İsim
             Text(
               userData.displayName,
-              style: textTheme.headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 8),
+
+            // Email
             Text(
               userData.email,
-              style: textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
             ),
-            _buildLoginMethodBadge(userData.loginMethod, textTheme),
-            if (isGuest) _buildGuestBadge(textTheme),
+            const SizedBox(height: 16),
+
+            // Badges
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Login Method Badge (sadece misafir değilse)
+                if (!isGuest)
+                  _buildLoginMethodChip(userData.loginMethod, theme),
+
+                // Guest Badge (sadece misafir ise)
+                if (isGuest) _buildGuestChip(),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ✅ REFACTORED: User data model
+  // 🎨 Login Method Chip
+  Widget _buildLoginMethodChip(
+      final String loginMethod, final ThemeData theme) {
+    final color = _getLoginMethodColor(loginMethod);
+    final icon = _getLoginMethodIcon(loginMethod);
+    final text = _getLoginMethodText(loginMethod);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🎨 Guest Chip
+  Widget _buildGuestChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.orange, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.person_outline, size: 16, color: Colors.orange[700]),
+          const SizedBox(width: 6),
+          Text(
+            'Misafir Modu',
+            style: TextStyle(
+              color: Colors.orange[700],
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getLoginMethodIcon(final String method) {
+    switch (method) {
+      case 'google':
+        return Icons.g_mobiledata_rounded;
+      case 'phone':
+        return Icons.phone_android;
+      case 'anonymous':
+        return Icons.person_outline;
+      default:
+        return Icons.login;
+    }
+  }
+
   _UserData _getUserData(final User? firebaseUser) {
     return _UserData(
       displayName: firebaseUser?.displayName ??
@@ -204,76 +324,48 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildLoginPromptCard(final ThemeData theme, final TextTheme textTheme,
-      final BorderRadius radius) {
+  Widget _buildLoginPromptCard(
+      final ThemeData theme, final TextTheme textTheme) {
     return Card(
       elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: radius),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(32),
         child: Column(
           children: [
             Icon(
               Icons.account_circle,
               size: 100,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.primary.withOpacity(0.5),
             ),
-            const SizedBox(height: 10),
-            ElevatedButton(
+            const SizedBox(height: 16),
+            Text(
+              'Hoş Geldiniz',
+              style: textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Devam etmek için giriş yapın',
+              style: textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
               onPressed: _navigateToLogin,
-              child: Text(
-                'Giriş Yap',
-                style: textTheme.headlineSmall?.copyWith(
-                  color: Colors.pink,
-                  fontWeight: FontWeight.bold,
+              icon: const Icon(Icons.login),
+              label: const Text('Giriş Yap'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
                 ),
               ),
             ),
-            const SizedBox(height: 5),
-            Text(
-              'Lütfen giriş yapın',
-              style: textTheme.bodyMedium?.copyWith(color: Colors.grey),
-            ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoginMethodBadge(
-      final String loginMethod, final TextTheme textTheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      margin: const EdgeInsets.only(top: 5),
-      decoration: BoxDecoration(
-        color: _getLoginMethodColor(loginMethod).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _getLoginMethodColor(loginMethod)),
-      ),
-      child: Text(
-        _getLoginMethodText(loginMethod),
-        style: textTheme.bodySmall?.copyWith(
-          color: _getLoginMethodColor(loginMethod),
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGuestBadge(final TextTheme textTheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      margin: const EdgeInsets.only(top: 5),
-      decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange),
-      ),
-      child: Text(
-        'Misafir Modu',
-        style: textTheme.bodySmall?.copyWith(
-          color: Colors.orange,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -295,13 +387,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   String _getLoginMethodText(final String method) {
     switch (method) {
       case 'google':
-        return 'Google ile Giriş';
+        return 'Google';
       case 'phone':
-        return 'Telefon ile Giriş';
+        return 'Telefon';
       case 'anonymous':
-        return 'Misafir Giriş';
+        return 'Misafir';
       default:
-        return 'Bilinmeyen Giriş';
+        return 'Bilinmeyen';
     }
   }
 
@@ -435,7 +527,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Dialog'u kapat
+              Navigator.pop(context);
               _deleteAccount(userId);
             },
             child: const Text(
@@ -462,7 +554,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       Navigator.of(context).push(MaterialPageRoute(builder: (final _) => page));
 
   void _navigateToLogin() =>
-      Navigator.of(context).pushReplacementNamed('/login');
+      Navigator.of(context).pushReplacementNamed('/home');
 
   Future<void> _signOut() async {
     try {
@@ -478,9 +570,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  // ✅ FIXED: Loading popup kapanma sorunu çözüldü
+  // ✅ FIX: executeWithInternetCheck kullanmıyoruz, direkt siliyoruz
   Future<void> _deleteAccount(final String userId) async {
-    // Loading dialog'u değişkene atayalım
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -490,37 +581,55 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
 
     try {
-      // 1. Firestore'dan kullanıcı verilerini sil
-      final bool isDeleteUserDocument =
-          await ref.read(userProvider.notifier).deleteUser(userId);
+      print('🗑️ Hesap silme başlatıldı: $userId');
+
+      // 1. Firestore'dan kullanıcı verilerini sil (direkt çağır)
+      final userNotifier = ref.read(userProvider.notifier);
+      final bool isDeleteUserDocument = await userNotifier.deleteUser(userId);
+
+      print('📦 Firestore silme sonucu: $isDeleteUserDocument');
 
       if (!isDeleteUserDocument) {
         _closeDialogAndShowError('Kullanıcı verileri silinemedi');
         return;
       }
 
-      // 2. Firebase Auth'tan hesabı sil
-      await ref.read(loginProvider.notifier).deleteAccount();
+      // 2. Firebase Auth'tan hesabı sil (direkt çağır)
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        print('🔥 Firebase Auth silme başlatıldı');
+        await currentUser.delete();
+        print('✅ Firebase Auth silindi');
 
-      // 3. Başarılı - loading kapat → success göster
+        // 3. Local storage temizle
+        await LocalStorageService.clearAllUserData();
+        print('💾 Local storage temizlendi');
+
+        // 4. Provider state'i sıfırla
+        ref.read(loginProvider.notifier).clearLoginState();
+        print('🔄 Provider state sıfırlandı');
+        ref.read(userProvider.notifier).clearUserState();
+      }
+
+      // 5. Başarılı
+      print('🎉 Hesap silme tamamlandı');
       _closeDialogAndShowSuccess();
     } catch (e) {
-      _closeDialogAndShowError('Hesap silinirken hata oluştu: $e');
+      print('❌ Delete Account Error: $e');
+      _closeDialogAndShowError('Hesap silinirken hata: $e');
     }
   }
 
-  // ✅ REFACTORED: Dialog kapatma ve hata gösterme
   void _closeDialogAndShowError(final String message) {
     if (context.mounted) {
-      Navigator.of(context).pop(); // Loading dialog'u kapat
+      Navigator.of(context).pop();
       _showErrorDialog(message);
     }
   }
 
-  // ✅ REFACTORED: Başarılı işlem
   void _closeDialogAndShowSuccess() {
     if (context.mounted) {
-      Navigator.of(context).pop(); // Loading dialog'u kapat
+      Navigator.of(context).pop();
       _showSuccessDialog();
     }
   }
@@ -531,10 +640,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       barrierDismissible: false,
       builder: (final context) => CustomSuccessDialog(
         message: 'Hesabınız başarıyla silindi',
-        onConfirm: () {
-          Navigator.pop(context); // Success dialog'u kapat
-          _navigateToLogin(); // Login sayfasına git
-        },
+        onConfirm: () => _navigateToLogin(),
       ),
     );
   }
@@ -544,13 +650,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (final context) => CustomErrorDialog(
         message: message,
-        onConfirm: () => Navigator.pop(context), // Error dialog'u kapat
+        onConfirm: () => Navigator.pop(context),
       ),
     );
   }
 }
 
-// ✅ Helper class for user data
 class _UserData {
   final String displayName;
   final String email;

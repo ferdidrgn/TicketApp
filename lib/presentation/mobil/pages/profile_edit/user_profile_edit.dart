@@ -178,9 +178,9 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     final currentUser = userState.dataSingle;
 
     // Formu başlat
-    if (currentUser != null) {
+    if (currentUser != null)
       _initializeFormData(currentUser);
-    } else if (!_isInitialized) {
+    else if (!_isInitialized) {
       _initializeFormData(User(
         id: widget.userId,
         createdAt: DateTime.now().toIso8601String(),

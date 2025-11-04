@@ -33,4 +33,6 @@ class UserNotifier extends BaseNotifierWithNetworkChecker<UserState> {
 
     return result ?? false;
   }
+
+  void clearUserState() => state = UserState();
 }
