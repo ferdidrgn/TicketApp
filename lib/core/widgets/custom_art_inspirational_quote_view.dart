@@ -1,0 +1,77 @@
+import 'package:flutter/material.dart';
+
+class InspirationalQuoteView extends StatelessWidget {
+  final String word;
+  final String author;
+  final String imageUrl;
+
+  const InspirationalQuoteView({
+    super.key,
+    required this.word,
+    required this.author,
+    this.imageUrl =
+        'https://www.stockvault.net/data/2013/09/06/147743/preview16.jpg',
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        height: 250,
+        width: double.infinity,
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(imageUrl, fit: BoxFit.cover),
+
+            // 2. Siyah Kaplama (Yazının okunabilirliği için)
+            Container(
+                decoration: BoxDecoration(
+                    // Görselin üzerine hafif siyah bir karartma
+                    color: Colors.black.withOpacity(0.45))),
+
+            // 3. Yazı İçeriği
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, // İçeriğe göre boyut al
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text('"$word"',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            // Başka bir zarif serifli font
+                            fontSize: 22,
+                            fontStyle: FontStyle.italic,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            // Koyu arka plan için beyaz yazı
+                            shadows: [
+                              // Yazıya hafif bir derinlik
+                              Shadow(
+                                  color: Colors.black.withOpacity(0.5),
+                                  blurRadius: 5,
+                                  offset: Offset(0, 2))
+                            ])),
+                    const SizedBox(height: 16),
+                    Text(
+                      "- $author -",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w300,
+                          color: Colors.white.withOpacity(0.8)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
