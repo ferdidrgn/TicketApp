@@ -46,8 +46,7 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
         onSuccess: (final googleUser) => _handleGoogleSignInSuccess(googleUser),
       );
 
-  Future<void> _handleGoogleSignInSuccess(
-      final GoogleSignInAccount? googleUser) async {
+  Future<void> _handleGoogleSignInSuccess(final GoogleSignInAccount? googleUser) async {
     state = state.copyWith(googleUser: googleUser, isGuest: false);
 
     await executeWithInternetCheck(

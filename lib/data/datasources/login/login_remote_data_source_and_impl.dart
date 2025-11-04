@@ -4,18 +4,12 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 abstract class LoginRemoteDataSource {
   Future<User?> getCurrentUser();
-
   Future<User?> signInAnonymously();
-
   Future<GoogleSignInAccount?> signInWithGoogle();
-
   Future<bool> signOut();
-
   Future<bool> deleteAccount();
-
   Future<bool> verifyOtp(final String verificationId, final String otp);
 
-  // ✅ Named parametre olarak düzeltildi
   Future<String> verifyPhone({
     required final String phoneNumber,
     required final void Function(PhoneAuthCredential) onVerificationCompleted,
@@ -34,7 +28,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
     required final FirebaseAuth firebaseAuth,
     final GoogleSignIn? googleSignIn,
   })  : _auth = firebaseAuth,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+        _googleSignIn = googleSignIn ?? GoogleSignIn.standard();
 
   @override
   Future<User?> getCurrentUser() async => _auth.currentUser;
@@ -68,41 +62,23 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
 
   @override
   Future<GoogleSignInAccount?> signInWithGoogle() async {
-    final currentUser = _auth.currentUser;
-    if (currentUser != null && !currentUser.isAnonymous)
-      throw Exception('Zaten giriş yapılmış. Önce çıkış yapın.');
-
     try {
-      final googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
 
-      if (currentUser != null && currentUser.isAnonymous)
-        await currentUser.linkWithCredential(credential);
-      else
-        await _auth.signInWithCredential(credential);
+      await _auth.signInWithCredential(credential);
 
+      print('✅ Google Sign-In başarılı');
       return googleUser;
-    } on FirebaseAuthException catch (e) {
-      switch (e.code) {
-        case 'account-exists-with-different-credential':
-          throw Exception('Bu email ile farklı bir giriş yöntemi kayıtlı.');
-        case 'invalid-credential':
-          throw Exception('Geçersiz kimlik bilgisi.');
-        case 'operation-not-allowed':
-          throw Exception('Google girişi desteklenmiyor.');
-        case 'user-disabled':
-          throw Exception('Hesap devre dışı bırakılmış.');
-        case 'user-not-found':
-          throw Exception('Kullanıcı bulunamadı.');
-        default:
-          throw Exception('Google ile giriş başarısız: ${e.message}');
-      }
     } catch (e) {
-      throw Exception('Google ile giriş başarısız: $e');
+      throw Exception(
+          'Google ile giriş yapılamadı. Lütfen daha sonra tekrar deneyin.');
     }
   }
 
