@@ -15,32 +15,23 @@ class LoginScreen extends ConsumerWidget {
     final loginState = ref.watch(loginProvider);
     final isProcessing = ref.watch(loginProcessingProvider);
 
-    // Kullanıcı giriş yaptığında otomatik yönlendir
-    _handleAutoNavigation(loginState, context);
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      _checkAndNavigate(loginState, context);
+    });
 
-    if (loginState.isLoading || isProcessing) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+    if (loginState.isLoading || isProcessing)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    return Scaffold(
-      body: _buildContent(context, ref, isProcessing),
-    );
+    return Scaffold(body: _buildContent(context, ref, isProcessing));
   }
 
-  void _handleAutoNavigation(
+  void _checkAndNavigate(
       final LoginState loginState, final BuildContext context) {
-    if (loginState.user != null) {
-      WidgetsBinding.instance.addPostFrameCallback((final _) {
-        _navigateAfterLogin(
-          context,
-          'Giriş başarılı',
-          loginState.user!.uid,
-        );
-      });
+    if (loginState.user != null &&
+        !loginState.isPersisted &&
+        !loginState.isLoading) {
+      print('🔄 LOGIN: Yeni kullanıcı tespit edildi, yönlendiriliyor...');
+      _navigateAfterLogin(context, 'Giriş başarılı', loginState.user!.uid);
     }
   }
 
@@ -49,7 +40,7 @@ class LoginScreen extends ConsumerWidget {
     return Stack(
       children: [
         _buildBackgroundImage(),
-        _buildLoginForm(context, ref, isProcessing),
+        _buildLoginForm(context, ref, isProcessing)
       ],
     );
   }
@@ -61,9 +52,8 @@ class LoginScreen extends ConsumerWidget {
         fit: BoxFit.cover,
         errorBuilder: (final context, final error, final stackTrace) {
           return Container(
-            color: Colors.grey[300],
-            child: const Icon(Icons.image, size: 100, color: Colors.grey),
-          );
+              color: Colors.grey[300],
+              child: const Icon(Icons.image, size: 100, color: Colors.grey));
         },
       ),
     );
@@ -102,10 +92,7 @@ class LoginScreen extends ConsumerWidget {
     return const Text(
       'Sanata Doymaya Hoş Geldiniz',
       style: TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-      ),
+          fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
       textAlign: TextAlign.center,
     );
   }
@@ -113,28 +100,25 @@ class LoginScreen extends ConsumerWidget {
   Widget _buildGoogleSignInButton(final BuildContext context,
       final WidgetRef ref, final bool isProcessing) {
     return CustomElevatedButton(
-      text: 'Google ile Giriş Yap',
-      iconData: Icons.g_mobiledata,
-      onPressed: () => _handleGoogleSignIn(context, ref),
-    );
+        text: 'Google ile Giriş Yap',
+        iconData: Icons.g_mobiledata,
+        onPressed: () => _handleGoogleSignIn(context, ref));
   }
 
   Widget _buildPhoneLoginButton(
       final BuildContext context, final bool isProcessing) {
     return CustomElevatedButton(
-      text: 'Telefon ile Giriş Yap',
-      iconData: Icons.phone,
-      onPressed: () => _navigateToPhoneLogin(context),
-    );
+        text: 'Telefon ile Giriş Yap',
+        iconData: Icons.phone,
+        onPressed: () => _navigateToPhoneLogin(context));
   }
 
   Widget _buildGuestLoginButton(final BuildContext context, final WidgetRef ref,
       final bool isProcessing) {
     return CustomElevatedButton(
-      text: 'Misafir Olarak Devam Et',
-      iconData: Icons.person_outline,
-      onPressed: () => _handleGuestLogin(context, ref),
-    );
+        text: 'Misafir Girişi',
+        iconData: Icons.person_outline,
+        onPressed: () => _handleGuestLogin(context, ref));
   }
 
   Future<void> _handleGoogleSignIn(
@@ -151,21 +135,18 @@ class LoginScreen extends ConsumerWidget {
 
       if (!context.mounted) return;
 
-      if (loginState.user != null) {
+      if (loginState.user != null)
         _navigateAfterLogin(
             context, 'Google ile giriş başarılı', loginState.user!.uid);
-      } else {
+      else
         _showErrorSnackbar(
             context, loginState.errorMessage ?? 'Google ile giriş başarısız');
-      }
     } catch (e) {
-      if (context.mounted) {
+      if (context.mounted)
         _showErrorSnackbar(context, 'Google ile giriş sırasında hata: $e');
-      }
     } finally {
-      if (context.mounted) {
+      if (context.mounted)
         ref.read(loginProcessingProvider.notifier).state = false;
-      }
     }
   }
 
@@ -190,21 +171,18 @@ class LoginScreen extends ConsumerWidget {
 
       if (!context.mounted) return;
 
-      if (loginState.user != null) {
+      if (loginState.user != null)
         _navigateAfterLogin(
             context, 'Misafir girişi başarılı', loginState.user!.uid);
-      } else {
+      else
         _showErrorSnackbar(
             context, loginState.errorMessage ?? 'Misafir girişi başarısız');
-      }
     } catch (e) {
-      if (context.mounted) {
+      if (context.mounted)
         _showErrorSnackbar(context, 'Misafir girişi sırasında hata: $e');
-      }
     } finally {
-      if (context.mounted) {
+      if (context.mounted)
         ref.read(loginProcessingProvider.notifier).state = false;
-      }
     }
   }
 
@@ -213,10 +191,9 @@ class LoginScreen extends ConsumerWidget {
     // Snackbar göster
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2)),
     );
 
     // Navigasyon işlemi
@@ -224,8 +201,7 @@ class LoginScreen extends ConsumerWidget {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (final context) => UserProfileEditScreen(userId: userId),
-        ),
+            builder: (final context) => UserProfileEditScreen(userId: userId)),
       );
     });
   }
@@ -233,10 +209,9 @@ class LoginScreen extends ConsumerWidget {
   void _showErrorSnackbar(final BuildContext context, final String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3)),
     );
   }
 }

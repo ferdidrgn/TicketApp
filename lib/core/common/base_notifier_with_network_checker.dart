@@ -76,7 +76,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
   }) async {
     if (!ref.mounted) return;
     try {
-      _setLoadingState();
+      state = state.copyWith(isLoading: true, errorMessage: null) as T;
 
       final hasInternet = await ref.read(internetServiceProvider).isConnected;
       if (!hasInternet) {
@@ -92,7 +92,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
         (final success) {
           try {
             onSuccess?.call(success);
-            _setSuccessState();
+            state = state.copyWith(isLoading: false, errorMessage: null) as T;
           } catch (e, s) {
             if (!ref.mounted) return;
             setErrorState("Veri işlenirken hata oluştu: $e");
@@ -103,12 +103,6 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
       setErrorState('Beklenmeyen bir hata oluştu: ${e.toString()}');
     }
   }
-
-  void _setLoadingState() =>
-      state = state.copyWith(isLoading: true, errorMessage: null) as T;
-
-  void _setSuccessState() =>
-      state = state.copyWith(isLoading: false, errorMessage: null) as T;
 
   void setErrorState(final String errorMessage) =>
       state = state.copyWith(errorMessage: errorMessage, isLoading: false) as T;

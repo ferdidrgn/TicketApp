@@ -194,13 +194,57 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
     state = state.copyWith(userRole: newRole);
   }
 
-  Future<void> signOut() => executeWithInternetCheck(
-        () => ref.read(signOutUseCaseProvider).call(),
-        onSuccess: (final _) async {
-          await _clearPersistedData();
-          state = LoginState();
-        },
+  Future<void> signOut() async {
+    try {
+      state = state.copyWith(isLoading: true, user: null);
+
+      // ✅ FIREBASE'DEN ÇIKIŞ
+      await FirebaseAuth.instance.signOut();
+      print('✅ [SIGNOUT] Firebase signOut tamam');
+
+      // ✅ GOOGLE SIGN IN'DEN ÇIK
+      try {
+        await GoogleSignIn().signOut();
+        await GoogleSignIn().disconnect();
+        print('✅ [SIGNOUT] Google SignOut tamam');
+      } catch (e) {
+        print('⚠️ [SIGNOUT] Google çıkış hatası: $e');
+      }
+
+      // ✅ LOCAL STORAGE'I TEMİZLE
+      await _clearPersistedData();
+
+      // ✅ STATE'I TAMAMEN SIFIRLA - MANUEL OLARAK
+      state = LoginState(
+        user: null,
+        googleUser: null,
+        isLoading: false,
+        errorMessage: null,
+        isGuest: false,
+        isCodeSent: false,
+        verificationId: null,
+        phoneNumber: null,
+        isPersisted: false,
+        userRole: null,
+        isAccountDeleted: false,
       );
+    } catch (e) {
+      // Hata durumunda da state'i sıfırla
+      state = LoginState(
+        user: null,
+        googleUser: null,
+        isLoading: false,
+        errorMessage: 'Çıkış yapılamadı: $e',
+        isGuest: false,
+        isCodeSent: false,
+        verificationId: null,
+        phoneNumber: null,
+        isPersisted: false,
+        userRole: null,
+        isAccountDeleted: false,
+      );
+    }
+  }
 
   Future<void> deleteAccount() => executeWithInternetCheck(
         () async {
