@@ -13,11 +13,18 @@ class UserProfileEditScreen extends ConsumerStatefulWidget {
   const UserProfileEditScreen({super.key, required this.userId});
 
   @override
-  _UserProfileEditScreenState createState() => _UserProfileEditScreenState();
+  ConsumerState<UserProfileEditScreen> createState() =>
+      _UserProfileEditScreenState();
 }
 
 class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _ageController = TextEditingController();
+  final _cityController = TextEditingController();
 
   String _firstName = '';
   String _lastName = '';
@@ -26,56 +33,140 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   int _age = 0;
   String _city = '';
   String _profileImageUrl = 'https://via.placeholder.com/150';
+  bool _isUpdating = false;
 
   @override
   void initState() {
     super.initState();
-    _getUserData();
-  }
-
-  Future<void> _getUserData() async {
+    // Kullanıcı verilerini yükle
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (ref.read(userProvider).dataSingle != null)
-        ref.read(userProvider.notifier).loadUserById(widget.userId);
+      ref.read(userProvider.notifier).loadUserById(widget.userId);
     });
   }
 
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _ageController.dispose();
+    _cityController.dispose();
+    super.dispose();
+  }
+
   Future<void> _updateProfile() async {
-    if (_formKey.currentState?.validate() ?? false) {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    if (_firstNameController.text.trim().isEmpty ||
+        _lastNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ad ve soyad alanları zorunludur')));
+      return;
+    }
+
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      final userState = ref.read(userProvider);
+      final currentUser = userState.dataSingle;
+
       final nowTime = DateFormatter.nowFormatDateTime();
       final updatedUser = User(
         id: widget.userId,
-        createdAt: nowTime,
+        createdAt: currentUser?.createdAt ?? nowTime,
         updatedAt: nowTime,
-        firstName: _firstName,
-        lastName: _lastName,
-        phoneNumber: _phoneNumber,
-        eMail: _email,
-        age: _age,
-        city: _city,
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        eMail: _emailController.text.trim(),
+        age: int.tryParse(_ageController.text.trim()) ?? 0,
+        city: _cityController.text.trim(),
         imageUrl: _profileImageUrl,
-        ticketsId: [],
-        favoritePlayers: [],
-        favoriteShows: [],
-        favoriteStages: [],
-        fcmToken: '',
-        isPhoneActive: false,
-        role: '',
+        ticketsId: currentUser?.ticketsId ?? [],
+        favoritePlayers: currentUser?.favoritePlayers ?? [],
+        favoriteShows: currentUser?.favoriteShows ?? [],
+        favoriteStages: currentUser?.favoriteStages ?? [],
+        fcmToken: currentUser?.fcmToken ?? '',
+        isPhoneActive: currentUser?.isPhoneActive ?? false,
+        role: currentUser?.role ?? 'user',
       );
 
       await ref
           .read(userProvider.notifier)
           .saveUser(updatedUser, _profileImageUrl, isUpdate: true);
+
+      _showSuccessDialog();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Güncelleme sırasında hata: $e')),
+      );
+    } finally {
+      setState(() {
+        _isUpdating = false;
+      });
     }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (final BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green),
+              SizedBox(width: 8),
+              Text('Başarılı'),
+            ],
+          ),
+          content: const Text('Profil bilgileriniz başarıyla güncellendi.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _navigateToHome();
+              },
+              child: const Text('Tamam'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _navigateToHome() {
+    Navigator.of(context).pushReplacementNamed('/home');
+  }
+
+  void _fillFormWithUserData(final User user) {
+    _firstNameController.text = user.firstName;
+    _lastNameController.text = user.lastName;
+    _phoneController.text = user.phoneNumber;
+    _emailController.text = user.eMail;
+    _ageController.text = user.age > 0 ? user.age.toString() : '';
+    _cityController.text = user.city;
+    _profileImageUrl = user.imageUrl.isNotEmpty
+        ? user.imageUrl
+        : 'https://via.placeholder.com/150';
   }
 
   @override
   Widget build(final BuildContext context) {
     final userState = ref.watch(userProvider);
 
+    // Kullanıcı verileri yüklendiyse formu doldur
+    if (userState.dataSingle != null && _firstNameController.text.isEmpty)
+      WidgetsBinding.instance.addPostFrameCallback((final _) {
+        _fillFormWithUserData(userState.dataSingle!);
+      });
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profil Düzenle'),
+        title: const Text('Profil Bilgilerini Düzenle'),
       ),
       body: userState.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -86,13 +177,25 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   }
 
   Widget _buildErrorState(final String message) {
-    return Center(child: Text(message));
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Hata: $message'),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () =>
+                ref.read(userProvider.notifier).loadUserById(widget.userId),
+            child: const Text('Tekrar Dene'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildContentState(final BuildContext context, final User? user) {
-    if (user != null) {
+    if (user != null)
       fillUIUserInfo(user); // UI'yi kullanıcının verileriyle doldur
-    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -105,6 +208,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                 word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
             const SizedBox(height: 20),
             _buildProfileImage(),
+            const SizedBox(height: 20),
             const SizedBox(height: 20),
             CustomTextField(
               label: 'Ad',
@@ -123,7 +227,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               initialValue: _phoneNumber,
               onChanged: (final value) => setState(() => _phoneNumber = value),
               keyboardType: TextInputType.phone,
-              isRequired: false, // Telefon zorunlu değil
+              isRequired: false,
             ),
             CustomTextField(
               label: 'E-posta',
@@ -148,10 +252,12 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
             ),
             const SizedBox(height: 20),
             Center(
-              child: CustomElevatedButton(
-                text: 'Güncelle',
-                onPressed: _updateProfile,
-              ),
+              child: _isUpdating
+                  ? const CircularProgressIndicator()
+                  : CustomElevatedButton(
+                      text: 'Profili Güncelle',
+                      onPressed: _updateProfile,
+                    ),
             ),
           ],
         ),
