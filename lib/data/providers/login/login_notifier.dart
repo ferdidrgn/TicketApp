@@ -24,14 +24,14 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
   Future<void> getCurrentUser() => executeWithInternetCheck(
         () => ref.read(getCurrentUserUseCaseProvider).call(),
         onSuccess: (final user) {
-          if (user != null) {
+          if (user != null)
             state = state.copyWith(
               user: user,
               errorMessage: null,
               isPersisted: false,
-              userRole: LocalStorageService.userRole, // Rolü state'e aktar
+              userRole: LocalStorageService.userRole,
             );
-          } else if (LocalStorageService.isLoggedIn && !state.isPersisted)
+          else if (LocalStorageService.isLoggedIn && !state.isPersisted)
             _handlePersistedUserNotFound();
         },
       );
@@ -56,15 +56,11 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
         if (user != null) {
           final userRole = RoleManager.getDefaultRoleForLoginMethod('google');
 
-          await LocalStorageService.saveCompleteUserData(
+          // ✅ SADECE GEREKLİ BİLGİLERİ KAYDET
+          await LocalStorageService.saveEssentialUserData(
             uid: user.uid,
-            email: user.email,
             displayName: user.displayName,
-            phoneNumber: user.phoneNumber,
-            photoURL: user.photoURL,
-            userRole: userRole,
-            isGuest: false,
-            userPreferences: {},
+            role: userRole,
           );
 
           state = state.copyWith(
@@ -73,7 +69,6 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
             errorMessage: null,
             isGuest: false,
             userRole: userRole,
-            // Rolü state'e ekle
             isPersisted: false,
           );
         }
@@ -88,15 +83,11 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
             final userRole =
                 RoleManager.getDefaultRoleForLoginMethod('anonymous');
 
-            await LocalStorageService.saveCompleteUserData(
+            // ✅ SADECE GEREKLİ BİLGİLERİ KAYDET
+            await LocalStorageService.saveEssentialUserData(
               uid: user.uid,
-              email: user.email,
               displayName: user.displayName,
-              phoneNumber: user.phoneNumber,
-              photoURL: user.photoURL,
-              userRole: userRole,
-              isGuest: true,
-              userPreferences: {},
+              role: userRole,
             );
 
             state = state.copyWith(
@@ -162,15 +153,11 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
         if (user != null) {
           final userRole = RoleManager.getDefaultRoleForLoginMethod('phone');
 
-          await LocalStorageService.saveCompleteUserData(
+          // ✅ SADECE GEREKLİ BİLGİLERİ KAYDET
+          await LocalStorageService.saveEssentialUserData(
             uid: user.uid,
-            email: user.email,
             displayName: user.displayName,
-            phoneNumber: user.phoneNumber,
-            photoURL: user.photoURL,
-            userRole: userRole,
-            isGuest: false,
-            userPreferences: {},
+            role: userRole,
           );
 
           state = state.copyWith(
@@ -190,7 +177,11 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
 
   // ✅ ROL GÜNCELLEME METODU
   Future<void> updateUserRole(final String newRole) async {
-    await LocalStorageService.updateUserRole(newRole);
+    await LocalStorageService.saveEssentialUserData(
+      uid: state.user!.uid,
+      displayName: state.user!.displayName,
+      role: newRole,
+    );
     state = state.copyWith(userRole: newRole);
   }
 
@@ -200,7 +191,7 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
 
       final result = await ref.read(signOutUseCaseProvider).call();
       result.fold((final failure) {}, (final success) {
-        // ✅ STATE'I TAMAMEN SIFIRLA - MANUEL OLARAK
+        // ✅ STATE'I TAMAMEN SIFIRLA
         state = LoginState(
           user: null,
           googleUser: null,

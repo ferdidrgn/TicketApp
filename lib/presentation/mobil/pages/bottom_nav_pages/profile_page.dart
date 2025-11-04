@@ -35,7 +35,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Future<void> _loadLocalUserData() async {
     try {
       await LocalStorageService.init();
-      final userData = LocalStorageService.getUserData();
+      final userData = LocalStorageService.getEssentialUserData();
       setState(() {
         _localUserData = userData;
         _isLoadingLocalData = false;
@@ -136,26 +136,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     ];
   }
 
-  // 🎨 TEMİZ VE ORTALANMIŞ TASARIM
   Widget _profileCard(
     final User? firebaseUser,
     final ThemeData theme,
     final LoginState loginState,
   ) {
     final textTheme = theme.textTheme;
-    final userData = _getUserData(firebaseUser);
 
-    // 🐛 DEBUG: Misafir durumunu kontrol et
-    print('🔍 DEBUG Profile Card:');
-    print('  - loginState.isGuest: ${loginState.isGuest}');
-    print('  - firebaseUser: ${firebaseUser?.uid}');
-    print('  - localUserData isGuest: ${_localUserData?['isGuest']}');
-    print('  - userData.isGuest: ${userData.isGuest}');
+    // ✅ SADECE LOGIN STATE KULLAN - LOCAL'DEN ALMA!
+    final displayName = firebaseUser?.displayName ??
+        _localUserData?['displayName'] ??
+        'İsimsiz Kullanıcı';
+    final email = firebaseUser?.email ?? 'Mail bilgisi bulunamadı';
+    final photoURL =
+        firebaseUser?.photoURL ?? 'https://via.placeholder.com/150';
+    final isGuest = loginState.isGuest;
 
     if (firebaseUser == null && _localUserData == null)
       return _buildLoginPromptCard(theme, textTheme);
-
-    final bool isGuest = loginState.isGuest;
 
     return Card(
       elevation: 8,
@@ -192,7 +190,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 backgroundColor: Colors.white,
                 child: CircleAvatar(
                   radius: 47,
-                  backgroundImage: NetworkImage(userData.photoURL),
+                  backgroundImage: NetworkImage(photoURL),
                 ),
               ),
             ),
@@ -200,7 +198,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
             // İsim
             Text(
-              userData.displayName,
+              displayName,
               textAlign: TextAlign.center,
               style: textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
@@ -210,7 +208,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
             // Email
             Text(
-              userData.email,
+              email,
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[600],
@@ -224,7 +222,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               children: [
                 // Login Method Badge (sadece misafir değilse)
                 if (!isGuest)
-                  _buildLoginMethodChip(userData.loginMethod, theme),
+                  _buildLoginMethodChip(_getLoginMethod(firebaseUser), theme),
 
                 // Guest Badge (sadece misafir ise)
                 if (isGuest) _buildGuestChip(),
@@ -234,6 +232,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
       ),
     );
+  }
+
+  // ✅ Login Method'u Firebase User'dan belirle
+  String _getLoginMethod(final User? firebaseUser) {
+    if (firebaseUser == null) return 'anonymous';
+    if (firebaseUser.providerData.any((p) => p.providerId == 'google.com'))
+      return 'google';
+    if (firebaseUser.providerData.any((p) => p.providerId == 'phone'))
+      return 'phone';
+    return 'anonymous';
   }
 
   // 🎨 Login Method Chip
@@ -306,22 +314,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       default:
         return Icons.login;
     }
-  }
-
-  _UserData _getUserData(final User? firebaseUser) {
-    return _UserData(
-      displayName: firebaseUser?.displayName ??
-          _localUserData?['displayName'] ??
-          'İsimsiz Kullanıcı',
-      email: firebaseUser?.email ??
-          _localUserData?['email'] ??
-          'Mail bilgisi bulunamadı',
-      photoURL: firebaseUser?.photoURL ??
-          _localUserData?['photoURL'] ??
-          'https://via.placeholder.com/150',
-      loginMethod: _localUserData?['loginMethod'] ?? 'anonymous',
-      isGuest: _localUserData?['isGuest'] ?? true,
-    );
   }
 
   Widget _buildLoginPromptCard(
@@ -461,11 +453,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             Text('UID: ${_localUserData?['uid'] ?? 'Yok'}',
                 style: const TextStyle(fontSize: 10)),
-            Text('Email: ${_localUserData?['email'] ?? 'Yok'}',
+            Text('İsim: ${_localUserData?['displayName'] ?? 'Yok'}',
                 style: const TextStyle(fontSize: 10)),
-            Text('Giriş Methodu: ${_localUserData?['loginMethod'] ?? 'Yok'}',
-                style: const TextStyle(fontSize: 10)),
-            Text('Misafir: ${_localUserData?['isGuest'] ?? 'Yok'}',
+            Text('Rol: ${_localUserData?['role'] ?? 'Yok'}',
                 style: const TextStyle(fontSize: 10)),
           ],
         ),
@@ -554,7 +544,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       Navigator.of(context).push(MaterialPageRoute(builder: (final _) => page));
 
   void _navigateToLogin() =>
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushReplacementNamed('/login');
 
   Future<void> _signOut() async {
     try {
@@ -570,7 +560,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  // ✅ FIX: executeWithInternetCheck kullanmıyoruz, direkt siliyoruz
   Future<void> _deleteAccount(final String userId) async {
     showDialog(
       context: context,
@@ -583,7 +572,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     try {
       print('🗑️ Hesap silme başlatıldı: $userId');
 
-      // 1. Firestore'dan kullanıcı verilerini sil (direkt çağır)
+      // 1. Firestore'dan kullanıcı verilerini sil
       final userNotifier = ref.read(userProvider.notifier);
       final bool isDeleteUserDocument = await userNotifier.deleteUser(userId);
 
@@ -594,7 +583,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         return;
       }
 
-      // 2. Firebase Auth'tan hesabı sil (direkt çağır)
+      // 2. Firebase Auth'tan hesabı sil
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         print('🔥 Firebase Auth silme başlatıldı');
@@ -654,20 +643,4 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       ),
     );
   }
-}
-
-class _UserData {
-  final String displayName;
-  final String email;
-  final String photoURL;
-  final String loginMethod;
-  final bool isGuest;
-
-  _UserData({
-    required this.displayName,
-    required this.email,
-    required this.photoURL,
-    required this.loginMethod,
-    required this.isGuest,
-  });
 }

@@ -68,21 +68,33 @@ class LoginState extends BaseState {
   bool get isGuestUser => RoleManager.isGuest(userRole);
   String get roleDisplayName => RoleManager.getRoleDisplayName(userRole);
 
-  // ✅ BASİTLEŞTİRİLMİŞ fromLocalStorage
+  // ✅ BASİTLEŞTİRİLMİŞ fromLocalStorage - YENİ LOCALSTORAGE'A GÖRE
   factory LoginState.fromLocalStorage() {
-    // LocalStorageService initialize edilmemişse boş state döndür
     try {
       final isLoggedIn = LocalStorageService.isLoggedIn;
       if (!isLoggedIn) return LoginState();
 
       return LoginState(
         isPersisted: true,
-        isGuest: LocalStorageService.isGuest,
-        userRole: LocalStorageService.getUserData()?['role'] as String?, // ✅ Rolü al
+        isGuest: false,
+        userRole: LocalStorageService.userRole, // ✅ Direkt getter kullan
       );
     } catch (e) {
       // Eğer LocalStorageService initialize edilmemişse boş state döndür
       return LoginState();
     }
+  }
+
+  // ✅ DEBUG için toString
+  @override
+  String toString() {
+    return 'LoginState{'
+        'user: ${user?.uid}, '
+        'isGuest: $isGuest, '
+        'userRole: $userRole, '
+        'isPersisted: $isPersisted, '
+        'isLoading: $isLoading, '
+        'errorMessage: $errorMessage'
+        '}';
   }
 }
