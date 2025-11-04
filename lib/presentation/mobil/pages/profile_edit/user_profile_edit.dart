@@ -4,6 +4,7 @@ import 'package:ticketapp/core/util/role_manager.dart';
 import 'package:ticketapp/core/widgets/custom_art_words_card.dart';
 import 'package:ticketapp/core/widgets/custom_elevated_button.dart';
 import 'package:ticketapp/core/widgets/custom_text_field.dart';
+import '../../../../core/widgets/custom_pop_up.dart';
 import '../../../../data/providers/user/user_provider.dart';
 import '../../../../domain/entities/user.dart';
 
@@ -140,26 +141,27 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (final context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 32),
-            SizedBox(width: 12),
-            Text('Başarılı'),
-          ],
-        ),
-        content: const Text('Profil bilgileriniz başarıyla kaydedildi.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushReplacementNamed('/home');
-            },
-            child: const Text('Tamam'),
+      barrierColor: Colors.black.withOpacity(0.7),
+      builder: (final context) {
+        // Animasyonları önceden yükle
+        precacheImage(const AssetImage("assets/images/confetti.png"), context);
+
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            insetPadding: const EdgeInsets.all(20),
+            child: CustomSuccessDialog(
+              message: 'İşlem başarıyla tamamlandı!',
+              onConfirm: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushReplacementNamed('/home');
+              },
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
