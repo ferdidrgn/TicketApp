@@ -6,8 +6,8 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-def flutterVersionCode = 4
-def flutterVersionName = "1.4"
+def flutterVersionCode = 5
+def flutterVersionName = "1.5"
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
