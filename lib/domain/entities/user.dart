@@ -60,6 +60,51 @@ class User extends Equatable {
         ticketsId,
       ];
 
+  // ---------------------------
+  // copyWith metodu
+  // ---------------------------
+  User copyWith({
+    final String? id,
+    final String? createdAt,
+    final String? updatedAt,
+    final String? firstName,
+    final String? lastName,
+    final String? imageUrl,
+    final String? phoneNumber,
+    final int? age,
+    final String? eMail,
+    final String? city,
+    final bool? isPhoneActive,
+    final String? fcmToken,
+    final String? role,
+    final List<String>? favoriteShows,
+    final List<String>? favoriteStages,
+    final List<String>? favoritePlayers,
+    final List<String>? ticketsId,
+  }) =>
+      User(
+        id: id ?? this.id,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        firstName: firstName ?? this.firstName,
+        lastName: lastName ?? this.lastName,
+        imageUrl: imageUrl ?? this.imageUrl,
+        phoneNumber: phoneNumber ?? this.phoneNumber,
+        age: age ?? this.age,
+        eMail: eMail ?? this.eMail,
+        city: city ?? this.city,
+        isPhoneActive: isPhoneActive ?? this.isPhoneActive,
+        fcmToken: fcmToken ?? this.fcmToken,
+        role: role ?? this.role,
+        favoriteShows: favoriteShows ?? List.from(this.favoriteShows),
+        favoriteStages: favoriteStages ?? List.from(this.favoriteStages),
+        favoritePlayers: favoritePlayers ?? List.from(this.favoritePlayers),
+        ticketsId: ticketsId ?? List.from(this.ticketsId),
+      );
+
+  // ---------------------------
+  // fromMap ve toMap
+  // ---------------------------
   factory User.fromMap(final Map<String, dynamic>? data) => User(
         id: data?['_id'] ?? '0',
         createdAt: data?['_createdAt'] as String? ?? 'Tarih bulunamadı',

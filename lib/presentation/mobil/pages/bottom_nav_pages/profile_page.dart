@@ -62,7 +62,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         children: [
           _profileCard(loginState.user, theme, loginState),
           const SizedBox(height: 20),
-          if (loginState.user != null) ..._buildUserSpecificButtons(loginState),
+          if (loginState.user != null) ..._buildUserSpecificButtons(loginState.user!.uid),
           ..._buildGeneralButtons(),
           _themeSelectorCard(ref, theme),
           _buildAuthButton(loginState),
@@ -76,17 +76,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   // ✅ REFACTORED: User-specific buttons
-  List<Widget> _buildUserSpecificButtons(final LoginState loginState) {
+  List<Widget> _buildUserSpecificButtons(final String userId) {
     return [
       _btn(
         'Profilini Düzenle',
         Icons.edit,
-        () => _navigateTo(UserProfileEditScreen(userId: loginState.user!.uid)),
+        () => _navigateTo(UserProfileEditScreen(userId: userId)),
       ),
       _btn(
         'Biletlerim',
         Icons.theaters_rounded,
-        () => _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
+        () => _navigateTo(MyTicketPage(userId: userId)),
       ),
       _btn(
         'Favori Etkinliklerim',

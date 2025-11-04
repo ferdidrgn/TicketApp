@@ -103,7 +103,6 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
               user: user,
               isGuest: true,
               userRole: userRole,
-              // Rolü state'e ekle
               errorMessage: null,
               isPersisted: false,
             );

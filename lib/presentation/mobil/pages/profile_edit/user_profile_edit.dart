@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/util/role_manager.dart';
+import 'package:ticketapp/core/widgets/custom_art_words_card.dart';
 import 'package:ticketapp/core/widgets/custom_elevated_button.dart';
-import '../../../../core/util/date_formatter.dart';
-import '../../../../core/widgets/custom_art_words_card.dart';
-import '../../../../core/widgets/custom_text_field.dart';
+import 'package:ticketapp/core/widgets/custom_text_field.dart';
 import '../../../../data/providers/user/user_provider.dart';
 import '../../../../domain/entities/user.dart';
 
@@ -26,19 +26,13 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   final _ageController = TextEditingController();
   final _cityController = TextEditingController();
 
-  String _firstName = '';
-  String _lastName = '';
-  String _phoneNumber = '';
-  String _email = '';
-  int _age = 0;
-  String _city = '';
   String _profileImageUrl = 'https://via.placeholder.com/150';
   bool _isUpdating = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    // Kullanıcı verilerini yükle
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       ref.read(userProvider.notifier).loadUserById(widget.userId);
     });
@@ -55,210 +49,268 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     super.dispose();
   }
 
+  void _initializeFormData(final User user) {
+    if (!_isInitialized) {
+      _firstNameController.text = user.firstName;
+      _lastNameController.text = user.lastName;
+      _phoneController.text = user.phoneNumber;
+      _emailController.text = user.eMail;
+      _ageController.text = user.age > 0 ? user.age.toString() : '';
+      _cityController.text = user.city;
+      _profileImageUrl = user.imageUrl.isNotEmpty
+          ? user.imageUrl
+          : 'https://via.placeholder.com/150';
+      _isInitialized = true;
+    }
+  }
+
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    if (_firstNameController.text.trim().isEmpty ||
-        _lastNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ad ve soyad alanları zorunludur')));
-      return;
-    }
-
-    setState(() {
-      _isUpdating = true;
-    });
+    setState(() => _isUpdating = true);
 
     try {
-      final userState = ref.read(userProvider);
-      final currentUser = userState.dataSingle;
+      final currentUser = ref.read(userProvider).dataSingle;
+      final now = DateTime.now().toIso8601String();
 
-      final nowTime = DateFormatter.nowFormatDateTime();
-      final updatedUser = User(
-        id: widget.userId,
-        createdAt: currentUser?.createdAt ?? nowTime,
-        updatedAt: nowTime,
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
-        eMail: _emailController.text.trim(),
-        age: int.tryParse(_ageController.text.trim()) ?? 0,
-        city: _cityController.text.trim(),
-        imageUrl: _profileImageUrl,
-        ticketsId: currentUser?.ticketsId ?? [],
-        favoritePlayers: currentUser?.favoritePlayers ?? [],
-        favoriteShows: currentUser?.favoriteShows ?? [],
-        favoriteStages: currentUser?.favoriteStages ?? [],
-        fcmToken: currentUser?.fcmToken ?? '',
-        isPhoneActive: currentUser?.isPhoneActive ?? false,
-        role: currentUser?.role ?? 'user',
-      );
+      User userToSave;
 
-      await ref
-          .read(userProvider.notifier)
-          .saveUser(updatedUser, _profileImageUrl, isUpdate: true);
+      if (currentUser == null) {
+        // İlk kez kayıt olacak kullanıcı
+        userToSave = User(
+          id: widget.userId,
+          createdAt: now,
+          updatedAt: now,
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+          eMail: _emailController.text.trim(),
+          age: int.tryParse(_ageController.text.trim()) ?? 0,
+          city: _cityController.text.trim(),
+          imageUrl: _profileImageUrl,
+          isPhoneActive: false,
+          fcmToken: '',
+          role: 'user',
+          favoriteShows: [],
+          favoriteStages: [],
+          favoritePlayers: [],
+          ticketsId: [],
+        );
+      } else {
+        // Mevcut kullanıcıyı güncelle
+        if (!currentUser.role.canEditProfile)
+          throw Exception('Profil düzenleme yetkiniz yok');
 
-      _showSuccessDialog();
+        userToSave = currentUser.copyWith(
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+          eMail: _emailController.text.trim(),
+          age: int.tryParse(_ageController.text.trim()) ?? currentUser.age,
+          city: _cityController.text.trim(),
+          imageUrl: _profileImageUrl,
+          updatedAt: now,
+        );
+      }
+
+      await ref.read(userProvider.notifier).saveUser(
+          userToSave, _profileImageUrl,
+          isUpdate: currentUser != null);
+
+      if (mounted) _showSuccessDialog();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Güncelleme sırasında hata: $e')),
-      );
+      if (mounted)
+        _showSnackBar('Güncelleme sırasında hata: $e', isError: true);
     } finally {
-      setState(() {
-        _isUpdating = false;
-      });
+      if (mounted) setState(() => _isUpdating = false);
     }
+  }
+
+  void _showSnackBar(final String message, {final bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (final BuildContext context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green),
-              SizedBox(width: 8),
-              Text('Başarılı'),
-            ],
-          ),
-          content: const Text('Profil bilgileriniz başarıyla güncellendi.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _navigateToHome();
-              },
-              child: const Text('Tamam'),
-            ),
+      builder: (final context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 32),
+            SizedBox(width: 12),
+            Text('Başarılı'),
           ],
-        );
-      },
-    );
-  }
-
-  void _navigateToHome() {
-    Navigator.of(context).pushReplacementNamed('/home');
-  }
-
-  void _fillFormWithUserData(final User user) {
-    _firstNameController.text = user.firstName;
-    _lastNameController.text = user.lastName;
-    _phoneController.text = user.phoneNumber;
-    _emailController.text = user.eMail;
-    _ageController.text = user.age > 0 ? user.age.toString() : '';
-    _cityController.text = user.city;
-    _profileImageUrl = user.imageUrl.isNotEmpty
-        ? user.imageUrl
-        : 'https://via.placeholder.com/150';
-  }
-
-  @override
-  Widget build(final BuildContext context) {
-    final userState = ref.watch(userProvider);
-
-    // Kullanıcı verileri yüklendiyse formu doldur
-    if (userState.dataSingle != null && _firstNameController.text.isEmpty)
-      WidgetsBinding.instance.addPostFrameCallback((final _) {
-        _fillFormWithUserData(userState.dataSingle!);
-      });
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil Bilgilerini Düzenle'),
-      ),
-      body: userState.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : userState.errorMessage != null
-              ? _buildErrorState(userState.errorMessage!)
-              : _buildContentState(context, userState.dataSingle),
-    );
-  }
-
-  Widget _buildErrorState(final String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Hata: $message'),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () =>
-                ref.read(userProvider.notifier).loadUserById(widget.userId),
-            child: const Text('Tekrar Dene'),
+        ),
+        content: const Text('Profil bilgileriniz başarıyla kaydedildi.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushReplacementNamed('/home');
+            },
+            child: const Text('Tamam'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildContentState(final BuildContext context, final User? user) {
-    if (user != null)
-      fillUIUserInfo(user); // UI'yi kullanıcının verileriyle doldur
+  @override
+  Widget build(final BuildContext context) {
+    final userState = ref.watch(userProvider);
+    final currentUser = userState.dataSingle;
 
+    // Formu başlat
+    if (currentUser != null) {
+      _initializeFormData(currentUser);
+    } else if (!_isInitialized) {
+      _initializeFormData(User(
+        id: widget.userId,
+        createdAt: DateTime.now().toIso8601String(),
+        updatedAt: DateTime.now().toIso8601String(),
+        firstName: '',
+        lastName: '',
+        imageUrl: _profileImageUrl,
+        phoneNumber: '',
+        age: 0,
+        eMail: '',
+        city: '',
+        isPhoneActive: false,
+        fcmToken: '',
+        role: 'user',
+        favoriteShows: [],
+        favoriteStages: [],
+        favoritePlayers: [],
+        ticketsId: [],
+      ));
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profil Bilgilerini Düzenle'),
+        actions: [
+          if (currentUser != null) _buildRoleBadge(currentUser.role),
+        ],
+      ),
+      body: userState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _buildContentState(context, currentUser),
+    );
+  }
+
+  Widget _buildRoleBadge(final String role) {
+    final color = _getRoleColor(role);
+    return Padding(
+      padding: const EdgeInsets.only(right: 16.0),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(role.roleIcon, style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                role.displayName,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getRoleColor(final String role) {
+    if (RoleManager.isAdmin(role)) return Colors.red;
+    if (RoleManager.isPremium(role)) return Colors.amber;
+    if (RoleManager.isUser(role)) return Colors.green;
+    return Colors.grey;
+  }
+
+  Widget _buildContentState(final BuildContext context, final User? user) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const CustomArtWordsCard(
-                word: 'Sanat Sanat İçin midir', author: 'Pablo Picasso'),
-            const SizedBox(height: 20),
+              word: 'Sanat Sanat İçin midir',
+              author: 'Pablo Picasso',
+            ),
+            const SizedBox(height: 24),
             _buildProfileImage(),
-            const SizedBox(height: 20),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             CustomTextField(
+              controller: _firstNameController,
               label: 'Ad',
-              initialValue: _firstName,
               isRequired: true,
-              onChanged: (final value) => setState(() => _firstName = value),
+              prefixIcon: const Icon(Icons.person_outline),
             ),
             CustomTextField(
+              controller: _lastNameController,
               label: 'Soyad',
-              initialValue: _lastName,
               isRequired: true,
-              onChanged: (final value) => setState(() => _lastName = value),
+              prefixIcon: const Icon(Icons.person_outline),
             ),
             CustomTextField(
+              controller: _phoneController,
               label: 'Telefon No',
-              initialValue: _phoneNumber,
-              onChanged: (final value) => setState(() => _phoneNumber = value),
               keyboardType: TextInputType.phone,
+              prefixIcon: const Icon(Icons.phone_outlined),
+              hintText: '+90 555 555 55 55',
               isRequired: false,
             ),
             CustomTextField(
+              controller: _emailController,
               label: 'E-posta',
-              initialValue: _email,
-              onChanged: (final value) => setState(() => _email = value),
               keyboardType: TextInputType.emailAddress,
-              isRequired: false, // E-posta zorunlu değil
+              prefixIcon: const Icon(Icons.email_outlined),
+              hintText: 'ornek@email.com',
+              isRequired: false,
             ),
             CustomTextField(
+              controller: _ageController,
               label: 'Yaş',
-              initialValue: _age > 0 ? _age.toString() : '',
-              onChanged: (final value) =>
-                  setState(() => _age = int.tryParse(value) ?? 0),
               keyboardType: TextInputType.number,
-              isRequired: false, // Yaş zorunlu değil
+              prefixIcon: const Icon(Icons.cake_outlined),
+              isRequired: false,
             ),
             CustomTextField(
-              label: 'Lokasyon',
-              initialValue: _city,
-              onChanged: (final value) => setState(() => _city = value),
-              isRequired: false, // Lokasyon zorunlu değil
+              controller: _cityController,
+              label: 'Şehir',
+              prefixIcon: const Icon(Icons.location_city_outlined),
+              hintText: 'İstanbul',
+              isRequired: false,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
             Center(
               child: _isUpdating
                   ? const CircularProgressIndicator()
                   : CustomElevatedButton(
-                      text: 'Profili Güncelle',
+                      text: user == null ? 'Kaydı Tamamla' : 'Profili Güncelle',
                       onPressed: _updateProfile,
                     ),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -268,72 +320,109 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Widget _buildProfileImage() {
     return Center(
       child: Stack(
-        clipBehavior: Clip.none,
+        alignment: Alignment.center,
         children: [
-          CircleAvatar(
-            radius: 60,
-            backgroundImage: NetworkImage(_profileImageUrl),
-            child: Align(
-              alignment: Alignment.topRight,
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 3,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 60,
+              backgroundColor: Colors.grey[200],
+              backgroundImage: NetworkImage(_profileImageUrl),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: _handleProfileImageChange,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(context).primaryColor,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child:
+                    const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+          if (_profileImageUrl != 'https://via.placeholder.com/150')
+            Positioned(
+              bottom: 0,
+              left: 0,
               child: GestureDetector(
-                onTap: _handleProfileImageChange,
-                child: CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Theme.of(context)
-                      .bottomNavigationBarTheme
-                      .selectedItemColor,
-                  child: const Icon(Icons.camera_alt,
+                onTap: _handleProfileImageDelete,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.red,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.delete_outline,
                       color: Colors.white, size: 20),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: -10,
-            right: -10,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: _handleProfileImageDelete,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  void fillUIUserInfo(final User user) {
-    setState(() {
-      _firstName = user.firstName;
-      _lastName = user.lastName;
-      _phoneNumber = user.phoneNumber;
-      _email = user.eMail;
-      _age = user.age.toInt();
-      _city = user.city;
-      _profileImageUrl = user.imageUrl;
-    });
-  }
-
   void _handleProfileImageChange() {
-    // Profil fotoğrafı değiştirme işlemleri
+    _showSnackBar('Fotoğraf seçme özelliği yakında eklenecek...');
   }
 
   void _handleProfileImageDelete() {
-    setState(() {
-      _profileImageUrl = 'https://via.placeholder.com/150';
-    });
+    showDialog(
+      context: context,
+      builder: (final context) => AlertDialog(
+        title: const Text('Profil Fotoğrafını Kaldır'),
+        content: const Text(
+            'Profil fotoğrafınızı kaldırmak istediğinizden emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(
+                  () => _profileImageUrl = 'https://via.placeholder.com/150');
+              Navigator.pop(context);
+              _showSnackBar('Profil fotoğrafı kaldırıldı');
+            },
+            child: const Text('Kaldır', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 }
