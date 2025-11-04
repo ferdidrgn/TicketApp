@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ticketapp/core/common/base_state.dart';
-import '../../../core/common/enums.dart';
 import '../../../core/services/local_storage_service.dart';
+import '../../../core/util/role_manager.dart';
 
 class LoginState extends BaseState {
   final User? user;
@@ -12,8 +12,8 @@ class LoginState extends BaseState {
   final bool isCodeSent;
   final bool isGuest;
   final bool isAccountDeleted;
-  final LoginMethod? loginMethod;
-  final bool isPersisted; // Local storage'dan yüklendi mi?
+  final bool isPersisted;
+  final String? userRole;
 
   LoginState({
     this.user,
@@ -23,7 +23,7 @@ class LoginState extends BaseState {
     this.isCodeSent = false,
     this.isGuest = false,
     this.isAccountDeleted = false,
-    this.loginMethod,
+    this.userRole,
     this.isPersisted = false,
     super.isLoading = false,
     super.errorMessage,
@@ -38,7 +38,8 @@ class LoginState extends BaseState {
     final bool? isCodeSent,
     final bool? isGuest,
     final bool? isAccountDeleted,
-    final LoginMethod? loginMethod,
+    final String? loginMethod,
+    final String? userRole,
     final bool? isPersisted,
     final bool? isLoading,
     final String? errorMessage,
@@ -50,7 +51,7 @@ class LoginState extends BaseState {
         phoneNumber: phoneNumber ?? this.phoneNumber,
         isCodeSent: isCodeSent ?? this.isCodeSent,
         isGuest: isGuest ?? this.isGuest,
-        loginMethod: loginMethod ?? this.loginMethod,
+        userRole: userRole ?? this.userRole,
         isAccountDeleted: isAccountDeleted ?? this.isAccountDeleted,
         isPersisted: isPersisted ?? this.isPersisted,
         isLoading: isLoading ?? this.isLoading,
@@ -58,10 +59,14 @@ class LoginState extends BaseState {
       );
 
   bool get isLoggedIn => user != null;
-  bool get isGoogleSignedIn => loginMethod == LoginMethod.google;
-  bool get isPhoneVerified => loginMethod == LoginMethod.phone;
-  bool get isAnonymous => loginMethod == LoginMethod.anonymous;
   bool get hasError => errorMessage != null && errorMessage!.isNotEmpty;
+
+  // ✅ RoleManager ile rol kontrolleri
+  bool get isAdmin => RoleManager.isAdmin(userRole);
+  bool get isPremium => RoleManager.isPremium(userRole);
+  bool get isRegularUser => RoleManager.isUser(userRole);
+  bool get isGuestUser => RoleManager.isGuest(userRole);
+  String get roleDisplayName => RoleManager.getRoleDisplayName(userRole);
 
   // ✅ BASİTLEŞTİRİLMİŞ fromLocalStorage
   factory LoginState.fromLocalStorage() {
@@ -73,26 +78,11 @@ class LoginState extends BaseState {
       return LoginState(
         isPersisted: true,
         isGuest: LocalStorageService.isGuest,
-        loginMethod: _parseLoginMethod(LocalStorageService.loginMethod),
+        userRole: LocalStorageService.getUserData()?['role'] as String?, // ✅ Rolü al
       );
     } catch (e) {
       // Eğer LocalStorageService initialize edilmemişse boş state döndür
       return LoginState();
-    }
-  }
-
-  static LoginMethod? _parseLoginMethod(final String? method) {
-    if (method == null) return null;
-
-    switch (method) {
-      case 'google':
-        return LoginMethod.google;
-      case 'phone':
-        return LoginMethod.phone;
-      case 'anonymous':
-        return LoginMethod.anonymous;
-      default:
-        return null;
     }
   }
 }

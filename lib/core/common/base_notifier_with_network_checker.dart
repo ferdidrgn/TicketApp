@@ -74,6 +74,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,
   }) async {
+    if (!ref.mounted) return;
     try {
       _setLoadingState();
 
@@ -84,7 +85,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
       }
 
       final result = await operation(); // İnternet varsa işlemi gerçekleştir
-
+      if (!ref.mounted) return;
       result.fold(
         (final failure) => setErrorState(
             "Sistemimizi kitledik. Meraklılarımıza kodlarımız: ${failure.message}"),
@@ -93,6 +94,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
             onSuccess?.call(success);
             _setSuccessState();
           } catch (e, s) {
+            if (!ref.mounted) return;
             setErrorState("Veri işlenirken hata oluştu: $e");
           }
         },

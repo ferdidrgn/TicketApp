@@ -3,10 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pinput/pinput.dart';
-import 'package:ticketapp/data/providers/user/user_provider.dart';
-import '../../../../core/util/date_formatter.dart';
 import '../../../../data/providers/login/login_provider.dart';
-import '../../../../domain/entities/user.dart';
 import '../profile_edit/user_profile_edit.dart';
 
 class PhoneLogInPage extends ConsumerStatefulWidget {
@@ -70,6 +67,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         );
   }
 
+  // _verifyOtp metodunu güncelle:
   Future<void> _verifyOtp(final String otp) async {
     if (otp.isEmpty) {
       _showSnack('Lütfen OTP kodunu girin.');
@@ -77,9 +75,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     }
 
     try {
-      // ✅ Artık sadece otp parametresi alıyor, verificationId state'ten geliyor
       await ref.read(loginProvider.notifier).verifyOtp(otp);
-      final loginState = ref.read(loginProvider);
 
       final auth.User? currentUser = auth.FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
@@ -87,54 +83,18 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         return;
       }
 
-      await _saveUser(currentUser);
-
-      // Hata mesajı kontrolü - eğer hata varsa profile yönlendir
-      if (loginState.errorMessage != null) {
-        _navigateToEditProfile(currentUser.uid);
-      } else {
-        _navigateToHome();
-      }
+      // Kullanıcıyı doğrudan profile edit sayfasına yönlendir
+      _navigateToEditProfile(currentUser.uid);
     } catch (e) {
       _showSnack('Hatalı kod. Lütfen tekrar deneyin: $e');
     }
   }
 
-  Future<void> _saveUser(final auth.User account) async {
-    final nameParts = account.displayName?.trim().split(' ') ?? [];
-    final user = User(
-      id: account.uid,
-      createdAt: DateFormatter.nowFormatDateTime(),
-      updatedAt: DateFormatter.nowFormatDateTime(),
-      firstName: nameParts.length > 1
-          ? nameParts.sublist(0, nameParts.length - 1).join(' ')
-          : '',
-      lastName: nameParts.isNotEmpty ? nameParts.last : '',
-      imageUrl: account.photoURL ?? '',
-      phoneNumber: account.phoneNumber ?? '',
-      age: 0,
-      eMail: account.email ?? '',
-      city: '',
-      isPhoneActive: true,
-      fcmToken: '',
-      role: 'user',
-      favoriteShows: [],
-      favoriteStages: [],
-      favoritePlayers: [],
-      ticketsId: [],
-    );
-
-    await ref
-        .read(userProvider.notifier)
-        .saveUser(user, account.photoURL ?? '');
-  }
-
-  void _navigateToEditProfile(final String uid) => Navigator.of(context).push(
+  void _navigateToEditProfile(final String uid) =>
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(
             builder: (final _) => UserProfileEditScreen(userId: uid)),
       );
-
-  void _navigateToHome() => Navigator.of(context).pushReplacementNamed('/home');
 
   void _showSnack(final String message) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(message)));

@@ -6,7 +6,6 @@ abstract class UserRemoteDataSource {
       {final bool isUpdate = false});
 
   Future<UserModel?> getUserById(final String userId);
-
   Future<bool> deleteUser(final String userId);
 }
 
@@ -52,13 +51,15 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
 
   @override
   Future<bool> deleteUser(final String userId) async {
-    if (userId.isEmpty) throw Exception('User ID cannot be empty');
+    if (userId.isEmpty) return false;
 
     try {
       await _firestore.collection(_collection).doc(userId).delete();
       return true;
+    } on FirebaseException catch (e) {
+      return false;
     } catch (e, s) {
-      throw Exception('Failed to delete user → $e\n$s');
+      return false;
     }
   }
 }

@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ticketapp/core/util/role_manager.dart';
 
 class LocalStorageService {
   // Keys
   static const String _userKey = 'current_user';
-  static const String _loginMethodKey = 'login_method';
   static const String _isLoggedInKey = 'is_logged_in';
   static const String _isGuestKey = 'is_guest';
+  static const String _userRoleKey = 'user_role';
   static const String _preferencesKey = 'user_preferences';
   static const String _sessionKey = 'session_data';
 
@@ -16,7 +17,7 @@ class LocalStorageService {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  // ✅ GET_USER_DATA METHODU EKLENDİ
+  // ✅ GET_USER_DATA METHODU - ROL EKLENDİ
   static Map<String, dynamic>? getUserData() {
     final isLoggedIn = _prefs.getBool(_isLoggedInKey) ?? false;
     if (!isLoggedIn) return null;
@@ -29,8 +30,8 @@ class LocalStorageService {
       'phoneNumber': _prefs.getString('user_phone'),
       'photoURL': _prefs.getString('user_photo_url'),
 
-      // Login durumu
-      'loginMethod': _prefs.getString(_loginMethodKey) ?? 'anonymous',
+      // Rol ve durum bilgileri
+      'role': _prefs.getString(_userRoleKey) ?? RoleManager.guest,
       'isGuest': _prefs.getBool(_isGuestKey) ?? true,
 
       // Zaman bilgileri
@@ -41,14 +42,14 @@ class LocalStorageService {
     };
   }
 
-  // ✅ TÜM KULLANICI VERİLERİNİ KAYDET
+  // ✅ TÜM KULLANICI VERİLERİNİ KAYDET - ROL DESTEKLİ
   static Future<void> saveCompleteUserData({
     required final String uid,
     required final String? email,
     required final String? displayName,
     required final String? phoneNumber,
     required final String? photoURL,
-    required final String loginMethod,
+    required final String? userRole,
     required final bool isGuest,
     final Map<String, dynamic>? userPreferences,
   }) async {
@@ -59,8 +60,8 @@ class LocalStorageService {
     if (phoneNumber != null) await _prefs.setString('user_phone', phoneNumber);
     if (photoURL != null) await _prefs.setString('user_photo_url', photoURL);
 
-    // Login durumu
-    await _prefs.setString(_loginMethodKey, loginMethod);
+    // Rol ve durum bilgileri
+    await _prefs.setString(_userRoleKey, userRole ?? RoleManager.getDefaultRoleForLoginMethod(isGuest ? 'anonymous' : 'user'));
     await _prefs.setBool(_isGuestKey, isGuest);
     await _prefs.setBool(_isLoggedInKey, true);
 
@@ -71,6 +72,11 @@ class LocalStorageService {
     if (userPreferences != null) {
       await saveUserPreferences(userPreferences);
     }
+  }
+
+  // ✅ ROL GÜNCELLE
+  static Future<void> updateUserRole(String newRole) async {
+    await _prefs.setString(_userRoleKey, newRole);
   }
 
   // ✅ KULLANICI TERCIHLERINI KAYDET
@@ -109,8 +115,8 @@ class LocalStorageService {
     await _prefs.remove('user_phone');
     await _prefs.remove('user_photo_url');
 
-    // Login durumunu temizle
-    await _prefs.remove(_loginMethodKey);
+    // Rol ve durum bilgilerini temizle
+    await _prefs.remove(_userRoleKey);
     await _prefs.setBool(_isLoggedInKey, false);
     await _prefs.setBool(_isGuestKey, false);
 
@@ -126,11 +132,17 @@ class LocalStorageService {
 
   // ✅ GETTER'lar
   static bool get isLoggedIn => _prefs.getBool(_isLoggedInKey) ?? false;
-  static String get loginMethod => _prefs.getString(_loginMethodKey) ?? 'anonymous';
+  static String? get userRole => _prefs.getString(_userRoleKey);
   static bool get isGuest => _prefs.getBool(_isGuestKey) ?? true;
   static String? get userUid => _prefs.getString('user_uid');
   static String? get userEmail => _prefs.getString('user_email');
   static String? get displayName => _prefs.getString('user_display_name');
   static String? get phoneNumber => _prefs.getString('user_phone');
   static String? get photoURL => _prefs.getString('user_photo_url');
+
+  // ✅ Rol bazlı getter'lar
+  static bool get isAdmin => RoleManager.isAdmin(userRole);
+  static bool get isPremium => RoleManager.isPremium(userRole);
+  static bool get isRegularUser => RoleManager.isUser(userRole);
+  static bool get isGuestUser => RoleManager.isGuest(userRole);
 }

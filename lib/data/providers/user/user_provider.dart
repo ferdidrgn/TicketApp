@@ -7,7 +7,7 @@ import 'user_notifier.dart';
 import 'user_state.dart';
 
 final userProvider =
-    NotifierProvider.autoDispose<UserNotifier, UserState>(UserNotifier.new);
+    NotifierProvider<UserNotifier, UserState>(UserNotifier.new);
 
 // Use case providers
 final saveUserUseCaseProvider = Provider<SaveUserUseCase>(
