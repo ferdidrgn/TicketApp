@@ -517,7 +517,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
               _deleteAccount(userId);
             },
             child: const Text(
