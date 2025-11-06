@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class CustomElevatedButton extends StatelessWidget {
+class CustomElevatedButton extends StatefulWidget {
   final String text;
   final IconData? iconData;
   final Widget? iconAsset;
@@ -25,49 +25,85 @@ class CustomElevatedButton extends StatelessWidget {
   });
 
   @override
+  State<CustomElevatedButton> createState() => _CustomElevatedButtonState();
+}
+
+class _CustomElevatedButtonState extends State<CustomElevatedButton> {
+  bool _isPressed = false;
+
+  Future<void> _handleTap() async {
+    setState(() => _isPressed = true);
+    await Future.delayed(const Duration(milliseconds: 150));
+    setState(() => _isPressed = false);
+    await Future.delayed(const Duration(milliseconds: 100));
+    widget.onPressed();
+  }
+
+  @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      elevation: 5,
-      color: backgroundColor ?? theme.cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        onTap: onPressed,
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (iconData != null)
-                Icon(iconData,
-                    color: iconColor ??
-                        theme.bottomNavigationBarTheme.selectedItemColor,
-                    size: 24)
-              else if (iconAsset != null)
-                iconAsset!
-              else
-                const SizedBox(width: 0),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: textColor ?? theme.textTheme.bodyLarge?.color),
-                  ),
-                ),
-              ),
-              if (showArrow)
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 20,
-                  color: arrowColor ?? theme.iconTheme.color?.withOpacity(0.6),
-                ),
-            ],
+        boxShadow: _isPressed
+            ? []
+            : [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 4)),
+              ],
+      ),
+      child: Material(
+        color: widget.backgroundColor ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          // 👇 Hover & Splash efektlerini tamamen devre dışı bırakıyoruz
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          hoverColor: Colors.transparent,
+          focusColor: Colors.transparent,
+          onTap: _handleTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            padding: const EdgeInsets.all(18),
+            transform: _isPressed
+                ? (Matrix4.identity()..scale(0.98))
+                : Matrix4.identity(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (widget.iconData != null)
+                  Icon(widget.iconData,
+                      color: widget.iconColor ??
+                          theme.bottomNavigationBarTheme.selectedItemColor,
+                      size: 24)
+                else if (widget.iconAsset != null)
+                  widget.iconAsset!
+                else
+                  const SizedBox(width: 0),
+                Expanded(
+                    child: Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Text(
+                          widget.text,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: widget.textColor ??
+                                  theme.textTheme.bodyLarge?.color),
+                        ))),
+                if (widget.showArrow)
+                  Icon(Icons.arrow_forward_ios,
+                      size: 20,
+                      color: widget.arrowColor ??
+                          theme.iconTheme.color?.withOpacity(0.6)),
+              ],
+            ),
           ),
         ),
       ),
