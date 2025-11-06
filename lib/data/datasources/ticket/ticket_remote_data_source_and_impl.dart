@@ -41,6 +41,7 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
       final ticketMap = {
         ...TicketModel.fromEntity(ticket).toFirestore(),
         '_id': docRef.id,
+        'customerId': ticket.customerId
       };
       await docRef.set(ticketMap);
       return true;
