@@ -76,10 +76,11 @@ dependencies:
   qr_flutter:   # QR kod oluşturma.
   shimmer: ^3.0.0   # Görüntü yükseltme.
 
-  # URL ve Dosya Seçimi
+  # URL ve Dosya Seçimi ve Paylaşım
   url_launcher:   # URL açmak için.
   image_picker: # Kamera ve galeriye erişim için.
   file_picker:   # Dosya seçimi için.
+  share_plus: ^12.0.1
 
   # Uluslararasılaştırma
   intl: # Tarih ve sayı biçimlendirme için.

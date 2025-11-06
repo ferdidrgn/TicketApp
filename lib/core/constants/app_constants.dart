@@ -16,12 +16,12 @@ class AppConstants {
   static const String appStoreUrl =
       'https://apps.apple.com/app/idYOUR_APP_ID'; // App Store URL
   static const String playStoreUrl =
-      'https://play.google.com/store/apps/details?id=com.ferdidrgn.anlikdepremler'; // Google Play Store URL
+      'https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp'; // Google Play Store URL
   static const String shareUrl =
-      'https://play.google.com/store/apps/details?id=com.ferdidrgn.anlikdepremler';
+      'https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp';
 
   // Other Constants
-  static const String appName = 'Ticket App'; // Application name
+  static const String appName = 'TiyatRol App'; // Application name
   static const String appNameTr = 'Bilet Satış Uygulaması'; // Application name
-  static const String copyright = '© 2024 My Company'; // Copyright
+  static const String copyright = '© 2025 My Company'; // Copyright
 }
