@@ -7,14 +7,17 @@ import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/providers/player/player_notifier.dart';
 import 'package:ticketapp/data/providers/show/show_notifier.dart';
 import 'package:ticketapp/data/providers/stage/stage_notifier.dart';
+import 'package:ticketapp/data/providers/user/user_provider.dart';
 import 'package:ticketapp/domain/entities/stage.dart';
 import 'package:ticketapp/presentation/mobil/pages/details_pages/player_details.dart';
 import 'package:ticketapp/presentation/mobil/pages/details_pages/seat_details.dart';
+import '../../../../core/services/local_storage_service.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../core/widgets/custom_stage_card.dart';
 import '../../../../core/widgets/shimmer.dart';
 import '../../../../data/providers/event/event_provider.dart';
 import '../../../../data/providers/event/event_state.dart';
+import '../../../../data/providers/login/login_provider.dart';
 import '../../../../data/providers/player/player_provider.dart';
 import '../../../../data/providers/player/player_state.dart';
 import '../../../../data/providers/show/show_provider.dart';
@@ -309,11 +312,33 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     return InkWell(
       // Tıklama efekti için GestureDetector yerine InkWell
       onTap: () {
+        // 1️⃣ Önce LoginState'ten dene
+        final loginState = ref.read(loginProvider);
+        String? userId = loginState.user?.uid;
+
+        // 2️⃣ Eğer null ise UserState'ten dene
+        if (userId == null) {
+          final userState = ref.read(userProvider);
+          userId = userState.dataSingle?.id;
+        }
+
+        // 3️⃣ Hâlâ null ise LocalStorage'dan dene
+        userId ??= LocalStorageService.userUid;
+
+        // 4️⃣ Hiçbiri yoksa kullanıcıya uyarı ver veya login'e yönlendir
+        if (userId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Kullanıcı oturumu bulunamadı.")));
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
+
+        // 5️⃣ Artık güvenle yönlendirebiliriz
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (final context) => SeatSelectionScreen(
-                  showId: showId, eventId: eventId, customerId: "test 2")),
+            builder: (final context) => SeatSelectionScreen(
+                showId: showId, eventId: eventId, customerId: userId!),
+          ),
         );
       },
       borderRadius: BorderRadius.circular(12),
@@ -326,10 +351,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.15), // Gölge daha da yumuşatıldı
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
+                color: Colors.grey.withOpacity(0.15),
+                // Gölge daha da yumuşatıldı
+                blurRadius: 10,
+                offset: const Offset(0, 4)),
           ],
         ),
         child: Row(

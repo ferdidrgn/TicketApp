@@ -60,13 +60,12 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     });
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: _buildAppBar(theme),
-      body: RefreshIndicator(
-          onRefresh: _loadTicketData,
-          color: theme.colorScheme.primary,
-          child: _buildBody(viewModel, theme)),
-    );
+        backgroundColor: theme.colorScheme.surface,
+        appBar: _buildAppBar(theme),
+        body: RefreshIndicator(
+            onRefresh: _loadTicketData,
+            color: theme.colorScheme.primary,
+            child: _buildBody(viewModel, theme)));
   }
 
   PreferredSizeWidget _buildAppBar(final ThemeData theme) {

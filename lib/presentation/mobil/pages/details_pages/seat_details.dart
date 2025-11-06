@@ -53,9 +53,8 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
             previous?.errorMessage != next.errorMessage) {
           // Mevcut snackbar'ları temizle ve yenisini göster
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(next.errorMessage!)),
-          );
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(next.errorMessage!)));
         }
         // --- DÜZELTME 2 SONU ---
 
@@ -535,8 +534,8 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
         return Dialog(
           elevation: 8.0,
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
           child: Container(
             padding: const EdgeInsets.all(24.0),
             constraints: const BoxConstraints(maxWidth: 400),
@@ -550,7 +549,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   size: 64,
                 ),
                 const SizedBox(height: 16),
-
                 const Text(
                   'Ödeme Başarılı',
                   style: TextStyle(
@@ -560,7 +558,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-
                 const Text(
                   'Ödemeniz başarıyla tamamlandı. Biletleriniz ilgili bölüme eklendi.',
                   textAlign: TextAlign.center,
@@ -570,18 +567,15 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12))),
                     onPressed: () {
                       // Önce dialog'u kapat, sonra anasayfaya git
                       Navigator.of(context).pop();

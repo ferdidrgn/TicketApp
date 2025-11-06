@@ -435,9 +435,8 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     if (_isDisposed) return;
     state = state.copyWith(errorMessage: message);
     Future.delayed(const Duration(seconds: 3), () {
-      if (!_isDisposed && state.errorMessage == message) {
+      if (!_isDisposed && state.errorMessage == message)
         state = state.copyWith(errorMessage: null);
-      }
     });
   }
 
@@ -467,9 +466,6 @@ extension EventNotifierX on WidgetRef {
     required final String customerId,
   }) {
     read(eventProvider.notifier).initializeWithParams(
-      eventId: eventId,
-      showId: showId,
-      customerId: customerId,
-    );
+        eventId: eventId, showId: showId, customerId: customerId);
   }
 }
