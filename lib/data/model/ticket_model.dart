@@ -49,6 +49,7 @@ class TicketModel {
         '_createdAt': createdAt,
         '_updatedAt': updatedAt,
         '_id': id,
+        'customerId': customerId,
         'showId': showId,
         'stageId': stageId,
         'eventId': eventId,
