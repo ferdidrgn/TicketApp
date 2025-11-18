@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/presentation/mobil/pages/login/login_screen.dart';
 import 'package:ticketapp/presentation/mobil/pages/onboarding/onboarding_container.dart';
 import 'package:ticketapp/presentation/mobil/pages/splash/splash_screen.dart';
-import 'package:ticketapp/web_or_mobil_check.dart';
 import 'core/constants/app_constants.dart';
 import 'core/services/local_storage_service.dart';
 import 'core/theme/app_theme.dart';
@@ -12,6 +11,10 @@ import 'core/theme/theme_notifier.dart';
 import 'core/theme/web_theme.dart';
 import 'core/util/platform_checker.dart';
 import 'firebase_options.dart';
+
+// ✅ Router dosyalarınızı ana noktadan import edin:
+import 'router/app_home_page.dart'; // /home için (AppHomePage widget'ı seçimi)
+import 'router/splash_router.dart'; // Splash için (Rota ve kontrol seçimi)
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,16 +54,19 @@ class MyApp extends ConsumerWidget {
       onGenerateRoute: (final settings) {
         switch (settings.name) {
           case '/':
+            // ✅ SplashRouter.initialRoute'u SplashScreen'e iletiyoruz.
+            // Web için '/home', Mobil için '/onboarding' (veya /login) olacak.
             return MaterialPageRoute(
-                builder: (final _) => const SplashScreen());
+                builder: (final _) =>
+                    SplashScreen(initialRoute: SplashRouter.initialRoute));
           case '/login':
             return MaterialPageRoute(builder: (final _) => const LoginScreen());
           case '/onboarding':
             return MaterialPageRoute(
                 builder: (final _) => const OnboardingContainer());
           case '/home':
-            return MaterialPageRoute(
-                builder: (final _) => const WebOrMobilCheck());
+            // ✅ AppHomePage koşullu içe aktarma ile doğru widget'ı getirir.
+            return MaterialPageRoute(builder: (final _) => const AppHomePage());
           default:
             return MaterialPageRoute(builder: (final _) => const LoginScreen());
         }
