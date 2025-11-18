@@ -9,6 +9,8 @@ import 'core/constants/app_constants.dart';
 import 'core/services/local_storage_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_notifier.dart';
+import 'core/theme/web_theme.dart';
+import 'core/util/platform_checker.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -31,12 +33,21 @@ class MyApp extends ConsumerWidget {
   Widget build(final BuildContext context, final WidgetRef ref) {
     final themeMode = ref.watch(themeProvider);
 
+    final bool isWeb = PlatformChecker.isWeb;
+    final ThemeData theme = isWeb
+        ? WebTheme.darkTheme
+        : (themeMode == ThemeMode.dark
+            ? AppTheme.darkTheme
+            : AppTheme.lightTheme);
+
+    final ThemeMode effectiveThemeMode = isWeb ? ThemeMode.dark : themeMode;
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
+      theme: theme,
+      darkTheme: theme,
+      themeMode: effectiveThemeMode,
       onGenerateRoute: (final settings) {
         switch (settings.name) {
           case '/':
