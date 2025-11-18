@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/presentation/web/navigation/widgets/footer.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../pages/nav_pages/home/home_page.dart';
 
@@ -74,7 +75,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppWebLightColors.darkBlueBackground,
+              WebColors.darkBlueBackground,
               Color(0xFF16213e),
               Color(0xFF0f3460)
             ],
@@ -109,13 +110,13 @@ class _WebTabNavigationState extends State<WebTabNavigation>
       floating: true,
       pinned: true,
       backgroundColor: _headerTransparent
-          ? AppWebLightColors.darkBlueBackground.withOpacity(0.95)
-          : AppWebLightColors.darkBlueBackground.withOpacity(0.98),
+          ? WebColors.darkBlueBackground.withOpacity(0.95)
+          : WebColors.darkBlueBackground.withOpacity(0.98),
       elevation: 0,
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: AppWebLightColors.primaryGold, width: 2),
+            bottom: BorderSide(color: WebColors.primaryGold, width: 2),
           ),
         ),
         child: Padding(
@@ -134,7 +135,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppWebLightColors.primaryGold,
+                      color: WebColors.primaryGold,
                     ),
                   ),
                 ],
@@ -156,7 +157,7 @@ class _WebTabNavigationState extends State<WebTabNavigation>
 
         if (isNarrow) {
           return PopupMenuButton<int>(
-            icon: const Icon(Icons.menu, color: AppWebLightColors.primaryGold),
+            icon: const Icon(Icons.menu, color: WebColors.primaryGold),
             onSelected: (final index) => _onTabSelected(index),
             itemBuilder: (final context) => tabTitles
                 .asMap()
@@ -196,12 +197,10 @@ class _WebTabNavigationState extends State<WebTabNavigation>
         onPressed: () => _onTabSelected(index),
         style: ElevatedButton.styleFrom(
           backgroundColor:
-              isActive ? AppWebLightColors.primaryGold : Colors.transparent,
-          foregroundColor: isActive
-              ? AppWebLightColors.darkBlueBackground
-              : AppWebLightColors.primaryGold,
-          side:
-              const BorderSide(color: AppWebLightColors.primaryGold, width: 2),
+              isActive ? WebColors.primaryGold : Colors.transparent,
+          foregroundColor:
+              isActive ? WebColors.darkBlueBackground : WebColors.primaryGold,
+          side: const BorderSide(color: WebColors.primaryGold, width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),

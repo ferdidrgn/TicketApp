@@ -1,24 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'app_colors.dart';
 import 'app_text_styles.dart';
-
-class AppDarkColors {
-  static const Color primary = Color(0xFF343541);
-  static const Color primaryVariant = Color(0xFF3C3E4A);
-  static const Color secondary = Color(0xFF444653);
-  static const Color secondaryVariant = Color(0xFF565864);
-  static const Color error = Color(0xFFCF6679);
-  static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color onError = Color(0xFF000000);
-}
-
-class AppWebLightColors {
-  static const Color primaryGold = Color(0xFFd4af37);
-  static const Color darkBlueBackground = Color(0xFF1a1a2e);
-  static const Color whiteText = Colors.white;
-  static const Color lightWhite = Color(0xFFEDEDED);
-}
 
 mixin AppTheme {
   static final lightTheme = ThemeData(

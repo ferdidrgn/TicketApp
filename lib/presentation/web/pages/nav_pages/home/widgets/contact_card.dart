@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
-import '../../../../../../core/theme/app_theme.dart';
+import '../../../../../../core/theme/app_colors.dart';
 
 class ContactCard extends StatelessWidget {
   const ContactCard({super.key});
@@ -55,7 +55,7 @@ class ContactCard extends StatelessWidget {
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: AppWebLightColors.primaryGold.withOpacity(0.3),
+          color: WebColors.primaryGold.withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -68,7 +68,7 @@ class ContactCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppWebLightColors.primaryGold,
+              color: WebColors.primaryGold,
             ),
           ),
           SizedBox(height: 20),
@@ -81,12 +81,12 @@ class ContactCard extends StatelessWidget {
             onPressed: () {
               SnackBar(
                 content: Text('Mesajınız başarıyla gönderildi!'),
-                backgroundColor: AppWebLightColors.primaryGold,
+                backgroundColor: WebColors.primaryGold,
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppWebLightColors.primaryGold,
-              foregroundColor: AppWebLightColors.darkBlueBackground,
+              backgroundColor: WebColors.primaryGold,
+              foregroundColor: WebColors.darkBlueBackground,
               padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -114,27 +114,27 @@ class ContactCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: AppWebLightColors.primaryGold,
+              color: WebColors.primaryGold,
               fontWeight: FontWeight.bold,
             ),
           ),
           SizedBox(height: 5),
           TextField(
             maxLines: maxLines,
-            style: TextStyle(color: AppWebLightColors.whiteText),
+            style: TextStyle(color: WebColors.whiteText),
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white.withOpacity(0.1),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
                 borderSide: BorderSide(
-                  color: AppWebLightColors.primaryGold.withOpacity(0.3),
+                  color: WebColors.primaryGold.withOpacity(0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(5),
                 borderSide: BorderSide(
-                  color: AppWebLightColors.primaryGold,
+                  color: WebColors.primaryGold,
                 ),
               ),
             ),
@@ -149,12 +149,15 @@ class ContactCard extends StatelessWidget {
       {
         'icon': '📍',
         'title': 'Adres',
-        'info':
-            '---------\ ----- Caddesi No: ---\nAtaşehir/İSTANBUL'
+        'info': '---------\ ----- Caddesi No: ---\nAtaşehir/İSTANBUL'
       },
       {'icon': '📞', 'title': 'Telefon', 'info': '+90 -----'},
       {'icon': '✉️', 'title': 'E-posta', 'info': '----@-----'},
-      {'icon': '🎫', 'title': 'Bilet Rezervasyon', 'info': '----@----\n+90 ------'},
+      {
+        'icon': '🎫',
+        'title': 'Bilet Rezervasyon',
+        'info': '----@----\n+90 ------'
+      },
     ];
 
     return Column(
@@ -165,7 +168,7 @@ class ContactCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppWebLightColors.primaryGold,
+            color: WebColors.primaryGold,
           ),
         ),
         SizedBox(height: 20),
@@ -173,11 +176,10 @@ class ContactCard extends StatelessWidget {
               margin: EdgeInsets.only(bottom: 15),
               padding: EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: AppWebLightColors.primaryGold.withOpacity(0.1),
+                color: WebColors.primaryGold.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border(
-                  left: BorderSide(
-                      color: AppWebLightColors.primaryGold, width: 5),
+                  left: BorderSide(color: WebColors.primaryGold, width: 5),
                 ),
               ),
               child: Row(
@@ -196,14 +198,14 @@ class ContactCard extends StatelessWidget {
                           contact['title']!,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: AppWebLightColors.whiteText,
+                            color: WebColors.whiteText,
                           ),
                         ),
                         SizedBox(height: 5),
                         Text(
                           contact['info']!,
                           style: TextStyle(
-                            color: AppWebLightColors.whiteText.withOpacity(0.9),
+                            color: WebColors.whiteText.withOpacity(0.9),
                             height: 1.4,
                           ),
                         ),

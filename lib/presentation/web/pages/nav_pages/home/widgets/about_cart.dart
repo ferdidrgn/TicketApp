@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
-import '../../../../../../core/theme/app_theme.dart';
+
+import '../../../../../../core/theme/app_colors.dart';
 
 class AboutCard extends StatelessWidget {
   const AboutCard({super.key});
@@ -56,7 +57,7 @@ class AboutCard extends StatelessWidget {
           'TiyatRol Sahne Sanatları Tiyatro Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren amatör - profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri ya da farklı oyunları modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.',
           style: TextStyle(
             fontSize: 16,
-            color: AppWebLightColors.whiteText.withOpacity(0.9),
+            color: WebColors.whiteText.withOpacity(0.9),
             height: 1.8,
           ),
         ),
@@ -65,7 +66,7 @@ class AboutCard extends StatelessWidget {
           'Ekibimiz, deneyimli oyuncular, yaratıcı yönetmenler ve yetenekli sahne sanatçılarından oluşmaktadır. Her oyunumuzda kaliteyi ve sanatsal bütünlüğü ön planda tutarak, seyircilerimize unutulmaz deneyimler yaşatmayı hedefliyoruz.',
           style: TextStyle(
             fontSize: 16,
-            color: AppWebLightColors.whiteText.withOpacity(0.9),
+            color: WebColors.whiteText.withOpacity(0.9),
             height: 1.8,
           ),
         ),
@@ -74,7 +75,7 @@ class AboutCard extends StatelessWidget {
           'Tiyatro sanatını sadece sahne performansı olarak görmeyip, toplumsal dönüşüme katkıda bulunan bir araç olarak değerlendiriyoruz. Bu anlayışla hareket ederek, her yaştan seyirciye hitap eden, düşündüren ve duygulandıran yapımlar üretiyoruz.',
           style: TextStyle(
             fontSize: 16,
-            color: AppWebLightColors.whiteText.withOpacity(0.9),
+            color: WebColors.whiteText.withOpacity(0.9),
             height: 1.8,
           ),
         ),
@@ -103,10 +104,10 @@ class AboutCard extends StatelessWidget {
       itemBuilder: (final context, final index) {
         return Container(
           decoration: BoxDecoration(
-            color: AppWebLightColors.primaryGold.withOpacity(0.1),
+            color: WebColors.primaryGold.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: AppWebLightColors.primaryGold.withOpacity(0.3),
+              color: WebColors.primaryGold.withOpacity(0.3),
               width: 1,
             ),
           ),
@@ -118,7 +119,7 @@ class AboutCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: AppWebLightColors.primaryGold,
+                  color: WebColors.primaryGold,
                 ),
               ),
               SizedBox(height: 8),
@@ -126,7 +127,7 @@ class AboutCard extends StatelessWidget {
                 stats[index]['label']!,
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppWebLightColors.whiteText.withOpacity(0.9),
+                  color: WebColors.whiteText.withOpacity(0.9),
                 ),
                 textAlign: TextAlign.center,
               ),

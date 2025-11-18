@@ -1,0 +1,82 @@
+import 'package:flutter/material.dart';
+
+/// WEB UYGULAMASI RENKLERİ
+class WebColors {
+  // Ana Renkler
+  static const Color primaryGold = Color(0xFFD4AF37);
+  static const Color primaryGoldDark = Color(0xFFB8941F);
+  static const Color primaryGoldLight = Color(0xFFE6C158);
+
+  // Arkaplan Renkleri
+  static const Color darkBlueBackground = Color(0xFF1A1A2E);
+  static const Color darkBlueSurface = Color(0xFF16213E);
+  static const Color darkBlueAccent = Color(0xFF0F3460);
+
+  // Metin Renkleri
+  static const Color whiteText = Colors.white;
+  static const Color lightWhite = Color(0xFFEDEDED);
+  static const Color textSecondary = Color(0xFFB0B0B0);
+
+  // Aksan Renkler
+  static const Color success = Color(0xFF4CAF50);
+  static const Color warning = Color(0xFFFF9800);
+  static const Color error = Color(0xFFF44336);
+  static const Color info = Color(0xFF2196F3);
+
+  // Gradient'ler
+  static const LinearGradient backgroundGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [darkBlueBackground, darkBlueSurface, darkBlueAccent],
+  );
+
+  static const LinearGradient goldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryGoldLight, primaryGold, primaryGoldDark],
+  );
+}
+
+/// MOBIL UYGULAMA - AÇIK TEMA RENKLERİ
+class AppLightColors {
+  static const Color primary = Color(0xFFDC2626); // Kırmızı
+  static const Color primaryVariant = Color(0xFFB91C1C);
+  static const Color secondary = Color(0xFFFECACA);
+  static const Color secondaryVariant = Color(0xFFFCA5A5);
+
+  static const Color background = Color(0xFFFFFFFF);
+  static const Color surface = Color(0xFFF8FAFC);
+  static const Color error = Color(0xFFDC2626);
+
+  static const Color onPrimary = Color(0xFFFFFFFF);
+  static const Color onSecondary = Color(0xFF000000);
+  static const Color onBackground = Color(0xFF000000);
+  static const Color onSurface = Color(0xFF000000);
+  static const Color onError = Color(0xFFFFFFFF);
+
+  static const Color textPrimary = Color(0xFF000000);
+  static const Color textSecondary = Color(0xFF64748B);
+  static const Color textDisabled = Color(0xFF94A3B8);
+}
+
+/// MOBIL UYGULAMA - KARANLIK TEMA RENKLERİ
+class AppDarkColors {
+  static const Color primary = Color(0xFF343541);
+  static const Color primaryVariant = Color(0xFF3C3E4A);
+  static const Color secondary = Color(0xFF444653);
+  static const Color secondaryVariant = Color(0xFF565864);
+
+  static const Color background = Color(0xFF1A1A1A);
+  static const Color surface = Color(0xFF2D2D2D);
+  static const Color error = Color(0xFFCF6679);
+
+  static const Color onPrimary = Color(0xFFFFFFFF);
+  static const Color onSecondary = Color(0xFFFFFFFF);
+  static const Color onBackground = Color(0xFFFFFFFF);
+  static const Color onSurface = Color(0xFFFFFFFF);
+  static const Color onError = Color(0xFF000000);
+
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFFB0B0B0);
+  static const Color textDisabled = Color(0xFF666666);
+}

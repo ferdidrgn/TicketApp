@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ArtFooter extends StatelessWidget {
   const ArtFooter({super.key});
@@ -13,7 +13,7 @@ class ArtFooter extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppWebLightColors.darkBlueBackground,
+            WebColors.darkBlueBackground,
             Color(0xFF16213e),
             Color(0xFF0f3460),
           ],
