@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 
 import '../theme/app_theme.dart';
 
@@ -21,8 +22,7 @@ class AnimatedTitle extends StatelessWidget {
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color:
-                AppWebLightColors.primaryGold.withOpacity(glowAnimation.value),
+                color: WebColors.primaryGold.withOpacity(glowAnimation.value),
                 blurRadius: 30,
                 spreadRadius: 5,
               ),
@@ -34,11 +34,11 @@ class AnimatedTitle extends StatelessWidget {
             style: TextStyle(
               fontSize: 48,
               fontWeight: FontWeight.bold,
-              color: AppWebLightColors.primaryGold,
+              color: WebColors.primaryGold,
               shadows: [
                 Shadow(
                   blurRadius: 20,
-                  color: AppWebLightColors.primaryGold.withOpacity(0.8),
+                  color: WebColors.primaryGold.withOpacity(0.8),
                 ),
                 const Shadow(
                   blurRadius: 4,
