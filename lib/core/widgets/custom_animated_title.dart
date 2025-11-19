@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 
-import '../theme/app_theme.dart';
-
 class AnimatedTitle extends StatelessWidget {
   final Animation<double> glowAnimation;
   final String text;
