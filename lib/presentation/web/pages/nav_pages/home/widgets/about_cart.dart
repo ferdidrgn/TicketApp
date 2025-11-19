@@ -212,7 +212,7 @@ class _AboutCardState extends State<AboutCard>
         crossAxisCount: context.isMobile ? 2 : 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 1.1,
+        childAspectRatio: context.responsive(mobile: 0.85, desktop: 1.0),
       ),
       itemCount: stats.length,
       itemBuilder: (final context, final index) {
@@ -236,12 +236,12 @@ class _AboutCardState extends State<AboutCard>
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: (stat['color'] as Color).withOpacity(0.3),
+                    color: (stat['color']! as Color).withOpacity(0.3),
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: (stat['color'] as Color).withOpacity(0.2),
+                      color: (stat['color']! as Color).withOpacity(0.2),
                       blurRadius: 15,
                       spreadRadius: 2,
                     ),
@@ -251,23 +251,23 @@ class _AboutCardState extends State<AboutCard>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      stat['icon'] as IconData,
-                      color: stat['color'] as Color,
+                      stat['icon']! as IconData,
+                      color: stat['color']! as Color,
                       size: 36,
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      stat['number'] as String,
+                      stat['number']! as String,
                       style: TextStyle(
                         fontSize:
-                            context.responsive(mobile: 28.0, desktop: 32.0),
+                            context.responsive(mobile: 24.0, desktop: 32.0),
                         fontWeight: FontWeight.w900,
-                        color: stat['color'] as Color,
+                        color: stat['color']! as Color,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      stat['label'] as String,
+                      stat['label']! as String,
                       style: TextStyle(
                         fontSize: context.captionSize,
                         color: WebColors.lightWhite,
