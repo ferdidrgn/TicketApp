@@ -27,46 +27,58 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          HeroVideoSection(),
-          const SizedBox(height: 40),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              '"Hikayelerimizle kalplere dokunuyor,\nsanatla hayata anlam katıyoruz"',
-              style: TextStyle(
-                fontSize: 30,
-                color: WebColors.whiteText.withOpacity(0.9),
-              ),
+    return Column(
+      children: [
+        // Hero Section
+        const HeroVideoSection(),
+        SizedBox(height: 40),
+        // Quote Section
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+          decoration: const BoxDecoration(
+            gradient: WebColors.backgroundGradient,
+          ),
+          child: Text(
+            '"Hikayelerimizle kalplere dokunuyor,\nsanatla hayata anlam katıyoruz"',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: WebColors.whiteText.withOpacity(0.9),
+              fontStyle: FontStyle.italic,
+              height: 1.6,
             ),
           ),
-          const SizedBox(height: 40),
+        ),
 
-          // Oyunlar
-          ShowsSection(key: showsKey),
-          const SizedBox(height: 40),
+        // Shows Section
+        Container(key: showsKey, child: const ShowsSection()),
 
-          MetaforLanding(),
-          const SizedBox(height: 40),
+        // Metafor Landing
+        Container(key: artisticKey, child: const MetaforLanding()),
 
-          const KurtarBeniDoktorLanding(),
-          GozYapVazYapLanding(),
+        const SizedBox(height: 40),
 
-          // Hakkımızda
-          AboutCard(key: aboutKey),
+        // Kurtar Beni Doktor
+        const KurtarBeniDoktorLanding(),
 
-          //Ekip
-          TeamCard(key: teamKey),
+        const SizedBox(height: 40),
 
-          // Artistik Bölüm
+        // Göz Kap Vaz Yap
+        const GozYapVazYapLanding(),
 
-          // İletişim
-          ContactCard(key: contactKey),
-        ],
-      ),
+        // About Section
+        Container(key: aboutKey, child: const AboutCard()),
+
+        // Team Section
+        Container(key: teamKey, child: const TeamCard()),
+
+        // Contact Section
+        Container(key: contactKey, child: const ContactCard()),
+
+        // Footer spacing
+        const SizedBox(height: 60),
+      ],
     );
   }
 }
