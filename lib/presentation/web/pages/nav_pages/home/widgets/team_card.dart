@@ -126,7 +126,7 @@ class _TeamCardState extends State<TeamCard> {
           const SizedBox(height: 16),
 
           Text(
-            'Her oyunun arkasında tutkulu bir hikaye,\nher karakterin içinde deneyimli bir sanatçı var',
+            'Her oyunun arkasında tutkulu bir hikaye,\nher karakterin içinde deneyimli bir sanatçımız var',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: context.bodySize,
