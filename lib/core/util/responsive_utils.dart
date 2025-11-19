@@ -333,37 +333,28 @@ mixin ResponsiveUtils {
 extension ResponsiveExtension on BuildContext {
   // Cihaz tipleri
   bool get isMobile => ResponsiveUtils.isMobile(this);
-
   bool get isTablet => ResponsiveUtils.isTablet(this);
-
   bool get isDesktop => ResponsiveUtils.isDesktop(this);
 
   // Ekran boyutları
   double get screenWidth => ResponsiveUtils.screenWidth(this);
-
   double get screenHeight => ResponsiveUtils.screenHeight(this);
 
   // Padding
   EdgeInsets get paddingAll => ResponsiveUtils.paddingAll(this);
-
   EdgeInsets get paddingHorizontal => ResponsiveUtils.paddingHorizontal(this);
-
   EdgeInsets get paddingVertical => ResponsiveUtils.paddingVertical(this);
 
   // Font boyutları (kısa isimler)
-  double get titleSize => isMobile ? 16.0 : 18.0;
-
-  double get bodySize => isMobile ? 13.0 : 14.0;
-
-  double get captionSize => isMobile ? 10.0 : 11.0;
-
+  double get titleSize => isMobile ? 24.0 : 32.0;
+  double get subtitleSize => isMobile ? 16.0 : 20.0;
+  double get bodySize => isMobile ? 14.0 : 16.0;
+  double get captionSize => isMobile ? 12.0 : 14.0;
   double get priceSize => isMobile ? 14.0 : 16.0;
 
   // Icon boyutları
   double get iconSmall => isMobile ? 18.0 : 20.0;
-
   double get iconMedium => isMobile ? 24.0 : 24.0;
-
   double get iconLarge => isMobile ? 32.0 : 40.0;
 
   // Layout
@@ -381,7 +372,6 @@ extension ResponsiveExtension on BuildContext {
 
   // Yüzdelik hesaplamalar
   double wp(final double percent) => screenWidth * (percent / 100);
-
   double hp(final double percent) => screenHeight * (percent / 100);
 
   // Generic value selector
