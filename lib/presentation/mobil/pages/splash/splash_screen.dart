@@ -5,7 +5,7 @@ import 'package:ticketapp/router/splash_router.dart'; // ✅ YENİ IMPORT
 import '../../../../data/providers/login/login_state.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
-  // main.dart'tan gelen rota (Web için '/home', Mobil için '/onboarding' vb.)
+  // main_scaffold.dart'tan gelen rota (Web için '/home', Mobil için '/onboarding' vb.)
   final String initialRoute;
 
   // Constructor'ı initialRoute alacak şekilde güncelliyoruz

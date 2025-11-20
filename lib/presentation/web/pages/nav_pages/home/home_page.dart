@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/about_cart.dart';
@@ -9,12 +10,14 @@ import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final GlobalKey showsKey;
   final GlobalKey aboutKey;
   final GlobalKey teamKey;
   final GlobalKey artisticKey;
   final GlobalKey contactKey;
+  final ValueNotifier<String>? activeSection;
+  final ScrollController scrollController;
 
   const HomePage({
     super.key,
@@ -23,62 +26,192 @@ class HomePage extends StatelessWidget {
     required this.teamKey,
     required this.artisticKey,
     required this.contactKey,
+    this.activeSection,
+    required this.scrollController,
   });
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final GlobalKey _homeKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController
+        .removeListener(_onScroll); // widget.scrollController kullanın
+    // widget.scrollController.dispose(); // MainScaffold'da dispose edilecek
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (widget.activeSection == null) return;
+    final scrollPosition = widget
+        .scrollController.position.pixels; // widget.scrollController kullanın
+
+    // Her section'ın pozisyonunu kontrol et
+    final sections = {
+      'home': _homeKey,
+      'shows': widget.showsKey,
+      'artistic': widget.artisticKey,
+      'about': widget.aboutKey,
+      'team': widget.teamKey,
+      'contact': widget.contactKey,
+    };
+
+    String? currentSection;
+    double minDistance = double.infinity;
+
+    sections.forEach((final key, final globalKey) {
+      final context = globalKey.currentContext;
+      if (context != null) {
+        final RenderBox box = context.findRenderObject()! as RenderBox;
+        final position = box.localToGlobal(Offset.zero);
+        final sectionTop = position.dy + scrollPosition;
+
+        // Section'un viewport'un üst kısmına olan mesafesi
+        final distance = (sectionTop - scrollPosition - 100).abs();
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          currentSection = key;
+        }
+      }
+    });
+
+    if (currentSection != null &&
+        currentSection != widget.activeSection?.value) {
+      widget.activeSection?.value = currentSection!;
+    }
+  }
+
+  @override
   Widget build(final BuildContext context) {
-    return Column(
-      children: [
-        // Hero Section
-        const HeroVideoSection(),
-        SizedBox(height: 40),
-        // Quote Section
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-          decoration: const BoxDecoration(
-            gradient: WebColors.backgroundGradient,
-          ),
-          child: Text(
-            '"Hikayelerimizle kalplere dokunuyor,\nsanatla hayata anlam katıyoruz"',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: WebColors.whiteText.withOpacity(0.9),
-              fontStyle: FontStyle.italic,
-              height: 1.6,
-            ),
+    return Listener(
+      // Mouse wheel scroll desteği
+      onPointerSignal: (final pointerSignal) {
+        if (pointerSignal is PointerScrollEvent) {
+          final newOffset = widget.scrollController.offset +
+              pointerSignal.scrollDelta.dy; // widget.scrollController kullanın
+          widget.scrollController.jumpTo(newOffset.clamp(
+            // widget.scrollController kullanın
+            widget.scrollController.position.minScrollExtent,
+            widget.scrollController.position.maxScrollExtent,
+          ));
+        }
+      },
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(
+          dragDevices: {
+            PointerDeviceKind.touch,
+            PointerDeviceKind.mouse,
+            PointerDeviceKind.trackpad,
+          },
+          scrollbars: false,
+        ),
+        child: SingleChildScrollView(
+          controller: widget.scrollController,
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              // Hero Section
+              Container(
+                key: _homeKey,
+                child: const HeroVideoSection(),
+              ),
+
+              const SizedBox(height: 40),
+
+              // Quote Section with parallax effect
+              _buildQuoteSection(),
+
+              // Shows Section
+              Container(
+                key: widget.showsKey,
+                child: const ShowsSection(),
+              ),
+
+              // Metafor Landing
+              Container(
+                key: widget.artisticKey,
+                child: const MetaforLanding(),
+              ),
+
+              const SizedBox(height: 40),
+
+              // Kurtar Beni Doktor
+              const KurtarBeniDoktorLanding(),
+
+              const SizedBox(height: 40),
+
+              // Göz Kap Vaz Yap
+              const GozYapVazYapLanding(),
+
+              // About Section
+              Container(
+                key: widget.aboutKey,
+                child: const AboutCard(),
+              ),
+
+              // Team Section
+              Container(
+                key: widget.teamKey,
+                child: const TeamCard(),
+              ),
+
+              // Contact Section
+              Container(
+                key: widget.contactKey,
+                child: const ContactCard(),
+              ),
+
+              // Footer spacing
+              const SizedBox(height: 60),
+            ],
           ),
         ),
+      ),
+    );
+  }
 
-        // Shows Section
-        Container(key: showsKey, child: const ShowsSection()),
+  Widget _buildQuoteSection() {
+    return AnimatedBuilder(
+      animation: widget.scrollController,
+      builder: (final context, final child) {
+        // Parallax effect için scroll pozisyonuna göre opacity hesapla
+        final scrollPosition = widget.scrollController.hasClients
+            ? widget.scrollController.offset
+            : 0.0;
+        final opacity = (1 - (scrollPosition / 800)).clamp(0.0, 1.0);
 
-        // Metafor Landing
-        Container(key: artisticKey, child: const MetaforLanding()),
-
-        const SizedBox(height: 40),
-
-        // Kurtar Beni Doktor
-        const KurtarBeniDoktorLanding(),
-
-        const SizedBox(height: 40),
-
-        // Göz Kap Vaz Yap
-        const GozYapVazYapLanding(),
-
-        // About Section
-        Container(key: aboutKey, child: const AboutCard()),
-
-        // Team Section
-        Container(key: teamKey, child: const TeamCard()),
-
-        // Contact Section
-        Container(key: contactKey, child: const ContactCard()),
-
-        // Footer spacing
-        const SizedBox(height: 60),
-      ],
+        return Opacity(
+          opacity: opacity,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+            decoration: const BoxDecoration(
+              gradient: WebColors.backgroundGradient,
+            ),
+            child: Text(
+              '"Hikayelerimizle kalplere dokunuyor,\nsanatla hayata anlam katıyoruz"',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: WebColors.whiteText.withOpacity(0.9),
+                fontStyle: FontStyle.italic,
+                height: 1.6,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
