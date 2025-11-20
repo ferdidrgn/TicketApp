@@ -1,223 +1,395 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/util/responsive_utils.dart';
+import '../../../../../../core/theme/app_colors.dart';
 
-class GozYapVazYapLanding extends StatelessWidget {
+// ═══════════════════════════════════════════════════════════
+// 1. GÖZ YAP VAZ YAP LANDING
+// ═══════════════════════════════════════════════════════════
+class GozYapVazYapLanding extends StatefulWidget {
   const GozYapVazYapLanding({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    if (screenWidth < 600) // Mobil görünüm
-      return _buildMobileLayout(context);
-    else if (screenWidth < 1024) // Tablet görünüm
-      return _buildTabletLayout(context);
-    else // Masaüstü görünüm
-      return _buildDesktopLayout(context);
-  }
-
-  Widget _buildMobileLayout(final BuildContext context) {
-    final height = MediaQuery.of(context).size.height * 0.5;
-    const imageTop =
-        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae';
-    const imageBottom =
-        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27';
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Image.network(imageTop,
-              fit: BoxFit.none, width: double.infinity, height: height * 0.6),
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.purple.shade800,
-                  Colors.indigo.shade900,
-                ],
-              ),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: const _TextSection(
-              title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
-              location: '1889 SES TİYATROSU\n(TAKSİM)',
-              fontSize: 14,
-              headerSize: 20,
-              textColor: Colors.white,
-            ),
-          ),
-          Image.network(imageBottom,
-              fit: BoxFit.none, width: double.infinity, height: height * 0.6),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabletLayout(final BuildContext context) {
-    const imageLeft =
-        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae';
-    const imageRight =
-        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27';
-
-    return SizedBox(
-      height: 600,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Image.network(imageLeft,
-                fit: BoxFit.none, height: double.infinity),
-          ),
-          Expanded(
-            flex: 4,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.purple.shade800,
-                    Colors.indigo.shade900,
-                  ],
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: const _TextSection(
-                title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
-                location: '1889 SES TİYATROSU\n(TAKSİM)',
-                fontSize: 16,
-                headerSize: 22,
-                textColor: Colors.white,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Image.network(imageRight,
-                fit: BoxFit.none, height: double.infinity),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesktopLayout(final BuildContext context) {
-    const imageLeft =
-        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae';
-    const imageRight =
-        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27';
-
-    return SizedBox(
-      height: 700,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Image.network(imageLeft,
-                fit: BoxFit.none, height: double.infinity),
-          ),
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.purple.shade800,
-                    Colors.indigo.shade900,
-                  ],
-                ),
-              ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 48.0, vertical: 60),
-              child: const _TextSection(
-                title: 'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
-                location: '1889 SES TİYATROSU\n(TAKSİM)',
-                fontSize: 18,
-                headerSize: 26,
-                textColor: Colors.white,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Image.network(imageRight,
-                fit: BoxFit.none, height: double.infinity),
-          ),
-        ],
-      ),
-    );
-  }
+  State<GozYapVazYapLanding> createState() => _GozYapVazYapLandingState();
 }
 
-class _TextSection extends StatelessWidget {
-  final String title;
-  final String location;
-  final double fontSize;
-  final double headerSize;
-  final Color textColor;
+class _GozYapVazYapLandingState extends State<GozYapVazYapLanding>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
 
-  const _TextSection({
-    required this.title,
-    required this.location,
-    required this.fontSize,
-    required this.headerSize,
-    required this.textColor,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(final BuildContext context) {
-    return SingleChildScrollView(
-      child: DefaultTextStyle(
-        style: TextStyle(fontSize: fontSize, color: textColor),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title.toUpperCase(),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: headerSize,
-                color: textColor,
-                letterSpacing: 1.5,
+    return Container(
+      color: WebColors.darkBlueBackground,
+      child: context.isMobile ? _buildMobile() : _buildDesktop(),
+    );
+  }
+
+  Widget _buildMobile() {
+    return Column(
+      children: [
+        _buildImageCard(context,
+            'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgÃ¶zKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae',
+            height: context.screenHeight * 0.4),
+        _buildContentSection(),
+        _buildImageCard(context,
+            'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgÃ¶zKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27',
+            height: context.screenHeight * 0.4),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _buildDesktop() {
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: _buildImageCard(context,
+              'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgÃ¶zKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae',
+              height: context.screenHeight),
+        ),
+        Expanded(
+          flex: 4,
+          child: _buildContentSection(),
+        ),
+        Expanded(
+          flex: 3,
+          child: _buildImageCard(context,
+              'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgÃ¶zKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27',
+              height: context.screenHeight),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageCard(final BuildContext context, final String url,
+      {required final double height}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: NetworkImage(url),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              WebColors.darkBlueBackground.withOpacity(0.4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentSection() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: WebColors.backgroundGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: TheaterPatternPainter(),
+            ),
+          ),
+          Padding(
+            padding: context.paddingAll,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Başlık
+                    ShaderMask(
+                      shaderCallback: (final bounds) =>
+                          WebColors.goldGradient.createShader(bounds),
+                      child: Text(
+                        'GÖZLERİMİ KAPARIM\nVAZİFEMİ YAPARIM',
+                        style: TextStyle(
+                          fontSize: context.titleSize,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1.2,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Konum
+                    _buildInfoBox(
+                      icon: Icons.location_on_rounded,
+                      title: '1889 SES TİYATROSU',
+                      subtitle: '(TAKSİM)',
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    _buildCrewInfo('Yazan', 'Haldun Taner', Icons.create),
+                    const SizedBox(height: 16),
+                    _buildCrewInfo(
+                        'Yönetmen', 'Efsun Kaygusuz', Icons.theater_comedy),
+
+                    const SizedBox(height: 32),
+
+                    _buildDivider(),
+
+                    const SizedBox(height: 32),
+
+                    // Açıklama
+                    Text(
+                      'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.',
+                      style: TextStyle(
+                        fontSize: context.bodySize,
+                        color: WebColors.lightWhite,
+                        height: 1.8,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Text(
+                      'İki çocukluk arkadaşı olan baş karakterlerden Vicdani, saf, iyi niyetli, dürüst ve uysal bir kişiliğe sahipken; Efruz ise köşe dönücü, iş bitirici ve fırsatçı biridir.',
+                      style: TextStyle(
+                        fontSize: context.bodySize,
+                        color: WebColors.textSecondary,
+                        height: 1.8,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Ekip
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: WebColors.darkBlueAccent.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: WebColors.primaryGold.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'EKİP',
+                            style: TextStyle(
+                              fontSize: context.subtitleSize,
+                              fontWeight: FontWeight.bold,
+                              color: WebColors.primaryGold,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildCrewMember('Işık Tasarımı', 'Emre Kahraman'),
+                          _buildCrewMember('Ses & Efekt', 'Gökhan Şener'),
+                          _buildCrewMember('Afiş Tasarımı', 'Tayfun Kızıldağ'),
+                          _buildCrewMember('Dansçı', 'Burcu Koçyiğit'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              location,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: fontSize + 4,
-                color: textColor.withOpacity(0.85),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoBox(
+      {required final IconData icon,
+      required final String title,
+      required final String subtitle}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: WebColors.goldGradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: WebColors.primaryGold.withOpacity(0.3),
+            blurRadius: 20,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: WebColors.darkBlueBackground, size: 32),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: context.subtitleSize,
+                  fontWeight: FontWeight.bold,
+                  color: WebColors.darkBlueBackground,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: context.bodySize,
+                  color: WebColors.darkBlueSurface,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCrewInfo(
+      final String role, final String name, final IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: WebColors.goldGradient,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: WebColors.darkBlueBackground, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                role,
+                style: TextStyle(
+                  fontSize: context.captionSize,
+                  color: WebColors.textSecondary,
+                ),
+              ),
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: context.bodySize + 2,
+                  fontWeight: FontWeight.bold,
+                  color: WebColors.whiteText,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCrewMember(final String role, final String name) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              color: WebColors.primaryGold,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                    fontSize: context.bodySize, color: WebColors.lightWhite),
+                children: [
+                  TextSpan(
+                    text: '$role: ',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: WebColors.primaryGoldLight),
+                  ),
+                  TextSpan(text: name),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'Yazan: Haldun Taner\nYönetmen: Efsun Kaygusuz\n\n'
-              'Haldun Taner’in bu iki perdelik oyunu, Türkiye’nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.\n\n'
-              'İki çocukluk arkadaşı olan baş karakterlerden Vicdani, saf, iyi niyetli, dürüst ve uysal bir kişiliğe sahipken; Efruz ise köşe dönücü, iş bitirici ve fırsatçı biridir.\n\n'
-              'Oyun, bu karakterler üzerinden devleti sömürenler ile devlete itaat edenler arasındaki dengesizliği gözler önüne seriyor',
-            ),
-            const SizedBox(height: 20),
-            Divider(color: textColor.withOpacity(0.5)),
-            const Text(
-              '.\n\n'
-              'Yazar: Haldun Taner\n'
-              'Yönetmen: Efsun Kaygusuz\n'
-              'Işık Tasarımı: Emre Kahraman\n'
-              'Ses & Efekt Tasarımı: Gökhan Şener\n'
-              'Afiş Tasarımı: Tayfun Kızıldağ\n'
-              'Dansçı: Burcu Koçyiğit\n\n',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      height: 2,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            WebColors.primaryGold,
+            Colors.transparent,
           ],
         ),
       ),
     );
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CUSTOM PAINTER
+// ═══════════════════════════════════════════════════════════
+class TheaterPatternPainter extends CustomPainter {
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    final paint = Paint()
+      ..color = WebColors.primaryGold.withOpacity(0.03)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final spacing = 50.0;
+
+    for (double i = 0; i < size.width; i += spacing) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+
+    for (double i = 0; i < size.height; i += spacing) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant final CustomPainter oldDelegate) => false;
 }
