@@ -7,15 +7,20 @@ class WebColors {
   static const Color primaryGoldDark = Color(0xFFB8941F);
   static const Color primaryGoldLight = Color(0xFFE6C158);
 
-  // Arkaplan Renkleri
-  static const Color darkBlueBackground = Color(0xFF1A1A2E);
-  static const Color darkBlueSurface = Color(0xFF16213E);
-  static const Color darkBlueAccent = Color(0xFF0F3460);
+  // Arkaplan Renkleri - Güncellendi
+  static const Color darkBlueBackground = Color(0xFF0A1628);
+  static const Color darkBlueSurface = Color(0xFF0F1F35);
+  static const Color darkBlueAccent = Color(0xFF1A2940);
+
+  // Ekstra Arkaplan Tonları
+  static const Color veryDarkBlue = Color(0xFF050B15); // En koyu ton
+  static const Color mediumDarkBlue = Color(0xFF152238); // Orta ton
 
   // Metin Renkleri
   static const Color whiteText = Colors.white;
   static const Color lightWhite = Color(0xFFEDEDED);
   static const Color textSecondary = Color(0xFFB0B0B0);
+  static const Color textTertiary = Color(0xFF808080); // Ek ton
 
   // Aksan Renkler
   static const Color success = Color(0xFF4CAF50);
@@ -23,17 +28,36 @@ class WebColors {
   static const Color error = Color(0xFFF44336);
   static const Color info = Color(0xFF2196F3);
 
-  // Gradient'ler
+  // Gradient'ler - Güncellendi
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [darkBlueBackground, darkBlueSurface, darkBlueAccent],
+    colors: [
+      veryDarkBlue,
+      darkBlueBackground,
+      darkBlueSurface,
+      darkBlueAccent,
+    ],
   );
 
   static const LinearGradient goldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [primaryGoldLight, primaryGold, primaryGoldDark],
+  );
+
+  // Altın Buton Gradient
+  static const LinearGradient goldButtonGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [primaryGold, primaryGoldLight],
+  );
+
+  // Kart/Kutu Gradient
+  static const LinearGradient cardGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [darkBlueSurface, darkBlueAccent],
   );
 }
 
