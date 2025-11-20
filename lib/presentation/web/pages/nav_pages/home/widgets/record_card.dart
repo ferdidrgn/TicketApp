@@ -45,7 +45,7 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
     );
 
     // Ses dinleyicilerini kurun
-    _audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
+    _audioPlayer.onPlayerStateChanged.listen((final PlayerState s) {
       if (mounted) {
         setState(() {
           _playerState = s;
@@ -54,9 +54,9 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
     });
 
     // Mobil/Web ayrımı: Mobil ilk yüklendiğinde kısa bir gösterim yapsın
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (!context.isDesktop) {
-        _glitchController.forward().then((_) {
+        _glitchController.forward().then((final _) {
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) _glitchController.reverse();
           });
@@ -74,20 +74,20 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
   }
 
   // ---------------- SES ÇALMA MANTIKLARI ----------------
-  void _playAudio() async {
+  Future<void> _playAudio() async {
     if (!_isPlaying) {
       await _audioPlayer.play(UrlSource(_audioUrl));
     }
   }
 
-  void _stopAudio() async {
+  Future<void> _stopAudio() async {
     if (_isPlaying) {
       await _audioPlayer.stop();
     }
   }
 
   // WEB: Mouse üzerine gelince
-  void _onHover(bool isHovering) {
+  void _onHover(final bool isHovering) {
     if (context.isDesktop) {
       if (isHovering) {
         _glitchController.forward();
@@ -106,7 +106,7 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
     }
     // Glitch animasyonunu tekrar tetikle
     if (_glitchController.status != AnimationStatus.forward) {
-      _glitchController.forward().then((_) {
+      _glitchController.forward().then((final _) {
         Future.delayed(const Duration(milliseconds: 300), () {
           if (mounted) _glitchController.reverse();
         });
@@ -114,20 +114,35 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
     }
   }
 
-  // ---------------- WIDGET BUILDER ----------------
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
+    final isMobile = !context.isDesktop;
+
+    // MAKSİMUM KÜÇÜLTME DEĞERLERİ
+    final double cardPadding = isMobile ? 6.0 : 15.0; // 6 piksel
+    final double iconSize = isMobile ? 16.0 : 32.0; // 16 piksel
+    final double spacing = isMobile ? 4.0 : 15.0;
+
+    final double headlineSize =
+        isMobile ? 8.0 : context.captionSize; // "EŞSİZ DENEY..."
+    final double sicilNoSize =
+        isMobile ? 12.0 : context.bodySize + 4; // "SICIL NO: 399"
+
+    final double stopButtonPadding = isMobile ? 2.0 : 8.0;
+    final double stopIconSize = isMobile ? 12.0 : 20.0;
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onEnter: (_) => _onHover(true),
-      onExit: (_) => _onHover(false),
+      onEnter: (final _) => _onHover(true),
+      onExit: (final _) => _onHover(false),
       child: AnimatedBuilder(
-        animation: _glitchController, // Sadece görsel animasyonları dinler
-        builder: (context, child) {
-          bool isPlaying = _isPlaying;
+        animation: _glitchController,
+        builder: (final context, final child) {
+          final bool isPlaying = _isPlaying;
 
           return Container(
-            padding: const EdgeInsets.all(15),
+            // Kartın iç padding'i minimize edildi
+            padding: EdgeInsets.all(cardPadding),
             decoration: BoxDecoration(
               color: WebColors.darkBlueSurface.withOpacity(0.95),
               borderRadius: BorderRadius.circular(16),
@@ -146,17 +161,18 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
               ],
             ),
             child: Row(
+              // İkon ve metin birbirine daha yakın durmalı
               mainAxisSize: MainAxisSize.min,
               children: [
                 // 1. Dönen Plak
                 AnimatedBuilder(
                   animation: _rotationController,
-                  builder: (context, child) {
+                  builder: (final context, final child) {
                     return Transform.rotate(
                       angle: _rotationController.value * 2 * 3.14159,
                       child: Icon(
                         Icons.audiotrack,
-                        size: 32,
+                        size: iconSize, // Minimize edildi
                         color: isPlaying
                             ? WebColors.error
                             : WebColors.primaryGoldLight,
@@ -164,7 +180,7 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
                     );
                   },
                 ),
-                const SizedBox(width: 15),
+                SizedBox(width: spacing), // Boşluk minimize edildi
 
                 // 2. 399 NUMARA Bilgisi ve Tıkla Metni
                 GestureDetector(
@@ -177,7 +193,7 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
                             ? 'SES ÇALIYOR (Durdur)'
                             : 'EŞSİZ DENEY İÇİN TIKLAYINIZ',
                         style: TextStyle(
-                          fontSize: context.captionSize,
+                          fontSize: headlineSize, // Minimize edildi
                           color: isPlaying
                               ? WebColors.error
                               : WebColors.textSecondary,
@@ -185,8 +201,8 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
                               isPlaying ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      // 399 Numara Görünürlüğü (Animasyonlu Opaklık ve Ölçek)
+                      SizedBox(height: isMobile ? 1 : 5),
+                      // 399 Numara
                       Opacity(
                         opacity: 1.0,
                         child: Transform.scale(
@@ -194,10 +210,11 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
                           child: Text(
                             'SICIL NO: 399',
                             style: TextStyle(
-                              fontSize: context.bodySize + 4,
+                              fontSize: sicilNoSize,
+                              // Minimize edildi
                               fontWeight: FontWeight.w900,
                               color: WebColors.warning,
-                              letterSpacing: 1.5,
+                              letterSpacing: isMobile ? 0.5 : 1.5,
                               shadows: [
                                 BoxShadow(
                                     color: WebColors.warning
@@ -214,17 +231,21 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
 
                 // 3. STOP Butonu (Ses Çalarken Görünsün)
                 if (isPlaying) ...[
-                  const SizedBox(width: 15),
+                  SizedBox(width: spacing),
                   InkWell(
                     onTap: _stopAudio,
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: EdgeInsets.all(stopButtonPadding),
+                      // Minimize edildi
                       decoration: BoxDecoration(
                         color: WebColors.error,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child:
-                          const Icon(Icons.stop, color: Colors.white, size: 20),
+                      child: Icon(
+                        Icons.stop,
+                        color: Colors.white,
+                        size: stopIconSize, // Minimize edildi
+                      ),
                     ),
                   ),
                 ],
