@@ -4,35 +4,31 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
 // ═══════════════════════════════════════════════════════════
-// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING (YENİ TASARIM)
+// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING
 // ═══════════════════════════════════════════════════════════
 class GozYapVazYapLanding extends StatelessWidget {
   const GozYapVazYapLanding({super.key});
 
-  // Merkezi, güçlü bir görsel seçildi (örneğin ana afiş)
   static const String _mainImage =
       'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae';
+  static const String _secondImage =
+      'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27';
 
   @override
   Widget build(final BuildContext context) {
-    // Scaffold KALDIRILDI ve Container kullanıldı.
     return Container(
       color: WebColors.darkBlueBackground,
       child: Column(
         children: [
-          // 1. ÜST BAŞLIK VE GİRİŞ BİLGİLERİ
           _buildTopHeader(context),
-
-          // 2. TEK VE GÜÇLÜ MERKEZ GÖRSEL
           _buildMainImageSection(context),
-
-          // 3. DETAYLI İÇERİK VE EKİP
           _buildContentSection(context),
         ],
       ),
     );
   }
 
+  // ---------------- ANA BAŞLIK BÖLÜMÜ ----------------
   Widget _buildTopHeader(final BuildContext context) {
     return Container(
       width: double.infinity,
@@ -43,7 +39,6 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Ana Başlık
           ShaderMask(
             shaderCallback: (final bounds) =>
                 WebColors.goldGradient.createShader(bounds),
@@ -57,8 +52,7 @@ class GozYapVazYapLanding extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          // Konum Kartı
+          const SizedBox(height: 24),
           _buildLocationCard(context, '1889 SES TİYATROSU', '(TAKSİM)'),
           const SizedBox(height: 16),
           _buildDivider(),
@@ -67,20 +61,19 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
+  // ---------------- MERKEZ GÖRSELİ ----------------
   Widget _buildMainImageSection(final BuildContext context) {
     return Container(
       height: context.responsive(mobile: 350.0, desktop: 500.0),
       width: double.infinity,
       child: Stack(
         children: [
-          // Merkezi Görsel
           Positioned.fill(
             child: Image.network(
               _mainImage,
               fit: BoxFit.cover,
             ),
           ),
-          // Dramatik Gölge
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -95,7 +88,6 @@ class GozYapVazYapLanding extends StatelessWidget {
               ),
             ),
           ),
-          // Vurgu Metni
           Positioned(
             bottom: 30,
             left: 30,
@@ -120,6 +112,7 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
+  // ---------------- İÇERİK BÖLÜMÜ (YÖNETMEN/EKİP/2.GÖRSEL) ----------------
   Widget _buildContentSection(final BuildContext context) {
     return Container(
       width: double.infinity,
@@ -130,72 +123,96 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Yazar/Yönetmen (Daha vurgulu kartlar)
+          // Yazar/Yönetmen Kartları
           _buildSymbolicCrewCard(context, 'Yazan', 'Haldun Taner', Icons.book),
           _buildSymbolicCrewCard(context, 'Yönetmen', 'Efsun Kaygusuz',
               Icons.theater_comedy_rounded),
 
           const SizedBox(height: 32),
 
-          // Açıklama
-          Text(
-            'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.',
-            style: TextStyle(
-              fontSize: context.bodySize,
-              color: WebColors.lightWhite,
-              height: 1.8,
-            ),
-          ),
-          const SizedBox(height: 20),
+          // ✅ Responsive olarak alt görsel ve metin yerleşimi
+          _buildBottomResponsiveSection(context),
 
-          // Zıtlık Vurgusu
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: WebColors.darkBlueSurface.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              'Vicdani (Saf ve Dürüst) ile Efruz (Köşe Dönücü ve Fırsatçı) arasındaki çatışma, devleti sömürenler ve itaat edenler arasındaki dengesizliği gözler önüne seriyor.',
-              style: TextStyle(
-                fontSize: context.bodySize,
-                color: WebColors.textSecondary,
-                height: 1.7,
-                fontStyle: FontStyle.italic,
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- RESPONSIVE ALT BÖLÜM (2. Görseli Yönetir) ----------------
+  Widget _buildBottomResponsiveSection(final BuildContext context) {
+    return context.isMobile
+        ? _buildBottomMobile(context)
+        : _buildBottomDesktop(context);
+  }
+
+  // --- 2.1 DESKTOP GÖRÜNÜMÜ (Görsel Üzeri Metin) ---
+  Widget _buildBottomDesktop(final BuildContext context) {
+    return Container(
+      height: context.responsive(mobile: 350.0, desktop: 450.0),
+      width: double.infinity,
+      child: Stack(
+        children: [
+          // Arka Plan Görseli
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(
+                _secondImage,
+                fit: BoxFit.cover,
               ),
             ),
           ),
-
-          const SizedBox(height: 32),
-
-          _buildDivider(),
-
-          const SizedBox(height: 32),
-
-          // Ekip Kutu
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: WebColors.darkBlueAccent.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(16),
+          // Gradient Overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.5),
+                    WebColors.darkBlueBackground.withOpacity(0.9),
+                  ],
+                ),
+              ),
             ),
+          ),
+          // Metin ve Ekip Kutu İçeriği
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 24,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // HALDUN TANER CÜMLESİ
                 Text(
-                  'DİĞER EKİP',
+                  'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.',
                   style: TextStyle(
-                    fontSize: context.subtitleSize,
-                    fontWeight: FontWeight.bold,
-                    color: WebColors.primaryGold,
-                    letterSpacing: 2,
+                    fontSize: context.bodySize,
+                    color: WebColors.lightWhite,
+                    height: 1.8,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildCrewMember(context, 'Işık Tasarımı', 'Emre Kahraman'),
-                _buildCrewMember(context, 'Ses & Efekt', 'Gökhan Şener'),
-                _buildCrewMember(context, 'Afiş Tasarımı', 'Tayfun Kızıldağ'),
-                _buildCrewMember(context, 'Dansçı', 'Burcu Koçyiğit'),
+
+                // Zıtlık Vurgusu
+                Text(
+                  'Vicdani (Saf ve Dürüst) ile Efruz (Köşe Dönücü ve Fırsatçı) arasındaki çatışma, devleti sömürenler ve itaat edenler arasındaki dengesizliği gözler önüne seriyor.',
+                  style: TextStyle(
+                    fontSize: context.bodySize,
+                    color: WebColors.textSecondary,
+                    height: 1.7,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Ekip Kutusu
+                _buildOtherCrewBox(context),
               ],
             ),
           ),
@@ -204,11 +221,127 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // Yardımcı Widgetlar (Önceki yanıtta detayları verilenler)
+// lib/presentation/web/pages/nav_pages/home/widgets/goz_kap_vaz_yap_landing.dart dosyasında
+
+  Widget _buildBottomMobile(final BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. METİN BLOKLARI (Görselden ayrıldı, mobil akışa uyum sağlandı)
+        Padding(
+          padding: context.paddingHorizontal, // Soldan/sağdan padding
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // HALDUN TANER CÜMLESİ
+              Text(
+                'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.',
+                style: TextStyle(
+                  fontSize: context.bodySize,
+                  color: WebColors.lightWhite,
+                  height: 1.8,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Zıtlık Vurgusu
+              Text(
+                'Vicdani (Saf ve Dürüst) ile Efruz (Köşe Dönücü ve Fırsatçı) arasındaki çatışma, devleti sömürenler ve itaat edenler arasındaki dengesizliği gözler önüne seriyor.',
+                style: TextStyle(
+                  fontSize: context.bodySize,
+                  color: WebColors.textSecondary,
+                  height: 1.7,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // 2. GÖRSEL VE EKİP KUTUSU (Stack ile birleştirildi)
+        Container(
+          // Yeterli dikey alan veriliyor
+          height: context.screenHeight * 0.6,
+          width: double.infinity,
+          child: Stack(
+            children: [
+              // İKİNCİ GÖRSEL (Arka plan)
+              Positioned.fill(
+                child: Image.network(
+                  _secondImage,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              // GÖRSEL ÜSTÜ OKUNABİLİRLİK İÇİN GRADIENT
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.4),
+                        WebColors.darkBlueBackground.withOpacity(0.9),
+                        // Koyu tonlama
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // EKİP KUTUSU (Görselin Altına Konumlandırıldı)
+              Positioned(
+                bottom: 24,
+                // Yatay padding'i Positioned ile sağlıyoruz
+                left: context.responsive(mobile: 16.0, desktop: 32.0),
+                right: context.responsive(mobile: 16.0, desktop: 32.0),
+                child: _buildOtherCrewBox(context),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  // ---------------- YARDIMCI WIDGETLAR ----------------
+
+  Widget _buildOtherCrewBox(final BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueAccent.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'DİĞER EKİP',
+            style: TextStyle(
+              fontSize: context.subtitleSize,
+              fontWeight: FontWeight.bold,
+              color: WebColors.primaryGold,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildCrewMember(context, 'Işık Tasarımı', 'Emre Kahraman'),
+          _buildCrewMember(context, 'Ses & Efekt', 'Gökhan Şener'),
+          _buildCrewMember(context, 'Afiş Tasarımı', 'Tayfun Kızıldağ'),
+          _buildCrewMember(context, 'Dansçı', 'Burcu Koçyiğit'),
+        ],
+      ),
+    );
+  }
 
   Widget _buildLocationCard(
       final BuildContext context, final String title, final String subtitle) {
-    // ... (Önceki kodunuzdaki altın renkli konum kartı)
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -227,25 +360,29 @@ class GozYapVazYapLanding extends StatelessWidget {
           const Icon(Icons.location_on_rounded,
               color: WebColors.darkBlueBackground, size: 32),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: context.subtitleSize,
-                  fontWeight: FontWeight.bold,
-                  color: WebColors.darkBlueBackground,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    // ✅ MOBİL İÇİN FONT KÜÇÜLTÜLDÜ
+                    fontSize: context.responsive(
+                        mobile: 14.0, desktop: context.subtitleSize),
+                    fontWeight: FontWeight.bold,
+                    color: WebColors.darkBlueBackground,
+                  ),
                 ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: context.bodySize,
-                  color: WebColors.darkBlueSurface,
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: context.bodySize,
+                    color: WebColors.darkBlueSurface,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
