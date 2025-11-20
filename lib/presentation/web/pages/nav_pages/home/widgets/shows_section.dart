@@ -6,6 +6,7 @@ import 'package:ticketapp/core/widgets/shimmer.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../data/providers/show/show_provider.dart';
 import '../../../../../../domain/entities/show.dart';
+import 'dart:math' as math;
 
 class ShowsSection extends ConsumerStatefulWidget {
   const ShowsSection({super.key});
@@ -14,32 +15,62 @@ class ShowsSection extends ConsumerStatefulWidget {
   ConsumerState<ShowsSection> createState() => _ShowsSectionState();
 }
 
-class _ShowsSectionState extends ConsumerState<ShowsSection> {
+class _ShowsSectionState extends ConsumerState<ShowsSection>
+    with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
+  late AnimationController _headerController;
+  late Animation<double> _headerFadeAnimation;
+  late Animation<Offset> _headerSlideAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    // Header animation
+    _headerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _headerFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _headerController,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    _headerSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, -0.5),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _headerController,
+        curve: Curves.easeOut,
+      ),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       final state = ref.read(showProvider);
       if (!state.isLoading && state.dataList == null) {
         ref.read(showProvider.notifier).loadShows(false);
       }
+      _headerController.forward();
     });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _headerController.dispose();
     super.dispose();
   }
 
   void _scroll(final bool left) {
-    final offset = left ? -300.0 : 300.0;
+    final offset = left ? -350.0 : 350.0;
     _scrollController.animateTo(
       _scrollController.offset + offset,
       duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
+      curve: Curves.easeInOutCubic,
     );
   }
 
@@ -50,8 +81,8 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
     return Container(
       width: double.infinity,
       padding: context.responsive(
-        mobile: const EdgeInsets.symmetric(vertical: 40),
-        desktop: const EdgeInsets.symmetric(vertical: 60),
+        mobile: const EdgeInsets.symmetric(vertical: 60),
+        desktop: const EdgeInsets.symmetric(vertical: 100),
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -59,40 +90,23 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
           end: Alignment.bottomCenter,
           colors: [
             WebColors.darkBlueBackground,
-            WebColors.darkBlueSurface,
+            WebColors.darkBlueSurface.withOpacity(0.5),
             WebColors.darkBlueBackground,
           ],
         ),
       ),
       child: Column(
         children: [
-          // Başlık
-          ShaderMask(
-            shaderCallback: (final bounds) =>
-                WebColors.goldGradient.createShader(bounds),
-            child: Text(
-              'OYUNLARIMIZ',
-              style: TextStyle(
-                fontSize: context.responsive(mobile: 32.0, desktop: 48.0),
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 3,
-              ),
+          // Animated Header
+          FadeTransition(
+            opacity: _headerFadeAnimation,
+            child: SlideTransition(
+              position: _headerSlideAnimation,
+              child: _buildHeader(context),
             ),
           ),
 
-          const SizedBox(height: 8),
-
-          Text(
-            'Sahnelediğimiz unutulmaz yapımlar',
-            style: TextStyle(
-              fontSize: context.bodySize,
-              color: WebColors.primaryGoldLight,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-
-          const SizedBox(height: 40),
+          SizedBox(height: context.responsive(mobile: 40, desktop: 60)),
 
           // Shows Content
           if (showState.isLoading)
@@ -108,20 +122,74 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
     );
   }
 
+  Widget _buildHeader(final BuildContext context) {
+    return Column(
+      children: [
+        // Main Title
+        ShaderMask(
+          shaderCallback: (final bounds) =>
+              WebColors.goldGradient.createShader(bounds),
+          child: Text(
+            'OYUNLARIMIZ',
+            style: TextStyle(
+              fontSize: context.responsive(mobile: 36.0, desktop: 56.0),
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 4,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Decorative line
+        Container(
+          height: 4,
+          width: 100,
+          decoration: BoxDecoration(
+            gradient: WebColors.goldGradient,
+            borderRadius: BorderRadius.circular(2),
+            boxShadow: [
+              BoxShadow(
+                color: WebColors.primaryGold.withOpacity(0.5),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Subtitle
+        Text(
+          'Sahnelediğimiz unutulmaz yapımlar',
+          style: TextStyle(
+            fontSize: context.bodySize + 2,
+            color: WebColors.primaryGoldLight,
+            fontStyle: FontStyle.italic,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildLoadingState(final BuildContext context) {
     return SizedBox(
-      height: 320,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(
-          context.isMobile ? 2 : 4,
-          (final index) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: SizedBox(
-              width: context.responsive(mobile: 200.0, desktop: 240.0),
-              height: 300,
-              child: const ShimmerLoading(),
-            ),
+      height: 380,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(
+          horizontal: context.responsive(mobile: 16.0, desktop: 80.0),
+        ),
+        itemCount: context.isMobile ? 2 : 4,
+        itemBuilder: (final context, final index) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: SizedBox(
+            width: context.responsive(mobile: 220.0, desktop: 260.0),
+            height: 360,
+            child: const ShimmerLoading(),
           ),
         ),
       ),
@@ -130,14 +198,30 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
 
   Widget _buildErrorState(final String? message) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(40),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, color: WebColors.error, size: 64),
-          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: WebColors.error.withOpacity(0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: WebColors.error, width: 2),
+            ),
+            child: const Icon(
+              Icons.error_outline,
+              color: WebColors.error,
+              size: 64,
+            ),
+          ),
+          const SizedBox(height: 24),
           Text(
             message ?? 'Bir hata oluştu',
-            style: const TextStyle(color: WebColors.error, fontSize: 16),
+            style: TextStyle(
+              color: WebColors.error,
+              fontSize: context.bodySize,
+              fontWeight: FontWeight.w600,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -147,15 +231,29 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
 
   Widget _buildEmptyState() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(40),
       child: Column(
         children: [
-          const Icon(Icons.theater_comedy,
-              color: WebColors.textSecondary, size: 64),
-          const SizedBox(height: 16),
-          const Text(
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: WebColors.goldGradient.scale(0.3),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.theater_comedy,
+              color: WebColors.darkBlueBackground,
+              size: 64,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
             'Henüz oyun eklenmemiş',
-            style: TextStyle(color: WebColors.textSecondary, fontSize: 16),
+            style: TextStyle(
+              color: WebColors.textSecondary,
+              fontSize: context.bodySize,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -165,7 +263,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
   Widget _buildShowsCarousel(
       final BuildContext context, final List<Show> shows) {
     return SizedBox(
-      height: 360,
+      height: 420,
       child: Stack(
         children: [
           // Carousel
@@ -179,7 +277,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
             itemBuilder: (final context, final index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: _ShowCard(
+                child: _ShowCard3D(
                   imageUrl: shows[index].imageUrl ?? '',
                   gameName: shows[index].name ?? '',
                   index: index,
@@ -205,7 +303,9 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
               bottom: 0,
               child: Center(
                 child: _buildNavButton(
-                    Icons.arrow_forward_ios, () => _scroll(false)),
+                  Icons.arrow_forward_ios,
+                  () => _scroll(false),
+                ),
               ),
             ),
           ],
@@ -215,182 +315,336 @@ class _ShowsSectionState extends ConsumerState<ShowsSection> {
   }
 
   Widget _buildNavButton(final IconData icon, final VoidCallback onPressed) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: WebColors.goldGradient,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: WebColors.primaryGold.withOpacity(0.5),
-            blurRadius: 15,
-            spreadRadius: 2,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: WebColors.goldGradient,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: WebColors.primaryGold.withOpacity(0.5),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(icon, color: WebColors.darkBlueBackground),
-        iconSize: 24,
+          child: Icon(
+            icon,
+            color: WebColors.darkBlueBackground,
+            size: 24,
+          ),
+        ),
       ),
     );
   }
 }
 
-class _ShowCard extends StatefulWidget {
+/// 3D Show Card with perspective transform and hover effects
+class _ShowCard3D extends StatefulWidget {
   final String imageUrl;
   final String gameName;
   final int index;
 
-  const _ShowCard({
+  const _ShowCard3D({
     required this.imageUrl,
     required this.gameName,
     required this.index,
   });
 
   @override
-  State<_ShowCard> createState() => _ShowCardState();
+  State<_ShowCard3D> createState() => _ShowCard3DState();
 }
 
-class _ShowCardState extends State<_ShowCard> {
+class _ShowCard3DState extends State<_ShowCard3D>
+    with SingleTickerProviderStateMixin {
   bool _isHovered = false;
+  Offset _hoverPosition = Offset.zero;
+  late AnimationController _entryController;
+  late Animation<double> _entryAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Entry animation
+    _entryController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 600 + (widget.index * 100)),
+    );
+
+    _entryAnimation = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOutBack,
+    );
+
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    super.dispose();
+  }
+
+  void _updateHoverPosition(final PointerEvent details, final Size size) {
+    setState(() {
+      _hoverPosition = Offset(
+        (details.localPosition.dx - size.width / 2) / size.width,
+        (details.localPosition.dy - size.height / 2) / size.height,
+      );
+    });
+  }
 
   @override
   Widget build(final BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 600 + (widget.index * 100)),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (final context, final value, final child) {
+    return AnimatedBuilder(
+      animation: _entryAnimation,
+      builder: (final context, final child) {
         return Transform.scale(
-          scale: 0.8 + (value * 0.2),
+          scale: _entryAnimation.value,
           child: Opacity(
-            opacity: value,
+            opacity: _entryAnimation.value,
             child: MouseRegion(
               onEnter: (final _) => setState(() => _isHovered = true),
-              onExit: (final _) => setState(() => _isHovered = false),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: context.responsive(mobile: 200.0, desktop: 240.0),
-                height: 320,
-                transform: Matrix4.identity()
-                  ..translate(0.0, _isHovered ? -10.0 : 0.0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: _isHovered
-                        ? WebColors.primaryGold
-                        : WebColors.primaryGold.withOpacity(0.3),
-                    width: _isHovered ? 3 : 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isHovered
-                          ? WebColors.primaryGold.withOpacity(0.5)
-                          : Colors.black.withOpacity(0.3),
-                      blurRadius: _isHovered ? 25 : 15,
-                      spreadRadius: _isHovered ? 5 : 2,
+              onExit: (final _) => setState(() {
+                _isHovered = false;
+                _hoverPosition = Offset.zero;
+              }),
+              onHover: (final event) {
+                if (_isHovered) {
+                  _updateHoverPosition(
+                    event,
+                    Size(
+                      context.responsive(mobile: 220.0, desktop: 260.0),
+                      360,
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(22),
-                  child: Stack(
-                    children: [
-                      // Image
-                      Positioned.fill(
-                        child: CachedNetworkImage(
-                          imageUrl: widget.imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (final context, final url) => Container(
-                            color: WebColors.darkBlueSurface,
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: WebColors.primaryGold,
-                              ),
-                            ),
-                          ),
-                          errorWidget:
-                              (final context, final url, final error) =>
-                                  Container(
-                            color: WebColors.darkBlueSurface,
-                            child: const Icon(
-                              Icons.theater_comedy,
-                              size: 64,
-                              color: WebColors.primaryGold,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Gradient Overlay
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black
-                                    .withOpacity(_isHovered ? 0.9 : 0.7),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Title
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 16,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: WebColors.goldGradient,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'OYUN',
-                                style: TextStyle(
-                                  fontSize: context.captionSize - 2,
-                                  fontWeight: FontWeight.w900,
-                                  color: WebColors.darkBlueBackground,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              widget.gameName,
-                              style: TextStyle(
-                                fontSize: context.bodySize,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                height: 1.2,
-                                shadows: const [
-                                  Shadow(color: Colors.black, blurRadius: 8),
-                                ],
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                  );
+                }
+              },
+              cursor: SystemMouseCursors.click,
+              child: _buildCard(context),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCard(final BuildContext context) {
+    // Calculate 3D transform
+    final rotateX = _isHovered ? -_hoverPosition.dy * 0.2 : 0.0;
+    final rotateY = _isHovered ? _hoverPosition.dx * 0.2 : 0.0;
+    final scale = _isHovered ? 1.05 : 1.0;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.001) // perspective
+        ..rotateX(rotateX)
+        ..rotateY(rotateY)
+        ..translate(0.0, _isHovered ? -15.0 : 0.0)
+        ..scale(scale),
+      child: Container(
+        width: context.responsive(mobile: 220.0, desktop: 260.0),
+        height: 360,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: _isHovered
+                  ? WebColors.primaryGold.withOpacity(0.6)
+                  : Colors.black.withOpacity(0.4),
+              blurRadius: _isHovered ? 40 : 20,
+              spreadRadius: _isHovered ? 5 : 0,
+              offset: Offset(0, _isHovered ? 20 : 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Image
+              _buildImage(),
+
+              // Gradient Overlay
+              _buildGradientOverlay(),
+
+              // Shine effect on hover
+              if (_isHovered) _buildShineEffect(),
+
+              // Border
+              _buildBorder(),
+
+              // Content
+              _buildContent(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    return Positioned.fill(
+      child: CachedNetworkImage(
+        imageUrl: widget.imageUrl,
+        fit: BoxFit.cover,
+        placeholder: (final context, final url) => Container(
+          color: WebColors.darkBlueSurface,
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: WebColors.primaryGold,
+            ),
+          ),
+        ),
+        errorWidget: (final context, final url, final error) => Container(
+          color: WebColors.darkBlueSurface,
+          child: const Icon(
+            Icons.theater_comedy,
+            size: 64,
+            color: WebColors.primaryGold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGradientOverlay() {
+    return Positioned.fill(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              Colors.black.withOpacity(_isHovered ? 0.95 : 0.8),
+            ],
+            stops: const [0.3, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShineEffect() {
+    return Positioned(
+      left: _hoverPosition.dx * 100,
+      top: _hoverPosition.dy * 100,
+      child: Container(
+        width: 200,
+        height: 200,
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            colors: [
+              Colors.white.withOpacity(0.2),
+              Colors.transparent,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBorder() {
+    return Positioned.fill(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: _isHovered
+                ? WebColors.primaryGold
+                : WebColors.primaryGold.withOpacity(0.3),
+            width: _isHovered ? 3 : 2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(final BuildContext context) {
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: 20,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: WebColors.goldGradient,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: WebColors.primaryGold.withOpacity(0.5),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: Text(
+              'OYUN',
+              style: TextStyle(
+                fontSize: context.captionSize - 1,
+                fontWeight: FontWeight.w900,
+                color: WebColors.darkBlueBackground,
+                letterSpacing: 2,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Title
+          Text(
+            widget.gameName,
+            style: TextStyle(
+              fontSize: context.bodySize + 2,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              height: 1.2,
+              shadows: const [
+                Shadow(color: Colors.black, blurRadius: 10),
+              ],
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+
+          if (_isHovered) ...[
+            const SizedBox(height: 8),
+            AnimatedOpacity(
+              opacity: _isHovered ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.arrow_forward,
+                    color: WebColors.primaryGold,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Detayları Gör',
+                    style: TextStyle(
+                      fontSize: context.captionSize,
+                      color: WebColors.primaryGoldLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
