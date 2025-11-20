@@ -1,104 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import '../../../../../../core/theme/app_colors.dart';
 
 // ═══════════════════════════════════════════════════════════
-// 1. GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING
+// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING (YENİ TASARIM)
 // ═══════════════════════════════════════════════════════════
 class GozYapVazYapLanding extends StatelessWidget {
   const GozYapVazYapLanding({super.key});
 
-  // Eskiden kullanılan görseller
-  static const String _imageLeftTop =
+  // Merkezi, güçlü bir görsel seçildi (örneğin ana afiş)
+  static const String _mainImage =
       'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_165452.jpg?alt=media&token=1ebd1bc9-0df5-46fd-bce5-b7400d5d81ae';
-  static const String _imageRightBottom =
-      'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27';
 
   @override
   Widget build(final BuildContext context) {
-    // Scaffold KALDIRILDI, Container kullanıldı
+    // Scaffold KALDIRILDI ve Container kullanıldı.
     return Container(
       color: WebColors.darkBlueBackground,
-      child: context.isMobile ? _buildMobile(context) : _buildDesktop(context),
-    );
-  }
+      child: Column(
+        children: [
+          // 1. ÜST BAŞLIK VE GİRİŞ BİLGİLERİ
+          _buildTopHeader(context),
 
-  Widget _buildMobile(final BuildContext context) {
-    // SingleChildScrollView KALDIRILDI, ana sayfa zaten scroll ediyor.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildImageCard(context, _imageLeftTop,
-            height: context.screenHeight * 0.4),
-        _buildContentSection(context),
-        _buildImageCard(context, _imageRightBottom,
-            height: context.screenHeight * 0.4),
-        const SizedBox(height: 40),
-      ],
-    );
-  }
+          // 2. TEK VE GÜÇLÜ MERKEZ GÖRSEL
+          _buildMainImageSection(context),
 
-  Widget _buildDesktop(final BuildContext context) {
-    // Tablet/Desktop ayrımı yerine responsive utils kullanıldı
-    return Row(
-      children: [
-        Expanded(
-          flex: 3,
-          child: _buildImageCard(context, _imageLeftTop,
-              height: context.screenHeight),
-        ),
-        Expanded(
-          flex: 4,
-          child: _buildContentSection(context),
-        ),
-        Expanded(
-          flex: 3,
-          child: _buildImageCard(context, _imageRightBottom,
-              height: context.screenHeight),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildImageCard(final BuildContext context, final String url,
-      {required final double height}) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: NetworkImage(url),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          // Karanlık overlay eklendi (Mevcut UI'a uyum)
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              WebColors.darkBlueBackground.withOpacity(0.4),
-            ],
-          ),
-        ),
+          // 3. DETAYLI İÇERİK VE EKİP
+          _buildContentSection(context),
+        ],
       ),
     );
   }
 
-  Widget _buildContentSection(final BuildContext context) {
+  Widget _buildTopHeader(final BuildContext context) {
     return Container(
+      width: double.infinity,
+      padding: context.paddingAll,
       decoration: const BoxDecoration(
         gradient: WebColors.backgroundGradient,
       ),
-      padding: context.paddingAll,
-      // İç scroll kaldırıldı, ana sayfa scroll ediyor
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Başlık
+          // Ana Başlık
           ShaderMask(
             shaderCallback: (final bounds) =>
                 WebColors.goldGradient.createShader(bounds),
@@ -108,27 +53,87 @@ class GozYapVazYapLanding extends StatelessWidget {
                 fontSize: context.titleSize,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
-                height: 1.2,
                 letterSpacing: 2,
               ),
             ),
           ),
-          const SizedBox(height: 24),
-
+          const SizedBox(height: 16),
           // Konum Kartı
           _buildLocationCard(context, '1889 SES TİYATROSU', '(TAKSİM)'),
-
-          const SizedBox(height: 32),
-
-          // Yazar / Yönetmen Bilgisi
-          _buildCrewInfo(context, 'Yazan', 'Haldun Taner', Icons.create),
           const SizedBox(height: 16),
-          _buildCrewInfo(
-              context, 'Yönetmen', 'Efsun Kaygusuz', Icons.theater_comedy),
-
-          const SizedBox(height: 32),
-
           _buildDivider(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainImageSection(final BuildContext context) {
+    return Container(
+      height: context.responsive(mobile: 350.0, desktop: 500.0),
+      width: double.infinity,
+      child: Stack(
+        children: [
+          // Merkezi Görsel
+          Positioned.fill(
+            child: Image.network(
+              _mainImage,
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Dramatik Gölge
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.center,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    WebColors.darkBlueBackground.withOpacity(0.4),
+                    WebColors.darkBlueBackground.withOpacity(0.8),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Vurgu Metni
+          Positioned(
+            bottom: 30,
+            left: 30,
+            right: 30,
+            child: Text(
+              '"Türkiye’nin 70 yıllık siyasi ve toplumsal durumu üzerine hiciv dolu bir ayna."',
+              style: TextStyle(
+                fontSize: context.subtitleSize,
+                fontWeight: FontWeight.w500,
+                color: WebColors.primaryGoldLight,
+                fontStyle: FontStyle.italic,
+                shadows: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.8), blurRadius: 10),
+                ],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentSection(final BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: context.paddingAll,
+      decoration: const BoxDecoration(
+        gradient: WebColors.backgroundGradient,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Yazar/Yönetmen (Daha vurgulu kartlar)
+          _buildSymbolicCrewCard(context, 'Yazan', 'Haldun Taner', Icons.book),
+          _buildSymbolicCrewCard(context, 'Yönetmen', 'Efsun Kaygusuz',
+              Icons.theater_comedy_rounded),
 
           const SizedBox(height: 32),
 
@@ -139,20 +144,32 @@ class GozYapVazYapLanding extends StatelessWidget {
               fontSize: context.bodySize,
               color: WebColors.lightWhite,
               height: 1.8,
-              fontStyle: FontStyle.italic,
             ),
           ),
-
           const SizedBox(height: 20),
 
-          Text(
-            'İki çocukluk arkadaşı olan baş karakterlerden Vicdani, saf, iyi niyetli, dürüst ve uysal bir kişiliğe sahipken; Efruz ise köşe dönücü, iş bitirici ve fırsatçı biridir. Oyun, bu karakterler üzerinden devleti sömürenler ile devlete itaat edenler arasındaki dengesizliği gözler önüne seriyor.',
-            style: TextStyle(
-              fontSize: context.bodySize,
-              color: WebColors.textSecondary,
-              height: 1.8,
+          // Zıtlık Vurgusu
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: WebColors.darkBlueSurface.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Vicdani (Saf ve Dürüst) ile Efruz (Köşe Dönücü ve Fırsatçı) arasındaki çatışma, devleti sömürenler ve itaat edenler arasındaki dengesizliği gözler önüne seriyor.',
+              style: TextStyle(
+                fontSize: context.bodySize,
+                color: WebColors.textSecondary,
+                height: 1.7,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ),
+
+          const SizedBox(height: 32),
+
+          _buildDivider(),
+
           const SizedBox(height: 32),
 
           // Ekip Kutu
@@ -161,7 +178,6 @@ class GozYapVazYapLanding extends StatelessWidget {
             decoration: BoxDecoration(
               color: WebColors.darkBlueAccent.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,8 +204,11 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
+  // Yardımcı Widgetlar (Önceki yanıtta detayları verilenler)
+
   Widget _buildLocationCard(
       final BuildContext context, final String title, final String subtitle) {
+    // ... (Önceki kodunuzdaki altın renkli konum kartı)
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -233,25 +252,19 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  Widget _buildCrewInfo(final BuildContext context, final String role,
+  Widget _buildSymbolicCrewCard(final BuildContext context, final String role,
       final String name, final IconData icon) {
     return Container(
       padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.5),
+        color: WebColors.darkBlueSurface.withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: WebColors.primaryGold.withOpacity(0.2)),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: WebColors.goldGradient,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: WebColors.darkBlueBackground, size: 24),
-          ),
+          Icon(icon, color: WebColors.primaryGold, size: 28),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
