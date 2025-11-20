@@ -52,6 +52,7 @@ class _WebNavBarState extends State<WebNavBar>
 
   @override
   Widget build(final BuildContext context) {
+    final bool _isNarrow = context.screenWidth < 900;
     return AnimatedBuilder(
       animation: _controller,
       builder: (final context, final child) {
@@ -87,9 +88,8 @@ class _WebNavBarState extends State<WebNavBar>
               ),
             ),
           ),
-          child: context.isMobile
-              ? _buildMobileNav(context)
-              : _buildDesktopNav(context),
+          child:
+              _isNarrow ? _buildMobileNav(context) : _buildDesktopNav(context),
         );
       },
     );
@@ -98,7 +98,7 @@ class _WebNavBarState extends State<WebNavBar>
   Widget _buildDesktopNav(final BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: context.responsive(mobile: 20, desktop: 60),
+        horizontal: 20,
       ),
       child: Row(
         children: [
@@ -108,7 +108,12 @@ class _WebNavBarState extends State<WebNavBar>
           const Spacer(),
 
           // Navigation Items
-          Row(
+          // Row yerine Wrap kullanın.
+          Wrap(
+            // **DEĞİŞİKLİK BURADA**
+            spacing: 4.0, // Butonlar arası yatay boşluk
+            runSpacing: 4.0, // Butonlar alt satıra geçtiğinde dikey boşluk
+            alignment: WrapAlignment.end, // Sağa yasla
             children: [
               _buildNavItem(context, 'home', 'ANA SAYFA'),
               _buildNavItem(context, 'shows', 'OYUNLAR'),
@@ -201,7 +206,7 @@ class _WebNavBarState extends State<WebNavBar>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 gradient: isActive ? WebColors.goldGradient : null,
