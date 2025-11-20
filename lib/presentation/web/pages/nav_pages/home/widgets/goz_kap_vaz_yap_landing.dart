@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
 // ═══════════════════════════════════════════════════════════
@@ -17,6 +16,7 @@ class GozYapVazYapLanding extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return Container(
+      // ✅ Arka plan rengi (Görseldeki koyu lacivert)
       color: WebColors.darkBlueBackground,
       child: Column(
         children: [
@@ -63,6 +63,7 @@ class GozYapVazYapLanding extends StatelessWidget {
 
   // ---------------- MERKEZ GÖRSELİ ----------------
   Widget _buildMainImageSection(final BuildContext context) {
+    // ... (Aynı kalır)
     return Container(
       height: context.responsive(mobile: 350.0, desktop: 500.0),
       width: double.infinity,
@@ -123,14 +124,14 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Yazar/Yönetmen Kartları
+          // Yazar/Yönetmen Kartları (Görseldeki yeni stile uyarlandı)
           _buildSymbolicCrewCard(context, 'Yazan', 'Haldun Taner', Icons.book),
           _buildSymbolicCrewCard(context, 'Yönetmen', 'Efsun Kaygusuz',
               Icons.theater_comedy_rounded),
 
           const SizedBox(height: 32),
 
-          // ✅ Responsive olarak alt görsel ve metin yerleşimi
+          // Responsive olarak alt görsel ve metin yerleşimi
           _buildBottomResponsiveSection(context),
 
           const SizedBox(height: 40),
@@ -153,7 +154,7 @@ class GozYapVazYapLanding extends StatelessWidget {
       width: double.infinity,
       child: Stack(
         children: [
-          // Arka Plan Görseli
+          // ... Görsel ve Gradient Overlay ...
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
@@ -163,7 +164,6 @@ class GozYapVazYapLanding extends StatelessWidget {
               ),
             ),
           ),
-          // Gradient Overlay
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -179,7 +179,7 @@ class GozYapVazYapLanding extends StatelessWidget {
               ),
             ),
           ),
-          // Metin ve Ekip Kutu İçeriği
+          // Metin ve Ekip Kutu İçeriği (Yazı stilleri güncellendi)
           Positioned(
             left: 24,
             right: 24,
@@ -192,7 +192,7 @@ class GozYapVazYapLanding extends StatelessWidget {
                   'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.',
                   style: TextStyle(
                     fontSize: context.bodySize,
-                    color: WebColors.lightWhite,
+                    color: WebColors.lightWhite, // ✅ lightWhite
                     height: 1.8,
                     fontWeight: FontWeight.w500,
                   ),
@@ -211,7 +211,7 @@ class GozYapVazYapLanding extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Ekip Kutusu
+                // Ekip Kutusu (Yeni stili kullanacak)
                 _buildOtherCrewBox(context),
               ],
             ),
@@ -221,15 +221,14 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-// lib/presentation/web/pages/nav_pages/home/widgets/goz_kap_vaz_yap_landing.dart dosyasında
-
+  // --- 2.2 MOBİL GÖRÜNÜMÜ (Yeni Dramatik Stil) ---
   Widget _buildBottomMobile(final BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. METİN BLOKLARI (Görselden ayrıldı, mobil akışa uyum sağlandı)
+        // 1. METİN BLOKLARI
         Padding(
-          padding: context.paddingHorizontal, // Soldan/sağdan padding
+          padding: context.paddingHorizontal,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -261,85 +260,68 @@ class GozYapVazYapLanding extends StatelessWidget {
 
         const SizedBox(height: 24),
 
-        // 2. GÖRSEL VE EKİP KUTUSU (Stack ile birleştirildi)
-        Container(
-          // Yeterli dikey alan veriliyor
-          height: context.screenHeight * 0.6,
-          width: double.infinity,
-          child: Stack(
-            children: [
-              // İKİNCİ GÖRSEL (Arka plan)
-              Positioned.fill(
-                child: Image.network(
-                  _secondImage,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              // GÖRSEL ÜSTÜ OKUNABİLİRLİK İÇİN GRADIENT
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.4),
-                        WebColors.darkBlueBackground.withOpacity(0.9),
-                        // Koyu tonlama
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              // EKİP KUTUSU (Görselin Altına Konumlandırıldı)
-              Positioned(
-                bottom: 24,
-                // Yatay padding'i Positioned ile sağlıyoruz
-                left: context.responsive(mobile: 16.0, desktop: 32.0),
-                right: context.responsive(mobile: 16.0, desktop: 32.0),
-                child: _buildOtherCrewBox(context),
-              ),
-            ],
-          ),
+        // 2. EKİP KUTUSU (Görseldeki stile göre güncellenmiş metot)
+        Padding(
+          padding: context.paddingHorizontal,
+          child: _buildOtherCrewBox(context),
         ),
+
+        const SizedBox(height: 40),
+
+        // 3. İKİNCİ DRAMATİK GÖRSEL (Filigranlı ve Alıntılı)
+        _buildDramaticSecondImage(context),
 
         const SizedBox(height: 24),
       ],
     );
   }
 
-  // ---------------- YARDIMCI WIDGETLAR ----------------
+  // ---------------- YARDIMCI WIDGETLAR (Yeni Tasarıma Uyarlandı) ----------------
 
-  Widget _buildOtherCrewBox(final BuildContext context) {
+  // ✅ Yazar/Yönetmen Kartları - Yeni stilde kalın çizgi ve ikon kullanımı
+  Widget _buildSymbolicCrewCard(final BuildContext context, final String role,
+      final String name, final IconData icon) {
     return Container(
       padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: WebColors.darkBlueAccent.withOpacity(0.5),
+        color: WebColors.darkBlueSurface.withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            'DİĞER EKİP',
-            style: TextStyle(
-              fontSize: context.subtitleSize,
-              fontWeight: FontWeight.bold,
-              color: WebColors.primaryGold,
-              letterSpacing: 2,
-            ),
+          // İKON (Altın renginde)
+          Icon(icon, color: WebColors.primaryGold, size: 28),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ROL
+              Text(
+                role,
+                style: TextStyle(
+                  fontSize: context.captionSize,
+                  color: WebColors.textSecondary,
+                ),
+              ),
+              // İSİM (Kalın ve belirgin)
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: context.bodySize + 2,
+                  fontWeight: FontWeight.w900, // ✅ Ekstra Kalın
+                  color: WebColors.whiteText,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          _buildCrewMember(context, 'Işık Tasarımı', 'Emre Kahraman'),
-          _buildCrewMember(context, 'Ses & Efekt', 'Gökhan Şener'),
-          _buildCrewMember(context, 'Afiş Tasarımı', 'Tayfun Kızıldağ'),
-          _buildCrewMember(context, 'Dansçı', 'Burcu Koçyiğit'),
         ],
       ),
     );
   }
 
+  // ✅ Konum Kartı (Altın zeminli, aynı kalır)
   Widget _buildLocationCard(
       final BuildContext context, final String title, final String subtitle) {
     return Container(
@@ -367,10 +349,9 @@ class GozYapVazYapLanding extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    // ✅ MOBİL İÇİN FONT KÜÇÜLTÜLDÜ
                     fontSize: context.responsive(
                         mobile: 14.0, desktop: context.subtitleSize),
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900, // ✅ Ekstra Kalın
                     color: WebColors.darkBlueBackground,
                   ),
                 ),
@@ -379,6 +360,7 @@ class GozYapVazYapLanding extends StatelessWidget {
                   style: TextStyle(
                     fontSize: context.bodySize,
                     color: WebColors.darkBlueSurface,
+                    fontWeight: FontWeight.w600, // ✅ Kalınlaştırıldı
                   ),
                 ),
               ],
@@ -389,75 +371,140 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  Widget _buildSymbolicCrewCard(final BuildContext context, final String role,
-      final String name, final IconData icon) {
+  // ✅ DİĞER EKİP Kutusu - En son tasarımdaki siyah zemin, kalın başlık ve dolgu
+  Widget _buildOtherCrewBox(final BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.6),
+        color: WebColors.darkBlueSurface, // Koyu mavi/gri zemin
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: WebColors.primaryGold, size: 28),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                role,
-                style: TextStyle(
-                  fontSize: context.captionSize,
-                  color: WebColors.textSecondary,
-                ),
-              ),
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: context.bodySize + 2,
-                  fontWeight: FontWeight.bold,
-                  color: WebColors.whiteText,
-                ),
-              ),
-            ],
+          // BAŞLIK
+          Text(
+            'DİĞER EKİP',
+            style: TextStyle(
+              fontSize: context.subtitleSize,
+              fontWeight: FontWeight.w900, // ✅ Ekstra Kalın
+              color: WebColors.primaryGold,
+              letterSpacing: 2,
+            ),
           ),
+          const SizedBox(height: 16),
+
+          // Liste Elemanları
+          _buildCrewMember(context, 'Işık Tasarımı', 'Emre Kahraman'),
+          _buildCrewMember(context, 'Ses & Efekt', 'Gökhan Şener'),
+          _buildCrewMember(context, 'Afiş Tasarımı', 'Tayfun Kızıldağ'),
+          _buildCrewMember(context, 'Dansçı', 'Burcu Koçyiğit'),
         ],
       ),
     );
   }
 
+  // ✅ Ekip Üyesi Listesi - Altın nokta ve kalın rol metni
   Widget _buildCrewMember(
       final BuildContext context, final String role, final String name) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Altın Nokta
           Container(
-            width: 6,
-            height: 6,
+            margin: const EdgeInsets.only(top: 8),
+            width: 8,
+            height: 8,
             decoration: const BoxDecoration(
               color: WebColors.primaryGold,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 12),
+          // Rol ve İsmin birleştirilmesi
           Expanded(
             child: RichText(
               text: TextSpan(
                 style: TextStyle(
-                    fontSize: context.bodySize, color: WebColors.lightWhite),
+                  fontSize: context.bodySize,
+                  color: WebColors.lightWhite,
+                  height: 1.5,
+                ),
                 children: [
+                  // ROL: Kalın ve Sarımsı Altın Renk
                   TextSpan(
                     text: '$role: ',
                     style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: WebColors.primaryGoldLight),
+                      fontWeight: FontWeight.w800, // ✅ Kalın
+                      color: WebColors.primaryGoldLight,
+                    ),
                   ),
-                  TextSpan(text: name),
+                  // İSİM: Normal beyaz renk
+                  TextSpan(
+                      text: name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500, // İsim de okunur olsun
+                      )),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Dramatik İkinci Görsel Metodu (Görseldeki gibi)
+  Widget _buildDramaticSecondImage(final BuildContext context) {
+    return Container(
+      height: context.screenHeight * 0.45,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          // Arka Plan Görseli
+          Positioned.fill(
+            child: Image.network(
+              _secondImage,
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Siyah Filigran/Degrade
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.6),
+                    WebColors.darkBlueBackground.withOpacity(0.9),
+                    // Koyu alt zemin
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Görsel üzerine alıntı
+          Positioned(
+            bottom: 30,
+            left: 24,
+            right: 24,
+            child: Text(
+              '"Vicdani ve Efruz: İki Yüz, Tek Toplum."',
+              style: TextStyle(
+                fontSize: context.subtitleSize,
+                color: WebColors.primaryGoldLight,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w600,
+                shadows: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.9), blurRadius: 8),
+                ],
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
