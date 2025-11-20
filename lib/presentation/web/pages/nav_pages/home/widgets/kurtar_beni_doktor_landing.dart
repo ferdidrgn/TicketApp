@@ -1,362 +1,371 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/util/responsive_utils.dart';
+import '../../../../../../core/theme/app_colors.dart';
 
+// ═══════════════════════════════════════════════════════════
+// 3. KURTAR BENİ DOKTOR LANDING
+// ═══════════════════════════════════════════════════════════
 class KurtarBeniDoktorLanding extends StatelessWidget {
   const KurtarBeniDoktorLanding({super.key});
 
   @override
   Widget build(final BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-
-    return isMobile
-        ? _buildMobileLayout(context)
-        : _buildDesktopLayout(context);
-  }
-
-  Widget _buildMobileLayout(final BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Başlık
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-            color: Colors.black,
-            child: Text(
-              'KURTAR BENİ DOKTOR',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22, // Font size reduced
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          // Ana görsel bölümü
-          Container(
-            height: MediaQuery.of(context).size.height * 0.6,
-            width: double.infinity,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Image.network(
-                    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
-                    fit: BoxFit.fill,
-                    errorBuilder:
-                        (final context, final error, final stackTrace) {
-                      return Container(
-                        color: Colors.grey.shade300,
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported, size: 50),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                // Sevgili Doktor yazısı - sol tarafta
-                Positioned(
-                  right: 10,
-                  child: Container(
-                    padding: const EdgeInsets.all(6), // Padding reduced
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'SEVGİLİ DOKTOR\n"Yalnızlık bazen en iyi doktordur;\ninsan kendini o zaman daha iyi tanır."',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        // Font size reduced
-                        fontStyle: FontStyle.italic,
-                        fontWeight: FontWeight.w500,
-                        height: 1.3, // Line height adjusted
-                      ),
-                    ),
-                  ),
-                ),
-
-                Positioned(
-                  bottom: 20,
-                  left: 20,
-                  child: Container(
-                    padding: const EdgeInsets.all(6), // Padding reduced
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'KADIKÖY\n(İSTANBUL)',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14, // Font size reduced
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // İçerik bölümü
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(15), // Padding reduced
-            color: Colors.white,
-            child: _MobileRightMenu(),
-          ),
-        ],
-      ),
+    return Container(
+      color: WebColors.darkBlueBackground,
+      child: context.isMobile ? _buildMobile(context) : _buildDesktop(context),
     );
   }
 
-  Widget _buildDesktopLayout(final BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
-
-    return SizedBox(
-      height: height,
-      child: Row(
+  Widget _buildMobile(final BuildContext context) {
+    return Column(
         children: [
-          Container(
-            width: width * 0.04,
-            color: Colors.grey.shade100,
-            alignment: Alignment.center,
+          _buildHeader(context),
+          _buildMainImage(context, height: context.screenHeight * 0.6),
+          _buildContentMobile(context),
+        ],
+    );
+  }
+
+  Widget _buildDesktop(final BuildContext context) {
+    return Row(
+      children: [
+        // Sol dekoratif bant
+        Container(
+          width: context.screenWidth * 0.06,
+          decoration: BoxDecoration(
+            gradient: WebColors.goldGradient,
+          ),
+          child: Center(
             child: RotatedBox(
               quarterTurns: 3,
               child: Text(
-                'SEVGİLİ DOKTOR\n"Yalnızlık bazen en iyi doktordur; insan kendini o zaman daha iyi tanır."',
-                textAlign: TextAlign.center,
+                'SEVGİLİ DOKTOR',
                 style: TextStyle(
-                  color: Colors.grey.shade500,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
+                  fontSize: context.subtitleSize,
+                  fontWeight: FontWeight.w900,
+                  color: WebColors.darkBlueBackground,
+                  letterSpacing: 4,
                 ),
               ),
             ),
           ),
-          // Orta görsel
-          Expanded(
-            flex: 3,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Image.network(
-                    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (final context, final error, final stackTrace) {
-                      return Container(
-                        color: Colors.grey.shade300,
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported, size: 100),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const Positioned(
-                  top: 40,
-                  left: 40,
-                  child: Text(
-                    'KURTAR BENİ DOKTOR',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  bottom: 30,
-                  left: 30,
-                  child: Text(
-                    'KADIKÖY\n(İSTANBUL)',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+        ),
+
+        // Orta görsel
+        Expanded(
+          flex: 6,
+          child: _buildMainImage(context, height: context.screenHeight),
+        ),
+
+        // Sağ içerik
+        Container(
+          width: context.screenWidth * 0.25,
+          decoration: const BoxDecoration(
+            gradient: WebColors.backgroundGradient,
+          ),
+          child: _buildContentDesktop(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader(final BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      decoration: BoxDecoration(
+        gradient: WebColors.goldGradient,
+      ),
+      child: Text(
+        'KURTAR BENİ DOKTOR',
+        style: TextStyle(
+          fontSize: context.titleSize,
+          fontWeight: FontWeight.w900,
+          color: WebColors.darkBlueBackground,
+          letterSpacing: 2,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildMainImage(final BuildContext context,
+      {required final double height}) {
+    return Stack(
+      children: [
+        SizedBox(
+          height: height,
+          width: double.infinity,
+          child: Image.network(
+            'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
+            fit: BoxFit.cover,
+            errorBuilder: (final context, final error, final stackTrace) {
+              return Container(
+                color: WebColors.darkBlueSurface,
+                child: const Icon(Icons.image_not_supported, size: 80),
+              );
+            },
+          ),
+        ),
+
+        // Overlay
+        Container(
+          height: height,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                WebColors.darkBlueBackground.withOpacity(0.6),
               ],
             ),
           ),
-          // Sağ Menü
-          Container(
-            width: width * 0.10,
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(
-              vertical: 40,
-              horizontal: 12,
+        ),
+
+        // Quote
+        if (!context.isMobile)
+          Positioned(
+            top: 40,
+            left: 40,
+            right: 40,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: WebColors.goldGradient.scale(0.8),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: WebColors.primaryGold.withOpacity(0.3),
+                    blurRadius: 20,
+                  ),
+                ],
+              ),
+              child: Text(
+                '"Yalnızlık bazen en iyi doktordur;\ninsan kendini o zaman daha iyi tanır."',
+                style: TextStyle(
+                  fontSize: context.bodySize + 2,
+                  fontWeight: FontWeight.w600,
+                  color: WebColors.darkBlueBackground,
+                  fontStyle: FontStyle.italic,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-            child: const _RightMenu(fontSize: 14, headerSize: 16),
-          )
+          ),
+
+        // Konum Badge
+        Positioned(
+          bottom: 30,
+          left: 30,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: WebColors.goldGradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: WebColors.primaryGold.withOpacity(0.4),
+                  blurRadius: 15,
+                ),
+              ],
+            ),
+            child: Text(
+              'KADIKÖY\n(İSTANBUL)',
+              style: TextStyle(
+                fontSize: context.subtitleSize,
+                fontWeight: FontWeight.w900,
+                color: WebColors.darkBlueBackground,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContentMobile(final BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: context.paddingAll,
+      decoration: const BoxDecoration(
+        gradient: WebColors.backgroundGradient,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(context, 'YAZAN - UYARLAYAN & YÖNETEN'),
+          const SizedBox(height: 12),
+          _buildInfoText(context, 'ANTON ÇEHOV\nİSKENDER ATİLLA ATASOY'),
+          const SizedBox(height: 24),
+          _buildDivider(),
+          const SizedBox(height: 24),
+          _buildSectionTitle(context, 'CAST'),
+          const SizedBox(height: 16),
+          _buildCastItem(
+              context, 'Yönetmen Yardımcısı', 'UĞUR KILIÇ - EBRU AKGÜN'),
+          _buildCastItem(context, 'Makyaj', 'DİALRA SEKMEN'),
+          _buildCastItem(context, 'Kostüm', 'DERYA DİNÇER'),
+          _buildCastItem(context, 'Işık', 'SEYİT ÇOLAK'),
+          _buildCastItem(context, 'Asistan', 'DUYGU ŞAHİN'),
+          const SizedBox(height: 24),
+          _buildDivider(),
+          const SizedBox(height: 24),
+          _buildSectionTitle(context, 'OYUNCULAR'),
+          const SizedBox(height: 16),
+          ..._buildActorsList(context),
         ],
       ),
     );
   }
-}
 
-class _RightMenu extends StatelessWidget {
-  final double fontSize;
-  final double headerSize;
-
-  const _RightMenu({
-    required this.fontSize,
-    required this.headerSize,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
+  Widget _buildContentDesktop(final BuildContext context) {
     return SingleChildScrollView(
-      child: Container(
-        height: MediaQuery.of(context).size.height,
-        child: DefaultTextStyle(
-          style: TextStyle(fontSize: fontSize, color: Colors.black),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('YAZAN - UYARLAYAN & YÖNETEN',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: headerSize)),
-              const SizedBox(height: 2), // Spacing reduced
-              const Text('ANTON ÇEHOV\n\nİSKENDER ATİLLA ATASOY'),
-              const Divider(height: 30),
-              Text('CAST',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: headerSize)),
-              const SizedBox(height: 2), // Spacing reduced
-              const Text(
-                  'Yönetmen Yardımcı\nUĞUR KILIÇ-EBRU AKGÜN\n\nMakyaj\nDİALRA SEKMEN\n\nKostüm\nDERYA DİNÇER\n\nIşık\nSEYİT ÇOLAK\n\nAsistan\nDUYGU ŞAHİN'),
-              const Divider(height: 30),
-              Text(
-                'Oyuncular',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: headerSize),
-              ),
-              const SizedBox(height: 2), // Spacing reduced
-              const Text(
-                'ADEM SOY\nNEVZAT KAYAOKAY\nGÜRKAN CANDAN\nZEYNEP ÜĞÜDÜR\nSİTEM ARSLAN GENÇ\n...',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
+      padding: context.paddingAll,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(context, 'YAZAN - UYARLAYAN & YÖNETEN'),
+          const SizedBox(height: 12),
+          _buildInfoText(context, 'ANTON ÇEHOV\nİSKENDER ATİLLA ATASOY'),
+          const SizedBox(height: 24),
+          _buildDivider(),
+          const SizedBox(height: 24),
+          _buildSectionTitle(context, 'CAST'),
+          const SizedBox(height: 16),
+          _buildCastItem(
+              context, 'Yönetmen Yardımcısı', 'UĞUR KILIÇ\nEBRU AKGÜN'),
+          _buildCastItem(context, 'Makyaj', 'DİALRA SEKMEN'),
+          _buildCastItem(context, 'Kostüm', 'DERYA DİNÇER'),
+          _buildCastItem(context, 'Işık', 'SEYİT ÇOLAK'),
+          _buildCastItem(context, 'Asistan', 'DUYGU ŞAHİN'),
+          const SizedBox(height: 24),
+          _buildDivider(),
+          const SizedBox(height: 24),
+          _buildSectionTitle(context, 'OYUNCULAR'),
+          const SizedBox(height: 16),
+          ..._buildActorsList(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(final BuildContext context, final String title) {
+    return ShaderMask(
+      shaderCallback: (final bounds) =>
+          WebColors.goldGradient.createShader(bounds),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: context.subtitleSize,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          letterSpacing: 1.5,
         ),
       ),
     );
   }
-}
 
-class _MobileRightMenu extends StatelessWidget {
-  @override
-  Widget build(final BuildContext context) {
-    return DefaultTextStyle(
-      style: const TextStyle(fontSize: 14, color: Colors.black),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'YAZAN - UYARLAYAN & YÖNETEN',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8), // Spacing reduced
-          const Text(
-            'ANTON ÇEHOV\n\nİSKENDER ATİLLA ATASOY',
-            style: TextStyle(height: 1.3), // Line height adjusted
-          ),
-          const SizedBox(height: 16), // Spacing reduced
-          const Text(
-            'CAST',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8), // Spacing reduced
-          _buildCastSection('Yönetmen Yardımcı', 'UĞUR KILIÇ - EBRU AKGÜN'),
-          _buildCastSection('Makyaj', 'DİALRA SEKMEN'),
-          _buildCastSection('Kostüm', 'DERYA DİNÇER'),
-          _buildCastSection('Işık', 'SEYİT ÇOLAK'),
-          _buildCastSection('Asistan', 'DUYGU ŞAHİN'),
-          const SizedBox(height: 16), // Spacing reduced
-          const Text(
-            'OYUNCULAR',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8), // Spacing reduced
-          _buildActorsList(),
-        ],
+  Widget _buildInfoText(final BuildContext context, final String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: context.bodySize,
+        color: WebColors.lightWhite,
+        height: 1.6,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
 
-  Widget _buildCastSection(final String title, final String name) {
+  Widget _buildCastItem(
+      final BuildContext context, final String role, final String name) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8), // Padding reduced
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: WebColors.primaryGold.withOpacity(0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              role,
+              style: TextStyle(
+                fontSize: context.captionSize,
+                color: WebColors.primaryGoldLight,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 2), // Spacing reduced
-          Text(
-            name,
-            style: const TextStyle(
-              color: Colors.black54,
-              height: 1.2, // Line height adjusted
+            const SizedBox(height: 4),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: context.bodySize - 1,
+                color: WebColors.whiteText,
+                height: 1.3,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildActorsList() {
+  List<Widget> _buildActorsList(final BuildContext context) {
     final actors = [
       'ADEM SOY',
       'NEVZAT KAYAOKAY',
       'GÜRKAN CANDAN',
       'ZEYNEP ÜĞÜDÜR',
       'SİTEM ARSLAN GENÇ',
-      '...',
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: actors
-          .map((final actor) => Padding(
-                padding: const EdgeInsets.only(bottom: 4), // Padding reduced
-                child: Text(
-                  actor,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                    height: 1.2, // Line height adjusted
-                  ),
-                ),
-              ))
-          .toList(),
+    return actors.map((final actor) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: WebColors.primaryGold,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              actor,
+              style: TextStyle(
+                fontSize: context.bodySize - 1,
+                color: WebColors.lightWhite,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      height: 2,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            WebColors.primaryGold,
+            Colors.transparent,
+          ],
+        ),
+      ),
     );
   }
 }
