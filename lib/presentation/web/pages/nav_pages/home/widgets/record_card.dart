@@ -21,7 +21,7 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
 
   // 🔥 FIREBASE STORAGE URL'İNİZ
   final String _audioUrl =
-      'https://firebasestorage.googleapis.com/v0/b/saglamspotflutter-2a1a8.firebasestorage.app/o/voice%2Fgoz_kap_vaz_yap_bakirkoyde_hastane.mp3?alt=media&token=ca5de861-384c-4c13-b6f7-2dec245b0f5e';
+      'https://firebasestorage.googleapis.com/v0/b/saglamspotflutter-2a1a8.firebasestorage.app/o/voice%2Fgoz_kap_vaz_yap_bakirkoyde_hastane.mp3?alt=media&token=c622a859-152f-45f2-807e-e5b56e69d75c';
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   PlayerState _playerState = PlayerState.stopped;
