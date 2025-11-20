@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+
+// Ses çalmak için kütüphane import edilmeli
+import 'package:audioplayers/audioplayers.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
+import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/record_card.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
 // ═══════════════════════════════════════════════════════════
-// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING - TEK KART VERSİYON
+// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING (FİNAL)
 // ═══════════════════════════════════════════════════════════
 class GozYapVazYapLanding extends StatelessWidget {
   const GozYapVazYapLanding({super.key});
@@ -27,7 +31,7 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ---------------- ANA BAŞLIK BÖLÜMÜ (ORTALANMIŞ) ----------------
+  // ---------------- ANA BAŞLIK BÖLÜMÜ ----------------
   Widget _buildTopHeader(final BuildContext context) {
     return Container(
       width: double.infinity,
@@ -38,7 +42,6 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // BAŞLIK
           ShaderMask(
             shaderCallback: (final bounds) =>
                 WebColors.goldGradient.createShader(bounds),
@@ -55,7 +58,6 @@ class GozYapVazYapLanding extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          // Konum bilgisi
           Text(
             '1889 SES TİYATROSU (TAKSİM)',
             style: TextStyle(
@@ -71,7 +73,7 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ---------------- MERKEZ GÖRSELİ (YAZAR/YÖNETMEN TEK KARTTA SAĞ ÜSTTE) ----------------
+  // ---------------- MERKEZ GÖRSELİ (DÖNEN PLAK / 399 NUMARA) ----------------
   Widget _buildMainImageSection(final BuildContext context) {
     return Container(
       height: context.responsive(mobile: 350.0, desktop: 500.0),
@@ -79,12 +81,8 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: Image.network(
-              _mainImage,
-              fit: BoxFit.cover,
-            ),
+            child: Image.network(_mainImage, fit: BoxFit.cover),
           ),
-          // Siyaha ve Hafif Sarı Işığa Çalan Gradient (Dramatik Görünüm)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -100,12 +98,11 @@ class GozYapVazYapLanding extends StatelessWidget {
             ),
           ),
 
-          // ✅ SAĞ ÜST KÖŞE: YAZAR ve YÖNETMEN (Tek Kart)
+          // ✅ SAĞ ÜST KÖŞE: Dönen Plak / 399 Numara
           Positioned(
             top: context.responsive(mobile: 15.0, desktop: 40.0),
             right: context.responsive(mobile: 15.0, desktop: 40.0),
-            // SAĞA SABİTLENDİ
-            child: const _CreatorCombinedCard(),
+            child: const RecordPlayerCard(),
           ),
 
           // Alıntı Metni
@@ -146,6 +143,10 @@ class GozYapVazYapLanding extends StatelessWidget {
         children: [
           _buildDivider(),
           const SizedBox(height: 40),
+          _buildCreativeTeamSection(context),
+          // const SizedBox(height: 40), // Temalar bölümü kaldırıldığı için boşluklar düzenlendi.
+          // _buildThemesSection(context), // KALDIRILDI
+          const SizedBox(height: 40),
           _buildResponsiveGameDetails(context),
           const SizedBox(height: 20),
           _buildDivider(),
@@ -179,11 +180,149 @@ class GozYapVazYapLanding extends StatelessWidget {
     }
   }
 
-  // ---------------- OYUN METNİ VE İKİNCİ GÖRSEL ----------------
+  // ---------------- YARATICI EKİP BÖLÜMÜ ----------------
+  Widget _buildCreativeTeamSection(final BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ShaderMask(
+          shaderCallback: (final bounds) =>
+              WebColors.goldGradient.createShader(bounds),
+          child: Text(
+            'YARATICI EKİP',
+            style: TextStyle(
+              fontSize: context.responsive(mobile: 20, desktop: 28),
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          height: 3,
+          width: 80,
+          decoration: const BoxDecoration(gradient: WebColors.goldGradient),
+        ),
+        const SizedBox(height: 30),
+        context.isMobile
+            ? _buildCreativeTeamMobile(context)
+            : _buildCreativeTeamDesktop(context),
+      ],
+    );
+  }
+
+  Widget _buildCreativeTeamDesktop(final BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildTeamMemberCard(
+            context: context,
+            role: 'YAZAN',
+            name: 'HALDUN TANER',
+            icon: Icons.edit_outlined,
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: _buildTeamMemberCard(
+            context: context,
+            role: 'YÖNETMEN',
+            name: 'EFSUN KAYGUSUZ',
+            icon: Icons.theater_comedy_outlined,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCreativeTeamMobile(final BuildContext context) {
+    return Column(
+      children: [
+        _buildTeamMemberCard(
+          context: context,
+          role: 'YAZAN',
+          name: 'HALDUN TANER',
+          icon: Icons.edit_outlined,
+        ),
+        const SizedBox(height: 16),
+        _buildTeamMemberCard(
+          context: context,
+          role: 'YÖNETMEN',
+          name: 'EFSUN KAYGUSUZ',
+          icon: Icons.theater_comedy_outlined,
+        ),
+      ],
+    );
+  }
+
+  // ---------------- YARDIMCI METOTLAR ----------------
+  Widget _buildTeamMemberCard({
+    required final BuildContext context,
+    required final String role,
+    required final String name,
+    required final IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: WebColors.primaryGold.withOpacity(0.5), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: WebColors.primaryGold.withOpacity(0.2),
+            blurRadius: 25,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: WebColors.goldGradient,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: WebColors.darkBlueBackground, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                role,
+                style: TextStyle(
+                  fontSize: context.captionSize,
+                  color: WebColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: context.bodySize + 2,
+                  fontWeight: FontWeight.w900,
+                  color: WebColors.whiteText,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSecondImageManifesto(final BuildContext context,
       {final bool isMobile = false}) {
-    // Aynı kalır
     return Container(
       height: isMobile ? 350 : 500,
       decoration: BoxDecoration(
@@ -201,10 +340,7 @@ class GozYapVazYapLanding extends StatelessWidget {
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                _secondImage,
-                fit: BoxFit.cover,
-              ),
+              child: Image.network(_secondImage, fit: BoxFit.cover),
             ),
           ),
           Positioned.fill(
@@ -266,9 +402,7 @@ class GozYapVazYapLanding extends StatelessWidget {
         Container(
           height: 3,
           width: 80,
-          decoration: const BoxDecoration(
-            gradient: WebColors.goldGradient,
-          ),
+          decoration: const BoxDecoration(gradient: WebColors.goldGradient),
         ),
         const SizedBox(height: 20),
         _buildParagraph(
@@ -286,9 +420,8 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ---------------- TEKNİK EKİP KUTUSU ----------------
   Widget _buildOtherCrewBox(final BuildContext context) {
-    final crewList = [
+    final List<Map<String, dynamic>> crewList = [
       {'role': 'Işık Tasarımı', 'name': 'Emre Kahraman'},
       {'role': 'Ses & Efekt', 'name': 'Gökhan Şener'},
       {'role': 'Afiş Tasarımı', 'name': 'Tayfun Kızıldağ'},
@@ -321,15 +454,14 @@ class GozYapVazYapLanding extends StatelessWidget {
             spacing: context.responsive(mobile: 10.0, desktop: 25.0),
             runSpacing: 10,
             children: crewList.map((final crew) {
-              return _buildCrewMember(context, crew['role']!, crew['name']!);
+              return _buildCrewMember(
+                  context, crew['role']! as String, crew['name']! as String);
             }).toList(),
           ),
         ],
       ),
     );
   }
-
-  // ---------------- YARDIMCI WIDGETLAR ----------------
 
   Widget _buildSectionTitle(final BuildContext context, final String title) {
     return ShaderMask(
@@ -439,127 +571,6 @@ class GozYapVazYapLanding extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// YENİ WIDGET: YAZAR VE YÖNETMENİ TEK KARTTA TOPLAYAN WIDGET (AŞIRI KÜÇÜLTÜLMÜŞ MOBİL)
-// ═══════════════════════════════════════════════════════════
-class _CreatorCombinedCard extends StatelessWidget {
-  const _CreatorCombinedCard();
-
-  @override
-  Widget build(final BuildContext context) {
-    final double baseFontSize = context.responsive(mobile: 8.0, desktop: 12.0);
-    final double iconSize = context.responsive(mobile: 10.0, desktop: 14.0);
-    return Container(
-      // ✅ PADDING EN AZA İNDİRİLDİ (4.0)
-      padding: EdgeInsets.symmetric(
-        horizontal: context.responsive(mobile: 8.0, desktop: 12.0),
-        vertical: context.responsive(mobile: 8.0, desktop: 12.0),
-      ),
-      // ARKA PLAN VE ÇERÇEVE STİLİ
-      decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.98),
-        borderRadius: BorderRadius.circular(16),
-        // ✅ KÖŞE RADIUSU ARTIRILDI (16)
-        border: Border.all(
-            color: WebColors.primaryGold.withOpacity(0.8), width: 0.5),
-        // Çerçeve daha ince
-        boxShadow: [
-          BoxShadow(
-            color: WebColors.primaryGold.withOpacity(0.15),
-            blurRadius: 3, // Gölge minimum
-            spreadRadius: 0.5,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // YAZAR (Haldun Taner daha büyük)
-          _buildCreatorLine(
-            context,
-            role: 'YAZAN',
-            name: 'HALDUN TANER',
-            icon: Icons.edit_outlined,
-            iconSize: iconSize,
-            nameSize: baseFontSize + 1.5,
-            // Haldun Taner en büyük
-            roleSize: baseFontSize - 2,
-            isPrimary: true,
-          ),
-          const SizedBox(height: 3), // Boşluk minimum
-          // YÖNETMEN (Efsun Kaygusuz daha küçük)
-          _buildCreatorLine(
-            context,
-            role: 'YÖNETMEN',
-            name: 'EFSUN KAYGUSUZ',
-            icon: Icons.theater_comedy_outlined,
-            iconSize: iconSize,
-            nameSize: baseFontSize - 0.5,
-            // Efsun Kaygusuz küçük
-            roleSize: baseFontSize - 2,
-            isPrimary: false,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Yardımcı metot
-  Widget _buildCreatorLine(
-    final BuildContext context, {
-    required final String role,
-    required final String name,
-    required final IconData icon,
-    required final double iconSize,
-    required final double nameSize,
-    required final double roleSize,
-    required final bool isPrimary,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Metin Alanı
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              role,
-              style: TextStyle(
-                fontSize: roleSize,
-                fontWeight: FontWeight.w600,
-                color: WebColors.textSecondary,
-                letterSpacing: 0.5,
-              ),
-            ),
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: nameSize,
-                fontWeight: isPrimary ? FontWeight.w900 : FontWeight.w800,
-                color: WebColors.primaryGoldLight,
-                letterSpacing: 0.8,
-                height: 1.1,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 5), // Boşluk minimum
-        // İKON KUTUSU
-        Container(
-          padding: const EdgeInsets.all(5), // Padding minimum
-          decoration: BoxDecoration(
-            gradient: WebColors.goldGradient,
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child:
-              Icon(icon, color: WebColors.darkBlueBackground, size: iconSize),
-        ),
-      ],
     );
   }
 }

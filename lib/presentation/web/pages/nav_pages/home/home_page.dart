@@ -9,6 +9,7 @@ import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/kurtar_b
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
+import '../../../navigation/widgets/footer.dart';
 
 class HomePage extends StatefulWidget {
   final GlobalKey showsKey;
@@ -122,10 +123,7 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             children: [
               // Hero Section
-              Container(
-                key: _homeKey,
-                child: const HeroVideoSection(),
-              ),
+              Container(key: _homeKey, child: const HeroVideoSection()),
 
               const SizedBox(height: 40),
 
@@ -133,16 +131,10 @@ class _HomePageState extends State<HomePage> {
               _buildQuoteSection(),
 
               // Shows Section
-              Container(
-                key: widget.showsKey,
-                child: const ShowsSection(),
-              ),
+              Container(key: widget.showsKey, child: const ShowsSection()),
 
               // Metafor Landing
-              Container(
-                key: widget.artisticKey,
-                child: const MetaforLanding(),
-              ),
+              Container(key: widget.artisticKey, child: const MetaforLanding()),
 
               const SizedBox(height: 40),
 
@@ -155,25 +147,17 @@ class _HomePageState extends State<HomePage> {
               const GozYapVazYapLanding(),
 
               // About Section
-              Container(
-                key: widget.aboutKey,
-                child: const AboutCard(),
-              ),
+              Container(key: widget.aboutKey, child: const AboutCard()),
 
               // Team Section
-              Container(
-                key: widget.teamKey,
-                child: const TeamCard(),
-              ),
+              Container(key: widget.teamKey, child: const TeamCard()),
 
               // Contact Section
-              Container(
-                key: widget.contactKey,
-                child: const ContactCard(),
-              ),
+              Container(key: widget.contactKey, child: const ContactCard()),
 
               // Footer spacing
               const SizedBox(height: 60),
+              const ArtFooter(),
             ],
           ),
         ),

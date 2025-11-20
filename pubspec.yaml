@@ -51,6 +51,7 @@ dependencies:
   #Resim - Video
   cached_network_image:  #Resimleri önbelleğe alır.
   video_player: ^2.7.0   #Video Oynatıcısı
+  audioplayers: ^6.0.0   #Ses Oynatıcısı
 
   # Yerel Depolama
   shared_preferences:  # Kalıcı veri depolamak için.
