@@ -3,7 +3,7 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
 // ═══════════════════════════════════════════════════════════
-// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING - GÖRSEL ŞÖLENLİ VERSİYON
+// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING - SON REVİZYON (YAZAR/YÖNETMEN TEK NOKTADA)
 // ═══════════════════════════════════════════════════════════
 class GozYapVazYapLanding extends StatelessWidget {
   const GozYapVazYapLanding({super.key});
@@ -27,7 +27,7 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ---------------- ANA BAŞLIK BÖLÜMÜ ----------------
+  // ---------------- ANA BAŞLIK BÖLÜMÜ (ORTALANMIŞ) ----------------
   Widget _buildTopHeader(final BuildContext context) {
     return Container(
       width: double.infinity,
@@ -36,31 +36,41 @@ class GozYapVazYapLanding extends StatelessWidget {
         gradient: WebColors.backgroundGradient,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // BAŞLIK (Uyumlu)
+          // BAŞLIK
           ShaderMask(
             shaderCallback: (final bounds) =>
                 WebColors.goldGradient.createShader(bounds),
             child: Text(
-              'GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM',
+              'GÖZLERİMİ KAPARIM\nVAZİFEMİ YAPARIM',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: context.responsive(mobile: 30.0, desktop: 48.0),
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
                 letterSpacing: 2,
+                height: 1.2,
               ),
             ),
           ),
           const SizedBox(height: 24),
-          // Konum Kartı buradan kaldırıldı.
+          // Konum bilgisi
+          Text(
+            '1889 SES TİYATROSU (TAKSİM)',
+            style: TextStyle(
+              fontSize: context.bodySize + 2,
+              fontWeight: FontWeight.w600,
+              color: WebColors.primaryGoldLight,
+            ),
+          ),
+          const SizedBox(height: 16),
           _buildDivider(),
         ],
       ),
     );
   }
 
-  // ---------------- MERKEZ GÖRSELİ (DRAMATİK VE YENİ KONUM ROZETİ) ----------------
   Widget _buildMainImageSection(final BuildContext context) {
     return Container(
       height: context.responsive(mobile: 350.0, desktop: 500.0),
@@ -73,7 +83,7 @@ class GozYapVazYapLanding extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
-          // ✅ Siyaha ve Hafif Sarı Işığa Çalan Gradient (Dramatik Görünüm)
+          // Siyaha ve Hafif Sarı Işığa Çalan Gradient (Dramatik Görünüm)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -89,14 +99,11 @@ class GozYapVazYapLanding extends StatelessWidget {
             ),
           ),
 
-          // ✅ Konum Rozeti (Sol Üst Köşe - Raptiye Efekti)
+          // ✅ SOL ÜST KÖŞE: YAZAR ve YÖNETMEN (Alt Alta)
           Positioned(
             top: context.responsive(mobile: 20.0, desktop: 40.0),
             left: context.responsive(mobile: 20.0, desktop: 40.0),
-            child: _LocationPinBadge(
-              location: '1889 SES TİYATROSU (TAKSİM)',
-              context: context,
-            ),
+            child: _buildCreatorInfoBox(context), // Yazar/Yönetmen burada
           ),
 
           // Alıntı Metni
@@ -124,6 +131,104 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
+  // ✅ YENİ: Yazar ve Yönetmen Bilgisini Alt Alta Tutacak Kutu
+  Widget _buildCreatorInfoBox(final BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(context.responsive(mobile: 16.0, desktop: 20.0)),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.95), // Koyu zemin
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: WebColors.primaryGold.withOpacity(0.8),
+            width: 3), // Kalın altın çerçeve
+        boxShadow: [
+          BoxShadow(
+            color: WebColors.primaryGold.withOpacity(0.5),
+            blurRadius: 25,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // İçeriğe göre boyut
+        children: [
+          // 1. YAZAR
+          _buildCreatorLine(
+            context,
+            role: 'YAZAN',
+            name: 'HALDUN TANER',
+            icon: Icons.edit_outlined,
+            isPrimary: true,
+          ),
+          const SizedBox(height: 12), // ✅ Hafif boşluk
+          // 2. YÖNETMEN
+          _buildCreatorLine(
+            context,
+            role: 'YÖNETMEN',
+            name: 'EFSUN KAYGUSUZ',
+            icon: Icons.theater_comedy_outlined,
+            isPrimary: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ YENİ YARDIMCI: Tek bir yazar/yönetmen satırı
+  Widget _buildCreatorLine(
+    final BuildContext context, {
+    required final String role,
+    required final String name,
+    required final IconData icon,
+    required final bool isPrimary,
+  }) {
+    final double nameSize = context.responsive(mobile: 16.0, desktop: 20.0);
+    final double roleSize = context.responsive(mobile: 12.0, desktop: 14.0);
+    final double iconSize = context.responsive(mobile: 20.0, desktop: 24.0);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // İKON KUTUSU (Altın Vurgu)
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            gradient: WebColors.goldGradient,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child:
+              Icon(icon, color: WebColors.darkBlueBackground, size: iconSize),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              role,
+              style: TextStyle(
+                fontSize: roleSize,
+                fontWeight: FontWeight.w600,
+                color: WebColors.textSecondary,
+                letterSpacing: 1,
+              ),
+            ),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: isPrimary ? nameSize : nameSize - 2,
+                fontWeight: isPrimary ? FontWeight.w900 : FontWeight.w800,
+                color: WebColors.primaryGoldLight,
+                letterSpacing: 1.2,
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   // ---------------- İÇERİK BÖLÜMÜ ----------------
   Widget _buildContentSection(final BuildContext context) {
     return Container(
@@ -135,11 +240,14 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCreativeTeamSection(context),
-          const SizedBox(height: 40),
+          // Alt alta sade akış
           _buildDivider(),
           const SizedBox(height: 40),
           _buildResponsiveGameDetails(context),
+          const SizedBox(height: 40),
+          _buildDivider(),
+          const SizedBox(height: 40),
+          _buildOtherCrewBox(context),
           const SizedBox(height: 40),
         ],
       ),
@@ -168,150 +276,11 @@ class GozYapVazYapLanding extends StatelessWidget {
     }
   }
 
-  // ---------------- YARATICI EKİP BÖLÜMÜ ----------------
-  Widget _buildCreativeTeamSection(final BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ShaderMask(
-          shaderCallback: (final bounds) =>
-              WebColors.goldGradient.createShader(bounds),
-          child: Text(
-            'YARATICI EKİP',
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 20, desktop: 28),
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          height: 3,
-          width: 80,
-          decoration: const BoxDecoration(
-            gradient: WebColors.goldGradient,
-          ),
-        ),
-        const SizedBox(height: 30),
-        context.isMobile
-            ? _buildCreativeTeamMobile(context)
-            : _buildCreativeTeamDesktop(context),
-      ],
-    );
-  }
-
-  Widget _buildCreativeTeamDesktop(final BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildTeamMemberCard(
-            context: context,
-            role: 'YAZAN',
-            name: 'HALDUN TANER',
-            icon: Icons.edit_outlined,
-          ),
-        ),
-        const SizedBox(width: 20),
-        Expanded(
-          child: _buildTeamMemberCard(
-            context: context,
-            role: 'YÖNETMEN',
-            name: 'EFSUN KAYGUSUZ',
-            icon: Icons.theater_comedy_outlined,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCreativeTeamMobile(final BuildContext context) {
-    return Column(
-      children: [
-        _buildTeamMemberCard(
-          context: context,
-          role: 'YAZAN',
-          name: 'HALDUN TANER',
-          icon: Icons.edit_outlined,
-        ),
-        const SizedBox(height: 16),
-        _buildTeamMemberCard(
-          context: context,
-          role: 'YÖNETMEN',
-          name: 'EFSUN KAYGUSUZ',
-          icon: Icons.theater_comedy_outlined,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTeamMemberCard({
-    required final BuildContext context,
-    required final String role,
-    required final String name,
-    required final IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: WebColors.primaryGold.withOpacity(0.5), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: WebColors.primaryGold.withOpacity(0.2),
-            blurRadius: 25,
-            spreadRadius: 5,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: WebColors.goldGradient,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: WebColors.darkBlueBackground, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                role,
-                style: TextStyle(
-                  fontSize: context.captionSize,
-                  color: WebColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: context.bodySize + 2,
-                  fontWeight: FontWeight.w900,
-                  color: WebColors.whiteText,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  // ---------------- OYUN METNİ VE İKİNCİ GÖRSEL ----------------
 
   Widget _buildSecondImageManifesto(final BuildContext context,
       {final bool isMobile = false}) {
+    // Aynı kalır
     return Container(
       height: isMobile ? 350 : 500,
       decoration: BoxDecoration(
@@ -390,6 +359,14 @@ class GozYapVazYapLanding extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle(context, 'OYUN HAKKINDA'),
+        const SizedBox(height: 10),
+        Container(
+          height: 3,
+          width: 80,
+          decoration: const BoxDecoration(
+            gradient: WebColors.goldGradient,
+          ),
+        ),
         const SizedBox(height: 20),
         _buildParagraph(
           context,
@@ -402,8 +379,58 @@ class GozYapVazYapLanding extends StatelessWidget {
           isEmphasis: true,
         ),
         const SizedBox(height: 40),
-        _buildOtherCrewBox(context),
       ],
+    );
+  }
+
+  // ---------------- TEKNİK EKİP KUTUSU ----------------
+  Widget _buildOtherCrewBox(final BuildContext context) {
+    final crewList = [
+      {'role': 'Işık Tasarımı', 'name': 'Emre Kahraman'},
+      {'role': 'Ses & Efekt', 'name': 'Gökhan Şener'},
+      {'role': 'Afiş Tasarımı', 'name': 'Tayfun Kızıldağ'},
+      {'role': 'Dansçı', 'name': 'Burcu Koçyiğit'},
+    ];
+
+    return Container(
+      padding: context.responsive(
+          mobile: const EdgeInsets.all(20), desktop: const EdgeInsets.all(28)),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: WebColors.primaryGold.withOpacity(0.5), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: WebColors.primaryGold.withOpacity(0.15),
+            blurRadius: 15,
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'TEKNİK EKİP',
+            style: TextStyle(
+              fontSize: context.subtitleSize,
+              fontWeight: FontWeight.w900,
+              color: WebColors.primaryGoldLight,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildDivider(),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: context.responsive(mobile: 10.0, desktop: 25.0),
+            runSpacing: 10,
+            children: crewList.map((final crew) {
+              return _buildCrewMember(context, crew['role']!, crew['name']!);
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -467,90 +494,40 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  Widget _buildOtherCrewBox(final BuildContext context) {
-    return Container(
-      padding: context.responsive(
-          mobile: const EdgeInsets.all(20), desktop: const EdgeInsets.all(28)),
-      decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: WebColors.primaryGold.withOpacity(0.5), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: WebColors.primaryGold.withOpacity(0.15),
-            blurRadius: 15,
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'OYUN EKİBİ',
-            style: TextStyle(
-              fontSize: context.subtitleSize,
-              fontWeight: FontWeight.w900,
-              color: WebColors.primaryGoldLight,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildDivider(),
-          const SizedBox(height: 16),
-          _buildCrewMember(context, 'Işık Tasarımı', 'Emre Kahraman'),
-          _buildCrewMember(context, 'Ses & Efekt', 'Gökhan Şener'),
-          _buildCrewMember(context, 'Afiş Tasarımı', 'Tayfun Kızıldağ'),
-          _buildCrewMember(context, 'Dansçı', 'Burcu Koçyiğit'),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCrewMember(
       final BuildContext context, final String role, final String name) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              color: WebColors.primaryGold,
-              shape: BoxShape.circle,
-            ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 5),
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(
+            fontSize: context.bodySize - 1,
+            color: WebColors.lightWhite,
+            height: 1.5,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontSize: context.bodySize,
-                  color: WebColors.lightWhite,
-                  height: 1.5,
-                ),
-                children: [
-                  TextSpan(
-                    text: '$role: ',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: WebColors.primaryGoldLight,
-                    ),
-                  ),
-                  TextSpan(
-                      text: name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: WebColors.lightWhite,
-                      )),
-                ],
+          children: [
+            const TextSpan(
+              text: '• ',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: WebColors.primaryGold,
               ),
             ),
-          ),
-        ],
+            TextSpan(
+              text: '$role: ',
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: WebColors.primaryGoldLight,
+              ),
+            ),
+            TextSpan(
+                text: name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: WebColors.lightWhite,
+                )),
+          ],
+        ),
       ),
     );
   }
@@ -567,101 +544,6 @@ class GozYapVazYapLanding extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// YENİ WIDGET: ANİMASYONLU KONUM ROZETİ (LOCATION PIN BADGE)
-// ═══════════════════════════════════════════════════════════
-class _LocationPinBadge extends StatefulWidget {
-  final String location;
-  final BuildContext context;
-
-  const _LocationPinBadge({required this.location, required this.context});
-
-  @override
-  State<_LocationPinBadge> createState() => _LocationPinBadgeState();
-}
-
-class _LocationPinBadgeState extends State<_LocationPinBadge>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _rotationAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
-
-    _scaleAnimation = Tween<double>(begin: 0.98, end: 1.02).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
-    );
-    // Hafif bir titreme efekti için
-    _rotationAnimation = Tween<double>(begin: -0.01, end: 0.01).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(final BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (final context, final child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Transform.rotate(
-            angle: _rotationAnimation.value,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white, // Raptiye efekti için Beyaz zemin
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: WebColors.primaryGold.withOpacity(0.5), width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: WebColors.darkBlueBackground.withOpacity(0.5),
-                    blurRadius: 10,
-                    offset: const Offset(5, 5), // Hafif kalkık gölge
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.location_on_rounded,
-                      color: WebColors.error, size: 28),
-                  const SizedBox(width: 12),
-                  // Raptiye
-                  const Icon(Icons.push_pin, color: WebColors.error, size: 18),
-                  const SizedBox(width: 12),
-                  Text(
-                    widget.location,
-                    style: TextStyle(
-                      fontSize: widget.context
-                          .responsive(mobile: 12.0, desktop: 16.0),
-                      fontWeight: FontWeight.w900,
-                      color: WebColors.darkBlueBackground,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
