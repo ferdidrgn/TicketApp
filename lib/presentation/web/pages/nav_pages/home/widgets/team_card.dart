@@ -186,7 +186,7 @@ class _TeamCardState extends State<TeamCard> {
 
   Widget _buildTeamCarousel(final BuildContext context) {
     return SizedBox(
-      height: 420, // Yeterli dikey alan: 400 + 20
+      height: 430,
       child: Stack(
         children: [
           ListView.builder(
