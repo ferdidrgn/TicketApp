@@ -3,7 +3,7 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
 // ═══════════════════════════════════════════════════════════
-// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING - CANLANDIRILMIŞ VERSİYON
+// GÖZLERİMİ KAPARIM VAZİFEMİ YAPARIM LANDING - GÖRSEL ŞÖLENLİ VERSİYON
 // ═══════════════════════════════════════════════════════════
 class GozYapVazYapLanding extends StatelessWidget {
   const GozYapVazYapLanding({super.key});
@@ -27,7 +27,7 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ---------------- ANA BAŞLIK BÖLÜMÜ (UYUMLU) ----------------
+  // ---------------- ANA BAŞLIK BÖLÜMÜ ----------------
   Widget _buildTopHeader(final BuildContext context) {
     return Container(
       width: double.infinity,
@@ -38,7 +38,7 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BAŞLIK
+          // BAŞLIK (Uyumlu)
           ShaderMask(
             shaderCallback: (final bounds) =>
                 WebColors.goldGradient.createShader(bounds),
@@ -53,17 +53,14 @@ class GozYapVazYapLanding extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          // KONUM KARTI
-          _buildLocationCard(context, '1889 SES TİYATROSU', '(TAKSİM)'),
-          const SizedBox(height: 16),
-          // AYRAÇ
+          // Konum Kartı buradan kaldırıldı.
           _buildDivider(),
         ],
       ),
     );
   }
 
-  // ---------------- MERKEZ GÖRSELİ (DRAMATİK) ----------------
+  // ---------------- MERKEZ GÖRSELİ (DRAMATİK VE YENİ KONUM ROZETİ) ----------------
   Widget _buildMainImageSection(final BuildContext context) {
     return Container(
       height: context.responsive(mobile: 350.0, desktop: 500.0),
@@ -76,23 +73,33 @@ class GozYapVazYapLanding extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
-          // ✅ Siyaha Çalan Güçlü Gradient (Okunabilirlik İçin)
+          // ✅ Siyaha ve Hafif Sarı Işığa Çalan Gradient (Dramatik Görünüm)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.center,
+                  begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.3),
-                    // Üstten hafif siyah
+                    Colors.black.withOpacity(0.4),
                     WebColors.darkBlueBackground.withOpacity(0.9),
-                    // Alttan koyu
                   ],
                 ),
               ),
             ),
           ),
+
+          // ✅ Konum Rozeti (Sol Üst Köşe - Raptiye Efekti)
+          Positioned(
+            top: context.responsive(mobile: 20.0, desktop: 40.0),
+            left: context.responsive(mobile: 20.0, desktop: 40.0),
+            child: _LocationPinBadge(
+              location: '1889 SES TİYATROSU (TAKSİM)',
+              context: context,
+            ),
+          ),
+
+          // Alıntı Metni
           Positioned(
             bottom: 30,
             left: 30,
@@ -117,7 +124,7 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ---------------- İÇERİK BÖLÜMÜ (YARATICI EKİP + OYUN BÖLÜMÜ) ----------------
+  // ---------------- İÇERİK BÖLÜMÜ ----------------
   Widget _buildContentSection(final BuildContext context) {
     return Container(
       width: double.infinity,
@@ -128,18 +135,11 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // YARATICI EKİP
           _buildCreativeTeamSection(context),
-
           const SizedBox(height: 40),
-
-          // AYRAÇ
           _buildDivider(),
           const SizedBox(height: 40),
-
-          // ✅ RESPONSIVE OYUN/EKİP BÖLÜMÜ (2. Görsel ile Metin Birleşimi)
           _buildResponsiveGameDetails(context),
-
           const SizedBox(height: 40),
         ],
       ),
@@ -148,7 +148,6 @@ class GozYapVazYapLanding extends StatelessWidget {
 
   // ---------------- RESPONSIVE OYUN DETAYLARI ----------------
   Widget _buildResponsiveGameDetails(final BuildContext context) {
-    // Mobil: Görsel ve metin alt alta
     if (context.isMobile) {
       return Column(
         children: [
@@ -157,9 +156,7 @@ class GozYapVazYapLanding extends StatelessWidget {
           _buildTextContentAndCrew(context),
         ],
       );
-    }
-    // Masaüstü: Görsel ve metin yan yana
-    else {
+    } else {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -171,117 +168,11 @@ class GozYapVazYapLanding extends StatelessWidget {
     }
   }
 
-  // ✅ 2. GÖRSELİ MANİFESTOYA ÇEVİREN YENİ WIDGET
-  Widget _buildSecondImageManifesto(final BuildContext context,
-      {final bool isMobile = false}) {
-    return Container(
-      height: isMobile ? 350 : 500,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: WebColors.primaryGold.withOpacity(0.3),
-            blurRadius: 20,
-            spreadRadius: 2,
-          )
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Görsel
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                _secondImage,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          // Gradient Overlay (Daha Opak)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.6),
-                    WebColors.darkBlueBackground.withOpacity(0.9),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Manifesto Metni
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: isMobile ? 50 : 80,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TOPLUMSAL VİCDANIN İKİ YÜZÜ:',
-                  style: TextStyle(
-                    fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
-                    color: WebColors.warning,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '"Körlükle kazanılan zenginlik ve dürüstlükle kaybedilen hayatlar."',
-                  style: TextStyle(
-                    fontSize: context.responsive(mobile: 20.0, desktop: 28.0),
-                    color: WebColors.primaryGoldLight,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w700,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✅ OYUN METNİ VE EKİP LİSTESİNİ İÇEREN YENİ WIDGET
-  Widget _buildTextContentAndCrew(final BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle(context, 'OYUN HAKKINDA'),
-        const SizedBox(height: 20),
-        // Ana Metin
-        _buildParagraph(
-          context,
-          'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor. Vicdani (Saf ve Dürüst) ile Efruz (Köşe Dönücü ve Fırsatçı) arasındaki çatışma, devleti sömürenler ve itaat edenler arasındaki dengesizliği gözler önüne seriyor.',
-        ),
-        const SizedBox(height: 16),
-        // Vurgulu Metin
-        _buildParagraph(
-          context,
-          '"Gözlerimi Kaparım Vazifemi Yaparım" aynı zamanda değişen toplumsal değerleri ve bireyin bu değişim karşısındaki duruşunu mizahi bir dille sorguluyor.',
-          isEmphasis: true,
-        ),
-        const SizedBox(height: 40),
-        // Ekip Kutusu artık burada
-        _buildOtherCrewBox(context),
-      ],
-    );
-  }
-
-  // ---------------- YARATICI EKİP BÖLÜMÜ (YENİ STİL VE TUTARLI AYRAÇ) ----------------
+  // ---------------- YARATICI EKİP BÖLÜMÜ ----------------
   Widget _buildCreativeTeamSection(final BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // BAŞLIK - Altın gradient
         ShaderMask(
           shaderCallback: (final bounds) =>
               WebColors.goldGradient.createShader(bounds),
@@ -296,7 +187,6 @@ class GozYapVazYapLanding extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        // Sarı Ayraç (Tutarlı)
         Container(
           height: 3,
           width: 80,
@@ -305,8 +195,6 @@ class GozYapVazYapLanding extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 30),
-
-        // YAZAR VE YÖNETMEN KARTLARI
         context.isMobile
             ? _buildCreativeTeamMobile(context)
             : _buildCreativeTeamDesktop(context),
@@ -358,7 +246,6 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ✅ YENİ YARDIMCI METOT: Creative Team Kart Stili (Elevation/Derinlik Eklendi)
   Widget _buildTeamMemberCard({
     required final BuildContext context,
     required final String role,
@@ -372,7 +259,6 @@ class GozYapVazYapLanding extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border:
             Border.all(color: WebColors.primaryGold.withOpacity(0.5), width: 2),
-        // ✅ GÖLGELER VE DERİNLİK EFEKTİ EKLENDİ
         boxShadow: [
           BoxShadow(
             color: WebColors.primaryGold.withOpacity(0.2),
@@ -389,7 +275,6 @@ class GozYapVazYapLanding extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // İKON
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -402,7 +287,6 @@ class GozYapVazYapLanding extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ROL
               Text(
                 role,
                 style: TextStyle(
@@ -411,7 +295,6 @@ class GozYapVazYapLanding extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              // İSİM
               Text(
                 name,
                 style: TextStyle(
@@ -427,9 +310,105 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
+  Widget _buildSecondImageManifesto(final BuildContext context,
+      {final bool isMobile = false}) {
+    return Container(
+      height: isMobile ? 350 : 500,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: WebColors.primaryGold.withOpacity(0.3),
+            blurRadius: 20,
+            spreadRadius: 2,
+          )
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(
+                _secondImage,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.6),
+                    WebColors.darkBlueBackground.withOpacity(0.9),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: isMobile ? 50 : 80,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TOPLUMSAL VİCDANIN İKİ YÜZÜ:',
+                  style: TextStyle(
+                    fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
+                    color: WebColors.warning,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '"Körlükle kazanılan zenginlik ve dürüstlükle kaybedilen hayatlar."',
+                  style: TextStyle(
+                    fontSize: context.responsive(mobile: 20.0, desktop: 28.0),
+                    color: WebColors.primaryGoldLight,
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.w700,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextContentAndCrew(final BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle(context, 'OYUN HAKKINDA'),
+        const SizedBox(height: 20),
+        _buildParagraph(
+          context,
+          'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor. Vicdani (Saf ve Dürüst) ile Efruz (Köşe Dönücü ve Fırsatçı) arasındaki çatışma, devleti sömürenler ve itaat edenler arasındaki dengesizliği gözler önüne seriyor.',
+        ),
+        const SizedBox(height: 16),
+        _buildParagraph(
+          context,
+          '"Gözlerimi Kaparım Vazifemi Yaparım" aynı zamanda değişen toplumsal değerleri ve bireyin bu değişim karşısındaki duruşunu mizahi bir dille sorguluyor.',
+          isEmphasis: true,
+        ),
+        const SizedBox(height: 40),
+        _buildOtherCrewBox(context),
+      ],
+    );
+  }
+
   // ---------------- YARDIMCI WIDGETLAR ----------------
 
-  // Başlık stilini korur
   Widget _buildSectionTitle(final BuildContext context, final String title) {
     return ShaderMask(
       shaderCallback: (final bounds) =>
@@ -446,7 +425,6 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // Paragraf stili (Hakkımızda kartından uyarlanmıştır)
   Widget _buildParagraph(final BuildContext context, final String text,
       {final bool isEmphasis = false}) {
     return Container(
@@ -489,76 +467,25 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // Konum Kartı (Aynı kalır)
-  Widget _buildLocationCard(
-      final BuildContext context, final String title, final String subtitle) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: WebColors.goldGradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: WebColors.primaryGold.withOpacity(0.3),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.location_on_rounded,
-              color: WebColors.darkBlueBackground, size: 32),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: context.responsive(
-                        mobile: 14.0, desktop: context.subtitleSize),
-                    fontWeight: FontWeight.w900,
-                    color: WebColors.darkBlueBackground,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: context.bodySize,
-                    color: WebColors.darkBlueSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Diğer Ekip Kutusu (Yeni konuma taşındı, stili güncellendi)
   Widget _buildOtherCrewBox(final BuildContext context) {
     return Container(
       padding: context.responsive(
           mobile: const EdgeInsets.all(20), desktop: const EdgeInsets.all(28)),
       decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface.withOpacity(0.9), // Daha opak
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: WebColors.primaryGold.withOpacity(0.5), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: WebColors.primaryGold.withOpacity(0.15),
-              blurRadius: 15,
-            )
-          ]),
+        color: WebColors.darkBlueSurface.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: WebColors.primaryGold.withOpacity(0.5), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: WebColors.primaryGold.withOpacity(0.15),
+            blurRadius: 15,
+          )
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BAŞLIK
           Text(
             'OYUN EKİBİ',
             style: TextStyle(
@@ -569,10 +496,8 @@ class GozYapVazYapLanding extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildDivider(), // Başlık altı ayraç
+          _buildDivider(),
           const SizedBox(height: 16),
-
-          // Liste Elemanları
           _buildCrewMember(context, 'Işık Tasarımı', 'Emre Kahraman'),
           _buildCrewMember(context, 'Ses & Efekt', 'Gökhan Şener'),
           _buildCrewMember(context, 'Afiş Tasarımı', 'Tayfun Kızıldağ'),
@@ -582,7 +507,6 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // Ekip Üyesi Satırı (Stil korundu)
   Widget _buildCrewMember(
       final BuildContext context, final String role, final String name) {
     return Padding(
@@ -590,7 +514,6 @@ class GozYapVazYapLanding extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sarı Madde İşareti
           Container(
             margin: const EdgeInsets.only(top: 8),
             width: 7,
@@ -601,7 +524,6 @@ class GozYapVazYapLanding extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
           Expanded(
             child: RichText(
               text: TextSpan(
@@ -611,7 +533,6 @@ class GozYapVazYapLanding extends StatelessWidget {
                   height: 1.5,
                 ),
                 children: [
-                  // ROL: Kalın ve Sarımsı Altın Renk
                   TextSpan(
                     text: '$role: ',
                     style: const TextStyle(
@@ -619,7 +540,6 @@ class GozYapVazYapLanding extends StatelessWidget {
                       color: WebColors.primaryGoldLight,
                     ),
                   ),
-                  // İSİM: Normal Beyaz Renk
                   TextSpan(
                       text: name,
                       style: const TextStyle(
@@ -635,11 +555,10 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ✅ Tutarlı Ayraç (Divider) Metodu
   Widget _buildDivider() {
     return Container(
       height: 2,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [
             Colors.transparent,
@@ -648,6 +567,101 @@ class GozYapVazYapLanding extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// YENİ WIDGET: ANİMASYONLU KONUM ROZETİ (LOCATION PIN BADGE)
+// ═══════════════════════════════════════════════════════════
+class _LocationPinBadge extends StatefulWidget {
+  final String location;
+  final BuildContext context;
+
+  const _LocationPinBadge({required this.location, required this.context});
+
+  @override
+  State<_LocationPinBadge> createState() => _LocationPinBadgeState();
+}
+
+class _LocationPinBadgeState extends State<_LocationPinBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.98, end: 1.02).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+    // Hafif bir titreme efekti için
+    _rotationAnimation = Tween<double>(begin: -0.01, end: 0.01).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (final context, final child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: Transform.rotate(
+            angle: _rotationAnimation.value,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white, // Raptiye efekti için Beyaz zemin
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color: WebColors.primaryGold.withOpacity(0.5), width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: WebColors.darkBlueBackground.withOpacity(0.5),
+                    blurRadius: 10,
+                    offset: const Offset(5, 5), // Hafif kalkık gölge
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on_rounded,
+                      color: WebColors.error, size: 28),
+                  const SizedBox(width: 12),
+                  // Raptiye
+                  const Icon(Icons.push_pin, color: WebColors.error, size: 18),
+                  const SizedBox(width: 12),
+                  Text(
+                    widget.location,
+                    style: TextStyle(
+                      fontSize: widget.context
+                          .responsive(mobile: 12.0, desktop: 16.0),
+                      fontWeight: FontWeight.w900,
+                      color: WebColors.darkBlueBackground,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
