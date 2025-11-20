@@ -254,6 +254,10 @@ class _TeamCardState extends State<TeamCard> {
   }
 }
 
+// ------------------------------------------------------------------
+// BAŞLANGIÇ: _TeamMemberCard güncellenmiş kodu
+// ------------------------------------------------------------------
+
 class _TeamMemberCard extends StatefulWidget {
   final Player? member;
   final int index;
@@ -268,7 +272,8 @@ class _TeamMemberCard extends StatefulWidget {
 }
 
 class _TeamMemberCardState extends State<_TeamMemberCard> {
-  bool _isHovered = false;
+  // Hem hover hem de tap durumunu tutar
+  bool _isActive = false;
 
   String _getInitials() {
     if (widget.member == null) return '?';
@@ -279,149 +284,190 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
     return initials.toUpperCase();
   }
 
-  @override
-  Widget build(final BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 600 + (widget.index * 100)),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (final context, final value, final child) {
-        return Transform.scale(
-          scale: 0.8 + (value * 0.2),
-          child: Opacity(
-            opacity: value,
-            child: MouseRegion(
-              onEnter: (final _) => setState(() => _isHovered = true),
-              onExit: (final _) => setState(() => _isHovered = false),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: context.responsive(mobile: 240.0, desktop: 280.0),
-                height: 360,
-                transform: Matrix4.identity()
-                  ..translate(0.0, _isHovered ? -10.0 : 0.0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: _isHovered
-                        ? WebColors.primaryGold
-                        : WebColors.primaryGold.withOpacity(0.3),
-                    width: _isHovered ? 3 : 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isHovered
-                          ? WebColors.primaryGold.withOpacity(0.5)
-                          : Colors.black.withOpacity(0.3),
-                      blurRadius: _isHovered ? 25 : 15,
-                      spreadRadius: _isHovered ? 5 : 2,
-                    ),
-                  ],
+  // **YENİ:** Dokunmatik (Pointer) başlangıcı (Kaydırma başlasa bile aktif kalır)
+  void _handlePointerDown(final PointerEvent event) {
+    if (event is PointerDownEvent) {
+      setState(() {
+        _isActive = true;
+      });
+    }
+  }
+
+  // **YENİ:** Dokunmatik (Pointer) bitişi (Parmak ekrandan kalktığında)
+  void _handlePointerUp(final PointerEvent event) {
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      setState(() {
+        _isActive = false;
+      });
+    }
+  }
+
+  // Kart içeriğini oluşturur (MouseRegion/Listener dışında kalan kısım)
+  Widget _buildCardContent(final BuildContext context, final bool active) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: context.responsive(mobile: 240.0, desktop: 280.0),
+      height: 360,
+      // Hover/Tap Animasyonu: Üzerine gelindiğinde/dokunulduğunda yukarı kayar
+      transform: Matrix4.identity()..translate(0.0, active ? -10.0 : 0.0),
+      // Yukarı Kayma Efekti
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: active
+              ? WebColors.primaryGold // Vurgulu Kenarlık
+              : WebColors.primaryGold.withOpacity(0.3),
+          width: active ? 3 : 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: active
+                ? WebColors.primaryGold.withOpacity(0.5) // Vurgulu Gölge
+                : Colors.black.withOpacity(0.3),
+            blurRadius: active ? 25 : 15,
+            spreadRadius: active ? 5 : 2,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          children: [
+            // Background Image
+            if (widget.member?.imageUrl != null)
+              Positioned.fill(
+                child: Image.network(
+                  widget.member!.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (final context, final error, final stackTrace) {
+                    return Container(
+                      color: WebColors.darkBlueSurface,
+                    );
+                  },
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(22),
-                  child: Stack(
-                    children: [
-                      // Background Image
-                      if (widget.member?.imageUrl != null)
-                        Positioned.fill(
-                          child: Image.network(
-                            widget.member!.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder:
-                                (final context, final error, final stackTrace) {
-                              return Container(
-                                color: WebColors.darkBlueSurface,
-                              );
-                            },
-                          ),
-                        ),
+              ),
 
-                      // Gradient Overlay
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.9),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Content
-                      Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Avatar
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                gradient: WebColors.goldGradient,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        WebColors.primaryGold.withOpacity(0.5),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  _getInitials(),
-                                  style: TextStyle(
-                                    fontSize: context.responsive(
-                                        mobile: 28.0, desktop: 32.0),
-                                    fontWeight: FontWeight.w900,
-                                    color: WebColors.darkBlueBackground,
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            const Spacer(),
-
-                            // Name
-                            Text(
-                              '${widget.member?.firstName ?? ''} ${widget.member?.lastName ?? ''}',
-                              style: TextStyle(
-                                fontSize: context.bodySize + 2,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                              ),
-                            ),
-
-                            const SizedBox(height: 12),
-
-                            // Bio
-                            Text(
-                              widget.member?.bio ?? '',
-                              style: TextStyle(
-                                fontSize: context.captionSize + 1,
-                                color: WebColors.lightWhite,
-                                height: 1.5,
-                              ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
+            // Gradient Overlay
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.9),
                     ],
                   ),
                 ),
               ),
             ),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Avatar
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      gradient: WebColors.goldGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: WebColors.primaryGold.withOpacity(0.5),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        _getInitials(),
+                        style: TextStyle(
+                          fontSize:
+                              context.responsive(mobile: 28.0, desktop: 32.0),
+                          fontWeight: FontWeight.w900,
+                          color: WebColors.darkBlueBackground,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  // Name
+                  Text(
+                    '${widget.member?.firstName ?? ''} ${widget.member?.lastName ?? ''}',
+                    style: TextStyle(
+                      fontSize: context.bodySize + 2,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Bio
+                  Text(
+                    widget.member?.bio ?? '',
+                    style: TextStyle(
+                      fontSize: context.captionSize + 1,
+                      color: WebColors.lightWhite,
+                      height: 1.5,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    // Mobil veya Masaüstü ayrımı yapıyoruz
+    final isMobile = context.isMobile;
+
+    final Widget cardWidget = _buildCardContent(context, _isActive);
+
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 600 + (widget.index * 100)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (final context, final value, final child) {
+        // Değeri 0.0 ile 1.0 arasında sınırla
+        final safeValue = value.clamp(0.0, 1.0);
+
+        return Transform.scale(
+          scale: 0.8 + (safeValue * 0.2),
+          child: Opacity(
+            opacity: safeValue, // Sınırlı değeri kullan
+            child: child,
           ),
         );
       },
+      child: isMobile
+          ? Listener(
+              // MOBİL: Listener ile dokunma olaylarını yakala
+              onPointerDown: _handlePointerDown,
+              onPointerUp: _handlePointerUp,
+              onPointerCancel: _handlePointerUp,
+              child: cardWidget,
+            )
+          : MouseRegion(
+              // MASAÜSTÜ: Hover olaylarını yakala
+              onEnter: (final _) => setState(() => _isActive = true),
+              onExit: (final _) => setState(() => _isActive = false),
+              // Masaüstünde MouseRegion zaten kaydırma durumunda efekti kesmez.
+              child: cardWidget,
+            ),
     );
   }
 }

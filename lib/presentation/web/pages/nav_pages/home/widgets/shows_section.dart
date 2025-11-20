@@ -342,6 +342,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
     );
   }
 }
+// ... (Diğer importlar ve kodlar)
 
 /// 3D Show Card with perspective transform and hover effects
 class _ShowCard3D extends StatefulWidget {
@@ -361,16 +362,15 @@ class _ShowCard3D extends StatefulWidget {
 
 class _ShowCard3DState extends State<_ShowCard3D>
     with SingleTickerProviderStateMixin {
-  bool _isHovered = false;
-  Offset _hoverPosition = Offset.zero;
+  bool _isActive = false; // Hover veya Dokunma durumu
+  Offset _touchPosition = Offset.zero; // Pozisyonu tutar
   late AnimationController _entryController;
   late Animation<double> _entryAnimation;
 
   @override
   void initState() {
     super.initState();
-
-    // Entry animation
+    // ... (Animasyon başlatma kısmı aynı)
     _entryController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 600 + (widget.index * 100)),
@@ -390,153 +390,103 @@ class _ShowCard3DState extends State<_ShowCard3D>
     super.dispose();
   }
 
-  void _updateHoverPosition(final PointerEvent details, final Size size) {
+  // Pozisyon güncelleme metodu aynı
+  void _updatePosition(final Offset localPosition) {
+    // Mobil/Masaüstü ayrımı yapmadan boyutları dinamik alıyoruz
+    final Size size = Size(
+      context.responsive(mobile: 220.0, desktop: 260.0),
+      360,
+    );
+
     setState(() {
-      _hoverPosition = Offset(
-        (details.localPosition.dx - size.width / 2) / size.width,
-        (details.localPosition.dy - size.height / 2) / size.height,
+      _touchPosition = Offset(
+        (localPosition.dx - size.width / 2) / size.width,
+        (localPosition.dy - size.height / 2) / size.height,
       );
     });
   }
 
+  // **YENİ:** Dokunmatik (Pointer) başlangıcı (Kaydırma başlasa bile aktif kalır)
+  void _handlePointerDown(final PointerEvent event) {
+    if (event is PointerDownEvent) {
+      setState(() {
+        _isActive = true;
+        _updatePosition(event.localPosition);
+      });
+    }
+    // Mobil cihazda kaydırırken 3D dönme efektini devam ettirmek isterseniz:
+    // if (event is PointerMoveEvent && _isActive) {
+    //   _updatePosition(event.localPosition);
+    // }
+  }
+
+  // **YENİ:** Dokunmatik (Pointer) bitişi (Parmak ekrandan kalktığında)
+  void _handlePointerUp(final PointerEvent event) {
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      setState(() {
+        _isActive = false;
+        _touchPosition = Offset.zero;
+      });
+    }
+  }
+
   @override
   Widget build(final BuildContext context) {
-    return AnimatedBuilder(
+    final isMobile = context.isMobile;
+
+    Widget cardWidget = _buildCard(context);
+
+    // Animasyon sarmalayıcı (TweenAnimationBuilder'dan AnimatedBuilder'a dönüştürüldü)
+    cardWidget = AnimatedBuilder(
       animation: _entryAnimation,
       builder: (final context, final child) {
+        final safeValue = _entryAnimation.value.clamp(0.0, 1.0);
         return Transform.scale(
-          scale: _entryAnimation.value,
+          scale: safeValue,
           child: Opacity(
-            opacity: _entryAnimation.value,
-            child: MouseRegion(
-              onEnter: (final _) => setState(() => _isHovered = true),
-              onExit: (final _) => setState(() {
-                _isHovered = false;
-                _hoverPosition = Offset.zero;
-              }),
-              onHover: (final event) {
-                if (_isHovered) {
-                  _updateHoverPosition(
-                    event,
-                    Size(
-                      context.responsive(mobile: 220.0, desktop: 260.0),
-                      360,
-                    ),
-                  );
-                }
-              },
-              cursor: SystemMouseCursors.click,
-              child: _buildCard(context),
-            ),
+            opacity:safeValue,
+            child: child,
           ),
         );
       },
+      child: cardWidget,
     );
+
+    if (isMobile) {
+      // MOBİL: Listener ile dokunma olaylarını yakala
+      // Listener, Gesture Detector'dan farklı olarak, kaydırma başladığında olayı durdurmaz.
+      return Listener(
+        onPointerDown: _handlePointerDown,
+        onPointerUp: _handlePointerUp,
+        onPointerCancel: _handlePointerUp,
+        child: cardWidget,
+      );
+    } else {
+      // MASAÜSTÜ: MouseRegion ile hover olaylarını yakala
+      return MouseRegion(
+        onEnter: (final _) => setState(() => _isActive = true),
+        onExit: (final _) => setState(() {
+          _isActive = false;
+          _touchPosition = Offset.zero;
+        }),
+        onHover: (final event) {
+          if (_isActive) {
+            _updatePosition(event.localPosition);
+          }
+        },
+        cursor: SystemMouseCursors.click,
+        child: cardWidget,
+      );
+    }
   }
 
-  Widget _buildCard(final BuildContext context) {
-    // Calculate 3D transform
-    final rotateX = _isHovered ? -_hoverPosition.dy * 0.2 : 0.0;
-    final rotateY = _isHovered ? _hoverPosition.dx * 0.2 : 0.0;
-    final scale = _isHovered ? 1.05 : 1.0;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      transform: Matrix4.identity()
-        ..setEntry(3, 2, 0.001) // perspective
-        ..rotateX(rotateX)
-        ..rotateY(rotateY)
-        ..translate(0.0, _isHovered ? -15.0 : 0.0)
-        ..scale(scale),
-      child: Container(
-        width: context.responsive(mobile: 220.0, desktop: 260.0),
-        height: 360,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: _isHovered
-                  ? WebColors.primaryGold.withOpacity(0.6)
-                  : Colors.black.withOpacity(0.4),
-              blurRadius: _isHovered ? 40 : 20,
-              spreadRadius: _isHovered ? 5 : 0,
-              offset: Offset(0, _isHovered ? 20 : 10),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            children: [
-              // Image
-              _buildImage(),
-
-              // Gradient Overlay
-              _buildGradientOverlay(),
-
-              // Shine effect on hover
-              if (_isHovered) _buildShineEffect(),
-
-              // Border
-              _buildBorder(),
-
-              // Content
-              _buildContent(context),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImage() {
-    return Positioned.fill(
-      child: CachedNetworkImage(
-        imageUrl: widget.imageUrl,
-        fit: BoxFit.cover,
-        placeholder: (final context, final url) => Container(
-          color: WebColors.darkBlueSurface,
-          child: const Center(
-            child: CircularProgressIndicator(
-              color: WebColors.primaryGold,
-            ),
-          ),
-        ),
-        errorWidget: (final context, final url, final error) => Container(
-          color: WebColors.darkBlueSurface,
-          child: const Icon(
-            Icons.theater_comedy,
-            size: 64,
-            color: WebColors.primaryGold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGradientOverlay() {
-    return Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.black.withOpacity(_isHovered ? 0.95 : 0.8),
-            ],
-            stops: const [0.3, 1.0],
-          ),
-        ),
-      ),
-    );
-  }
+  // ... (Geri kalan _buildCard, _buildImage, _buildGradientOverlay, vs. metodları aynı kalır)
 
   Widget _buildShineEffect() {
     return Positioned(
-      left: _hoverPosition.dx * 100,
-      top: _hoverPosition.dy * 100,
+      // 3D Dönme ve Parlama efekti için _touchPosition kullanılıyor
+      left: _touchPosition.dx * 100,
+      top: _touchPosition.dy * 100,
       child: Container(
         width: 200,
         height: 200,
@@ -546,22 +496,6 @@ class _ShowCard3DState extends State<_ShowCard3D>
               Colors.white.withOpacity(0.2),
               Colors.transparent,
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBorder() {
-    return Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: _isHovered
-                ? WebColors.primaryGold
-                : WebColors.primaryGold.withOpacity(0.3),
-            width: _isHovered ? 3 : 2,
           ),
         ),
       ),
@@ -618,10 +552,10 @@ class _ShowCard3DState extends State<_ShowCard3D>
             overflow: TextOverflow.ellipsis,
           ),
 
-          if (_isHovered) ...[
+          if (_isActive) ...[
             const SizedBox(height: 8),
             AnimatedOpacity(
-              opacity: _isHovered ? 1.0 : 0.0,
+              opacity: _isActive ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 200),
               child: Row(
                 children: [
@@ -644,6 +578,121 @@ class _ShowCard3DState extends State<_ShowCard3D>
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildCard(final BuildContext context) {
+    // Calculate 3D transform
+    final rotateX = _isActive ? -_touchPosition.dy * 0.2 : 0.0;
+    final rotateY = _isActive ? _touchPosition.dx * 0.2 : 0.0;
+    final scale = _isActive ? 1.05 : 1.0;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.001) // perspective
+        ..rotateX(rotateX)
+        ..rotateY(rotateY)
+        ..translate(0.0, _isActive ? -15.0 : 0.0) // yukarı kayma
+        ..scale(scale),
+      child: Container(
+        width: context.responsive(mobile: 220.0, desktop: 260.0),
+        height: 360,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: _isActive
+                  ? WebColors.primaryGold.withOpacity(0.6)
+                  : Colors.black.withOpacity(0.4),
+              blurRadius: _isActive ? 40 : 20,
+              spreadRadius: _isActive ? 5 : 0,
+              offset: Offset(0, _isActive ? 20 : 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Image
+              _buildImage(),
+
+              // Gradient Overlay
+              _buildGradientOverlay(),
+
+              // Shine effect on hover/tap
+              if (_isActive) _buildShineEffect(),
+
+              // Border
+              _buildBorder(),
+
+              // Content
+              _buildContent(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    return Positioned.fill(
+      child: CachedNetworkImage(
+        imageUrl: widget.imageUrl,
+        fit: BoxFit.cover,
+        placeholder: (final context, final url) => Container(
+          color: WebColors.darkBlueSurface,
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: WebColors.primaryGold,
+            ),
+          ),
+        ),
+        errorWidget: (final context, final url, final error) => Container(
+          color: WebColors.darkBlueSurface,
+          child: const Icon(
+            Icons.theater_comedy,
+            size: 64,
+            color: WebColors.primaryGold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGradientOverlay() {
+    return Positioned.fill(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              Colors.black.withOpacity(_isActive ? 0.95 : 0.8),
+            ],
+            stops: const [0.3, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBorder() {
+    return Positioned.fill(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: _isActive
+                ? WebColors.primaryGold
+                : WebColors.primaryGold.withOpacity(0.3),
+            width: _isActive ? 3 : 2,
+          ),
+        ),
       ),
     );
   }
