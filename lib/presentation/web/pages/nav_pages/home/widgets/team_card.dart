@@ -186,14 +186,18 @@ class _TeamCardState extends State<TeamCard> {
 
   Widget _buildTeamCarousel(final BuildContext context) {
     return SizedBox(
-      height: 400,
+      height: 420, // Yeterli dikey alan: 400 + 20
       child: Stack(
         children: [
           ListView.builder(
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsive(mobile: 16.0, desktop: 60.0),
+            padding: EdgeInsets.only(
+              // Üstten ve alttan boşluk ekleniyor
+              top: 10.0, // Kartın yukarı kayma miktarı kadar üstten boşluk
+              bottom: 10.0, // Alt kısım için güvenlik boşluğu
+              left: context.responsive(mobile: 16.0, desktop: 60.0),
+              right: context.responsive(mobile: 16.0, desktop: 60.0),
             ),
             itemCount: nowPlayerDataList.length,
             itemBuilder: (final context, final index) {

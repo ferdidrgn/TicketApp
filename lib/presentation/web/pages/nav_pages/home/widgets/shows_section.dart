@@ -263,15 +263,19 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
   Widget _buildShowsCarousel(
       final BuildContext context, final List<Show> shows) {
     return SizedBox(
-      height: 420,
+      height: 450,
       child: Stack(
         children: [
           // Carousel
           ListView.builder(
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsive(mobile: 16.0, desktop: 80.0),
+            padding: EdgeInsets.only(
+              // Üstten ve alttan boşluk ekleniyor
+              top: 15.0, // Kartın yukarı kayma miktarı kadar üstten boşluk
+              bottom: 15.0, // Alt kısım için güvenlik boşluğu
+              left: context.responsive(mobile: 16.0, desktop: 80.0),
+              right: context.responsive(mobile: 16.0, desktop: 80.0),
             ),
             itemCount: shows.length,
             itemBuilder: (final context, final index) {
@@ -444,7 +448,7 @@ class _ShowCard3DState extends State<_ShowCard3D>
         return Transform.scale(
           scale: safeValue,
           child: Opacity(
-            opacity:safeValue,
+            opacity: safeValue,
             child: child,
           ),
         );
