@@ -1,19 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/util/role_manager.dart';
 import 'login_provider.dart';
 import 'login_state.dart';
 
-class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
+class LoginNotifier extends BaseNotifier<LoginState> {
   @override
   LoginState initialState() {
     return LoginState.fromLocalStorage();
   }
-
-  @override
-  void reloadData() => getCurrentUser();
 
   Future<void> initialize() async {
     await LocalStorageService.init();
@@ -21,7 +18,7 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
       await getCurrentUser();
   }
 
-  Future<void> getCurrentUser() => executeWithInternetCheck(
+  Future<void> getCurrentUser() => execute(
         () => ref.read(getCurrentUserUseCaseProvider).call(),
         onSuccess: (final user) {
           if (user != null)
@@ -41,7 +38,7 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
     state = LoginState();
   }
 
-  Future<void> signInWithGoogle() => executeWithInternetCheck(
+  Future<void> signInWithGoogle() => execute(
         () => ref.read(signInWithGoogleUseCaseProvider).call(),
         onSuccess: (final googleUser) => _handleGoogleSignInSuccess(googleUser),
       );
@@ -50,7 +47,7 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
       final GoogleSignInAccount? googleUser) async {
     state = state.copyWith(googleUser: googleUser, isGuest: false);
 
-    await executeWithInternetCheck(
+    await execute(
       () => ref.read(getCurrentUserUseCaseProvider).call(),
       onSuccess: (final user) async {
         if (user != null) {
@@ -76,7 +73,7 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
     );
   }
 
-  Future<void> signInAnonymously() => executeWithInternetCheck(
+  Future<void> signInAnonymously() => execute(
         () => ref.read(signInAnonymouslyUseCaseProvider).call(),
         onSuccess: (final user) async {
           if (user != null) {
@@ -128,7 +125,7 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
     );
   }
 
-  Future<void> verifyOtp(final String otp) => executeWithInternetCheck(
+  Future<void> verifyOtp(final String otp) => execute(
         () {
           if (state.verificationId == null) {
             throw Exception('Verification ID not found');
@@ -224,7 +221,7 @@ class LoginNotifier extends BaseNotifierWithNetworkChecker<LoginState> {
     }
   }
 
-  Future<void> deleteAccount() => executeWithInternetCheck(
+  Future<void> deleteAccount() => execute(
         () async {
           final currentUserId = state.user?.uid;
           if (currentUserId == null) throw Exception('User ID not found');

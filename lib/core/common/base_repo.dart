@@ -1,7 +1,27 @@
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../core/network/internet_service.dart';
 
+abstract class BaseRepository {
+  /// Internet kontrolü YOK - sadece try/catch
+  /// Network hatası zaten SocketException olarak yakalanacak
+  Future<Either<Failure, T>> execute<T>(
+      final Future<T> Function() action) async {
+    try {
+      final result = await action();
+      return Right(result);
+    } on SocketException {
+      // İnternet yoksa veya sunucuya ulaşılamıyorsa
+      return const Left(NetworkFailure('Bağlantı hatası'));
+    } on HttpException catch (e) {
+      return Left(ServerFailure('HTTP Hatası: ${e.message}'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+}
+
+/*
 abstract class BaseRepository {
   final InternetService internetService;
 
@@ -21,25 +41,4 @@ abstract class BaseRepository {
     } else
       return const Left(NetworkFailure('İnternet Bağlantısı Bulunamadı'));
   }
-}
-
-/*
-//İnternet kontrolünü BaseNotifier yapıyor
-import 'package:dartz/dartz.dart';
-import '../errors/failures.dart';
-
-abstract class BaseRepository {
-  Future<Either<Failure, T>> execute<T>(
-      Future<T> Function() action, {
-        bool checkInternet = true,
-      }) async {
-    try {
-      return Right(await action());
-    } catch (e) {
-      // ✅ Sadece gerçek exception'ları error olarak döndür
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
-}
-
- */
+} */

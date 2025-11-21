@@ -6,7 +6,6 @@ import 'package:ticketapp/core/widgets/custom_show_card.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/datasources/show/show_remote_data_source_and_impl.dart';
 import 'package:ticketapp/presentation/mobil/pages/details_pages/show_details.dart';
-import '../../../../core/network/internet_aware_mixin.dart';
 import '../../../../core/widgets/shimmer.dart';
 import '../../../../data/datasources/player/player_remote_data_source_and_impl.dart';
 import '../../../../domain/entities/player.dart';
@@ -21,8 +20,7 @@ class PlayerDetailPage extends StatefulWidget {
   _PlayerDetailPageState createState() => _PlayerDetailPageState();
 }
 
-class _PlayerDetailPageState extends State<PlayerDetailPage>
-    with InternetAwareMixin {
+class _PlayerDetailPageState extends State<PlayerDetailPage> {
   Player? player;
   final List<Show> nowShowsDataList = [];
   final List<Show> oldShowsDataList = [];
@@ -37,16 +35,6 @@ class _PlayerDetailPageState extends State<PlayerDetailPage>
     super.initState();
     _fetchPlayerData();
   }
-
-  @override
-  void onInternetRestored() {
-    if (hasError) _fetchPlayerData();
-  }
-
-  @override
-  void onInternetLost() => setState(() {
-        hasError = true;
-      });
 
   Future<void> _fetchPlayerData() async {
     setState(() {

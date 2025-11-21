@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../../../core/errors/failures.dart';
 import '../network/internet_service.dart';
-import '../network/internet_service_provider.dart';
+//import '../network/internet_service_provider.dart';
 import 'base_state.dart';
 
 /// Tüm ViewModel'ler için merkezi internet kontrolü ve state yönetimi sağlayan base sınıf
@@ -17,7 +17,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
 
   @override
   T build() {
-    _initializeNetworkListener();
+    //_initializeNetworkListener();
     _registerCleanup();
     return initialState();
   }
@@ -28,8 +28,7 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
   void reloadData();
 
   /// Ağ dinleyicisini başlatır.    // Daha önce başlatıldıysa tekrar başlatma
-  void _initializeNetworkListener() => _subscription =
-      InternetService.instance.connectionStream.listen(_handleConnectionChange);
+  //void _initializeNetworkListener() => _subscription = InternetService.instance.connectionStream.listen(_handleConnectionChange);
 
   /// Notifier dispose edildiğinde dinleyiciyi ve timer'ı temizler.
   void _registerCleanup() => ref.onDispose(() {
@@ -78,11 +77,11 @@ abstract class BaseNotifierWithNetworkChecker<T extends BaseState>
     try {
       state = state.copyWith(isLoading: true, errorMessage: null) as T;
 
-      final hasInternet = await ref.read(internetServiceProvider).isConnected;
+     /* final hasInternet = await ref.read(internetServiceProvider).isConnected;
       if (!hasInternet) {
         setErrorState('İnternet Bağlantısı Yok!');
         return;
-      }
+      }*/
 
       final result = await operation(); // İnternet varsa işlemi gerçekleştir
       if (!ref.mounted) return;

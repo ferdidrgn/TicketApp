@@ -10,7 +10,7 @@ class StageRepositoryImpl extends BaseRepository implements StageRepository {
 
   StageRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //equired super.internetService,
   });
 
   @override

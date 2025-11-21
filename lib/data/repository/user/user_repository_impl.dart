@@ -10,7 +10,7 @@ class UserRepositoryImpl extends BaseRepository implements UserRepository {
 
   UserRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

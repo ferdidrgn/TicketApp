@@ -10,7 +10,7 @@ class TeamRepositoryImpl extends BaseRepository implements TeamRepository {
 
   TeamRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

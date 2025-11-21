@@ -41,13 +41,13 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
       CurvedAnimation(parent: _headerController, curve: Curves.easeOut),
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    Future.microtask(() {
       final state = ref.read(showProvider);
-      if (!state.isLoading && state.dataList == null) {
+      if (!state.isLoading && state.dataList == null)
         ref.read(showProvider.notifier).loadShows(false);
-      }
-      _headerController.forward();
     });
+    // Animasyonu başlat
+    _headerController.forward();
   }
 
   @override
@@ -57,7 +57,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
     super.dispose();
   }
 
-  void _scroll(bool left) {
+  void _scroll(final bool left) {
     final offset = left ? -350.0 : 350.0;
     _scrollController.animateTo(
       _scrollController.offset + offset,
@@ -67,7 +67,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final showState = ref.watch(showProvider);
 
     return Container(
@@ -201,7 +201,8 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
     );
   }
 
-  Widget _buildShowsCarousel(BuildContext context, List<Show> shows) {
+  Widget _buildShowsCarousel(
+      final BuildContext context, final List<Show> shows) {
     return SizedBox(
       height: 450,
       child: Stack(
@@ -216,7 +217,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
               right: context.responsive(mobile: 16.0, desktop: 80.0),
             ),
             itemCount: shows.length,
-            itemBuilder: (context, index) {
+            itemBuilder: (final context, final index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 // İsim değişikliği: _ShowCard3D -> _ShowCard
@@ -300,7 +301,7 @@ class _ShowCardState extends State<_ShowCard>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final isMobile = context.isMobile;
 
     Widget cardWidget = _buildCard(context);
@@ -308,7 +309,7 @@ class _ShowCardState extends State<_ShowCard>
     // Sayfa ilk açıldığındaki giriş animasyonu (Fade + Scale)
     cardWidget = AnimatedBuilder(
       animation: _entryAnimation,
-      builder: (context, child) {
+      builder: (final context, final child) {
         final safeValue = _entryAnimation.value.clamp(0.0, 1.0);
         return Transform.scale(
           scale: safeValue,
@@ -324,13 +325,13 @@ class _ShowCardState extends State<_ShowCard>
       // Bu sayede scroll yaparken bile parmak değdiği an efekt çalışır.
       return Listener(
         // Parmak ekrana değdiği an (Scroll başlasa bile tetiklenir)
-        onPointerDown: (_) => setState(() => _isActive = true),
+        onPointerDown: (final _) => setState(() => _isActive = true),
 
         // Parmak ekrandan kalktığı an
-        onPointerUp: (_) => setState(() => _isActive = false),
+        onPointerUp: (final _) => setState(() => _isActive = false),
 
         // Herhangi bir sebeple (örn: sistem uyarısı) dokunma iptal olursa
-        onPointerCancel: (_) => setState(() => _isActive = false),
+        onPointerCancel: (final _) => setState(() => _isActive = false),
 
         // Scroll sırasında parmak kartın dışına çıkarsa da efekti kapatmak istersen:
         // onPointerMove: (event) { ... hesaplama ... }, // Performans için kapalı tuttum, basit hali yeterli.
@@ -340,15 +341,15 @@ class _ShowCardState extends State<_ShowCard>
     } else {
       // MASAÜSTÜ: Mouse Hover (Üzerine gelme) olayları
       return MouseRegion(
-        onEnter: (_) => setState(() => _isActive = true),
-        onExit: (_) => setState(() => _isActive = false),
+        onEnter: (final _) => setState(() => _isActive = true),
+        onExit: (final _) => setState(() => _isActive = false),
         cursor: SystemMouseCursors.click,
         child: cardWidget,
       );
     }
   }
 
-  Widget _buildCard(BuildContext context) {
+  Widget _buildCard(final BuildContext context) {
     // Hover/Dokunma anındaki efektler
     // Scale 1.05 çok büyük gelirse 1.02 veya 1.03 yapabilirsin,
     // scroll sırasında takılma hissi vermemesi için.
@@ -398,12 +399,12 @@ class _ShowCardState extends State<_ShowCard>
       child: CachedNetworkImage(
         imageUrl: widget.imageUrl,
         fit: BoxFit.cover,
-        placeholder: (context, url) => Container(
+        placeholder: (final context, final url) => Container(
           color: WebColors.darkBlueSurface,
           child: const Center(
               child: CircularProgressIndicator(color: WebColors.primaryGold)),
         ),
-        errorWidget: (context, url, error) => Container(
+        errorWidget: (final context, final url, final error) => Container(
           color: WebColors.darkBlueSurface,
           child: const Icon(Icons.theater_comedy,
               size: 64, color: WebColors.primaryGold),
@@ -448,7 +449,7 @@ class _ShowCardState extends State<_ShowCard>
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(final BuildContext context) {
     return Positioned(
       left: 16,
       right: 16,

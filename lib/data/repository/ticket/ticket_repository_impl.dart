@@ -10,7 +10,7 @@ class TicketRepositoryImpl extends BaseRepository implements TicketRepository {
 
   TicketRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

@@ -1,23 +1,20 @@
-import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
 import '../../../domain/entities/stage.dart';
 import 'stage_state.dart';
 
-class StageNotifier extends BaseNotifierWithNetworkChecker<StageState> {
+class StageNotifier extends BaseNotifier<StageState> {
   @override
   StageState initialState() => const StageState();
 
-  @override
-  void reloadData() => loadStages(false);
-
-  Future<void> loadStages(final bool isLimit) => executeWithInternetCheck(
+  Future<void> loadStages(final bool isLimit) => execute(
       () => ref.read(getStagesUseCaseProvider).call(isLimit),
       onSuccess: (final stages) => state = state.copyWith(dataList: stages));
 
   Future<void> loadStagesByIds(final List<String> stageIds) {
     if (stageIds.isEmpty) return Future.value([]);
 
-    return executeWithInternetCheck(
+    return execute(
       () => ref.read(getStageByIdUseCaseProvider).call(stageIds),
       onSuccess: (final stages) {
         if (!ref.mounted) return;
@@ -26,7 +23,7 @@ class StageNotifier extends BaseNotifierWithNetworkChecker<StageState> {
     );
   }
 
-  Future<void> searchStage(final String query) => executeWithInternetCheck(
+  Future<void> searchStage(final String query) => execute(
       () => ref.read(getSearchStageUseCaseProvider).call(query),
       onSuccess: (final stages) => state = state.copyWith(dataList: stages));
 }

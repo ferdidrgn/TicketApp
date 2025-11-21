@@ -1,21 +1,18 @@
-import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/data/providers/team/team_provider.dart';
 import 'team_state.dart';
 
-class TeamNotifier extends BaseNotifierWithNetworkChecker<TeamState> {
+class TeamNotifier extends BaseNotifier<TeamState> {
   @override
   TeamState initialState() => const TeamState();
 
-  @override
-  void reloadData() => loadTeams(false);
-
-  Future<void> loadTeams(final bool isLimit) => executeWithInternetCheck(
+  Future<void> loadTeams(final bool isLimit) => execute(
         () => ref.read(getTeamsUseCaseProvider).call(isLimit),
         onSuccess: (final teams) => state = state.copyWith(dataList: teams),
       );
 
   Future<void> loadTeamsByIds(final List<String> teamsIds) =>
-      executeWithInternetCheck(
+      execute(
         () => ref.read(getTeamByIdUseCaseProvider).call(teamsIds),
         onSuccess: (final teams) => state = state.copyWith(dataList: teams),
       );

@@ -10,7 +10,7 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
 
   EventRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

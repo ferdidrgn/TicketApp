@@ -11,7 +11,7 @@ class LoginRepositoryImpl extends BaseRepository implements LoginRepository {
 
   LoginRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

@@ -1,4 +1,4 @@
-import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/data/providers/event/event_provider.dart';
 import 'package:ticketapp/data/providers/show/show_provider.dart';
 import 'package:ticketapp/data/providers/stage/stage_provider.dart';
@@ -16,18 +16,12 @@ import 'ticket_state.dart';
 /// - Gereksiz state güncellemelerini önleme
 /// - Efficient error handling
 /// - Memory-efficient data structures
-class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
+class TicketNotifier extends BaseNotifier<TicketState> {
   String? _lastLoadedCustomerId;
   DateTime? _lastRequestTime;
 
   @override
   TicketState initialState() => const TicketState();
-
-  @override
-  void reloadData() {
-    if (_lastLoadedCustomerId != null)
-      loadTicketsAndDetailsByCustomerId(_lastLoadedCustomerId!);
-  }
 
   /// Ana yükleme metodu - Müşteri ID'sine göre tüm bilet ve detayları getirir.
   ///
@@ -48,7 +42,7 @@ class TicketNotifier extends BaseNotifierWithNetworkChecker<TicketState> {
     if (_isRecentlyLoaded(customerId)) return;
     _lastLoadedCustomerId = customerId;
 
-    await executeWithInternetCheck(
+    await execute(
       () => ref.read(getTicketByCustomerIdUseCaseProvider).call(customerId),
       onSuccess: (final tickets) => _handleTicketsLoaded(tickets),
     );

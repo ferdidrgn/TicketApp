@@ -11,7 +11,7 @@ class CampaignRepositoryImpl extends BaseRepository
 
   CampaignRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

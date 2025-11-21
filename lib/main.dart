@@ -5,16 +5,15 @@ import 'package:ticketapp/presentation/mobil/pages/login/login_screen.dart';
 import 'package:ticketapp/presentation/mobil/pages/onboarding/onboarding_container.dart';
 import 'package:ticketapp/presentation/mobil/pages/splash/splash_screen.dart';
 import 'core/constants/app_constants.dart';
+import 'core/network/connectivity_wrapper.dart';
 import 'core/services/local_storage_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_notifier.dart';
 import 'core/theme/web_theme.dart';
 import 'core/util/platform_checker.dart';
 import 'firebase_options.dart';
-
-// ✅ Router dosyalarınızı ana noktadan import edin:
-import 'router/app_home_page.dart'; // /home için (AppHomePage widget'ı seçimi)
-import 'router/splash_router.dart'; // Splash için (Rota ve kontrol seçimi)
+import 'router/app_home_page.dart';
+import 'router/splash_router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +50,9 @@ class MyApp extends ConsumerWidget {
       theme: theme,
       darkTheme: theme,
       themeMode: effectiveThemeMode,
+      builder: (final context, final child) {
+        return ConnectivityWrapper(child: child ?? const SizedBox.shrink());
+      },
       onGenerateRoute: (final settings) {
         switch (settings.name) {
           case '/':

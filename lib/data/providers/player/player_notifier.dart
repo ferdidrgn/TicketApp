@@ -1,20 +1,17 @@
-import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/data/providers/player/player_provider.dart';
 import '../../../domain/entities/player.dart';
 import 'player_state.dart';
 
 /// Oyuncu verilerinin yüklenmesi, önbelleklenmesi ve ağ durumuna göre
 /// otomatik yeniden yüklenmesinden sorumlu ViewModel sınıfı
-class PlayerNotifier extends BaseNotifierWithNetworkChecker<PlayerState> {
+class PlayerNotifier extends BaseNotifier<PlayerState> {
   @override
   PlayerState initialState() => const PlayerState();
 
-  @override
-  void reloadData() => getPlayers(false);
-
   Future<void> refresh() => getPlayers(false);
 
-  Future<void> getPlayers(final bool isLimit) => executeWithInternetCheck(
+  Future<void> getPlayers(final bool isLimit) => execute(
         () => ref.read(getPlayersUseCaseProvider).call(isLimit),
         onSuccess: (final players) => _setPlayersLoaded(players),
       );
@@ -26,17 +23,16 @@ class PlayerNotifier extends BaseNotifierWithNetworkChecker<PlayerState> {
       return;
     }
 
-    await executeWithInternetCheck(
+    await execute(
       () => ref.read(getPlayerByIdUseCaseProvider).call(playerIds),
       onSuccess: (final players) => _setPlayersLoaded(players),
     );
   }
 
-  void _setPlayersLoaded(final List<Player>? players) =>
-      state = state.copyWith(
-          dataList: players,
-          dataSingle: players?.length == 1 ? players!.first : state.dataSingle,
-          errorMessage: null);
+  void _setPlayersLoaded(final List<Player>? players) => state = state.copyWith(
+      dataList: players,
+      dataSingle: players?.length == 1 ? players!.first : state.dataSingle,
+      errorMessage: null);
 }
 
 /// PlayerState için yardımcı metodlar sağlayan extension

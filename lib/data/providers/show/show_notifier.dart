@@ -1,47 +1,46 @@
 import 'package:ticketapp/data/providers/show/show_provider.dart';
-import '../../../core/common/base_notifier_with_network_checker.dart';
+import '../../../core/common/base_notifier.dart'; // YENİ import
 import '../../../domain/entities/show.dart';
 import '../../model/show_model.dart';
 import 'show_state.dart';
 
-class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
+/// BaseNotifierWithNetworkChecker -> BaseNotifier olarak değişti
+class ShowNotifier extends BaseNotifier<ShowState> {
   @override
   ShowState initialState() => const ShowState();
 
-  @override
-  void reloadData() => loadShows(false);
+  Future<void> addShow(final ShowModel show, final Uri? imageUrl) => execute(
+        () => ref.read(addShowUseCaseProvider).call(show, imageUrl),
+        onSuccess: (final _) {},
+      );
 
-  Future<void> addShow(final ShowModel show, final Uri? imageUrl) =>
-      executeWithInternetCheck(
-          () => ref.read(addShowUseCaseProvider).call(show, imageUrl),
-          onSuccess: (final _) {});
+  Future<void> deleteShow(final String? showId) => execute(
+        () => ref.read(deleteShowUseCaseProvider).call(showId),
+        onSuccess: (final _) {},
+      );
 
-  Future<void> deleteShow(final String? showId) => executeWithInternetCheck(
-      () => ref.read(deleteShowUseCaseProvider).call(showId),
-      onSuccess: (final _) {});
+  Future<void> updateShow(final String showId, final Map<String, dynamic> updatedData) =>
+      execute(
+        () => ref.read(updateShowUseCaseProvider).call(showId, updatedData),
+        onSuccess: (final _) {},
+      );
 
-  Future<void> updateShow(
-          final String showId, final Map<String, dynamic> updatedData) =>
-      executeWithInternetCheck(
-          () => ref.read(updateShowUseCaseProvider).call(showId, updatedData),
-          onSuccess: (final _) {});
+  Future<void> loadShowsByIds(final List<String> showsIds) => execute(
+        () => ref.read(getShowsByIdsUseCaseProvider).call(showsIds),
+        onSuccess: (final shows) => _setShowLoaded(shows),
+      );
 
-  Future<void> loadShowsByIds(final List<String> showsIds) =>
-      executeWithInternetCheck(
-          () => ref.read(getShowsByIdsUseCaseProvider).call(showsIds),
-          onSuccess: (final shows) => _setShowLoaded(shows));
+  Future<void> loadShows(final bool isLimit) => execute(
+        () => ref.read(getShowsUseCaseProvider).call(isLimit),
+        onSuccess: (final shows) => _setShowLoaded(shows),
+      );
 
-  Future<void> loadShows(final bool isLimit) => executeWithInternetCheck(
-      () => ref.read(getShowsUseCaseProvider).call(isLimit),
-      onSuccess: (final shows) => _setShowLoaded(shows));
+  Future<void> searchShows(final List<String> categories, final String? type) => execute(
+        () => ref.read(getSearchShowUseCaseProvider).call(categories, type),
+        onSuccess: (final shows) => _setShowLoaded(shows),
+      );
 
-  Future<void> searchShows(final List<String> categories, final String? type) =>
-      executeWithInternetCheck(
-          () => ref.read(getSearchShowUseCaseProvider).call(categories, type),
-          onSuccess: (final shows) => _setShowLoaded(shows));
-
-  void clearShows() =>
-      state = state.copyWith(dataList: const [], dataSingle: null);
+  void clearShows() => state = state.copyWith(dataList: const [], dataSingle: null);
 
   void _setShowLoaded(final List<Show>? shows) => state = state.copyWith(
         dataList: [...?shows], // null ise boş liste olur
@@ -50,17 +49,15 @@ class ShowNotifier extends BaseNotifierWithNetworkChecker<ShowState> {
       );
 }
 
-/// ShowState için extension metodlar
+/// ShowState için extension metodlar (aynı kalıyor)
 extension ShowStateX on ShowState {
-  bool hasShow(final String showId) {
-    if (dataList == null) return false;
-    return dataList!.any((final show) => show.id == showId);
-  }
+  bool hasShow(final String showId) =>
+      dataList?.any((final show) => show.id == showId) ?? false;
 
   Show? getShowById(final String showId) {
     if (dataList == null) return null;
     try {
-      return dataList!.firstWhere((final show) => show.id == showId);
+      return dataList?.firstWhere((final show) => show.id == showId);
     } catch (_) {
       return null;
     }
@@ -68,10 +65,9 @@ extension ShowStateX on ShowState {
 
   int get showCount => dataList?.length ?? 0;
 
-  bool get hasData => dataList != null && dataList!.isNotEmpty;
+  bool get hasData => dataList?.isNotEmpty ?? false;
 
-  List<String> get showIds =>
-      dataList?.map((final show) => show.id).toList() ?? [];
+  List<String> get showIds => dataList?.map((final show) => show.id).toList() ?? [];
 }
 
 // ==============================================================================

@@ -9,7 +9,7 @@ class SeatRepositoryImpl extends BaseRepository implements SeatRepository {
 
   SeatRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

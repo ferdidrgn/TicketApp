@@ -10,7 +10,7 @@ class ShowRepositoryImpl extends BaseRepository implements ShowRepository {
 
   ShowRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

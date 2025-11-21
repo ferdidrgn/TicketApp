@@ -10,7 +10,7 @@ class PlayerRepositoryImpl extends BaseRepository implements PlayerRepository {
 
   PlayerRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override

@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/domain/entities/ticket.dart';
 import '../../../domain/entities/event.dart';
 import '../ticket/ticket_provider.dart';
 import 'event_provider.dart';
 import 'event_state.dart';
 
-class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
+class EventNotifier extends BaseNotifier<EventState> {
   Timer? _reservationTimer;
   StreamSubscription? _seatStatusSubscription;
   bool _isDisposed = false;
@@ -37,9 +37,6 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     );
     _loadInitialData();
   }
-
-  @override
-  void reloadData() => _loadInitialData();
 
   Future<void> _loadInitialData() async {
     _subscribeSeatStatus();
@@ -94,8 +91,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     );
   }
 
-  Future<void> loadEventsByIds(final List<String> eventIds) =>
-      executeWithInternetCheck(
+  Future<void> loadEventsByIds(final List<String> eventIds) => execute(
         () => ref.read(getEventsByIdsUseCaseProvider).call(eventIds),
         onSuccess: (final events) {
           if (_isDisposed) return;
@@ -340,7 +336,7 @@ class EventNotifier extends BaseNotifierWithNetworkChecker<EventState> {
     state = state.copyWith(isLoading: true);
 
     try {
-      await executeWithInternetCheck(() async {
+      await execute(() async {
         final confirmResult = await ref
             .read(confirmPurchaseUseCaseUseCaseProvider)
             .call(state.eventId, seatsToPurchase, state.customerId);

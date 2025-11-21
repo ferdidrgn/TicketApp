@@ -1,18 +1,12 @@
-import 'package:ticketapp/core/common/base_notifier_with_network_checker.dart';
+import 'package:ticketapp/core/common/base_notifier.dart';
 import 'app_tools_provider.dart';
 import 'app_tools_state.dart';
 
-class AppToolsNotifier extends BaseNotifierWithNetworkChecker<AppToolsState> {
+class AppToolsNotifier extends BaseNotifier<AppToolsState> {
   @override
   AppToolsState initialState() => const AppToolsState();
 
-  @override
-  void reloadData() {
-    fetchPrivacyPolicy();
-    fetchTermsCondition();
-  }
-
-  Future<void> fetchPrivacyPolicy() => executeWithInternetCheck(
+  Future<void> fetchPrivacyPolicy() => execute(
         () => ref.read(getPrivacyPolicyUseCaseProvider).call(),
         onSuccess: (final policy) {
           if (policy != state.privacyPolicy)
@@ -20,7 +14,7 @@ class AppToolsNotifier extends BaseNotifierWithNetworkChecker<AppToolsState> {
         },
       );
 
-  Future<void> fetchTermsCondition() => executeWithInternetCheck(
+  Future<void> fetchTermsCondition() => execute(
         () => ref.read(getTermsConditionUseCaseProvider).call(),
         onSuccess: (final terms) {
           if (terms != state.termsCondition)

@@ -10,7 +10,7 @@ class AppToolsRepositoryImpl extends BaseRepository
 
   AppToolsRepositoryImpl({
     required this.remoteDataSource,
-    required super.internetService,
+    //required super.internetService,
   });
 
   @override
