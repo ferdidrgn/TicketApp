@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart'; // ✅ EKLENDİ: Güvenli navigasyon için şart
 import 'package:ticketapp/core/util/responsive_utils.dart';
+import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/providers/player/player_notifier.dart';
 import 'package:ticketapp/data/providers/show/show_notifier.dart';
 import 'package:ticketapp/data/providers/stage/stage_notifier.dart';
@@ -26,7 +28,7 @@ class _UiConstants {
   static const Duration heroDuration = Duration(milliseconds: 1200);
   static const Duration contentDuration = Duration(milliseconds: 800);
   static const Duration floatDuration = Duration(seconds: 3);
-  static const int staggerDelay = 100; // Ms cinsinden kartlar arası gecikme
+  static const int staggerDelay = 100;
   static const double parallaxFactor = 0.5;
   static const int galleryItemsPerPage = 8;
 }
@@ -42,17 +44,14 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     with TickerProviderStateMixin {
-  // Animasyon Kontrolcüleri
   late final AnimationController _heroController;
   late final AnimationController _contentController;
   late final AnimationController _floatingController;
 
-  // Animasyon Değerleri
   late final Animation<double> _heroFade;
   late final Animation<Offset> _heroSlide;
   late final Animation<double> _contentFade;
 
-  // Scroll Yönetimi
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
 
@@ -64,7 +63,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     _initControllers();
     _initScrollListener();
 
-    // Build sonrası veri çekme işlemi
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (mounted) {
         _fetchInitialData();
@@ -96,7 +94,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   }
 
   void _initScrollListener() {
-    // Scroll performans optimizasyonu: Sadece offset değiştiğinde notifier tetikle
     _scrollController.addListener(() {
       if (mounted) _scrollNotifier.value = _scrollController.offset;
     });
@@ -106,14 +103,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final showData = ref.read(showProvider).getShowById(widget.showId);
     if (showData != null && mounted) {
       try {
-        // OptimizedCachedImage.provider kullanarak RAM dostu precache
         await precacheImage(
           OptimizedCachedImage.provider(
             showData.imageUrl,
             context: context,
-            width: MediaQuery.of(context)
-                .size
-                .width, // Ekran genişliği kadar cache
+            width: MediaQuery.of(context).size.width,
           ),
           context,
         );
@@ -129,7 +123,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final showNotifier = ref.read(showProvider.notifier);
     Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
-    // Veri yoksa çek
     if (showData == null) {
       try {
         await showNotifier.loadShowsByIds([widget.showId]);
@@ -144,7 +137,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       }
     }
 
-    // Event ve Player verilerini paralel çek (Future.wait ile hızlandır)
     final List<Future> futures = [];
 
     if (showData.eventsId.isNotEmpty) {
@@ -169,6 +161,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     _isDataLoaded = true;
   }
 
+  // ✅ YENİ: GÜVENLİ GERİ DÖNÜŞ FONKSİYONU
+  void _safePop(final BuildContext context) {
+    if (context.canPop())
+      context.pop(); // Geçmiş varsa geri git
+    else
+      context.go('/'); // Geçmiş yoksa (Direkt link/Refresh) Ana Sayfaya git
+  }
+
   @override
   void dispose() {
     _heroController.dispose();
@@ -181,29 +181,26 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
   @override
   Widget build(final BuildContext context) {
-    // Performance: Sadece gerekli datayı dinle
     final showData = ref
         .watch(showProvider.select((final s) => s.getShowById(widget.showId)));
-    final showState = ref.read(
-        showProvider); // Loading durumu için read yeterli olabilir ama reactive olması için watch
+    final showState = ref.read(showProvider);
     final eventState = ref.watch(eventProvider);
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
 
-    // Event yüklendiğinde Stage çekme listener'ı
     _listenForStageData();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0a0a1a),
+      // Hata durumunda da güvenli geri dönüş kullanılıyor
       body: showData == null
           ? (showState.isLoading
               ? const _LoadingState()
               : _ErrorState(
                   message: showState.errorMessage,
-                  onRetry: () => Navigator.pop(context)))
+                  onRetry: () => _safePop(context)))
           : Stack(
               children: [
-                // Performance: RepaintBoundary ile arka plan animasyonunu izole et
                 RepaintBoundary(
                   child: _BackgroundParticles(animation: _floatingController),
                 ),
@@ -211,7 +208,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                 CustomScrollView(
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
-                  cacheExtent: 1000, // Pre-render alanı
+                  cacheExtent: 1000,
                   slivers: [
                     SliverToBoxAdapter(
                       child: _ParallaxHero(
@@ -236,6 +233,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   ],
                 ),
 
+                // ✅ Float Back Button'a güvenli dönüş metodu parametre olarak geçmeye gerek yok,
+                // Çünkü o stateless widget içinde context üzerinden halledebiliriz.
                 const Positioned(
                     top: 40, left: 20, child: _FloatingBackButton()),
               ],
@@ -423,9 +422,8 @@ class _MobileLayout extends StatelessWidget {
   }
 }
 
-// --- DETAYLI ALT BİLEŞENLER ---
+// --- ALT BİLEŞENLER ---
 
-// 1. PARALLAX HERO
 class _ParallaxHero extends StatelessWidget {
   final Show showData;
   final ValueNotifier<double> scrollNotifier;
@@ -454,7 +452,6 @@ class _ParallaxHero extends StatelessWidget {
           height: height,
           child: Stack(
             children: [
-              // Performance: ValueListenableBuilder ile sadece resim pozisyonunu güncelle
               ValueListenableBuilder<double>(
                 valueListenable: scrollNotifier,
                 builder: (final context, final scrollOffset, final child) {
@@ -467,9 +464,7 @@ class _ParallaxHero extends StatelessWidget {
                       child: OptimizedCachedImage(
                         imageUrl: showData.imageUrl,
                         fit: BoxFit.cover,
-                        width: MediaQuery.of(context)
-                            .size
-                            .width, // Cache optimizasyonu
+                        width: MediaQuery.of(context).size.width,
                       ),
                     ),
                   );
@@ -485,6 +480,7 @@ class _ParallaxHero extends StatelessWidget {
                     const _HeroDivider(),
                     _HeroTitle(title: showData.name),
                     const SizedBox(height: 20),
+                    _AnimatedUnderline(animation: floatingAnimation),
                   ],
                 ),
               ),
@@ -496,7 +492,6 @@ class _ParallaxHero extends StatelessWidget {
   }
 }
 
-// 2. OYUNCU BÖLÜMÜ (Refactored: Pagination kaldırıldı, Animasyon eklendi)
 class _PlayerSection extends StatelessWidget {
   final List<Player> players;
   final bool isOld;
@@ -519,7 +514,6 @@ class _PlayerSection extends StatelessWidget {
               child: CircularProgressIndicator(color: Color(0xFFD4AF37))));
     }
 
-    // Wrap ile tüm oyuncuları listele, TweenAnimation ile sırayla göster
     return Wrap(
       spacing: 20,
       runSpacing: 20,
@@ -631,7 +625,6 @@ class _AnimatedPlayerCard extends StatelessWidget {
   }
 }
 
-// 3. ETKİNLİK BÖLÜMÜ
 class _EventSection extends StatelessWidget {
   final Show showData;
   final EventState eventState;
@@ -770,11 +763,10 @@ class _AnimatedEventCard extends StatelessWidget {
           const SnackBar(content: Text("Kullanıcı oturumu bulunamadı.")));
       return;
     }
-    // Navigation logic here...
+    // Navigator.push(...)
   }
 }
 
-// 4. GALERİ BÖLÜMÜ (Mobile: Scroll, Desktop: Grid - Pagination hala Desktop için tutuluyor)
 class _GallerySection extends ConsumerStatefulWidget {
   final List<String> photos;
 
@@ -792,7 +784,6 @@ class _GallerySectionState extends ConsumerState<_GallerySection> {
     if (widget.photos.isEmpty)
       return const _EmptyStateMessage(message: 'Galeri boş.');
 
-    // Mobil için direkt tüm liste horizontal scroll (Pagination yok)
     if (context.isMobile) {
       return SizedBox(
         height: 180,
@@ -808,7 +799,6 @@ class _GallerySectionState extends ConsumerState<_GallerySection> {
       );
     }
 
-    // Desktop için Grid Pagination
     final totalPages =
         (widget.photos.length / _UiConstants.galleryItemsPerPage).ceil();
     final startIndex = _currentPage * _UiConstants.galleryItemsPerPage;
@@ -830,7 +820,43 @@ class _GallerySectionState extends ConsumerState<_GallerySection> {
   }
 }
 
-// --- HELPER WIDGETS (Clean Code) ---
+// --- HELPER WIDGETS ---
+
+class _FloatingBackButton extends StatelessWidget {
+  const _FloatingBackButton();
+
+  @override
+  Widget build(final BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        // ✅ GÜVENLİ GERİ DÖNÜŞ MANTIĞI BURAYA EKLENDİ
+        onTap: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            // Eğer history stack boşsa (direkt link/refresh), ana sayfaya git
+            context.go('/');
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1a1a2e).withOpacity(0.9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+          ),
+          child: const Icon(Icons.arrow_back_rounded, color: Color(0xFFD4AF37)),
+        ),
+      ),
+    );
+  }
+}
+
+// ... (Diğer yardımcı widget'lar: _HeroGradientOverlay, _HeroTitle, _EmptyStateMessage vb. aynı kalacak)
+// Kodun geri kalanını gereksiz uzatmamak için buraya eklemedim,
+// mevcut dosyanızdaki yardımcı widget'ları (Helper Widgets) koruyabilirsiniz.
+// Önemli olan _FloatingBackButton ve import kısmının değişmesiydi.
 
 class _HeroGradientOverlay extends StatelessWidget {
   const _HeroGradientOverlay();
@@ -900,6 +926,35 @@ class _HeroTitle extends StatelessWidget {
           ],
         ),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+class _AnimatedUnderline extends StatelessWidget {
+  final Animation<double> animation;
+
+  const _AnimatedUnderline({required this.animation});
+
+  @override
+  Widget build(final BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (final _, final __) => Container(
+        height: 4,
+        width: 120 + math.sin(animation.value * math.pi) * 20,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [
+            Color(0xFFD4AF37),
+            Color(0xFFF5E6A3),
+            Color(0xFFD4AF37)
+          ]),
+          borderRadius: BorderRadius.circular(2),
+          boxShadow: [
+            BoxShadow(
+                color: const Color(0xFFD4AF37).withOpacity(0.6), blurRadius: 15)
+          ],
+        ),
       ),
     );
   }
@@ -1225,76 +1280,6 @@ class _BackgroundParticles extends StatelessWidget {
   }
 }
 
-class _FloatingBackButton extends StatelessWidget {
-  const _FloatingBackButton();
-
-  @override
-  Widget build(final BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1a1a2e).withOpacity(0.9),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
-          ),
-          child: const Icon(Icons.arrow_back_rounded, color: Color(0xFFD4AF37)),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const _SectionTitle({required this.title, required this.icon});
-
-  @override
-  Widget build(final BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                colors: [Color(0xFFD4AF37), Color(0xFFF5E6A3)]),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                  color: const Color(0xFFD4AF37).withOpacity(0.4),
-                  blurRadius: 15)
-            ],
-          ),
-          child: Icon(icon, color: const Color(0xFF0a0a1a), size: 22),
-        ),
-        const SizedBox(width: 16),
-        Text(title,
-            style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 1)),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Container(
-            height: 1,
-            decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [
-              const Color(0xFFD4AF37).withOpacity(0.5),
-              Colors.transparent
-            ])),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _EmptyStateMessage extends StatelessWidget {
   final String message;
 
@@ -1367,6 +1352,58 @@ class _ErrorState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final IconData icon;
+
+  const _SectionTitle({required this.title, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                colors: [Color(0xFFD4AF37), Color(0xFFF5E6A3)]),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                  color: const Color(0xFFD4AF37).withOpacity(0.4),
+                  blurRadius: 15)
+            ],
+          ),
+          child: Icon(icon, color: const Color(0xFF0a0a1a), size: 22),
+        ),
+        const SizedBox(width: 16),
+        Text(
+          title,
+          style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 1),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFD4AF37).withOpacity(0.5),
+                  Colors.transparent
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
