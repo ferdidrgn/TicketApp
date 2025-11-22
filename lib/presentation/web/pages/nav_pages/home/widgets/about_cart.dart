@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
-// ═══════════════════════════════════════════════════════════
-// ABOUT CARD - MODERN DESIGN
-// ═══════════════════════════════════════════════════════════
 class AboutCard extends StatefulWidget {
-  const AboutCard({super.key});
+  // ✅ 1. Ana ScrollController'ı buraya parametre olarak alıyoruz
+  final ScrollController mainScrollController;
+
+  const AboutCard({
+    super.key,
+    required this.mainScrollController, // Zorunlu parametre
+  });
 
   @override
   State<AboutCard> createState() => _AboutCardState();
@@ -17,21 +20,59 @@ class _AboutCardState extends State<AboutCard>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
+  // Animasyon daha önce oynadı mı kontrolü
+  bool _hasAnimated = false;
+
   @override
   void initState() {
     super.initState();
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
+
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-    _controller.forward();
+
+    // ❌ ESKİ KODU SİLİN: _controller.forward(); (Artık burada başlamayacak)
+
+    // ✅ YENİ KOD: Scroll dinleyicisini ekle
+    // (WidgetsBinding, sayfa çizildiği an kontrol etmemizi sağlar)
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      _checkVisibility(); // İlk açılışta kontrol et (belki direkt görünüyordur)
+      widget.mainScrollController
+          .addListener(_checkVisibility); // Dinlemeye başla
+    });
   }
 
   @override
   void dispose() {
+    // Temizlik şart!
+    widget.mainScrollController.removeListener(_checkVisibility);
     _controller.dispose();
     super.dispose();
+  }
+
+  // 🔥 PERFORMANS SİHRİ BURADA 🔥
+  void _checkVisibility() {
+    // Eğer zaten animasyon oynadıysa veya widget ekranda yoksa işlem yapma
+    if (_hasAnimated || !mounted) return;
+
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    // Widget'ın ekran üzerindeki konumunu al
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // KURAL: Widget'ın üst kısmı, ekranın altından 100 piksel içeri girince başla
+    if (offset.dy < screenHeight - 100) {
+      _controller.forward();
+      _hasAnimated = true;
+
+      // 🚀 RAM TASARRUFU: İşimiz bitti, artık scroll'u dinlemeyi bırak!
+      widget.mainScrollController.removeListener(_checkVisibility);
+    }
   }
 
   @override
@@ -63,9 +104,7 @@ class _AboutCardState extends State<AboutCard>
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             Container(
               width: 80,
               height: 4,
@@ -74,10 +113,7 @@ class _AboutCardState extends State<AboutCard>
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
             const SizedBox(height: 48),
-
-            // Content
             LayoutBuilder(
               builder: (final context, final constraints) {
                 return constraints.maxWidth > 800
