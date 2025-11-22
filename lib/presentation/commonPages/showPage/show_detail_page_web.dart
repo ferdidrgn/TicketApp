@@ -48,7 +48,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     super.initState();
     _initAnimations();
     _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (mounted) _fetchInitialData();
     });
   }
@@ -110,7 +110,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     final eventsList = showData.eventsId;
     if (eventsList.isNotEmpty) {
       final validEventIds =
-          eventsList.where((id) => id.trim().isNotEmpty).toList();
+          eventsList.where((final id) => id.trim().isNotEmpty).toList();
       if (validEventIds.isNotEmpty) {
         unawaited(
             ref.read(eventProvider.notifier).loadEventsByIds(validEventIds));
@@ -118,7 +118,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     }
 
     final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}
-        .where((id) => id.trim().isNotEmpty)
+        .where((final id) => id.trim().isNotEmpty)
         .toList();
 
     if (allPlayerIds.isNotEmpty) {
@@ -137,21 +137,21 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final showState = ref.watch(showProvider);
     final eventState = ref.watch(eventProvider);
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
     final showData = showState.getShowById(widget.showId);
 
-    ref.listen<EventState>(eventProvider, (previous, next) {
+    ref.listen<EventState>(eventProvider, (final previous, final next) {
       final justLoaded = (previous?.dataList?.isEmpty ?? true) &&
           (next.dataList?.isNotEmpty ?? false);
       if (justLoaded) {
         final stageIds = next.dataList!
-            .map((e) => e.stageId)
+            .map((final e) => e.stageId)
             .whereType<String>()
-            .where((id) => id.trim().isNotEmpty && id != '0')
+            .where((final id) => id.trim().isNotEmpty && id != '0')
             .toSet()
             .toList();
         if (stageIds.isNotEmpty) {
@@ -178,7 +178,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
         children: [
           AnimatedBuilder(
             animation: _floatingController,
-            builder: (_, child) => Transform.translate(
+            builder: (final _, final child) => Transform.translate(
               offset:
                   Offset(0, math.sin(_floatingController.value * math.pi) * 10),
               child: child,
@@ -214,7 +214,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildErrorState(String? message) {
+  Widget _buildErrorState(final String? message) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -230,7 +230,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildGoldenButton(String text, VoidCallback onTap) {
+  Widget _buildGoldenButton(final String text, final VoidCallback onTap) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -260,8 +260,8 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildContent(BuildContext context, Show showData,
-      EventState eventState, PlayerState playerState, StageState stageState) {
+  Widget _buildContent(final BuildContext context, final Show showData,
+      final EventState eventState, final PlayerState playerState, final StageState stageState) {
     final isDesktop = context.isDesktop;
     final horizontalPadding =
         context.responsive(mobile: 16.0, tablet: 40.0, desktop: 100.0);
@@ -300,11 +300,11 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
   }
 
   List<Widget> _buildFloatingParticles() {
-    return List.generate(15, (i) {
+    return List.generate(15, (final i) {
       final random = math.Random(i);
       return AnimatedBuilder(
         animation: _floatingController,
-        builder: (_, __) {
+        builder: (final _, final __) {
           final x = random.nextDouble() * MediaQuery.of(context).size.width;
           final baseY =
               random.nextDouble() * MediaQuery.of(context).size.height;
@@ -331,7 +331,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
   Widget _buildFloatingBackButton() {
     return AnimatedBuilder(
       animation: _floatingController,
-      builder: (_, child) => Transform.translate(
+      builder: (final _, final child) => Transform.translate(
         offset: Offset(0, math.sin(_floatingController.value * math.pi) * 3),
         child: child,
       ),
@@ -360,7 +360,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildParallaxHero(BuildContext context, Show showData) {
+  Widget _buildParallaxHero(final BuildContext context, final Show showData) {
     final height =
         context.responsive(mobile: 500.0, tablet: 600.0, desktop: 700.0);
     final parallaxOffset = _scrollOffset * 0.5;
@@ -382,7 +382,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
                   child: CachedNetworkImage(
                     imageUrl: showData.imageUrl,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => const ShimmerLoading(
+                    placeholder: (final _, final __) => const ShimmerLoading(
                         width: double.infinity, height: double.infinity),
                   ),
                 ),
@@ -440,7 +440,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
                       ),
                     ),
                     ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
+                      shaderCallback: (final bounds) => const LinearGradient(
                         colors: [Color(0xFFFFFFFF), Color(0xFFF5E6A3)],
                       ).createShader(bounds),
                       child: Text(
@@ -463,7 +463,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
                     const SizedBox(height: 20),
                     AnimatedBuilder(
                       animation: _floatingController,
-                      builder: (_, __) => Container(
+                      builder: (final _, final __) => Container(
                         height: 4,
                         width: 120 +
                             math.sin(_floatingController.value * math.pi) * 20,
@@ -494,8 +494,8 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildDesktopLayout(BuildContext context, Show showData,
-      EventState eventState, PlayerState playerState, StageState stageState) {
+  Widget _buildDesktopLayout(final BuildContext context, final Show showData,
+      final EventState eventState, final PlayerState playerState, final StageState stageState) {
     final nowPlayers = playerState.getPlayersByIds(showData.nowPlayersId);
     final oldPlayers = playerState.getPlayersByIds(showData.oldPlayersId);
 
@@ -543,8 +543,8 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context, Show showData,
-      EventState eventState, PlayerState playerState, StageState stageState) {
+  Widget _buildMobileLayout(final BuildContext context, final Show showData,
+      final EventState eventState, final PlayerState playerState, final StageState stageState) {
     final nowPlayers = playerState.getPlayersByIds(showData.nowPlayersId);
     final oldPlayers = playerState.getPlayersByIds(showData.oldPlayersId);
 
@@ -575,10 +575,10 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildAnimatedPoster(String imageUrl) {
+  Widget _buildAnimatedPoster(final String imageUrl) {
     return AnimatedBuilder(
       animation: _floatingController,
-      builder: (_, child) => Transform(
+      builder: (final _, final child) => Transform(
         transform: Matrix4.identity()
           ..setEntry(3, 2, 0.001)
           ..rotateY(math.sin(_floatingController.value * math.pi) * 0.02),
@@ -626,7 +626,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildGlassDescriptionCard(String description) {
+  Widget _buildGlassDescriptionCard(final String description) {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -649,7 +649,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildAnimatedSectionTitle(String title, IconData icon) {
+  Widget _buildAnimatedSectionTitle(final String title, final IconData icon) {
     return Row(
       children: [
         Container(
@@ -692,7 +692,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
   }
 
   Widget _buildEventSection(
-      Show showData, EventState eventState, StageState stageState) {
+      final Show showData, final EventState eventState, final StageState stageState) {
     if (eventState.isLoading && !eventState.hasData) {
       return const SizedBox(
           height: 100,
@@ -701,7 +701,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     }
 
     final events = eventState.dataList
-            ?.where((e) => showData.eventsId.contains(e.id))
+            ?.where((final e) => showData.eventsId.contains(e.id))
             .toList() ??
         [];
 
@@ -709,13 +709,13 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
       return _buildEmptyState('Yaklaşan etkinlik bulunmamaktadır.');
 
     return Column(
-      children: events.asMap().entries.map((entry) {
+      children: events.asMap().entries.map((final entry) {
         final event = entry.value;
         final stage = stageState.getStageById(event.stageId);
         return TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
           duration: Duration(milliseconds: 400 + entry.key * 100),
-          builder: (_, value, child) => Opacity(
+          builder: (final _, final value, final child) => Opacity(
             opacity: value,
             child: Transform.translate(
                 offset: Offset(0, 20 * (1 - value)), child: child),
@@ -728,7 +728,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
   }
 
   Widget _buildAnimatedEventCard(
-      String date, String eventId, String showId, String stageName) {
+      final String date, final String eventId, final String showId, final String stageName) {
     final formatted = DateFormatter.formatForEventCard(date);
 
     return MouseRegion(
@@ -832,7 +832,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  void _navigateToSeatSelection(String eventId, String showId) {
+  void _navigateToSeatSelection(final String eventId, final String showId) {
     String? userId = ref.read(loginProvider).user?.uid;
     userId ??= ref.read(userProvider).dataSingle?.id;
     userId ??= LocalStorageService.userUid;
@@ -845,8 +845,8 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     // Navigator.push(context, MaterialPageRoute(builder: (_) => SeatSelectionScreen(...)));
   }
 
-  Widget _buildPlayerSection(PlayerState playerState, List<String> playerIds,
-      List<Player> playerDataList, bool isOld) {
+  Widget _buildPlayerSection(final PlayerState playerState, final List<String> playerIds,
+      final List<Player> playerDataList, final bool isOld) {
     if (playerIds.isEmpty) {
       return _buildEmptyState(
           isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.');
@@ -871,15 +871,15 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
         isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.');
   }
 
-  Widget _buildPlayerGrid(List<Player> players, bool isOld) {
+  Widget _buildPlayerGrid(final List<Player> players, final bool isOld) {
     return Wrap(
       spacing: 20,
       runSpacing: 20,
-      children: players.asMap().entries.map((entry) {
+      children: players.asMap().entries.map((final entry) {
         return TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
           duration: Duration(milliseconds: 300 + entry.key * 80),
-          builder: (_, value, child) => Opacity(
+          builder: (final _, final value, final child) => Opacity(
             opacity: value,
             child: Transform.scale(scale: 0.8 + 0.2 * value, child: child),
           ),
@@ -889,7 +889,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildAnimatedPlayerCard(Player player, bool isOld) {
+  Widget _buildAnimatedPlayerCard(final Player player, final bool isOld) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Container(
@@ -919,7 +919,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
                         width: 150,
                         height: 150,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) =>
+                        placeholder: (final _, final __) =>
                             const ShimmerLoading(width: 150, height: 150),
                       ),
                     ),
@@ -997,24 +997,33 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildGallerySection(List<String> photos) {
+  Widget _buildGallerySection(final List<String> photos) {
     if (photos.isEmpty) return _buildEmptyState('Galeri boş.');
 
+    // Mobil için yatay scroll, desktop için grid
+    return context.isMobile
+        ? _buildGalleryRowMobile(photos)
+        : _buildGalleryGridDesktop(photos);
+  }
+
+  /// Mobil için yatay scroll galeri
+  Widget _buildGalleryRowMobile(final List<String> photos) {
     return SizedBox(
-      height: 200,
+      height: 180,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: photos.length,
-        itemBuilder: (_, i) => TweenAnimationBuilder<double>(
+        itemBuilder: (final _, final i) => TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
           duration: Duration(milliseconds: 400 + i * 100),
-          builder: (_, value, child) => Opacity(
+          builder: (final _, final value, final child) => Opacity(
             opacity: value,
             child: Transform.translate(
                 offset: Offset(30 * (1 - value), 0), child: child),
           ),
           child: Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 12),
             child: _buildAnimatedGalleryItem(photos[i]),
           ),
         ),
@@ -1022,7 +1031,109 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildAnimatedGalleryItem(String url) {
+  /// Desktop/Tablet için responsive grid galeri
+  Widget _buildGalleryGridDesktop(final List<String> photos) {
+    return LayoutBuilder(
+      builder: (final ctx, final constraints) {
+        final crossAxisCount =
+            context.responsive(mobile: 2, tablet: 3, desktop: 4);
+        final spacing = context.gridSpacing;
+        final itemWidth =
+            (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /
+                crossAxisCount;
+        final itemHeight = itemWidth * 0.75;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: photos.asMap().entries.map((final entry) {
+            final index = entry.key;
+            final url = entry.value;
+
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: Duration(milliseconds: 300 + index * 50),
+              builder: (final _, final value, final child) => Opacity(
+                opacity: value,
+                child: Transform.scale(scale: 0.8 + 0.2 * value, child: child),
+              ),
+              child: _buildGalleryGridItem(url, itemWidth, itemHeight),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  /// Grid item widget
+  Widget _buildGalleryGridItem(final String url, final double width, final double height) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _showFullImage(context, url),
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(context.borderRadius()),
+            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD4AF37).withOpacity(0.15),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(context.borderRadius()),
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  width: width,
+                  height: height,
+                  fit: BoxFit.cover,
+                  placeholder: (final _, final __) =>
+                      ShimmerLoading(width: width, height: height),
+                ),
+              ),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(context.borderRadius()),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFF0a0a1a).withOpacity(0.5)
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37).withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.zoom_in,
+                      color: const Color(0xFF0a0a1a), size: context.iconSmall),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedGalleryItem(final String url) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -1082,7 +1193,7 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyState(final String message) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -1104,11 +1215,11 @@ class _ShowDetailPage extends ConsumerState<ShowDetailPage>
     );
   }
 
-  void _showFullImage(BuildContext context, String url) {
+  void _showFullImage(final BuildContext context, final String url) {
     showDialog(
       context: context,
       barrierColor: const Color(0xFF0a0a1a).withOpacity(0.95),
-      builder: (_) => Dialog(
+      builder: (final _) => Dialog(
         backgroundColor: Colors.transparent,
         child: Stack(
           alignment: Alignment.center,
@@ -1151,11 +1262,11 @@ class AnimatedBuilder extends AnimatedWidget {
 
   const AnimatedBuilder({
     super.key,
-    required Animation<double> animation,
+    required final Animation<double> animation,
     required this.builder,
     this.child,
   }) : super(listenable: animation);
 
   @override
-  Widget build(BuildContext context) => builder(context, child);
+  Widget build(final BuildContext context) => builder(context, child);
 }
