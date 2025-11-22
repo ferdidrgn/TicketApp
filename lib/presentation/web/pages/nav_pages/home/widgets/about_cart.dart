@@ -3,12 +3,11 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
 class AboutCard extends StatefulWidget {
-  // ✅ 1. Ana ScrollController'ı buraya parametre olarak alıyoruz
   final ScrollController mainScrollController;
 
   const AboutCard({
     super.key,
-    required this.mainScrollController, // Zorunlu parametre
+    required this.mainScrollController,
   });
 
   @override
@@ -17,10 +16,8 @@ class AboutCard extends StatefulWidget {
 
 class _AboutCardState extends State<AboutCard>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-
-  // Animasyon daha önce oynadı mı kontrolü
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
   bool _hasAnimated = false;
 
   @override
@@ -28,49 +25,35 @@ class _AboutCardState extends State<AboutCard>
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
+        duration: const Duration(milliseconds: 1200), vsync: this);
 
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
-    // ❌ ESKİ KODU SİLİN: _controller.forward(); (Artık burada başlamayacak)
-
-    // ✅ YENİ KOD: Scroll dinleyicisini ekle
-    // (WidgetsBinding, sayfa çizildiği an kontrol etmemizi sağlar)
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _checkVisibility(); // İlk açılışta kontrol et (belki direkt görünüyordur)
-      widget.mainScrollController
-          .addListener(_checkVisibility); // Dinlemeye başla
+      _checkVisibility();
+      widget.mainScrollController.addListener(_checkVisibility);
     });
   }
 
   @override
   void dispose() {
-    // Temizlik şart!
     widget.mainScrollController.removeListener(_checkVisibility);
     _controller.dispose();
     super.dispose();
   }
 
-  // 🔥 PERFORMANS SİHRİ BURADA 🔥
   void _checkVisibility() {
-    // Eğer zaten animasyon oynadıysa veya widget ekranda yoksa işlem yapma
     if (_hasAnimated || !mounted) return;
 
-    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
-    // Widget'ın ekran üzerindeki konumunu al
     final offset = renderBox.localToGlobal(Offset.zero);
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // KURAL: Widget'ın üst kısmı, ekranın altından 100 piksel içeri girince başla
     if (offset.dy < screenHeight - 100) {
       _controller.forward();
       _hasAnimated = true;
-
-      // 🚀 RAM TASARRUFU: İşimiz bitti, artık scroll'u dinlemeyi bırak!
       widget.mainScrollController.removeListener(_checkVisibility);
     }
   }
@@ -90,84 +73,83 @@ class _AboutCardState extends State<AboutCard>
         opacity: _fadeAnimation,
         child: Column(
           children: [
-            // Başlık
-            ShaderMask(
-              shaderCallback: (final bounds) =>
-                  WebColors.goldGradient.createShader(bounds),
-              child: Text(
-                'HAKKIMIZDA',
-                style: TextStyle(
-                  fontSize: context.responsive(mobile: 36.0, desktop: 56.0),
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 3,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: 80,
-              height: 4,
-              decoration: BoxDecoration(
-                gradient: WebColors.goldGradient,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            _buildHeader(context),
             const SizedBox(height: 48),
-            LayoutBuilder(
-              builder: (final context, final constraints) {
-                return constraints.maxWidth > 800
-                    ? _buildWideLayout(context)
-                    : _buildNarrowLayout(context);
-              },
-            ),
+            _buildContent(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildWideLayout(final BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHeader(final BuildContext context) {
+    return Column(
       children: [
-        Expanded(flex: 6, child: _buildAboutText(context)),
-        const SizedBox(width: 60),
-        Expanded(flex: 4, child: _buildStatsGrid(context)),
+        ShaderMask(
+          shaderCallback: (final bounds) =>
+              WebColors.goldGradient.createShader(bounds),
+          child: Text(
+            'HAKKIMIZDA',
+            style: TextStyle(
+              fontSize: context.responsive(mobile: 36.0, desktop: 56.0),
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 3,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: 80,
+          height: 4,
+          decoration: BoxDecoration(
+            gradient: WebColors.goldGradient,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildNarrowLayout(final BuildContext context) {
-    return Column(
-      children: [
-        _buildAboutText(context),
-        const SizedBox(height: 40),
-        _buildStatsGrid(context),
-      ],
+  Widget _buildContent(final BuildContext context) {
+    return LayoutBuilder(
+      builder: (final context, final constraints) {
+        return constraints.maxWidth > 800
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 6, child: _buildAboutText(context)),
+                  const SizedBox(width: 60),
+                  Expanded(flex: 4, child: _buildStatsGrid(context)),
+                ],
+              )
+            : Column(
+                children: [
+                  _buildAboutText(context),
+                  const SizedBox(height: 40),
+                  _buildStatsGrid(context),
+                ],
+              );
+      },
     );
   }
 
   Widget _buildAboutText(final BuildContext context) {
+    const paragraphs = [
+      'TiyatRol Sahne Sanatları Tiyatro Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren amatör - profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri ya da farklı oyunları modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.',
+      'Ekibimiz, deneyimli oyuncular, yaratıcı yönetmenler ve yetenekli sahne sanatçılarından oluşmaktadır. Her oyunumuzda kaliteyi ve sanatsal bütünlüğü ön planda tutarak, seyircilerimize unutulmaz deneyimler yaşatmayı hedefliyoruz.',
+      'Tiyatro sanatını sadece sahne performansı olarak görmeyip, toplumsal dönüşüme katkıda bulunan bir araç olarak değerlendiriyoruz. Bu anlayışla hareket ederek, her yaştan seyirciye hitap eden, düşündüren ve duygulandıran yapımlar üretiyoruz.',
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildParagraph(
-          context,
-          'TiyatRol Sahne Sanatları Tiyatro Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren amatör - profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri ya da farklı oyunları modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.',
-          isFirst: true,
-        ),
-        const SizedBox(height: 24),
-        _buildParagraph(
-          context,
-          'Ekibimiz, deneyimli oyuncular, yaratıcı yönetmenler ve yetenekli sahne sanatçılarından oluşmaktadır. Her oyunumuzda kaliteyi ve sanatsal bütünlüğü ön planda tutarak, seyircilerimize unutulmaz deneyimler yaşatmayı hedefliyoruz.',
-        ),
-        const SizedBox(height: 24),
-        _buildParagraph(
-          context,
-          'Tiyatro sanatını sadece sahne performansı olarak görmeyip, toplumsal dönüşüme katkıda bulunan bir araç olarak değerlendiriyoruz. Bu anlayışla hareket ederek, her yaştan seyirciye hitap eden, düşündüren ve duygulandıran yapımlar üretiyoruz.',
-        ),
-      ],
+      children: paragraphs.asMap().entries.map((final entry) {
+        return Padding(
+          padding: EdgeInsets.only(
+              bottom: entry.key == paragraphs.length - 1 ? 0 : 24),
+          child: _buildParagraph(context, entry.value, isFirst: entry.key == 0),
+        );
+      }).toList(),
     );
   }
 
@@ -179,9 +161,7 @@ class _AboutCardState extends State<AboutCard>
         color: WebColors.darkBlueSurface.withOpacity(0.3),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isFirst
-              ? WebColors.primaryGold.withOpacity(0.5)
-              : WebColors.primaryGold.withOpacity(0.2),
+          color: WebColors.primaryGold.withOpacity(isFirst ? 0.5 : 0.2),
           width: isFirst ? 2 : 1,
         ),
       ),
@@ -214,7 +194,7 @@ class _AboutCardState extends State<AboutCard>
   }
 
   Widget _buildStatsGrid(final BuildContext context) {
-    final stats = [
+    const stats = [
       {
         'icon': Icons.theater_comedy,
         'number': '10+',
@@ -262,7 +242,7 @@ class _AboutCardState extends State<AboutCard>
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
+                  gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [

@@ -1,11 +1,10 @@
+import 'dart:ui'; // BackdropFilter için gerekli
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
-/// Modern, dramatik Hero Video Section
-/// Parallax effects, animated text, floating premiere card
 class HeroVideoSection extends StatefulWidget {
   const HeroVideoSection({super.key});
 
@@ -16,14 +15,11 @@ class HeroVideoSection extends StatefulWidget {
 class _HeroVideoSectionState extends State<HeroVideoSection>
     with TickerProviderStateMixin {
   late VideoPlayerController _videoController;
-  late AnimationController _glowController;
-  late AnimationController _textController;
-  late AnimationController _floatController;
+  late AnimationController _mainController;
 
-  late Animation<double> _glowAnimation;
   late Animation<double> _fadeInAnimation;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _floatAnimation;
+  late Animation<Offset> _slideUpAnimation;
+  late Animation<double> _pulseAnimation;
 
   bool _isVideoReady = false;
 
@@ -31,95 +27,78 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
   void initState() {
     super.initState();
 
-    // Glow animation (icon için)
-    _glowController = AnimationController(
+    // Ana animasyon kontrolcüsü
+    _mainController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
-    );
-
-    // Text animations
-    _textController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 2000),
     );
 
     _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _textController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
+      CurvedAnimation(parent: _mainController, curve: Curves.easeOut),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+    _slideUpAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.2),
       end: Offset.zero,
     ).animate(
+      CurvedAnimation(parent: _mainController, curve: Curves.easeOutCubic),
+    );
+
+    // Scroll ikonu için sonsuz döngü
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 10.0).animate(
       CurvedAnimation(
-        parent: _textController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+        parent: _mainController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeInOut),
       ),
     );
 
-    // Float animation (premiere card için)
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-
-    _floatAnimation = Tween<double>(begin: -10, end: 10).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-
-    // Video setup
+    // Video Başlatma
     _videoController = VideoPlayerController.network(
       'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705',
     )
       ..setLooping(true)
       ..setVolume(0)
       ..initialize().then((_) {
-        _videoController.play();
-        setState(() => _isVideoReady = true);
-        _textController.forward();
+        if (mounted) {
+          _videoController.play();
+          setState(() => _isVideoReady = true);
+          _mainController.forward();
+        }
       });
   }
 
   @override
   void dispose() {
     _videoController.dispose();
-    _glowController.dispose();
-    _textController.dispose();
-    _floatController.dispose();
+    _mainController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Ekran yüksekliği
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return SizedBox(
-      height: context.screenHeight,
+      height: screenHeight, // Tam ekran kapla
       width: double.infinity,
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          // Video Background with parallax
+          // 1. VİDEO KATMANI
           _buildVideoBackground(),
 
-          // Gradient Overlays (multi-layer for depth)
-          _buildGradientOverlays(),
+          // 2. SİNEMATİK OVERLAY (Karartma ve Spot Işığı)
+          _buildCinematicOverlay(),
 
-          // Animated Content
-          _buildMainContent(context),
+          // 3. MERKEZ İÇERİK (Başlıklar)
+          _buildHeroContent(context),
 
-          // Floating Premiere Card
-          _buildFloatingPremiereCard(context),
+          // 4. SAĞ TARAFTAKİ GLASS KART (Prömiyer)
+          _buildGlassPremiereCard(context),
 
-          // Scroll Indicator
+          // 5. SCROLL GÖSTERGESİ
           _buildScrollIndicator(),
-
-          // Decorative particles (optional)
-          _buildDecorativeElements(),
         ],
       ),
     );
@@ -143,367 +122,278 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     );
   }
 
-  Widget _buildGradientOverlays() {
-    return Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              WebColors.darkBlueBackground.withOpacity(0.8),
-              Colors.transparent,
-              WebColors.darkBlueBackground.withOpacity(0.9),
-            ],
-            stops: const [0.0, 0.4, 1.0],
-          ),
+  Widget _buildCinematicOverlay() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            // Üstte hafif karartma (Header okunabilsin diye)
+            Colors.black.withOpacity(0.6),
+            // Ortada şeffaf (Video görünsün)
+            Colors.black.withOpacity(0.2),
+            // Altta tam siyah (Bir sonraki section ile birleşsin)
+            const Color(0xFF0a0a1a),
+          ],
+          stops: const [0.0, 0.5, 1.0],
         ),
       ),
     );
   }
 
-  Widget _buildMainContent(BuildContext context) {
-    return Positioned(
-      top: context.responsive(mobile: 120.0, desktop: 180.0),
-      left: 0,
-      right: 0,
-      child: FadeTransition(
-        opacity: _fadeInAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: Column(
-            children: [
-              // Animated Icon with pulsing glow
-              AnimatedBuilder(
-                animation: _glowAnimation,
-                builder: (context, child) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: WebColors.primaryGold
-                              .withOpacity(_glowAnimation.value * 0.8),
-                          blurRadius: 50 * _glowAnimation.value,
-                          spreadRadius: 15 * _glowAnimation.value,
+  Widget _buildHeroContent(BuildContext context) {
+    final isDesktop = context.isDesktop;
+
+    return Positioned.fill(
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: context.responsive(mobile: 20, desktop: 100)),
+          child: FadeTransition(
+            opacity: _fadeInAnimation,
+            child: SlideTransition(
+              position: _slideUpAnimation,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: isDesktop
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
+                children: [
+                  // İKON VE ÜST BAŞLIK
+                  Row(
+                    mainAxisAlignment: isDesktop
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.theater_comedy,
+                          color: WebColors.primaryGold, size: 30),
+                      const SizedBox(width: 12),
+                      Text(
+                        'SAHNE SANATLARI',
+                        style: TextStyle(
+                          color: WebColors.primaryGold,
+                          fontSize: 16,
+                          letterSpacing: 4,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: WebColors.goldGradient,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.theater_comedy_rounded,
-                        size: context.responsive(mobile: 50.0, desktop: 70.0),
-                        color: WebColors.darkBlueBackground,
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 40),
-
-              // Main Title with shader effect
-              ShaderMask(
-                shaderCallback: (bounds) =>
-                    WebColors.goldGradient.createShader(bounds),
-                child: Text(
-                  'TiyatRol Sahne Sanatları\nTiyatro Topluluğu',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: context.responsive(
-                      mobile: 32.0,
-                      tablet: 42.0,
-                      desktop: 52.0,
-                    ),
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    height: 1.2,
-                    letterSpacing: 3,
-                    shadows: [
-                      Shadow(
-                        color: WebColors.primaryGold.withOpacity(0.6),
-                        blurRadius: 30,
-                      ),
-                      const Shadow(
-                        color: Colors.black,
-                        blurRadius: 15,
                       ),
                     ],
                   ),
-                ),
-              ),
+                  const SizedBox(height: 20),
 
-              const SizedBox(height: 20),
-
-              // Subtitle with typewriter effect feel
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: WebColors.primaryGold.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  'Sahneyle Büyüleyen, Sanatla Dönüştüren',
-                  style: TextStyle(
-                    fontSize: context.responsive(
-                      mobile: 14.0,
-                      desktop: 18.0,
+                  // ANA BAŞLIK (Devasa)
+                  Text(
+                    'HİKAYELER\nGERÇEĞE DÖNÜŞÜYOR',
+                    textAlign: isDesktop ? TextAlign.left : TextAlign.center,
+                    style: TextStyle(
+                      fontSize: context.responsive(
+                          mobile: 42, tablet: 60, desktop: 80),
+                      height: 1.0,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -1,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.5),
+                          offset: const Offset(0, 10),
+                          blurRadius: 20,
+                        ),
+                      ],
                     ),
-                    color: WebColors.primaryGoldLight,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w600,
                   ),
-                ),
+
+                  const SizedBox(height: 24),
+
+                  // ALT METİN
+                  Container(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Text(
+                      'TiyatRol ile sanatın büyülü dünyasına adım atın. Klasiklerden moderne, her sahnede yeni bir duygu, her oyunda farklı bir hayat.',
+                      textAlign: isDesktop ? TextAlign.left : TextAlign.center,
+                      style: TextStyle(
+                        fontSize: context.responsive(mobile: 16, desktop: 20),
+                        color: Colors.white.withOpacity(0.8),
+                        height: 1.6,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // AKSİYON BUTONU
+                  _buildPlayButton(context),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFloatingPremiereCard(BuildContext context) {
-    return Positioned(
-      top: context.responsive(mobile: 20.0, desktop: 100.0),
-      right: context.responsive(mobile: 15.0, desktop: 40.0),
-      child: AnimatedBuilder(
-        animation: _floatAnimation,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, _floatAnimation.value),
-            child: TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 800),
-              tween: Tween(begin: 0.0, end: 1.0),
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.scale(
-                    scale: 0.8 + (value * 0.2),
-                    child: _buildPremiereContent(context),
-                  ),
-                );
-              },
+  Widget _buildPlayButton(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: WebColors.primaryGold, width: 1),
+          borderRadius: BorderRadius.circular(50),
+          color: Colors.white.withOpacity(0.05), // Glass effect
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.play_circle_fill,
+                color: WebColors.primaryGold, size: 32),
+            const SizedBox(width: 16),
+            Text(
+              'SEZON TANITIMI',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+              ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPremiereContent(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxWidth: context.responsive(mobile: 260.0, desktop: 340.0),
-      ),
-      padding: EdgeInsets.all(context.responsive(mobile: 16.0, desktop: 24.0)),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            WebColors.error,
-            WebColors.warning,
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: WebColors.error.withOpacity(0.6),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
-        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('🎬', style: TextStyle(fontSize: 24)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'PRÖMİYER',
-                  style: TextStyle(
-                    fontSize: context.responsive(mobile: 20.0, desktop: 24.0),
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '27 Haziran 2025, Cuma',
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              height: 1.5,
-            ),
-          ),
-          Text(
-            'Saat 20.00',
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
-              color: Colors.white,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Altunizade Kültür Merkezi',
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 13.0, desktop: 15.0),
-              color: Colors.white.withOpacity(0.9),
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '🎫 Ücretsiz! Biletsiz katılım',
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 12.0, desktop: 14.0),
-              color: Colors.white70,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () async {
-              const url = 'https://maps.app.goo.gl/CnW99UqhxyBJt1fL6';
-              if (await canLaunchUrl(Uri.parse(url))) {
-                await launchUrl(
-                  Uri.parse(url),
-                  mode: LaunchMode.externalApplication,
-                );
-              }
-            },
+    );
+  }
+
+  Widget _buildGlassPremiereCard(BuildContext context) {
+    // Desktop'ta sağda, Mobilde altta (ya da gizli) olabilir.
+    // Burada Desktop için sağ alt/orta konumlandırıyoruz.
+    if (context.isMobile) return const SizedBox.shrink();
+
+    return Positioned(
+      right: 60,
+      bottom: 150,
+      child: FadeTransition(
+        opacity: _fadeInAnimation,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              width: 320,
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white, width: 1),
+                color: Colors.black.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.location_pin, color: Colors.white, size: 18),
-                  const SizedBox(width: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: WebColors.error,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'YAKINDA',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.notifications_none,
+                          color: Colors.white70),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    'Konumu Aç',
+                    'METAFOR',
                     style: TextStyle(
-                      fontSize: context.responsive(mobile: 12.0, desktop: 14.0),
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'Times New Roman',
+                      // Varsa
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '27 Haziran 2025 • 20:00\nAltunizade Kültür Merkezi',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        const url = 'https://maps.app.goo.gl/CnW99UqhxyBJt1fL6';
+                        if (await canLaunchUrl(Uri.parse(url))) {
+                          await launchUrl(Uri.parse(url));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: WebColors.primaryGold,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('KONUMU GÖR',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildScrollIndicator() {
     return Positioned(
-      bottom: 40,
+      bottom: 30,
       left: 0,
       right: 0,
-      child: AnimatedBuilder(
-        animation: _glowAnimation,
-        builder: (context, child) {
-          return Opacity(
-            opacity: _glowAnimation.value,
-            child: Column(
-              children: [
-                Text(
-                  'Keşfetmek İçin Kaydır',
-                  style: TextStyle(
-                    fontSize: context.captionSize + 2,
-                    color: WebColors.primaryGoldLight,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w600,
-                    shadows: const [
-                      Shadow(color: Colors.black, blurRadius: 10),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Transform.translate(
-                  offset: Offset(0, 10 * _glowAnimation.value),
-                  child: Icon(
-                    Icons.keyboard_double_arrow_down_rounded,
-                    size: 36,
-                    color: WebColors.primaryGold,
-                    shadows: [
-                      Shadow(
-                        color: WebColors.primaryGold.withOpacity(0.8),
-                        blurRadius: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildDecorativeElements() {
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: Stack(
-          children: [
-            // Sol üst dekoratif element
-            Positioned(
-              top: context.responsive(mobile: 100, desktop: 150),
-              left: context.responsive(mobile: 20, desktop: 60),
-              child: AnimatedBuilder(
-                animation: _floatController,
-                builder: (context, child) {
-                  return Opacity(
-                    opacity: 0.1 + (_glowAnimation.value * 0.1),
-                    child: Transform.rotate(
-                      angle: _floatAnimation.value * 0.01,
-                      child: Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: [
-                              WebColors.primaryGold.withOpacity(0.3),
-                              Colors.transparent,
-                            ],
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+      child: Center(
+        child: AnimatedBuilder(
+          animation: _mainController,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, _pulseAnimation.value), // Aşağı yukarı hareket
+              child: Column(
+                children: [
+                  Text(
+                    'AŞAĞI KAYDIR',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 10,
+                      letterSpacing: 3,
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 8),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: WebColors.primaryGold.withOpacity(0.8),
+                    size: 30,
+                  ),
+                ],
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
