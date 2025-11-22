@@ -63,11 +63,24 @@ class _HomePageState extends State<HomePage> {
 
   void _onScroll() {
     if (widget.activeSection == null) return;
+    // ScrollController bağlı değilse hata vermemesi için kontrol
+    if (!widget.scrollController.hasClients) return;
+
     final scrollPosition = widget.scrollController.position.pixels;
 
-    // Her section'ın pozisyonunu kontrol et
+    // ✅ 1. KESİN ÇÖZÜM: EN TEPE KONTROLÜ
+    // Eğer scroll pozisyonu 150 pikselden azsa, kesinlikle Ana Sayfadayız demektir.
+    // Diğer hesaplamalara girmeden direkt 'home' yapıp çıkıyoruz.
+    if (scrollPosition < 150) {
+      if (widget.activeSection!.value != 'home') {
+        widget.activeSection!.value = 'home';
+      }
+      return;
+    }
+
+    // Diğer bölümlerin kontrolü (Mevcut mantığınız)
     final sections = {
-      'home': _homeKey,
+      // 'home': _homeKey, // Home'u buradan çıkartabiliriz veya kalsa da üstteki if yakalar.
       'shows': widget.showsKey,
       'artistic': widget.artisticKey,
       'about': widget.aboutKey,
@@ -83,10 +96,7 @@ class _HomePageState extends State<HomePage> {
       if (context != null) {
         final RenderBox box = context.findRenderObject()! as RenderBox;
         final position = box.localToGlobal(Offset.zero);
-        final sectionTop = position.dy + scrollPosition;
-
-        // Section'un viewport'un üst kısmına olan mesafesi
-        final distance = (sectionTop - scrollPosition - 100).abs();
+        final distance = (position.dy - 100).abs();
 
         if (distance < minDistance) {
           minDistance = distance;

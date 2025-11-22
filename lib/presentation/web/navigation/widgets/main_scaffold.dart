@@ -20,8 +20,8 @@ class _MainScaffoldState extends State<MainScaffold> {
   final GlobalKey _contactKey = GlobalKey();
 
   // Active section tracker
-  final ValueNotifier<String> _activeSection = ValueNotifier<String>('home');
-  late ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
+  final ValueNotifier<String> _activeSection = ValueNotifier('home');
 
   @override
   void dispose() {
@@ -29,8 +29,18 @@ class _MainScaffoldState extends State<MainScaffold> {
     super.dispose();
   }
 
-  /// Smooth scroll to section
-  void _navigateToSection(final String section) {
+  void _scrollToSection(final String section) {
+    // 1. Ana Sayfa Kontrolü (En başa sarar)
+    if (section == 'home') {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOutCubic,
+      );
+      _activeSection.value = 'home'; // Navigasyonu manuel güncelle
+      return;
+    }
+
     final Map<String, GlobalKey> sectionKeys = {
       'home': GlobalKey(), // HomePage'in ilk elementi için
       'shows': _showsKey,
@@ -41,29 +51,13 @@ class _MainScaffoldState extends State<MainScaffold> {
     };
 
     final key = sectionKeys[section];
-    if (key == null) {
-      // Home section için en üste scroll
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 800),
-        curve: Curves.easeInOut,
-      );
-      return;
-    }
 
-    final context = key.currentContext;
-    if (context != null) {
-      // Section'ın pozisyonunu hesapla
-      final RenderBox box = context.findRenderObject()! as RenderBox;
-      final position = box.localToGlobal(Offset.zero);
-      final scrollPosition = _scrollController.position.pixels ?? 0;
-      final targetPosition =
-          position.dy + scrollPosition - 80; // 80px navbar için offset
-
-      _scrollController.animateTo(
-        targetPosition,
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
         duration: const Duration(milliseconds: 800),
-        curve: Curves.easeInOut,
+        curve: Curves.easeInOutCubic,
+        alignment: 0.05, // Hafif üstten boşluk
       );
     }
   }
@@ -72,32 +66,24 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget build(final BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
+      body: Column(
         children: [
-          // Ana içerik
-          HomePage(
-            showsKey: _showsKey,
-            aboutKey: _aboutKey,
-            teamKey: _teamKey,
-            artisticKey: _artisticKey,
-            contactKey: _contactKey,
+          WebNavBar(
             activeSection: _activeSection,
+            onNavigate: (final section) => _scrollToSection(section),
             scrollController: _scrollController,
           ),
-
-          // Navigation bar (her zaman üstte)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: _scrollController != null
-                ? WebNavBar(
-                    activeSection: _activeSection,
-                    onNavigate: _navigateToSection,
-                    scrollController: _scrollController!,
-                  )
-                : const SizedBox.shrink(),
-          ),
+          Expanded(
+            child: HomePage(
+              showsKey: _showsKey,
+              aboutKey: _aboutKey,
+              teamKey: _teamKey,
+              artisticKey: _artisticKey,
+              contactKey: _contactKey,
+              activeSection: _activeSection,
+              scrollController: _scrollController,
+            ),
+          )
         ],
       ),
     );
