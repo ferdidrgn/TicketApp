@@ -105,7 +105,6 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     );
   }
 
-// 1. VİDEOYU EN ALTTA YOK ETMEK İÇİN MASKE (ShaderMask)
   Widget _buildVideoBackground() {
     if (!_isVideoReady) {
       return Image.network(
@@ -117,29 +116,33 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     return Positioned.fill(
       child: Container(
         color: const Color(0xFF0a0a1a),
-        // Arka plan rengi (Video silinince bu görünür)
-        child: ShaderMask(
-          shaderCallback: (rect) {
-            return const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black, // Üst kısımlar net
-                Colors.black,
-                Colors.transparent, // En alt tamamen şeffaf (yok olur)
-              ],
-              // Buradaki ayar önemli: 0.8 (%80)'e kadar video net,
-              // 1.0 (%100)'da tamamen silinmiş oluyor.
-              stops: [0.0, 0.85, 1.0],
-            ).createShader(rect);
-          },
-          blendMode: BlendMode.dstIn,
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: _videoController.value.size.width,
-              height: _videoController.value.size.height,
-              child: VideoPlayer(_videoController),
+        // Sayfa zemin rengi (Video bitince burası görünür)
+        // ✅ 1. KİLİT: ClipRect ile taşan her şeyi fiziksel olarak kesiyoruz
+        child: ClipRect(
+          child: ShaderMask(
+            shaderCallback: (rect) {
+              return const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black, // Net kısım
+                  Colors.black, // Net kısım
+                  Colors.transparent, // Tamamen yok olduğu kısım
+                ],
+                // ✅ 2. KİLİT: Maskeyi yukarı çektik.
+                // %60'ta silinmeye başlar, %90'da video tamamen yok olur.
+                // Son %10'luk kısım garanti siyah kalır.
+                stops: [0.0, 0.6, 0.9],
+              ).createShader(rect);
+            },
+            blendMode: BlendMode.dstIn,
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _videoController.value.size.width,
+                height: _videoController.value.size.height,
+                child: VideoPlayer(_videoController),
+              ),
             ),
           ),
         ),
@@ -147,7 +150,6 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     );
   }
 
-  // 2. SİYAH DEGRADE KATMANI (Gradient Overlay)
   Widget _buildCinematicOverlay() {
     return Container(
       decoration: BoxDecoration(
@@ -155,13 +157,13 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black.withOpacity(0.4), // En tepe (Header için hafif koyu)
-            Colors.transparent, // Orta kısım (Video net)
-            const Color(0xFF0a0a1a).withOpacity(0.0), // Geçiş başlangıcı
-            const Color(0xFF0a0a1a), // En alt (Tamamen siyah/zemin rengi)
+            Colors.black.withOpacity(0.4), // Header arkası
+            Colors.transparent, // Video ortası
+            const Color(0xFF0a0a1a).withOpacity(0.5), // Geçiş
+            const Color(0xFF0a0a1a), // Tam Zemin Rengi
           ],
-          // En alt %15'lik kısımda tam siyaha dönüşür
-          stops: const [0.0, 0.3, 0.85, 1.0],
+          // Alt kısmı daha geniş bir siyah alana yaydık
+          stops: const [0.0, 0.3, 0.8, 1.0],
         ),
       ),
     );
