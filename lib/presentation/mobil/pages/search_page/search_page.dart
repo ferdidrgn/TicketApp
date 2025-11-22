@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/pagination_controller.dart';
@@ -16,9 +17,9 @@ import '../../../../domain/entities/player.dart';
 import '../../../../domain/entities/show.dart';
 import '../../../../domain/entities/stage.dart';
 import '../../../../domain/entities/team.dart';
+import '../../../commonPages/showPage/show_detail_page_mobil.dart';
 import '../../navigation/bottom_nav_bar.dart';
 import '../details_pages/player_details.dart';
-import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 import '../details_pages/team_details.dart';
 

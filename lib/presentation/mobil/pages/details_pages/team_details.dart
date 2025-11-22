@@ -4,7 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/datasources/team/team_remote_data_source_and_impl.dart';
-import 'package:ticketapp/presentation/mobil/pages/details_pages/show_details.dart';
+import '../../../commonPages/showPage/show_detail_page_mobil.dart';
 import '../../../../core/widgets/custom_description_card.dart';
 import '../../../../core/widgets/custom_show_card.dart';
 import '../../../../core/widgets/shimmer.dart';

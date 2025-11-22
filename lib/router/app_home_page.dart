@@ -1,5 +1,3 @@
-// lib/router/app_home_page.dart
-
 // Koşullu Dışa Aktarma: Derleyici, çalıştığı platforma göre
 // bu üç dosyadan sadece birini dışa (export) aktaracaktır.
 

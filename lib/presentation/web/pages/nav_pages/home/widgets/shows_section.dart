@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/core/widgets/shimmer.dart';
 import '../../../../../../core/theme/app_colors.dart';
@@ -225,6 +226,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
                   imageUrl: shows[index].imageUrl ?? '',
                   gameName: shows[index].name ?? '',
                   index: index,
+                  showId: shows[index].id ?? '',
                 ),
               );
             },
@@ -257,11 +259,13 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 }
 
 class _ShowCard extends StatefulWidget {
+  final String showId; // YENİ: ID parametresi eklendi
   final String imageUrl;
   final String gameName;
   final int index;
 
   const _ShowCard({
+    required this.showId, // YENİ
     required this.imageUrl,
     required this.gameName,
     required this.index,
@@ -300,10 +304,25 @@ class _ShowCardState extends State<_ShowCard>
     super.dispose();
   }
 
+  void _navigateToDetails() {
+    // YÖNTEM A: İsim ile gitmek (Daha güvenli)
+    // URL otomatik olarak /show-details/oyunIDsi şekline dönüşür
+    //context.pushNamed('showDetail', pathParameters: {'id': widget.showId},);
+
+    // YÖNTEM B: Direkt URL yazarak gitmek (Alternatif)
+    // context.go('/show-details/${widget.showId}');
+
+    // pushNamed yerine goNamed kullanıyoruz
+    // Bu, tarayıcı adres çubuğunu kesin olarak günceller.
+    context.goNamed(
+      'showDetail',
+      pathParameters: {'id': widget.showId},
+    );
+  }
+
   @override
   Widget build(final BuildContext context) {
     final isMobile = context.isMobile;
-
     Widget cardWidget = _buildCard(context);
 
     // Sayfa ilk açıldığındaki giriş animasyonu (Fade + Scale)
@@ -319,34 +338,26 @@ class _ShowCardState extends State<_ShowCard>
       child: cardWidget,
     );
 
-    if (isMobile) {
-      // --- GÜNCELLENEN KISIM: Listener ---
-      // GestureDetector yerine Listener kullanıyoruz.
-      // Bu sayede scroll yaparken bile parmak değdiği an efekt çalışır.
-      return Listener(
-        // Parmak ekrana değdiği an (Scroll başlasa bile tetiklenir)
-        onPointerDown: (final _) => setState(() => _isActive = true),
-
-        // Parmak ekrandan kalktığı an
-        onPointerUp: (final _) => setState(() => _isActive = false),
-
-        // Herhangi bir sebeple (örn: sistem uyarısı) dokunma iptal olursa
-        onPointerCancel: (final _) => setState(() => _isActive = false),
-
-        // Scroll sırasında parmak kartın dışına çıkarsa da efekti kapatmak istersen:
-        // onPointerMove: (event) { ... hesaplama ... }, // Performans için kapalı tuttum, basit hali yeterli.
-
-        child: cardWidget,
-      );
-    } else {
-      // MASAÜSTÜ: Mouse Hover (Üzerine gelme) olayları
-      return MouseRegion(
-        onEnter: (final _) => setState(() => _isActive = true),
-        onExit: (final _) => setState(() => _isActive = false),
-        cursor: SystemMouseCursors.click,
-        child: cardWidget,
-      );
-    }
+    // Tıklama olayını (OnTap) en dışa GestureDetector koyarak yakalıyoruz.
+    // Bu sayede Listener (Animation) ve Tap (Navigation) karışmaz.
+    return GestureDetector(
+      onTap: _navigateToDetails,
+      child: isMobile
+          ? Listener(
+              // Mobil animasyon tetikleyicileri
+              onPointerDown: (final _) => setState(() => _isActive = true),
+              onPointerUp: (final _) => setState(() => _isActive = false),
+              onPointerCancel: (final _) => setState(() => _isActive = false),
+              child: cardWidget,
+            )
+          : MouseRegion(
+              // Masaüstü animasyon tetikleyicileri
+              onEnter: (final _) => setState(() => _isActive = true),
+              onExit: (final _) => setState(() => _isActive = false),
+              cursor: SystemMouseCursors.click,
+              child: cardWidget,
+            ),
+    );
   }
 
   Widget _buildCard(final BuildContext context) {
@@ -354,45 +365,41 @@ class _ShowCardState extends State<_ShowCard>
     // Scale 1.05 çok büyük gelirse 1.02 veya 1.03 yapabilirsin,
     // scroll sırasında takılma hissi vermemesi için.
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      transform: Matrix4.identity()
-        ..translate(0.0, _isActive ? -10.0 : 0.0) // Yukarı kalkma
-        ..scale(_isActive ? 1.02 : 1.0),
-      // Hafif büyüme (Mobilde çok büyütmemek daha iyidir)
-      child: Container(
-        width: context.responsive(mobile: 220.0, desktop: 260.0),
-        height: 360,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: _isActive
-                  ? WebColors.primaryGold.withOpacity(0.6)
-                  : Colors.black.withOpacity(0.4),
-              blurRadius: _isActive ? 30 : 20,
-              spreadRadius: _isActive ? 2 : 0,
-              offset: Offset(0, _isActive ? 15 : 10),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            children: [
-              _buildImage(),
-              _buildGradientOverlay(),
-              _buildBorder(),
-              _buildContent(context),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()
+          ..translate(0.0, _isActive ? -10.0 : 0.0) // Yukarı kalkma
+          ..scale(_isActive ? 1.02 : 1.0),
+        // Hafif büyüme (Mobilde çok büyütmemek daha iyidir)
+        child: Container(
+          width: context.responsive(mobile: 220.0, desktop: 260.0),
+          height: 360,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: _isActive
+                    ? WebColors.primaryGold.withOpacity(0.6)
+                    : Colors.black.withOpacity(0.4),
+                blurRadius: _isActive ? 30 : 20,
+                spreadRadius: _isActive ? 2 : 0,
+                offset: Offset(0, _isActive ? 15 : 10),
+              ),
             ],
           ),
-        ),
-      ),
-    );
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                _buildImage(),
+                _buildGradientOverlay(),
+                _buildBorder(),
+                _buildContent(context),
+              ],
+            ),
+          ),
+        ));
   }
-
-  // ... Diğer yardımcı metodlar (_buildImage, _buildContent vb.) aynen kalacak ...
-  // (Önceki kodda verdiğim metodların aynısını kullanabilirsiniz)
 
   Widget _buildImage() {
     return Positioned.fill(

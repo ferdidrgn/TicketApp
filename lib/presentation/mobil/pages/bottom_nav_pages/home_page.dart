@@ -17,8 +17,8 @@ import '../../../../core/widgets/custom_title.dart';
 import '../../../../core/widgets/shimmer.dart';
 import '../../../../domain/entities/campaign.dart';
 import '../../../../domain/entities/show.dart';
+import '../../../commonPages/showPage/show_detail_page_mobil.dart';
 import '../details_pages/player_details.dart';
-import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 import '../search_page/search_page.dart';
 

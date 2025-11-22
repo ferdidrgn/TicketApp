@@ -64,15 +64,29 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       }
     }
 
-    if (showData.eventsId.isNotEmpty)
-      unawaited(
-          ref.read(eventProvider.notifier).loadEventsByIds(showData.eventsId));
+    if (showData.eventsId.isNotEmpty) {
+      // Boş stringleri filtrele
+      final validEventIds =
+          showData.eventsId.where((id) => id.trim().isNotEmpty).toList();
+      if (validEventIds.isNotEmpty) {
+        unawaited(
+            ref.read(eventProvider.notifier).loadEventsByIds(validEventIds));
+      }
+    }
 
-    final allPlayerIds =
-        {...showData.nowPlayersId, ...showData.oldPlayersId}.toList();
-    if (allPlayerIds.isNotEmpty)
+    // ✅ BOŞ STRİNGLERİ FİLTRELE
+    final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}
+        .where((id) => id.trim().isNotEmpty) // Boş olanları çıkar
+        .toList();
+
+    print('Filtered playerIds: $allPlayerIds'); // Debug için
+
+    if (allPlayerIds.isNotEmpty) {
       unawaited(
           ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
+    }
+
+    print('nowPlayersId: ${showData.nowPlayersId}');
   }
 
   @override
@@ -103,6 +117,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           unawaited(ref.read(stageProvider.notifier).loadStagesByIds(stageIds));
       }
     });
+
+    print('playerState.isLoading: ${playerState.isLoading}');
 
     return Scaffold(
         appBar: AppBar(
@@ -227,6 +243,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     final oldPlayerDataList =
         playerState.getPlayersByIds(showData.oldPlayersId);
 
+    print('=== DEBUG ===');
+    print('showData.nowPlayersId: ${showData.nowPlayersId}');
+    print('showData.oldPlayersId: ${showData.oldPlayersId}');
+    print('playerState.dataList: ${playerState.dataList?.map((p) => p.id).toList()}');
+    print('nowPlayerDataList: ${nowPlayerDataList.map((p) => p.id).toList()}');
+    print('oldPlayerDataList: ${oldPlayerDataList.map((p) => p.id).toList()}');
+
     return Container(
       padding: const EdgeInsets.only(top: 25, bottom: 20),
       margin: const EdgeInsets.only(top: 10),
@@ -273,17 +296,26 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             const SizedBox(height: 25),
             const CustomSectionTitle(title: 'Ekip', fontSize: 22),
             const SizedBox(height: 10),
-            if (playerState.isLoading && nowPlayerDataList.isEmpty)
+            if (playerState.isLoading)
+              _buildShimmerRow()
+            else if (nowPlayerDataList.isNotEmpty)
+              _buildNowPlayers(nowPlayerDataList)
+            else if (showData.nowPlayersId.isNotEmpty)
+              // Veriler hala yüklenmiyor ama ID'ler var - bekle
               _buildShimmerRow()
             else
-              _buildNowPlayers(nowPlayerDataList),
+              _buildEmptyListWidget('Aktif ekip bilgisi bulunamadı.'),
             const SizedBox(height: 20),
             const CustomSectionTitle(title: 'Eski Ekip', fontSize: 22),
             const SizedBox(height: 10),
-            if (playerState.isLoading && oldPlayerDataList.isEmpty)
+            if (playerState.isLoading)
+              _buildShimmerRow()
+            else if (oldPlayerDataList.isNotEmpty)
+              _buildOldPlayers(oldPlayerDataList)
+            else if (showData.oldPlayersId.isNotEmpty)
               _buildShimmerRow()
             else
-              _buildOldPlayers(oldPlayerDataList),
+              _buildEmptyListWidget('Eski ekip bilgisi bulunamadı.'),
             const SizedBox(height: 25),
             const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 22),
             const SizedBox(height: 10),

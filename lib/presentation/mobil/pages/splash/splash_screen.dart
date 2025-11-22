@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart'; //
 import 'package:ticketapp/data/providers/login/login_provider.dart';
-import 'package:ticketapp/router/splash_router.dart'; // ✅ YENİ IMPORT
+import 'package:ticketapp/router/splash_router.dart';
 import '../../../../data/providers/login/login_state.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -35,19 +36,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       curve: Curves.easeInOut,
     );
 
-    // ✅ PLATFORM KONTROLÜ
     Future.microtask(() {
       if (SplashRouter.shouldSkipAuthCheck) {
-        // 🚀 WEB MANTIĞI: Kontrol atlanır, direkt yönlendirilir
+        // 🚀 WEB MANTIĞI
         _isNavigationHandled = true;
         print(
             '🟢 WEB: Skipping auth check, going directly to ${widget.initialRoute}');
-        // Animasyonun biraz ilerlemesi için gecikme
+
         Future.delayed(const Duration(milliseconds: 500), () {
-          Navigator.of(context).pushReplacementNamed(widget.initialRoute);
+          if (mounted) {
+            // Hata almamak için 'mounted' kontrolü iyi olur
+            // ✅ 2. DEĞİŞİKLİK: context.go Kullanımı
+            context.go(widget.initialRoute);
+          }
         });
       } else {
-        // 📱 MOBİL MANTIĞI: Kullanıcıyı kontrol et
+        // 📱 MOBİL MANTIĞI
         ref.read(loginProvider.notifier).getCurrentUser();
       }
     });
@@ -72,12 +76,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           if (next.user != null) {
             // Kullanıcı giriş yapmış -> Home'a git
             print('🟢 User already logged in, going to home');
-            Navigator.of(context).pushReplacementNamed('/home');
+            // ✅ 3. DEĞİŞİKLİK: context.go('/home')
+            context.go('/home');
           } else {
-            // Kullanıcı giriş yapmamış -> Başlangıç rotasına git (/onboarding veya /login)
+            // Kullanıcı giriş yapmamış -> Başlangıç rotasına git
             print(
                 '🟡 No user found, going to initial route: ${widget.initialRoute}');
-            Navigator.of(context).pushReplacementNamed(widget.initialRoute);
+            // ✅ 4. DEĞİŞİKLİK: context.go(widget.initialRoute)
+            context.go(widget.initialRoute);
           }
         }
       });

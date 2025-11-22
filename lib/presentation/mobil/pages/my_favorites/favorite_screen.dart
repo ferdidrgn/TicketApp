@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
 import '../../../../core/widgets/custom_show_card.dart';
 import '../../../../core/widgets/custom_stage_card.dart';
 import '../../../../core/widgets/custom_title.dart';
+import '../../../commonPages/showPage/show_detail_page_mobil.dart';
 import '../details_pages/player_details.dart';
-import '../details_pages/show_details.dart';
 import '../details_pages/stage_details.dart';
 
 class Favorite {

@@ -17,14 +17,19 @@ class PlayerNotifier extends BaseNotifier<PlayerState> {
       );
 
   Future<void> getPlayersByIds(final List<String> playerIds) async {
-    if (playerIds.isEmpty) {
+    // Boş stringleri filtrele
+    final validIds = playerIds.where((id) => id.trim().isNotEmpty).toList();
+
+    if (validIds.isEmpty) {
       state = state.copyWith(
-          isLoading: false, errorMessage: 'Oyuncu ID listesi boş olamaz');
+          isLoading: false,
+          dataList: [], // Boş liste döndür
+          errorMessage: null);
       return;
     }
 
     await execute(
-      () => ref.read(getPlayerByIdUseCaseProvider).call(playerIds),
+          () => ref.read(getPlayerByIdUseCaseProvider).call(validIds),
       onSuccess: (final players) => _setPlayersLoaded(players),
     );
   }
