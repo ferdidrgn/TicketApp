@@ -298,7 +298,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
 
     return Positioned(
       right: 60,
-      bottom: 150,
+      top: 150,
       child: FadeTransition(
         opacity: _fadeInAnimation,
         child: ClipRRect(
