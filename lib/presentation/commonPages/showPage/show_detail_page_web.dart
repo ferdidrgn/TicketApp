@@ -22,6 +22,19 @@ import '../../../data/providers/stage/stage_state.dart';
 import '../../../domain/entities/player.dart';
 import '../../../domain/entities/show.dart';
 
+/// Performance Constants
+class _PerformanceConstants {
+  static const int heroAnimationDelay = 600;
+  static const int heroAnimationDuration = 1200;
+  static const int contentAnimationDuration = 800;
+  static const int floatingAnimationDuration = 3000;
+  static const int playersPerPage = 6;
+  static const int galleryItemsPerPage = 8;
+  static const int staggeredAnimationDelay = 100;
+  static const double parallaxFactor = 0.5;
+  static const double floatingAmplitude = 30.0;
+}
+
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
 
@@ -33,73 +46,55 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     with TickerProviderStateMixin {
-  // Animasyon Controller'ları
+  // Animation Controllers - late final for better performance
   late final AnimationController _heroController;
   late final AnimationController _contentController;
   late final AnimationController _floatingController;
 
+  // Animations
   late final Animation<double> _heroFade;
   late final Animation<Offset> _heroSlide;
   late final Animation<double> _contentFade;
 
+  // Scroll Management
   final ScrollController _scrollController = ScrollController();
-
-  // Performance Optimization: setState yerine ValueNotifier kullanımı
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
+
+  // State Management
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _initAnimations();
-
-    // Scroll dinleyicisi sadece notifier'ı günceller, tüm sayfayı rebuild etmez.
-    _scrollController.addListener(() {
-      if (mounted) _scrollNotifier.value = _scrollController.offset;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (mounted) {
-        _fetchInitialData();
-        _precacheImages();
-      }
-    });
+    _initializeControllers();
+    _setupScrollListener();
+    _scheduleInitialOperations();
   }
 
-  Future<void> _precacheImages() async {
-    final showData = ref.read(showProvider).getShowById(widget.showId);
-    if (showData != null && mounted) {
-      try {
-        await precacheImage(
-            OptimizedCachedImage.provider(
-              showData.imageUrl,
-              context: context,
-              // Genişlik vermezsen orijinal boyutu dener,
-              // performans için ekran genişliği kadar limit koymak iyidir:
-              width: MediaQuery.of(context).size.width,
-            ),
-            context);
-      } catch (e) {
-        debugPrint('Image precache warning: $e');
-      }
-    }
-  }
-
-  void _initAnimations() {
+  void _initializeControllers() {
     _heroController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(
+          milliseconds: _PerformanceConstants.heroAnimationDuration),
       vsync: this,
     );
 
     _contentController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(
+          milliseconds: _PerformanceConstants.contentAnimationDuration),
       vsync: this,
     );
 
     _floatingController = AnimationController(
-      duration: const Duration(seconds: 3),
+      duration: const Duration(
+          milliseconds: _PerformanceConstants.floatingAnimationDuration),
       vsync: this,
     )..repeat(reverse: true);
 
+    _setupAnimations();
+    _startAnimations();
+  }
+
+  void _setupAnimations() {
     _heroFade = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _heroController, curve: Curves.easeOut),
     );
@@ -108,56 +103,109 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(
-        CurvedAnimation(parent: _heroController, curve: Curves.easeOutCubic));
+      CurvedAnimation(parent: _heroController, curve: Curves.easeOutCubic),
+    );
 
     _contentFade = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _contentController, curve: Curves.easeOut),
     );
+  }
 
+  void _startAnimations() {
     _heroController.forward();
-    // İçerik animasyonu hero'dan biraz sonra başlar
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) _contentController.forward();
+    Future.delayed(
+      const Duration(milliseconds: _PerformanceConstants.heroAnimationDelay),
+      () {
+        if (mounted) _contentController.forward();
+      },
+    );
+  }
+
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      if (mounted) {
+        // Throttle scroll updates for better performance
+        if (_scrollController.offset % 5 < 2.5) {
+          _scrollNotifier.value = _scrollController.offset;
+        }
+      }
     });
   }
 
+  void _scheduleInitialOperations() {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (mounted) {
+        _fetchInitialData();
+        _precacheCriticalImages();
+      }
+    });
+  }
+
+  Future<void> _precacheCriticalImages() async {
+    final showData = ref.read(showProvider).getShowById(widget.showId);
+    if (showData != null && mounted) {
+      try {
+        final imageProvider = OptimizedCachedImage.provider(
+          showData.imageUrl,
+          context: context,
+          width: MediaQuery.of(context).size.width,
+        );
+        await precacheImage(imageProvider, context);
+      } catch (e) {
+        debugPrint('Image precache warning: $e');
+      }
+    }
+  }
+
   Future<void> _fetchInitialData() async {
+    if (_isInitialized) return;
+
     final showNotifier = ref.read(showProvider.notifier);
     Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
-    // Show verisi yoksa çek
     if (showData == null) {
       try {
         await showNotifier.loadShowsByIds([widget.showId]);
         showData = ref.read(showProvider).getShowById(widget.showId);
         if (showData == null) {
-          showNotifier.setErrorState("Gösteri yüklenemedi.");
+          if (mounted) showNotifier.setErrorState("Gösteri yüklenemedi.");
           return;
         }
       } catch (e) {
-        showNotifier.setErrorState("Gösteri yüklenemedi: $e");
+        if (mounted) showNotifier.setErrorState("Gösteri yüklenemedi: $e");
         return;
       }
     }
 
-    // İlişkili verileri (Event, Player) çek
-    final eventsList = showData.eventsId;
-    if (eventsList.isNotEmpty) {
-      final validEventIds =
-          eventsList.where((final id) => id.trim().isNotEmpty).toList();
-      if (validEventIds.isNotEmpty) {
-        unawaited(
-            ref.read(eventProvider.notifier).loadEventsByIds(validEventIds));
-      }
-    }
+    await _loadRelatedData(showData);
+    _isInitialized = true;
+  }
 
+  Future<void> _loadRelatedData(final Show showData) async {
+    // Load events in parallel
+    final eventsFuture = _loadEvents(showData.eventsId);
+    final playersFuture = _loadPlayers(showData);
+
+    await Future.wait([eventsFuture, playersFuture], eagerError: true);
+  }
+
+  Future<void> _loadEvents(final List<String> eventsList) async {
+    if (eventsList.isEmpty) return;
+
+    final validEventIds =
+        eventsList.where((final id) => id.trim().isNotEmpty).toList();
+    if (validEventIds.isNotEmpty) {
+      await ref.read(eventProvider.notifier).loadEventsByIds(validEventIds);
+    }
+  }
+
+  Future<void> _loadPlayers(final Show showData) async {
     final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}
         .where((final id) => id.trim().isNotEmpty)
         .toList();
 
     if (allPlayerIds.isNotEmpty) {
-      unawaited(
-          ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
+      await ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds);
     }
   }
 
@@ -173,88 +221,102 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
   @override
   Widget build(final BuildContext context) {
-    final showState = ref.watch(showProvider);
+    // Selective listening for better performance
+    final showData = ref.watch(showProvider.select(
+      (final state) => state.getShowById(widget.showId),
+    ));
+
     final eventState = ref.watch(eventProvider);
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
-    final showData = showState.getShowById(widget.showId);
 
-    // Event state listener (Stage verilerini çekmek için)
+    // Setup event listener for stage data
+    _setupStageDataListener();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0a0a1a),
+      body: _buildBody(showData, eventState, playerState, stageState),
+    );
+  }
+
+  void _setupStageDataListener() {
     ref.listen<EventState>(eventProvider, (final previous, final next) {
       final justLoaded = (previous?.dataList?.isEmpty ?? true) &&
           (next.dataList?.isNotEmpty ?? false);
-      if (justLoaded) {
+
+      if (justLoaded && mounted) {
         final stageIds = next.dataList!
             .map((final e) => e.stageId)
             .whereType<String>()
             .where((final id) => id.trim().isNotEmpty && id != '0')
             .toSet()
             .toList();
+
         if (stageIds.isNotEmpty) {
-          unawaited(ref.read(stageProvider.notifier).loadStagesByIds(stageIds));
+          ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
         }
       }
     });
+  }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0a0a1a),
-      body: showState.isLoading && !showState.hasData
-          ? _LoadingState(animation: _floatingController)
-          : (!showState.hasData || showData == null)
-              ? _ErrorState(
-                  message: showState.errorMessage,
-                  onRetry: () => Navigator.pop(context),
-                )
-              : Stack(
-                  children: [
-                    // Performance Optimization: RepaintBoundary
-                    RepaintBoundary(
-                      child:
-                          _BackgroundParticles(animation: _floatingController),
-                    ),
+  Widget _buildBody(
+    final Show? showData,
+    final EventState eventState,
+    final PlayerState playerState,
+    final StageState stageState,
+  ) {
+    if (showData == null) {
+      return const _LoadingState();
+    }
 
-                    CustomScrollView(
-                      controller: _scrollController,
-                      physics: const BouncingScrollPhysics(),
-                      // Cache extent artırılarak scroll sırasında takılma önlenir
-                      cacheExtent: 500,
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: _ParallaxHero(
-                            showData: showData,
-                            scrollNotifier: _scrollNotifier,
-                            fadeAnimation: _heroFade,
-                            slideAnimation: _heroSlide,
-                            floatingAnimation: _floatingController,
-                          ),
-                        ),
-                        SliverToBoxAdapter(
-                          child: FadeTransition(
-                            opacity: _contentFade,
-                            child: _MainContent(
-                              showData: showData,
-                              eventState: eventState,
-                              playerState: playerState,
-                              stageState: stageState,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+    return Stack(
+      children: [
+        // Background with RepaintBoundary for performance
+        RepaintBoundary(
+          child: _BackgroundParticles(animation: _floatingController),
+        ),
 
-                    Positioned(
-                      top: 40,
-                      left: 20,
-                      child:
-                          _FloatingBackButton(animation: _floatingController),
-                    ),
-                  ],
+        // Main Content
+        CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          cacheExtent: 1000, // Increased for better scroll performance
+          slivers: [
+            SliverToBoxAdapter(
+              child: _ParallaxHero(
+                showData: showData,
+                scrollNotifier: _scrollNotifier,
+                fadeAnimation: _heroFade,
+                slideAnimation: _heroSlide,
+                floatingAnimation: _floatingController,
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _contentFade,
+                child: _MainContent(
+                  showData: showData,
+                  eventState: eventState,
+                  playerState: playerState,
+                  stageState: stageState,
                 ),
+              ),
+            ),
+          ],
+        ),
+
+        // Floating Back Button
+        const Positioned(
+          top: 40,
+          left: 20,
+          child: _FloatingBackButton(),
+        ),
+      ],
     );
   }
 }
 
-// --- ALT WIDGETLAR (PERFORMANS VE OKUNABİLİRLİK İÇİN AYRILDI) ---
+// --- OPTIMIZED SUB WIDGETS ---
 
 class _MainContent extends StatelessWidget {
   final Show showData;
@@ -271,24 +333,30 @@ class _MainContent extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final isDesktop = context.isDesktop;
-    final horizontalPadding =
-        context.responsive(mobile: 16.0, tablet: 40.0, desktop: 100.0);
+    final horizontalPadding = context.responsive(
+      mobile: 16.0,
+      tablet: 40.0,
+      desktop: 100.0,
+    );
 
     return Padding(
-      padding:
-          EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 60),
-      child: isDesktop
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: 60,
+      ),
+      child: context.isDesktop
           ? _DesktopLayout(
               showData: showData,
               eventState: eventState,
               playerState: playerState,
-              stageState: stageState)
+              stageState: stageState,
+            )
           : _MobileLayout(
               showData: showData,
               eventState: eventState,
               playerState: playerState,
-              stageState: stageState),
+              stageState: stageState,
+            ),
     );
   }
 }
@@ -331,31 +399,39 @@ class _DesktopLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _SectionTitle(
-                  title: 'Etkinlik Takvimi',
-                  icon: Icons.calendar_today_rounded),
+                title: 'Etkinlik Takvimi',
+                icon: Icons.calendar_today_rounded,
+              ),
               const SizedBox(height: 24),
               _EventSection(
-                  showData: showData,
-                  eventState: eventState,
-                  stageState: stageState),
+                showData: showData,
+                eventState: eventState,
+                stageState: stageState,
+              ),
               const SizedBox(height: 50),
               const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
               const SizedBox(height: 24),
               _PlayerSection(
-                  players: nowPlayers,
-                  isOld: false,
-                  isLoading: playerState.isLoading),
+                players: nowPlayers,
+                isOld: false,
+                isLoading: playerState.isLoading,
+              ),
               const SizedBox(height: 50),
               const _SectionTitle(
-                  title: 'Eski Ekip', icon: Icons.history_rounded),
+                title: 'Eski Ekip',
+                icon: Icons.history_rounded,
+              ),
               const SizedBox(height: 24),
               _PlayerSection(
-                  players: oldPlayers,
-                  isOld: true,
-                  isLoading: playerState.isLoading),
+                players: oldPlayers,
+                isOld: true,
+                isLoading: playerState.isLoading,
+              ),
               const SizedBox(height: 50),
               const _SectionTitle(
-                  title: 'Galeri', icon: Icons.photo_library_rounded),
+                title: 'Galeri',
+                icon: Icons.photo_library_rounded,
+              ),
               const SizedBox(height: 24),
               _GallerySection(photos: showData.photosShowId),
             ],
@@ -390,22 +466,31 @@ class _MobileLayout extends StatelessWidget {
         _GlassDescriptionCard(description: showData.description),
         const SizedBox(height: 40),
         const _SectionTitle(
-            title: 'Etkinlik Takvimi', icon: Icons.calendar_today_rounded),
+          title: 'Etkinlik Takvimi',
+          icon: Icons.calendar_today_rounded,
+        ),
         const SizedBox(height: 20),
         _EventSection(
-            showData: showData, eventState: eventState, stageState: stageState),
+          showData: showData,
+          eventState: eventState,
+          stageState: stageState,
+        ),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
         const SizedBox(height: 20),
         _PlayerSection(
-            players: nowPlayers,
-            isOld: false,
-            isLoading: playerState.isLoading),
+          players: nowPlayers,
+          isOld: false,
+          isLoading: playerState.isLoading,
+        ),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Eski Ekip', icon: Icons.history_rounded),
         const SizedBox(height: 20),
         _PlayerSection(
-            players: oldPlayers, isOld: true, isLoading: playerState.isLoading),
+          players: oldPlayers,
+          isOld: true,
+          isLoading: playerState.isLoading,
+        ),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Galeri', icon: Icons.photo_library_rounded),
         const SizedBox(height: 20),
@@ -415,12 +500,14 @@ class _MobileLayout extends StatelessWidget {
   }
 }
 
+// --- OPTIMIZED COMPONENTS WITH BETTER PERFORMANCE ---
+
 class _ParallaxHero extends StatelessWidget {
   final Show showData;
   final ValueNotifier<double> scrollNotifier;
   final Animation<double> fadeAnimation;
   final Animation<Offset> slideAnimation;
-  final Animation<double> floatingAnimation;
+  final AnimationController floatingAnimation;
 
   const _ParallaxHero({
     required this.showData,
@@ -432,8 +519,11 @@ class _ParallaxHero extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final height =
-        context.responsive(mobile: 500.0, tablet: 600.0, desktop: 700.0);
+    final height = context.responsive(
+      mobile: 500.0,
+      tablet: 600.0,
+      desktop: 700.0,
+    );
 
     return FadeTransition(
       opacity: fadeAnimation,
@@ -443,28 +533,27 @@ class _ParallaxHero extends StatelessWidget {
           height: height,
           child: Stack(
             children: [
-              // Performance Optimization: Parallax efekti için ValueListenableBuilder
+              // Optimized parallax with ValueListenableBuilder
               ValueListenableBuilder<double>(
                 valueListenable: scrollNotifier,
                 builder: (final context, final scrollOffset, final child) {
                   return Positioned(
-                    top: -(scrollOffset * 0.5),
+                    top: -(scrollOffset * _PerformanceConstants.parallaxFactor),
                     left: 0,
                     right: 0,
                     child: SizedBox(
-                      height: height + 200, // Parallax payı
+                      height: height + 200,
                       child: OptimizedCachedImage(
                         imageUrl: showData.imageUrl,
                         fit: BoxFit.cover,
-                        // Bellek optimizasyonu için cache boyutu
                         width: MediaQuery.of(context).size.width,
                       ),
                     ),
                   );
                 },
               ),
-              // Gradient Overlay (Const yapılarak tekrar çizim engellenir)
-              const Positioned.fill(child: _HeroGradientOverlay()),
+
+              const _HeroGradientOverlay(),
 
               // Title Section
               Positioned(
@@ -502,11 +591,7 @@ class _EventSection extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     if (eventState.isLoading && !eventState.hasData) {
-      return const SizedBox(
-        height: 100,
-        child:
-            Center(child: ShimmerLoading()),
-      );
+      return const _LoadingIndicator();
     }
 
     final events = eventState.dataList
@@ -516,14 +601,15 @@ class _EventSection extends StatelessWidget {
 
     if (events.isEmpty) {
       return const _EmptyStateMessage(
-          message: 'Yaklaşan etkinlik bulunmamaktadır.');
+        message: 'Yaklaşan etkinlik bulunmamaktadır.',
+      );
     }
 
     return Column(
       children: events.asMap().entries.map((final entry) {
         final event = entry.value;
         final stage = stageState.getStageById(event.stageId);
-        // Staggered animation için basit delay
+
         return _AnimatedEventCard(
           date: event.date.toString(),
           eventId: event.id,
@@ -557,7 +643,10 @@ class _AnimatedEventCard extends StatelessWidget {
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 400 + index * 100),
+      duration: Duration(
+        milliseconds:
+            400 + index * _PerformanceConstants.staggeredAnimationDelay,
+      ),
       builder: (final context, final value, final child) => Opacity(
         opacity: value,
         child: Transform.translate(
@@ -565,90 +654,21 @@ class _AnimatedEventCard extends StatelessWidget {
           child: child,
         ),
       ),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: () => _navigateToSeatSelection(context),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1a1a2e),
-              borderRadius: BorderRadius.circular(20),
-              border:
-                  Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFD4AF37).withOpacity(0.1),
-                  blurRadius: 20,
-                )
-              ],
-            ),
-            child: Row(
-              children: [
-                _DateBox(
-                    day: formatted['day'] ?? '?',
-                    month: formatted['monthName'] ?? '-'),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        stageName,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on,
-                              size: 16, color: Color(0xFFD4AF37)),
-                          const SizedBox(width: 4),
-                          Text("İstanbul",
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withOpacity(0.6))),
-                          const SizedBox(width: 16),
-                          const Icon(Icons.access_time,
-                              size: 16, color: Color(0xFFD4AF37)),
-                          const SizedBox(width: 4),
-                          Text(formatted['time'] ?? '--:--',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withOpacity(0.6))),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: const Color(0xFFD4AF37).withOpacity(0.3)),
-                  ),
-                  child: const Icon(Icons.arrow_forward_rounded,
-                      color: Color(0xFFD4AF37)),
-                ),
-              ],
-            ),
-          ),
-        ),
+      child: _EventCardContent(
+        day: formatted['day'] ?? '?',
+        month: formatted['monthName'] ?? '-',
+        time: formatted['time'] ?? '--:--',
+        stageName: stageName,
+        onTap: () => _navigateToSeatSelection(context),
       ),
     );
   }
 
   void _navigateToSeatSelection(final BuildContext context) {
     final ref = ProviderScope.containerOf(context);
-    String? userId = ref.read(loginProvider).user?.uid;
-    userId ??= ref.read(userProvider).dataSingle?.id;
-    userId ??= LocalStorageService.userUid;
+    final userId = ref.read(loginProvider).user?.uid ??
+        ref.read(userProvider).dataSingle?.id ??
+        LocalStorageService.userUid;
 
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -660,7 +680,101 @@ class _AnimatedEventCard extends StatelessWidget {
   }
 }
 
-class _PlayerSection extends StatefulWidget {
+class _EventCardContent extends StatelessWidget {
+  final String day;
+  final String month;
+  final String time;
+  final String stageName;
+  final VoidCallback onTap;
+
+  const _EventCardContent({
+    required this.day,
+    required this.month,
+    required this.time,
+    required this.stageName,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1a1a2e),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFFD4AF37).withOpacity(0.3),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD4AF37).withOpacity(0.1),
+                blurRadius: 20,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              _DateBox(day: day, month: month),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stageName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _EventDetails(time: time),
+                  ],
+                ),
+              ),
+              _NavigationArrow(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EventDetails extends StatelessWidget {
+  final String time;
+
+  const _EventDetails({required this.time});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Row(
+      children: [
+        const _DetailIcon(
+          icon: Icons.location_on,
+          color: Color(0xFFD4AF37),
+        ),
+        const _DetailText(text: "İstanbul"),
+        const SizedBox(width: 16),
+        const _DetailIcon(
+          icon: Icons.access_time,
+          color: Color(0xFFD4AF37),
+        ),
+        _DetailText(text: time),
+      ],
+    );
+  }
+}
+
+// Pagination mantığı (StatefulWidget) yerine
+// Tek seferde hepsini gösteren Stateless yapıya geçtik.
+class _PlayerSection extends StatelessWidget {
   final List<Player> players;
   final bool isOld;
   final bool isLoading;
@@ -672,53 +786,52 @@ class _PlayerSection extends StatefulWidget {
   });
 
   @override
-  State<_PlayerSection> createState() => _PlayerSectionState();
-}
-
-class _PlayerSectionState extends State<_PlayerSection> {
-  int _currentPage = 0;
-  static const int _itemsPerPage = 6;
-
-  @override
-  Widget build(final BuildContext context) {
-    if (widget.players.isEmpty && !widget.isLoading) {
+  Widget build(BuildContext context) {
+    // 1. Boş veri ve Yüklenme durumu kontrolleri
+    if (players.isEmpty && !isLoading) {
       return _EmptyStateMessage(
-        message: widget.isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.',
+        message: isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.',
       );
     }
 
-    if (widget.isLoading && widget.players.isEmpty) {
-      return const Center(
-          child: ShimmerLoading());
+    if (isLoading && players.isEmpty) {
+      return const SizedBox(
+        height: 220,
+        child:
+            Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+      );
     }
 
-    final totalPages = (widget.players.length / _itemsPerPage).ceil();
-    final startIndex = _currentPage * _itemsPerPage;
-    final endIndex =
-        math.min(startIndex + _itemsPerPage, widget.players.length);
-    final currentPlayers = widget.players.sublist(startIndex, endIndex);
+    // 2. Oyuncu Listesi (Pagination yok, Wrap ile hepsi listelenir)
+    return Wrap(
+      spacing: 20,
+      runSpacing: 20,
+      // asMap().entries kullanımı index'e erişip animasyon gecikmesi vermek içindir
+      children: players.asMap().entries.map((entry) {
+        final index = entry.key;
+        final player = entry.value;
 
-    return Column(
-      children: [
-        Wrap(
-          spacing: 20,
-          runSpacing: 20,
-          children: currentPlayers
-              .map((final player) =>
-                  _AnimatedPlayerCard(player: player, isOld: widget.isOld))
-              .toList(),
-        ),
-        if (totalPages > 1)
-          _PaginationControls(
-            currentPage: _currentPage,
-            totalPages: totalPages,
-            onPageChanged: (final page) => setState(() => _currentPage = page),
+        // 3. Eski Tween Animasyonu (Sırayla gelme efekti)
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          // Her eleman bir öncekinden 80ms sonra gelir
+          duration: Duration(milliseconds: 300 + index * 80),
+          builder: (context, value, child) => Opacity(
+            opacity: value,
+            child: Transform.scale(
+              // Hafif büyüme efekti (0.8 -> 1.0)
+              scale: 0.8 + 0.2 * value,
+              child: child,
+            ),
           ),
-      ],
+          child: _AnimatedPlayerCard(player: player, isOld: isOld),
+        );
+      }).toList(),
     );
   }
 }
 
+// Bu kart yapısı tasarım olarak aynı kalıyor
 class _AnimatedPlayerCard extends StatelessWidget {
   final Player player;
   final bool isOld;
@@ -726,7 +839,7 @@ class _AnimatedPlayerCard extends StatelessWidget {
   const _AnimatedPlayerCard({required this.player, required this.isOld});
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Container(
@@ -813,27 +926,32 @@ class _AnimatedPlayerCard extends StatelessWidget {
   }
 }
 
-class _GallerySection extends StatefulWidget {
+class _GallerySection extends ConsumerStatefulWidget {
   final List<String> photos;
 
   const _GallerySection({required this.photos});
 
   @override
-  State<_GallerySection> createState() => _GallerySectionState();
+  ConsumerState<_GallerySection> createState() => _GallerySectionState();
 }
 
-class _GallerySectionState extends State<_GallerySection> {
+class _GallerySectionState extends ConsumerState<_GallerySection> {
   int _currentPage = 0;
-  static const int _itemsPerPage = 8;
 
   @override
   Widget build(final BuildContext context) {
-    if (widget.photos.isEmpty)
+    if (widget.photos.isEmpty) {
       return const _EmptyStateMessage(message: 'Galeri boş.');
+    }
 
-    final totalPages = (widget.photos.length / _itemsPerPage).ceil();
-    final startIndex = _currentPage * _itemsPerPage;
-    final endIndex = math.min(startIndex + _itemsPerPage, widget.photos.length);
+    final totalPages =
+        (widget.photos.length / _PerformanceConstants.galleryItemsPerPage)
+            .ceil();
+    final startIndex = _currentPage * _PerformanceConstants.galleryItemsPerPage;
+    final endIndex = math.min(
+      startIndex + _PerformanceConstants.galleryItemsPerPage,
+      widget.photos.length,
+    );
     final currentPhotos = widget.photos.sublist(startIndex, endIndex);
 
     return Column(
@@ -852,80 +970,68 @@ class _GallerySectionState extends State<_GallerySection> {
   }
 }
 
-// --- YARDIMCI KÜÇÜK WIDGETLAR (Reusable Components) ---
+// --- SIMPLE REUSABLE COMPONENTS ---
 
-class _PaginationControls extends StatelessWidget {
-  final int currentPage;
-  final int totalPages;
-  final Function(int) onPageChanged;
-
-  const _PaginationControls({
-    required this.currentPage,
-    required this.totalPages,
-    required this.onPageChanged,
-  });
+class _LoadingIndicator extends StatelessWidget {
+  const _LoadingIndicator();
 
   @override
   Widget build(final BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1a1a2e).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _PageButton(
-            icon: Icons.arrow_back_ios_rounded,
-            enabled: currentPage > 0,
-            onTap: () => onPageChanged(currentPage - 1),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            '${currentPage + 1} / $totalPages',
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(width: 16),
-          _PageButton(
-            icon: Icons.arrow_forward_ios_rounded,
-            enabled: currentPage < totalPages - 1,
-            onTap: () => onPageChanged(currentPage + 1),
-          ),
-        ],
+    return const SizedBox(
+      height: 100,
+      child: Center(
+        child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
       ),
     );
   }
 }
 
-class _PageButton extends StatelessWidget {
+class _DetailIcon extends StatelessWidget {
   final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
+  final Color color;
 
-  const _PageButton(
-      {required this.icon, required this.enabled, required this.onTap});
+  const _DetailIcon({required this.icon, required this.color});
 
   @override
   Widget build(final BuildContext context) {
-    return MouseRegion(
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: enabled
-                ? const Color(0xFFD4AF37)
-                : Colors.grey.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon,
-              color: enabled ? const Color(0xFF0a0a1a) : Colors.white38,
-              size: 16),
+    return Icon(icon, size: 16, color: color);
+  }
+}
+
+class _DetailText extends StatelessWidget {
+  final String text;
+
+  const _DetailText({required this.text});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14,
+        color: Colors.white.withOpacity(0.6),
+      ),
+    );
+  }
+}
+
+class _NavigationArrow extends StatelessWidget {
+  const _NavigationArrow();
+
+  @override
+  Widget build(final BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD4AF37).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFD4AF37).withOpacity(0.3),
         ),
+      ),
+      child: const Icon(
+        Icons.arrow_forward_rounded,
+        color: Color(0xFFD4AF37),
       ),
     );
   }
@@ -1178,37 +1284,32 @@ class _GalleryItem extends StatelessWidget {
 // --- Basit UI Bileşenleri ---
 
 class _LoadingState extends StatelessWidget {
-  final Animation<double> animation;
-
-  const _LoadingState({required this.animation});
+  const _LoadingState();
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AnimatedBuilder(
-            animation: animation,
-            builder: (final _, final child) => Transform.translate(
-              offset: Offset(0, math.sin(animation.value * math.pi) * 10),
-              child: child,
-            ),
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                    colors: [Color(0xFFD4AF37), Color(0xFFF5E6A3)]),
+          // Animasyon olmadan basit loading
+          Container(
+            width: 80,
+            height: 80,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Color(0xFFD4AF37), Color(0xFFF5E6A3)],
               ),
-              child: const Icon(Icons.theater_comedy,
-                  size: 40, color: Color(0xFF0a0a1a)),
             ),
+            child: const Icon(Icons.theater_comedy,
+                size: 40, color: Color(0xFF0a0a1a)),
           ),
           const SizedBox(height: 24),
-          const Text('Sahne Hazırlanıyor...',
-              style: TextStyle(color: Colors.white70, fontSize: 18)),
+          const Text(
+            'Sahne Hazırlanıyor...',
+            style: TextStyle(color: Colors.white70, fontSize: 18),
+          ),
         ],
       ),
     );
@@ -1287,32 +1388,27 @@ class _DateBox extends StatelessWidget {
 }
 
 class _FloatingBackButton extends StatelessWidget {
-  final Animation<double> animation;
-
-  const _FloatingBackButton({required this.animation});
+  const _FloatingBackButton();
 
   @override
-  Widget build(final BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (final _, final child) => Transform.translate(
-        offset: Offset(0, math.sin(animation.value * math.pi) * 3),
-        child: child,
-      ),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1a1a2e).withOpacity(0.9),
-              borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+  Widget build(BuildContext context) {
+    // Basit back butonu - animasyon kaldırıldı
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1a1a2e).withOpacity(0.9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFD4AF37).withOpacity(0.5),
             ),
-            child:
-                const Icon(Icons.arrow_back_rounded, color: Color(0xFFD4AF37)),
+          ),
+          child: const Icon(
+            Icons.arrow_back_rounded,
+            color: Color(0xFFD4AF37),
           ),
         ),
       ),
@@ -1370,6 +1466,83 @@ class _GlassDescriptionCard extends StatelessWidget {
             fontSize: 16,
             height: 1.9,
             letterSpacing: 0.3),
+      ),
+    );
+  }
+}
+
+class _PaginationControls extends StatelessWidget {
+  final int currentPage;
+  final int totalPages;
+  final Function(int) onPageChanged;
+
+  const _PaginationControls({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPageChanged,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1a1a2e).withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _PageButton(
+            icon: Icons.arrow_back_ios_rounded,
+            enabled: currentPage > 0,
+            onTap: () => onPageChanged(currentPage - 1),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            '${currentPage + 1} / $totalPages',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(width: 16),
+          _PageButton(
+            icon: Icons.arrow_forward_ios_rounded,
+            enabled: currentPage < totalPages - 1,
+            onTap: () => onPageChanged(currentPage + 1),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PageButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _PageButton(
+      {required this.icon, required this.enabled, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) {
+    return MouseRegion(
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: enabled
+                ? const Color(0xFFD4AF37)
+                : Colors.grey.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon,
+              color: enabled ? const Color(0xFF0a0a1a) : Colors.white38,
+              size: 16),
+        ),
       ),
     );
   }
