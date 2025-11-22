@@ -206,10 +206,7 @@ class _HomePageState extends State<HomePage> {
                     const GozYapVazYapLanding(),
 
                     // About Section
-                    Container(
-                        key: widget.aboutKey,
-                        child: AboutCard(
-                            mainScrollController: widget.scrollController)),
+                    Container(key: widget.aboutKey, child: AboutCard()),
                     // Team Section
                     Container(key: widget.teamKey, child: const TeamCard()),
 

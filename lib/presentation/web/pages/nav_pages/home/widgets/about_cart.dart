@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
+// ═══════════════════════════════════════════════════════════
+// ABOUT CARD - MODERN DESIGN
+// ═══════════════════════════════════════════════════════════
 class AboutCard extends StatefulWidget {
-  final ScrollController mainScrollController;
-
-  const AboutCard({
-    super.key,
-    required this.mainScrollController,
-  });
+  const AboutCard({super.key});
 
   @override
   State<AboutCard> createState() => _AboutCardState();
@@ -16,46 +14,24 @@ class AboutCard extends StatefulWidget {
 
 class _AboutCardState extends State<AboutCard>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fadeAnimation;
-  bool _hasAnimated = false;
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
-        duration: const Duration(milliseconds: 1200), vsync: this);
-
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _checkVisibility();
-      widget.mainScrollController.addListener(_checkVisibility);
-    });
+    _controller.forward();
   }
 
   @override
   void dispose() {
-    widget.mainScrollController.removeListener(_checkVisibility);
     _controller.dispose();
     super.dispose();
-  }
-
-  void _checkVisibility() {
-    if (_hasAnimated || !mounted) return;
-
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    final offset = renderBox.localToGlobal(Offset.zero);
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    if (offset.dy < screenHeight - 100) {
-      _controller.forward();
-      _hasAnimated = true;
-      widget.mainScrollController.removeListener(_checkVisibility);
-    }
   }
 
   @override
@@ -73,83 +49,89 @@ class _AboutCardState extends State<AboutCard>
         opacity: _fadeAnimation,
         child: Column(
           children: [
-            _buildHeader(context),
+            // Başlık
+            ShaderMask(
+              shaderCallback: (final bounds) =>
+                  WebColors.goldGradient.createShader(bounds),
+              child: Text(
+                'HAKKIMIZDA',
+                style: TextStyle(
+                  fontSize: context.responsive(mobile: 36.0, desktop: 56.0),
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 3,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            Container(
+              width: 80,
+              height: 4,
+              decoration: BoxDecoration(
+                gradient: WebColors.goldGradient,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
             const SizedBox(height: 48),
-            _buildContent(context),
+
+            // Content
+            LayoutBuilder(
+              builder: (final context, final constraints) {
+                return constraints.maxWidth > 800
+                    ? _buildWideLayout(context)
+                    : _buildNarrowLayout(context);
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(final BuildContext context) {
-    return Column(
+  Widget _buildWideLayout(final BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ShaderMask(
-          shaderCallback: (final bounds) =>
-              WebColors.goldGradient.createShader(bounds),
-          child: Text(
-            'HAKKIMIZDA',
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 36.0, desktop: 56.0),
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 3,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          width: 80,
-          height: 4,
-          decoration: BoxDecoration(
-            gradient: WebColors.goldGradient,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
+        Expanded(flex: 6, child: _buildAboutText(context)),
+        const SizedBox(width: 60),
+        Expanded(flex: 4, child: _buildStatsGrid(context)),
       ],
     );
   }
 
-  Widget _buildContent(final BuildContext context) {
-    return LayoutBuilder(
-      builder: (final context, final constraints) {
-        return constraints.maxWidth > 800
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 6, child: _buildAboutText(context)),
-                  const SizedBox(width: 60),
-                  Expanded(flex: 4, child: _buildStatsGrid(context)),
-                ],
-              )
-            : Column(
-                children: [
-                  _buildAboutText(context),
-                  const SizedBox(height: 40),
-                  _buildStatsGrid(context),
-                ],
-              );
-      },
+  Widget _buildNarrowLayout(final BuildContext context) {
+    return Column(
+      children: [
+        _buildAboutText(context),
+        const SizedBox(height: 40),
+        _buildStatsGrid(context),
+      ],
     );
   }
 
   Widget _buildAboutText(final BuildContext context) {
-    const paragraphs = [
-      'TiyatRol Sahne Sanatları Tiyatro Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren amatör - profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri ya da farklı oyunları modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.',
-      'Ekibimiz, deneyimli oyuncular, yaratıcı yönetmenler ve yetenekli sahne sanatçılarından oluşmaktadır. Her oyunumuzda kaliteyi ve sanatsal bütünlüğü ön planda tutarak, seyircilerimize unutulmaz deneyimler yaşatmayı hedefliyoruz.',
-      'Tiyatro sanatını sadece sahne performansı olarak görmeyip, toplumsal dönüşüme katkıda bulunan bir araç olarak değerlendiriyoruz. Bu anlayışla hareket ederek, her yaştan seyirciye hitap eden, düşündüren ve duygulandıran yapımlar üretiyoruz.',
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: paragraphs.asMap().entries.map((final entry) {
-        return Padding(
-          padding: EdgeInsets.only(
-              bottom: entry.key == paragraphs.length - 1 ? 0 : 24),
-          child: _buildParagraph(context, entry.value, isFirst: entry.key == 0),
-        );
-      }).toList(),
+      children: [
+        _buildParagraph(
+          context,
+          'TiyatRol Sahne Sanatları Tiyatro Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren amatör - profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri ya da farklı oyunları modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.',
+          isFirst: true,
+        ),
+        const SizedBox(height: 24),
+        _buildParagraph(
+          context,
+          'Ekibimiz, deneyimli oyuncular, yaratıcı yönetmenler ve yetenekli sahne sanatçılarından oluşmaktadır. Her oyunumuzda kaliteyi ve sanatsal bütünlüğü ön planda tutarak, seyircilerimize unutulmaz deneyimler yaşatmayı hedefliyoruz.',
+        ),
+        const SizedBox(height: 24),
+        _buildParagraph(
+          context,
+          'Tiyatro sanatını sadece sahne performansı olarak görmeyip, toplumsal dönüşüme katkıda bulunan bir araç olarak değerlendiriyoruz. Bu anlayışla hareket ederek, her yaştan seyirciye hitap eden, düşündüren ve duygulandıran yapımlar üretiyoruz.',
+        ),
+      ],
     );
   }
 
@@ -161,7 +143,9 @@ class _AboutCardState extends State<AboutCard>
         color: WebColors.darkBlueSurface.withOpacity(0.3),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: WebColors.primaryGold.withOpacity(isFirst ? 0.5 : 0.2),
+          color: isFirst
+              ? WebColors.primaryGold.withOpacity(0.5)
+              : WebColors.primaryGold.withOpacity(0.2),
           width: isFirst ? 2 : 1,
         ),
       ),
@@ -194,7 +178,7 @@ class _AboutCardState extends State<AboutCard>
   }
 
   Widget _buildStatsGrid(final BuildContext context) {
-    const stats = [
+    final stats = [
       {
         'icon': Icons.theater_comedy,
         'number': '10+',
@@ -242,7 +226,7 @@ class _AboutCardState extends State<AboutCard>
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
