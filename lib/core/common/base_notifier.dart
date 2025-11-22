@@ -13,6 +13,7 @@ abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
   Future<void> execute<R>(
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,
+    final String? customErrorMessage, // Opsiyonel özel hata mesajı
   }) async {
     if (!ref.mounted) return;
     try {
@@ -21,8 +22,10 @@ abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
       final result = await operation(); // İnternet varsa işlemi gerçekleştir
       if (!ref.mounted) return;
       result.fold(
-        (final failure) => setErrorState(
-            "Sistemimizi kitledik. Meraklılarımıza kodlarımız: ${failure.message}"),
+        (final failure) {
+          final message = _mapFailureToMessage(failure, customErrorMessage);
+          setErrorState(message);
+        },
         (final success) {
           try {
             onSuccess?.call(success);

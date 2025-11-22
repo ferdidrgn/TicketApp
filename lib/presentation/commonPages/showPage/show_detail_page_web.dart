@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
-import 'package:ticketapp/core/widgets/shimmer.dart';
 import 'package:ticketapp/data/providers/player/player_notifier.dart';
 import 'package:ticketapp/data/providers/show/show_notifier.dart';
 import 'package:ticketapp/data/providers/stage/stage_notifier.dart';
@@ -486,7 +485,6 @@ class _ParallaxHero extends StatelessWidget {
                     const _HeroDivider(),
                     _HeroTitle(title: showData.name),
                     const SizedBox(height: 20),
-                    _AnimatedUnderline(animation: floatingAnimation),
                   ],
                 ),
               ),
@@ -902,35 +900,6 @@ class _HeroTitle extends StatelessWidget {
           ],
         ),
         textAlign: TextAlign.center,
-      ),
-    );
-  }
-}
-
-class _AnimatedUnderline extends StatelessWidget {
-  final Animation<double> animation;
-
-  const _AnimatedUnderline({required this.animation});
-
-  @override
-  Widget build(final BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (final _, final __) => Container(
-        height: 4,
-        width: 120 + math.sin(animation.value * math.pi) * 20,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [
-            Color(0xFFD4AF37),
-            Color(0xFFF5E6A3),
-            Color(0xFFD4AF37)
-          ]),
-          borderRadius: BorderRadius.circular(2),
-          boxShadow: [
-            BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.6), blurRadius: 15)
-          ],
-        ),
       ),
     );
   }
