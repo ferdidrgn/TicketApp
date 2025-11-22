@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../errors/failures.dart';
 import 'base_state.dart';
 
-/// Basitleştirilmiş Base Notifier
-/// İnternet kontrolü YOK - sunucu hatası zaten yakalanacak
 abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
   @override
   T build() => initialState();
@@ -15,30 +13,28 @@ abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
   Future<void> execute<R>(
     final Future<Either<Failure, R>> Function() operation, {
     final Function(R)? onSuccess,
-    final String? customErrorMessage,
   }) async {
     if (!ref.mounted) return;
-
-    setLoadingState(true);
-
     try {
-      final result = await operation();
+      state = state.copyWith(isLoading: true, errorMessage: null) as T;
 
+      final result = await operation(); // İnternet varsa işlemi gerçekleştir
       if (!ref.mounted) return;
       result.fold(
-        (final failure) {
-          // Network hatası gelirse özel mesaj göster
-          final message = _mapFailureToMessage(failure, customErrorMessage);
-          setErrorState(message);
-        },
+        (final failure) => setErrorState(
+            "Sistemimizi kitledik. Meraklılarımıza kodlarımız: ${failure.message}"),
         (final success) {
-          onSuccess?.call(success);
-          setLoadingState(false);
+          try {
+            onSuccess?.call(success);
+            state = state.copyWith(isLoading: false, errorMessage: null) as T;
+          } catch (e, s) {
+            if (!ref.mounted) return;
+            setErrorState("Veri işlenirken hata oluştu: $e");
+          }
         },
       );
-    } catch (e) {
-      if (!ref.mounted) return;
-      setErrorState(customErrorMessage ?? 'Beklenmeyen bir hata oluştu');
+    } catch (e, s) {
+      setErrorState('Beklenmeyen bir hata oluştu: ${e.toString()}');
     }
   }
 

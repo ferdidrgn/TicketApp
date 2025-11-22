@@ -48,10 +48,14 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   @override
   Future<List<ShowModel>> getShows(final bool isLimit) async {
     try {
+      print('🔥 Firebase sorgusu başladı: ${DateTime.now()}');
       final query = _showCollection.orderBy('_createdAt', descending: true);
       final snapshot =
           isLimit ? await query.limit(20).get() : await query.get();
-      return _mapSnapshot(snapshot);
+      print('🔥 Firebase sorgusu bitti: ${DateTime.now()}');
+      final result = _mapSnapshot(snapshot);
+      print('🔥 Dönen veri sayısı: ${snapshot.docs.length}');
+      return result;
     } catch (e) {
       throw Exception('Fetch shows failed: $e');
     }

@@ -1,16 +1,40 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
 
-/// Global internet durumu provider'ı
-/// Kullanım: ref.watch(connectivityProvider)
-final connectivityProvider = StreamProvider<bool>((final ref) {
-  return InternetConnectionChecker.instance.onStatusChange.map(
-    (final status) => status == InternetConnectionStatus.connected,
-  );
-});
+class ConnectivityNotifier extends Notifier<bool> {
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
 
-/// Anlık kontrol için (nadiren lazım olur)
-/// Kullanım: await ref.read(isOnlineProvider.future)
-final isOnlineProvider = FutureProvider<bool>((final ref) async {
-  return InternetConnectionChecker.instance.hasConnection;
-});
+  @override
+  bool build() {
+    ref.onDispose(() => _subscription?.cancel());
+    _startListening();
+    return true; // Başlangıçta online varsay
+  }
+
+  void _startListening() {
+    // İlk değeri hemen al
+    Connectivity().checkConnectivity().then((final results) {
+      final isConnected = _isConnected(results);
+      print('📶 İlk bağlantı durumu: $isConnected ($results)');
+      if (state != isConnected) state = isConnected;
+    });
+
+    // Stream'i dinle
+    _subscription =
+        Connectivity().onConnectivityChanged.listen((final results) {
+      final isConnected = _isConnected(results);
+      print('📶 Bağlantı değişti: $isConnected ($results)');
+      if (state != isConnected) state = isConnected;
+    });
+  }
+
+  bool _isConnected(final List<ConnectivityResult> results) {
+    // none dışında herhangi bir bağlantı varsa online
+    return results.isNotEmpty && !results.contains(ConnectivityResult.none);
+  }
+}
+
+final connectivityProvider = NotifierProvider<ConnectivityNotifier, bool>(
+  ConnectivityNotifier.new,
+);

@@ -2,21 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'connectivity_provider.dart';
 
-/// İnternet geldiğinde otomatik refresh yapmak isteyen sayfalar için mixin
-///
-/// Kullanım:
-/// ```dart
-/// class _MyPageState extends ConsumerState<MyPage> with AutoRefreshOnReconnect {
-///   @override
-///   void onReconnected() {
-///     ref.read(myProvider.notifier).loadData();
-///   }
-/// }
-/// ```
 mixin AutoRefreshOnReconnect<T extends ConsumerStatefulWidget>
     on ConsumerState<T> {
   bool _wasOffline = false;
-  ProviderSubscription? _subscription;
+  ProviderSubscription<bool>? _subscription; // bool oldu
 
   @override
   void initState() {
@@ -27,18 +16,18 @@ mixin AutoRefreshOnReconnect<T extends ConsumerStatefulWidget>
   }
 
   void _setupConnectivityListener() {
-    _subscription = ref.listenManual<AsyncValue<bool>>(
+    _subscription = ref.listenManual<bool>(
+      // AsyncValue<bool> değil, bool
       connectivityProvider,
       (final previous, final next) {
-        next.whenData((final isOnline) {
-          if (isOnline && _wasOffline) {
-            _wasOffline = false;
-            onReconnected();
-          } else if (!isOnline) {
-            _wasOffline = true;
-            onDisconnected();
-          }
-        });
+        // next artık bool, whenData yok
+        if (next && _wasOffline) {
+          _wasOffline = false;
+          onReconnected();
+        } else if (!next) {
+          _wasOffline = true;
+          onDisconnected();
+        }
       },
       fireImmediately: true,
     );
@@ -50,9 +39,6 @@ mixin AutoRefreshOnReconnect<T extends ConsumerStatefulWidget>
     super.dispose();
   }
 
-  /// İnternet geri geldiğinde çağrılır - override et
   void onReconnected() {}
-
-  /// İnternet kesildiğinde çağrılır - override et (opsiyonel)
   void onDisconnected() {}
 }

@@ -1,9 +1,10 @@
+// ============================================
+// 2. connectivity_wrapper.dart
+// ============================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'connectivity_provider.dart';
 
-/// Tüm uygulamayı sarmalayan connectivity wrapper
-/// İnternet kesildiğinde üstte banner gösterir
 class ConnectivityWrapper extends ConsumerWidget {
   final Widget child;
 
@@ -11,19 +12,14 @@ class ConnectivityWrapper extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final connectivity = ref.watch(connectivityProvider);
+    final isOnline = ref.watch(connectivityProvider); // bool döner
 
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Stack(
         children: [
           child,
-          connectivity.when(
-            data: (final isOnline) =>
-                isOnline ? const SizedBox.shrink() : const _OfflineBanner(),
-            loading: () => const SizedBox.shrink(),
-            error: (final _, final __) => const SizedBox.shrink(),
-          ),
+          if (!isOnline) const _OfflineBanner(), // .when() YOK
         ],
       ),
     );
@@ -53,7 +49,6 @@ class _OfflineBannerState extends State<_OfflineBanner>
       begin: const Offset(0, -1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
     _controller.forward();
   }
 

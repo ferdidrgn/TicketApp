@@ -57,7 +57,7 @@ dependencies:
   shared_preferences:  # Kalıcı veri depolamak için.
 
   # Servis Lokasyonu
-  internet_connection_checker: ^3.0.1  # İnternet bağlantısını kontrol eder.
+  connectivity_plus: ^6.0.3
 
   # Firebase
   firebase_core: ^4.2.0  # Firebase temel yapı.

@@ -53,6 +53,7 @@ class MyApp extends ConsumerWidget {
       builder: (final context, final child) {
         return ConnectivityWrapper(child: child ?? const SizedBox.shrink());
       },
+      initialRoute: '/',
       onGenerateRoute: (final settings) {
         switch (settings.name) {
           case '/':
