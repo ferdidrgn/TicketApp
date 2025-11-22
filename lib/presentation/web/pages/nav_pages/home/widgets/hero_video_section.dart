@@ -58,7 +58,8 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     )
       ..setLooping(true)
       ..setVolume(0)
-      ..initialize().then((_) {
+      ..setPlaybackSpeed(0.5)
+      ..initialize().then((final _) {
         if (mounted) {
           _videoController.play();
           setState(() => _isVideoReady = true);
@@ -75,7 +76,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     // Ekran yüksekliği
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -104,24 +105,49 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     );
   }
 
+// 1. VİDEOYU EN ALTTA YOK ETMEK İÇİN MASKE (ShaderMask)
   Widget _buildVideoBackground() {
+    if (!_isVideoReady) {
+      return Image.network(
+        "https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_205137.jpg?alt=media&token=79e2c500-6f44-42a3-a28d-8b62c84867af",
+        fit: BoxFit.cover,
+      );
+    }
+
     return Positioned.fill(
-      child: _isVideoReady
-          ? FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _videoController.value.size.width,
-                height: _videoController.value.size.height,
-                child: VideoPlayer(_videoController),
-              ),
-            )
-          : Image.network(
-              "https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_205137.jpg?alt=media&token=79e2c500-6f44-42a3-a28d-8b62c84867af",
-              fit: BoxFit.cover,
+      child: Container(
+        color: const Color(0xFF0a0a1a),
+        // Arka plan rengi (Video silinince bu görünür)
+        child: ShaderMask(
+          shaderCallback: (rect) {
+            return const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black, // Üst kısımlar net
+                Colors.black,
+                Colors.transparent, // En alt tamamen şeffaf (yok olur)
+              ],
+              // Buradaki ayar önemli: 0.8 (%80)'e kadar video net,
+              // 1.0 (%100)'da tamamen silinmiş oluyor.
+              stops: [0.0, 0.85, 1.0],
+            ).createShader(rect);
+          },
+          blendMode: BlendMode.dstIn,
+          child: FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: _videoController.value.size.width,
+              height: _videoController.value.size.height,
+              child: VideoPlayer(_videoController),
             ),
+          ),
+        ),
+      ),
     );
   }
 
+  // 2. SİYAH DEGRADE KATMANI (Gradient Overlay)
   Widget _buildCinematicOverlay() {
     return Container(
       decoration: BoxDecoration(
@@ -129,20 +155,19 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            // Üstte hafif karartma (Header okunabilsin diye)
-            Colors.black.withOpacity(0.6),
-            // Ortada şeffaf (Video görünsün)
-            Colors.black.withOpacity(0.2),
-            // Altta tam siyah (Bir sonraki section ile birleşsin)
-            const Color(0xFF0a0a1a),
+            Colors.black.withOpacity(0.4), // En tepe (Header için hafif koyu)
+            Colors.transparent, // Orta kısım (Video net)
+            const Color(0xFF0a0a1a).withOpacity(0.0), // Geçiş başlangıcı
+            const Color(0xFF0a0a1a), // En alt (Tamamen siyah/zemin rengi)
           ],
-          stops: const [0.0, 0.5, 1.0],
+          // En alt %15'lik kısımda tam siyaha dönüşür
+          stops: const [0.0, 0.3, 0.85, 1.0],
         ),
       ),
     );
   }
 
-  Widget _buildHeroContent(BuildContext context) {
+  Widget _buildHeroContent(final BuildContext context) {
     final isDesktop = context.isDesktop;
 
     return Positioned.fill(
@@ -233,7 +258,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     );
   }
 
-  Widget _buildPlayButton(BuildContext context) {
+  Widget _buildPlayButton(final BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Container(
@@ -264,7 +289,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
     );
   }
 
-  Widget _buildGlassPremiereCard(BuildContext context) {
+  Widget _buildGlassPremiereCard(final BuildContext context) {
     // Desktop'ta sağda, Mobilde altta (ya da gizli) olabilir.
     // Burada Desktop için sağ alt/orta konumlandırıyoruz.
     if (context.isMobile) return const SizedBox.shrink();
@@ -371,7 +396,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
       child: Center(
         child: AnimatedBuilder(
           animation: _mainController,
-          builder: (context, child) {
+          builder: (final context, final child) {
             return Transform.translate(
               offset: Offset(0, _pulseAnimation.value), // Aşağı yukarı hareket
               child: Column(

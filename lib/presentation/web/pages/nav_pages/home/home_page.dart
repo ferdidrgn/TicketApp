@@ -187,11 +187,6 @@ class _HomePageState extends State<HomePage> {
                     // Hero Section
                     Container(key: _homeKey, child: const HeroVideoSection()),
 
-                    const SizedBox(height: 40),
-
-                    // Quote Section with parallax effect
-                    _buildQuoteSection(),
-
                     // Shows Section
                     Container(
                         key: widget.showsKey, child: const ShowsSection()),
@@ -259,40 +254,6 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildQuoteSection() {
-    return AnimatedBuilder(
-      animation: widget.scrollController,
-      builder: (final context, final child) {
-        // Parallax effect için scroll pozisyonuna göre opacity hesapla
-        final scrollPosition = widget.scrollController.hasClients
-            ? widget.scrollController.offset
-            : 0.0;
-        final opacity = (1 - (scrollPosition / 800)).clamp(0.0, 1.0);
-
-        return Opacity(
-          opacity: opacity,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-            decoration: const BoxDecoration(
-              gradient: WebColors.backgroundGradient,
-            ),
-            child: Text(
-              '"Hikayelerimizle kalplere dokunuyor,\nsanatla hayata anlam katıyoruz"',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: WebColors.whiteText.withOpacity(0.9),
-                fontStyle: FontStyle.italic,
-                height: 1.6,
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
