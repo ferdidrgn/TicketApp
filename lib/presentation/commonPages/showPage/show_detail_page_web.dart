@@ -41,12 +41,12 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   Future<void> _fetchInitialData() async {
     final showNotifier = ref.read(showProvider.notifier);
-    final Show? showData = ref.read(showProvider).getShowById(widget.showId);
+    Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
-    // Gösteri verisi yoksa sunucudan çek
     if (showData == null) {
       try {
         await showNotifier.loadShowsByIds([widget.showId]);
+        showData = ref.read(showProvider).getShowById(widget.showId);
         if (showData == null) {
           showNotifier.setErrorState("Gösteri yüklenemedi.");
           return;
@@ -57,18 +57,27 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       }
     }
 
-    final eventsList = showData.eventsId ?? [];
-    if (eventsList.isNotEmpty)
-      unawaited(ref.read(eventProvider.notifier).loadEventsByIds(eventsList));
+    final eventsList = showData.eventsId;
+    if (eventsList.isNotEmpty) {
+      final validEventIds =
+          eventsList.where((final id) => id.trim().isNotEmpty).toList();
+      if (validEventIds.isNotEmpty) {
+        unawaited(
+            ref.read(eventProvider.notifier).loadEventsByIds(validEventIds));
+      }
+    }
 
-    final nowPlayers = showData.nowPlayersId ?? [];
-    final oldPlayers = showData.oldPlayersId ?? [];
+    final nowPlayers = showData.nowPlayersId;
+    final oldPlayers = showData.oldPlayersId;
 
-    final allPlayerIds = {...nowPlayers, ...oldPlayers}.toList();
+    final allPlayerIds = {...nowPlayers, ...oldPlayers}
+        .where((final id) => id.trim().isNotEmpty)
+        .toList();
 
-    if (allPlayerIds.isNotEmpty)
+    if (allPlayerIds.isNotEmpty) {
       unawaited(
           ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
+    }
   }
 
   @override
@@ -144,10 +153,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Hero Section
           _buildHeroSection(context, showData),
-
-          // Main Content
           Padding(
             padding: EdgeInsets.symmetric(
                 horizontal: horizontalPadding, vertical: 40),
@@ -168,7 +174,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
     return Stack(
       children: [
-        // Background Image
         SizedBox(
           height: height,
           width: double.infinity,
@@ -181,7 +186,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                 Container(color: const Color(0xFF1a1a2e)),
           ),
         ),
-        // Gradient Overlay
         Container(
           height: height,
           decoration: BoxDecoration(
@@ -197,7 +201,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             ),
           ),
         ),
-        // Back Button
         Positioned(
           top: 40,
           left: 20,
@@ -213,7 +216,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             ),
           ),
         ),
-        // Title
         Positioned(
           bottom: 40,
           left: 0,
@@ -254,10 +256,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       final EventState eventState,
       final PlayerState playerState,
       final StageState stageState) {
+    final nowPlayerDataList =
+        playerState.getPlayersByIds(showData.nowPlayersId);
+    final oldPlayerDataList =
+        playerState.getPlayersByIds(showData.oldPlayersId);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Sol: Poster ve Açıklama
         Expanded(
           flex: 4,
           child: Column(
@@ -270,7 +276,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           ),
         ),
         const SizedBox(width: 48),
-        // Sağ: Etkinlikler, Ekip, Galeri
         Expanded(
           flex: 6,
           child: Column(
@@ -282,13 +287,23 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
               const SizedBox(height: 40),
               _buildSectionTitle('Ekip'),
               const SizedBox(height: 20),
-              _buildPlayerGrid(context,
-                  playerState.getPlayersByIds(showData.nowPlayersId), false),
+              _buildPlayerGridSection(
+                context: context,
+                playerState: playerState,
+                playerIds: showData.nowPlayersId,
+                playerDataList: nowPlayerDataList,
+                isOld: false,
+              ),
               const SizedBox(height: 40),
               _buildSectionTitle('Eski Ekip'),
               const SizedBox(height: 20),
-              _buildPlayerGrid(context,
-                  playerState.getPlayersByIds(showData.oldPlayersId), true),
+              _buildPlayerGridSection(
+                context: context,
+                playerState: playerState,
+                playerIds: showData.oldPlayersId,
+                playerDataList: oldPlayerDataList,
+                isOld: true,
+              ),
               const SizedBox(height: 40),
               _buildSectionTitle('Galeri'),
               const SizedBox(height: 20),
@@ -306,6 +321,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       final EventState eventState,
       final PlayerState playerState,
       final StageState stageState) {
+    final nowPlayerDataList =
+        playerState.getPlayersByIds(showData.nowPlayersId);
+    final oldPlayerDataList =
+        playerState.getPlayersByIds(showData.oldPlayersId);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -317,19 +337,92 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         const SizedBox(height: 32),
         _buildSectionTitle('Ekip'),
         const SizedBox(height: 16),
-        _buildPlayerRow(
-            playerState.getPlayersByIds(showData.nowPlayersId), false),
+        _buildPlayerRowSection(
+          playerState: playerState,
+          playerIds: showData.nowPlayersId,
+          playerDataList: nowPlayerDataList,
+          isOld: false,
+        ),
         const SizedBox(height: 32),
         _buildSectionTitle('Eski Ekip'),
         const SizedBox(height: 16),
-        _buildPlayerRow(
-            playerState.getPlayersByIds(showData.oldPlayersId), true),
+        _buildPlayerRowSection(
+          playerState: playerState,
+          playerIds: showData.oldPlayersId,
+          playerDataList: oldPlayerDataList,
+          isOld: true,
+        ),
         const SizedBox(height: 32),
         _buildSectionTitle('Galeri'),
         const SizedBox(height: 16),
         _buildGalleryRow(showData.photosShowId),
       ],
     );
+  }
+
+  /// Desktop için oyuncu grid bölümü
+  Widget _buildPlayerGridSection({
+    required final BuildContext context,
+    required final PlayerState playerState,
+    required final List<String> playerIds,
+    required final List<Player> playerDataList,
+    required final bool isOld,
+  }) {
+    if (playerIds.isEmpty) {
+      return _buildEmptyState(
+          isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.');
+    }
+
+    if (playerState.isLoading && playerDataList.isEmpty) {
+      return const SizedBox(
+        height: 200,
+        child:
+            Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+      );
+    }
+
+    if (playerDataList.isNotEmpty) {
+      return _buildPlayerGrid(context, playerDataList, isOld);
+    }
+
+    if (!playerState.isLoading && playerDataList.isEmpty) {
+      return _buildEmptyState('Ekip verileri yüklenemedi.');
+    }
+
+    return _buildEmptyState(
+        isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.');
+  }
+
+  /// Mobile için oyuncu row bölümü
+  Widget _buildPlayerRowSection({
+    required final PlayerState playerState,
+    required final List<String> playerIds,
+    required final List<Player> playerDataList,
+    required final bool isOld,
+  }) {
+    if (playerIds.isEmpty) {
+      return _buildEmptyState(
+          isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.');
+    }
+
+    if (playerState.isLoading && playerDataList.isEmpty) {
+      return const SizedBox(
+        height: 200,
+        child:
+            Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+      );
+    }
+
+    if (playerDataList.isNotEmpty) {
+      return _buildPlayerRow(playerDataList, isOld);
+    }
+
+    if (!playerState.isLoading && playerDataList.isEmpty) {
+      return _buildEmptyState('Ekip verileri yüklenemedi.');
+    }
+
+    return _buildEmptyState(
+        isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.');
   }
 
   Widget _buildPosterCard(final BuildContext context, final String imageUrl) {
@@ -504,16 +597,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       );
       return;
     }
-    // Web'de seat selection sayfasına yönlendirme
     // Navigator.push(context, MaterialPageRoute(builder: (_) => SeatSelectionScreen(...)));
   }
 
   Widget _buildPlayerGrid(final BuildContext context,
       final List<Player> players, final bool isOld) {
-    if (players.isEmpty)
-      return _buildEmptyState(
-          isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.');
-
     return Wrap(
       spacing: 20,
       runSpacing: 20,
@@ -524,10 +612,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   }
 
   Widget _buildPlayerRow(final List<Player> players, final bool isOld) {
-    if (players.isEmpty)
-      return _buildEmptyState(
-          isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.');
-
     return SizedBox(
       height: 200,
       child: ListView.builder(
