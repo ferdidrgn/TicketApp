@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../core/util/responsive_utils.dart';
 
 class MetaforLanding extends StatefulWidget {
-  const MetaforLanding({final Key? key}) : super(key: key);
+  const MetaforLanding({super.key});
 
   @override
   State<MetaforLanding> createState() => _MetaforLandingState();
@@ -440,7 +439,7 @@ class _MetaforLandingState extends State<MetaforLanding>
             style: TextStyle(
               color: Colors.white70,
               height: 1.6,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -452,7 +451,7 @@ class _MetaforLandingState extends State<MetaforLanding>
             style: TextStyle(
               color: Colors.white70,
               height: 1.6,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w400,
               fontStyle: FontStyle.italic,
             ),
@@ -611,7 +610,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                 Text(
                   role,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     color: WebColors.textTertiary,
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w500,
@@ -621,7 +620,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                 Text(
                   name,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
                   ),
