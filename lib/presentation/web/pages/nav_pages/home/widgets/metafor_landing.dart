@@ -63,15 +63,7 @@ class _MetaforLandingState extends State<MetaforLanding>
         return Container(
           width: double.infinity,
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF0A0A0A),
-                Color(0xFF1A1A2E),
-                Color(0xFF16213E),
-              ],
-            ),
+            color: WebColors.darkBlueBackground, // SADECE BURASI DEĞİŞTİ
           ),
           child: Padding(
             padding: context.responsive(
@@ -94,7 +86,7 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // ████████ NIRVANA BAŞLIK TASARIMI ████████
+  // Geri kalan tüm kodlar aynı kalacak...
   Widget _buildElegantHeader(BuildContext context) {
     return ScaleTransition(
       scale: _scaleAnimation,
@@ -102,17 +94,13 @@ class _MetaforLandingState extends State<MetaforLanding>
         opacity: _fadeAnimation,
         child: Column(
           children: [
-            // Altın Çerçeve ve Dekoratif Elementler
             Stack(
               alignment: Alignment.center,
               children: [
-                // Dekoratif Köşe Çerçeveleri
-                _buildCornerDecoration(true), // Sol üst
-                _buildCornerDecoration(false), // Sağ üst
-
+                _buildCornerDecoration(true),
+                _buildCornerDecoration(false),
                 Column(
                   children: [
-                    // Zarif Başlık Öncesi Çizgi
                     Container(
                       width: 80,
                       height: 1,
@@ -126,13 +114,9 @@ class _MetaforLandingState extends State<MetaforLanding>
                         ),
                       ),
                     ),
-
                     SizedBox(height: context.gridSpacing * 2),
-
-                    // Ana Başlık - Tiyatro Zarafeti
                     Stack(
                       children: [
-                        // Gölge Efekti
                         Text(
                           'METAFOR',
                           textAlign: TextAlign.center,
@@ -146,7 +130,6 @@ class _MetaforLandingState extends State<MetaforLanding>
                             height: 0.9,
                           ),
                         ),
-                        // Ana Metin
                         Text(
                           'METAFOR',
                           textAlign: TextAlign.center,
@@ -162,10 +145,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                         ),
                       ],
                     ),
-
                     SizedBox(height: context.gridSpacing),
-
-                    // Altın Çizgi
                     Container(
                       width: 120,
                       height: 2,
@@ -179,10 +159,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                         ),
                       ),
                     ),
-
                     SizedBox(height: context.gridSpacing * 1.5),
-
-                    // Alt Başlık - İtalik ve Zarif
                     SizedBox(
                       width: context.responsive(mobile: 300, desktop: 600),
                       child: Text(
@@ -209,7 +186,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // ████████ KÖŞE DEKORASYONU ████████
   Widget _buildCornerDecoration(bool isLeft) {
     return Positioned(
       top: 0,
@@ -236,7 +212,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // ████████ HERO IMAGE SECTION - Dramatik Görsel ████████
   Widget _buildHeroImageSection(BuildContext context) {
     return Transform.translate(
       offset: Offset(0, _slideAnimation.value * 0.7),
@@ -244,7 +219,6 @@ class _MetaforLandingState extends State<MetaforLanding>
         opacity: _fadeAnimation,
         child: Stack(
           children: [
-            // Ana Görsel Container - Lüks Shadow Efektleri
             Container(
               height: context.responsive(mobile: 300.0, desktop: 500.0),
               decoration: BoxDecoration(
@@ -264,7 +238,6 @@ class _MetaforLandingState extends State<MetaforLanding>
                   ),
                 ],
               ),
-              // Gradient Overlay
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
@@ -280,8 +253,6 @@ class _MetaforLandingState extends State<MetaforLanding>
                 ),
               ),
             ),
-
-            // Floating Question Card
             Positioned(
               bottom: 20,
               left: 20,
@@ -294,7 +265,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // ████████ QUESTION CARD - Minimal Tasarım ████████
   Widget _buildQuestionCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -355,7 +325,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // ████████ İÇERIK GRID - LÜKS TASARIM ████████
   Widget _buildContentGrid(BuildContext context) {
     return Transform.translate(
       offset: Offset(0, _slideAnimation.value * 0.5),
@@ -389,7 +358,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // ████████ LÜKS HİKAYE KARTI ████████
   Widget _buildLuxuryStoryCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(40),
@@ -407,7 +375,6 @@ class _MetaforLandingState extends State<MetaforLanding>
       ),
       child: Stack(
         children: [
-          // Arka Plan Dekorasyonu
           Positioned(
             right: 0,
             top: 0,
@@ -420,11 +387,9 @@ class _MetaforLandingState extends State<MetaforLanding>
               ),
             ),
           ),
-
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Bölüm Başlığı - Zarif
               Row(
                 children: [
                   Container(
@@ -445,10 +410,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                   ),
                 ],
               ),
-
               SizedBox(height: context.gridSpacing * 2),
-
-              // İçerik - Edebi Dille
               const Text(
                 "Zamanın durduğu bir limanda, eski ciltlerin solgun kokuları arasında üç yalnız ruhun kesişen kaderleri... "
                 "Tozlu rafların sessiz tanığı bir sahaf, kelimelerin büyüsüne tutkun genç bir yazar, "
@@ -461,9 +423,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                   letterSpacing: 0.5,
                 ),
               ),
-
               SizedBox(height: context.gridSpacing * 2),
-
               const Text(
                 "Metafor, insan ruhunun labirentlerinde unutulmaz bir yolculuk vaat ediyor. "
                 "Yekta Kopan'ın incelikli kalemi ve Gürkan Candan'ın ustalıklı yönetmenliğiyle, "
@@ -477,10 +437,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                   letterSpacing: 0.5,
                 ),
               ),
-
               SizedBox(height: context.gridSpacing * 3),
-
-              // Dekoratif Ayraç
               Center(
                 child: Container(
                   width: 100,
@@ -503,7 +460,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // ████████ LÜKS EKİP KARTI ████████
   Widget _buildLuxuryTeamCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(30),
@@ -514,7 +470,6 @@ class _MetaforLandingState extends State<MetaforLanding>
       ),
       child: Column(
         children: [
-          // Bölüm Başlığı
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -542,35 +497,22 @@ class _MetaforLandingState extends State<MetaforLanding>
               ),
             ],
           ),
-
           SizedBox(height: context.gridSpacing * 2),
-
-          // Ekip Üyeleri - Minimal ve Şık
           _buildLuxuryTeamMember(context, "YAZAR", "Yekta Kopan",
               Icons.edit_outlined, "Metnin Yaratıcısı"),
-
           SizedBox(height: context.gridSpacing * 1.5),
-
           _buildLuxuryTeamMember(context, "YÖNETMEN", "Gürkan Candan",
               Icons.theater_comedy, "Sahne Vizyoneri"),
-
           SizedBox(height: context.gridSpacing * 1.5),
-
           _buildLuxuryTeamMember(context, "IŞIK & SES", "Ferdi Durgun",
               Icons.lightbulb_outline, "Atmosfer Mimarı"),
-
           SizedBox(height: context.gridSpacing * 2),
-
-          // Dekoratif Altın Çizgi
           Container(
             width: 60,
             height: 1,
             color: WebColors.primaryGold.withOpacity(0.5),
           ),
-
           SizedBox(height: context.gridSpacing * 2),
-
-          // Sanatsal Açıklama
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -612,7 +554,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // ████████ LÜKS EKİP ÜYESİ ████████
   Widget _buildLuxuryTeamMember(BuildContext context, String role, String name,
       IconData icon, String description) {
     return Container(
@@ -622,7 +563,6 @@ class _MetaforLandingState extends State<MetaforLanding>
       ),
       child: Row(
         children: [
-          // İkon - Minimal
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -630,10 +570,7 @@ class _MetaforLandingState extends State<MetaforLanding>
             ),
             child: Icon(icon, color: WebColors.primaryGold, size: 16),
           ),
-
           const SizedBox(width: 16),
-
-          // Bilgiler
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
