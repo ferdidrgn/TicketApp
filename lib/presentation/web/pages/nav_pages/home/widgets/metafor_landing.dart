@@ -561,7 +561,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.w300,
                     height: 1.4,
                   ),
@@ -571,7 +571,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                   "- Yekta Kopan",
                   style: TextStyle(
                     color: WebColors.primaryGold.withOpacity(0.7),
-                    fontSize: 10,
+                    fontSize: 12,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -620,7 +620,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                 Text(
                   name,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
                   ),
