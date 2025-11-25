@@ -121,22 +121,36 @@ class GozYapVazYapLanding extends StatelessWidget {
           ),
 
           Positioned(
-            bottom: 30,
+            bottom: 20,
             left: 30,
             right: 30,
-            child: Text(
-              '"Türkiye’nin 70 yıllık siyasi ve toplumsal durumu üzerine hiciv dolu bir ayna."',
-              style: TextStyle(
-                fontSize: context.responsive(mobile: 18.0, desktop: 24.0),
-                fontWeight: FontWeight.w500,
-                color: WebColors.primaryGoldLight,
-                fontStyle: FontStyle.italic,
-                shadows: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(1.0), blurRadius: 15),
-                ],
-              ),
-              textAlign: TextAlign.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'TOPLUMSAL VİCDANIN İKİ YÜZÜ:',
+                  style: TextStyle(
+                    fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
+                    color: WebColors.warning,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
+                Text(
+                  '"Körlükle kazanılan zenginlik ve dürüstlükle kaybedilen hayatlar."',
+                  style: TextStyle(
+                    fontSize: context.responsive(mobile: 18.0, desktop: 24.0),
+                    fontWeight: FontWeight.w500,
+                    color: WebColors.primaryGoldLight,
+                    fontStyle: FontStyle.italic,
+                    shadows: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(1.0), blurRadius: 15),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ],
@@ -378,7 +392,7 @@ class GozYapVazYapLanding extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'TOPLUMSAL VİCDANIN İKİ YÜZÜ:',
+                  'HANGİ GÖZ DAHA KÖRDÜR?',
                   style: TextStyle(
                     fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
                     color: WebColors.warning,
@@ -388,9 +402,9 @@ class GozYapVazYapLanding extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '"Körlükle kazanılan zenginlik ve dürüstlükle kaybedilen hayatlar."',
+                  '"Körlüğe terfi etmek mi, gerçeğe mahkum olmak mı? Bir tercihin anatomisi."',
                   style: TextStyle(
-                    fontSize: context.responsive(mobile: 20.0, desktop: 28.0),
+                    fontSize: context.responsive(mobile: 18.0, desktop: 24.0),
                     color: WebColors.primaryGoldLight,
                     fontStyle: FontStyle.italic,
                     fontWeight: FontWeight.w700,
