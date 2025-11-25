@@ -66,7 +66,7 @@ class GozYapVazYapLanding extends StatelessWidget {
                     'GÖZLERİMİ KAPARIM\nVAZİFEMİ YAPARIM',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: context.responsive(mobile: 26.0, desktop: 42.0),
+                      fontSize: context.responsive(mobile: 26.0, desktop: 40),
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                       letterSpacing: 1.5,
@@ -540,7 +540,7 @@ class GozYapVazYapLanding extends StatelessWidget {
                   child: Text(
                     '"Gözlerimi Kaparım Vazifemi Yaparım" aynı zamanda değişen toplumsal değerleri ve bireyin bu değişim karşısındaki duruşunu mizahi bir dille sorguluyor.',
                     style: TextStyle(
-                      fontSize: context.isMobile ? 13 : 14,
+                      fontSize: context.isMobile ? 13 : 15,
                       color: WebColors.primaryGoldLight,
                       fontStyle: FontStyle.italic,
                       height: 1.5,
@@ -555,11 +555,11 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  Widget _buildContentParagraph(BuildContext context, String text) {
+  Widget _buildContentParagraph(final BuildContext context, final String text) {
     return Text(
       text,
       style: TextStyle(
-        fontSize: context.isMobile ? 13 : 14,
+        fontSize: context.isMobile ? 13 : 16,
         color: WebColors.lightWhite.withOpacity(0.9),
         height: 1.6,
       ),
@@ -616,7 +616,7 @@ class GozYapVazYapLanding extends StatelessWidget {
           Wrap(
             spacing: context.isMobile ? 16 : 24,
             runSpacing: 12,
-            children: crew.map((member) {
+            children: crew.map((final member) {
               return _buildCrewMember(
                 context,
                 member['role']!,
@@ -629,7 +629,7 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  Widget _buildCrewMember(BuildContext context, String role, String name) {
+  Widget _buildCrewMember(final BuildContext context, final String role, final String name) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -658,7 +658,7 @@ class GozYapVazYapLanding extends StatelessWidget {
               Text(
                 role,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   color: WebColors.primaryGoldLight,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
@@ -667,7 +667,7 @@ class GozYapVazYapLanding extends StatelessWidget {
               Text(
                 name,
                 style: TextStyle(
-                  fontSize: context.isMobile ? 12 : 13,
+                  fontSize: context.isMobile ? 12 : 14,
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),

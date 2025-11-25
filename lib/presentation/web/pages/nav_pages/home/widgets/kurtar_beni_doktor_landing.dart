@@ -1,6 +1,4 @@
 import 'dart:ui';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
@@ -23,17 +21,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            WebColors.veryDarkBlue,
-            WebColors.darkBlueBackground,
-            WebColors.darkBlueSurface,
-          ],
-        ),
-      ),
+      color: WebColors.darkBlueBackground,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 16 : (isTablet ? 32 : 48),
         vertical: isMobile ? 24 : 32,
@@ -118,7 +106,7 @@ class _CompactHeader extends StatelessWidget {
                       child: Text(
                         'KURTAR BENİ DOKTOR',
                         style: TextStyle(
-                          fontSize: isMobile ? 20 : 28,
+                          fontSize: isMobile ? 20 : 35,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 2,
                           color: Colors.white,
