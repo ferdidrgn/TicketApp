@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-// Mevcut import'larınız korundu
-import '../../../../../../core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
+import '../../../../../../core/util/responsive_utils.dart';
 
 class MetaforLanding extends StatefulWidget {
   const MetaforLanding({Key? key}) : super(key: key);
@@ -12,10 +10,11 @@ class MetaforLanding extends StatefulWidget {
   State<MetaforLanding> createState() => _MetaforLandingState();
 }
 
-class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProviderStateMixin {
-  bool _isHoveringAction = false;
+class _MetaforLandingState extends State<MetaforLanding>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
   late Animation<double> _slideAnimation;
 
   @override
@@ -23,13 +22,20 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1500),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: const Interval(0.0, 0.8, curve: Curves.easeOut),
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
       ),
     );
 
@@ -50,7 +56,7 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
   }
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
@@ -61,9 +67,9 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF050B15),
-                Color(0xFF0A1628),
-                Color(0xFF0F1F35),
+                Color(0xFF0A0A0A),
+                Color(0xFF1A1A2E),
+                Color(0xFF16213E),
               ],
             ),
           ),
@@ -88,71 +94,143 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
     );
   }
 
-  // ████████ ELEGANT HEADER - Minimal & Modern ████████
+  // ████████ NIRVANA BAŞLIK TASARIMI ████████
   Widget _buildElegantHeader(BuildContext context) {
-    return Transform.translate(
-      offset: Offset(0, _slideAnimation.value),
+    return ScaleTransition(
+      scale: _scaleAnimation,
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: Column(
           children: [
-            // Modern Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: WebColors.primaryGold.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.star_outline, size: 14, color: WebColors.primaryGold),
-                  const SizedBox(width: 8),
-                  Text(
-                    'YENİ SEZON',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2,
-                      color: WebColors.primaryGold,
+            // Altın Çerçeve ve Dekoratif Elementler
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Dekoratif Köşe Çerçeveleri
+                _buildCornerDecoration(true), // Sol üst
+                _buildCornerDecoration(false), // Sağ üst
+
+                Column(
+                  children: [
+                    // Zarif Başlık Öncesi Çizgi
+                    Container(
+                      width: 80,
+                      height: 1,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            WebColors.primaryGold,
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
 
-            SizedBox(height: context.gridSpacing * 1.5),
+                    SizedBox(height: context.gridSpacing * 2),
 
-            // Ana Başlık - Minimal Tasarım
-            Text(
-              'METAFOR',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: context.responsive(mobile: 48.0, desktop: 72.0),
-                fontWeight: FontWeight.w300, // İnce font daha şık
-                fontFamily: 'Georgia',
-                fontStyle: FontStyle.italic,
-                color: Colors.white,
-                letterSpacing: 3,
-                height: 0.9,
-              ),
-            ),
+                    // Ana Başlık - Tiyatro Zarafeti
+                    Stack(
+                      children: [
+                        // Gölge Efekti
+                        Text(
+                          'METAFOR',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize:
+                                context.responsive(mobile: 52.0, desktop: 84.0),
+                            fontWeight: FontWeight.w300,
+                            fontFamily: 'Playfair Display',
+                            color: WebColors.primaryGold.withOpacity(0.1),
+                            letterSpacing: 8,
+                            height: 0.9,
+                          ),
+                        ),
+                        // Ana Metin
+                        Text(
+                          'METAFOR',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize:
+                                context.responsive(mobile: 52.0, desktop: 84.0),
+                            fontWeight: FontWeight.w300,
+                            fontFamily: 'Playfair Display',
+                            color: Colors.white,
+                            letterSpacing: 8,
+                            height: 0.9,
+                          ),
+                        ),
+                      ],
+                    ),
 
-            SizedBox(height: context.gridSpacing),
+                    SizedBox(height: context.gridSpacing),
 
-            // Alt Başlık
-            Text(
-              'Zamanın, Hafızanın ve İnsan Ruhunun Labirentleri',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: context.bodySize,
-                color: WebColors.textSecondary,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w300,
-              ),
+                    // Altın Çizgi
+                    Container(
+                      width: 120,
+                      height: 2,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            WebColors.primaryGold.withOpacity(0.5),
+                            WebColors.primaryGold,
+                            WebColors.primaryGold.withOpacity(0.5),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: context.gridSpacing * 1.5),
+
+                    // Alt Başlık - İtalik ve Zarif
+                    SizedBox(
+                      width: context.responsive(mobile: 300, desktop: 600),
+                      child: Text(
+                        'Zamanın, Hafızanın ve İnsan Ruhunun Labirentlerinde Bir Tiyatro Deneyimi',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize:
+                              context.responsive(mobile: 14.0, desktop: 18.0),
+                          color: WebColors.textSecondary,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w300,
+                          fontStyle: FontStyle.italic,
+                          height: 1.6,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ████████ KÖŞE DEKORASYONU ████████
+  Widget _buildCornerDecoration(bool isLeft) {
+    return Positioned(
+      top: 0,
+      left: isLeft ? 0 : null,
+      right: isLeft ? null : 0,
+      child: Transform.rotate(
+        angle: isLeft ? 0 : 3.14,
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: WebColors.primaryGold, width: 1),
+              left: BorderSide(color: WebColors.primaryGold, width: 1),
+            ),
+          ),
+          child: Icon(
+            Icons.star_outline,
+            color: WebColors.primaryGold,
+            size: 16,
+          ),
         ),
       ),
     );
@@ -166,7 +244,7 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
         opacity: _fadeAnimation,
         child: Stack(
           children: [
-            // Ana Görsel Container
+            // Ana Görsel Container - Lüks Shadow Efektleri
             Container(
               height: context.responsive(mobile: 300.0, desktop: 500.0),
               decoration: BoxDecoration(
@@ -241,7 +319,8 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
             ),
-            child: Icon(Icons.psychology_outlined, color: WebColors.primaryGold, size: 24),
+            child: Icon(Icons.psychology_outlined,
+                color: WebColors.primaryGold, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -249,21 +328,23 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Hangisi daha zordur:",
+                  "HAYATIN LABİRENTLERİNDE",
                   style: TextStyle(
                     fontSize: 12,
                     color: WebColors.textSecondary,
-                    fontWeight: FontWeight.w300,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
-                  "Metaforlar mı yoksa Klişeler mi?",
+                  "Hangisi daha Tehlikelidir:\nMetaforlar mı yoksa Klişeler mi?",
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w300,
                     color: Colors.white,
-                    letterSpacing: 0.5,
+                    letterSpacing: 1,
+                    height: 1.3,
+                    fontFamily: 'Playfair Display',
                   ),
                 ),
               ],
@@ -274,13 +355,15 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
     );
   }
 
-  // ████████ CONTENT GRID - Modern Kart Tasarımı ████████
+  // ████████ İÇERIK GRID - LÜKS TASARIM ████████
   Widget _buildContentGrid(BuildContext context) {
     return Transform.translate(
       offset: Offset(0, _slideAnimation.value * 0.5),
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: context.isMobile ? _buildMobileContent(context) : _buildDesktopContent(context),
+        child: context.isMobile
+            ? _buildMobileContent(context)
+            : _buildDesktopContent(context),
       ),
     );
   }
@@ -288,9 +371,9 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
   Widget _buildMobileContent(BuildContext context) {
     return Column(
       children: [
-        _buildStoryCard(context),
-        SizedBox(height: context.gridSpacing),
-        _buildTeamCard(context),
+        _buildLuxuryStoryCard(context),
+        SizedBox(height: context.gridSpacing * 2),
+        _buildLuxuryTeamCard(context),
       ],
     );
   }
@@ -299,141 +382,229 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildStoryCard(context)),
-        SizedBox(width: context.gridSpacing),
-        Expanded(child: _buildTeamCard(context)),
+        Expanded(flex: 2, child: _buildLuxuryStoryCard(context)),
+        SizedBox(width: context.gridSpacing * 3),
+        Expanded(flex: 1, child: _buildLuxuryTeamCard(context)),
       ],
     );
   }
 
-  // ████████ STORY CARD - Minimal Tasarım ████████
-  Widget _buildStoryCard(BuildContext context) {
+  // ████████ LÜKS HİKAYE KARTI ████████
+  Widget _buildLuxuryStoryCard(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 40,
+            spreadRadius: 5,
+          ),
+        ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          // Section Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          // Arka Plan Dekorasyonu
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Opacity(
+              opacity: 0.05,
+              child: Icon(
+                Icons.auto_stories,
+                color: WebColors.primaryGold,
+                size: 120,
+              ),
+            ),
+          ),
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.auto_stories_outlined, color: WebColors.primaryGold, size: 20),
-              const SizedBox(width: 12),
-              Text(
-                "OYUN HAKKINDA",
+              // Bölüm Başlığı - Zarif
+              Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 1,
+                    color: WebColors.primaryGold,
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    "OYUN HAKKINDA",
+                    style: TextStyle(
+                      color: WebColors.primaryGold,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 3,
+                      fontSize: 12,
+                      fontFamily: 'Playfair Display',
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: context.gridSpacing * 2),
+
+              // İçerik - Edebi Dille
+              const Text(
+                "Zamanın durduğu bir limanda, eski ciltlerin solgun kokuları arasında üç yalnız ruhun kesişen kaderleri... "
+                "Tozlu rafların sessiz tanığı bir sahaf, kelimelerin büyüsüne tutkun genç bir yazar, "
+                "ve geçmişin gölgelerinden sıyrılıp gelen bir kadın. ",
                 style: TextStyle(
-                  color: WebColors.primaryGold,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.5,
-                  fontSize: 14,
+                  color: WebColors.textSecondary,
+                  height: 1.8,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: 0.5,
+                ),
+              ),
+
+              SizedBox(height: context.gridSpacing * 2),
+
+              const Text(
+                "Metafor, insan ruhunun labirentlerinde unutulmaz bir yolculuk vaat ediyor. "
+                "Yekta Kopan'ın incelikli kalemi ve Gürkan Candan'ın ustalıklı yönetmenliğiyle, "
+                "izleyiciyi zamanın ötesine taşıyan bir tiyatro deneyimi.",
+                style: TextStyle(
+                  color: WebColors.textSecondary,
+                  height: 1.8,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w300,
+                  fontStyle: FontStyle.italic,
+                  letterSpacing: 0.5,
+                ),
+              ),
+
+              SizedBox(height: context.gridSpacing * 3),
+
+              // Dekoratif Ayraç
+              Center(
+                child: Container(
+                  width: 100,
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        WebColors.primaryGold,
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
-          ),
-
-          SizedBox(height: context.gridSpacing * 1.5),
-
-          // Content
-          const Text(
-            "Zamanın olmadığı bir yerde, eski kitaplarla dolu tozlu bir sahaf dükkânında üç kişi bir araya gelir: "
-                "Hayata küsmüş, geçmişin sayfalarına sığınmış içedönük bir sahaf; yanından hiç ayrılmayan, yazar olma hayaliyle dolu genç bir adam; "
-                "ve geçmişin gölgesinden çıkıp gelen bir genç kadın.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: WebColors.textSecondary,
-              height: 1.7,
-              fontSize: 14,
-              fontWeight: FontWeight.w300,
-            ),
-          ),
-
-          SizedBox(height: context.gridSpacing * 1.5),
-
-          // Characters Button
-          OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: WebColors.primaryGold.withOpacity(0.5)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            ),
-            child: Text(
-              "Karakterler",
-              style: TextStyle(
-                color: WebColors.primaryGold,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
           ),
         ],
       ),
     );
   }
 
-  // ████████ TEAM CARD - Modern Liste Tasarımı ████████
-  Widget _buildTeamCard(BuildContext context) {
+  // ████████ LÜKS EKİP KARTI ████████
+  Widget _buildLuxuryTeamCard(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        color: Colors.black.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         children: [
-          // Section Header
+          // Bölüm Başlığı
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.people_outline, color: WebColors.primaryGold, size: 20),
+              Container(
+                width: 20,
+                height: 1,
+                color: WebColors.primaryGold,
+              ),
               const SizedBox(width: 12),
               Text(
                 "YARATICI EKİP",
                 style: TextStyle(
                   color: WebColors.primaryGold,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.5,
-                  fontSize: 14,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: 3,
+                  fontSize: 12,
+                  fontFamily: 'Playfair Display',
                 ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 20,
+                height: 1,
+                color: WebColors.primaryGold,
               ),
             ],
           ),
 
+          SizedBox(height: context.gridSpacing * 2),
+
+          // Ekip Üyeleri - Minimal ve Şık
+          _buildLuxuryTeamMember(context, "YAZAR", "Yekta Kopan",
+              Icons.edit_outlined, "Metnin Yaratıcısı"),
+
           SizedBox(height: context.gridSpacing * 1.5),
 
-          // Team Members
-          _buildTeamMember(context, "Yazar", "Yekta Kopan", Icons.edit_outlined),
-          const Divider(color: Colors.white10, height: 32),
-          _buildTeamMember(context, "Yönetmen", "Gürkan Candan", Icons.movie_creation_outlined),
-          const Divider(color: Colors.white10, height: 32),
-          _buildTeamMember(context, "Işık-Ses", "Ferdi Durgun", Icons.lightbulb_outline),
+          _buildLuxuryTeamMember(context, "YÖNETMEN", "Gürkan Candan",
+              Icons.theater_comedy, "Sahne Vizyoneri"),
 
-          SizedBox(height: context.gridSpacing),
+          SizedBox(height: context.gridSpacing * 1.5),
 
-          // Creative Description
+          _buildLuxuryTeamMember(context, "IŞIK & SES", "Ferdi Durgun",
+              Icons.lightbulb_outline, "Atmosfer Mimarı"),
+
+          SizedBox(height: context.gridSpacing * 2),
+
+          // Dekoratif Altın Çizgi
           Container(
-            padding: const EdgeInsets.all(20),
+            width: 60,
+            height: 1,
+            color: WebColors.primaryGold.withOpacity(0.5),
+          ),
+
+          SizedBox(height: context.gridSpacing * 2),
+
+          // Sanatsal Açıklama
+          Container(
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: WebColors.darkBlueAccent.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: WebColors.primaryGold.withOpacity(0.1)),
             ),
-            child: Text(
-              "Yekta Kopan'ın güçlü kalemi ve Gürkan Candan'ın yönetmenliğinde, "
-                  "zamanın labirentlerinde unutulmaz bir yolculuk.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: WebColors.textSecondary,
-                fontSize: 13,
-                fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.w300,
-                height: 1.6,
-              ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.format_quote,
+                  color: WebColors.primaryGold.withOpacity(0.3),
+                  size: 32,
+                ),
+                SizedBox(height: context.gridSpacing),
+                Text(
+                  "Sanat, gerçeğin metaforudur. Biz de bu sahnede, hayatın en derin gerçeklerini en güzel metaforlarla buluşturuyoruz.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: WebColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: 1.2,
+                    height: 1.6,
+                  ),
+                ),
+                SizedBox(height: context.gridSpacing),
+                Text(
+                  "- Yekta Kopan",
+                  style: TextStyle(
+                    color: WebColors.primaryGold.withOpacity(0.7),
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -441,115 +612,65 @@ class _MetaforLandingState extends State<MetaforLanding> with SingleTickerProvid
     );
   }
 
-  // ████████ TEAM MEMBER - Minimal Liste Öğesi ████████
-  Widget _buildTeamMember(BuildContext context, String role, String name, IconData icon) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              role.toUpperCase(),
-              style: TextStyle(
-                fontSize: 11,
-                color: WebColors.textTertiary,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: WebColors.primaryGold.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
-          ),
-          child: Icon(icon, color: WebColors.primaryGold, size: 18),
-        ),
-      ],
-    );
-  }
-}
-
-// ████████ BOTTOM NAVIGATION - Sabit Bilet Butonu ████████
-class MetaforBottomBar extends StatelessWidget {
-  const MetaforBottomBar({super.key});
-
-  @override
-  Widget build(BuildContext context) {
+  // ████████ LÜKS EKİP ÜYESİ ████████
+  Widget _buildLuxuryTeamMember(BuildContext context, String role, String name,
+      IconData icon, String description) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: WebColors.veryDarkBlue,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: MouseRegion(
-        onEnter: (_) => {},
-        onExit: (_) => {},
-        child: GestureDetector(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Bilet alma sayfasına yönlendiriliyorsunuz...'),
-                backgroundColor: WebColors.primaryGold,
-              ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+      child: Row(
+        children: [
+          // İkon - Minimal
+          Container(
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [WebColors.primaryGold, WebColors.primaryGoldLight],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: WebColors.primaryGold.withOpacity(0.4),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                ),
-              ],
+              border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Icon(icon, color: WebColors.primaryGold, size: 16),
+          ),
+
+          const SizedBox(width: 16),
+
+          // Bilgiler
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.confirmation_number_outlined, color: WebColors.veryDarkBlue),
-                const SizedBox(width: 12),
                 Text(
-                  "Biletleri Şimdi Al",
+                  role,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: WebColors.veryDarkBlue,
-                    letterSpacing: 0.5,
+                    fontSize: 10,
+                    color: WebColors.textTertiary,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Icon(Icons.arrow_forward, color: WebColors.veryDarkBlue, size: 18),
+                const SizedBox(height: 4),
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w300,
+                    fontFamily: 'Playfair Display',
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: WebColors.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
