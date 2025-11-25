@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/about_cart.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/contact_card.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/goz_kap_vaz_yap_landing.dart';
@@ -38,17 +37,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final GlobalKey _homeKey = GlobalKey();
 
-  // ----------------------------------------------------
-  // HATA DÜZELTMELERİ: Eksik değişken tanımlamaları eklendi
-  // ----------------------------------------------------
-  bool _isMiddleMousePressed = false;
-  Offset _middleMouseStartPosition = Offset.zero;
-  double _scrollStartOffset = 0.0;
-
-  // _currentMousePosition değişkeni kullanılmadığı için kaldırıldı.
-  // _isMiddleMouseScrollActive değişkeni yerine _isMiddleMousePressed kullanıldı.
-  // ----------------------------------------------------
-
   @override
   void initState() {
     super.initState();
@@ -68,19 +56,15 @@ class _HomePageState extends State<HomePage> {
 
     final scrollPosition = widget.scrollController.position.pixels;
 
-    // ✅ 1. KESİN ÇÖZÜM: EN TEPE KONTROLÜ
-    // Eğer scroll pozisyonu 150 pikselden azsa, kesinlikle Ana Sayfadayız demektir.
-    // Diğer hesaplamalara girmeden direkt 'home' yapıp çıkıyoruz.
+    // ✅ EN TEPE KONTROLÜ
     if (scrollPosition < 150) {
-      if (widget.activeSection!.value != 'home') {
+      if (widget.activeSection!.value != 'home')
         widget.activeSection!.value = 'home';
-      }
       return;
     }
 
-    // Diğer bölümlerin kontrolü (Mevcut mantığınız)
+    // Diğer bölümlerin kontrolü
     final sections = {
-      // 'home': _homeKey, // Home'u buradan çıkartabiliriz veya kalsa da üstteki if yakalar.
       'shows': widget.showsKey,
       'artistic': widget.artisticKey,
       'about': widget.aboutKey,
@@ -111,153 +95,71 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _handlePointerDown(final PointerDownEvent event) {
-    // Orta fare tuşuna basıldı mı kontrol et
-    if (event.buttons == kMiddleMouseButton) {
-      setState(() {
-        _isMiddleMousePressed = true;
-        _middleMouseStartPosition = event.position;
-        // HATA DÜZELTME: Doğru değişken ataması
-        _scrollStartOffset = widget.scrollController.offset;
-      });
-    }
-  }
-
-  void _handlePointerMove(final PointerMoveEvent event) {
-    // Orta fare tuşu basılıyken hareket
-    if (_isMiddleMousePressed) {
-      final delta = event.position - _middleMouseStartPosition;
-
-      // Dikey hareket için scroll yap
-      final newOffset = _scrollStartOffset - delta.dy;
-
-      widget.scrollController.jumpTo(
-        newOffset.clamp(
-          widget.scrollController.position.minScrollExtent,
-          widget.scrollController.position.maxScrollExtent,
-        ),
-      );
-    }
-  }
-
-  void _handlePointerUp(final PointerUpEvent event) {
-    // Orta fare tuşu bırakıldı
-    // HATA DÜZELTME: Sadece _isMiddleMousePressed kontrolü yeterli.
-    if (_isMiddleMousePressed) {
-      setState(() {
-        _isMiddleMousePressed = false;
-      });
-    }
-  }
-
   @override
   Widget build(final BuildContext context) {
-    return MouseRegion(
-      cursor: _isMiddleMousePressed
-          ? SystemMouseCursors.grabbing
-          : SystemMouseCursors.basic,
-      child: Listener(
-        // Normal mouse wheel scroll desteği
-        onPointerSignal: (final pointerSignal) {
-          if (pointerSignal is PointerScrollEvent) {
-            final newOffset =
-                widget.scrollController.offset + pointerSignal.scrollDelta.dy;
-            widget.scrollController.jumpTo(newOffset.clamp(
-              widget.scrollController.position.minScrollExtent,
-              widget.scrollController.position.maxScrollExtent,
-            ));
-          }
-        },
-        // Orta fare tuşu için event handler'lar
-        onPointerDown: _handlePointerDown,
-        onPointerMove: _handlePointerMove,
-        onPointerUp: _handlePointerUp,
-        onPointerCancel: (final event) {
-          setState(() {
-            _isMiddleMousePressed = false;
-          });
-        },
-        child: Stack(
-          children: [
-            // Ana içerik
-            ScrollConfiguration(
-              behavior: ScrollConfiguration.of(context).copyWith(
-                dragDevices: {
-                  PointerDeviceKind.touch,
-                  PointerDeviceKind.mouse,
-                  PointerDeviceKind.trackpad,
-                },
-                scrollbars: false,
-              ),
-              child: SingleChildScrollView(
-                controller: widget.scrollController,
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    // Hero Section
-                    Container(key: _homeKey, child: const HeroVideoSection()),
+    return Listener(
+      // Sadece normal mouse wheel scroll desteği kaldı
+      onPointerSignal: (final pointerSignal) {
+        if (pointerSignal is PointerScrollEvent) {
+          final newOffset =
+              widget.scrollController.offset + pointerSignal.scrollDelta.dy;
+          widget.scrollController.jumpTo(newOffset.clamp(
+            widget.scrollController.position.minScrollExtent,
+            widget.scrollController.position.maxScrollExtent,
+          ));
+        }
+      },
+      child: Stack(
+        children: [
+          // Ana içerik
+          ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              dragDevices: {
+                PointerDeviceKind.touch,
+                PointerDeviceKind.mouse,
+                PointerDeviceKind.trackpad,
+              },
+              scrollbars: false,
+            ),
+            child: SingleChildScrollView(
+              controller: widget.scrollController,
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                children: [
+                  // Hero Section
+                  Container(key: _homeKey, child: const HeroVideoSection()),
 
-                    // Shows Section
-                    Container(
-                        key: widget.showsKey, child: const ShowsSection()),
+                  // Shows Section
+                  Container(key: widget.showsKey, child: const ShowsSection()),
 
-                    Container(key: widget.artisticKey, child: MetaforLanding()),
+                  Container(key: widget.artisticKey, child: MetaforLanding()),
 
-                    const SizedBox(height: 40),
+                  const SizedBox(height: 40),
 
-                    // Kurtar Beni Doktor
-                    KurtarBeniDoktorLanding(),
+                  // Kurtar Beni Doktor
+                  KurtarBeniDoktorLanding(),
 
-                    const SizedBox(height: 40),
+                  const SizedBox(height: 40),
 
-                    // Göz Kap Vaz Yap
-                    const GozYapVazYapLanding(),
+                  // Göz Kap Vaz Yap
+                  const GozYapVazYapLanding(),
 
-                    // About Section
-                    Container(key: widget.aboutKey, child: AboutCard()),
-                    // Team Section
-                    Container(key: widget.teamKey, child: const TeamCard()),
+                  // About Section
+                  Container(key: widget.aboutKey, child: AboutCard()),
+                  // Team Section
+                  Container(key: widget.teamKey, child: const TeamCard()),
 
-                    // Contact Section
-                    Container(
-                        key: widget.contactKey, child: const ContactCard()),
+                  // Contact Section
+                  Container(key: widget.contactKey, child: const ContactCard()),
 
-                    // Footer spacing
-                    const SizedBox(height: 60),
-                    const ArtFooter(),
-                  ],
-                ),
+                  // Footer spacing
+                  const SizedBox(height: 60),
+                  const ArtFooter(),
+                ],
               ),
             ),
-
-            // Orta fare tuşu scroll göstergesi
-            if (_isMiddleMousePressed)
-              Positioned(
-                // HATA DÜZELTME: Positioned widget'ının kullanacağı değişkenler artık tanımlı
-                left: _middleMouseStartPosition.dx - 20,
-                top: _middleMouseStartPosition.dy - 20,
-                child: IgnorePointer(
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: WebColors.primaryGold.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: WebColors.primaryGold,
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.open_with,
-                      color: WebColors.primaryGold,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
