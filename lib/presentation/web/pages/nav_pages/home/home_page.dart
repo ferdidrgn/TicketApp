@@ -201,14 +201,12 @@ class _HomePageState extends State<HomePage> {
                     Container(
                         key: widget.showsKey, child: const ShowsSection()),
 
-                    // Metafor Landing
-                    Container(
-                        key: widget.artisticKey, child: const MetaforLanding()),
+                    Container(key: widget.artisticKey, child: MetaforLanding()),
 
                     const SizedBox(height: 40),
 
                     // Kurtar Beni Doktor
-                    const KurtarBeniDoktorLanding(),
+                    KurtarBeniDoktorLanding(),
 
                     const SizedBox(height: 40),
 
