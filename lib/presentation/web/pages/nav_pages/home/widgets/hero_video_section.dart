@@ -106,13 +106,6 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
   }
 
   Widget _buildVideoBackground() {
-    if (!_isVideoReady) {
-      return Image.network(
-        "https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_205137.jpg?alt=media&token=79e2c500-6f44-42a3-a28d-8b62c84867af",
-        fit: BoxFit.cover,
-      );
-    }
-
     return Positioned.fill(
       child: Container(
         color: const Color(0xFF0a0a1a),
@@ -120,7 +113,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
         // ✅ 1. KİLİT: ClipRect ile taşan her şeyi fiziksel olarak kesiyoruz
         child: ClipRect(
           child: ShaderMask(
-            shaderCallback: (rect) {
+            shaderCallback: (final rect) {
               return const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
