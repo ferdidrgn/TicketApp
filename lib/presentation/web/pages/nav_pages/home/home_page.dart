@@ -133,10 +133,8 @@ class _HomePageState extends State<HomePage> {
 
                   //Metafor
                   Container(key: widget.artisticKey, child: MetaforLanding()),
-                  const SizedBox(height: 40),
                   // Göz Kap Vaz Yap
                   const GozYapVazYapLanding(),
-                  const SizedBox(height: 40),
                   // Kurtar Beni Doktor
                   KurtarBeniDoktorLanding(),
 
@@ -146,8 +144,7 @@ class _HomePageState extends State<HomePage> {
                   Container(key: widget.teamKey, child: const TeamCard()),
                   // Contact Section
                   Container(key: widget.contactKey, child: const ContactCard()),
-                  // Footer spacing
-                  const SizedBox(height: 60),
+
                   const ArtFooter(),
                 ],
               ),

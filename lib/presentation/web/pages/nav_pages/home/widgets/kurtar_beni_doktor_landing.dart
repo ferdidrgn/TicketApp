@@ -4,237 +4,299 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
-/// Nirvana — modern / sanatsal bir landing tasarımı
-/// - Mobil ve Desktop uyumlu
-/// - Sabit 600px yükseklik *kullanılmaz*; yerine orantılı, esnek düzen kullanılır
-/// - Şık ikonlar, glassmorphism kartlar, hover/press efektleri
-/// - Renkleri `WebColors` içinde tanımlı değerlere bırakır (burada kullanılmıyor)
+/// Modern Kurtar Beni Doktor Landing Page
+/// - Kompakt tasarım, az alan tüketimi
+/// - Tam responsive (mobile, tablet, desktop)
+/// - Şık hover efektleri
 
 class KurtarBeniDoktorLanding extends StatelessWidget {
   const KurtarBeniDoktorLanding({super.key});
 
-  static const _breakpoint = 768.0;
+  static const _mobileBreak = 650.0;
+  static const _tabletBreak = 1100.0;
 
   @override
   Widget build(final BuildContext context) {
-    return Container(
-      color: WebColors.darkBlueBackground,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      child: LayoutBuilder(builder: (final context, final constraints) {
-        final isMobile = constraints.maxWidth < _breakpoint;
-
-        return Column(
-          children: [
-            _Header(isMobile: isMobile),
-            const SizedBox(height: 24),
-            // Orantılı yüksekliğe sahip ana bölüm: görsel + bilgiler
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                // Ekran yüksekliğinin %45'i veya min 320
-                maxHeight: (MediaQuery.of(context).size.height * 0.55)
-                    .clamp(320.0, 1200.0),
-              ),
-              child: isMobile
-                  ? _buildMobileBody(context)
-                  : _buildDesktopBody(context),
-            ),
-            const SizedBox(height: 28),
-            _FooterActions(),
-          ],
-        );
-      }),
-    );
-  }
-
-  Widget _buildMobileBody(final BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(flex: 6, child: _HeroImage()),
-        const SizedBox(height: 16),
-        Expanded(flex: 5, child: _InfoAndCast()),
-      ],
-    );
-  }
-
-  Widget _buildDesktopBody(final BuildContext context) {
-    return Row(
-      children: [
-        // Görsel sol tarafta geniş yer kaplar
-        Expanded(flex: 6, child: _HeroImage()),
-        const SizedBox(width: 24),
-        // Sağ taraf bilgi kartları
-        Expanded(flex: 4, child: _InfoAndCast()),
-      ],
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  final bool isMobile;
-
-  const _Header({super.key, required this.isMobile});
-
-  @override
-  Widget build(final BuildContext context) {
-    final titleStyle = TextStyle(
-      fontSize: isMobile ? 22 : 34,
-      fontWeight: FontWeight.w900,
-      letterSpacing: 3,
-      color: WebColors.darkBlueBackground,
-    );
-
-    final subtitleStyle = TextStyle(
-      fontSize: isMobile ? 12 : 16,
-      fontStyle: FontStyle.italic,
-      color: WebColors.darkBlueBackground.withOpacity(0.85),
-    );
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < _mobileBreak;
+    final isTablet = size.width >= _mobileBreak && size.width < _tabletBreak;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 18),
       decoration: BoxDecoration(
-        color: WebColors.primaryGold,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          )
-        ],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            WebColors.veryDarkBlue,
+            WebColors.darkBlueBackground,
+            WebColors.darkBlueSurface,
+          ],
+        ),
       ),
-      child: Column(
-        children: [
-          Text('KURTAR BENİ DOKTOR',
-              style: titleStyle, textAlign: TextAlign.center),
-          const SizedBox(height: 6),
-          Text("Anton Çehov'dan",
-              style: subtitleStyle, textAlign: TextAlign.center),
-        ],
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : (isTablet ? 32 : 48),
+        vertical: isMobile ? 24 : 32,
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1400),
+        child: Column(
+          children: [
+            // Compact Header
+            _CompactHeader(isMobile: isMobile),
+
+            SizedBox(height: isMobile ? 20 : 28),
+
+            // Main Content
+            if (isMobile)
+              _MobileLayout()
+            else if (isTablet)
+              _TabletLayout()
+            else
+              _DesktopLayout(),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _HeroImage extends StatelessWidget {
-  const _HeroImage({super.key});
+class _CompactHeader extends StatelessWidget {
+  final bool isMobile;
+
+  const _CompactHeader({required this.isMobile});
 
   @override
   Widget build(final BuildContext context) {
-    // Görselin responsive davranışı için BoxConstraints kullanıyoruz
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Arka plan görseli
-          const _ResponsiveNetworkImage(
-            imageUrl:
-                'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
-            fit: BoxFit.cover,
-          ),
-
-          // Hafif renkli overlay ile sanatsal efekt
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  WebColors.darkBlueSurface.withOpacity(0.15),
-                  WebColors.primaryGold.withOpacity(0.06),
-                ],
-              ),
-            ),
-          ),
-
-          // Sol alt köşede küçük glass-card ile öne çıkan not
-          Positioned(
-            left: 18,
-            bottom: 18,
-            child: _GlassNote(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.theater_comedy, size: 20),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Yeni Sezon'),
-                      Text('Biletler yayında'),
-                    ],
-                  )
-                ],
-              ),
-            ),
-          ),
-
-          // Sağ üstte küçük etiketler
-          Positioned(
-            right: 18,
-            top: 18,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: const [
-                _PillTag(text: 'Drama'),
-                SizedBox(height: 8),
-                _PillTag(text: '90 dk'),
+      borderRadius: BorderRadius.circular(isMobile ? 16 : 20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: EdgeInsets.all(isMobile ? 18 : 24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.08),
+                Colors.white.withOpacity(0.04),
               ],
             ),
+            borderRadius: BorderRadius.circular(isMobile ? 16 : 20),
+            border: Border.all(
+              color: WebColors.primaryGold.withOpacity(0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: WebColors.primaryGold.withOpacity(0.15),
+                blurRadius: 24,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.theater_comedy,
+                    color: WebColors.primaryGold,
+                    size: isMobile ? 20 : 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: ShaderMask(
+                      shaderCallback: (final bounds) => LinearGradient(
+                        colors: [
+                          WebColors.primaryGoldLight,
+                          WebColors.primaryGold,
+                        ],
+                      ).createShader(bounds),
+                      child: Text(
+                        'KURTAR BENİ DOKTOR',
+                        style: TextStyle(
+                          fontSize: isMobile ? 20 : 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          color: Colors.white,
+                          height: 1.2,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(
+                    Icons.theater_comedy,
+                    color: WebColors.primaryGold,
+                    size: isMobile ? 20 : 24,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: WebColors.primaryGold.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: WebColors.primaryGold.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  "Anton Çehov'dan",
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 15,
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.w600,
+                    color: WebColors.primaryGoldLight,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _ResponsiveNetworkImage extends StatelessWidget {
-  final String imageUrl;
-  final BoxFit fit;
-
-  const _ResponsiveNetworkImage(
-      {super.key, required this.imageUrl, this.fit = BoxFit.cover});
-
+class _DesktopLayout extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
-    // FadeInImage ile yükleme esnasında placeholder
-    return FadeInImage.assetNetwork(
-      placeholder: 'assets/images/placeholder_blur.png',
-      image: imageUrl,
-      fit: fit,
-      imageErrorBuilder: (final context, final error, final stack) {
-        return Container(
-          color: WebColors.darkBlueSurface,
-          child: const Center(child: Icon(Icons.broken_image, size: 48)),
-        );
-      },
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Hero Image - 70%
+        Expanded(
+          flex: 70,
+          child: _HeroImageCard(),
+        ),
+        const SizedBox(width: 28),
+        // Info Section - 30%
+        Expanded(
+          flex: 30,
+          child: _InfoSection(),
+        ),
+      ],
     );
   }
 }
 
-class _GlassNote extends StatelessWidget {
-  final Widget child;
+class _TabletLayout extends StatelessWidget {
+  @override
+  Widget build(final BuildContext context) {
+    return Column(
+      children: [
+        _HeroImageCard(),
+        const SizedBox(height: 20),
+        _InfoSection(),
+      ],
+    );
+  }
+}
 
-  const _GlassNote({super.key, required this.child});
+class _MobileLayout extends StatelessWidget {
+  @override
+  Widget build(final BuildContext context) {
+    return Column(
+      children: [
+        _HeroImageCard(),
+        const SizedBox(height: 20),
+        _InfoSection(),
+      ],
+    );
+  }
+}
+
+class _HeroImageCard extends StatefulWidget {
+  @override
+  State<_HeroImageCard> createState() => _HeroImageCardState();
+}
+
+class _HeroImageCardState extends State<_HeroImageCard> {
+  bool _isHovered = false;
 
   @override
   Widget build(final BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
+    return MouseRegion(
+      onEnter: (final _) => setState(() => _isHovered = true),
+      onExit: (final _) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        transform: Matrix4.identity()..scale(_isHovered ? 1.02 : 1.0),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          height: isMobile ? 350 : 480,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    WebColors.primaryGold.withOpacity(_isHovered ? 0.25 : 0.1),
+                blurRadius: _isHovered ? 32 : 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          child: DefaultTextStyle(
-            style: TextStyle(color: WebColors.primaryGoldLight, fontSize: 12),
-            child: child,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Background Image
+                Image.network(
+                  'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
+                  fit: BoxFit.cover,
+                  errorBuilder: (final _, final __, final ___) => Container(
+                    color: WebColors.darkBlueSurface,
+                    child: const Icon(Icons.broken_image, size: 64),
+                  ),
+                ),
+
+                // Subtle Gradient Overlay
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.5),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Top Tags (Eski stil şeffaf)
+                Positioned(
+                  top: 14,
+                  right: 14,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: const [
+                      _PillTag(text: 'Drama'),
+                      SizedBox(height: 8),
+                      _PillTag(text: '90 dk'),
+                    ],
+                  ),
+                ),
+
+                // Bottom Quote Card (Eski şeffaf stil)
+                Positioned(
+                  left: 14,
+                  right: 14,
+                  bottom: 14,
+                  child: _QuoteCard(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -245,84 +307,197 @@ class _GlassNote extends StatelessWidget {
 class _PillTag extends StatelessWidget {
   final String text;
 
-  const _PillTag({super.key, required this.text});
+  const _PillTag({required this.text});
 
   @override
   Widget build(final BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.32),
+        color: Colors.black.withOpacity(0.35),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.15),
+          width: 1,
+        ),
       ),
-      child:
-          Text(text, style: const TextStyle(fontSize: 12, color: Colors.white)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+      ),
     );
   }
 }
 
-class _InfoAndCast extends StatelessWidget {
-  const _InfoAndCast({super.key});
-
+class _QuoteCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
-    // İçerik: başlık, açıklama, ikonlu bilgileri ve cast listesi
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.12),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.format_quote,
+                color: WebColors.primaryGoldLight,
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      '"İnsan mutlu olmak için değil, özgür olmak için yaratılmıştır."',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        height: 1.4,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      '— Anton Çehov',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoSection extends StatelessWidget {
+  @override
+  Widget build(final BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(isMobile ? 18 : 24),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: WebColors.primaryGold.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Oyunun Özeti',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: WebColors.primaryGold)),
-          const SizedBox(height: 8),
-          Text(
-            'Kısa, çarpıcı ve sanatsal bir özet metni buraya gelecek. Okuyucuyu meraklandıracak, atmosferi taşıyacak bir cümle ile başlanır.',
-            style: TextStyle(color: WebColors.primaryGoldLight, height: 1.45),
-          ),
-          const SizedBox(height: 12),
-
-          // ikonlu bilgi satırı
+          // Title
           Row(
+            children: [
+              const Icon(
+                Icons.article_outlined,
+                color: WebColors.primaryGold,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Oyunun Özeti',
+                style: TextStyle(
+                  fontSize: isMobile ? 18 : 20,
+                  fontWeight: FontWeight.bold,
+                  color: WebColors.primaryGold,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Description
+          Text(
+            'Anton Çehov\'un ünlü oyunundan uyarlanan bu etkileyici yapım, insan doğasının karmaşık duygularını ve toplumsal baskıları benzersiz bir sanatsal yaklaşımla sahneye taşıyor. Güçlü performanslar ve çarpıcı sahneleme ile unutulmaz bir deneyim.',
+            style: TextStyle(
+              fontSize: isMobile ? 13 : 14,
+              height: 1.6,
+              color: WebColors.lightWhite.withOpacity(0.9),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Info Chips
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: const [
               _InfoChip(icon: Icons.calendar_today, label: '12 Ara 2025'),
-              SizedBox(width: 8),
               _InfoChip(icon: Icons.location_on, label: 'Küçük Sahne'),
-              SizedBox(width: 8),
-              _InfoChip(icon: Icons.timer, label: '90 dk'),
+              _InfoChip(icon: Icons.schedule, label: '90 dakika'),
             ],
           ),
 
           const SizedBox(height: 18),
 
-          // Glassmorphism cast list — kaydırılabilir
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('OYUN EKİBİ',
-                      style: TextStyle(
-                          color: WebColors.primaryGold,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  _CastCard(name: 'UĞUR KILIÇ', role: 'Yönetmen'),
-                  const SizedBox(height: 8),
-                  _CastCard(name: 'EBRU AKKÜN', role: 'Yönetmen'),
-                  const SizedBox(height: 8),
-                  _CastCard(name: 'DIALRA SEKMEN', role: 'Makyaj'),
-                  const SizedBox(height: 8),
-                  _CastCard(name: 'DERYA DİNÇER', role: 'Kostüm'),
-                  const SizedBox(height: 8),
-                  _CastCard(name: 'SEYİT ÇOLAK', role: 'Işık'),
-                  const SizedBox(height: 8),
-                  _CastCard(name: 'DUYGU ŞAHİN', role: 'Asistan'),
+          // Divider
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  WebColors.primaryGold.withOpacity(0.3),
+                  Colors.transparent,
                 ],
               ),
             ),
           ),
+
+          const SizedBox(height: 18),
+
+          // Cast Section
+          Row(
+            children: [
+              const Icon(
+                Icons.people,
+                color: WebColors.primaryGold,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'OYUN EKİBİ',
+                style: TextStyle(
+                  fontSize: isMobile ? 15 : 16,
+                  fontWeight: FontWeight.bold,
+                  color: WebColors.primaryGold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Cast Members
+          _CastGrid(isMobile: isMobile),
         ],
       ),
     );
@@ -333,28 +508,65 @@ class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _InfoChip({super.key, required this.icon, required this.label});
+  const _InfoChip({required this.icon, required this.label});
 
   @override
   Widget build(final BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.18),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: Colors.white.withOpacity(0.95)),
-            const SizedBox(width: 8),
-            Text(label,
-                style: const TextStyle(color: Colors.white, fontSize: 13)),
-          ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: WebColors.primaryGold.withOpacity(0.25),
+          width: 1,
         ),
       ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: WebColors.primaryGoldLight),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CastGrid extends StatelessWidget {
+  final bool isMobile;
+
+  const _CastGrid({required this.isMobile});
+
+  @override
+  Widget build(final BuildContext context) {
+    final castMembers = [
+      {'name': 'UĞUR KILIÇ', 'role': 'Yönetmen'},
+      {'name': 'EBRU AKKÜN', 'role': 'Yönetmen'},
+      {'name': 'DIALRA SEKMEN', 'role': 'Makyaj'},
+      {'name': 'DERYA DİNÇER', 'role': 'Kostüm'},
+      {'name': 'SEYİT ÇOLAK', 'role': 'Işık'},
+      {'name': 'DUYGU ŞAHİN', 'role': 'Asistan'},
+    ];
+
+    return Column(
+      children: castMembers.map((final member) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _CastCard(
+            name: member['name'] as String,
+            role: member['role'] as String,
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -363,111 +575,68 @@ class _CastCard extends StatefulWidget {
   final String name;
   final String role;
 
-  const _CastCard({super.key, required this.name, this.role = ''});
+  const _CastCard({
+    required this.name,
+    required this.role,
+  });
 
   @override
   State<_CastCard> createState() => _CastCardState();
 }
 
 class _CastCardState extends State<_CastCard> {
-  bool _hover = false;
-
   @override
   Widget build(final BuildContext context) {
-    final content = Container(
-      width: double.infinity,
+    return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(_hover ? 0.28 : 0.18),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        color: Colors.black.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.08),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
-          // Küçük ikon yerine avatar
           CircleAvatar(
             radius: 18,
-            backgroundColor: WebColors.primaryGold.withOpacity(0.18),
-            child: Text(widget.name.characters.first,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            backgroundColor: WebColors.primaryGold.withOpacity(0.2),
+            child: Text(
+              widget.name.characters.first,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 14,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.name,
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600)),
-                if (widget.role.isNotEmpty)
-                  Text(widget.role,
-                      style: TextStyle(
-                          color: WebColors.primaryGoldLight, fontSize: 12)),
+                Text(
+                  widget.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  widget.role,
+                  style: TextStyle(
+                    color: WebColors.primaryGoldLight,
+                    fontSize: 11,
+                  ),
+                ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.chevron_right),
-            color: Colors.white.withOpacity(0.85),
-            tooltip: 'Detay',
-          )
         ],
       ),
-    );
-
-    // Desktop hover desteği
-    if (kIsWeb ||
-        defaultTargetPlatform == TargetPlatform.macOS ||
-        defaultTargetPlatform == TargetPlatform.windows ||
-        defaultTargetPlatform == TargetPlatform.linux) {
-      return MouseRegion(
-        onEnter: (final _) => setState(() => _hover = true),
-        onExit: (final _) => setState(() => _hover = false),
-        child: AnimatedScale(
-            scale: _hover ? 1.01 : 1.0,
-            duration: const Duration(milliseconds: 180),
-            child: content),
-      );
-    }
-
-    return GestureDetector(
-        onTapDown: (final _) => setState(() => _hover = true),
-        onTapUp: (final _) => setState(() => _hover = false),
-        onTapCancel: () => setState(() => _hover = false),
-        child: content);
-  }
-}
-
-class _FooterActions extends StatelessWidget {
-  const _FooterActions({super.key});
-
-  @override
-  Widget build(final BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ElevatedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.event_available),
-          label: const Text('Bilet Al'),
-          style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              elevation: 6),
-        ),
-        const SizedBox(width: 12),
-        OutlinedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.info_outline),
-          label: const Text('Detaylı Bilgi'),
-          style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10))),
-        ),
-      ],
     );
   }
 }
