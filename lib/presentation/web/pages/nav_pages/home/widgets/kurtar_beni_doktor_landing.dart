@@ -253,7 +253,7 @@ class _HeroImageCardState extends State<_HeroImageCard> {
                 // Background Image
                 Image.network(
                   'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
-                  fit: BoxFit.fill,
+                  fit: BoxFit.fitHeight,
                   errorBuilder: (final _, final __, final ___) => Container(
                     color: WebColors.darkBlueSurface,
                     child: const Icon(Icons.broken_image, size: 64),
