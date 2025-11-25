@@ -63,7 +63,7 @@ class _MetaforLandingState extends State<MetaforLanding>
         return Container(
           width: double.infinity,
           decoration: const BoxDecoration(
-            color: WebColors.darkBlueBackground, // SADECE BURASI DEĞİŞTİ
+            color: WebColors.darkBlueBackground,
           ),
           child: Padding(
             padding: context.responsive(
@@ -86,7 +86,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  // Geri kalan tüm kodlar aynı kalacak...
   Widget _buildElegantHeader(final BuildContext context) {
     return ScaleTransition(
       scale: _scaleAnimation,
@@ -217,57 +216,96 @@ class _MetaforLandingState extends State<MetaforLanding>
       offset: Offset(0, _slideAnimation.value * 0.7),
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Stack(
-          children: [
-            Container(
-              height: context.responsive(mobile: 300.0, desktop: 500.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                image: const DecorationImage(
-                  image: NetworkImage(
-                    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fai_metafor_image.png?alt=media&token=6f20f048-b88c-46c0-beb6-da4f4eb76c49',
-                  ),
-                  fit: BoxFit.cover,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.6),
-                    blurRadius: 30,
-                    spreadRadius: 5,
-                    offset: const Offset(0, 20),
-                  ),
-                ],
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      WebColors.veryDarkBlue.withOpacity(0.9),
-                    ],
-                    stops: const [0.5, 1.0],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 20,
-              left: 20,
-              right: 20,
-              child: _buildQuestionCard(context),
-            ),
-          ],
-        ),
+        child: context.isMobile
+            ? _buildMobileHeroSection(context)
+            : _buildDesktopHeroSection(context),
       ),
+    );
+  }
+
+  // Mobil için özel hero section
+  Widget _buildMobileHeroSection(final BuildContext context) {
+    return Column(
+      children: [
+        // Görsel
+        Container(
+          height: 280,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            image: const DecorationImage(
+              image: NetworkImage(
+                'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fai_metafor_image.png?alt=media&token=6f20f048-b88c-46c0-beb6-da4f4eb76c49',
+              ),
+              fit: BoxFit.cover,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 20,
+                spreadRadius: 3,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Soru kartı aşağıda
+        _buildQuestionCard(context),
+      ],
+    );
+  }
+
+  // Desktop için eski stil
+  Widget _buildDesktopHeroSection(final BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          height: 500,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            image: const DecorationImage(
+              image: NetworkImage(
+                'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fai_metafor_image.png?alt=media&token=6f20f048-b88c-46c0-beb6-da4f4eb76c49',
+              ),
+              fit: BoxFit.cover,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.6),
+                blurRadius: 30,
+                spreadRadius: 5,
+                offset: const Offset(0, 20),
+              ),
+            ],
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  WebColors.veryDarkBlue.withOpacity(0.9),
+                ],
+                stops: const [0.5, 1.0],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 20,
+          left: 20,
+          right: 20,
+          child: _buildQuestionCard(context),
+        ),
+      ],
     );
   }
 
   Widget _buildQuestionCard(final BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(context.isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: WebColors.darkBlueSurface.withOpacity(0.95),
         borderRadius: BorderRadius.circular(12),
@@ -283,16 +321,19 @@ class _MetaforLandingState extends State<MetaforLanding>
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(context.isMobile ? 10 : 12),
             decoration: BoxDecoration(
               color: WebColors.primaryGold.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
             ),
-            child: Icon(Icons.psychology_outlined,
-                color: WebColors.primaryGold, size: 24),
+            child: Icon(
+              Icons.psychology_outlined,
+              color: WebColors.primaryGold,
+              size: context.isMobile ? 20 : 24,
+            ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: context.isMobile ? 12 : 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,16 +341,16 @@ class _MetaforLandingState extends State<MetaforLanding>
                 Text(
                   "HAYATIN LABİRENTLERİNDE",
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: context.isMobile ? 10 : 12,
                     color: WebColors.textSecondary,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: context.isMobile ? 6 : 8),
                 Text(
                   "Hangisi daha Tehlikelidir:\nMetaforlar mı yoksa Klişeler mi?",
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: context.isMobile ? 14 : 18,
                     fontWeight: FontWeight.w300,
                     color: Colors.white,
                     letterSpacing: 1,
@@ -325,7 +366,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-// ████████ İÇERIK GRID - MODERN TASARIM ████████
   Widget _buildContentGrid(final BuildContext context) {
     return Transform.translate(
       offset: Offset(0, _slideAnimation.value * 0.5),
@@ -359,7 +399,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-// ████████ MODERN HİKAYE KARTI ████████
   Widget _buildModernStoryCard(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -371,7 +410,6 @@ class _MetaforLandingState extends State<MetaforLanding>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Başlık - Modern
           Row(
             children: [
               Container(
@@ -394,10 +432,7 @@ class _MetaforLandingState extends State<MetaforLanding>
               ),
             ],
           ),
-
           SizedBox(height: context.gridSpacing * 1.5),
-
-          // İçerik
           const Text(
             "Zamanın durduğu bir limanda, eski ciltlerin solgun kokuları arasında üç yalnız ruhun kesişen kaderleri... "
             "Tozlu rafların sessiz tanığı bir sahaf, kelimelerin büyüsüne tutkun genç bir yazar, "
@@ -409,9 +444,7 @@ class _MetaforLandingState extends State<MetaforLanding>
               fontWeight: FontWeight.w400,
             ),
           ),
-
           SizedBox(height: context.gridSpacing),
-
           const Text(
             "Metafor, insan ruhunun labirentlerinde unutulmaz bir yolculuk vaat ediyor. "
             "Yekta Kopan'ın incelikli kalemi ve Gürkan Candan'ın ustalıklı yönetmenliğiyle, "
@@ -429,7 +462,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-// ████████ MODERN EKİP KARTI ████████
   Widget _buildModernTeamCard(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -440,7 +472,6 @@ class _MetaforLandingState extends State<MetaforLanding>
       ),
       child: Column(
         children: [
-          // Başlık - Modern
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -473,10 +504,7 @@ class _MetaforLandingState extends State<MetaforLanding>
               ),
             ],
           ),
-
           SizedBox(height: context.gridSpacing * 1.5),
-
-          // Ekip Üyeleri - Kompakt
           Column(
             children: [
               _buildCompactTeamMember(
@@ -501,10 +529,7 @@ class _MetaforLandingState extends State<MetaforLanding>
               ),
             ],
           ),
-
           SizedBox(height: context.gridSpacing),
-
-          // Altın Çizgi
           Container(
             height: 1,
             decoration: BoxDecoration(
@@ -517,10 +542,7 @@ class _MetaforLandingState extends State<MetaforLanding>
               ),
             ),
           ),
-
           SizedBox(height: context.gridSpacing),
-
-          // Alıntı - Daha Kompakt
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -562,7 +584,6 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-// ████████ KOMPAKT EKİP ÜYESİ ████████
   Widget _buildCompactTeamMember(final BuildContext context, final String role,
       final String name, final IconData icon) {
     return Container(
@@ -573,7 +594,6 @@ class _MetaforLandingState extends State<MetaforLanding>
       ),
       child: Row(
         children: [
-          // Modern İkon
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -583,10 +603,7 @@ class _MetaforLandingState extends State<MetaforLanding>
             ),
             child: Icon(icon, color: WebColors.primaryGold, size: 16),
           ),
-
           SizedBox(width: 12),
-
-          // Bilgiler - Kompakt
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
