@@ -4,7 +4,7 @@ import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../core/util/responsive_utils.dart';
 
 class MetaforLanding extends StatefulWidget {
-  const MetaforLanding({Key? key}) : super(key: key);
+  const MetaforLanding({final Key? key}) : super(key: key);
 
   @override
   State<MetaforLanding> createState() => _MetaforLandingState();
@@ -56,10 +56,10 @@ class _MetaforLandingState extends State<MetaforLanding>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return AnimatedBuilder(
       animation: _animationController,
-      builder: (context, child) {
+      builder: (final context, final child) {
         return Container(
           width: double.infinity,
           decoration: const BoxDecoration(
@@ -87,7 +87,7 @@ class _MetaforLandingState extends State<MetaforLanding>
   }
 
   // Geri kalan tüm kodlar aynı kalacak...
-  Widget _buildElegantHeader(BuildContext context) {
+  Widget _buildElegantHeader(final BuildContext context) {
     return ScaleTransition(
       scale: _scaleAnimation,
       child: FadeTransition(
@@ -186,7 +186,7 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  Widget _buildCornerDecoration(bool isLeft) {
+  Widget _buildCornerDecoration(final bool isLeft) {
     return Positioned(
       top: 0,
       left: isLeft ? 0 : null,
@@ -212,7 +212,7 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  Widget _buildHeroImageSection(BuildContext context) {
+  Widget _buildHeroImageSection(final BuildContext context) {
     return Transform.translate(
       offset: Offset(0, _slideAnimation.value * 0.7),
       child: FadeTransition(
@@ -265,7 +265,7 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  Widget _buildQuestionCard(BuildContext context) {
+  Widget _buildQuestionCard(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -326,7 +326,7 @@ class _MetaforLandingState extends State<MetaforLanding>
   }
 
 // ████████ İÇERIK GRID - MODERN TASARIM ████████
-  Widget _buildContentGrid(BuildContext context) {
+  Widget _buildContentGrid(final BuildContext context) {
     return Transform.translate(
       offset: Offset(0, _slideAnimation.value * 0.5),
       child: FadeTransition(
@@ -338,7 +338,7 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  Widget _buildMobileContent(BuildContext context) {
+  Widget _buildMobileContent(final BuildContext context) {
     return Column(
       children: [
         _buildModernStoryCard(context),
@@ -348,7 +348,7 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-  Widget _buildDesktopContent(BuildContext context) {
+  Widget _buildDesktopContent(final BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -360,7 +360,7 @@ class _MetaforLandingState extends State<MetaforLanding>
   }
 
 // ████████ MODERN HİKAYE KARTI ████████
-  Widget _buildModernStoryCard(BuildContext context) {
+  Widget _buildModernStoryCard(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -430,7 +430,7 @@ class _MetaforLandingState extends State<MetaforLanding>
   }
 
 // ████████ MODERN EKİP KARTI ████████
-  Widget _buildModernTeamCard(BuildContext context) {
+  Widget _buildModernTeamCard(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -563,8 +563,8 @@ class _MetaforLandingState extends State<MetaforLanding>
   }
 
 // ████████ KOMPAKT EKİP ÜYESİ ████████
-  Widget _buildCompactTeamMember(
-      BuildContext context, String role, String name, IconData icon) {
+  Widget _buildCompactTeamMember(final BuildContext context, final String role,
+      final String name, final IconData icon) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

@@ -131,15 +131,14 @@ class _HomePageState extends State<HomePage> {
                   Container(key: widget.showsKey, child: const ShowsSection()),
                   const SizedBox(height: 40),
 
+                  //Metafor
                   Container(key: widget.artisticKey, child: MetaforLanding()),
                   const SizedBox(height: 40),
-
-                  // Kurtar Beni Doktor
-                  KurtarBeniDoktorLanding(),
-                  const SizedBox(height: 40),
-
                   // Göz Kap Vaz Yap
                   const GozYapVazYapLanding(),
+                  const SizedBox(height: 40),
+                  // Kurtar Beni Doktor
+                  KurtarBeniDoktorLanding(),
 
                   // About Section
                   Container(key: widget.aboutKey, child: AboutCard()),
