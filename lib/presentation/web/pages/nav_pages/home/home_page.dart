@@ -89,10 +89,8 @@ class _HomePageState extends State<HomePage> {
       }
     });
 
-    if (currentSection != null &&
-        currentSection != widget.activeSection?.value) {
+    if (currentSection != null && currentSection != widget.activeSection?.value)
       widget.activeSection?.value = currentSection!;
-    }
   }
 
   @override
@@ -131,14 +129,13 @@ class _HomePageState extends State<HomePage> {
 
                   // Shows Section
                   Container(key: widget.showsKey, child: const ShowsSection()),
+                  const SizedBox(height: 40),
 
                   Container(key: widget.artisticKey, child: MetaforLanding()),
-
                   const SizedBox(height: 40),
 
                   // Kurtar Beni Doktor
                   KurtarBeniDoktorLanding(),
-
                   const SizedBox(height: 40),
 
                   // Göz Kap Vaz Yap
@@ -148,10 +145,8 @@ class _HomePageState extends State<HomePage> {
                   Container(key: widget.aboutKey, child: AboutCard()),
                   // Team Section
                   Container(key: widget.teamKey, child: const TeamCard()),
-
                   // Contact Section
                   Container(key: widget.contactKey, child: const ContactCard()),
-
                   // Footer spacing
                   const SizedBox(height: 60),
                   const ArtFooter(),
