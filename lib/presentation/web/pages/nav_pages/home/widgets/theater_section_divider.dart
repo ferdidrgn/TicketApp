@@ -151,66 +151,52 @@ class TheaterSectionDivider extends StatelessWidget {
       // STİL 3: SPOTLIGHT (ZEMİN RENGİ VE GEÇİŞLER DÜZELTİLDİ)
       // ════════════════════════════════════════════════════════════
       // ════════════════════════════════════════════════════════════
-      // STİL 3: SPOTLIGHT (SİYAH PÜRÜZLER GİDERİLDİ - CLEAN FIX)
       // ════════════════════════════════════════════════════════════
+      // STİL 3: SPOTLIGHT (GENİŞ EKRAN SİYAH KENAR SORUNU ÇÖZÜLDÜ)
       case DividerStyle.spotlight:
         return Container(
           height: height,
           width: double.infinity,
-          // 1. ÖNEMLİ: Konteynerin kendisi saf koyu mavi olsun
-          color: WebColors.darkBlueBackground,
+          color: WebColors.darkBlueBackground, // Arkaplan rengi
           child: Stack(
-            alignment: Alignment.topCenter,
             children: [
-              // 2. IŞIK HÜZMESİ (Gradient)
-              Container(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(0, -1.2),
-                    // Işık tam tepeden biraz yukarıdan başlasın
-                    radius: 1.5,
-                    // Geniş bir yayılım
-                    colors: [
-                      // Merkez: Altın rengi
-                      WebColors.primaryGold.withOpacity(0.4),
-
-                      // Geçiş 1: Altın rengi Maviye çalmaya başlıyor (Siyahlaşmayı önler)
-                      Color.lerp(WebColors.primaryGold,
-                              WebColors.darkBlueBackground, 0.5)!
-                          .withOpacity(0.3),
-
-                      // Geçiş 2: Şeffaf Mavi (Şeffaf Siyah yerine!)
-                      WebColors.darkBlueBackground.withOpacity(0.8),
-
-                      // Bitiş: Tamamen Mat Koyu Mavi (Keskin çizgi oluşumunu engeller)
-                      WebColors.darkBlueBackground,
-                    ],
-                    stops: const [0.0, 0.2, 0.6, 1.0],
+              // MERKEZDE IŞIK EFEKTİ
+              Center(
+                child: Container(
+                  width: MediaQuery.of(context).size.width *
+                      2, // EKRANIN 2 KATI GENİŞLİKTE
+                  height: height,
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0, -0.5),
+                      radius: 1.0,
+                      colors: [
+                        WebColors.primaryGold.withOpacity(0.25),
+                        WebColors.darkBlueBackground.withOpacity(0.0),
+                      ],
+                      stops: const [0.0, 0.8],
+                    ),
                   ),
                 ),
               ),
 
-              // 3. IŞIK KAYNAĞI (Lamba Çizgisi)
-              Container(
-                width: 80,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: WebColors.primaryGold,
-                  // Opaklığı kaldırdım, daha net olsun
-                  borderRadius: BorderRadius.circular(50),
-                  boxShadow: [
-                    BoxShadow(
-                      color: WebColors.primaryGold,
-                      blurRadius: 20, // Çok yumuşak parlama
-                      spreadRadius: 1,
-                    ),
-                    // Siyah gölge yerine Altın rengi ikinci bir katman ekleyerek siyahlığı yok ediyoruz
-                    BoxShadow(
-                      color: WebColors.primaryGold.withOpacity(0.5),
-                      blurRadius: 40,
-                      spreadRadius: 5,
-                    ),
-                  ],
+              // IŞIK KAYNAĞI ÇİZGİSİ
+              Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  width: 120,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: WebColors.primaryGold,
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: WebColors.primaryGold,
+                        blurRadius: 25,
+                        spreadRadius: 3,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
