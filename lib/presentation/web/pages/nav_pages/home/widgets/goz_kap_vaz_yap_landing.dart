@@ -73,19 +73,34 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ---------------- MERKEZ GÖRSELİ (DÖNEN PLAK / 399 NUMARA) ----------------
+// ---------------- MERKEZ GÖRSELİ (DÖNEN PLAK / 399 NUMARA) ----------------
   Widget _buildMainImageSection(final BuildContext context) {
     return Container(
       height: context.responsive(mobile: 350.0, desktop: 500.0),
       width: double.infinity,
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueBackground,
+        boxShadow: [
+          BoxShadow(
+            // İkinci görselin gölge stili
+            color: WebColors.primaryGold.withOpacity(0.3),
+            blurRadius: 20,
+            spreadRadius: 2,
+          )
+        ],
+      ),
       child: Stack(
         children: [
           Positioned.fill(
-            child: Image.network(_mainImage, fit: BoxFit.cover),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(_mainImage, fit: BoxFit.cover),
+            ),
           ),
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -105,7 +120,6 @@ class GozYapVazYapLanding extends StatelessWidget {
             child: const RecordPlayerCard(),
           ),
 
-          // Alıntı Metni
           Positioned(
             bottom: 30,
             left: 30,
@@ -144,8 +158,6 @@ class GozYapVazYapLanding extends StatelessWidget {
           _buildDivider(),
           const SizedBox(height: 40),
           _buildCreativeTeamSection(context),
-          // const SizedBox(height: 40), // Temalar bölümü kaldırıldığı için boşluklar düzenlendi.
-          // _buildThemesSection(context), // KALDIRILDI
           const SizedBox(height: 40),
           _buildResponsiveGameDetails(context),
           const SizedBox(height: 20),
