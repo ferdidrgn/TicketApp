@@ -1,52 +1,133 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# -----------------------
+# FLUTTER & DART ÇEKİRDEK
+# -----------------------
 .dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
 /build/
+.fvm/
 
-# Symbolication related
-app.*.symbols
+# DİKKAT: pubspec.lock ASLA buraya eklenmemeli!
 
-# Obfuscation related
-app.*.map.json
+# -----------------------
+# ANDROID
+# -----------------------
+# Derleme ve Önbellek Dosyaları
+/android/.gradle
+/android/captures/
+.gradle/
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-/lib/firebase_options.dart
-/android/app
-pubspec.lock
-*.lock
-ios/Runner/GoogleService-Info.plist
-.metadata
-/android/key_properties.txt
-.firebase/hosting.YnVpbGRcd2Vi.cache
-/.firebaserc
+# Android Studio IDE Ayarları
+/android/.idea
+/android/.idea/modules.xml
+/android/.idea/runConfigurations.xml
+
+# İmzalı APK ve Bundle Çıktıları
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+
+# Gizli Anahtarlar (GÜVENLİK İÇİN ÖNEMLİ)
+/android/local.properties
+/android/key.properties
+/android/*.jks
+/android/*.keystore
+/android/**/*.jks
+/android/**/*.keystore
+
+# Not: gradlew ve gradlew.bat dosyalarını ignore'dan kaldırdım.
+# Çünkü projenin başka PC'de çalışması için onlar lazım.
+
+# -----------------------
+# iOS & MACOS
+# -----------------------
+/ios/Flutter/App.framework
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/app.flx
+/ios/Flutter/app.zip
+/ios/Flutter/flutter_assets/
+/ios/ServiceDefinitions.json
+/ios/Runner/GeneratedPluginRegistrant.*
+/ios/Pods/
+/macos/Pods/
+
+# Xcode Kullanıcı Verileri (Proje ayarı değil, senin kişisel ayarların)
+**/DerivedData/
+**/xcshareddata/
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+/ios/Runner.xcworkspace/xcuserdata/
+/macos/Runner.xcworkspace/xcuserdata/
+
+# -----------------------
+# WEB
+# -----------------------
+.web_config.dart
+/build/web/
+.webpack/
+.dwds/
+
+# -----------------------
+# FIREBASE & GOOGLE SERVICES
+# -----------------------
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Eğer projen herkese açıksa (Public Repo) bunları gizlemelisin.
+# Özel (Private) repo ise bunları açabilirsin (# işaretini kaldırarak).
+/android/app/google-services.json
+/ios/Runner/GoogleService-Info.plist
+
+# -----------------------
+# ÇEVRESEL DEĞİŞKENLER (.env)
+# -----------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------
+# IDE & EDİTÖR DOSYALARI
+# -----------------------
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.sublime*
+
+# -----------------------
+# İŞLETİM SİSTEMİ ÇÖPLERİ
+# -----------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+[Tt]humbs.db
+ehthumbs.db
+desktop.ini
+
+# -----------------------
+# LOGLAR VE GEÇİCİ DOSYALAR
+# -----------------------
+*.log
+*.tmp
+*.temp
+coverage/
+.lcov.info
+
+# -----------------------
+# DİĞER ARAÇLAR (Fastlane vb.)
+# -----------------------
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+node_modules/
+.pnpm-store/
