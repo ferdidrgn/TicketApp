@@ -42,7 +42,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /lib/firebase_options.dart
-firebase.json
 /android/app
 pubspec.lock
 *.lock
