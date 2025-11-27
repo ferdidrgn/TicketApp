@@ -52,7 +52,9 @@ class _WebNavBarState extends State<WebNavBar>
 
   @override
   Widget build(final BuildContext context) {
+    // 900 piksel altını mobil/tablet dar ekran kabul ediyoruz
     final bool _isNarrow = context.screenWidth < 900;
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (final context, final child) {
@@ -95,17 +97,22 @@ class _WebNavBarState extends State<WebNavBar>
     );
   }
 
+  // --- MASAÜSTÜ GÖRÜNÜMÜ ---
   Widget _buildDesktopNav(final BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          // Logo/Brand
-          _buildLogo(context),
+          // 1. Logo Resmi
+          _buildLogoImage(context),
+
+          // 2. Yanına Yazı (Desktop'ta bitişik durur)
+          const SizedBox(width: 12),
+          _buildWebName(context),
 
           const Spacer(),
 
-          // Navigation Items
+          // 3. Menü Linkleri
           Wrap(
             spacing: 4.0,
             runSpacing: 4.0,
@@ -124,96 +131,79 @@ class _WebNavBarState extends State<WebNavBar>
     );
   }
 
-  // ✅ DEĞİŞİKLİK 1: Row yerine Stack kullanıldı.
+  // --- MOBİL GÖRÜNÜMÜ ---
   Widget _buildMobileNav(final BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Stack(
-        alignment: Alignment.center, // İçindeki her şeyi merkeze hizalar
+        alignment: Alignment.center, // Büyüyü yapan yer burası: MERKEZLEME
         children: [
-          // Katman 1: Sol ve Sağ elemanlar (Logo ve Menü)
+          // Katman 1: En Sol (Logo) ve En Sağ (Menü İkonu)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildLogo(context),
+              _buildLogoImage(context), // Sadece resim
               _buildMobileMenu(context),
             ],
           ),
-          // Katman 2: Tam Ortadaki Yazı
-          _buildWebName(),
+
+          // Katman 2: Tam Ortadaki Yazı (Stack sayesinde bağımsız ortalanır)
+          _buildWebName(context),
         ],
       ),
     );
   }
 
-  // ✅ DEĞİŞİKLİK 2: Ortadaki yazı için yardımcı widget eklendi.
-  Widget _buildWebName() {
-    return ShaderMask(
-      shaderCallback: (final bounds) =>
-          WebColors.goldGradient.createShader(bounds),
-      child: const Text(
-        'TiyatRol',
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w900,
-          color: Colors.white,
-          letterSpacing: 1,
-        ),
-      ),
-    );
-  }
+  // --- ORTAK BİLEŞENLER ---
 
-  Widget _buildLogo(final BuildContext context) {
+  // 1. Sadece Logo Resmi (Yazısız)
+  Widget _buildLogoImage(final BuildContext context) {
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 500),
       tween: Tween(begin: 0.0, end: 1.0),
       builder: (final context, final value, final child) {
         return Transform.scale(
           scale: 0.8 + (value * 0.2),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                child: Image.asset(
-                  'assets/images/tiyatrol_logo.png',
-                  fit: BoxFit.cover,
-                  width: context.responsive(
-                    mobile: 60,
-                    tablet: 80,
-                    desktop: 100,
-                  ),
-                  height: context.responsive(
-                    mobile: 60,
-                    tablet: 80,
-                    desktop: 100,
-                  ),
-                ),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: Image.asset(
+              'assets/images/tiyatrol_logo.png',
+              fit: BoxFit.cover,
+              width: context.responsive(
+                mobile: 50, // Mobilde biraz daha kibar
+                tablet: 70,
+                desktop: 90,
               ),
-              const SizedBox(width: 12),
-              // Mobilde buradaki yazı gizleniyor (!context.isMobile kontrolü var)
-              // Biz bunu _buildWebName ile ortada gösterdik zaten.
-              if (!context.isMobile) ...[
-                ShaderMask(
-                  shaderCallback: (final bounds) =>
-                      WebColors.goldGradient.createShader(bounds),
-                  child: Text(
-                    'TiyatRol',
-                    style: TextStyle(
-                      fontSize: context.responsive(mobile: 20, desktop: 24),
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
-              ],
-            ],
+              height: context.responsive(
+                mobile: 50,
+                tablet: 70,
+                desktop: 90,
+              ),
+            ),
           ),
         );
       },
     );
   }
 
+  // 2. Altın Efektli Yazı
+  Widget _buildWebName(final BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (final bounds) =>
+          WebColors.goldGradient.createShader(bounds),
+      child: Text(
+        'TiyatRol',
+        style: TextStyle(
+          fontSize: context.responsive(mobile: 20, desktop: 24),
+          fontWeight: FontWeight.w900,
+          color: Colors.white, // Gradient için zemin beyaz
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  // 3. Masaüstü Menü Elemanı
   Widget _buildNavItem(
       final BuildContext context, final String section, final String label) {
     return ValueListenableBuilder<String>(
@@ -274,6 +264,7 @@ class _WebNavBarState extends State<WebNavBar>
     );
   }
 
+  // 4. Mobil Burger Menü
   Widget _buildMobileMenu(final BuildContext context) {
     return PopupMenuButton<String>(
       icon: Container(
@@ -288,7 +279,7 @@ class _WebNavBarState extends State<WebNavBar>
         child: const Icon(
           Icons.menu,
           color: WebColors.primaryGold,
-          size: 28,
+          size: 24, // Mobilde ikon boyutu ideal
         ),
       ),
       color: WebColors.darkBlueSurface,
