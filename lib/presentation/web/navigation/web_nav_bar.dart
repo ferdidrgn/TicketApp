@@ -133,8 +133,6 @@ class _WebNavBarState extends State<WebNavBar>
         children: [
           _buildLogo(context),
           const Spacer(),
-          _buildWebName(),
-          const Spacer(),
           _buildMobileMenu(context),
         ],
       ),
@@ -168,7 +166,6 @@ class _WebNavBarState extends State<WebNavBar>
                 ),
               ),
               const SizedBox(width: 12),
-              if (!context.isMobile) ...[
                 ShaderMask(
                   shaderCallback: (final bounds) =>
                       WebColors.goldGradient.createShader(bounds),
@@ -183,7 +180,6 @@ class _WebNavBarState extends State<WebNavBar>
                   ),
                 ),
               ],
-            ],
           ),
         );
       },
