@@ -127,8 +127,6 @@ flutter:
     - assets/images/app_near_logo.jpg  # Yakın logo.
     - assets/images/book_logo.jpg  # Kitap logosu.
     - assets/images/tiyatrol_logo.png  # Tiyatrol logosu.
-    - assets/images/splash_background.png  # Splash arka plan görseli.
-
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -162,7 +160,7 @@ flutter:
 # ================================================
 flutter_native_splash:
   color: "#0A1628"
-  background_image: "assets/images/splash_background.png"
+  background_image: "assets/images/app_logo.jpg.png"
   image: "assets/images/tiyatrol_logo.png"
 
   android_12:
@@ -180,7 +178,7 @@ flutter_native_splash:
   ios_content_mode: center
 
   color_dark: "#0A1628"
-  background_image_dark: "assets/images/splash_background.png"
+  background_image_dark: "assets/images/app_logo.jpg"
   image_dark: "assets/images/tiyatrol_logo.png"
 
   fullscreen: true
