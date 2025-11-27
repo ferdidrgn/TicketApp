@@ -93,6 +93,10 @@ dependencies:
   riverpod_annotation:  # Riverpod için anotasyon desteği.
   json_annotation: # JSON veri sınıfları için.
 
+  # Web Plugins
+  flutter_web_plugins:
+    sdk: flutter
+
 dev_dependencies:
   flutter_test:
     sdk: flutter  # Flutter test kütüphanesi.
@@ -104,6 +108,9 @@ dev_dependencies:
   freezed: # Freezed ile veri sınıfları oluşturur.
   riverpod_generator: # Riverpod için kod üretimi.
   json_serializable:  # JSON veri sınıfları için.
+
+  # Native Splash Screen
+  flutter_native_splash: ^2.4.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -120,6 +127,7 @@ flutter:
     - assets/images/app_near_logo.jpg  # Yakın logo.
     - assets/images/book_logo.jpg  # Kitap logosu.
     - assets/images/tiyatrol_logo.png  # Tiyatrol logosu.
+    - assets/images/splash_background.png  # Splash arka plan görseli.
 
 
 
@@ -148,3 +156,32 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# ================================================
+# NATIVE SPLASH SCREEN CONFIGURATION
+# ================================================
+flutter_native_splash:
+  color: "#0A1628"
+  background_image: "assets/images/splash_background.png"
+  image: "assets/images/tiyatrol_logo.png"
+
+  android_12:
+    image: "assets/images/tiyatrol_logo.png"
+    color: "#0A1628"
+    image_dark: "assets/images/tiyatrol_logo.png"
+    color_dark: "#0A1628"
+    icon_background_color: "#0A1628"
+
+  android: true
+  ios: true
+  web: false
+
+  android_gravity: center
+  ios_content_mode: center
+
+  color_dark: "#0A1628"
+  background_image_dark: "assets/images/splash_background.png"
+  image_dark: "assets/images/tiyatrol_logo.png"
+
+  fullscreen: true
+  android_navbar_color: "#0A1628"
