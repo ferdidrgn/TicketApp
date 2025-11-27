@@ -186,10 +186,10 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
                         ? MainAxisAlignment.start
                         : MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.theater_comedy,
+                      const Icon(Icons.theater_comedy,
                           color: WebColors.primaryGold, size: 30),
                       const SizedBox(width: 12),
-                      Text(
+                      const Text(
                         'SAHNE SANATLARI',
                         style: TextStyle(
                           color: WebColors.primaryGold,
@@ -263,12 +263,12 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
           borderRadius: BorderRadius.circular(50),
           color: Colors.white.withOpacity(0.05), // Glass effect
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.play_circle_fill,
+            Icon(Icons.play_circle_fill,
                 color: WebColors.primaryGold, size: 32),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Text(
               'SEZON TANITIMI',
               style: TextStyle(
@@ -333,7 +333,7 @@ class _HeroVideoSectionState extends State<HeroVideoSection>
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'METAFOR',
                     style: TextStyle(
                       color: Colors.white,

@@ -97,7 +97,7 @@ class _CompactHeader extends StatelessWidget {
                   const SizedBox(width: 12),
                   Flexible(
                     child: ShaderMask(
-                      shaderCallback: (final bounds) => LinearGradient(
+                      shaderCallback: (final bounds) => const LinearGradient(
                         colors: [
                           WebColors.primaryGoldLight,
                           WebColors.primaryGold,
@@ -263,12 +263,12 @@ class _HeroImageCardState extends State<_HeroImageCard> {
                 ),
 
                 // Top Tags (Eski stil şeffaf)
-                Positioned(
+                const Positioned(
                   top: 14,
                   right: 14,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: const [
+                    children: [
                       _PillTag(text: 'Drama'),
                       SizedBox(height: 8),
                       _PillTag(text: '90 dk'),
@@ -338,7 +338,7 @@ class _QuoteCard extends StatelessWidget {
               width: 1,
             ),
           ),
-          child: Row(
+          child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
@@ -346,11 +346,11 @@ class _QuoteCard extends StatelessWidget {
                 color: WebColors.primaryGoldLight,
                 size: 24,
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       '"İnsan mutlu olmak için değil, özgür olmak için yaratılmıştır."',
                       style: TextStyle(
@@ -433,10 +433,10 @@ class _InfoSection extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Info Chips
-          Wrap(
+          const Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: const [
+            children: [
               _InfoChip(icon: Icons.calendar_today, label: '12 Ara 2025'),
               _InfoChip(icon: Icons.location_on, label: 'Küçük Sahne'),
               _InfoChip(icon: Icons.schedule, label: '90 dakika'),
@@ -537,9 +537,10 @@ class _CastGrid extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final castMembers = [
-      {'name': 'UĞUR KILIÇ', 'role': 'Yönetmen'},
-      {'name': 'EBRU AKKÜN', 'role': 'Yönetmen'},
-      {'name': 'DIALRA SEKMEN', 'role': 'Makyaj'},
+      {'name': 'İSKEDNER ATİLLA ATASOY', 'role': 'Uyarlayan ve Yöneten'},
+      {'name': 'UĞUR KILIÇ', 'role': 'Yönetmen Yard.'},
+      {'name': 'EBRU AKKÜN', 'role': 'Yönetmen Yard.'},
+      {'name': 'DİLARA SEKMEN', 'role': 'Makyaj'},
       {'name': 'DERYA DİNÇER', 'role': 'Kostüm'},
       {'name': 'SEYİT ÇOLAK', 'role': 'Işık'},
       {'name': 'DUYGU ŞAHİN', 'role': 'Asistan'},
@@ -615,7 +616,7 @@ class _CastCardState extends State<_CastCard> {
                 const SizedBox(height: 2),
                 Text(
                   widget.role,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: WebColors.primaryGoldLight,
                     fontSize: 11,
                   ),

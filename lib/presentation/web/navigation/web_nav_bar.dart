@@ -97,9 +97,7 @@ class _WebNavBarState extends State<WebNavBar>
 
   Widget _buildDesktopNav(final BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: 20,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
           // Logo/Brand
@@ -135,6 +133,8 @@ class _WebNavBarState extends State<WebNavBar>
         children: [
           _buildLogo(context),
           const Spacer(),
+          _buildWebName(),
+          const Spacer(),
           _buildMobileMenu(context),
         ],
       ),
@@ -152,21 +152,19 @@ class _WebNavBarState extends State<WebNavBar>
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: WebColors.goldGradient,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: WebColors.primaryGold.withOpacity(0.3),
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.theater_comedy,
-                  color: WebColors.darkBlueBackground,
-                  size: context.responsive(mobile: 24, desktop: 28),
+                child: Image.asset(
+                  'assets/images/tiyatrol_logo.png',
+                  fit: BoxFit.cover,
+                  width: context.responsive(
+                    mobile: 60, // Mobilde küçük
+                    tablet: 80, // Tablette orta
+                    desktop: 100, // Desktop'ta büyük
+                  ),
+                  height: context.responsive(
+                    mobile: 60,
+                    tablet: 80,
+                    desktop: 100,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

@@ -1,6 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/presentation/commonPages/showPage/show_detail_page.dart';
 
@@ -24,7 +26,12 @@ import 'router/app_home_page.dart';
 import 'router/splash_router.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // ✅ 1. Native Splash'i Kontrol Altına Al
+  final WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  usePathUrlStrategy(); //Path den "#" i kaldırıyor
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   try {
@@ -53,7 +60,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     _router = GoRouter(
       initialLocation: '/',
       routes: [
-        // 1. Splash Ekranı (Açılış)
+        // 1. Splash Ekranı (Native Splash sonrası devreye girer)
         GoRoute(
           path: '/',
           builder: (final context, final state) => SplashScreen(
@@ -75,7 +82,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           builder: (final context, final state) => const OnboardingContainer(),
         ),
 
-        // 4. Ana Sayfa (Web/Mobil ayrımı AppHomePage içinde yapılıyor)
+        // 4. Ana Sayfa (Platforma göre Web veya Mobil Home döner)
         GoRoute(
           path: '/home',
           builder: (final context, final state) => const AppHomePage(),
