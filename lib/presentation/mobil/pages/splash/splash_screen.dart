@@ -260,27 +260,45 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 40),
-                                  child: Column(
+                                  child: // Ana başlık - SADE VE ŞIK ALTIN TASARIM
+                                      Column(
                                     children: [
                                       // Ana başlık
-                                      ShaderMask(
-                                        shaderCallback: (final bounds) =>
-                                            const LinearGradient(
-                                              colors: [
-                                                Color(0xFFD4AF37),
-                                                Color(0xFFF5E6D3),
-                                                Color(0xFFD4AF37),
-                                              ],
-                                            ).createShader(bounds),
-                                        child: Text(
-                                          'TiyatRol',
-                                          style: TextStyle(
-                                            fontSize: isMobile ? 48 : 72,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.white,
-                                            letterSpacing: 4,
+                                      Text(
+                                        'TiyatRol',
+                                        style: TextStyle(
+                                          fontSize: isMobile ? 52 : 68,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFFD4AF37),
+                                          letterSpacing: 3,
+                                          shadows: [
+                                            Shadow(
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
+                                              blurRadius: 10,
+                                              offset: const Offset(2, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+
+                                      SizedBox(height: isMobile ? 8 : 12),
+
+                                      // Altın çizgi
+                                      Container(
+                                        width: isMobile ? 120 : 160,
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Colors.transparent,
+                                              Color(0xFFD4AF37),
+                                              Colors.transparent,
+                                            ],
                                           ),
-                                          textAlign: TextAlign.center,
+                                          borderRadius:
+                                              BorderRadius.circular(1),
                                         ),
                                       ),
 
@@ -344,8 +362,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                             width: isMobile ? 200 : 300,
                                             height: 4,
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(2),
+                                              color:
+                                                  Colors.white.withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
                                             ),
                                             child: Stack(
                                               children: [
@@ -354,28 +374,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                                   width: double.infinity,
                                                   height: 4,
                                                   decoration: BoxDecoration(
-                                                    color: Colors.white.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(2),
+                                                    color: Colors.white
+                                                        .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            2),
                                                   ),
                                                 ),
 
                                                 // Progress doluluk
                                                 AnimatedContainer(
-                                                  duration: const Duration(milliseconds: 100),
-                                                  width: (isMobile ? 200 : 300) * _progressAnimation.value,
+                                                  duration: const Duration(
+                                                      milliseconds: 100),
+                                                  width: (isMobile
+                                                          ? 200
+                                                          : 300) *
+                                                      _progressAnimation.value,
                                                   height: 4,
                                                   decoration: BoxDecoration(
-                                                    gradient: const LinearGradient(
+                                                    gradient:
+                                                        const LinearGradient(
                                                       colors: [
                                                         Color(0xFFD4AF37),
                                                         Color(0xFFFFD700),
                                                         Color(0xFFF5E6D3),
                                                       ],
                                                     ),
-                                                    borderRadius: BorderRadius.circular(2),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            2),
                                                     boxShadow: [
                                                       BoxShadow(
-                                                        color: const Color(0xFFD4AF37).withOpacity(0.6),
+                                                        color: const Color(
+                                                                0xFFD4AF37)
+                                                            .withOpacity(0.6),
                                                         blurRadius: 8,
                                                         spreadRadius: 1,
                                                       ),
@@ -384,7 +416,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                                 ),
 
                                                 // Parlama efekti
-                                                if (_progressAnimation.value > 0)
+                                                if (_progressAnimation.value >
+                                                    0)
                                                   Positioned(
                                                     right: 0,
                                                     top: 0,
@@ -392,17 +425,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                                       width: 20,
                                                       height: 4,
                                                       decoration: BoxDecoration(
-                                                        gradient: LinearGradient(
+                                                        gradient:
+                                                            LinearGradient(
                                                           colors: [
-                                                            Colors.white.withOpacity(0.8),
+                                                            Colors.white
+                                                                .withOpacity(
+                                                                    0.8),
                                                             Colors.transparent,
                                                           ],
-                                                          begin: Alignment.centerRight,
-                                                          end: Alignment.centerLeft,
+                                                          begin: Alignment
+                                                              .centerRight,
+                                                          end: Alignment
+                                                              .centerLeft,
                                                         ),
-                                                        borderRadius: const BorderRadius.only(
-                                                          topRight: Radius.circular(2),
-                                                          bottomRight: Radius.circular(2),
+                                                        borderRadius:
+                                                            const BorderRadius
+                                                                .only(
+                                                          topRight:
+                                                              Radius.circular(
+                                                                  2),
+                                                          bottomRight:
+                                                              Radius.circular(
+                                                                  2),
                                                         ),
                                                       ),
                                                     ),
@@ -422,11 +466,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                           return Opacity(
                                             opacity: _textOpacity.value,
                                             child: Text(
-                                              _getLoadingText(_progressAnimation.value),
+                                              _getLoadingText(
+                                                  _progressAnimation.value),
                                               style: TextStyle(
                                                 fontSize: isMobile ? 12 : 14,
                                                 fontWeight: FontWeight.w300,
-                                                color: const Color(0xFFD4AF37).withOpacity(0.8),
+                                                color: const Color(0xFFD4AF37)
+                                                    .withOpacity(0.8),
                                                 letterSpacing: 1.0,
                                               ),
                                               textAlign: TextAlign.center,
