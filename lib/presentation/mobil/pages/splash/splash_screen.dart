@@ -23,10 +23,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _textController;
   late AnimationController _fadeOutController;
+  late AnimationController _progressController;
 
   late Animation<double> _textOpacity;
   late Animation<Offset> _textSlide;
   late Animation<double> _fadeOut;
+  late Animation<double> _progressAnimation;
 
   bool _isNavigationHandled = false;
   bool _isNextPageReady = false;
@@ -65,12 +67,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _fadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _fadeOutController, curve: Curves.easeInOut),
     );
+
+    // Progress bar animasyonu
+    _progressController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
+    );
   }
 
   void _startSplashSequence() async {
     // Metin animasyonunu başlat
     await Future.delayed(const Duration(milliseconds: 300));
     if (mounted) _textController.forward();
+
+    // Progress bar animasyonunu başlat
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) _progressController.forward();
 
     // Platform kontrolü
     Future.microtask(() {
@@ -114,6 +130,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void dispose() {
     _textController.dispose();
     _fadeOutController.dispose();
+    _progressController.dispose();
     super.dispose();
   }
 
@@ -249,12 +266,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                       ShaderMask(
                                         shaderCallback: (final bounds) =>
                                             const LinearGradient(
-                                          colors: [
-                                            Color(0xFFD4AF37),
-                                            Color(0xFFF5E6D3),
-                                            Color(0xFFD4AF37),
-                                          ],
-                                        ).createShader(bounds),
+                                              colors: [
+                                                Color(0xFFD4AF37),
+                                                Color(0xFFF5E6D3),
+                                                Color(0xFFD4AF37),
+                                              ],
+                                            ).createShader(bounds),
                                         child: Text(
                                           'TiyatRol',
                                           style: TextStyle(
@@ -316,6 +333,107 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
+
+                                      SizedBox(height: isMobile ? 40 : 60),
+
+                                      // SARI PROGRESS BAR - GERİ EKLENDİ
+                                      AnimatedBuilder(
+                                        animation: _progressAnimation,
+                                        builder: (context, child) {
+                                          return Container(
+                                            width: isMobile ? 200 : 300,
+                                            height: 4,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                            child: Stack(
+                                              children: [
+                                                // Arka plan
+                                                Container(
+                                                  width: double.infinity,
+                                                  height: 4,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(2),
+                                                  ),
+                                                ),
+
+                                                // Progress doluluk
+                                                AnimatedContainer(
+                                                  duration: const Duration(milliseconds: 100),
+                                                  width: (isMobile ? 200 : 300) * _progressAnimation.value,
+                                                  height: 4,
+                                                  decoration: BoxDecoration(
+                                                    gradient: const LinearGradient(
+                                                      colors: [
+                                                        Color(0xFFD4AF37),
+                                                        Color(0xFFFFD700),
+                                                        Color(0xFFF5E6D3),
+                                                      ],
+                                                    ),
+                                                    borderRadius: BorderRadius.circular(2),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: const Color(0xFFD4AF37).withOpacity(0.6),
+                                                        blurRadius: 8,
+                                                        spreadRadius: 1,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+
+                                                // Parlama efekti
+                                                if (_progressAnimation.value > 0)
+                                                  Positioned(
+                                                    right: 0,
+                                                    top: 0,
+                                                    child: Container(
+                                                      width: 20,
+                                                      height: 4,
+                                                      decoration: BoxDecoration(
+                                                        gradient: LinearGradient(
+                                                          colors: [
+                                                            Colors.white.withOpacity(0.8),
+                                                            Colors.transparent,
+                                                          ],
+                                                          begin: Alignment.centerRight,
+                                                          end: Alignment.centerLeft,
+                                                        ),
+                                                        borderRadius: const BorderRadius.only(
+                                                          topRight: Radius.circular(2),
+                                                          bottomRight: Radius.circular(2),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+
+                                      SizedBox(height: isMobile ? 20 : 30),
+
+                                      // Yükleniyor metni
+                                      AnimatedBuilder(
+                                        animation: _progressAnimation,
+                                        builder: (context, child) {
+                                          return Opacity(
+                                            opacity: _textOpacity.value,
+                                            child: Text(
+                                              _getLoadingText(_progressAnimation.value),
+                                              style: TextStyle(
+                                                fontSize: isMobile ? 12 : 14,
+                                                fontWeight: FontWeight.w300,
+                                                color: const Color(0xFFD4AF37).withOpacity(0.8),
+                                                letterSpacing: 1.0,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -337,15 +455,33 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       builder: (final context, final child) {
                         return Opacity(
                           opacity: _textOpacity.value * 0.5,
-                          child: Text(
-                            '© 2024 TiyatRol Tiyatro Topluluğu',
-                            style: TextStyle(
-                              fontSize: isMobile ? 11 : 12,
-                              fontWeight: FontWeight.w300,
-                              color: Colors.white.withOpacity(0.4),
-                              letterSpacing: 1.5,
-                            ),
-                            textAlign: TextAlign.center,
+                          child: Column(
+                            children: [
+                              // Versiyon bilgisi - GERİ EKLENDİ
+                              Text(
+                                'v1.0.0',
+                                style: TextStyle(
+                                  fontSize: isMobile ? 10 : 11,
+                                  fontWeight: FontWeight.w300,
+                                  color: Colors.white.withOpacity(0.3),
+                                  letterSpacing: 1.0,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 8),
+
+                              // Telif hakkı
+                              Text(
+                                '© 2024 TiyatRol Tiyatro Topluluğu',
+                                style: TextStyle(
+                                  fontSize: isMobile ? 11 : 12,
+                                  fontWeight: FontWeight.w300,
+                                  color: Colors.white.withOpacity(0.4),
+                                  letterSpacing: 1.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -358,6 +494,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         },
       ),
     );
+  }
+
+  String _getLoadingText(double progress) {
+    if (progress < 0.3) return 'Sahne hazırlanıyor...';
+    if (progress < 0.6) return 'Oyuncular hazırlanıyor...';
+    if (progress < 0.9) return 'Perde kalkıyor...';
+    return 'Hoş geldiniz!';
   }
 }
 
