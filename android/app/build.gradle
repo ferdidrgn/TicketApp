@@ -48,28 +48,17 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '11'
     }
 }
 
 flutter {
     source = "../.."
-}
-
-// Bu kodu dosyanın en altına yapıştır
-configurations.all {
-    resolutionStrategy {
-        force 'androidx.browser:browser:1.8.0'
-        force 'androidx.activity:activity-ktx:1.9.3'
-        force 'androidx.activity:activity:1.9.3'
-        force 'androidx.core:core-ktx:1.13.1'
-        force 'androidx.core:core:1.13.1'
-    }
 }
 
 dependencies {
