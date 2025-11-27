@@ -98,7 +98,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     // ✅ MOBİL: Auth dinle
     if (!SplashRouter.shouldSkipAuthCheck) {
-      ref.listen<LoginState>(loginProvider, (previous, next) {
+      ref.listen<LoginState>(loginProvider, (final previous, final next) {
         if (!next.isLoading && !_isBackendReady) {
           setState(() => _isBackendReady = true);
           _checkAndNavigate();
@@ -119,7 +119,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ),
         child: AnimatedBuilder(
           animation: _fadeIn,
-          builder: (context, child) {
+          builder: (final context, final child) {
             return Opacity(
               opacity: _fadeIn.value,
               child: Center(
@@ -144,7 +144,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         child: Image.asset(
                           'assets/images/tiyatrol_logo.png',
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
+                          errorBuilder:
+                              (final context, final error, final stackTrace) {
                             return Container(
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
@@ -180,6 +181,53 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                     SizedBox(height: isMobile ? 40 : 60),
 
+                    // Alt başlık - EKSİK YAZI EKLENDİ
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: const Color(0xFFD4AF37).withOpacity(0.3),
+                            width: 1,
+                          ),
+                          bottom: BorderSide(
+                            color: const Color(0xFFD4AF37).withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'Sahnede hayat, perdede hikaye',
+                        style: TextStyle(
+                          fontSize: isMobile ? 14 : 16,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFFF5E6D3).withOpacity(0.9),
+                          letterSpacing: 1.5,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                    SizedBox(height: isMobile ? 12 : 16),
+
+// Açıklama - EKSİK YAZI EKLENDİ
+                    Text(
+                      'Her oyun bir yolculuk, her sahne bir keşif',
+                      style: TextStyle(
+                        fontSize: isMobile ? 12 : 14,
+                        fontWeight: FontWeight.w300,
+                        color: Colors.white.withOpacity(0.7),
+                        letterSpacing: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    SizedBox(height: isMobile ? 40 : 60),
+
                     // Progress bar
                     Container(
                       width: isMobile ? 200 : 300,
@@ -190,7 +238,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       ),
                       child: AnimatedBuilder(
                         animation: _progress,
-                        builder: (context, child) {
+                        builder: (final context, final child) {
                           return FractionallySizedBox(
                             alignment: Alignment.centerLeft,
                             widthFactor: _progress.value,
@@ -212,14 +260,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                     const SizedBox(height: 20),
 
-                    Text(
-                      'Sahne hazırlanıyor...',
-                      style: TextStyle(
-                        fontSize: isMobile ? 12 : 14,
-                        fontWeight: FontWeight.w300,
-                        color: const Color(0xFFD4AF37).withOpacity(0.8),
-                        letterSpacing: 1.0,
-                      ),
+                    // Yükleniyor metni - _getLoadingText kullanıldı
+                    AnimatedBuilder(
+                      animation: _progress,
+                      builder: (final context, final child) {
+                        return Text(
+                          _getLoadingText(_progress.value),
+                          style: TextStyle(
+                            fontSize: isMobile ? 12 : 14,
+                            fontWeight: FontWeight.w300,
+                            color: const Color(0xFFD4AF37).withOpacity(0.8),
+                            letterSpacing: 1.0,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -229,5 +283,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ),
       ),
     );
+  }
+
+  // ✅ EKSİK METOD EKLENDİ
+  String _getLoadingText(final double progress) {
+    if (progress < 0.3) return 'Sahne hazırlanıyor...';
+    if (progress < 0.6) return 'Oyuncular hazırlanıyor...';
+    if (progress < 0.9) return 'Perde kalkıyor...';
+    return 'Hoş geldiniz!';
   }
 }
