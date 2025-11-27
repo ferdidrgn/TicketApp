@@ -120,7 +120,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize:
-                                context.responsive(mobile: 52.0, desktop: 84.0),
+                            context.responsive(mobile: 52.0, desktop: 84.0),
                             fontWeight: FontWeight.w300,
                             fontFamily: 'Playfair Display',
                             color: WebColors.primaryGold.withOpacity(0.1),
@@ -133,7 +133,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize:
-                                context.responsive(mobile: 52.0, desktop: 84.0),
+                            context.responsive(mobile: 52.0, desktop: 84.0),
                             fontWeight: FontWeight.w300,
                             fontFamily: 'Playfair Display',
                             color: Colors.white,
@@ -165,7 +165,7 @@ class _MetaforLandingState extends State<MetaforLanding>
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize:
-                              context.responsive(mobile: 14.0, desktop: 18.0),
+                          context.responsive(mobile: 14.0, desktop: 18.0),
                           color: WebColors.textSecondary,
                           letterSpacing: 1.5,
                           fontWeight: FontWeight.w300,
@@ -433,9 +433,9 @@ class _MetaforLandingState extends State<MetaforLanding>
           ),
           SizedBox(height: context.gridSpacing * 1.5),
           const Text(
-            "Zamanın durduğu bir limanda, eski ciltlerin solgun kokuları arasında üç yalnız ruhun kesişen kaderleri... "
-            "Tozlu rafların sessiz tanığı bir sahaf, kelimelerin büyüsüne tutkun genç bir yazar, "
-            "ve geçmişin gölgelerinden sıyrılıp gelen bir kadın. ",
+            'Zamanın olmadığı bir yerde, eski kitaplarla dolu tozlu bir sahaf dükkânında üç kişi bir araya gelir: '
+                'Hayata küsmüş, geçmişin sayfalarına sığınmış içedönük bir sahaf; yanından hiç ayrılmayan, yazar olma hayaliyle dolu genç bir adam; '
+                've geçmişin gölgesinden çıkıp gelen bir genç kadın.',
             style: TextStyle(
               color: Colors.white70,
               height: 1.6,
@@ -446,8 +446,8 @@ class _MetaforLandingState extends State<MetaforLanding>
           SizedBox(height: context.gridSpacing),
           const Text(
             "Metafor, insan ruhunun labirentlerinde unutulmaz bir yolculuk vaat ediyor. "
-            "Yekta Kopan'ın incelikli kalemi ve Gürkan Candan'ın ustalıklı yönetmenliğiyle, "
-            "izleyiciyi zamanın ötesine taşıyan bir tiyatro deneyimi.",
+                "Yekta Kopan'ın incelikli kalemi ve Gürkan Candan'ın ustalıklı yönetmenliğiyle, "
+                "izleyiciyi zamanın ötesine taşıyan bir tiyatro deneyimi.",
             style: TextStyle(
               color: Colors.white70,
               height: 1.6,
