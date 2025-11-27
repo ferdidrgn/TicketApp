@@ -106,12 +106,10 @@ class _WebNavBarState extends State<WebNavBar>
           const Spacer(),
 
           // Navigation Items
-          // Row yerine Wrap kullanın.
           Wrap(
-            // **DEĞİŞİKLİK BURADA**
-            spacing: 4.0, // Butonlar arası yatay boşluk
-            runSpacing: 4.0, // Butonlar alt satıra geçtiğinde dikey boşluk
-            alignment: WrapAlignment.end, // Sağa yasla
+            spacing: 4.0,
+            runSpacing: 4.0,
+            alignment: WrapAlignment.end,
             children: [
               _buildNavItem(context, 'home', 'ANA SAYFA'),
               _buildNavItem(context, 'shows', 'OYUNLAR'),
@@ -126,15 +124,41 @@ class _WebNavBarState extends State<WebNavBar>
     );
   }
 
+  // ✅ DEĞİŞİKLİK 1: Row yerine Stack kullanıldı.
   Widget _buildMobileNav(final BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center, // İçindeki her şeyi merkeze hizalar
         children: [
-          _buildLogo(context),
-          const Spacer(),
-          _buildMobileMenu(context),
+          // Katman 1: Sol ve Sağ elemanlar (Logo ve Menü)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildLogo(context),
+              _buildMobileMenu(context),
+            ],
+          ),
+          // Katman 2: Tam Ortadaki Yazı
+          _buildWebName(),
         ],
+      ),
+    );
+  }
+
+  // ✅ DEĞİŞİKLİK 2: Ortadaki yazı için yardımcı widget eklendi.
+  Widget _buildWebName() {
+    return ShaderMask(
+      shaderCallback: (final bounds) =>
+          WebColors.goldGradient.createShader(bounds),
+      child: const Text(
+        'TiyatRol',
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          letterSpacing: 1,
+        ),
       ),
     );
   }
@@ -154,9 +178,9 @@ class _WebNavBarState extends State<WebNavBar>
                   'assets/images/tiyatrol_logo.png',
                   fit: BoxFit.cover,
                   width: context.responsive(
-                    mobile: 60, // Mobilde küçük
-                    tablet: 80, // Tablette orta
-                    desktop: 100, // Desktop'ta büyük
+                    mobile: 60,
+                    tablet: 80,
+                    desktop: 100,
                   ),
                   height: context.responsive(
                     mobile: 60,
@@ -166,6 +190,9 @@ class _WebNavBarState extends State<WebNavBar>
                 ),
               ),
               const SizedBox(width: 12),
+              // Mobilde buradaki yazı gizleniyor (!context.isMobile kontrolü var)
+              // Biz bunu _buildWebName ile ortada gösterdik zaten.
+              if (!context.isMobile) ...[
                 ShaderMask(
                   shaderCallback: (final bounds) =>
                       WebColors.goldGradient.createShader(bounds),
@@ -180,6 +207,7 @@ class _WebNavBarState extends State<WebNavBar>
                   ),
                 ),
               ],
+            ],
           ),
         );
       },
