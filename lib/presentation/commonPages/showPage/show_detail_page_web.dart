@@ -1088,27 +1088,55 @@ class _GalleryItem extends StatelessWidget {
       barrierColor: const Color(0xFF0a0a1a).withOpacity(0.95),
       builder: (final _) => Dialog(
         backgroundColor: Colors.transparent,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            InteractiveViewer(
-                child:
-                    OptimizedCachedImage(imageUrl: url, fit: BoxFit.contain)),
-            Positioned(
-              top: 20,
-              right: 20,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFD4AF37),
-                      borderRadius: BorderRadius.circular(30)),
-                  child: const Icon(Icons.close, color: Color(0xFF0a0a1a)),
+        insetPadding: EdgeInsets.zero,
+        // ✅ 1. Kenar boşluklarını kaldırdık (En Önemlisi)
+        child: SizedBox(
+          // ✅ 2. Dialog içeriğini ekran boyutuna zorladık
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              InteractiveViewer(
+                // Zoom sınırlarını belirledik
+                minScale: 0.5,
+                maxScale: 4.0,
+                // Pan sınırlarını serbest bıraktık
+                panEnabled: true,
+                boundaryMargin: const EdgeInsets.all(double.infinity),
+                child: Center(
+                  child: OptimizedCachedImage(
+                    imageUrl: url,
+                    fit: BoxFit.contain, // Resmi bozmadan sığdır
+                    // ✅ 3. Resmin container'ı doldurmasını sağladık
+                    width: MediaQuery.of(context).size.width,
+                    height: MediaQuery.of(context).size.height,
+                  ),
                 ),
               ),
-            ),
-          ],
+              Positioned(
+                top: 20,
+                right: 20,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFD4AF37),
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5),
+                            blurRadius: 10,
+                          )
+                        ]),
+                    child: const Icon(Icons.close,
+                        color: Color(0xFF0a0a1a), size: 24),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
