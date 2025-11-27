@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:simple_html_css/simple_html_css.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart'; // ✅ Yeni Kütüphane
+import 'package:url_launcher/url_launcher.dart'; // Linklere tıklanabilmesi için (Opsiyonel ama önerilir)
 import '../../../../data/providers/appTools/app_tools_provider.dart';
 import '../../../../data/providers/appTools/app_tools_state.dart';
 
@@ -53,35 +54,43 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
       backgroundColor: theme.colorScheme.surface,
       elevation: 0,
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(48),
+        preferredSize: const Size.fromHeight(60),
+        // Biraz yükselttim, tablar sıkışmasın
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Container(
             decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                color:
+                    theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12)),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   color: theme.colorScheme.primary),
-              indicatorPadding:
-                  const EdgeInsets.symmetric(horizontal: -10, vertical: 5),
+              indicatorPadding: EdgeInsets.zero,
+              // Padding sorunu olmasın diye sıfırladım
               indicatorSize: TabBarIndicatorSize.tab,
-              tabAlignment: TabAlignment.fill,
+              dividerColor: Colors.transparent,
+              // Tab altındaki çizgiyi kaldırdım
               labelColor: theme.colorScheme.onPrimary,
               unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
               labelStyle:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              // Sığması için fontu hafif küçülttüm
               unselectedLabelStyle:
-                  const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                  const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               tabs: const [
                 Tab(
-                    icon: Icon(Icons.privacy_tip, size: 20),
-                    text: 'Privacy Policy'),
+                  icon: Icon(Icons.privacy_tip_outlined, size: 20),
+                  text: 'Privacy Policy',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
                 Tab(
-                    icon: Icon(Icons.description, size: 20),
-                    text: 'Terms & Conditions'),
+                  icon: Icon(Icons.description_outlined, size: 20),
+                  text: 'Terms & Conditions',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
               ],
             ),
           ),
@@ -92,8 +101,9 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
 
   Widget _buildBody(final AppToolsState state, final ThemeData theme) {
     if (state.isLoading) return _buildLoadingState(theme);
-    if (state.errorMessage != null)
+    if (state.errorMessage != null) {
       return _buildErrorState(state.errorMessage!, theme);
+    }
 
     return TabBarView(
       controller: _tabController,
@@ -176,6 +186,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
         children: [
           _buildHeader(title, icon, theme),
           const SizedBox(height: 24),
+          // ✅ GÜNCELLENEN KISIM BURASI
           _buildHtmlContent(content, theme),
           const SizedBox(height: 32),
           _buildLastUpdated(theme)
@@ -201,7 +212,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: theme.colorScheme.shadow.withOpacity(0.1),
+                color: theme.shadowColor.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 2)),
           ],
@@ -236,7 +247,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
             ),
             const SizedBox(height: 5),
             Text(
-              'Lütfen Dikkatli Okuyunuz',
+              'Lütfen dikkatlice okuyunuz',
               style: TextStyle(
                   fontSize: 14,
                   color: theme.colorScheme.onPrimaryContainer.withOpacity(0.7)),
@@ -245,25 +256,39 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
         ),
       );
 
+  // ✅ BU METOD TAMAMEN GÜNCELLENDİ
   Widget _buildHtmlContent(final String content, final ThemeData theme) =>
       Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
         ),
-        child: RichText(
-          text: HTML.toTextSpan(
-            context,
-            content,
-            defaultTextStyle: TextStyle(
-                fontSize: 16,
-                height: 1.6,
-                color: theme.colorScheme.onSurface,
-                decoration: TextDecoration.none),
+        child: HtmlWidget(
+          content,
+          // Temel Metin Stili
+          textStyle: TextStyle(
+            fontSize: 15, // Biraz daha okunaklı boyut
+            height: 1.6,
+            color: theme.colorScheme.onSurface,
+            fontFamily:
+                theme.textTheme.bodyMedium?.fontFamily, // Uygulama fontunu koru
           ),
+
+          // Linklere tıklandığında ne olacağı
+          onTapUrl: (url) async {
+            final uri = Uri.parse(url);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri);
+              return true;
+            }
+            return false;
+          },
+
+          // İstersen özel CSS stilleri de tanımlayabilirsin,
+          // ama HtmlWidget genelde otomatik halleder.
         ),
       );
 
@@ -282,7 +307,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Bu dökümanın en son güncellenme tarihi : This document was last updated on ${DateTime.now().toString().split(' ')[0]}',
+                'Son Güncelleme Tarihi: ${DateTime.now().toString().split(' ')[0]}',
                 style: TextStyle(
                     fontSize: 14,
                     color: theme.colorScheme.onSurfaceVariant,

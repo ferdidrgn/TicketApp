@@ -98,9 +98,6 @@ dev_dependencies:
   freezed: ^2.5.2
   json_serializable: ^6.8.0
 
-  # Açılış Ekranı
-  flutter_native_splash: ^2.4.0
-
 flutter:
   uses-material-design: true
 
@@ -113,29 +110,3 @@ flutter:
     - assets/images/tiyatrol_logo.png
     # Web logosunu kullanıyorsan:
     # - web/tiyatrol_logo.png
-
-# -------------------------------------------------
-# SPLASH SCREEN AYARLARI
-# -------------------------------------------------
-flutter_native_splash:
-  # Mobil
-  color: "#FFFFFF"
-  image: "assets/images/app_logo.jpg"
-  branding: "assets/images/app_logo.jpg"
-  android_12:
-    color: "#FFFFFF"
-    image: "assets/images/app_logo.jpg"
-
-  # Mobil (Koyu Tema)
-  dark_mode: true
-  color_dark: "#1A1A1A"
-  image_dark: "assets/images/app_logo.jpg"
-  android_12_dark:
-    color: "#1A1A1A"
-    image: "assets/images/app_logo.jpg"
-
-  # Web
-  web: true
-  color_web: "#0A1628"
-  image_web: "web/tiyatrol_logo.png"
-  web_image_mode: center
