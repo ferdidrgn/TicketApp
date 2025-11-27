@@ -52,8 +52,10 @@ class _WebNavBarState extends State<WebNavBar>
 
   @override
   Widget build(final BuildContext context) {
-    // 900 piksel altını mobil/tablet dar ekran kabul ediyoruz
-    final bool _isNarrow = context.screenWidth < 900;
+    // ✅ DÜZELTME 1: Sınırı 900'den 1100'e çektik.
+    // Menü öğeleri çok olduğu için daha geniş bir alana ihtiyaç duyuyorlar.
+    // Sığmadığı an otomatik olarak Mobil (Burger) menüye geçecek.
+    final bool _isNarrow = context.screenWidth < 1100;
 
     return AnimatedBuilder(
       animation: _controller,
@@ -113,10 +115,9 @@ class _WebNavBarState extends State<WebNavBar>
           const Spacer(),
 
           // 3. Menü Linkleri
-          Wrap(
-            spacing: 4.0,
-            runSpacing: 4.0,
-            alignment: WrapAlignment.end,
+          // Wrap yerine Row kullanıp Flexible ile sarmak taşmayı önler ama
+          // biz zaten breakpoint'i (1100) arttırarak sorunu kökten çözdük.
+          Row(
             children: [
               _buildNavItem(context, 'home', 'ANA SAYFA'),
               _buildNavItem(context, 'shows', 'OYUNLAR'),
@@ -136,7 +137,7 @@ class _WebNavBarState extends State<WebNavBar>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Stack(
-        alignment: Alignment.center, // Büyüyü yapan yer burası: MERKEZLEME
+        alignment: Alignment.center, // MERKEZLEME
         children: [
           // Katman 1: En Sol (Logo) ve En Sağ (Menü İkonu)
           Row(
@@ -170,7 +171,7 @@ class _WebNavBarState extends State<WebNavBar>
               'assets/images/tiyatrol_logo.png',
               fit: BoxFit.cover,
               width: context.responsive(
-                mobile: 50, // Mobilde biraz daha kibar
+                mobile: 50,
                 tablet: 70,
                 desktop: 90,
               ),
@@ -218,8 +219,10 @@ class _WebNavBarState extends State<WebNavBar>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              // Kenar boşluğu azaltıldı
+              // ✅ DÜZELTME 2: İç padding 16'dan 12'ye düşürüldü.
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 gradient: isActive ? WebColors.goldGradient : null,
                 borderRadius: BorderRadius.circular(8),
@@ -241,7 +244,7 @@ class _WebNavBarState extends State<WebNavBar>
                       color: isActive
                           ? WebColors.darkBlueBackground
                           : WebColors.lightWhite,
-                      letterSpacing: 1.5,
+                      letterSpacing: 1.0, // Harf aralığı biraz kısıldı
                     ),
                   ),
                   if (isActive) ...[
@@ -279,7 +282,7 @@ class _WebNavBarState extends State<WebNavBar>
         child: const Icon(
           Icons.menu,
           color: WebColors.primaryGold,
-          size: 24, // Mobilde ikon boyutu ideal
+          size: 24,
         ),
       ),
       color: WebColors.darkBlueSurface,
