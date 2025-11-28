@@ -53,7 +53,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     // ✅ Video Yükleme Başlatıcı
     // Sayfa ilk oluştuğunda videoyu hazırlamaya başla
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       ref.read(homeAssetsProvider.notifier).initializeVideo();
     });
   }
@@ -90,7 +90,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     String? currentSection;
     double minDistance = double.infinity;
 
-    sections.forEach((key, globalKey) {
+    sections.forEach((final key, final globalKey) {
       final context = globalKey.currentContext;
       if (context != null) {
         final RenderBox box = context.findRenderObject()! as RenderBox;
@@ -111,7 +111,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     // 1. Veri Durumunu İzle
     final videoState = ref.watch(homeAssetsProvider);
     final isVideoReady = videoState.isVideoReady;
@@ -140,7 +140,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       isLoading: !isVideoReady, // Video hazır değilse Splash göster
       loadingMessage: 'Oyunlar yükleniyor...',
       child: Listener(
-        onPointerSignal: (pointerSignal) {
+        onPointerSignal: (final pointerSignal) {
           if (pointerSignal is PointerScrollEvent) {
             final newOffset =
                 widget.scrollController.offset + pointerSignal.scrollDelta.dy;
