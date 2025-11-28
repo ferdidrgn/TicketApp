@@ -37,11 +37,13 @@ class _TeamCardState extends State<TeamCard> {
       final firestore = FirebaseFirestore.instance;
       final storage = FirebaseStorage.instance;
 
-      final showService = ShowRemoteDataSourceImpl(firestore: firestore, storage: storage);
+      final showService =
+          ShowRemoteDataSourceImpl(firestore: firestore, storage: storage);
       final shows = await showService.getShowsByIds(["XqKkUbIflyWxZbNLZvqV"]);
 
       if (shows != null && shows.isNotEmpty) {
-        await _fetchNowPlayers(shows.first?.nowPlayersId?.cast<String>(), firestore);
+        await _fetchNowPlayers(
+            shows.first?.nowPlayersId?.cast<String>(), firestore);
       }
     } catch (error) {
       if (mounted) setState(() => errorMessage = error.toString());
@@ -50,7 +52,8 @@ class _TeamCardState extends State<TeamCard> {
     }
   }
 
-  Future<void> _fetchNowPlayers(final List<String>? playersId, final FirebaseFirestore firestore) async {
+  Future<void> _fetchNowPlayers(
+      final List<String>? playersId, final FirebaseFirestore firestore) async {
     if (playersId != null && playersId.isNotEmpty) {
       try {
         final playerService = PlayerRemoteDataSourceImpl(firestore: firestore);
@@ -58,7 +61,11 @@ class _TeamCardState extends State<TeamCard> {
 
         if (mounted) {
           setState(() {
-            nowPlayerDataList = players?.map((e) => e?.toEntity()).whereType<Player>().toList() ?? [];
+            nowPlayerDataList = players
+                    ?.map((e) => e?.toEntity())
+                    .whereType<Player>()
+                    .toList() ??
+                [];
           });
         }
       } catch (error) {
@@ -80,7 +87,6 @@ class _TeamCardState extends State<TeamCard> {
   Widget build(final BuildContext context) {
     return Container(
       width: double.infinity,
-      // Responsive Padding: Mobil 40, Desktop 80
       padding: context.responsive(
         mobile: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
         tablet: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
@@ -91,15 +97,15 @@ class _TeamCardState extends State<TeamCard> {
       ),
       child: Column(
         children: [
-          // Başlık
           ShaderMask(
-            shaderCallback: (final bounds) => WebColors.goldGradient.createShader(bounds),
+            shaderCallback: (final bounds) =>
+                WebColors.goldGradient.createShader(bounds),
             child: Text(
               'SANATIMIZDAKİ RUHLAR',
               textAlign: TextAlign.center,
               style: TextStyle(
-                // Font Size: Mobil 24, Tablet 36, Desktop 48
-                fontSize: context.responsive(mobile: 24.0, tablet: 36.0, desktop: 48.0),
+                fontSize: context.responsive(
+                    mobile: 24.0, tablet: 36.0, desktop: 48.0),
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
                 letterSpacing: context.isMobile ? 1 : 2,
@@ -117,27 +123,27 @@ class _TeamCardState extends State<TeamCard> {
             ),
           ),
           SizedBox(height: context.responsive(mobile: 30.0, desktop: 50.0)),
-
           if (isLoading)
             const CircularProgressIndicator(color: WebColors.primaryGold)
           else if (errorMessage != null)
-            Text('Hata: $errorMessage', style: const TextStyle(color: WebColors.error))
+            Text('Hata: $errorMessage',
+                style: const TextStyle(color: WebColors.error))
           else if (nowPlayerDataList.isEmpty)
-              const Text('Henüz oyuncu bilgisi yok', style: TextStyle(color: Colors.white70))
-            else
-              _buildTeamCarousel(context),
+            const Text('Henüz oyuncu bilgisi yok',
+                style: TextStyle(color: Colors.white70))
+          else
+            _buildTeamCarousel(context),
         ],
       ),
     );
   }
 
   Widget _buildTeamCarousel(final BuildContext context) {
-    // KART YÜKSEKLİĞİ (Responsive)
-    // ShowsSection ile uyumlu boyutlar
-    final cardHeight = context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
+    final cardHeight =
+        context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
 
     return SizedBox(
-      height: cardHeight + 60, // Animasyon payı
+      height: cardHeight + 60,
       child: Stack(
         children: [
           ListView.builder(
@@ -151,19 +157,27 @@ class _TeamCardState extends State<TeamCard> {
             itemBuilder: (final context, final index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: _TeamMemberCard(member: nowPlayerDataList[index], index: index),
+                child: _TeamMemberCard(
+                    member: nowPlayerDataList[index], index: index),
               );
             },
           ),
-
           if (!context.isMobile) ...[
             Positioned(
-              left: 10, top: 0, bottom: 0,
-              child: Center(child: _buildNavButton(Icons.arrow_back_ios, () => _scroll(true))),
+              left: 10,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                  child: _buildNavButton(
+                      Icons.arrow_back_ios, () => _scroll(true))),
             ),
             Positioned(
-              right: 10, top: 0, bottom: 0,
-              child: Center(child: _buildNavButton(Icons.arrow_forward_ios, () => _scroll(false))),
+              right: 10,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                  child: _buildNavButton(
+                      Icons.arrow_forward_ios, () => _scroll(false))),
             ),
           ],
         ],
@@ -176,7 +190,10 @@ class _TeamCardState extends State<TeamCard> {
       decoration: BoxDecoration(
         gradient: WebColors.goldGradient,
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: WebColors.primaryGold.withOpacity(0.5), blurRadius: 15)],
+        boxShadow: [
+          BoxShadow(
+              color: WebColors.primaryGold.withOpacity(0.5), blurRadius: 15)
+        ],
       ),
       child: IconButton(
         onPressed: onPressed,
@@ -186,10 +203,6 @@ class _TeamCardState extends State<TeamCard> {
     );
   }
 }
-
-// -----------------------------------------------------------------------------
-// TEAM CARD (ShowsSection ile Aynı Stil, Aynı Animasyon Mantığı)
-// -----------------------------------------------------------------------------
 
 class _TeamMemberCard extends StatefulWidget {
   final Player? member;
@@ -208,16 +221,17 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
     if (widget.member == null) return '?';
     final firstName = widget.member!.firstName ?? '';
     final lastName = widget.member!.lastName ?? '';
-    return '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}'.toUpperCase();
+    return '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}'
+        .toUpperCase();
   }
 
   @override
   Widget build(final BuildContext context) {
     final isMobile = context.isMobile;
-
-    // Responsive boyutlar
-    final width = context.responsive(mobile: 170.0, tablet: 220.0, desktop: 280.0);
-    final height = context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
+    final width =
+        context.responsive(mobile: 170.0, tablet: 220.0, desktop: 280.0);
+    final height =
+        context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
 
     Widget cardWidget = AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -227,12 +241,16 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(context.isMobile ? 16 : 24),
         border: Border.all(
-          color: _isActive ? WebColors.primaryGold : WebColors.primaryGold.withOpacity(0.3),
+          color: _isActive
+              ? WebColors.primaryGold
+              : WebColors.primaryGold.withOpacity(0.3),
           width: _isActive ? 3 : 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: _isActive ? WebColors.primaryGold.withOpacity(0.5) : Colors.black.withOpacity(0.3),
+            color: _isActive
+                ? WebColors.primaryGold.withOpacity(0.5)
+                : Colors.black.withOpacity(0.3),
             blurRadius: _isActive ? 25 : 15,
             spreadRadius: _isActive ? 2 : 0,
             offset: Offset(0, _isActive ? 12 : 8),
@@ -243,71 +261,85 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
         borderRadius: BorderRadius.circular(context.isMobile ? 14 : 22),
         child: Stack(
           children: [
+            // 1. KATMAN: GÖRSEL
             if (widget.member?.imageUrl != null)
               Positioned.fill(
                 child: Image.network(
                   widget.member!.imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(color: WebColors.darkBlueSurface),
+                  errorBuilder: (_, __, ___) =>
+                      Container(color: WebColors.darkBlueSurface),
                 ),
               ),
 
+            // 2. KATMAN: SİYAH FİLGRAN / KARARTMA (DÜZELTİLDİ)
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.95)],
-                    stops: const [0.3, 1.0],
+                    colors: [
+                      // Üst kısım artık şeffaf değil, hafif siyah (%30)
+                      // Bu, parlak yüzleri dengeler.
+                      Colors.black.withOpacity(0.1),
+                      // Alt kısım metin okunması için koyu siyah (%95)
+                      Colors.black.withOpacity(0.90)
+                    ],
+                    // Karartma üstten başlasın
+                    stops: const [0.0, 1.0],
                   ),
                 ),
               ),
             ),
 
+            // 3. KATMAN: İÇERİK
             Padding(
-              padding: EdgeInsets.all(context.responsive(mobile: 12.0, desktop: 24.0)),
+              padding: EdgeInsets.all(
+                  context.responsive(mobile: 12.0, desktop: 24.0)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Avatar
                   Container(
                     width: context.responsive(mobile: 50.0, desktop: 80.0),
                     height: context.responsive(mobile: 50.0, desktop: 80.0),
                     decoration: BoxDecoration(
                       gradient: WebColors.goldGradient,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: WebColors.primaryGold.withOpacity(0.5), blurRadius: 10)],
+                      boxShadow: [
+                        BoxShadow(
+                            color: WebColors.primaryGold.withOpacity(0.5),
+                            blurRadius: 10)
+                      ],
                     ),
                     child: Center(
                       child: Text(
                         _getInitials(),
                         style: TextStyle(
-                          fontSize: context.responsive(mobile: 18.0, desktop: 32.0),
+                          fontSize:
+                              context.responsive(mobile: 18.0, desktop: 32.0),
                           fontWeight: FontWeight.w900,
                           color: WebColors.darkBlueBackground,
                         ),
                       ),
                     ),
                   ),
-
                   const Spacer(),
-
-                  // İsim
                   Text(
                     '${widget.member?.firstName ?? ''} ${widget.member?.lastName ?? ''}',
                     style: TextStyle(
-                      fontSize: context.responsive(mobile: 16.0, tablet: 20.0, desktop: 24.0),
+                      fontSize: context.responsive(
+                          mobile: 16.0, tablet: 20.0, desktop: 24.0),
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                       height: 1.1,
-                      shadows: const [Shadow(color: Colors.black, blurRadius: 10)],
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 10)
+                      ],
                     ),
                   ),
-
-                  SizedBox(height: context.responsive(mobile: 4.0, desktop: 8.0)),
-
-                  // Bio
+                  SizedBox(
+                      height: context.responsive(mobile: 4.0, desktop: 8.0)),
                   Text(
                     widget.member?.bio ?? '',
                     style: TextStyle(
@@ -326,7 +358,6 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
       ),
     );
 
-    // Giriş Animasyonu
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 600 + (widget.index * 100)),
       tween: Tween(begin: 0.0, end: 1.0),
@@ -339,16 +370,16 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
       },
       child: isMobile
           ? Listener(
-        onPointerDown: (_) => setState(() => _isActive = true),
-        onPointerUp: (_) => setState(() => _isActive = false),
-        onPointerCancel: (_) => setState(() => _isActive = false),
-        child: cardWidget,
-      )
+              onPointerDown: (_) => setState(() => _isActive = true),
+              onPointerUp: (_) => setState(() => _isActive = false),
+              onPointerCancel: (_) => setState(() => _isActive = false),
+              child: cardWidget,
+            )
           : MouseRegion(
-        onEnter: (_) => setState(() => _isActive = true),
-        onExit: (_) => setState(() => _isActive = false),
-        child: cardWidget,
-      ),
+              onEnter: (_) => setState(() => _isActive = true),
+              onExit: (_) => setState(() => _isActive = false),
+              child: cardWidget,
+            ),
     );
   }
 }
