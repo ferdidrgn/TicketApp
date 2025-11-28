@@ -12,7 +12,6 @@ import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/theater_section_divider.dart';
-
 import '../../../../mobil/pages/splash/dataguard.dart';
 import 'widgets/footer.dart';
 

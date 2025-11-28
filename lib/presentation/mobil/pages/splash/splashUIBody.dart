@@ -11,7 +11,8 @@ class SplashUIBody extends StatefulWidget {
   State<SplashUIBody> createState() => _SplashUIBodyState();
 }
 
-class _SplashUIBodyState extends State<SplashUIBody> with SingleTickerProviderStateMixin {
+class _SplashUIBodyState extends State<SplashUIBody>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _pulseAnimation;
 
@@ -36,7 +37,7 @@ class _SplashUIBodyState extends State<SplashUIBody> with SingleTickerProviderSt
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
@@ -74,7 +75,8 @@ class _SplashUIBodyState extends State<SplashUIBody> with SingleTickerProviderSt
                   child: Image.asset(
                     'assets/images/tiyatrol_logo.png',
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
+                    errorBuilder:
+                        (final context, final error, final stackTrace) {
                       return const Icon(
                         Icons.theater_comedy,
                         size: 80,
@@ -99,7 +101,40 @@ class _SplashUIBodyState extends State<SplashUIBody> with SingleTickerProviderSt
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: isMobile ? 40 : 60),
+
+            // Alt başlık
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: const Color(0xFFD4AF37).withOpacity(0.3),
+                    width: 1,
+                  ),
+                  bottom: BorderSide(
+                    color: const Color(0xFFD4AF37).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Text(
+                'Sahnede hayat, perdede hikaye\nHer oyun bir yolculuk, her sahne bir keşif',
+                style: TextStyle(
+                  fontSize: isMobile ? 14 : 16,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFFF5E6D3).withOpacity(0.9),
+                  letterSpacing: 1.5,
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            SizedBox(height: isMobile ? 12 : 16),
 
             // Loading Bar (Indeterminate)
             SizedBox(

@@ -1,7 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
-import '../presentation/mobil/pages/bottom_nav_pages/home_page.dart';
 import '../presentation/web/navigation/widgets/main_scaffold.dart';
 
 class AppHomePage extends StatefulWidget {
@@ -24,9 +21,10 @@ class _AppHomePageState extends State<AppHomePage> {
     super.initState();
     _animationsStarted = widget.startAnimations;
 
-    // Eğer animasyonlar başlamadıysa, 100ms sonra başlat
+    // Eğer animasyonlar başlamadıysa, ufak bir gecikmeyle başlat.
+    // Bu gecikme, sayfa render olurken "takılma" olmaması içindir.
     if (!_animationsStarted) {
-      Future.delayed(const Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 5000), () {
         if (mounted)
           setState(() {
             _animationsStarted = true;
@@ -38,13 +36,7 @@ class _AppHomePageState extends State<AppHomePage> {
   @override
   Widget build(final BuildContext context) {
     return Scaffold(
-      body: _animationsStarted
-          ? MainScaffold()
-          : const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFD4AF37),
-              ),
-            ),
+      body: MainScaffold(startAnimations: _animationsStarted),
     );
   }
 }
