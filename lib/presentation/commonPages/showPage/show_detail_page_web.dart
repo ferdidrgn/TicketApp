@@ -66,7 +66,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (mounted) {
         _fetchInitialData();
-        _precacheHeaderImage();
+        // Header resmi preload edilebilir, ancak data loaded olduktan sonra yapmak daha garantidir.
       }
     });
   }
@@ -87,7 +87,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     _contentFade =
         CurvedAnimation(parent: _contentController, curve: Curves.easeOut);
 
+    // ❌ ESKİ KOD: _heroController.forward() burada çağrılıyordu.
+    // Artık Splash bittikten sonra çağıracağız.
+  }
+
+  // ✅ YENİ: Animasyonları başlatan fonksiyon
+  void _startPageAnimations() {
     _heroController.forward();
+    // İçerik animasyonunu Hero'dan biraz sonra başlat
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _contentController.forward();
     });
@@ -130,7 +137,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         showData = ref.read(showProvider).getShowById(widget.showId);
         if (showData == null) {
           if (mounted) showNotifier.setErrorState("Gösteri yüklenemedi.");
-          // Hata olsa bile loading'i kapat ki hata mesajını görelim
+          // Hata durumunda da loading'i bitir ki UI görünsün (Hata mesajı)
           if (mounted) setState(() => _isDataLoaded = true);
           return;
         }
@@ -166,10 +173,20 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     // Hepsini bekle
     await Future.wait(futures);
 
-    // ✅ DÜZELTME: Veriler gelince setState yaparak UI'ı tetikle (Splash kalksın)
+    // 4. Resmi önbelleğe al
+    if (mounted) _precacheHeaderImage();
+
+    // 5. Veriler hazır, Splash'i kaldır ve animasyonları başlat
     if (mounted) {
       setState(() {
-        _isDataLoaded = true;
+        _isDataLoaded =
+            true; // Bu satır Splash'in fade-out (kaybolma) sürecini başlatır
+      });
+
+      // 🚀 ZAMANLAMA: Splash'in kaybolması yaklaşık 800ms sürer.
+      // Animasyonları bu sürenin sonunda başlatıyoruz ki kullanıcı görsün.
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) _startPageAnimations();
       });
     }
   }
@@ -204,7 +221,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     _listenForStageData();
 
     // ✅ SPLASH ENTEGRASYONU
-    // Veriler (_isDataLoaded) henüz hazır değilse Splash göster.
     return SplashDataGuard(
       isLoading: !_isDataLoaded,
       loadingMessage: 'Oyun detayları hazırlanıyor...',
@@ -275,8 +291,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   }
 }
 
-// ... _MainContent, _DesktopLayout, _MobileLayout AYNEN KALIYOR ...
-// (Burada kod tekrarı yapmıyorum, yukarıdaki orijinal kodun aynısıdır)
+// ... _MainContent, _DesktopLayout, _MobileLayout ve diğer tüm alt widget'lar ...
+// (Burada kodun geri kalanı orijinal halini koruyor, sadece importları ve yukarıdaki class'ı güncellemeniz yeterli.)
 
 class _MainContent extends StatelessWidget {
   final Show showData;
@@ -450,11 +466,6 @@ class _FloatingBackButton extends StatelessWidget {
           if (context.canPop()) {
             context.pop();
           } else {
-            // Eğer stack boşsa (örneğin deep link ile gelindiyse),
-            // Ana sayfaya git ama 'section' bilgisini de yanında götür.
-            // Böylece HomePage açıldığında direkt 'Shows' bölümüne kayabilir.
-            // (Bunun çalışması için HomePage'in bu 'extra'yı okuması gerekir,
-            // okumasa bile en azından Home'a döneriz).
             context.go('/home', extra: {'section': 'shows'});
           }
         },
@@ -472,9 +483,7 @@ class _FloatingBackButton extends StatelessWidget {
   }
 }
 
-// ... Diğer tüm widgetlar (ParallaxHero, Gallery vb.) olduğu gibi kalacak ...
-// (Buraya kopyalamıyorum, önceki versiyondakilerin aynısıdır)
-
+// --- HELPER WIDGETS ---
 class _ParallaxHero extends StatelessWidget {
   final Show showData;
   final ValueNotifier<double> scrollNotifier;
