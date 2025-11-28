@@ -32,22 +32,27 @@ mixin AppRouter {
         GoRoute(
           path: '/home',
           name: 'home',
-          pageBuilder: (final context, final state) => CustomTransitionPage(
-            key: state.pageKey,
-            child: const AppHomePage(),
-            transitionsBuilder:
-                (final context, final animation, final secondaryAnimation, final child) {
-              // Fade-in geçiş
-              return FadeTransition(
-                opacity: CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeInOut,
-                ),
-                child: child,
-              );
-            },
-            transitionDuration: const Duration(milliseconds: 500),
-          ),
+          pageBuilder: (final context, final state) {
+            final startAnimations = state.extra is Map
+                ? (state.extra! as Map)['startAnimations'] ?? false
+                : false;
+
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: AppHomePage(startAnimations: startAnimations),
+              transitionsBuilder: (final context, final animation,
+                  final secondaryAnimation, final child) {
+                return FadeTransition(
+                  opacity: CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeInOut,
+                  ),
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 500),
+            );
+          },
         ),
 
         // ✅ LOGIN

@@ -5,7 +5,12 @@ import 'package:ticketapp/presentation/web/pages/nav_pages/home/home_page.dart';
 /// Ana sayfa scaffold'u - Tüm componentleri bir araya getirir
 /// Active section tracking, smooth scroll ve modern navbar içerir
 class MainScaffold extends StatefulWidget {
-  const MainScaffold({super.key});
+  final bool startAnimations;
+
+  const MainScaffold({
+    super.key,
+    this.startAnimations = false
+  });
 
   @override
   State<MainScaffold> createState() => _MainScaffoldState();
@@ -82,6 +87,7 @@ class _MainScaffoldState extends State<MainScaffold> {
               contactKey: _contactKey,
               activeSection: _activeSection,
               scrollController: _scrollController,
+              startAnimations: widget.startAnimations, // ✅ Burayı ekleyin
             ),
           )
         ],

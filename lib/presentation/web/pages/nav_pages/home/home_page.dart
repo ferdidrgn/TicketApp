@@ -12,6 +12,7 @@ import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/theater_
 import 'widgets/footer.dart';
 
 class HomePage extends StatefulWidget {
+  final bool startAnimations;
   final GlobalKey showsKey;
   final GlobalKey aboutKey;
   final GlobalKey teamKey;
@@ -29,6 +30,7 @@ class HomePage extends StatefulWidget {
     required this.contactKey,
     this.activeSection,
     required this.scrollController,
+    this.startAnimations = false,
   });
 
   @override
@@ -125,8 +127,14 @@ class _HomePageState extends State<HomePage> {
               physics: const BouncingScrollPhysics(),
               child: Column(
                 children: [
-                  // Hero Section
-                  Container(key: _homeKey, child: const HeroVideoSection()),
+                  // ✅ DEĞİŞTİ: Hero Section - startAnimations parametresini geç
+                  Container(
+                      key: _homeKey,
+                      child: HeroVideoSection(
+                        startAnimations: widget
+                            .startAnimations, // ← BURAYA EKLEYİN
+                      )
+                  ),
 
                   // Shows Section
                   Container(key: widget.showsKey, child: const ShowsSection()),

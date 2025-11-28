@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/data/providers/login/login_provider.dart';
 import 'package:ticketapp/router/splash_router.dart';
 import '../../../../data/providers/login/login_state.dart';
+import '../../../web/pages/nav_pages/home/widgets/home_asset_video_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   final String initialRoute;
@@ -21,21 +22,20 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
-  // ✅ TEK AnimationController
   late AnimationController _controller;
   late Animation<double> _fadeIn;
   late Animation<double> _progress;
 
   bool _isNavigationHandled = false;
-  bool _isSplashTimeComplete = false; // ✅ 2 saniye tamamlandı mı?
-  bool _isBackendReady = false; // ✅ Arka plan hazır mı?
+  bool _isSplashTimeComplete = false;
+  bool _isBackendReady = false;
 
   @override
   void initState() {
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 2000), // ✅ 2 saniye
+      duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
 
@@ -51,6 +51,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _startSplashSequence() {
     // ✅ Animasyonu başlat
     _controller.forward();
+
+    ref.read(homeAssetsProvider.notifier).initializeVideo();
 
     // ✅ 2 saniye sonra splash zamanı bitti
     Future.delayed(const Duration(milliseconds: 2000), () {
@@ -73,13 +75,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _checkAndNavigate() {
-    // ✅ Hem 2 saniye bitti HEM backend hazır OLUNCA git
-    if (_isSplashTimeComplete && _isBackendReady && !_isNavigationHandled) {
+    // Provider'dan videonun durumunu çekiyoruz
+    final videoState = ref.read(homeAssetsProvider);
+
+    // KURAL:
+    // 1. Süre (2sn) dolmuş olmalı
+    // 2. Backend (Auth) hazır olmalı
+    // 3. Video (Home Assets) hazır olmalı
+    if (_isSplashTimeComplete && _isBackendReady && videoState.isVideoReady && !_isNavigationHandled) {
       _isNavigationHandled = true;
       widget.onComplete?.call();
 
       if (mounted) {
-        context.go(widget.initialRoute);
+        // extra parametresi ile Home sayfasına "Splash'ten geldim, animasyonları şimdi başlat" diyoruz.
+        context.go(widget.initialRoute, extra: {'fromSplash': true});
       }
     }
   }
@@ -95,6 +104,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isMobile = screenWidth < 600;
+
+    ref.listen(homeAssetsProvider, (final previous, final next) {
+      if (next.isVideoReady)
+        _checkAndNavigate();
+    });
 
     // ✅ MOBİL: Auth dinle
     if (!SplashRouter.shouldSkipAuthCheck) {
@@ -181,7 +195,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                     SizedBox(height: isMobile ? 40 : 60),
 
-                    // Alt başlık - EKSİK YAZI EKLENDİ
+                    // Alt başlık
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
@@ -214,7 +228,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                     SizedBox(height: isMobile ? 12 : 16),
 
-// Açıklama - EKSİK YAZI EKLENDİ
+                    // Açıklama
                     Text(
                       'Her oyun bir yolculuk, her sahne bir keşif',
                       style: TextStyle(
@@ -260,7 +274,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                     const SizedBox(height: 20),
 
-                    // Yükleniyor metni - _getLoadingText kullanıldı
+                    // Yükleniyor metni
                     AnimatedBuilder(
                       animation: _progress,
                       builder: (final context, final child) {
@@ -285,7 +299,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 
-  // ✅ EKSİK METOD EKLENDİ
   String _getLoadingText(final double progress) {
     if (progress < 0.3) return 'Sahne hazırlanıyor...';
     if (progress < 0.6) return 'Oyuncular hazırlanıyor...';

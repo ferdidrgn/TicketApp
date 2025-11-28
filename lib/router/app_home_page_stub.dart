@@ -1,9 +1,12 @@
-// lib/router//app_home_page_stub.dart
 import 'package:flutter/material.dart';
 
-// Platforma özgü olmayan bir yer tutucu
 class AppHomePage extends StatelessWidget {
-  const AppHomePage({super.key});
+  final bool startAnimations;
+
+  const AppHomePage({
+    super.key,
+    this.startAnimations = false,
+  });
 
   @override
   Widget build(final BuildContext context) => throw UnsupportedError(
