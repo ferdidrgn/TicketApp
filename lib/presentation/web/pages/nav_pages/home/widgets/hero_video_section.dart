@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
@@ -19,9 +20,81 @@ class HeroVideoSection extends ConsumerStatefulWidget {
 }
 
 class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
-    with AutomaticKeepAliveClientMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  late final AnimationController _controller;
+
+  // content anims
+  late final Animation<double> _contentOpacity;
+  late final Animation<double> _contentOffset; // vertical offset in px
+
+  // card anims
+  late final Animation<double> _cardOpacity;
+  late final Animation<double> _cardScale;
+
   @override
   bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    // Content: 0.0 - 0.7
+    _contentOpacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.7, curve: Curves.easeOutQuart),
+    );
+
+    _contentOffset = Tween<double>(begin: 50.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.7, curve: Curves.easeOutQuart),
+      ),
+    );
+
+    // Card: 0.5 - 1.0 (staggered)
+    _cardOpacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
+    );
+
+    _cardScale = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeOutBack),
+      ),
+    );
+
+    // Start immediately if parent requested
+    if (widget.startAnimations) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant HeroVideoSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Eğer parent startAnimations false -> true yaptıysa, tetikle
+    if (!oldWidget.startAnimations && widget.startAnimations) {
+      _controller.forward(from: 0);
+    }
+
+    // Eğer parent false yaptıysa animasyonu geri al (opsiyonel)
+    if (oldWidget.startAnimations && !widget.startAnimations) {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(final BuildContext context) {
@@ -43,7 +116,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
               child: FittedBox(
                 fit: BoxFit.cover,
                 child: SizedBox(
-                  width: controller.value.size.width,
+                  width: controller!.value.size.width,
                   height: controller.value.size.height,
                   child: VideoPlayer(controller),
                 ),
@@ -52,7 +125,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
           else
             Container(color: const Color(0xFF0a0a1a)),
 
-          // 2. Overlay (Karanlık Katman)
+          // 2. Overlay
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -69,14 +142,13 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
             ),
           ),
 
-          // 3. Sol Taraf Yazılar (Animasyonlu)
+          // 3. Sol Taraf Yazılar (Animasyonlu) - artık Fade + Translate via AnimatedBuilder
           _buildContentWithAnimation(context),
 
-          // 4. Sağ Taraf Cam Kart (SABİT - Animasyonsuz)
-          // Animasyon sorunlarını önlemek için bu widget'ı animasyondan çıkardık.
-          _buildGlassCardFixed(context),
+          // 4. Sağ Taraf Cam Kart (Animasyonlu) - Fade + Scale + RepaintBoundary
+          _buildGlassCardWithAnimation(context),
 
-          // 5. Scroll Indicator (Animasyonlu)
+          // 5. Scroll Indicator
           if (!context.isMobile)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 1000),
@@ -95,45 +167,74 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     );
   }
 
-  // ✅ SOL TARAFTAKİ YAZILARIN ANİMASYONU (KORUNDU)
+  // Content animasyonu: Fade + translate (AnimatedBuilder)
   Widget _buildContentWithAnimation(final BuildContext context) {
+    // child hazırla (statik content widget)
     final content = _buildContent(context);
-    final double targetValue = widget.startAnimations ? 1.0 : 0.0;
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: targetValue),
-      duration: const Duration(milliseconds: 1000),
-      curve: Curves.easeOutQuart,
-      builder: (final context, final value, final child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 50 * (1 - value)),
-            child: child,
-          ),
-        );
-      },
-      child: content,
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (ctx, child) {
+          return Opacity(
+            // use _contentOpacity.value for fade
+            opacity: _contentOpacity.value,
+            child: Transform.translate(
+              offset: Offset(0, _contentOffset.value),
+              child: child,
+            ),
+          );
+        },
+        child: content,
+      ),
     );
   }
 
-  // ✅ SAĞ TARAFTAKİ CAM KART (SABİT)
-  // Animasyon kodu tamamen kaldırıldı. Sadece yerleştirme (Positioned) var.
-  Widget _buildGlassCardFixed(BuildContext context) {
+  Widget _buildGlassCardWithAnimation(BuildContext context) {
     final cardContent = _buildGlassCardContent(context);
 
+    // AnimatedBuilder kullanarak IgnorePointer kontrolü yapıyoruz
+    final animatedCard = AnimatedBuilder(
+      animation: _controller,
+      builder: (ctx, child) {
+        final shouldIgnore = _cardOpacity.value < 0.1;
+        return IgnorePointer(
+          ignoring: shouldIgnore,
+          child: FadeTransition(
+            opacity: _cardOpacity,
+            child: ScaleTransition(
+              scale: _cardScale,
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: cardContent,
+    );
+
+    // Pozisyonlama (mobile / desktop)
     if (context.isMobile) {
       return Positioned(
         bottom: 20,
         left: 16,
         right: 16,
-        child: cardContent,
+        child: RepaintBoundary(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: animatedCard,
+          ),
+        ),
       );
     } else {
       return Positioned(
         right: context.responsive(mobile: 0, tablet: 40, desktop: 60),
         top: context.responsive(mobile: 0, tablet: 180, desktop: 150),
-        child: cardContent,
+        child: RepaintBoundary(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: animatedCard,
+          ),
+        ),
       );
     }
   }
@@ -141,93 +242,92 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   // --- İÇERİK PARÇALARI ---
 
   Widget _buildContent(final BuildContext context) {
-    return Positioned.fill(
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.responsive(mobile: 20, tablet: 60, desktop: 100),
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive(mobile: 20, tablet: 60, desktop: 100),
+      ),
+      child: Column(
+        mainAxisAlignment: context.isMobile
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.center,
+        crossAxisAlignment: context.responsive(
+          mobile: CrossAxisAlignment.center,
+          desktop: CrossAxisAlignment.start,
         ),
-        child: Column(
-          mainAxisAlignment: context.isMobile
-              ? MainAxisAlignment.start
-              : MainAxisAlignment.center,
-          crossAxisAlignment: context.responsive(
-            mobile: CrossAxisAlignment.center,
-            desktop: CrossAxisAlignment.start,
-          ),
-          children: [
-            if (context.isMobile) SizedBox(height: context.screenHeight * 0.15),
-            Column(
-              crossAxisAlignment: context.responsive(
-                mobile: CrossAxisAlignment.center,
-                desktop: CrossAxisAlignment.start,
-              ),
-              children: [
-                Row(
-                  mainAxisAlignment: context.responsive(
-                    mobile: MainAxisAlignment.center,
-                    desktop: MainAxisAlignment.start,
-                  ),
-                  children: [
-                    Icon(Icons.theater_comedy,
-                        color: WebColors.primaryGold,
-                        size: context.responsive(mobile: 20, desktop: 30)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'SAHNE SANATLARI',
-                      style: TextStyle(
-                        color: WebColors.primaryGold,
-                        fontSize: context.responsive(mobile: 12, desktop: 16),
-                        letterSpacing: 3,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+        children: [
+          if (context.isMobile) SizedBox(height: context.screenHeight * 0.15),
+          Column(
+            crossAxisAlignment: context.responsive(
+              mobile: CrossAxisAlignment.center,
+              desktop: CrossAxisAlignment.start,
+            ),
+            children: [
+              Row(
+                mainAxisAlignment: context.responsive(
+                  mobile: MainAxisAlignment.center,
+                  desktop: MainAxisAlignment.start,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'HİKAYELER\nGERÇEĞE DÖNÜŞÜYOR',
-                  textAlign: context.responsive(
-                      mobile: TextAlign.center, desktop: TextAlign.left),
-                  style: TextStyle(
-                    fontSize:
-                        context.responsive(mobile: 32, tablet: 50, desktop: 80),
-                    height: 1.0,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                  ),
-                ),
-                if (!context.isMobile) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: Text(
-                      'TiyatRol ile sanatın büyülü dünyasına adım atın. Klasiklerden moderne, her sahnede yeni bir duygu.',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white.withOpacity(0.8),
-                        height: 1.6,
-                        fontWeight: FontWeight.w300,
-                      ),
+                children: [
+                  Icon(Icons.theater_comedy,
+                      color: WebColors.primaryGold,
+                      size: context.responsive(mobile: 20, desktop: 30)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'SAHNE SANATLARI',
+                    style: TextStyle(
+                      color: WebColors.primaryGold,
+                      fontSize: context.responsive(mobile: 12, desktop: 16),
+                      letterSpacing: 3,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
-                const SizedBox(height: 32),
-                _buildPlayButton(context),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'HİKAYELER\nGERÇEĞE DÖNÜŞÜYOR',
+                textAlign: context.responsive(
+                    mobile: TextAlign.center, desktop: TextAlign.left),
+                style: TextStyle(
+                  fontSize:
+                      context.responsive(mobile: 32, tablet: 50, desktop: 80),
+                  height: 1.0,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+              if (!context.isMobile) ...[
+                const SizedBox(height: 16),
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Text(
+                    'TiyatRol ile sanatın büyülü dünyasına adım atın. Klasiklerden moderne, her sahnede yeni bir duygu.',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white.withOpacity(0.8),
+                      height: 1.6,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
               ],
-            ),
-          ],
-        ),
+              const SizedBox(height: 32),
+              _buildPlayButton(context),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  // ✅ GLASS CARD İÇERİĞİ (BackdropFilter YOK)
+  // ✅ SİS SORUNUNU ÇÖZEN GLASS CARD CONTENT
   Widget _buildGlassCardContent(final BuildContext context) {
     return Container(
       width: context.responsive(
           mobile: context.screenWidth - 32, tablet: 280, desktop: 320),
       padding: EdgeInsets.all(context.responsive(mobile: 16, desktop: 24)),
       decoration: BoxDecoration(
+        // Blur yerine koyu, yarı saydam bir zemin
         color: const Color(0xFF1A1A1A).withOpacity(0.85),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.15)),
@@ -288,25 +388,25 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () async {
-                const url = 'https://maps.app.goo.gl/CnW99UqhxyBJt1fL6';
-                if (await canLaunchUrl(Uri.parse(url))) {
-                  await launchUrl(Uri.parse(url));
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: WebColors.primaryGold,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                padding: EdgeInsets.symmetric(
-                    vertical: context.responsive(mobile: 12, desktop: 16)),
-              ),
-              child: Text('KONUMU GÖR',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: context.responsive(mobile: 12, desktop: 14))),
-            ),
+                onPressed: () async {
+                  const url = 'https://maps.app.goo.gl/CnW99UqhxyBJt1fL6';
+                  if (await canLaunchUrl(Uri.parse(url))) {
+                    await launchUrl(Uri.parse(url));
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: WebColors.primaryGold,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  padding: EdgeInsets.symmetric(
+                      vertical: context.responsive(mobile: 12, desktop: 16)),
+                ),
+                child: Text('KONUMU GÖR',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize:
+                            context.responsive(mobile: 12, desktop: 14)))),
           ),
         ],
       ),
