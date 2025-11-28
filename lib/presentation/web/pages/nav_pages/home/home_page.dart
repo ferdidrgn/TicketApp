@@ -12,7 +12,7 @@ import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/theater_section_divider.dart';
-import '../../../../mobil/pages/splash/dataguard.dart';
+import '../../../../mobil/pages/splash/splash_data_guard.dart';
 import 'widgets/footer.dart';
 
 // StatefulWidget -> ConsumerStatefulWidget'a çeviriyoruz ki ref kullanabilelim
@@ -118,7 +118,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final bool isLoading = !videoState.isVideoReady;
 
     // 3. DataSplashGuard ile tüm sayfayı sarmala
-    return DataSplashGuard(
+    return SplashDataGuard(
       isLoading: isLoading,
       loadingMessage: 'Oyunlar yükleniyor...',
       child: Listener(

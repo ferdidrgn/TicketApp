@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/presentation/mobil/pages/splash/splashUIBody.dart';
+import 'package:ticketapp/presentation/mobil/pages/splash/splash_page.dart';
 
 /// Bu widget, verilen provider'ların yüklenme durumunu kontrol eder.
 /// Veriler yüklenirken Splash ekranını gösterir, yüklendiğinde içeriğe yumuşak geçiş yapar.
@@ -10,7 +10,7 @@ import 'package:ticketapp/presentation/mobil/pages/splash/splashUIBody.dart';
 ///   providersToWatch: [homeAssetsProvider, userProfileProvider],
 ///   child: HomePage(),
 /// )
-class DataSplashGuard extends ConsumerStatefulWidget {
+class SplashDataGuard extends ConsumerStatefulWidget {
   final Widget child;
 
   /// İzlenecek provider'ların listesi veya mantıksal kontrol fonksiyonu
@@ -21,7 +21,7 @@ class DataSplashGuard extends ConsumerStatefulWidget {
   /// Splash ekranında görünecek mesaj
   final String? loadingMessage;
 
-  const DataSplashGuard({
+  const SplashDataGuard({
     super.key,
     required this.child,
     required this.isLoading,
@@ -29,15 +29,15 @@ class DataSplashGuard extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<DataSplashGuard> createState() => _DataSplashGuardState();
+  ConsumerState<SplashDataGuard> createState() => _DataSplashGuardState();
 }
 
-class _DataSplashGuardState extends ConsumerState<DataSplashGuard> {
+class _DataSplashGuardState extends ConsumerState<SplashDataGuard> {
   // Animasyonlu geçiş için
   bool _showContent = false;
 
   @override
-  void didUpdateWidget(covariant final DataSplashGuard oldWidget) {
+  void didUpdateWidget(covariant final SplashDataGuard oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Eğer yüklenme bittiyse içeriği göster
     if (oldWidget.isLoading && !widget.isLoading) {
@@ -82,7 +82,7 @@ class _DataSplashGuardState extends ConsumerState<DataSplashGuard> {
             duration: const Duration(milliseconds: 800),
             curve: Curves.easeInOut,
             opacity: _showContent ? 0.0 : 1.0,
-            child: SplashUIBody(
+            child: SplashPage(
               loadingMessage: widget.loadingMessage,
             ),
           ),

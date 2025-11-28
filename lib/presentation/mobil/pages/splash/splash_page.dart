@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 
 /// Yönlendirme mantığı (go_router) içermeyen, sadece görsel Splash tasarımı.
 /// Bu widget'ı veri yüklenirken "Loading Indicator" yerine kullanacağız.
-class SplashUIBody extends StatefulWidget {
+class SplashPage extends StatefulWidget {
   final String? loadingMessage;
 
-  const SplashUIBody({super.key, this.loadingMessage});
+  const SplashPage({super.key, this.loadingMessage});
 
   @override
-  State<SplashUIBody> createState() => _SplashUIBodyState();
+  State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashUIBodyState extends State<SplashUIBody>
+class _SplashPageState extends State<SplashPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _pulseAnimation;

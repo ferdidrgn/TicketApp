@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'package:ticketapp/presentation/mobil/pages/splash/dataguard.dart';
+import 'package:ticketapp/presentation/mobil/pages/splash/splash_data_guard.dart';
 
 // Core imports
 import 'core/constants/app_constants.dart';
@@ -77,7 +77,7 @@ class MyApp extends ConsumerWidget {
         return ConnectivityWrapper(
           // Auth kontrolü yapılırken kullanıcıya boş ekran gösterme,
           // şık DataSplashGuard'ı göster.
-          child: DataSplashGuard(
+          child: SplashDataGuard(
             isLoading: isAuthLoading,
             loadingMessage: 'TiyatRol Başlatılıyor...',
             child: safeChild,
