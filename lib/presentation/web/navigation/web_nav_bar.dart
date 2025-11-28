@@ -52,16 +52,15 @@ class _WebNavBarState extends State<WebNavBar>
 
   @override
   Widget build(final BuildContext context) {
-    // ✅ DÜZELTME 1: Sınırı 900'den 1100'e çektik.
-    // Menü öğeleri çok olduğu için daha geniş bir alana ihtiyaç duyuyorlar.
-    // Sığmadığı an otomatik olarak Mobil (Burger) menüye geçecek.
-    final bool _isNarrow = context.screenWidth < 1100;
+    // ResponsiveUtils'den gelen breakpoint'i kullanıyoruz
+    // Tablet ve altı (1100px altı) için mobil menü gösterelim
+    final bool isNarrow = context.screenWidth < 1100;
 
     return AnimatedBuilder(
       animation: _controller,
       builder: (final context, final child) {
         return Container(
-          height: context.responsive(mobile: 70, desktop: 80),
+          height: context.responsive(mobile: 70.0, desktop: 80.0),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -93,7 +92,7 @@ class _WebNavBarState extends State<WebNavBar>
             ),
           ),
           child:
-              _isNarrow ? _buildMobileNav(context) : _buildDesktopNav(context),
+              isNarrow ? _buildMobileNav(context) : _buildDesktopNav(context),
         );
       },
     );
@@ -102,21 +101,15 @@ class _WebNavBarState extends State<WebNavBar>
   // --- MASAÜSTÜ GÖRÜNÜMÜ ---
   Widget _buildDesktopNav(final BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      // Responsive Padding
+      padding: EdgeInsets.symmetric(
+          horizontal: context.responsive(mobile: 20.0, desktop: 40.0)),
       child: Row(
         children: [
-          // 1. Logo Resmi
           _buildLogoImage(context),
-
-          // 2. Yanına Yazı (Desktop'ta bitişik durur)
           const SizedBox(width: 12),
           _buildWebName(context),
-
           const Spacer(),
-
-          // 3. Menü Linkleri
-          // Wrap yerine Row kullanıp Flexible ile sarmak taşmayı önler ama
-          // biz zaten breakpoint'i (1100) arttırarak sorunu kökten çözdük.
           Row(
             children: [
               _buildNavItem(context, 'home', 'ANA SAYFA'),
@@ -137,18 +130,15 @@ class _WebNavBarState extends State<WebNavBar>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Stack(
-        alignment: Alignment.center, // MERKEZLEME
+        alignment: Alignment.center,
         children: [
-          // Katman 1: En Sol (Logo) ve En Sağ (Menü İkonu)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildLogoImage(context), // Sadece resim
+              _buildLogoImage(context),
               _buildMobileMenu(context),
             ],
           ),
-
-          // Katman 2: Tam Ortadaki Yazı (Stack sayesinde bağımsız ortalanır)
           _buildWebName(context),
         ],
       ),
@@ -157,30 +147,19 @@ class _WebNavBarState extends State<WebNavBar>
 
   // --- ORTAK BİLEŞENLER ---
 
-  // 1. Sadece Logo Resmi (Yazısız)
   Widget _buildLogoImage(final BuildContext context) {
+    final size = context.responsive(mobile: 40.0, tablet: 50.0, desktop: 60.0);
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 500),
       tween: Tween(begin: 0.0, end: 1.0),
       builder: (final context, final value, final child) {
         return Transform.scale(
           scale: 0.8 + (value * 0.2),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            child: Image.asset(
-              'assets/images/tiyatrol_logo.png',
-              fit: BoxFit.cover,
-              width: context.responsive(
-                mobile: 50,
-                tablet: 70,
-                desktop: 90,
-              ),
-              height: context.responsive(
-                mobile: 50,
-                tablet: 70,
-                desktop: 90,
-              ),
-            ),
+          child: Image.asset(
+            'assets/images/tiyatrol_logo.png',
+            fit: BoxFit.cover,
+            width: size,
+            height: size,
           ),
         );
       },
@@ -195,9 +174,9 @@ class _WebNavBarState extends State<WebNavBar>
       child: Text(
         'TiyatRol',
         style: TextStyle(
-          fontSize: context.responsive(mobile: 20, desktop: 24),
+          fontSize: context.responsive(mobile: 18.0, desktop: 24.0),
           fontWeight: FontWeight.w900,
-          color: Colors.white, // Gradient için zemin beyaz
+          color: Colors.white,
           letterSpacing: 1,
         ),
       ),
@@ -219,9 +198,7 @@ class _WebNavBarState extends State<WebNavBar>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              // Kenar boşluğu azaltıldı
-              // ✅ DÜZELTME 2: İç padding 16'dan 12'ye düşürüldü.
+              margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 gradient: isActive ? WebColors.goldGradient : null,
@@ -233,32 +210,16 @@ class _WebNavBarState extends State<WebNavBar>
                   width: 1,
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: context.responsive(mobile: 12, desktop: 13),
-                      fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
-                      color: isActive
-                          ? WebColors.darkBlueBackground
-                          : WebColors.lightWhite,
-                      letterSpacing: 1.0, // Harf aralığı biraz kısıldı
-                    ),
-                  ),
-                  if (isActive) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      height: 2,
-                      width: 30,
-                      decoration: BoxDecoration(
-                        color: WebColors.darkBlueBackground,
-                        borderRadius: BorderRadius.circular(1),
-                      ),
-                    ),
-                  ],
-                ],
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: context.captionSize + 1, // Responsive font
+                  fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
+                  color: isActive
+                      ? WebColors.darkBlueBackground
+                      : WebColors.lightWhite,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
@@ -317,7 +278,6 @@ class _WebNavBarState extends State<WebNavBar>
         valueListenable: widget.activeSection,
         builder: (final context, final activeSection, final child) {
           final isActive = activeSection == value;
-
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             decoration: BoxDecoration(
@@ -331,7 +291,7 @@ class _WebNavBarState extends State<WebNavBar>
                   color: isActive
                       ? WebColors.darkBlueBackground
                       : WebColors.primaryGold,
-                  size: 22,
+                  size: 20,
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -342,7 +302,6 @@ class _WebNavBarState extends State<WebNavBar>
                     color: isActive
                         ? WebColors.darkBlueBackground
                         : WebColors.lightWhite,
-                    letterSpacing: 1,
                   ),
                 ),
               ],

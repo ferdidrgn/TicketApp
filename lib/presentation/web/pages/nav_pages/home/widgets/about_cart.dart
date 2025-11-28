@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
 
-// ═══════════════════════════════════════════════════════════
-// ABOUT CARD - MODERN DESIGN
-// ═══════════════════════════════════════════════════════════
 class AboutCard extends StatefulWidget {
   const AboutCard({super.key});
 
@@ -38,9 +35,10 @@ class _AboutCardState extends State<AboutCard>
   Widget build(final BuildContext context) {
     return Container(
       width: double.infinity,
+      // Responsive Padding
       padding: context.responsive(
-        mobile: const EdgeInsets.all(24),
-        desktop: const EdgeInsets.all(60),
+        mobile: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        desktop: const EdgeInsets.symmetric(horizontal: 60, vertical: 80),
       ),
       decoration: const BoxDecoration(
         gradient: WebColors.backgroundGradient,
@@ -56,10 +54,10 @@ class _AboutCardState extends State<AboutCard>
               child: Text(
                 'HAKKIMIZDA',
                 style: TextStyle(
-                  fontSize: context.responsive(mobile: 36.0, desktop: 56.0),
+                  fontSize: context.responsive(mobile: 32.0, desktop: 56.0),
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
-                  letterSpacing: 3,
+                  letterSpacing: context.isMobile ? 2 : 3,
                 ),
               ),
             ),
@@ -67,7 +65,7 @@ class _AboutCardState extends State<AboutCard>
             const SizedBox(height: 16),
 
             Container(
-              width: 80,
+              width: context.responsive(mobile: 60.0, desktop: 100.0),
               height: 4,
               decoration: BoxDecoration(
                 gradient: WebColors.goldGradient,
@@ -77,14 +75,10 @@ class _AboutCardState extends State<AboutCard>
 
             const SizedBox(height: 48),
 
-            // Content
-            LayoutBuilder(
-              builder: (final context, final constraints) {
-                return constraints.maxWidth > 800
-                    ? _buildWideLayout(context)
-                    : _buildNarrowLayout(context);
-              },
-            ),
+            // Mobil/Tablet/Desktop Düzeni
+            context.isDesktop
+                ? _buildWideLayout(context)
+                : _buildNarrowLayout(context),
           ],
         ),
       ),
@@ -138,7 +132,7 @@ class _AboutCardState extends State<AboutCard>
   Widget _buildParagraph(final BuildContext context, final String text,
       {final bool isFirst = false}) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(context.responsive(mobile: 16.0, desktop: 20.0)),
       decoration: BoxDecoration(
         color: WebColors.darkBlueSurface.withOpacity(0.3),
         borderRadius: BorderRadius.circular(16),
@@ -153,7 +147,7 @@ class _AboutCardState extends State<AboutCard>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            margin: const EdgeInsets.only(top: 6, right: 16),
+            margin: const EdgeInsets.only(top: 8, right: 12),
             width: 6,
             height: 6,
             decoration: const BoxDecoration(
@@ -165,9 +159,9 @@ class _AboutCardState extends State<AboutCard>
             child: Text(
               text,
               style: TextStyle(
-                fontSize: context.bodySize,
+                fontSize: context.bodySize + (context.isDesktop ? 1 : 0),
                 color: WebColors.lightWhite,
-                height: 1.8,
+                height: 1.6,
                 fontWeight: isFirst ? FontWeight.w500 : FontWeight.w400,
               ),
             ),
@@ -209,10 +203,12 @@ class _AboutCardState extends State<AboutCard>
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: context.isMobile ? 2 : 2,
+        crossAxisCount: context.responsive(mobile: 2, desktop: 2),
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: context.responsive(mobile: 0.85, desktop: 1.0),
+        // Kartın en/boy oranı
+        childAspectRatio:
+            context.responsive(mobile: 1.1, tablet: 1.5, desktop: 1.2),
       ),
       itemCount: stats.length,
       itemBuilder: (final context, final index) {
@@ -224,7 +220,8 @@ class _AboutCardState extends State<AboutCard>
             return Transform.scale(
               scale: value,
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(
+                    context.responsive(mobile: 12.0, desktop: 20.0)),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -253,19 +250,20 @@ class _AboutCardState extends State<AboutCard>
                     Icon(
                       stat['icon']! as IconData,
                       color: stat['color']! as Color,
-                      size: 36,
+                      size: context.iconLarge,
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(
+                        height: context.responsive(mobile: 8.0, desktop: 12.0)),
                     Text(
                       stat['number']! as String,
                       style: TextStyle(
                         fontSize:
-                            context.responsive(mobile: 24.0, desktop: 32.0),
+                            context.responsive(mobile: 20.0, desktop: 32.0),
                         fontWeight: FontWeight.w900,
                         color: stat['color']! as Color,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       stat['label']! as String,
                       style: TextStyle(
