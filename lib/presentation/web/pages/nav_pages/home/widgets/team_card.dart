@@ -71,9 +71,9 @@ class _TeamCardState extends State<TeamCard> {
         if (mounted) {
           setState(() {
             nowPlayerDataList = players
-                    ?.map((final e) => e?.toEntity())
-                    .whereType<Player>()
-                    .toList() ??
+                ?.map((final e) => e?.toEntity())
+                .whereType<Player>()
+                .toList() ??
                 [];
           });
         }
@@ -98,8 +98,10 @@ class _TeamCardState extends State<TeamCard> {
   Widget build(final BuildContext context) {
     return Container(
       width: double.infinity,
+      // Responsive Padding: Mobil için daha dar, masaüstü için geniş
       padding: context.responsive(
         mobile: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+        tablet: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
         desktop: const EdgeInsets.symmetric(vertical: 80, horizontal: 60),
       ),
       decoration: const BoxDecoration(
@@ -107,7 +109,7 @@ class _TeamCardState extends State<TeamCard> {
       ),
       child: Column(
         children: [
-          // Başlık
+          // Başlık - Responsive Font Size
           ShaderMask(
             shaderCallback: (final bounds) =>
                 WebColors.goldGradient.createShader(bounds),
@@ -115,10 +117,11 @@ class _TeamCardState extends State<TeamCard> {
               'SANATIMIZDAKİ RUHLAR',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: context.responsive(mobile: 28.0, desktop: 48.0),
+                fontSize: context.responsive(
+                    mobile: 24.0, tablet: 36.0, desktop: 48.0),
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
-                letterSpacing: 2,
+                letterSpacing: context.isMobile ? 1 : 2,
               ),
             ),
           ),
@@ -129,13 +132,15 @@ class _TeamCardState extends State<TeamCard> {
             'Her oyunun arkasında tutkulu bir hikaye,\nher karakterin içinde deneyimli bir sanatçımız var',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: context.bodySize,
+              fontSize: context.bodySize, // ResponsiveUtils bodySize
               color: WebColors.primaryGoldLight,
               height: 1.6,
             ),
           ),
 
-          const SizedBox(height: 48),
+          SizedBox(
+              height: context.responsive(
+                  mobile: 30.0, desktop: 48.0)), // Dinamik boşluk
 
           // Team Content
           if (isLoading)
@@ -143,9 +148,9 @@ class _TeamCardState extends State<TeamCard> {
           else if (errorMessage != null)
             _buildErrorState()
           else if (nowPlayerDataList.isEmpty)
-            _buildEmptyState()
-          else
-            _buildTeamCarousel(context),
+              _buildEmptyState()
+            else
+              _buildTeamCarousel(context),
         ],
       ),
     );
@@ -185,17 +190,22 @@ class _TeamCardState extends State<TeamCard> {
   }
 
   Widget _buildTeamCarousel(final BuildContext context) {
+    // Kart yüksekliğini responsive ayarlıyoruz
+    // Mobilde daha kısa, masaüstünde daha uzun
+    final cardHeight = context.responsive(
+        mobile: 300.0, tablet: 340.0, desktop: 380.0);
+
     return SizedBox(
-      height: 430,
+      // Efektler ve gölgeler için ekstra pay (+50)
+      height: cardHeight + 50,
       child: Stack(
         children: [
           ListView.builder(
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.only(
-              // Üstten ve alttan boşluk ekleniyor
-              top: 10.0, // Kartın yukarı kayma miktarı kadar üstten boşluk
-              bottom: 10.0, // Alt kısım için güvenlik boşluğu
+              top: 20.0,
+              bottom: 20.0,
               left: context.responsive(mobile: 16.0, desktop: 60.0),
               right: context.responsive(mobile: 16.0, desktop: 60.0),
             ),
@@ -211,7 +221,7 @@ class _TeamCardState extends State<TeamCard> {
             },
           ),
 
-          // Navigation Buttons
+          // Navigation Buttons (Sadece Desktop/Tablet'te göster)
           if (!context.isMobile) ...[
             Positioned(
               left: 10,
@@ -219,7 +229,7 @@ class _TeamCardState extends State<TeamCard> {
               bottom: 0,
               child: Center(
                 child:
-                    _buildNavButton(Icons.arrow_back_ios, () => _scroll(true)),
+                _buildNavButton(Icons.arrow_back_ios, () => _scroll(true)),
               ),
             ),
             Positioned(
@@ -252,14 +262,14 @@ class _TeamCardState extends State<TeamCard> {
       child: IconButton(
         onPressed: onPressed,
         icon: Icon(icon, color: WebColors.darkBlueBackground),
-        iconSize: 24,
+        iconSize: context.iconMedium,
       ),
     );
   }
 }
 
 // ------------------------------------------------------------------
-// BAŞLANGIÇ: _TeamMemberCard güncellenmiş kodu
+// _TeamMemberCard
 // ------------------------------------------------------------------
 
 class _TeamMemberCard extends StatefulWidget {
@@ -276,7 +286,6 @@ class _TeamMemberCard extends StatefulWidget {
 }
 
 class _TeamMemberCardState extends State<_TeamMemberCard> {
-  // Hem hover hem de tap durumunu tutar
   bool _isActive = false;
 
   String _getInitials() {
@@ -288,7 +297,6 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
     return initials.toUpperCase();
   }
 
-  // **YENİ:** Dokunmatik (Pointer) başlangıcı (Kaydırma başlasa bile aktif kalır)
   void _handlePointerDown(final PointerEvent event) {
     if (event is PointerDownEvent) {
       setState(() {
@@ -297,7 +305,6 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
     }
   }
 
-  // **YENİ:** Dokunmatik (Pointer) bitişi (Parmak ekrandan kalktığında)
   void _handlePointerUp(final PointerEvent event) {
     if (event is PointerUpEvent || event is PointerCancelEvent) {
       setState(() {
@@ -306,27 +313,30 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
     }
   }
 
-  // Kart içeriğini oluşturur (MouseRegion/Listener dışında kalan kısım)
   Widget _buildCardContent(final BuildContext context, final bool active) {
+    // KART BOYUTLARI - Responsive
+    // Mobilde genişlik 200, yükseklik 300 (Daha kompakt)
+    // Masaüstünde genişlik 280, yükseklik 380 (Daha büyük)
+    final width = context.responsive(mobile: 200.0, tablet: 240.0, desktop: 280.0);
+    final height = context.responsive(mobile: 300.0, tablet: 340.0, desktop: 380.0);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      width: context.responsive(mobile: 240.0, desktop: 280.0),
-      height: 360,
-      // Hover/Tap Animasyonu: Üzerine gelindiğinde/dokunulduğunda yukarı kayar
+      width: width,
+      height: height,
       transform: Matrix4.identity()..translate(0.0, active ? -10.0 : 0.0),
-      // Yukarı Kayma Efekti
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: active
-              ? WebColors.primaryGold // Vurgulu Kenarlık
+              ? WebColors.primaryGold
               : WebColors.primaryGold.withOpacity(0.3),
           width: active ? 3 : 2,
         ),
         boxShadow: [
           BoxShadow(
             color: active
-                ? WebColors.primaryGold.withOpacity(0.5) // Vurgulu Gölge
+                ? WebColors.primaryGold.withOpacity(0.5)
                 : Colors.black.withOpacity(0.3),
             blurRadius: active ? 25 : 15,
             spreadRadius: active ? 5 : 2,
@@ -337,7 +347,6 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
         borderRadius: BorderRadius.circular(22),
         child: Stack(
           children: [
-            // Background Image
             if (widget.member?.imageUrl != null)
               Positioned.fill(
                 child: Image.network(
@@ -351,7 +360,6 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
                 ),
               ),
 
-            // Gradient Overlay
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -367,16 +375,17 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
               ),
             ),
 
-            // Content
+            // Content Padding
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(
+                  context.responsive(mobile: 16.0, desktop: 24.0)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Avatar
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: context.responsive(mobile: 60.0, desktop: 80.0),
+                    height: context.responsive(mobile: 60.0, desktop: 80.0),
                     decoration: BoxDecoration(
                       gradient: WebColors.goldGradient,
                       shape: BoxShape.circle,
@@ -393,7 +402,7 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
                         _getInitials(),
                         style: TextStyle(
                           fontSize:
-                              context.responsive(mobile: 28.0, desktop: 32.0),
+                          context.responsive(mobile: 24.0, desktop: 32.0),
                           fontWeight: FontWeight.w900,
                           color: WebColors.darkBlueBackground,
                         ),
@@ -403,23 +412,30 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
 
                   const Spacer(),
 
-                  // Name
+                  // Name - GÜNCELLENDİ: ShowsSection'daki oyun başlığı stili
+                  // Mobilde biraz daha küçük font
                   Text(
                     '${widget.member?.firstName ?? ''} ${widget.member?.lastName ?? ''}',
                     style: TextStyle(
-                      fontSize: context.bodySize + 2,
+                      fontSize: context.responsive(
+                          mobile: 18.0, desktop: context.bodySize + 6),
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
+                      height: 1.2,
+                      // OYUN KARTI GÖLGESİ EKLENDİ
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 10)
+                      ],
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  SizedBox(height: context.responsive(mobile: 8.0, desktop: 12.0)),
 
-                  // Bio
+                  // Bio / Rol
                   Text(
                     widget.member?.bio ?? '',
                     style: TextStyle(
-                      fontSize: context.captionSize + 1,
+                      fontSize: context.captionSize + (context.isMobile ? 0 : 1),
                       color: WebColors.lightWhite,
                       height: 1.5,
                     ),
@@ -437,41 +453,34 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
 
   @override
   Widget build(final BuildContext context) {
-    // Mobil veya Masaüstü ayrımı yapıyoruz
     final isMobile = context.isMobile;
-
     final Widget cardWidget = _buildCardContent(context, _isActive);
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 600 + (widget.index * 100)),
       tween: Tween(begin: 0.0, end: 1.0),
       builder: (final context, final value, final child) {
-        // Değeri 0.0 ile 1.0 arasında sınırla
         final safeValue = value.clamp(0.0, 1.0);
-
         return Transform.scale(
           scale: 0.8 + (safeValue * 0.2),
           child: Opacity(
-            opacity: safeValue, // Sınırlı değeri kullan
+            opacity: safeValue,
             child: child,
           ),
         );
       },
       child: isMobile
           ? Listener(
-              // MOBİL: Listener ile dokunma olaylarını yakala
-              onPointerDown: _handlePointerDown,
-              onPointerUp: _handlePointerUp,
-              onPointerCancel: _handlePointerUp,
-              child: cardWidget,
-            )
+        onPointerDown: _handlePointerDown,
+        onPointerUp: _handlePointerUp,
+        onPointerCancel: _handlePointerUp,
+        child: cardWidget,
+      )
           : MouseRegion(
-              // MASAÜSTÜ: Hover olaylarını yakala
-              onEnter: (final _) => setState(() => _isActive = true),
-              onExit: (final _) => setState(() => _isActive = false),
-              // Masaüstünde MouseRegion zaten kaydırma durumunda efekti kesmez.
-              child: cardWidget,
-            ),
+        onEnter: (final _) => setState(() => _isActive = true),
+        onExit: (final _) => setState(() => _isActive = false),
+        child: cardWidget,
+      ),
     );
   }
 }

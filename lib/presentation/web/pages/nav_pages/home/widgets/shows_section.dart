@@ -47,7 +47,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
       if (!state.isLoading && state.dataList == null)
         ref.read(showProvider.notifier).loadShows(false);
     });
-    // Animasyonu başlat
     _headerController.forward();
   }
 
@@ -73,6 +72,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
     return Container(
       width: double.infinity,
+      // Responsive Padding: Mobilde daha dar dikey boşluk
       padding: context.responsive(
         mobile: const EdgeInsets.symmetric(vertical: 60),
         desktop: const EdgeInsets.symmetric(vertical: 100),
@@ -111,10 +111,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
     );
   }
 
-  // _buildHeader, _buildLoadingState, _buildErrorState, _buildEmptyState, _buildNavButton
-  // Metotları orijinal kodunuzla birebir aynı kalabilir, buraya tekrar kopyalamadım.
-  // Sadece kısalık olması açısından _buildShowsCarousel ve aşağısını ekliyorum.
-
   Widget _buildHeader(final BuildContext context) {
     return Column(
       children: [
@@ -124,17 +120,19 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
           child: Text(
             'OYUNLARIMIZ',
             style: TextStyle(
-              fontSize: context.responsive(mobile: 36.0, desktop: 56.0),
+              // Responsive Font
+              fontSize:
+                  context.responsive(mobile: 32.0, tablet: 48.0, desktop: 56.0),
               fontWeight: FontWeight.w900,
               color: Colors.white,
-              letterSpacing: 4,
+              letterSpacing: context.isMobile ? 2 : 4,
             ),
           ),
         ),
         const SizedBox(height: 12),
         Container(
           height: 4,
-          width: 100,
+          width: context.responsive(mobile: 60.0, desktop: 100.0),
           decoration: BoxDecoration(
             gradient: WebColors.goldGradient,
             borderRadius: BorderRadius.circular(2),
@@ -151,7 +149,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
         Text(
           'Sahnelediğimiz unutulmaz yapımlar',
           style: TextStyle(
-            fontSize: context.bodySize + 2,
+            fontSize: context.bodySize + (context.isMobile ? 0 : 2),
             color: WebColors.primaryGoldLight,
             fontStyle: FontStyle.italic,
             fontWeight: FontWeight.w500,
@@ -163,7 +161,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
   Widget _buildLoadingState(final BuildContext context) {
     return SizedBox(
-      height: 380,
+      height: context.responsive(mobile: 300.0, desktop: 380.0),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(
@@ -173,8 +171,8 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
         itemBuilder: (final context, final index) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: SizedBox(
-            width: context.responsive(mobile: 220.0, desktop: 260.0),
-            height: 360,
+            width: context.responsive(mobile: 180.0, desktop: 260.0),
+            height: context.responsive(mobile: 280.0, desktop: 360.0),
             child: const ShimmerLoading(),
           ),
         ),
@@ -204,8 +202,13 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
   Widget _buildShowsCarousel(
       final BuildContext context, final List<Show> shows) {
+    // Kart Yüksekliği Hesaplama
+    final cardHeight =
+        context.responsive(mobile: 280.0, tablet: 320.0, desktop: 360.0);
+
     return SizedBox(
-      height: 450,
+      // Gölge ve efektler için ekstra buffer
+      height: cardHeight + 70,
       child: Stack(
         children: [
           ListView.builder(
@@ -221,7 +224,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
             itemBuilder: (final context, final index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                // İsim değişikliği: _ShowCard3D -> _ShowCard
                 child: _ShowCard(
                   imageUrl: shows[index].imageUrl ?? '',
                   gameName: shows[index].name ?? '',
@@ -231,7 +233,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
               );
             },
           ),
-          // Navigasyon butonları mantığı aynı kalabilir...
           if (!context.isMobile) ...[
             Positioned(
               left: 20,
@@ -259,13 +260,13 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 }
 
 class _ShowCard extends StatefulWidget {
-  final String showId; // YENİ: ID parametresi eklendi
+  final String showId;
   final String imageUrl;
   final String gameName;
   final int index;
 
   const _ShowCard({
-    required this.showId, // YENİ
+    required this.showId,
     required this.imageUrl,
     required this.gameName,
     required this.index,
@@ -277,14 +278,13 @@ class _ShowCard extends StatefulWidget {
 
 class _ShowCardState extends State<_ShowCard>
     with SingleTickerProviderStateMixin {
-  bool _isActive = false; // Efektin aktif olup olmadığını tutar
+  bool _isActive = false;
   late AnimationController _entryController;
   late Animation<double> _entryAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Giriş animasyonu ayarları
     _entryController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 600 + (widget.index * 100)),
@@ -305,15 +305,6 @@ class _ShowCardState extends State<_ShowCard>
   }
 
   void _navigateToDetails() {
-    // YÖNTEM A: İsim ile gitmek (Daha güvenli)
-    // URL otomatik olarak /show-details/oyunIDsi şekline dönüşür
-    //context.pushNamed('showDetail', pathParameters: {'id': widget.showId},);
-
-    // YÖNTEM B: Direkt URL yazarak gitmek (Alternatif)
-    // context.go('/show-details/${widget.showId}');
-
-    // pushNamed yerine goNamed kullanıyoruz
-    // Bu, tarayıcı adres çubuğunu kesin olarak günceller.
     context.goNamed(
       'showDetail',
       pathParameters: {'id': widget.showId},
@@ -325,7 +316,6 @@ class _ShowCardState extends State<_ShowCard>
     final isMobile = context.isMobile;
     Widget cardWidget = _buildCard(context);
 
-    // Sayfa ilk açıldığındaki giriş animasyonu (Fade + Scale)
     cardWidget = AnimatedBuilder(
       animation: _entryAnimation,
       builder: (final context, final child) {
@@ -338,20 +328,16 @@ class _ShowCardState extends State<_ShowCard>
       child: cardWidget,
     );
 
-    // Tıklama olayını (OnTap) en dışa GestureDetector koyarak yakalıyoruz.
-    // Bu sayede Listener (Animation) ve Tap (Navigation) karışmaz.
     return GestureDetector(
       onTap: _navigateToDetails,
       child: isMobile
           ? Listener(
-              // Mobil animasyon tetikleyicileri
               onPointerDown: (final _) => setState(() => _isActive = true),
               onPointerUp: (final _) => setState(() => _isActive = false),
               onPointerCancel: (final _) => setState(() => _isActive = false),
               child: cardWidget,
             )
           : MouseRegion(
-              // Masaüstü animasyon tetikleyicileri
               onEnter: (final _) => setState(() => _isActive = true),
               onExit: (final _) => setState(() => _isActive = false),
               cursor: SystemMouseCursors.click,
@@ -361,19 +347,23 @@ class _ShowCardState extends State<_ShowCard>
   }
 
   Widget _buildCard(final BuildContext context) {
-    // Hover/Dokunma anındaki efektler
-    // Scale 1.05 çok büyük gelirse 1.02 veya 1.03 yapabilirsin,
-    // scroll sırasında takılma hissi vermemesi için.
+    // KART BOYUTLARI - Responsive
+    // Mobilde daha küçük, masaüstünde büyük
+    final width =
+        context.responsive(mobile: 180.0, tablet: 220.0, desktop: 260.0);
+    final height =
+        context.responsive(mobile: 280.0, tablet: 320.0, desktop: 360.0);
+
     return AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
+        width: width,
+        height: height,
         transform: Matrix4.identity()
-          ..translate(0.0, _isActive ? -10.0 : 0.0) // Yukarı kalkma
+          ..translate(0.0, _isActive ? -10.0 : 0.0)
           ..scale(_isActive ? 1.02 : 1.0),
-        // Hafif büyüme (Mobilde çok büyütmemek daha iyidir)
         child: Container(
-          width: context.responsive(mobile: 220.0, desktop: 260.0),
-          height: 360,
+          // Genişlik ve Yükseklik Container içinde de set ediliyor
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
@@ -458,14 +448,17 @@ class _ShowCardState extends State<_ShowCard>
 
   Widget _buildContent(final BuildContext context) {
     return Positioned(
-      left: 16,
-      right: 16,
-      bottom: 20,
+      left: context.responsive(mobile: 12.0, desktop: 16.0),
+      right: context.responsive(mobile: 12.0, desktop: 16.0),
+      bottom: context.responsive(mobile: 16.0, desktop: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: EdgeInsets.symmetric(
+              horizontal: context.responsive(mobile: 8.0, desktop: 12.0),
+              vertical: context.responsive(mobile: 4.0, desktop: 6.0),
+            ),
             decoration: BoxDecoration(
               gradient: WebColors.goldGradient,
               borderRadius: BorderRadius.circular(8),
@@ -478,18 +471,20 @@ class _ShowCardState extends State<_ShowCard>
             child: Text(
               'OYUN',
               style: TextStyle(
-                fontSize: context.captionSize - 1,
+                fontSize: context.captionSize - 2, // Daha küçük font
                 fontWeight: FontWeight.w900,
                 color: WebColors.darkBlueBackground,
                 letterSpacing: 2,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: context.responsive(mobile: 8.0, desktop: 12.0)),
           Text(
             widget.gameName,
             style: TextStyle(
-              fontSize: context.bodySize + 2,
+              // Başlık fontu responsive
+              fontSize: context.responsive(
+                  mobile: 16.0, tablet: 18.0, desktop: context.bodySize + 2),
               fontWeight: FontWeight.w900,
               color: Colors.white,
               height: 1.2,
@@ -505,7 +500,8 @@ class _ShowCardState extends State<_ShowCard>
               child: Row(
                 children: [
                   Icon(Icons.arrow_forward,
-                      color: WebColors.primaryGold, size: 18),
+                      color: WebColors.primaryGold,
+                      size: context.iconSmall), // Responsive Icon
                   const SizedBox(width: 4),
                   Text(
                     'Detayları Gör',
