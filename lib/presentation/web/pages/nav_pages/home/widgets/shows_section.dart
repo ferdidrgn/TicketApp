@@ -493,7 +493,7 @@ class _ShowCardState extends State<_ShowCard> with SingleTickerProviderStateMixi
               child: Row(
                 children: [
                   Text(
-                    'İncele',
+                    'Detayları Gör',
                     style: TextStyle(
                       fontSize: context.captionSize,
                       color: WebColors.primaryGoldLight,
