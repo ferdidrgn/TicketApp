@@ -18,7 +18,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Container(
       width: double.infinity,
       color: WebColors.darkBlueBackground,
@@ -49,7 +49,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
 
   // ─── LAYOUT SEÇENEKLERİ ───
 
-  Widget _buildDesktopLayout(BuildContext context) {
+  Widget _buildDesktopLayout(final BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -62,7 +62,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context) {
+  Widget _buildMobileLayout(final BuildContext context) {
     return Column(
       children: [
         const _HeroImageCard(),
@@ -74,7 +74,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
 
   // ─── HEADER BÖLÜMÜ ───
 
-  Widget _buildCompactHeader(BuildContext context) {
+  Widget _buildCompactHeader(final BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(context.borderRadius(1.25)),
       child: BackdropFilter(
@@ -110,7 +110,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
                   const SizedBox(width: 12),
                   Flexible(
                     child: ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
+                      shaderCallback: (final bounds) => const LinearGradient(
                         colors: [
                           WebColors.primaryGoldLight,
                           WebColors.primaryGold
@@ -163,7 +163,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
 
   // ─── BİLGİ VE KADRO BÖLÜMÜ ───
 
-  Widget _buildInfoSection(BuildContext context) {
+  Widget _buildInfoSection(final BuildContext context) {
     return Container(
       padding: context.paddingAll,
       decoration: BoxDecoration(
@@ -238,7 +238,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           // Kadro Listesi (Map kullanımı)
-          ..._castMembers.map((member) => Padding(
+          ..._castMembers.map((final member) => Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child:
                     _buildCastCard(context, member['name']!, member['role']!),
@@ -249,7 +249,7 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
   }
 
   // Cast Card Helper (Widget yerine Metot extraction - daha performanslı ve temiz)
-  Widget _buildCastCard(BuildContext context, String name, String role) {
+  Widget _buildCastCard(final BuildContext context, final String name, final String role) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -307,13 +307,13 @@ class _HeroImageCardState extends State<_HeroImageCard> {
   bool _isHovered = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final double height = context.responsive(mobile: 350.0, desktop: 500.0);
     final double radius = context.borderRadius(1.25);
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+      onEnter: (final _) => setState(() => _isHovered = true),
+      onExit: (final _) => setState(() => _isHovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         transform: Matrix4.identity()..scale(_isHovered ? 1.02 : 1.0),
@@ -338,7 +338,7 @@ class _HeroImageCardState extends State<_HeroImageCard> {
                 Image.network(
                   'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
                   fit: BoxFit.fitHeight,
-                  errorBuilder: (context, error, stackTrace) => Container(
+                  errorBuilder: (final context, final error, final stackTrace) => Container(
                     color: WebColors.darkBlueSurface,
                     child: const Icon(Icons.broken_image, size: 64),
                   ),
@@ -391,7 +391,7 @@ class _PillTag extends StatelessWidget {
   const _PillTag({required this.text});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
@@ -410,7 +410,7 @@ class _QuoteCard extends StatelessWidget {
   const _QuoteCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: BackdropFilter(
@@ -466,7 +466,7 @@ class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.icon, required this.label});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
