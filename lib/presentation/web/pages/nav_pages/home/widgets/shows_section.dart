@@ -102,15 +102,14 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
             ),
           ),
           SizedBox(height: context.responsive(mobile: 30.0, desktop: 60.0)),
-
           if (showState.isLoading)
             _buildLoadingState(context)
           else if (showState.hasError)
             _buildErrorState(showState.errorMessage)
           else if (showState.isListNullOrEmpty)
-              _buildEmptyState()
-            else
-              _buildShowsCarousel(context, showState.dataList!.cast<Show>()),
+            _buildEmptyState()
+          else
+            _buildShowsCarousel(context, showState.dataList!.cast<Show>()),
         ],
       ),
     );
@@ -126,7 +125,8 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
             'OYUNLARIMIZ',
             style: TextStyle(
               // Responsive Font: Mobil 28, Tablet 40, Desktop 52
-              fontSize: context.responsive(mobile: 28.0, tablet: 40.0, desktop: 52.0),
+              fontSize:
+                  context.responsive(mobile: 28.0, tablet: 40.0, desktop: 52.0),
               fontWeight: FontWeight.w900,
               color: Colors.white,
               letterSpacing: context.isMobile ? 1.5 : 4,
@@ -170,7 +170,8 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
   Widget _buildLoadingState(final BuildContext context) {
     // Yükseklik responsive
-    final height = context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
+    final height =
+        context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
     return SizedBox(
       height: height,
       child: ListView.builder(
@@ -183,7 +184,8 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: SizedBox(
             // Genişlik responsive
-            width: context.responsive(mobile: 170.0, tablet: 220.0, desktop: 280.0),
+            width: context.responsive(
+                mobile: 170.0, tablet: 220.0, desktop: 280.0),
             child: const ShimmerLoading(),
           ),
         ),
@@ -192,11 +194,14 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
   }
 
   Widget _buildErrorState(final String? message) {
-    return Center(child: Text(message ?? 'Hata', style: const TextStyle(color: WebColors.error)));
+    return Center(
+        child: Text(message ?? 'Hata',
+            style: const TextStyle(color: WebColors.error)));
   }
 
   Widget _buildEmptyState() {
-    return const Center(child: Text('Oyun yok', style: TextStyle(color: Colors.white70)));
+    return const Center(
+        child: Text('Oyun yok', style: TextStyle(color: Colors.white70)));
   }
 
   Widget _buildNavButton(final IconData icon, final VoidCallback onPressed) {
@@ -207,8 +212,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
         decoration: const BoxDecoration(
             color: WebColors.primaryGold,
             shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)]
-        ),
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)]),
         child: Icon(icon, color: WebColors.darkBlueBackground, size: 20),
       ),
     );
@@ -216,9 +220,9 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
   Widget _buildShowsCarousel(
       final BuildContext context, final List<Show> shows) {
-
     // KART YÜKSEKLİĞİ (Mobilde kompakt, Masaüstünde geniş)
-    final cardHeight = context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
+    final cardHeight =
+        context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
 
     return SizedBox(
       // Hover/Scale efektleri için ekstra boşluk (+60)
@@ -235,7 +239,8 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
             itemCount: shows.length,
             itemBuilder: (final context, final index) {
               return Padding(
-                padding: EdgeInsets.symmetric(horizontal: context.isMobile ? 8 : 12),
+                padding:
+                    EdgeInsets.symmetric(horizontal: context.isMobile ? 8 : 12),
                 child: _ShowCard(
                   imageUrl: shows[index].imageUrl ?? '',
                   gameName: shows[index].name ?? '',
@@ -247,12 +252,20 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
           ),
           if (!context.isMobile) ...[
             Positioned(
-              left: 20, top: 0, bottom: 0,
-              child: Center(child: _buildNavButton(Icons.arrow_back_ios, () => _scroll(true))),
+              left: 20,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                  child: _buildNavButton(
+                      Icons.arrow_back_ios, () => _scroll(true))),
             ),
             Positioned(
-              right: 20, top: 0, bottom: 0,
-              child: Center(child: _buildNavButton(Icons.arrow_forward_ios, () => _scroll(false))),
+              right: 20,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                  child: _buildNavButton(
+                      Icons.arrow_forward_ios, () => _scroll(false))),
             ),
           ],
         ],
@@ -282,7 +295,8 @@ class _ShowCard extends StatefulWidget {
   State<_ShowCard> createState() => _ShowCardState();
 }
 
-class _ShowCardState extends State<_ShowCard> with SingleTickerProviderStateMixin {
+class _ShowCardState extends State<_ShowCard>
+    with SingleTickerProviderStateMixin {
   bool _isActive = false;
   late AnimationController _entryController;
   late Animation<double> _entryAnimation;
@@ -334,25 +348,29 @@ class _ShowCardState extends State<_ShowCard> with SingleTickerProviderStateMixi
     return GestureDetector(
       onTap: _navigateToDetails,
       child: isMobile
-          ? Listener( // Mobilde dokunma efekti
-        onPointerDown: (_) => setState(() => _isActive = true),
-        onPointerUp: (_) => setState(() => _isActive = false),
-        onPointerCancel: (_) => setState(() => _isActive = false),
-        child: cardWidget,
-      )
-          : MouseRegion( // Desktopta hover efekti
-        onEnter: (_) => setState(() => _isActive = true),
-        onExit: (_) => setState(() => _isActive = false),
-        cursor: SystemMouseCursors.click,
-        child: cardWidget,
-      ),
+          ? Listener(
+              // Mobilde dokunma efekti
+              onPointerDown: (_) => setState(() => _isActive = true),
+              onPointerUp: (_) => setState(() => _isActive = false),
+              onPointerCancel: (_) => setState(() => _isActive = false),
+              child: cardWidget,
+            )
+          : MouseRegion(
+              // Desktopta hover efekti
+              onEnter: (_) => setState(() => _isActive = true),
+              onExit: (_) => setState(() => _isActive = false),
+              cursor: SystemMouseCursors.click,
+              child: cardWidget,
+            ),
     );
   }
 
   Widget _buildCard(final BuildContext context) {
     // KART BOYUTLARI (Responsive & Orantılı)
-    final width = context.responsive(mobile: 170.0, tablet: 220.0, desktop: 280.0);
-    final height = context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
+    final width =
+        context.responsive(mobile: 170.0, tablet: 220.0, desktop: 280.0);
+    final height =
+        context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
 
     return AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -361,7 +379,8 @@ class _ShowCardState extends State<_ShowCard> with SingleTickerProviderStateMixi
         height: height,
         transform: Matrix4.identity()
           ..translate(0.0, _isActive ? -10.0 : 0.0) // Yukarı kalkma
-          ..scale(_isActive ? 1.02 : 1.0), // Hafif büyüme
+          ..scale(_isActive ? 1.02 : 1.0),
+        // Hafif büyüme
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(context.isMobile ? 16 : 24),
@@ -397,7 +416,8 @@ class _ShowCardState extends State<_ShowCard> with SingleTickerProviderStateMixi
         imageUrl: widget.imageUrl,
         fit: BoxFit.cover,
         placeholder: (_, __) => Container(color: WebColors.darkBlueSurface),
-        errorWidget: (_, __, ___) => Container(color: WebColors.darkBlueSurface),
+        errorWidget: (_, __, ___) =>
+            Container(color: WebColors.darkBlueSurface),
       ),
     );
   }
@@ -456,7 +476,9 @@ class _ShowCardState extends State<_ShowCard> with SingleTickerProviderStateMixi
               gradient: WebColors.goldGradient,
               borderRadius: BorderRadius.circular(6),
               boxShadow: [
-                BoxShadow(color: WebColors.primaryGold.withOpacity(0.4), blurRadius: 6),
+                BoxShadow(
+                    color: WebColors.primaryGold.withOpacity(0.4),
+                    blurRadius: 6),
               ],
             ),
             child: Text(
@@ -475,7 +497,8 @@ class _ShowCardState extends State<_ShowCard> with SingleTickerProviderStateMixi
           Text(
             widget.gameName,
             style: TextStyle(
-              fontSize: context.responsive(mobile: 15.0, tablet: 18.0, desktop: 22.0),
+              fontSize:
+                  context.responsive(mobile: 15.0, tablet: 18.0, desktop: 22.0),
               fontWeight: FontWeight.w900,
               color: Colors.white,
               height: 1.2,
@@ -501,11 +524,14 @@ class _ShowCardState extends State<_ShowCard> with SingleTickerProviderStateMixi
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Icon(Icons.arrow_forward, color: WebColors.primaryGold, size: context.iconSmall),
+                  Icon(Icons.arrow_forward,
+                      color: WebColors.primaryGold, size: context.iconSmall),
                 ],
               ),
             ),
-            crossFadeState: _isActive ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: _isActive
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 200),
           ),
         ],
