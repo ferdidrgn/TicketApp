@@ -13,7 +13,7 @@ import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_se
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/theater_section_divider.dart';
 
-import '../../../../mobil/pages/splash/data_splash_guard.dart';
+import '../../../../mobil/pages/splash/dataguard.dart';
 import 'widgets/footer.dart';
 
 // StatefulWidget -> ConsumerStatefulWidget'a çeviriyoruz ki ref kullanabilelim
