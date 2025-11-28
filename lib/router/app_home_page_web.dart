@@ -38,7 +38,7 @@ class _AppHomePageState extends ConsumerState<AppHomePage> {
       // Splash'in fade-out (kaybolma) süresi yaklaşık 800ms'dir.
       // Animasyonların tam splash bittikten sonra, temiz bir şekilde başlaması için
       // süreyi 500ms'den 900ms'ye çıkardık. Böylece perde tamamen kalkmış olur.
-      Future.delayed(const Duration(milliseconds: 2000), () {
+      Future.delayed(const Duration(milliseconds: 1000), () {
         if (mounted) {
           setState(() {
             _animationsStarted = true;
