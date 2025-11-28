@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart'; // ✅ EKLENDİ: Güvenli navigasyon için şart
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
-import 'package:ticketapp/core/widgets/custom_title.dart';
 import 'package:ticketapp/data/providers/player/player_notifier.dart';
 import 'package:ticketapp/data/providers/show/show_notifier.dart';
 import 'package:ticketapp/data/providers/stage/stage_notifier.dart';
 import 'package:ticketapp/data/providers/user/user_provider.dart';
+import 'package:ticketapp/presentation/mobil/pages/splash/splash_data_guard.dart';
 import '../../../core/services/local_storage_service.dart';
 import '../../../core/util/date_formatter.dart';
 import '../../../core/widgets/optimized_cached_image.dart';
@@ -123,22 +123,27 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final showNotifier = ref.read(showProvider.notifier);
     Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
+    // 1. Show verisi yoksa çek
     if (showData == null) {
       try {
         await showNotifier.loadShowsByIds([widget.showId]);
         showData = ref.read(showProvider).getShowById(widget.showId);
         if (showData == null) {
           if (mounted) showNotifier.setErrorState("Gösteri yüklenemedi.");
+          // Hata olsa bile loading'i kapat ki hata mesajını görelim
+          if (mounted) setState(() => _isDataLoaded = true);
           return;
         }
       } catch (e) {
         if (mounted) showNotifier.setErrorState("Gösteri yüklenemedi: $e");
+        if (mounted) setState(() => _isDataLoaded = true);
         return;
       }
     }
 
     final List<Future> futures = [];
 
+    // 2. Etkinlikleri çek
     if (showData.eventsId.isNotEmpty) {
       final validEvents =
           showData.eventsId.where((final id) => id.trim().isNotEmpty).toList();
@@ -148,6 +153,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       }
     }
 
+    // 3. Oyuncuları çek
     final allPlayers = {...showData.nowPlayersId, ...showData.oldPlayersId}
         .where((final id) => id.trim().isNotEmpty)
         .toList();
@@ -157,16 +163,23 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           .add(ref.read(playerProvider.notifier).getPlayersByIds(allPlayers));
     }
 
+    // Hepsini bekle
     await Future.wait(futures);
-    _isDataLoaded = true;
+
+    // ✅ DÜZELTME: Veriler gelince setState yaparak UI'ı tetikle (Splash kalksın)
+    if (mounted) {
+      setState(() {
+        _isDataLoaded = true;
+      });
+    }
   }
 
-  // ✅ YENİ: GÜVENLİ GERİ DÖNÜŞ FONKSİYONU
   void _safePop(final BuildContext context) {
     if (context.canPop())
-      context.pop(); // Geçmiş varsa geri git
+      context.pop();
     else
-      context.go('/'); // Geçmiş yoksa (Direkt link/Refresh) Ana Sayfaya git
+      // Hata durumunda dönerken de shows bölümüne gitsin
+      context.go('/home', extra: {'section': 'shows'});
   }
 
   @override
@@ -190,55 +203,56 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
     _listenForStageData();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0a0a1a),
-      // Hata durumunda da güvenli geri dönüş kullanılıyor
-      body: showData == null
-          ? (showState.isLoading
-              ? const _LoadingState()
-              : _ErrorState(
-                  message: showState.errorMessage,
-                  onRetry: () => _safePop(context)))
-          : Stack(
-              children: [
-                RepaintBoundary(
-                  child: _BackgroundParticles(animation: _floatingController),
-                ),
-
-                CustomScrollView(
-                  controller: _scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  cacheExtent: 1000,
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: _ParallaxHero(
-                        showData: showData,
-                        scrollNotifier: _scrollNotifier,
-                        fadeAnimation: _heroFade,
-                        slideAnimation: _heroSlide,
-                        floatingAnimation: _floatingController,
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: FadeTransition(
-                        opacity: _contentFade,
-                        child: _MainContent(
+    // ✅ SPLASH ENTEGRASYONU
+    // Veriler (_isDataLoaded) henüz hazır değilse Splash göster.
+    return SplashDataGuard(
+      isLoading: !_isDataLoaded,
+      loadingMessage: 'Oyun detayları hazırlanıyor...',
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0a0a1a),
+        body: showData == null
+            ? (showState.isLoading
+                ? const SizedBox() // DataSplashGuard zaten loading gösterecek
+                : _ErrorState(
+                    message: showState.errorMessage,
+                    onRetry: () => _safePop(context)))
+            : Stack(
+                children: [
+                  RepaintBoundary(
+                    child: _BackgroundParticles(animation: _floatingController),
+                  ),
+                  CustomScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    cacheExtent: 1000,
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: _ParallaxHero(
                           showData: showData,
-                          eventState: eventState,
-                          playerState: playerState,
-                          stageState: stageState,
+                          scrollNotifier: _scrollNotifier,
+                          fadeAnimation: _heroFade,
+                          slideAnimation: _heroSlide,
+                          floatingAnimation: _floatingController,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-
-                // ✅ Float Back Button'a güvenli dönüş metodu parametre olarak geçmeye gerek yok,
-                // Çünkü o stateless widget içinde context üzerinden halledebiliriz.
-                const Positioned(
-                    top: 40, left: 20, child: _FloatingBackButton()),
-              ],
-            ),
+                      SliverToBoxAdapter(
+                        child: FadeTransition(
+                          opacity: _contentFade,
+                          child: _MainContent(
+                            showData: showData,
+                            eventState: eventState,
+                            playerState: playerState,
+                            stageState: stageState,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Positioned(
+                      top: 40, left: 20, child: _FloatingBackButton()),
+                ],
+              ),
+      ),
     );
   }
 
@@ -261,7 +275,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   }
 }
 
-// --- ANA İÇERİK WIDGET'LARI ---
+// ... _MainContent, _DesktopLayout, _MobileLayout AYNEN KALIYOR ...
+// (Burada kod tekrarı yapmıyorum, yukarıdaki orijinal kodun aynısıdır)
 
 class _MainContent extends StatelessWidget {
   final Show showData;
@@ -422,7 +437,43 @@ class _MobileLayout extends StatelessWidget {
   }
 }
 
-// --- ALT BİLEŞENLER ---
+class _FloatingBackButton extends StatelessWidget {
+  const _FloatingBackButton();
+
+  @override
+  Widget build(final BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        // ✅ GÜVENLİ GERİ DÖNÜŞ VE RESET FIX
+        onTap: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            // Eğer stack boşsa (örneğin deep link ile gelindiyse),
+            // Ana sayfaya git ama 'section' bilgisini de yanında götür.
+            // Böylece HomePage açıldığında direkt 'Shows' bölümüne kayabilir.
+            // (Bunun çalışması için HomePage'in bu 'extra'yı okuması gerekir,
+            // okumasa bile en azından Home'a döneriz).
+            context.go('/home', extra: {'section': 'shows'});
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1a1a2e).withOpacity(0.9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+          ),
+          child: const Icon(Icons.arrow_back_rounded, color: Color(0xFFD4AF37)),
+        ),
+      ),
+    );
+  }
+}
+
+// ... Diğer tüm widgetlar (ParallaxHero, Gallery vb.) olduğu gibi kalacak ...
+// (Buraya kopyalamıyorum, önceki versiyondakilerin aynısıdır)
 
 class _ParallaxHero extends StatelessWidget {
   final Show showData;
@@ -820,44 +871,6 @@ class _GallerySectionState extends ConsumerState<_GallerySection> {
   }
 }
 
-// --- HELPER WIDGETS ---
-
-class _FloatingBackButton extends StatelessWidget {
-  const _FloatingBackButton();
-
-  @override
-  Widget build(final BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        // ✅ GÜVENLİ GERİ DÖNÜŞ MANTIĞI BURAYA EKLENDİ
-        onTap: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            // Eğer history stack boşsa (direkt link/refresh), ana sayfaya git
-            context.go('/');
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1a1a2e).withOpacity(0.9),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
-          ),
-          child: const Icon(Icons.arrow_back_rounded, color: Color(0xFFD4AF37)),
-        ),
-      ),
-    );
-  }
-}
-
-// ... (Diğer yardımcı widget'lar: _HeroGradientOverlay, _HeroTitle, _EmptyStateMessage vb. aynı kalacak)
-// Kodun geri kalanını gereksiz uzatmamak için buraya eklemedim,
-// mevcut dosyanızdaki yardımcı widget'ları (Helper Widgets) koruyabilirsiniz.
-// Önemli olan _FloatingBackButton ve import kısmının değişmesiydi.
-
 class _HeroGradientOverlay extends StatelessWidget {
   const _HeroGradientOverlay();
 
@@ -1089,26 +1102,21 @@ class _GalleryItem extends StatelessWidget {
       builder: (final _) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: EdgeInsets.zero,
-        // ✅ 1. Kenar boşluklarını kaldırdık (En Önemlisi)
         child: SizedBox(
-          // ✅ 2. Dialog içeriğini ekran boyutuna zorladık
           width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.height,
           child: Stack(
             alignment: Alignment.center,
             children: [
               InteractiveViewer(
-                // Zoom sınırlarını belirledik
                 minScale: 0.5,
                 maxScale: 4.0,
-                // Pan sınırlarını serbest bıraktık
                 panEnabled: true,
                 boundaryMargin: const EdgeInsets.all(double.infinity),
                 child: Center(
                   child: OptimizedCachedImage(
                     imageUrl: url,
-                    fit: BoxFit.contain, // Resmi bozmadan sığdır
-                    // ✅ 3. Resmin container'ı doldurmasını sağladık
+                    fit: BoxFit.contain,
                     width: MediaQuery.of(context).size.width,
                     height: MediaQuery.of(context).size.height,
                   ),

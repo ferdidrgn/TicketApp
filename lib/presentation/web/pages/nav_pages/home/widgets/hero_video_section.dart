@@ -23,11 +23,9 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late final AnimationController _controller;
 
-  // content anims
+  // Animasyon Değerleri
   late final Animation<double> _contentOpacity;
-  late final Animation<double> _contentOffset; // vertical offset in px
-
-  // card anims
+  late final Animation<double> _contentOffset;
   late final Animation<double> _cardOpacity;
   late final Animation<double> _cardScale;
 
@@ -43,7 +41,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
       duration: const Duration(milliseconds: 1200),
     );
 
-    // Content: 0.0 - 0.7
+    // 1. İçerik Animasyonu (Fade In + Slide Up)
     _contentOpacity = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.0, 0.7, curve: Curves.easeOutQuart),
@@ -56,7 +54,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
       ),
     );
 
-    // Card: 0.5 - 1.0 (staggered)
+    // 2. Kart Animasyonu (Fade In + Pop Up)
     _cardOpacity = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
@@ -69,7 +67,6 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
       ),
     );
 
-    // Start immediately if parent requested
     if (widget.startAnimations) {
       _controller.forward();
     }
@@ -78,15 +75,8 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   @override
   void didUpdateWidget(covariant HeroVideoSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    // Eğer parent startAnimations false -> true yaptıysa, tetikle
     if (!oldWidget.startAnimations && widget.startAnimations) {
       _controller.forward(from: 0);
-    }
-
-    // Eğer parent false yaptıysa animasyonu geri al (opsiyonel)
-    if (oldWidget.startAnimations && !widget.startAnimations) {
-      _controller.reverse();
     }
   }
 
@@ -105,79 +95,84 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     final isReady = assetsState.isVideoReady && controller != null;
 
     return SizedBox(
+      // Ekran yüksekliğini zorla
       height: context.screenHeight,
       width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. Video Background
-          if (isReady)
-            Positioned.fill(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: controller!.value.size.width,
-                  height: controller.value.size.height,
-                  child: VideoPlayer(controller),
+      // 🚀 KRİTİK DÜZELTME: ClipRect
+      // Stack içindeki elemanlar (video, transform vb.) bu alanın dışına taşarsa
+      // onları kesip atar. Böylece alt bölüme (Oyunlar başlığına) taşma olmaz.
+      child: ClipRect(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. Video Background
+            if (isReady)
+              Positioned.fill(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: controller!.value.size.width,
+                    height: controller.value.size.height,
+                    child: VideoPlayer(controller),
+                  ),
+                ),
+              )
+            else
+              Container(color: const Color(0xFF0a0a1a)),
+
+            // 2. Overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.3),
+                    Colors.transparent,
+                    const Color(0xFF0a0a1a).withOpacity(0.5),
+                    const Color(0xFF0a0a1a),
+                  ],
+                  stops: const [0.0, 0.3, 0.7, 1.0],
                 ),
               ),
-            )
-          else
-            Container(color: const Color(0xFF0a0a1a)),
-
-          // 2. Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.3),
-                  Colors.transparent,
-                  const Color(0xFF0a0a1a).withOpacity(0.5),
-                  const Color(0xFF0a0a1a),
-                ],
-                stops: const [0.0, 0.3, 0.7, 1.0],
-              ),
             ),
-          ),
 
-          // 3. Sol Taraf Yazılar (Animasyonlu) - artık Fade + Translate via AnimatedBuilder
-          _buildContentWithAnimation(context),
+            // 3. Sol Taraf Yazılar
+            _buildContentWithAnimation(context),
 
-          // 4. Sağ Taraf Cam Kart (Animasyonlu) - Fade + Scale + RepaintBoundary
-          _buildGlassCardWithAnimation(context),
+            // 4. Sağ Taraf Cam Kart
+            _buildGlassCardWithAnimation(context),
 
-          // 5. Scroll Indicator
-          if (!context.isMobile)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 1000),
-              curve: Curves.easeOut,
-              bottom: widget.startAnimations ? 30 : -50,
-              left: 0,
-              right: 0,
-              child: AnimatedOpacity(
+            // 5. Scroll Indicator
+            if (!context.isMobile)
+              AnimatedPositioned(
                 duration: const Duration(milliseconds: 1000),
-                opacity: widget.startAnimations ? 1.0 : 0.0,
-                child: _buildScrollIndicator(),
+                curve: Curves.easeOut,
+                bottom: widget.startAnimations ? 30 : -50,
+                left: 0,
+                right: 0,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 1000),
+                  opacity: widget.startAnimations ? 1.0 : 0.0,
+                  child: _buildScrollIndicator(),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // Content animasyonu: Fade + translate (AnimatedBuilder)
   Widget _buildContentWithAnimation(final BuildContext context) {
-    // child hazırla (statik content widget)
-    final content = _buildContent(context);
-
     return Positioned.fill(
       child: AnimatedBuilder(
         animation: _controller,
         builder: (ctx, child) {
+          // Animasyon başlamadıysa görünmez olsun (Opacity 0)
+          if (!widget.startAnimations && _controller.value == 0) {
+            return const SizedBox.shrink();
+          }
           return Opacity(
-            // use _contentOpacity.value for fade
             opacity: _contentOpacity.value,
             child: Transform.translate(
               offset: Offset(0, _contentOffset.value),
@@ -185,7 +180,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
             ),
           );
         },
-        child: content,
+        child: _buildContent(context),
       ),
     );
   }
@@ -193,69 +188,61 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   Widget _buildGlassCardWithAnimation(BuildContext context) {
     final cardContent = _buildGlassCardContent(context);
 
-    // AnimatedBuilder kullanarak IgnorePointer kontrolü yapıyoruz
     final animatedCard = AnimatedBuilder(
       animation: _controller,
       builder: (ctx, child) {
-        final shouldIgnore = _cardOpacity.value < 0.1;
-        return IgnorePointer(
-          ignoring: shouldIgnore,
-          child: FadeTransition(
-            opacity: _cardOpacity,
-            child: ScaleTransition(
-              scale: _cardScale,
-              child: child,
-            ),
+        // Animasyon başlamadıysa gösterme
+        if (!widget.startAnimations && _controller.value == 0) {
+          return const SizedBox.shrink();
+        }
+        return FadeTransition(
+          opacity: _cardOpacity,
+          child: ScaleTransition(
+            scale: _cardScale,
+            child: child,
           ),
         );
       },
       child: cardContent,
     );
 
-    // Pozisyonlama (mobile / desktop)
+    // Layout
     if (context.isMobile) {
       return Positioned(
         bottom: 20,
         left: 16,
         right: 16,
-        child: RepaintBoundary(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: animatedCard,
-          ),
-        ),
+        child: animatedCard,
       );
     } else {
       return Positioned(
         right: context.responsive(mobile: 0, tablet: 40, desktop: 60),
         top: context.responsive(mobile: 0, tablet: 180, desktop: 150),
-        child: RepaintBoundary(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: animatedCard,
-          ),
-        ),
+        child: animatedCard,
       );
     }
   }
 
-  // --- İÇERİK PARÇALARI ---
+  // --- İÇERİK ---
 
   Widget _buildContent(final BuildContext context) {
+    // Mobilde içeriğin çok aşağı kayıp karta binmesini engellemek için
+    // alignment'ı responsive ayarlıyoruz.
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: context.responsive(mobile: 20, tablet: 60, desktop: 100),
       ),
       child: Column(
+        // Mobile: Üstten başlasın ama biraz boşluk bırakalım
+        // Desktop: Ortada dursun
         mainAxisAlignment: context.isMobile
-            ? MainAxisAlignment.start
+            ? MainAxisAlignment.center
             : MainAxisAlignment.center,
         crossAxisAlignment: context.responsive(
           mobile: CrossAxisAlignment.center,
           desktop: CrossAxisAlignment.start,
         ),
         children: [
-          if (context.isMobile) SizedBox(height: context.screenHeight * 0.15),
           Column(
             crossAxisAlignment: context.responsive(
               mobile: CrossAxisAlignment.center,
@@ -296,6 +283,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
                   color: Colors.white,
                 ),
               ),
+              // Mobilde açıklama metni çok yer kaplıyorsa gizle veya kısalt
               if (!context.isMobile) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -320,14 +308,12 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     );
   }
 
-  // ✅ SİS SORUNUNU ÇÖZEN GLASS CARD CONTENT
   Widget _buildGlassCardContent(final BuildContext context) {
     return Container(
       width: context.responsive(
           mobile: context.screenWidth - 32, tablet: 280, desktop: 320),
       padding: EdgeInsets.all(context.responsive(mobile: 16, desktop: 24)),
       decoration: BoxDecoration(
-        // Blur yerine koyu, yarı saydam bir zemin
         color: const Color(0xFF1A1A1A).withOpacity(0.85),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.15)),
