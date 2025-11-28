@@ -62,7 +62,7 @@ class _TeamCardState extends State<TeamCard> {
         if (mounted) {
           setState(() {
             nowPlayerDataList = players
-                    ?.map((e) => e?.toEntity())
+                    ?.map((final e) => e?.toEntity())
                     .whereType<Player>()
                     .toList() ??
                 [];
@@ -267,7 +267,7 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
                 child: Image.network(
                   widget.member!.imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (final _, final __, final ___) =>
                       Container(color: WebColors.darkBlueSurface),
                 ),
               ),
@@ -370,14 +370,14 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
       },
       child: isMobile
           ? Listener(
-              onPointerDown: (_) => setState(() => _isActive = true),
-              onPointerUp: (_) => setState(() => _isActive = false),
-              onPointerCancel: (_) => setState(() => _isActive = false),
+              onPointerDown: (final _) => setState(() => _isActive = true),
+              onPointerUp: (final _) => setState(() => _isActive = false),
+              onPointerCancel: (final _) => setState(() => _isActive = false),
               child: cardWidget,
             )
           : MouseRegion(
-              onEnter: (_) => setState(() => _isActive = true),
-              onExit: (_) => setState(() => _isActive = false),
+              onEnter: (final _) => setState(() => _isActive = true),
+              onExit: (final _) => setState(() => _isActive = false),
               child: cardWidget,
             ),
     );
