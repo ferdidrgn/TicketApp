@@ -1,21 +1,19 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod eklendi
-import 'package:ticketapp/data/providers/login/login_provider.dart'; // Login import
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/presentation/mobil/pages/splash/splash_data_guard.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/about_cart.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/contact_card.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/goz_kap_vaz_yap_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/hero_video_section.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/home_asset_video_provider.dart'; // Provider import
+import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/home_asset_video_provider.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/kurtar_beni_doktor_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_landing.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
 import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/theater_section_divider.dart';
-import '../../../../mobil/pages/splash/splash_data_guard.dart';
 import 'widgets/footer.dart';
 
-// StatefulWidget -> ConsumerStatefulWidget'a çeviriyoruz ki ref kullanabilelim
 class HomePage extends ConsumerStatefulWidget {
   final bool startAnimations;
   final GlobalKey showsKey;
@@ -45,12 +43,16 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   final GlobalKey _homeKey = GlobalKey();
 
+  // Splash sonrası animasyonları başlatmak için yerel tetikleyici
+  bool _internalAnimationTrigger = false;
+
   @override
   void initState() {
     super.initState();
     widget.scrollController.addListener(_onScroll);
 
-    // Sayfa açıldığında verileri başlatalım (eğer başlatılmadıysa)
+    // ✅ Video Yükleme Başlatıcı
+    // Sayfa ilk oluştuğunda videoyu hazırlamaya başla
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(homeAssetsProvider.notifier).initializeVideo();
     });
@@ -68,12 +70,15 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final scrollPosition = widget.scrollController.position.pixels;
 
+    // En tepe kontrolü
     if (scrollPosition < 150) {
-      if (widget.activeSection!.value != 'home')
+      if (widget.activeSection!.value != 'home') {
         widget.activeSection!.value = 'home';
+      }
       return;
     }
 
+    // Scroll pozisyonuna göre aktif bölümü belirle
     final sections = {
       'shows': widget.showsKey,
       'artistic': widget.artisticKey,
@@ -99,27 +104,40 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     });
 
-    if (currentSection != null && currentSection != widget.activeSection?.value)
+    if (currentSection != null &&
+        currentSection != widget.activeSection?.value) {
       widget.activeSection?.value = currentSection!;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Kritik verileri izle
+    // 1. Veri Durumunu İzle
     final videoState = ref.watch(homeAssetsProvider);
-    final loginState =
-        ref.watch(loginProvider); // İsteğe bağlı, auth beklemek için
+    final isVideoReady = videoState.isVideoReady;
 
-    // 2. Yüklenme durumu: Video hazır değilse VEYA Login yükleniyorsa
-    // Not: 'fromSplash' parametresi router'dan geliyorsa animasyonu zaten yapmışızdır,
-    // ama deep link ile gelindiyse (fromSplash false veya null) bu kontrol çalışır.
+    // 2. ✅ VİDEO OYNATMA GARANTİSİ (Geri Dönüş Fix)
+    // Eğer video yüklüyse ama durmuşsa (başka sayfadan geri gelindiğinde), tekrar oynat.
+    if (isVideoReady && videoState.videoController != null) {
+      if (!videoState.videoController!.value.isPlaying) {
+        videoState.videoController!.play();
+      }
+    }
 
-    // Basit bir kural: Video hazır değilse Loading'dir.
-    final bool isLoading = !videoState.isVideoReady;
+    // 3. ✅ ANİMASYON TETİKLEYİCİSİ
+    // Video hazır olduğunda, Splash ekranının kaybolma süresi (yaklaşık 800-1000ms)
+    // kadar bekle ve sonra içerik animasyonlarını (yazıların kayması vb.) başlat.
+    if (isVideoReady && !_internalAnimationTrigger) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          setState(() => _internalAnimationTrigger = true);
+        }
+      });
+    }
 
-    // 3. DataSplashGuard ile tüm sayfayı sarmala
+    // 4. DataSplashGuard Entegrasyonu
     return SplashDataGuard(
-      isLoading: isLoading,
+      isLoading: !isVideoReady, // Video hazır değilse Splash göster
       loadingMessage: 'Oyunlar yükleniyor...',
       child: Listener(
         onPointerSignal: (pointerSignal) {
@@ -148,28 +166,57 @@ class _HomePageState extends ConsumerState<HomePage> {
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
+                    // Hero Section (Video)
                     Container(
-                        key: _homeKey,
-                        child: HeroVideoSection(
-                          startAnimations: widget.startAnimations,
-                        )),
+                      key: _homeKey,
+                      child: HeroVideoSection(
+                        // Splash bittikten sonra true olan trigger'ı kullanıyoruz
+                        startAnimations: _internalAnimationTrigger,
+                      ),
+                    ),
+
+                    // Shows
                     Container(
-                        key: widget.showsKey, child: const ShowsSection()),
+                      key: widget.showsKey,
+                      child: const ShowsSection(),
+                    ),
+
                     const TheaterSectionDivider(
-                        style: DividerStyle.spotlight, height: 150),
-                    Container(key: widget.artisticKey, child: MetaforLanding()),
+                      style: DividerStyle.spotlight,
+                      height: 150,
+                    ),
+
+                    // Artistic / Metafor
+                    Container(
+                      key: widget.artisticKey,
+                      child: MetaforLanding(),
+                    ),
+
                     const TheaterSectionDivider(
-                        style: DividerStyle.spotlight, height: 150),
+                      style: DividerStyle.spotlight,
+                      height: 150,
+                    ),
+
                     const GozYapVazYapLanding(),
+
                     const TheaterSectionDivider(
-                        style: DividerStyle.spotlight, height: 150),
+                      style: DividerStyle.spotlight,
+                      height: 150,
+                    ),
+
                     KurtarBeniDoktorLanding(),
+
                     const TheaterSectionDivider(
-                        style: DividerStyle.iconCenter, height: 120),
+                      style: DividerStyle.iconCenter,
+                      height: 120,
+                    ),
+
+                    // Info Sections
                     Container(key: widget.aboutKey, child: AboutCard()),
                     Container(key: widget.teamKey, child: const TeamCard()),
                     Container(
                         key: widget.contactKey, child: const ContactCard()),
+
                     const ArtFooter(),
                   ],
                 ),

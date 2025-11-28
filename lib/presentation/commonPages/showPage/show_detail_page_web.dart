@@ -25,11 +25,14 @@ import '../../../domain/entities/show.dart';
 
 /// Animasyon ve UI sabitleri
 class _UiConstants {
-  static const Duration heroDuration = Duration(milliseconds: 1200);
-  static const Duration contentDuration = Duration(milliseconds: 800);
-  static const Duration floatDuration = Duration(seconds: 3);
-  static const int staggerDelay = 100;
-  static const double parallaxFactor = 0.5;
+  static const Duration heroDuration =
+      Duration(milliseconds: 1000); // Süre kısaltıldı
+  static const Duration contentDuration =
+      Duration(milliseconds: 600); // Süre kısaltıldı
+  static const Duration floatDuration =
+      Duration(seconds: 4); // Yavaşlatıldı (Daha az yük)
+  static const int staggerDelay = 80; // Gecikme azaltıldı
+  static const double parallaxFactor = 0.3; // Parallax etkisi hafifletildi
   static const int galleryItemsPerPage = 8;
 }
 
@@ -53,6 +56,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   late final Animation<double> _contentFade;
 
   final ScrollController _scrollController = ScrollController();
+
+  // ValueNotifier optimizasyonu: Sadece parallax gerekiyorsa dinle
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
 
   bool _isDataLoaded = false;
@@ -61,12 +66,12 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   void initState() {
     super.initState();
     _initControllers();
+    // Scroll listener'ı sadece Desktop'ta veya güçlü cihazlarda aktif etmek bir seçenek olabilir
     _initScrollListener();
 
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (mounted) {
         _fetchInitialData();
-        // Header resmi preload edilebilir, ancak data loaded olduktan sonra yapmak daha garantidir.
       }
     });
   }
@@ -77,32 +82,37 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     _contentController = AnimationController(
         vsync: this, duration: _UiConstants.contentDuration);
     _floatingController =
-        AnimationController(vsync: this, duration: _UiConstants.floatDuration)
-          ..repeat(reverse: true);
+        AnimationController(vsync: this, duration: _UiConstants.floatDuration);
+    // Floating animasyonunu hemen başlatma, sayfa yüklenince başlat
 
     _heroFade = CurvedAnimation(parent: _heroController, curve: Curves.easeOut);
-    _heroSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+    _heroSlide = Tween<Offset>(
+            begin: const Offset(0, 0.15), end: Offset.zero) // Mesafe kısaltıldı
         .animate(CurvedAnimation(
             parent: _heroController, curve: Curves.easeOutCubic));
     _contentFade =
         CurvedAnimation(parent: _contentController, curve: Curves.easeOut);
-
-    // ❌ ESKİ KOD: _heroController.forward() burada çağrılıyordu.
-    // Artık Splash bittikten sonra çağıracağız.
   }
 
-  // ✅ YENİ: Animasyonları başlatan fonksiyon
   void _startPageAnimations() {
+    if (!mounted) return;
+
     _heroController.forward();
-    // İçerik animasyonunu Hero'dan biraz sonra başlat
-    Future.delayed(const Duration(milliseconds: 600), () {
+
+    // Floating (Parçacık) animasyonunu başlat
+    _floatingController.repeat(reverse: true);
+
+    Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) _contentController.forward();
     });
   }
 
   void _initScrollListener() {
     _scrollController.addListener(() {
-      if (mounted) _scrollNotifier.value = _scrollController.offset;
+      if (mounted) {
+        // Debounce benzeri bir optimizasyon yapılabilir ama şimdilik doğrudan atıyoruz
+        _scrollNotifier.value = _scrollController.offset;
+      }
     });
   }
 
@@ -130,27 +140,28 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final showNotifier = ref.read(showProvider.notifier);
     Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
-    // 1. Show verisi yoksa çek
     if (showData == null) {
       try {
         await showNotifier.loadShowsByIds([widget.showId]);
         showData = ref.read(showProvider).getShowById(widget.showId);
         if (showData == null) {
-          if (mounted) showNotifier.setErrorState("Gösteri yüklenemedi.");
-          // Hata durumunda da loading'i bitir ki UI görünsün (Hata mesajı)
-          if (mounted) setState(() => _isDataLoaded = true);
+          if (mounted) {
+            showNotifier.setErrorState("Gösteri yüklenemedi.");
+            setState(() => _isDataLoaded = true);
+          }
           return;
         }
       } catch (e) {
-        if (mounted) showNotifier.setErrorState("Gösteri yüklenemedi: $e");
-        if (mounted) setState(() => _isDataLoaded = true);
+        if (mounted) {
+          showNotifier.setErrorState("Gösteri yüklenemedi: $e");
+          setState(() => _isDataLoaded = true);
+        }
         return;
       }
     }
 
     final List<Future> futures = [];
 
-    // 2. Etkinlikleri çek
     if (showData.eventsId.isNotEmpty) {
       final validEvents =
           showData.eventsId.where((final id) => id.trim().isNotEmpty).toList();
@@ -160,7 +171,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       }
     }
 
-    // 3. Oyuncuları çek
     final allPlayers = {...showData.nowPlayersId, ...showData.oldPlayersId}
         .where((final id) => id.trim().isNotEmpty)
         .toList();
@@ -170,22 +180,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           .add(ref.read(playerProvider.notifier).getPlayersByIds(allPlayers));
     }
 
-    // Hepsini bekle
     await Future.wait(futures);
 
-    // 4. Resmi önbelleğe al
     if (mounted) _precacheHeaderImage();
 
-    // 5. Veriler hazır, Splash'i kaldır ve animasyonları başlat
     if (mounted) {
       setState(() {
-        _isDataLoaded =
-            true; // Bu satır Splash'in fade-out (kaybolma) sürecini başlatır
+        _isDataLoaded = true;
       });
 
-      // 🚀 ZAMANLAMA: Splash'in kaybolması yaklaşık 800ms sürer.
-      // Animasyonları bu sürenin sonunda başlatıyoruz ki kullanıcı görsün.
-      Future.delayed(const Duration(milliseconds: 800), () {
+      // Splash süresini biraz kısalttım (600ms), kullanıcı daha hızlı görsün
+      Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) _startPageAnimations();
       });
     }
@@ -195,7 +200,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     if (context.canPop())
       context.pop();
     else
-      // Hata durumunda dönerken de shows bölümüne gitsin
       context.go('/home', extra: {'section': 'shows'});
   }
 
@@ -220,7 +224,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
     _listenForStageData();
 
-    // ✅ SPLASH ENTEGRASYONU
     return SplashDataGuard(
       isLoading: !_isDataLoaded,
       loadingMessage: 'Oyun detayları hazırlanıyor...',
@@ -228,19 +231,22 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         backgroundColor: const Color(0xFF0a0a1a),
         body: showData == null
             ? (showState.isLoading
-                ? const SizedBox() // DataSplashGuard zaten loading gösterecek
+                ? const SizedBox()
                 : _ErrorState(
                     message: showState.errorMessage,
                     onRetry: () => _safePop(context)))
             : Stack(
                 children: [
+                  // RepaintBoundary performansı artırır (gereksiz boyamayı önler)
                   RepaintBoundary(
                     child: _BackgroundParticles(animation: _floatingController),
                   ),
+
                   CustomScrollView(
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
-                    cacheExtent: 1000,
+                    // Cache extent düşürüldü (daha az bellek kullanımı)
+                    cacheExtent: 500,
                     slivers: [
                       SliverToBoxAdapter(
                         child: _ParallaxHero(
@@ -264,6 +270,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                       ),
                     ],
                   ),
+
                   const Positioned(
                       top: 40, left: 20, child: _FloatingBackButton()),
                 ],
@@ -291,8 +298,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   }
 }
 
-// ... _MainContent, _DesktopLayout, _MobileLayout ve diğer tüm alt widget'lar ...
-// (Burada kodun geri kalanı orijinal halini koruyor, sadece importları ve yukarıdaki class'ı güncellemeniz yeterli.)
+// ... Alt bileşenler aynı kalacak ...
+// (Burada kod tekrarını önlemek için alt bileşenleri kopyalamıyorum, önceki versiyondaki gibidir)
+
+// Sadece değişen _BackgroundParticles widget'ını aşağıya ekliyorum
+// Diğer widget'lar (MainContent, DesktopLayout vb.) yukarıdaki gibidir.
 
 class _MainContent extends StatelessWidget {
   final Show showData;
@@ -461,7 +471,6 @@ class _FloatingBackButton extends StatelessWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        // ✅ GÜVENLİ GERİ DÖNÜŞ VE RESET FIX
         onTap: () {
           if (context.canPop()) {
             context.pop();
@@ -483,7 +492,6 @@ class _FloatingBackButton extends StatelessWidget {
   }
 }
 
-// --- HELPER WIDGETS ---
 class _ParallaxHero extends StatelessWidget {
   final Show showData;
   final ValueNotifier<double> scrollNotifier;
