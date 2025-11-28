@@ -1,48 +1,45 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_colors.dart';
+import '../../../../../../core/util/responsive_utils.dart'; // Core Utils Dosyanız
 
 /// Modern Kurtar Beni Doktor Landing Page
-/// - Kompakt tasarım, az alan tüketimi
-/// - Tam responsive (mobile, tablet, desktop)
-/// - Şık hover efektleri
+/// - Responsive Utils entegrasyonu tamamlandı
+/// - Manuel media query'ler kaldırıldı, merkezi yapıya geçildi
 
 class KurtarBeniDoktorLanding extends StatelessWidget {
   const KurtarBeniDoktorLanding({super.key});
 
-  static const _mobileBreak = 650.0;
-  static const _tabletBreak = 1100.0;
-
   @override
   Widget build(final BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < _mobileBreak;
-    final isTablet = size.width >= _mobileBreak && size.width < _tabletBreak;
-
     return Container(
       width: double.infinity,
       color: WebColors.darkBlueBackground,
+      // Paddingler ResponsiveUtils'den geliyor
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 16 : (isTablet ? 32 : 48),
-        vertical: isMobile ? 24 : 32,
+        horizontal:
+            context.responsive(mobile: 16.0, tablet: 32.0, desktop: 48.0),
+        vertical: context.responsive(mobile: 24.0, desktop: 32.0),
       ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1400),
-        child: Column(
-          children: [
-            // Compact Header
-            _CompactHeader(isMobile: isMobile),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1400),
+          child: Column(
+            children: [
+              // Header (Parametreye gerek kalmadı, context'ten okuyor)
+              const _CompactHeader(),
 
-            SizedBox(height: isMobile ? 20 : 28),
+              SizedBox(height: context.responsive(mobile: 20.0, desktop: 28.0)),
 
-            // Main Content
-            if (isMobile)
-              _MobileLayout()
-            else if (isTablet)
-              _TabletLayout()
-            else
-              _DesktopLayout(),
-          ],
+              // Layout Yönetimi: ResponsiveUtils.adaptive kullanımı
+              ResponsiveUtils.adaptive(
+                context,
+                mobile: const _MobileLayout(),
+                tablet: const _TabletLayout(),
+                desktop: const _DesktopLayout(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -50,18 +47,22 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
 }
 
 class _CompactHeader extends StatelessWidget {
-  final bool isMobile;
-
-  const _CompactHeader({required this.isMobile});
+  const _CompactHeader();
 
   @override
   Widget build(final BuildContext context) {
+    // Responsive değerler
+    final double radius = context.borderRadius(context.isMobile ? 1.0 : 1.25);
+    final double padding = context.responsive(mobile: 18.0, desktop: 24.0);
+    final double iconSize = context.iconMedium;
+    final double titleSize = context.responsive(mobile: 20.0, desktop: 35.0);
+
     return ClipRRect(
-      borderRadius: BorderRadius.circular(isMobile ? 16 : 20),
+      borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: EdgeInsets.all(isMobile ? 18 : 24),
+          padding: EdgeInsets.all(padding),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -71,7 +72,7 @@ class _CompactHeader extends StatelessWidget {
                 Colors.white.withOpacity(0.04),
               ],
             ),
-            borderRadius: BorderRadius.circular(isMobile ? 16 : 20),
+            borderRadius: BorderRadius.circular(radius),
             border: Border.all(
               color: WebColors.primaryGold.withOpacity(0.3),
               width: 1.5,
@@ -92,7 +93,7 @@ class _CompactHeader extends StatelessWidget {
                   Icon(
                     Icons.theater_comedy,
                     color: WebColors.primaryGold,
-                    size: isMobile ? 20 : 24,
+                    size: iconSize,
                   ),
                   const SizedBox(width: 12),
                   Flexible(
@@ -106,7 +107,7 @@ class _CompactHeader extends StatelessWidget {
                       child: Text(
                         'KURTAR BENİ DOKTOR',
                         style: TextStyle(
-                          fontSize: isMobile ? 20 : 35,
+                          fontSize: titleSize,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 2,
                           color: Colors.white,
@@ -120,7 +121,7 @@ class _CompactHeader extends StatelessWidget {
                   Icon(
                     Icons.theater_comedy,
                     color: WebColors.primaryGold,
-                    size: isMobile ? 20 : 24,
+                    size: iconSize,
                   ),
                 ],
               ),
@@ -139,7 +140,7 @@ class _CompactHeader extends StatelessWidget {
                 child: Text(
                   "Anton Çehov'dan",
                   style: TextStyle(
-                    fontSize: isMobile ? 12 : 15,
+                    fontSize: context.responsive(mobile: 12.0, desktop: 15.0),
                     fontStyle: FontStyle.italic,
                     fontWeight: FontWeight.w600,
                     color: WebColors.primaryGoldLight,
@@ -155,9 +156,11 @@ class _CompactHeader extends StatelessWidget {
 }
 
 class _DesktopLayout extends StatelessWidget {
+  const _DesktopLayout();
+
   @override
   Widget build(final BuildContext context) {
-    return Row(
+    return const Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Hero Image - 70%
@@ -165,7 +168,7 @@ class _DesktopLayout extends StatelessWidget {
           flex: 70,
           child: _HeroImageCard(),
         ),
-        const SizedBox(width: 28),
+        SizedBox(width: 28),
         // Info Section - 30%
         Expanded(
           flex: 30,
@@ -177,12 +180,14 @@ class _DesktopLayout extends StatelessWidget {
 }
 
 class _TabletLayout extends StatelessWidget {
+  const _TabletLayout();
+
   @override
   Widget build(final BuildContext context) {
-    return Column(
+    return const Column(
       children: [
         _HeroImageCard(),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _InfoSection(),
       ],
     );
@@ -190,12 +195,14 @@ class _TabletLayout extends StatelessWidget {
 }
 
 class _MobileLayout extends StatelessWidget {
+  const _MobileLayout();
+
   @override
   Widget build(final BuildContext context) {
-    return Column(
+    return const Column(
       children: [
         _HeroImageCard(),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _InfoSection(),
       ],
     );
@@ -203,6 +210,8 @@ class _MobileLayout extends StatelessWidget {
 }
 
 class _HeroImageCard extends StatefulWidget {
+  const _HeroImageCard();
+
   @override
   State<_HeroImageCard> createState() => _HeroImageCardState();
 }
@@ -212,7 +221,9 @@ class _HeroImageCardState extends State<_HeroImageCard> {
 
   @override
   Widget build(final BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 650;
+    // Yükseklik ayarını responsive utils ile yapıyoruz
+    final double height = context.responsive(mobile: 350.0, desktop: 500.0);
+    final double radius = context.borderRadius(1.25); // ~20px
 
     return MouseRegion(
       onEnter: (final _) => setState(() => _isHovered = true),
@@ -221,9 +232,9 @@ class _HeroImageCardState extends State<_HeroImageCard> {
         duration: const Duration(milliseconds: 300),
         transform: Matrix4.identity()..scale(_isHovered ? 1.02 : 1.0),
         child: Container(
-          height: isMobile ? 350 : 500,
+          height: height,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(radius),
             boxShadow: [
               BoxShadow(
                 color:
@@ -234,7 +245,7 @@ class _HeroImageCardState extends State<_HeroImageCard> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(radius),
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -262,7 +273,7 @@ class _HeroImageCardState extends State<_HeroImageCard> {
                   ),
                 ),
 
-                // Top Tags (Eski stil şeffaf)
+                // Top Tags
                 const Positioned(
                   top: 14,
                   right: 14,
@@ -276,8 +287,8 @@ class _HeroImageCardState extends State<_HeroImageCard> {
                   ),
                 ),
 
-                // Bottom Quote Card (Eski şeffaf stil)
-                Positioned(
+                // Bottom Quote Card
+                const Positioned(
                   left: 14,
                   right: 14,
                   bottom: 14,
@@ -322,6 +333,8 @@ class _PillTag extends StatelessWidget {
 }
 
 class _QuoteCard extends StatelessWidget {
+  const _QuoteCard();
+
   @override
   Widget build(final BuildContext context) {
     return ClipRRect(
@@ -381,15 +394,20 @@ class _QuoteCard extends StatelessWidget {
 }
 
 class _InfoSection extends StatelessWidget {
+  const _InfoSection();
+
   @override
   Widget build(final BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 650;
+    // Responsive padding ve fontlar
+    final double padding = context.responsive(mobile: 18.0, desktop: 24.0);
+    final double titleSize = context.responsive(mobile: 18.0, desktop: 20.0);
+    final double bodySize = context.bodySize;
 
     return Container(
-      padding: EdgeInsets.all(isMobile ? 18 : 24),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: WebColors.darkBlueSurface.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(context.borderRadius(1.25)),
         border: Border.all(
           color: WebColors.primaryGold.withOpacity(0.2),
           width: 1,
@@ -410,7 +428,7 @@ class _InfoSection extends StatelessWidget {
               Text(
                 'Oyunun Özeti',
                 style: TextStyle(
-                  fontSize: isMobile ? 18 : 20,
+                  fontSize: titleSize,
                   fontWeight: FontWeight.bold,
                   color: WebColors.primaryGold,
                 ),
@@ -424,7 +442,7 @@ class _InfoSection extends StatelessWidget {
           Text(
             'Anton Çehov\'un ünlü oyunundan uyarlanan bu etkileyici yapım, insan doğasının karmaşık duygularını ve toplumsal baskıları benzersiz bir sanatsal yaklaşımla sahneye taşıyor. Güçlü performanslar ve çarpıcı sahneleme ile unutulmaz bir deneyim.',
             style: TextStyle(
-              fontSize: isMobile ? 13 : 14,
+              fontSize: bodySize, // Utils'den geliyor (14 or 16)
               height: 1.6,
               color: WebColors.lightWhite.withOpacity(0.9),
             ),
@@ -473,7 +491,7 @@ class _InfoSection extends StatelessWidget {
               Text(
                 'OYUN EKİBİ',
                 style: TextStyle(
-                  fontSize: isMobile ? 15 : 16,
+                  fontSize: context.responsive(mobile: 15.0, desktop: 16.0),
                   fontWeight: FontWeight.bold,
                   color: WebColors.primaryGold,
                   letterSpacing: 1,
@@ -485,7 +503,7 @@ class _InfoSection extends StatelessWidget {
           const SizedBox(height: 14),
 
           // Cast Members
-          _CastGrid(isMobile: isMobile),
+          const _CastGrid(),
         ],
       ),
     );
@@ -530,12 +548,11 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _CastGrid extends StatelessWidget {
-  final bool isMobile;
-
-  const _CastGrid({required this.isMobile});
+  const _CastGrid();
 
   @override
   Widget build(final BuildContext context) {
+    // Data listesi
     final castMembers = [
       {'name': 'İSKEDNER ATİLLA ATASOY', 'role': 'Uyarlayan ve Yöneten'},
       {'name': 'UĞUR KILIÇ', 'role': 'Yönetmen Yard.'},
@@ -560,7 +577,7 @@ class _CastGrid extends StatelessWidget {
   }
 }
 
-class _CastCard extends StatefulWidget {
+class _CastCard extends StatelessWidget {
   final String name;
   final String role;
 
@@ -569,11 +586,6 @@ class _CastCard extends StatefulWidget {
     required this.role,
   });
 
-  @override
-  State<_CastCard> createState() => _CastCardState();
-}
-
-class _CastCardState extends State<_CastCard> {
   @override
   Widget build(final BuildContext context) {
     return Container(
@@ -592,7 +604,7 @@ class _CastCardState extends State<_CastCard> {
             radius: 18,
             backgroundColor: WebColors.primaryGold.withOpacity(0.2),
             child: Text(
-              widget.name.characters.first,
+              name.characters.first,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -606,7 +618,7 @@ class _CastCardState extends State<_CastCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.name,
+                  name,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -615,7 +627,7 @@ class _CastCardState extends State<_CastCard> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  widget.role,
+                  role,
                   style: const TextStyle(
                     color: WebColors.primaryGoldLight,
                     fontSize: 11,
