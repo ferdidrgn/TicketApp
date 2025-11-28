@@ -176,163 +176,107 @@ class _MetaforLandingState extends State<MetaforLanding>
     );
   }
 
-// ═══════════════════════════════════════════════════════════
-  // 1. HEADER SECTION (GÖRSEL İLE BİREBİR TASARIM)
-  // ═══════════════════════════════════════════════════════════
-  Widget _buildElegantHeader(final BuildContext context) {
-    // Responsive boyutlar
-    final double bracketSize = context.responsive(mobile: 30.0, desktop: 50.0);
-    final double spacing =
-        context.responsive(mobile: 16.0, tablet: 30.0, desktop: 45.0);
-    final double titleSize =
-        context.responsive(mobile: 42.0, tablet: 64.0, desktop: 90.0);
-
-    return Column(
-      children: [
-        // 1. Üst Soluk Çizgi
-        Container(
-          width: context.responsive(mobile: 60.0, desktop: 100.0),
-          height: 1,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.transparent,
-                WebColors.primaryGold.withOpacity(0.5),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-
-        SizedBox(height: context.responsive(mobile: 20.0, desktop: 30.0)),
-
-        // 2. ANA SATIR: [Sol Desen] - [Boşluk] - [METAFOR] - [Boşluk] - [Sağ Desen]
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          // Desenler ve yazı dikeyde ortalı
+  // Geri kalan tüm kodlar aynı kalacak...
+  Widget _buildElegantHeader(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Column(
           children: [
-            // SOL DESEN (┌ Şekli)
-            _buildCornerBracket(size: bracketSize, isLeft: true),
-
-            // BOŞLUK
-            SizedBox(width: spacing),
-
-            // METAFOR YAZISI
             Stack(
               alignment: Alignment.center,
               children: [
-                // Arkadaki Gölge Efekti
-                Text(
-                  'METAFOR',
-                  style: TextStyle(
-                    fontSize: titleSize,
-                    fontWeight: FontWeight.w300,
-                    fontFamily: 'Playfair Display',
-                    color: WebColors.primaryGold.withOpacity(0.1),
-                    letterSpacing:
-                        context.responsive(mobile: 4.0, desktop: 12.0),
-                    height: 1.0,
-                  ),
-                ),
-                // Öndeki Ana Beyaz Yazı
-                Text(
-                  'METAFOR',
-                  style: TextStyle(
-                    fontSize: titleSize,
-                    fontWeight: FontWeight.w300,
-                    fontFamily: 'Playfair Display',
-                    color: Colors.white,
-                    letterSpacing:
-                        context.responsive(mobile: 4.0, desktop: 12.0),
-                    height: 1.0,
-                  ),
+                _buildCornerDecoration(true),
+                _buildCornerDecoration(false),
+                Column(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 1,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            WebColors.primaryGold,
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: context.gridSpacing * 2),
+                    Stack(
+                      children: [
+                        Text(
+                          'METAFOR',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize:
+                                context.responsive(mobile: 52.0, desktop: 84.0),
+                            fontWeight: FontWeight.w300,
+                            fontFamily: 'Playfair Display',
+                            color: WebColors.primaryGold.withOpacity(0.1),
+                            letterSpacing: 8,
+                            height: 0.9,
+                          ),
+                        ),
+                        Text(
+                          'METAFOR',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize:
+                                context.responsive(mobile: 52.0, desktop: 84.0),
+                            fontWeight: FontWeight.w300,
+                            fontFamily: 'Playfair Display',
+                            color: Colors.white,
+                            letterSpacing: 8,
+                            height: 0.9,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: context.gridSpacing),
+                    Container(
+                      width: 120,
+                      height: 2,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            WebColors.primaryGold.withOpacity(0.5),
+                            WebColors.primaryGold,
+                            WebColors.primaryGold.withOpacity(0.5),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: context.gridSpacing * 1.5),
+                    SizedBox(
+                      width: context.responsive(mobile: 300, desktop: 600),
+                      child: Text(
+                        'Zamanın, Hafızanın ve İnsan Ruhunun Labirentlerinde Bir Tiyatro Deneyimi',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize:
+                              context.responsive(mobile: 14.0, desktop: 18.0),
+                          color: WebColors.textSecondary,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w300,
+                          fontStyle: FontStyle.italic,
+                          height: 1.6,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-
-            // BOŞLUK
-            SizedBox(width: spacing),
-
-            // SAĞ DESEN (┐ Şekli)
-            _buildCornerBracket(size: bracketSize, isLeft: false),
           ],
         ),
-
-        SizedBox(height: context.responsive(mobile: 20.0, desktop: 30.0)),
-
-        // 3. Alt Parlak Çizgi
-        Container(
-          width: context.responsive(mobile: 100.0, desktop: 180.0),
-          height: 1.5, // Biraz daha belirgin
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.transparent,
-                WebColors.primaryGold,
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-
-        SizedBox(height: context.gridSpacing),
-
-        // 4. Alt Metin (Slogan)
-        Padding(
-          padding: context.paddingHorizontal,
-          child: Text(
-            'Zamanın, Hafızanın ve İnsan Ruhunun Labirentlerinde Bir\nTiyatro Deneyimi',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 12.0, desktop: 16.0),
-              color: WebColors.textSecondary,
-              // Gri/Gümüş rengi
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.w300,
-              fontStyle: FontStyle.italic,
-              height: 1.6,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Görseldeki gibi ince köşe desenini oluşturan yardımcı metot
-  Widget _buildCornerBracket(
-      {required final double size, required final bool isLeft}) {
-    return Container(
-      width: size,
-      height: size,
-      // Yıldızı sol üst veya sağ üst köşeye hizalar
-      alignment: isLeft ? Alignment.topLeft : Alignment.topRight,
-      decoration: BoxDecoration(
-        border: Border(
-          // Üst kenar her ikisinde de var
-          top: const BorderSide(color: WebColors.primaryGold, width: 1),
-          // Sol kenar sadece "isLeft" true ise, Sağ kenar false ise
-          left: isLeft
-              ? const BorderSide(color: WebColors.primaryGold, width: 1)
-              : BorderSide.none,
-          right: !isLeft
-              ? const BorderSide(color: WebColors.primaryGold, width: 1)
-              : BorderSide.none,
-        ),
-      ),
-      // Yıldız İkonu
-      child: Padding(
-        padding: EdgeInsets.all(size * 0.2), // Köşeden biraz uzaklaştırma
-        child: Icon(
-          Icons.star_outline,
-          color: WebColors.primaryGold,
-          size: size * 0.4, // Kutu boyutuna göre oranlı yıldız
-        ),
       ),
     );
   }
 
-  Widget _buildCornerDecoration(final bool isLeft) {
+  Widget _buildCornerDecoration(bool isLeft) {
     return Positioned(
       top: 0,
       left: isLeft ? 0 : null,
@@ -342,13 +286,13 @@ class _MetaforLandingState extends State<MetaforLanding>
         child: Container(
           width: 60,
           height: 60,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
               top: BorderSide(color: WebColors.primaryGold, width: 1),
               left: BorderSide(color: WebColors.primaryGold, width: 1),
             ),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.star_outline,
             color: WebColors.primaryGold,
             size: 16,
