@@ -12,61 +12,209 @@ class GozYapVazYapLanding extends StatelessWidget {
   static const String _secondImage =
       'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27';
 
+  // Teknik Ekip Listesi
+  static const List<Map<String, String>> _techCrew = [
+    {'role': 'Işık Tasarımı', 'name': 'Emre Kahraman'},
+    {'role': 'Ses & Efekt', 'name': 'Gökhan Şener'},
+    {'role': 'Afiş Tasarımı', 'name': 'Tayfun Kızıldağ'},
+    {'role': 'Dansçı', 'name': 'Burcu Koçyiğit'},
+  ];
+
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     return Container(
       color: WebColors.darkBlueBackground,
       child: Column(
         children: [
-          _buildTopHeader(context),
-          _buildMainImageSection(context),
-          _buildContentSection(context),
+          _buildHeader(context),
+          _buildHeroSection(context),
+
+          // İçerik Alanı
+          Padding(
+            padding: context.responsive(
+              mobile: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+              desktop: const EdgeInsets.symmetric(horizontal: 50, vertical: 48),
+            ),
+            child: context.isDesktop
+                ? _buildDesktopContent(context)
+                : _buildMobileContent(context),
+          ),
         ],
       ),
     );
   }
 
   // ═══════════════════════════════════════════════════
-  // MODERN BAŞLIK (Glassmorphism)
+  // LAYOUT YAPILARI
   // ═══════════════════════════════════════════════════
-  Widget _buildTopHeader(final BuildContext context) {
+
+  Widget _buildDesktopContent(BuildContext context) {
+    return Column(
+      children: [
+        // Yeni tasarım entegre edildi
+        _buildCreativeTeam(context, isRow: true),
+        const SizedBox(height: 40),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 5, child: _buildAboutSection(context)),
+            const SizedBox(width: 32),
+            Expanded(flex: 5, child: _buildSecondImageManifesto(context)),
+          ],
+        ),
+        const SizedBox(height: 40),
+        _buildTechnicalTeam(context),
+      ],
+    );
+  }
+
+  Widget _buildMobileContent(BuildContext context) {
+    return Column(
+      children: [
+        // Yeni tasarım entegre edildi
+        _buildCreativeTeam(context, isRow: false),
+        const SizedBox(height: 24),
+        _buildSecondImageManifesto(context),
+        const SizedBox(height: 24),
+        _buildAboutSection(context),
+        const SizedBox(height: 24),
+        _buildTechnicalTeam(context),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════
+  // YARATICI EKİP (GÜNCELLENEN KISIM)
+  // ═══════════════════════════════════════════════════
+  Widget _buildCreativeTeam(BuildContext context, {required bool isRow}) {
+    // Senin tasarımını kullanan kartlar
+    final writer =
+        _buildSymbolicCrewCard(context, 'YAZAN', 'HALDUN TANER', Icons.book);
+    final director = _buildSymbolicCrewCard(
+        context, 'YÖNETMEN', 'EFSUN KAYGUSUZ', Icons.theater_comedy_rounded);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                  gradient: WebColors.goldGradient,
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(Icons.stars,
+                  color: WebColors.darkBlueBackground, size: 20),
+            ),
+            const SizedBox(width: 12),
+            ShaderMask(
+              shaderCallback: (bounds) =>
+                  WebColors.goldGradient.createShader(bounds),
+              child: Text(
+                'YARATICI EKİP',
+                style: TextStyle(
+                  fontSize: context.responsive(mobile: 20.0, desktop: 26.0),
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        // Layout mantığı
+        isRow
+            ? Row(children: [
+                Expanded(child: writer),
+                const SizedBox(width: 20),
+                Expanded(child: director)
+              ])
+            : Column(children: [writer, const SizedBox(height: 16), director]),
+      ],
+    );
+  }
+
+  // ✅ SENİN TASARIMIN ENTEGRE EDİLDİ
+  Widget _buildSymbolicCrewCard(
+      BuildContext context, String role, String name, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      // Margin sadece dikeyde tutuldu
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          // İkon Tasarımı
+          Icon(icon, color: WebColors.primaryGold, size: 28),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Rol Tasarımı
+              Text(role,
+                  style: TextStyle(
+                      fontSize: context.captionSize,
+                      color: Colors
+                          .white70 // Fallback to safe color or use WebColors.textSecondary if exists
+                      )),
+              // İsim Tasarımı (Extra Bold)
+              Text(name,
+                  style: TextStyle(
+                      fontSize: context.bodySize + 2,
+                      fontWeight: FontWeight.w900,
+                      color: Colors
+                          .white // Fallback to safe color or use WebColors.whiteText if exists
+                      )),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════
+  // DİĞER BİLEŞENLER (MEVCUT RESPONSIVE YAPI)
+  // ═══════════════════════════════════════════════════
+
+  Widget _buildHeader(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: context.isMobile ? 20 : 50,
-        vertical: context.isMobile ? 32 : 48,
+      padding: context.responsive(
+        mobile: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+        desktop: const EdgeInsets.symmetric(horizontal: 50, vertical: 48),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(context.isMobile ? 20 : 24),
+        borderRadius: BorderRadius.circular(context.borderRadius(1.5)),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            padding: EdgeInsets.all(context.isMobile ? 24 : 32),
+            padding: context.paddingAll,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
                 colors: [
                   Colors.white.withOpacity(0.08),
-                  Colors.white.withOpacity(0.04),
+                  Colors.white.withOpacity(0.04)
                 ],
               ),
-              borderRadius: BorderRadius.circular(context.isMobile ? 20 : 24),
+              borderRadius: BorderRadius.circular(context.borderRadius(1.5)),
               border: Border.all(
-                color: WebColors.primaryGold.withOpacity(0.3),
-                width: 1.5,
-              ),
+                  color: WebColors.primaryGold.withOpacity(0.3), width: 1.5),
             ),
             child: Column(
               children: [
                 ShaderMask(
-                  shaderCallback: (final bounds) =>
+                  shaderCallback: (bounds) =>
                       WebColors.goldGradient.createShader(bounds),
                   child: Text(
                     'GÖZLERİMİ KAPARIM\nVAZİFEMİ YAPARIM',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: context.responsive(mobile: 26.0, desktop: 40),
+                      fontSize: context.responsive(mobile: 26.0, desktop: 40.0),
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                       letterSpacing: 1.5,
@@ -82,23 +230,18 @@ class GozYapVazYapLanding extends StatelessWidget {
                     color: WebColors.primaryGold.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: WebColors.primaryGold.withOpacity(0.3),
-                      width: 1,
-                    ),
+                        color: WebColors.primaryGold.withOpacity(0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.location_on,
-                        color: WebColors.primaryGoldLight,
-                        size: 16,
-                      ),
+                      Icon(Icons.location_on,
+                          color: WebColors.primaryGoldLight, size: 16),
                       const SizedBox(width: 6),
                       Text(
                         '1889 SES TİYATROSU (TAKSİM)',
                         style: TextStyle(
-                          fontSize: context.isMobile ? 12 : 14,
+                          fontSize: context.captionSize + 2,
                           fontWeight: FontWeight.w600,
                           color: WebColors.primaryGoldLight,
                         ),
@@ -114,10 +257,7 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ═══════════════════════════════════════════════════
-  // GÖRSEL BÖLÜMÜ (DEĞİŞMEDİ)
-  // ═══════════════════════════════════════════════════
-  Widget _buildMainImageSection(final BuildContext context) {
+  Widget _buildHeroSection(BuildContext context) {
     return Container(
       height: context.responsive(mobile: 350.0, desktop: 500.0),
       width: double.infinity,
@@ -125,30 +265,25 @@ class GozYapVazYapLanding extends StatelessWidget {
         color: WebColors.darkBlueBackground,
         boxShadow: [
           BoxShadow(
-            color: WebColors.primaryGold.withOpacity(0.3),
-            blurRadius: 20,
-            spreadRadius: 2,
-          )
+              color: WebColors.primaryGold.withOpacity(0.3),
+              blurRadius: 20,
+              spreadRadius: 2)
         ],
       ),
       child: Stack(
         children: [
           Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(_mainImage, fit: BoxFit.cover),
-            ),
+            child: Image.network(_mainImage, fit: BoxFit.cover),
           ),
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.black.withOpacity(0.4),
-                    WebColors.darkBlueBackground.withOpacity(0.9),
+                    WebColors.darkBlueBackground.withOpacity(0.9)
                   ],
                 ),
               ),
@@ -184,7 +319,7 @@ class GozYapVazYapLanding extends StatelessWidget {
                     fontStyle: FontStyle.italic,
                     shadows: [
                       BoxShadow(
-                          color: Colors.black.withOpacity(1.0), blurRadius: 15),
+                          color: Colors.black.withOpacity(1.0), blurRadius: 15)
                     ],
                   ),
                   textAlign: TextAlign.center,
@@ -197,227 +332,173 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  // ═══════════════════════════════════════════════════
-  // İÇERİK BÖLÜMÜ
-  // ═══════════════════════════════════════════════════
-  Widget _buildContentSection(final BuildContext context) {
+  Widget _buildAboutSection(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: context.isMobile ? 20 : 50,
-        vertical: context.isMobile ? 32 : 48,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCreativeTeamSection(context),
-          const SizedBox(height: 40),
-          _buildResponsiveGameDetails(context),
-          const SizedBox(height: 40),
-          _buildTechnicalTeam(context),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════
-  // YARATICI EKİP (Modern Card Design)
-  // ═══════════════════════════════════════════════════
-  Widget _buildCreativeTeamSection(final BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                gradient: WebColors.goldGradient,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.stars,
-                color: WebColors.darkBlueBackground,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            ShaderMask(
-              shaderCallback: (final bounds) =>
-                  WebColors.goldGradient.createShader(bounds),
-              child: Text(
-                'YARATICI EKİP',
-                style: TextStyle(
-                  fontSize: context.responsive(mobile: 20, desktop: 26),
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        context.isMobile
-            ? _buildCreativeTeamMobile(context)
-            : _buildCreativeTeamDesktop(context),
-      ],
-    );
-  }
-
-  Widget _buildCreativeTeamDesktop(final BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildModernTeamCard(
-            context: context,
-            role: 'YAZAN',
-            name: 'HALDUN TANER',
-            icon: Icons.edit_outlined,
-          ),
-        ),
-        const SizedBox(width: 20),
-        Expanded(
-          child: _buildModernTeamCard(
-            context: context,
-            role: 'YÖNETMEN',
-            name: 'EFSUN KAYGUSUZ',
-            icon: Icons.theater_comedy_outlined,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCreativeTeamMobile(final BuildContext context) {
-    return Column(
-      children: [
-        _buildModernTeamCard(
-          context: context,
-          role: 'YAZAN',
-          name: 'HALDUN TANER',
-          icon: Icons.edit_outlined,
-        ),
-        const SizedBox(height: 16),
-        _buildModernTeamCard(
-          context: context,
-          role: 'YÖNETMEN',
-          name: 'EFSUN KAYGUSUZ',
-          icon: Icons.theater_comedy_outlined,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildModernTeamCard({
-    required final BuildContext context,
-    required final String role,
-    required final String name,
-    required final IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: WebColors.primaryGold.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              gradient: WebColors.goldGradient,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: WebColors.primaryGold.withOpacity(0.3),
-                  blurRadius: 12,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Icon(icon, color: WebColors.darkBlueBackground, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
+              Container(
+                  width: 4,
+                  height: 24,
+                  decoration: BoxDecoration(
+                      gradient: WebColors.goldGradient,
+                      borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 12),
               Text(
-                role,
+                'OYUN HAKKINDA',
                 style: TextStyle(
-                  fontSize: 11,
-                  color: WebColors.primaryGoldLight,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: context.isMobile ? 15 : 17,
-                  fontWeight: FontWeight.w800,
-                  color: WebColors.whiteText,
-                ),
+                    fontSize: context.responsive(mobile: 18.0, desktop: 22.0),
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 1),
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          _buildText(context,
+              'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.'),
+          const SizedBox(height: 12),
+          _buildText(context,
+              'Vicdani (Saf ve Dürüst) ile Efruz (Köşe Dönücü ve Fırsatçı) arasındaki çatışma, devleti sömürenler ve itaat edenler arasındaki dengesizliği gözler önüne seriyor.'),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.format_quote,
+                    color: WebColors.primaryGold.withOpacity(0.6), size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '"Gözlerimi Kaparım Vazifemi Yaparım" aynı zamanda değişen toplumsal değerleri ve bireyin bu değişim karşısındaki duruşunu mizahi bir dille sorguluyor.',
+                    style: TextStyle(
+                        fontSize: context.captionSize + 2,
+                        color: WebColors.primaryGoldLight,
+                        fontStyle: FontStyle.italic,
+                        height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // ═══════════════════════════════════════════════════
-  // OYUN DETAYLARI (Responsive)
-  // ═══════════════════════════════════════════════════
-  Widget _buildResponsiveGameDetails(final BuildContext context) {
-    if (context.isMobile) {
-      return Column(
-        children: [
-          _buildSecondImageManifesto(context, isMobile: true),
-          const SizedBox(height: 24),
-          _buildAboutSection(context),
-        ],
-      );
-    } else {
-      return Row(
+  Widget _buildTechnicalTeam(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 5, child: _buildAboutSection(context)),
-          const SizedBox(width: 32),
-          Expanded(flex: 5, child: _buildSecondImageManifesto(context)),
+          Row(
+            children: [
+              Container(
+                  width: 4,
+                  height: 24,
+                  decoration: BoxDecoration(
+                      gradient: WebColors.goldGradient,
+                      borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 12),
+              Text(
+                'TEKNİK EKİP',
+                style: TextStyle(
+                    fontSize: context.responsive(mobile: 18.0, desktop: 22.0),
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 1),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: context.responsive(mobile: 16.0, desktop: 24.0),
+            runSpacing: 12,
+            children: _techCrew
+                .map((member) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                  gradient: WebColors.goldGradient,
+                                  shape: BoxShape.circle)),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(member['role']!,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: WebColors.primaryGoldLight,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5)),
+                              Text(member['name']!,
+                                  style: TextStyle(
+                                      fontSize: context.captionSize + 2,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ))
+                .toList(),
+          ),
         ],
-      );
-    }
+      ),
+    );
   }
 
-  Widget _buildSecondImageManifesto(final BuildContext context,
-      {final bool isMobile = false}) {
+  Widget _buildSecondImageManifesto(BuildContext context) {
+    final height = context.responsive(mobile: 350.0, desktop: 500.0);
     return Container(
-      height: isMobile ? 350 : 500,
+      height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: WebColors.primaryGold.withOpacity(0.3),
-            blurRadius: 20,
-            spreadRadius: 2,
-          )
+              color: WebColors.primaryGold.withOpacity(0.3),
+              blurRadius: 20,
+              spreadRadius: 2)
         ],
       ),
       child: Stack(
         children: [
           Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(_secondImage, fit: BoxFit.cover),
-            ),
-          ),
+              child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.network(_secondImage, fit: BoxFit.cover))),
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -427,7 +508,7 @@ class GozYapVazYapLanding extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.black.withOpacity(0.6),
-                    WebColors.darkBlueBackground.withOpacity(0.9),
+                    WebColors.darkBlueBackground.withOpacity(0.9)
                   ],
                 ),
               ),
@@ -436,116 +517,27 @@ class GozYapVazYapLanding extends StatelessWidget {
           Positioned(
             left: 24,
             right: 24,
-            bottom: isMobile ? 50 : 80,
+            bottom: context.responsive(mobile: 50.0, desktop: 80.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'HANGİ GÖZ DAHA KÖRDÜR?',
                   style: TextStyle(
-                    fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
-                    color: WebColors.warning,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                  ),
+                      fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
+                      color: WebColors.warning,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   '"Körlüğe terfi etmek mi, gerçeğe mahkum olmak mı? Bir tercihin anatomisi."',
                   style: TextStyle(
-                    fontSize: context.responsive(mobile: 18.0, desktop: 24.0),
-                    color: WebColors.primaryGoldLight,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w700,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════
-  // OYUN HAKKINDA (Modern Card)
-  // ═══════════════════════════════════════════════════
-  Widget _buildAboutSection(final BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: WebColors.primaryGold.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 24,
-                decoration: BoxDecoration(
-                  gradient: WebColors.goldGradient,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'OYUN HAKKINDA',
-                style: TextStyle(
-                  fontSize: context.responsive(mobile: 18.0, desktop: 22.0),
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildContentParagraph(
-            context,
-            'Haldun Taner\'in bu iki perdelik oyunu, Türkiye\'nin yaklaşık 70 yıllık siyasi, ekonomik ve toplumsal durumunu birbirine zıt iki kimlik üzerinden ele alarak, toplumumuza bir ayna tutuyor.',
-          ),
-          const SizedBox(height: 12),
-          _buildContentParagraph(
-            context,
-            'Vicdani (Saf ve Dürüst) ile Efruz (Köşe Dönücü ve Fırsatçı) arasındaki çatışma, devleti sömürenler ve itaat edenler arasındaki dengesizliği gözler önüne seriyor.',
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: WebColors.primaryGold.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.format_quote,
-                  color: WebColors.primaryGold.withOpacity(0.6),
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '"Gözlerimi Kaparım Vazifemi Yaparım" aynı zamanda değişen toplumsal değerleri ve bireyin bu değişim karşısındaki duruşunu mizahi bir dille sorguluyor.',
-                    style: TextStyle(
-                      fontSize: context.isMobile ? 13 : 15,
+                      fontSize: context.responsive(mobile: 18.0, desktop: 24.0),
                       color: WebColors.primaryGoldLight,
                       fontStyle: FontStyle.italic,
-                      height: 1.5,
-                    ),
-                  ),
+                      fontWeight: FontWeight.w700,
+                      height: 1.4),
                 ),
               ],
             ),
@@ -555,127 +547,13 @@ class GozYapVazYapLanding extends StatelessWidget {
     );
   }
 
-  Widget _buildContentParagraph(final BuildContext context, final String text) {
+  Widget _buildText(BuildContext context, String text) {
     return Text(
       text,
       style: TextStyle(
-        fontSize: context.isMobile ? 13 : 16,
-        color: WebColors.lightWhite.withOpacity(0.9),
-        height: 1.6,
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════
-  // TEKNİK EKİP (Compact & Clean)
-  // ═══════════════════════════════════════════════════
-  Widget _buildTechnicalTeam(final BuildContext context) {
-    final List<Map<String, String>> crew = [
-      {'role': 'Işık Tasarımı', 'name': 'Emre Kahraman'},
-      {'role': 'Ses & Efekt', 'name': 'Gökhan Şener'},
-      {'role': 'Afiş Tasarımı', 'name': 'Tayfun Kızıldağ'},
-      {'role': 'Dansçı', 'name': 'Burcu Koçyiğit'},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: WebColors.primaryGold.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 24,
-                decoration: BoxDecoration(
-                  gradient: WebColors.goldGradient,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'TEKNİK EKİP',
-                style: TextStyle(
-                  fontSize: context.responsive(mobile: 18.0, desktop: 22.0),
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: context.isMobile ? 16 : 24,
-            runSpacing: 12,
-            children: crew.map((final member) {
-              return _buildCrewMember(
-                context,
-                member['role']!,
-                member['name']!,
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCrewMember(final BuildContext context, final String role, final String name) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              gradient: WebColors.goldGradient,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                role,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: WebColors.primaryGoldLight,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: context.isMobile ? 12 : 14,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+          fontSize: context.bodySize,
+          color: Colors.white.withOpacity(0.9),
+          height: 1.6),
     );
   }
 }
