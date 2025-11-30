@@ -1,62 +1,43 @@
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:video_player/video_player.dart';
 
-import '../../../../../../data/providers/ticket/ticket_notifier.dart';
-
-// State sınıfı
+// Video durumunu takip eden basit bir State sınıfı
 class HomeAssetsState {
-  final bool isVideoReady;
   final VideoPlayerController? videoController;
+  final bool isVideoReady;
 
-  HomeAssetsState({
-    this.isVideoReady = false,
-    this.videoController,
-  });
-
-  HomeAssetsState copyWith({
-    bool? isVideoReady,
-    VideoPlayerController? videoController,
-  }) {
-    return HomeAssetsState(
-      isVideoReady: isVideoReady ?? this.isVideoReady,
-      videoController: videoController ?? this.videoController,
-    );
-  }
+  HomeAssetsState({this.videoController, this.isVideoReady = false});
 }
 
-// Notifier sınıfı
 class HomeAssetsNotifier extends StateNotifier<HomeAssetsState> {
   HomeAssetsNotifier() : super(HomeAssetsState());
 
   Future<void> initializeVideo() async {
-    try {
-      // Eğer zaten varsa tekrar oluşturma
-      if (state.videoController != null && state.videoController!.value.isInitialized) {
-        return;
-      }
+    // Eğer zaten yüklendiyse tekrar yapma
+    if (state.isVideoReady) return;
 
-      // 1. Controller'ı oluştur (mixWithOthers ÖNEMLİ)
-      final controller = VideoPlayerController.asset(
-        'assets/video/intro.mp4', // Videonun yolu doğru olduğundan emin ol
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    try {
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse(
+          'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705',
+        ),
       );
 
-      // 2. Başlat
+      // Sesi kapat, döngüye al ve hazırlanmasını bekle
       await controller.initialize();
+      await controller.setLooping(true);
+      await controller.setVolume(0);
+      await controller.setPlaybackSpeed(0.5);
 
-      // 3. MOBİL İÇİN ZORUNLU AYARLAR
-      await controller.setVolume(0.0); // Ses sıfır olmazsa mobil oynatmaz
-      await controller.setLooping(true); // Döngü
+      // Video hazır! State'i güncelle
+      state = HomeAssetsState(videoController: controller, isVideoReady: true);
 
-      // State'i güncelle
-      if (mounted) {
-        state = state.copyWith(
-          isVideoReady: true,
-          videoController: controller,
-        );
-      }
+      // Hemen oynatmaya başla (Splash altındayken)
+      await controller.play();
     } catch (e) {
-      debugPrint("Video Yükleme Hatası: $e");
+      // Hata olursa en azından app takılmasın diye ready true çekilebilir
+      // veya error state yönetilebilir. Şimdilik devam ettiriyoruz.
+      state = HomeAssetsState(isVideoReady: true);
     }
   }
 
@@ -67,7 +48,7 @@ class HomeAssetsNotifier extends StateNotifier<HomeAssetsState> {
   }
 }
 
-// Provider
-final homeAssetsProvider = StateNotifierProvider<HomeAssetsNotifier, HomeAssetsState>((ref) {
+final homeAssetsProvider =
+    StateNotifierProvider<HomeAssetsNotifier, HomeAssetsState>((ref) {
   return HomeAssetsNotifier();
 });
