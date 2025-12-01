@@ -32,6 +32,9 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   late final Animation<double> _cardSlide;
   late final Animation<double> _cardOpacity;
 
+  // 📸 FALLBACK GÖRSEL (Asset)
+  final String _fallbackImage = 'assets/images/main_theatre.png';
+
   @override
   bool get wantKeepAlive => true;
 
@@ -79,7 +82,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   }
 
   @override
-  void didUpdateWidget(covariant final HeroVideoSection oldWidget) {
+  void didUpdateWidget(covariant HeroVideoSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.startAnimations && widget.startAnimations) {
       _controller.forward(from: 0);
@@ -115,7 +118,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     final hasVideo = controller != null && controller.value.isInitialized;
 
     if (hasVideo && !controller.value.isPlaying) {
-      WidgetsBinding.instance.addPostFrameCallback((final _) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) ref.read(homeAssetsProvider.notifier).playVideo();
       });
     }
@@ -128,7 +131,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
           // 1. ZEMİN (Koyu Tema)
           Container(color: const Color(0xFF050505)),
 
-          // 2. MASAÜSTÜ GÖRÜNÜMÜ (Mevcut hali koruyoruz)
+          // 2. MASAÜSTÜ GÖRÜNÜMÜ
           if (!context.isMobile) ...[
             Positioned.fill(
               child: _buildDesktopCinematicVideo(controller, hasVideo),
@@ -165,7 +168,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
               ),
           ],
 
-          // 3. MOBİL GÖRÜNÜM (YENİ EDITORIAL TASARIM)
+          // 3. MOBİL GÖRÜNÜM (DÜZELTİLMİŞ YAZI KONUMLARI İLE)
           if (context.isMobile)
             _buildMobileEditorialLayout(context, controller, hasVideo),
         ],
@@ -174,26 +177,327 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   }
 
   // ===========================================================================
-  // 🖥️ DESKTOP: SİNEMATİK VİDEO MASKESİ
+  // 📱 MOBILE LAYOUT: RESİM/VİDEO TAM EKRAN + YAZILAR DOĞRU YERDE
+  // ===========================================================================
+  Widget _buildMobileEditorialLayout(
+    BuildContext context,
+    VideoPlayerController? controller,
+    bool hasVideo,
+  ) {
+    return Stack(
+      children: [
+        // KATMAN 1: FALLBACK RESİM (En Altta, Tam Ekran)
+        Positioned.fill(
+          child: Image.asset(
+            _fallbackImage,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                Container(color: const Color(0xFF1A1A1A)),
+          ),
+        ),
+
+        // KATMAN 2: VİDEO (Varsa Resmin Üstüne Biner, Tam Ekran)
+        if (hasVideo)
+          Positioned.fill(
+            child: SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: controller!.value.size.width,
+                  height: controller.value.size.height,
+                  child: VideoPlayer(controller),
+                ),
+              ),
+            ),
+          ),
+
+        // KATMAN 3: KARARTMA GRADIENT
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.6), // Başlık için koyu üst
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.6), // Yazı için koyu alt
+                  Colors.black.withOpacity(0.95), // Kart için tam koyu
+                ],
+                stops: const [0.0, 0.3, 0.7, 1.0],
+              ),
+            ),
+          ),
+        ),
+
+        // KATMAN 4: İÇERİKLER
+
+        // 4.1 SOL ÜST: CANLI "ON AIR" ETİKETİ
+        Positioned(
+          top: 60,
+          left: 24,
+          child: Row(
+            children: [
+              hasVideo && controller!.value.isPlaying
+                  ? FadeTransition(
+                      opacity: _pulseController,
+                      child: _buildRedDot(),
+                    )
+                  : _buildRedDot(),
+              const SizedBox(width: 8),
+              Text(
+                'SEZON TANITIMI',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 4.2 SAĞ ÜST: DİKEY İMZA
+        Positioned(
+          top: 60,
+          right: 24,
+          child: RotatedBox(
+            quarterTurns: 1,
+            child: Text(
+              'TIYATROL 2025',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 10,
+                letterSpacing: 4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+
+        // 4.3 SOL ÜST: ANA BAŞLIK (On Air'in Altında)
+        // BURASI DÜZELTİLDİ: Artık ortaya değil, sol yukarıya sabitli.
+        Positioned(
+          top: 90,
+          left: 24,
+          right: 60, // Sağdaki yazıya çarpmaması için
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _contentOpacity.value,
+                child: Transform.translate(
+                  offset: Offset(0, _contentSlide.value),
+                  child: child,
+                ),
+              );
+            },
+            child: Text(
+              'HİKAYELER\nGERÇEĞE\nDÖNÜŞÜYOR',
+              textAlign: TextAlign.left, // Sola hizalı
+              style: TextStyle(
+                fontSize: 42,
+                height: 0.95,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: -1,
+                shadows: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.8),
+                    blurRadius: 20,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // 4.4 ALT ORTA: UZUN AÇIKLAMA METNİ (Kartın Üzerinde)
+        // BURASI AYRILDI: Başlıktan bağımsız olarak aşağıda ortalı.
+        Positioned(
+          bottom: 270, // Kartın yüksekliğine göre yukarıda
+          left: 30,
+          right: 30,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _contentOpacity.value,
+                // Başlık yukarıdan, bu aşağıdan gelsin diye ters efekt
+                child: Transform.translate(
+                  offset: Offset(0, -_contentSlide.value),
+                  child: child,
+                ),
+              );
+            },
+            child: Text(
+              'TiyatRol ile sanatın büyülü dünyasına adım atın. Klasiklerden moderne, her sahnede yeni bir duygu sizi bekliyor.',
+              textAlign: TextAlign.center, // Ortalanmış metin
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.white.withOpacity(0.85),
+                fontWeight: FontWeight.w400,
+                height: 1.4,
+                shadows: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(1.0),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // 4.5 EN ALT: BİLDİRİM KARTI (Sabit)
+        Positioned(
+          bottom: 30,
+          left: 16,
+          right: 16,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _cardOpacity.value,
+                child: Transform.translate(
+                  offset: Offset(0, _cardSlide.value),
+                  child: child,
+                ),
+              );
+            },
+            child: _buildMobileCard(context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 🎫 MOBİL KART (Web Tarzı)
+  Widget _buildMobileCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A).withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: WebColors.error,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'YAKINDA',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Spacer(),
+              Icon(Icons.notifications_active_outlined,
+                  color: WebColors.primaryGold.withOpacity(0.8), size: 18),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'METAFOR',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'Times New Roman',
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.calendar_today_outlined,
+                  color: Colors.white70, size: 14),
+              const SizedBox(width: 6),
+              Text(
+                '27 Haziran • 20:00',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.8), fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.location_on_outlined, color: Colors.white70, size: 14),
+              const SizedBox(width: 6),
+              Text(
+                'Altunizade Kültür Merkezi',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.8), fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+                onPressed: () async {
+                  const url = 'https://maps.app.goo.gl/CnW99UqhxyBJt1fL6';
+                  if (await canLaunchUrl(Uri.parse(url))) {
+                    await launchUrl(Uri.parse(url));
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: WebColors.primaryGold,
+                  foregroundColor: Colors.black,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text('BİLET AL & KONUM',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // 🖥️ DESKTOP: SİNEMATİK VİDEO MASKESİ + RESİM
   // ===========================================================================
   Widget _buildDesktopCinematicVideo(
-      final VideoPlayerController? controller, final bool hasVideo) {
-    if (!hasVideo) return const SizedBox();
-
+      VideoPlayerController? controller, bool hasVideo) {
     return Row(
       children: [
-        const Spacer(flex: 2), // Sol tarafı boş bırak (Yazılar için)
+        const Spacer(flex: 2),
         Expanded(
           flex: 5,
           child: ShaderMask(
-            shaderCallback: (final Rect bounds) {
+            shaderCallback: (Rect bounds) {
               return LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  Colors.transparent, // Sol taraf erimiş
+                  Colors.transparent,
                   Colors.black.withOpacity(0.5),
-                  Colors.black, // Sağ taraf net
+                  Colors.black,
                 ],
                 stops: const [0.0, 0.3, 1.0],
               ).createShader(bounds);
@@ -201,14 +505,27 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
             blendMode: BlendMode.dstIn,
             child: SizedBox(
               height: double.infinity,
-              child: FittedBox(
-                fit: BoxFit.cover,
-                clipBehavior: Clip.hardEdge,
-                child: SizedBox(
-                  width: controller!.value.size.width,
-                  height: controller.value.size.height,
-                  child: VideoPlayer(controller),
-                ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 1. Resim (Altta)
+                  Image.asset(
+                    _fallbackImage,
+                    fit: BoxFit.cover,
+                  ),
+
+                  // 2. Video (Varsa Üstte)
+                  if (hasVideo)
+                    FittedBox(
+                      fit: BoxFit.cover,
+                      clipBehavior: Clip.hardEdge,
+                      child: SizedBox(
+                        width: controller!.value.size.width,
+                        height: controller.value.size.height,
+                        child: VideoPlayer(controller),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -220,7 +537,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   // ===========================================================================
   // 🖋️ DESKTOP: YAZI İÇERİĞİ
   // ===========================================================================
-  Widget _buildDesktopContent(final BuildContext context) {
+  Widget _buildDesktopContent(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 80.0),
       child: Row(
@@ -229,7 +546,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
             flex: 6,
             child: AnimatedBuilder(
               animation: _controller,
-              builder: (final context, final child) {
+              builder: (context, child) {
                 return Opacity(
                   opacity: _contentOpacity.value,
                   child: Transform.translate(
@@ -302,15 +619,15 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   }
 
   // ===========================================================================
-  // 🎫 DESKTOP: KOYU & ŞIK BİLDİRİM KARTI
+  // 🎫 DESKTOP: BİLDİRİM KARTI
   // ===========================================================================
-  Widget _buildIntegratedGlassCard(final BuildContext context) {
+  Widget _buildIntegratedGlassCard(BuildContext context) {
     return Positioned(
       right: 80,
       bottom: 80,
       child: AnimatedBuilder(
         animation: _controller,
-        builder: (final context, final child) {
+        builder: (context, child) {
           return Opacity(
             opacity: _cardOpacity.value,
             child: Transform.translate(
@@ -438,309 +755,15 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     );
   }
 
-  // 🎫 MOBİL KART: WEB TASARIMININ AYNISI (Responsive)
-  Widget _buildMobileCard(final BuildContext context) {
+  Widget _buildRedDot() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A).withOpacity(0.9), // Koyu ve net zemin
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+      width: 8,
+      height: 8,
+      decoration: const BoxDecoration(
+        color: WebColors.error,
+        shape: BoxShape.circle,
+        boxShadow: [BoxShadow(color: WebColors.error, blurRadius: 6)],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Üst Kısım: Etiket ve İkon
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: WebColors.error,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'YAKINDA',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
-              const Spacer(),
-              Icon(Icons.notifications_active_outlined,
-                  color: WebColors.primaryGold.withOpacity(0.8), size: 18),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Başlık: Times New Roman
-          Text(
-            'METAFOR',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              // Mobilde biraz daha küçük ama hala büyük
-              fontWeight: FontWeight.w900,
-              fontFamily: 'Times New Roman',
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Detaylar
-          Row(
-            children: [
-              Icon(Icons.calendar_today_outlined,
-                  color: Colors.white70, size: 14),
-              const SizedBox(width: 6),
-              Text(
-                '27 Haziran • 20:00',
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.8), fontSize: 13),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(Icons.location_on_outlined, color: Colors.white70, size: 14),
-              const SizedBox(width: 6),
-              Text(
-                'Altunizade Kültür Merkezi',
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.8), fontSize: 13),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Altın Buton (Tam Genişlik)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-                onPressed: () async {
-                  const url = 'https://maps.app.goo.gl/CnW99UqhxyBJt1fL6';
-                  if (await canLaunchUrl(Uri.parse(url))) {
-                    await launchUrl(Uri.parse(url));
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: WebColors.primaryGold,
-                  foregroundColor: Colors.black,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('BİLET AL & KONUM',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // 📱 MOBILE LAYOUT: YENİ HİYERARŞİ (Başlık Sol Üst, Yazı Alt Orta, Kart En Alt)
-  // ===========================================================================
-  Widget _buildMobileEditorialLayout(
-    BuildContext context,
-    VideoPlayerController? controller,
-    bool hasVideo,
-  ) {
-    return Stack(
-      children: [
-        // 1. VİDEO: Tam Ekran Arka Plan
-        Positioned.fill(
-          child: hasVideo
-              ? FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: controller!.value.size.width,
-                    height: controller.value.size.height,
-                    child: VideoPlayer(controller),
-                  ),
-                )
-              : Container(color: Colors.black),
-        ),
-
-        // 2. GRADIENT: Okunabilirlik için
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.6),
-                  // Üst kısım daha koyu (Başlık için)
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.7),
-                  // Alt kısım koyu (Yazı ve Kart için)
-                  Colors.black.withOpacity(0.95),
-                ],
-                stops: const [0.0, 0.3, 0.7, 1.0],
-              ),
-            ),
-          ),
-        ),
-
-        // 3. SOL ÜST: CANLI "ON AIR" ETİKETİ
-        Positioned(
-          top: 60,
-          left: 24,
-          child: Row(
-            children: [
-              FadeTransition(
-                opacity: _pulseController,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: WebColors.error,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: WebColors.error, blurRadius: 6)
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'SEZON TANITIMI',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // 4. SAĞ ÜST: DİKEY İMZA
-        Positioned(
-          top: 60,
-          right: 24,
-          child: RotatedBox(
-            quarterTurns: 1,
-            child: Text(
-              'TIYATROL 2025',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
-                fontSize: 10,
-                letterSpacing: 4,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-
-        // 5. SOL ÜST: ANA BAŞLIK (ON AIR'in Altında)
-        Positioned(
-          top: 90, // ON AIR'den biraz aşağıda
-          left: 24,
-          right: 60, // Sağdaki imzaya çarpmaması için
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _contentOpacity.value,
-                child: Transform.translate(
-                  offset: Offset(0, _contentSlide.value),
-                  child: child,
-                ),
-              );
-            },
-            child: Text(
-              'HİKAYELER\nGERÇEĞE\nDÖNÜŞÜYOR',
-              style: TextStyle(
-                fontSize: 42,
-                // Mobilde biraz daha dengeli boyut
-                height: 0.95,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: -1,
-                shadows: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.8),
-                    blurRadius: 20,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // 6. ALT ORTA: UZUN AÇIKLAMA METNİ (Kartın Üzerinde)
-        Positioned(
-          bottom: 280,
-          // Kartın yüksekliğine göre ayarlandı (Kartın üstünde kalacak)
-          left: 30,
-          right: 30,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _contentOpacity.value,
-                // Başlıktan biraz daha geç gelsin diye slide değerini tersledik
-                child: Transform.translate(
-                  offset: Offset(0, -_contentSlide.value / 2),
-                  child: child,
-                ),
-              );
-            },
-            child: Text(
-              'TiyatRol ile sanatın büyülü dünyasına adım atın. Klasiklerden moderne, her sahnede yeni bir duygu sizi bekliyor.',
-              textAlign: TextAlign.center, // Ortalanmış
-              style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.white.withOpacity(0.85),
-                  fontWeight: FontWeight.w400,
-                  height: 1.4,
-                  shadows: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(1.0),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]),
-            ),
-          ),
-        ),
-
-        // 7. EN ALT: BİLDİRİM KARTI (Sabit)
-        Positioned(
-          bottom: 30,
-          left: 16,
-          right: 16,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _cardOpacity.value,
-                child: Transform.translate(
-                  offset: Offset(0, _cardSlide.value),
-                  child: child,
-                ),
-              );
-            },
-            child: _buildMobileCard(context),
-          ),
-        ),
-      ],
     );
   }
 }

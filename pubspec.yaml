@@ -127,6 +127,7 @@ flutter:
     - assets/images/app_near_logo.jpg  # Yakın logo.
     - assets/images/book_logo.jpg  # Kitap logosu.
     - assets/images/tiyatrol_logo.png  # Tiyatrol logosu.
+    - assets/images/main_theatre.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

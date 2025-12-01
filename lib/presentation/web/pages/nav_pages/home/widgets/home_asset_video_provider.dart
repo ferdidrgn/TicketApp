@@ -19,11 +19,11 @@ class HomeAssetsState {
   });
 
   HomeAssetsState copyWith({
-    VideoPlayerController? videoController,
-    bool? isVideoReady,
-    bool? isLoading,
-    bool? hasError,
-    String? errorMessage,
+    final VideoPlayerController? videoController,
+    final bool? isVideoReady,
+    final bool? isLoading,
+    final bool? hasError,
+    final String? errorMessage,
   }) {
     return HomeAssetsState(
       videoController: videoController ?? this.videoController,
@@ -54,7 +54,7 @@ class HomeAssetsNotifier extends StateNotifier<HomeAssetsState> {
 
     try {
       final videoUrl = Uri.parse(
-        'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705',
+        'ken=feab36d3-1d54-4ff8-868f-76f6591e8705',
       );
 
       // Controller oluştur
@@ -70,7 +70,7 @@ class HomeAssetsNotifier extends StateNotifier<HomeAssetsState> {
 
       // --- OTOMATİK OYNATMA İÇİN KRİTİK AYARLAR ---
       await controller.setLooping(true); // Döngü
-      await controller.setVolume(0);     // Sessiz (Autoplay için şart)
+      await controller.setVolume(0); // Sessiz (Autoplay için şart)
       await controller.setPlaybackSpeed(0.5); // İsteğe bağlı hız
       // -------------------------------------------
 
@@ -86,7 +86,6 @@ class HomeAssetsNotifier extends StateNotifier<HomeAssetsState> {
 
       // Otomatik oynatmayı başlat
       await playVideo();
-
     } catch (e) {
       debugPrint('❌ VIDEO HATA: $e');
       // Hata olsa bile sistemi kilitleme, fallback (arkaplan) görünsün
@@ -103,7 +102,8 @@ class HomeAssetsNotifier extends StateNotifier<HomeAssetsState> {
 
   // Videoyu oynatma tetikleyicisi
   Future<void> playVideo() async {
-    if (state.videoController != null && state.videoController!.value.isInitialized) {
+    if (state.videoController != null &&
+        state.videoController!.value.isInitialized) {
       try {
         if (!state.videoController!.value.isPlaying) {
           await state.videoController!.play();
@@ -122,6 +122,6 @@ class HomeAssetsNotifier extends StateNotifier<HomeAssetsState> {
 }
 
 final homeAssetsProvider =
-StateNotifierProvider<HomeAssetsNotifier, HomeAssetsState>((ref) {
+    StateNotifierProvider<HomeAssetsNotifier, HomeAssetsState>((final ref) {
   return HomeAssetsNotifier();
 });
