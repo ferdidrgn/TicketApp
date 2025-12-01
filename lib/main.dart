@@ -1,3 +1,5 @@
+import 'dart:ui' as ui; // ⭐ Web için video register
+import 'dart:html'; // Web VideoElement
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +23,20 @@ import 'router/app_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
+
+  // ⭐ Web video oynatma için viewType register
+  if (PlatformChecker.isWeb) {
+    ui.platformViewRegistry.registerViewFactory(
+      'videoPlayer',
+      (int viewId) => VideoElement()
+        ..autoplay = true
+        ..muted = true
+        ..loop = true
+        ..controls = false
+        ..style.width = '100%'
+        ..style.height = '100%',
+    );
+  }
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -49,7 +65,6 @@ class MyApp extends ConsumerWidget {
 
     // 2. Global Yüklenme Durumunu İzle (Login kontrolü yapılıyor mu?)
     final loginState = ref.watch(loginProvider);
-    // Sadece Mobil'de Login Loading'i önemlidir. Web'de zaten atlıyoruz.
     final bool isAuthLoading = !isWeb && loginState.isLoading;
 
     final ThemeData theme = isWeb
@@ -62,21 +77,14 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp.router(
       routerConfig: router,
-      // ✅ Provider'dan gelen router
       debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
       theme: theme,
       darkTheme: theme,
       themeMode: effectiveThemeMode,
-
-      // 🎯 GLOBAL BUILDER: İşte "Splash Screen" widget'ının yeni evi burası
       builder: (final context, final child) {
-        // Router'dan gelen asıl sayfa
         final safeChild = child ?? const SizedBox.shrink();
-
         return ConnectivityWrapper(
-          // Auth kontrolü yapılırken kullanıcıya boş ekran gösterme,
-          // şık DataSplashGuard'ı göster.
           child: SplashDataGuard(
             isLoading: isAuthLoading,
             loadingMessage: 'TiyatRol Başlatılıyor...',
