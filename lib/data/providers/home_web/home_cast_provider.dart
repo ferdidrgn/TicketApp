@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../../data/datasources/show/show_remote_data_source_and_impl.dart';
-import '../../../../../../domain/entities/player.dart';
-import '../../../../../data/providers/player/player_provider.dart';
+import '../../../../data/datasources/show/show_remote_data_source_and_impl.dart';
+import '../../../../domain/entities/player.dart';
+import '../player/player_provider.dart';
 
 final homeCastProvider = FutureProvider.autoDispose<List<Player>>((final ref) async {
   try {

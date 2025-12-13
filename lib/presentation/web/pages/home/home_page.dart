@@ -6,12 +6,12 @@ import 'package:ticketapp/presentation/web/pages/home/widgets/about_cart.dart';
 import 'package:ticketapp/presentation/web/pages/home/widgets/contact_card.dart';
 import 'package:ticketapp/presentation/web/pages/home/widgets/goz_kap_vaz_yap_landing.dart';
 import 'package:ticketapp/presentation/web/pages/home/widgets/hero_video_section.dart';
-import 'package:ticketapp/presentation/web/pages/home/widgets/home_asset_video_provider.dart';
 import 'package:ticketapp/presentation/web/pages/home/widgets/kurtar_beni_doktor_landing.dart';
 import 'package:ticketapp/presentation/web/pages/home/widgets/metafor_landing.dart';
 import 'package:ticketapp/presentation/web/pages/home/widgets/shows_section.dart';
 import 'package:ticketapp/presentation/web/pages/home/widgets/team_card.dart';
 import 'package:ticketapp/presentation/web/pages/home/widgets/theater_section_divider.dart';
+import '../../../../data/providers/home_web/home_asset_video_provider.dart';
 import 'widgets/footer.dart';
 
 class HomePage extends ConsumerStatefulWidget {

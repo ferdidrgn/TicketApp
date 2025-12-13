@@ -4,7 +4,7 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/core/widgets/optimized_cached_image.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../domain/entities/player.dart';
-import 'home_cast_provider.dart';
+import '../../../../../data/providers/home_web/home_cast_provider.dart';
 
 class TeamCard extends ConsumerWidget {
   const TeamCard({super.key});

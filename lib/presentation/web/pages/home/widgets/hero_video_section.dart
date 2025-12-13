@@ -6,7 +6,7 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import 'home_asset_video_provider.dart';
+import '../../../../../data/providers/home_web/home_asset_video_provider.dart';
 
 class HeroVideoSection extends ConsumerStatefulWidget {
   final bool startAnimations;
