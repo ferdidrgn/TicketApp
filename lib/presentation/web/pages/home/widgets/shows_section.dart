@@ -1,11 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/core/widgets/shimmer.dart';
+import 'package:ticketapp/core/widgets/optimized_cached_image.dart'; // Yeni sınıf
 import '../../../../../../core/theme/app_colors.dart';
-import '../../../../../../core/widgets/optimized_cached_image.dart';
 import '../../../../../../data/providers/show/show_provider.dart';
 import '../../../../../../domain/entities/show.dart';
 
@@ -19,8 +18,6 @@ class ShowsSection extends ConsumerStatefulWidget {
 class _ShowsSectionState extends ConsumerState<ShowsSection>
     with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-
-  // Animasyon Kontrolcüleri (Tasarım bozulmasın diye korundu)
   late AnimationController _headerController;
   late Animation<double> _headerFadeAnimation;
   late Animation<Offset> _headerSlideAnimation;
@@ -28,16 +25,13 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
   @override
   void initState() {
     super.initState();
-
     _headerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-
     _headerFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _headerController, curve: Curves.easeOut),
     );
-
     _headerSlideAnimation = Tween<Offset>(
       begin: const Offset(0, -0.5),
       end: Offset.zero,
@@ -48,6 +42,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
     Future.microtask(() {
       final state = ref.read(showProvider);
       if (!state.isLoading && state.dataList == null) {
+        // Burada limit koymak performansı artırır, gerekirse servisinize limit parametresi ekleyin
         ref.read(showProvider.notifier).loadShows(false);
       }
     });
@@ -62,7 +57,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
   }
 
   void _scroll(final bool left) {
-    // Scroll miktarını cihaza göre ayarla
+    if (!_scrollController.hasClients) return;
     final offset = left ? -300.0 : 300.0;
     _scrollController.animateTo(
       _scrollController.offset + offset,
@@ -77,7 +72,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
     return Container(
       width: double.infinity,
-      // Responsive Padding: Mobil/Desktop ayrımı
       padding: context.responsive(
         mobile: const EdgeInsets.symmetric(vertical: 50),
         desktop: const EdgeInsets.symmetric(vertical: 90),
@@ -125,7 +119,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
           child: Text(
             'OYUNLARIMIZ',
             style: TextStyle(
-              // Responsive Font: Mobil 28, Tablet 40, Desktop 52
               fontSize:
                   context.responsive(mobile: 28.0, tablet: 40.0, desktop: 52.0),
               fontWeight: FontWeight.w900,
@@ -137,7 +130,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
         const SizedBox(height: 12),
         Container(
           height: 4,
-          // Çizgi genişliği responsive
           width: context.responsive(mobile: 60.0, desktop: 120.0),
           decoration: BoxDecoration(
             gradient: WebColors.goldGradient,
@@ -170,7 +162,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
   }
 
   Widget _buildLoadingState(final BuildContext context) {
-    // Yükseklik responsive
     final height =
         context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
     return SizedBox(
@@ -184,7 +175,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
         itemBuilder: (final context, final index) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: SizedBox(
-            // Genişlik responsive
             width: context.responsive(
                 mobile: 170.0, tablet: 220.0, desktop: 280.0),
             child: const ShimmerLoading(),
@@ -221,12 +211,10 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
   Widget _buildShowsCarousel(
       final BuildContext context, final List<Show> shows) {
-    // KART YÜKSEKLİĞİ (Mobilde kompakt, Masaüstünde geniş)
     final cardHeight =
         context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
 
     return SizedBox(
-      // Hover/Scale efektleri için ekstra boşluk (+60)
       height: cardHeight + 60,
       child: Stack(
         children: [
@@ -276,7 +264,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 }
 
 // -----------------------------------------------------------------------------
-// SHOW CARD (Tasarım ve Animasyonlar KORUNDU, Sadece Boyutlar Responsive)
+// SHOW CARD OPTIMIZED (ValueNotifier & OptimizedImage)
 // -----------------------------------------------------------------------------
 
 class _ShowCard extends StatefulWidget {
@@ -298,7 +286,7 @@ class _ShowCard extends StatefulWidget {
 
 class _ShowCardState extends State<_ShowCard>
     with SingleTickerProviderStateMixin {
-  bool _isActive = false;
+  final ValueNotifier<bool> _isHovered = ValueNotifier(false);
   late AnimationController _entryController;
   late Animation<double> _entryAnimation;
 
@@ -321,6 +309,7 @@ class _ShowCardState extends State<_ShowCard>
   @override
   void dispose() {
     _entryController.dispose();
+    _isHovered.dispose();
     super.dispose();
   }
 
@@ -331,206 +320,206 @@ class _ShowCardState extends State<_ShowCard>
   @override
   Widget build(final BuildContext context) {
     final isMobile = context.isMobile;
-    Widget cardWidget = _buildCard(context);
 
-    // Giriş Animasyonu (Scale & Opacity)
-    cardWidget = AnimatedBuilder(
-      animation: _entryAnimation,
-      builder: (final context, final child) {
-        final safeValue = _entryAnimation.value.clamp(0.0, 1.0);
-        return Transform.scale(
-          scale: safeValue,
-          child: Opacity(opacity: safeValue, child: child),
-        );
-      },
-      child: cardWidget,
-    );
+    // Sabit İçerik (Hover sırasında rebuild olmaz)
+    final Widget staticCardContent = _buildStaticContent(context);
+
+    // Hover/Active Wrapper
+    final Widget interactiveWidget = isMobile
+        ? Listener(
+            onPointerDown: (final _) => _isHovered.value = true,
+            onPointerUp: (final _) => _isHovered.value = false,
+            onPointerCancel: (final _) => _isHovered.value = false,
+            child: _buildAnimatedContainer(context, staticCardContent),
+          )
+        : MouseRegion(
+            onEnter: (final _) => _isHovered.value = true,
+            onExit: (final _) => _isHovered.value = false,
+            cursor: SystemMouseCursors.click,
+            child: _buildAnimatedContainer(context, staticCardContent),
+          );
 
     return GestureDetector(
       onTap: _navigateToDetails,
-      child: isMobile
-          ? Listener(
-              // Mobilde dokunma efekti
-              onPointerDown: (final _) => setState(() => _isActive = true),
-              onPointerUp: (final _) => setState(() => _isActive = false),
-              onPointerCancel: (final _) => setState(() => _isActive = false),
-              child: cardWidget,
-            )
-          : MouseRegion(
-              // Desktopta hover efekti
-              onEnter: (final _) => setState(() => _isActive = true),
-              onExit: (final _) => setState(() => _isActive = false),
-              cursor: SystemMouseCursors.click,
-              child: cardWidget,
-            ),
+      child: AnimatedBuilder(
+        animation: _entryAnimation,
+        builder: (final context, final child) {
+          final safeValue = _entryAnimation.value.clamp(0.0, 1.0);
+          return Transform.scale(
+            scale: safeValue,
+            child: Opacity(opacity: safeValue, child: child),
+          );
+        },
+        child: interactiveWidget,
+      ),
     );
   }
 
-  Widget _buildCard(final BuildContext context) {
-    // KART BOYUTLARI (Responsive & Orantılı)
+  Widget _buildAnimatedContainer(
+      final BuildContext context, final Widget child) {
     final width =
         context.responsive(mobile: 170.0, tablet: 220.0, desktop: 280.0);
     final height =
         context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0);
 
-    return AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        width: width,
-        height: height,
-        transform: Matrix4.identity()
-          ..translate(0.0, _isActive ? -10.0 : 0.0) // Yukarı kalkma
-          ..scale(_isActive ? 1.02 : 1.0),
-        // Hafif büyüme
-        child: Container(
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isHovered,
+      builder: (final context, final isActive, final staticChild) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          width: width,
+          height: height,
+          transform: Matrix4.identity()
+            ..translate(0.0, isActive ? -10.0 : 0.0)
+            ..scale(isActive ? 1.02 : 1.0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(context.isMobile ? 16 : 24),
-            // GÖLGELER KORUNDU
             boxShadow: [
               BoxShadow(
-                color: _isActive
+                color: isActive
                     ? WebColors.primaryGold.withOpacity(0.5)
                     : Colors.black.withOpacity(0.4),
-                blurRadius: _isActive ? 25 : 15,
-                spreadRadius: _isActive ? 2 : 0,
-                offset: Offset(0, _isActive ? 12 : 8),
+                blurRadius: isActive ? 25 : 15,
+                spreadRadius: isActive ? 2 : 0,
+                offset: Offset(0, isActive ? 12 : 8),
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(context.isMobile ? 16 : 24),
-            child: Stack(
-              children: [
-                _buildImage(),
-                _buildGradientOverlay(),
-                _buildBorder(context), // Altın Kenarlık
-                _buildContent(context),
-              ],
-            ),
-          ),
-        ));
-  }
-
-  Widget _buildImage() => Positioned.fill(
-        child: OptimizedCachedImage(
-          imageUrl: widget.imageUrl,
-          fit: BoxFit.cover,
-          width: 300,
-          height: 400,
-        ),
-      );
-
-  Widget _buildGradientOverlay() {
-    return Positioned.fill(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.black.withOpacity(_isActive ? 0.9 : 0.7),
-            ],
-            stops: const [0.4, 1.0],
-          ),
-        ),
-      ),
+          child: staticChild,
+        );
+      },
+      child: child, // Static child buraya aktarılır
     );
   }
 
-  Widget _buildBorder(final BuildContext context) {
-    return Positioned.fill(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(context.isMobile ? 16 : 24),
-          border: Border.all(
-            color: _isActive
-                ? WebColors.primaryGold // Parlak Altın
-                : WebColors.primaryGold.withOpacity(0.3), // Sönük Altın
-            width: _isActive ? 3 : 1.5,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent(final BuildContext context) {
-    return Positioned(
-      left: context.responsive(mobile: 10.0, desktop: 16.0),
-      right: context.responsive(mobile: 10.0, desktop: 16.0),
-      bottom: context.responsive(mobile: 12.0, desktop: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildStaticContent(final BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(context.isMobile ? 16 : 24),
+      child: Stack(
         children: [
-          // "OYUN" Etiketi
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsive(mobile: 6.0, desktop: 10.0),
-              vertical: context.responsive(mobile: 3.0, desktop: 5.0),
-            ),
-            decoration: BoxDecoration(
-              gradient: WebColors.goldGradient,
-              borderRadius: BorderRadius.circular(6),
-              boxShadow: [
-                BoxShadow(
-                    color: WebColors.primaryGold.withOpacity(0.4),
-                    blurRadius: 6),
-              ],
-            ),
-            child: Text(
-              'OYUN',
-              style: TextStyle(
-                fontSize: context.responsive(mobile: 9.0, desktop: 11.0),
-                fontWeight: FontWeight.w900,
-                color: WebColors.darkBlueBackground,
-                letterSpacing: 1.5,
-              ),
+          // 1. GÖRSEL (Optimized)
+          Positioned.fill(
+            child: OptimizedCachedImage(
+              imageUrl: widget.imageUrl,
+              fit: BoxFit.cover,
+              width: 300, // Yaklaşık max genişlik
+              height: 400,
             ),
           ),
-          SizedBox(height: context.responsive(mobile: 6.0, desktop: 10.0)),
 
-          // Oyun Adı
-          Text(
-            widget.gameName,
-            style: TextStyle(
-              fontSize:
-                  context.responsive(mobile: 15.0, tablet: 18.0, desktop: 22.0),
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              height: 1.2,
-              shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          // Detay butonu (Sadece aktifken görünür)
-          AnimatedCrossFade(
-            firstChild: const SizedBox(height: 0, width: double.infinity),
-            secondChild: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Row(
-                children: [
-                  Text(
-                    'Detayları Gör',
-                    style: TextStyle(
-                      fontSize: context.captionSize,
-                      color: WebColors.primaryGoldLight,
-                      fontWeight: FontWeight.w600,
+          // 2. GRADIENT & BORDER (ValueListenableBuilder ile güncellenir)
+          Positioned.fill(
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isHovered,
+              builder: (final context, final isActive, final _) {
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isActive
+                          ? WebColors.primaryGold
+                          : WebColors.primaryGold.withOpacity(0.3),
+                      width: isActive ? 3 : 1.5,
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(isActive ? 0.9 : 0.7),
+                      ],
+                      stops: const [0.4, 1.0],
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.arrow_forward,
-                      color: WebColors.primaryGold, size: context.iconSmall),
-                ],
-              ),
+                );
+              },
             ),
-            crossFadeState: _isActive
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
+          ),
+
+          // 3. METİN VE DETAY BUTONU
+          Positioned(
+            left: context.responsive(mobile: 10.0, desktop: 16.0),
+            right: context.responsive(mobile: 10.0, desktop: 16.0),
+            bottom: context.responsive(mobile: 12.0, desktop: 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.responsive(mobile: 6.0, desktop: 10.0),
+                    vertical: context.responsive(mobile: 3.0, desktop: 5.0),
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: WebColors.goldGradient,
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                          color: WebColors.primaryGold.withOpacity(0.4),
+                          blurRadius: 6),
+                    ],
+                  ),
+                  child: Text(
+                    'OYUN',
+                    style: TextStyle(
+                      fontSize: context.responsive(mobile: 9.0, desktop: 11.0),
+                      fontWeight: FontWeight.w900,
+                      color: WebColors.darkBlueBackground,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                    height: context.responsive(mobile: 6.0, desktop: 10.0)),
+                Text(
+                  widget.gameName,
+                  style: TextStyle(
+                    fontSize: context.responsive(
+                        mobile: 15.0, tablet: 18.0, desktop: 22.0),
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    height: 1.2,
+                    shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                // Detay butonu sadece hover olunca görünür
+                ValueListenableBuilder<bool>(
+                  valueListenable: _isHovered,
+                  builder: (final context, final isActive, final _) {
+                    return AnimatedCrossFade(
+                      firstChild:
+                          const SizedBox(height: 0, width: double.infinity),
+                      secondChild: Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Detayları Gör',
+                              style: TextStyle(
+                                fontSize: context.captionSize,
+                                color: WebColors.primaryGoldLight,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.arrow_forward,
+                                color: WebColors.primaryGold,
+                                size: context.iconSmall),
+                          ],
+                        ),
+                      ),
+                      crossFadeState: isActive
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
+                      duration: const Duration(milliseconds: 200),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),

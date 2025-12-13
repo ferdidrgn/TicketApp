@@ -5,6 +5,7 @@ import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'home_asset_video_provider.dart';
 
 class HeroVideoSection extends ConsumerStatefulWidget {
@@ -82,7 +83,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   }
 
   @override
-  void didUpdateWidget(covariant HeroVideoSection oldWidget) {
+  void didUpdateWidget(covariant final HeroVideoSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.startAnimations && widget.startAnimations) {
       _controller.forward(from: 0);
@@ -108,6 +109,29 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     super.dispose();
   }
 
+// ✅ 2. VİDEO KONTROL MANTIĞI
+  // Görünürlük değişince bu fonksiyon çalışacak
+  void _handleVisibilityChanged(
+      final VisibilityInfo info, final VideoPlayerController? controller) {
+    if (controller == null || !controller.value.isInitialized) return;
+
+    // visibleFraction: 0.0 (Hiç görünmüyor) ile 1.0 (Tamamen görünüyor) arası değer alır.
+    if (info.visibleFraction == 0) {
+      // Video ekrandan tamamen çıktıysa DURDUR
+      if (controller.value.isPlaying) {
+        controller.pause();
+        debugPrint(
+            '🙈 Video ekrandan çıktı, durduruldu (Performans tasarrufu).');
+      }
+    } else {
+      // Video ekrana girdiyse (veya bir kısmı görünüyorsa) OYNAT
+      if (!controller.value.isPlaying) {
+        controller.play();
+        debugPrint('👁️ Video ekrana girdi, oynatılıyor.');
+      }
+    }
+  }
+
   @override
   Widget build(final BuildContext context) {
     super.build(context);
@@ -117,61 +141,62 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     final isReady = assetsState.isVideoReady;
     final hasVideo = controller != null && controller.value.isInitialized;
 
-    if (hasVideo && !controller.value.isPlaying) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) ref.read(homeAssetsProvider.notifier).playVideo();
-      });
-    }
+    // ✅ 3. SARMALAMA İŞLEMİ
+    return VisibilityDetector(
+      key: const Key('hero-video-visibility-key'),
+      // Her detector için benzersiz key şart
+      onVisibilityChanged: (final info) =>
+          _handleVisibilityChanged(info, controller),
+      child: SizedBox(
+        height: context.screenHeight,
+        width: double.infinity,
+        child: Stack(
+          children: [
+            // 1. ZEMİN (Koyu Tema)
+            Container(color: const Color(0xFF050505)),
 
-    return SizedBox(
-      height: context.screenHeight,
-      width: double.infinity,
-      child: Stack(
-        children: [
-          // 1. ZEMİN (Koyu Tema)
-          Container(color: const Color(0xFF050505)),
-
-          // 2. MASAÜSTÜ GÖRÜNÜMÜ
-          if (!context.isMobile) ...[
-            Positioned.fill(
-              child: _buildDesktopCinematicVideo(controller, hasVideo),
-            ),
-            Positioned.fill(
-              child: _buildDesktopContent(context),
-            ),
-            _buildIntegratedGlassCard(context),
-            if (isReady)
-              Positioned(
-                bottom: 30,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 1000),
-                    opacity: widget.startAnimations ? 1.0 : 0.0,
-                    child: Column(
-                      children: [
-                        Text(
-                          'KEŞFETMEK İÇİN KAYDIR',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                            fontSize: 10,
-                            letterSpacing: 4,
+            // 2. MASAÜSTÜ GÖRÜNÜMÜ
+            if (!context.isMobile) ...[
+              Positioned.fill(
+                child: _buildDesktopCinematicVideo(controller, hasVideo),
+              ),
+              Positioned.fill(
+                child: _buildDesktopContent(context),
+              ),
+              _buildIntegratedGlassCard(context),
+              if (isReady)
+                Positioned(
+                  bottom: 30,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 1000),
+                      opacity: widget.startAnimations ? 1.0 : 0.0,
+                      child: Column(
+                        children: [
+                          Text(
+                            'KEŞFETMEK İÇİN KAYDIR',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 10,
+                              letterSpacing: 4,
+                            ),
                           ),
-                        ),
-                        Icon(Icons.keyboard_arrow_down,
-                            color: WebColors.primaryGold.withOpacity(0.6)),
-                      ],
+                          Icon(Icons.keyboard_arrow_down,
+                              color: WebColors.primaryGold.withOpacity(0.6)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
 
-          // 3. MOBİL GÖRÜNÜM (DÜZELTİLMİŞ YAZI KONUMLARI İLE)
-          if (context.isMobile)
-            _buildMobileEditorialLayout(context, controller, hasVideo),
-        ],
+            // 3. MOBİL GÖRÜNÜM
+            if (context.isMobile)
+              _buildMobileEditorialLayout(context, controller, hasVideo),
+          ],
+        ),
       ),
     );
   }
@@ -180,9 +205,9 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   // 📱 MOBILE LAYOUT: RESİM/VİDEO TAM EKRAN + YAZILAR DOĞRU YERDE
   // ===========================================================================
   Widget _buildMobileEditorialLayout(
-    BuildContext context,
-    VideoPlayerController? controller,
-    bool hasVideo,
+    final BuildContext context,
+    final VideoPlayerController? controller,
+    final bool hasVideo,
   ) {
     return Stack(
       children: [
@@ -191,7 +216,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
           child: Image.asset(
             _fallbackImage,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) =>
+            errorBuilder: (final context, final error, final stackTrace) =>
                 Container(color: const Color(0xFF1A1A1A)),
           ),
         ),
@@ -284,7 +309,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
           right: 60, // Sağdaki yazıya çarpmaması için
           child: AnimatedBuilder(
             animation: _controller,
-            builder: (context, child) {
+            builder: (final context, final child) {
               return Opacity(
                 opacity: _contentOpacity.value,
                 child: Transform.translate(
@@ -322,7 +347,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
           right: 30,
           child: AnimatedBuilder(
             animation: _controller,
-            builder: (context, child) {
+            builder: (final context, final child) {
               return Opacity(
                 opacity: _contentOpacity.value,
                 // Başlık yukarıdan, bu aşağıdan gelsin diye ters efekt
@@ -359,7 +384,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
           right: 16,
           child: AnimatedBuilder(
             animation: _controller,
-            builder: (context, child) {
+            builder: (final context, final child) {
               return Opacity(
                 opacity: _cardOpacity.value,
                 child: Transform.translate(
@@ -376,7 +401,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   }
 
   // 🎫 MOBİL KART (Web Tarzı)
-  Widget _buildMobileCard(BuildContext context) {
+  Widget _buildMobileCard(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -483,14 +508,14 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   // 🖥️ DESKTOP: SİNEMATİK VİDEO MASKESİ + RESİM
   // ===========================================================================
   Widget _buildDesktopCinematicVideo(
-      VideoPlayerController? controller, bool hasVideo) {
+      final VideoPlayerController? controller, final bool hasVideo) {
     return Row(
       children: [
         const Spacer(flex: 2),
         Expanded(
           flex: 5,
           child: ShaderMask(
-            shaderCallback: (Rect bounds) {
+            shaderCallback: (final Rect bounds) {
               return LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
@@ -537,7 +562,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   // ===========================================================================
   // 🖋️ DESKTOP: YAZI İÇERİĞİ
   // ===========================================================================
-  Widget _buildDesktopContent(BuildContext context) {
+  Widget _buildDesktopContent(final BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 80.0),
       child: Row(
@@ -546,7 +571,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
             flex: 6,
             child: AnimatedBuilder(
               animation: _controller,
-              builder: (context, child) {
+              builder: (final context, final child) {
                 return Opacity(
                   opacity: _contentOpacity.value,
                   child: Transform.translate(
@@ -621,13 +646,13 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   // ===========================================================================
   // 🎫 DESKTOP: BİLDİRİM KARTI
   // ===========================================================================
-  Widget _buildIntegratedGlassCard(BuildContext context) {
+  Widget _buildIntegratedGlassCard(final BuildContext context) {
     return Positioned(
       right: 80,
       bottom: 80,
       child: AnimatedBuilder(
         animation: _controller,
-        builder: (context, child) {
+        builder: (final context, final child) {
           return Opacity(
             opacity: _cardOpacity.value,
             child: Transform.translate(

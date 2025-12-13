@@ -2,16 +2,16 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/presentation/mobil/pages/splash/splash_data_guard.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/about_cart.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/contact_card.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/goz_kap_vaz_yap_landing.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/hero_video_section.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/home_asset_video_provider.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/kurtar_beni_doktor_landing.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/metafor_landing.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/shows_section.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/team_card.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/theater_section_divider.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/about_cart.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/contact_card.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/goz_kap_vaz_yap_landing.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/hero_video_section.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/home_asset_video_provider.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/kurtar_beni_doktor_landing.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/metafor_landing.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/shows_section.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/team_card.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/theater_section_divider.dart';
 import 'widgets/footer.dart';
 
 class HomePage extends ConsumerStatefulWidget {

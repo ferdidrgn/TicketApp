@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/record_card.dart';
+import 'package:ticketapp/presentation/web/pages/home/widgets/record_card.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../core/widgets/optimized_cached_image.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // ✅ Riverpod Eklendi
-import 'package:ticketapp/presentation/web/pages/nav_pages/home/widgets/home_asset_video_provider.dart'; // ✅ Provider Importu
+import 'package:ticketapp/presentation/web/pages/home/widgets/home_asset_video_provider.dart'; // ✅ Provider Importu
 
 import '../presentation/web/navigation/widgets/main_scaffold.dart';
 

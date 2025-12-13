@@ -46,7 +46,6 @@ class _ContactCardState extends State<ContactCard>
         opacity: _fadeAnimation,
         child: Column(
           children: [
-            // Başlık
             ShaderMask(
               shaderCallback: (final bounds) =>
                   WebColors.goldGradient.createShader(bounds),
@@ -60,9 +59,7 @@ class _ContactCardState extends State<ContactCard>
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             Container(
               width: 80,
               height: 4,
@@ -71,10 +68,7 @@ class _ContactCardState extends State<ContactCard>
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
             const SizedBox(height: 48),
-
-            // Content
             LayoutBuilder(
               builder: (final context, final constraints) {
                 return constraints.maxWidth > 800
@@ -92,9 +86,10 @@ class _ContactCardState extends State<ContactCard>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildContactForm(context)),
+        Expanded(child: const _ContactForm()),
+        // Const kullanarak optimize ettik
         const SizedBox(width: 60),
-        Expanded(child: _buildContactInfo(context)),
+        Expanded(child: const _ContactInfo()),
       ],
     );
   }
@@ -102,14 +97,20 @@ class _ContactCardState extends State<ContactCard>
   Widget _buildNarrowLayout(final BuildContext context) {
     return Column(
       children: [
-        _buildContactForm(context),
+        const _ContactForm(),
         const SizedBox(height: 40),
-        _buildContactInfo(context),
+        const _ContactInfo(),
       ],
     );
   }
+}
 
-  Widget _buildContactForm(final BuildContext context) {
+// FORM ALANI AYRI BİR WIDGET OLARAK ÇIKARILDI (Performans için)
+class _ContactForm extends StatelessWidget {
+  const _ContactForm();
+
+  @override
+  Widget build(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -160,10 +161,11 @@ class _ContactCardState extends State<ContactCard>
             ),
           ),
           const SizedBox(height: 24),
-          _buildFormField(context, 'Adınız Soyadınız', Icons.person),
-          _buildFormField(context, 'E-posta Adresiniz', Icons.email),
-          _buildFormField(context, 'Konu', Icons.subject),
-          _buildFormField(context, 'Mesajınız', Icons.message, maxLines: 4),
+          const _FormField(label: 'Adınız Soyadınız', icon: Icons.person),
+          const _FormField(label: 'E-posta Adresiniz', icon: Icons.email),
+          const _FormField(label: 'Konu', icon: Icons.subject),
+          const _FormField(
+              label: 'Mesajınız', icon: Icons.message, maxLines: 4),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -211,10 +213,22 @@ class _ContactCardState extends State<ContactCard>
       ),
     );
   }
+}
 
-  Widget _buildFormField(
-      final BuildContext context, final String label, final IconData icon,
-      {final int maxLines = 1}) {
+// FORM FIELD AYRI WIDGET
+class _FormField extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final int maxLines;
+
+  const _FormField({
+    required this.label,
+    required this.icon,
+    this.maxLines = 1,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -263,8 +277,14 @@ class _ContactCardState extends State<ContactCard>
       ),
     );
   }
+}
 
-  Widget _buildContactInfo(final BuildContext context) {
+// INFO BÖLÜMÜ AYRI WIDGET
+class _ContactInfo extends StatelessWidget {
+  const _ContactInfo();
+
+  @override
+  Widget build(final BuildContext context) {
     final contacts = [
       {
         'icon': Icons.location_on,
