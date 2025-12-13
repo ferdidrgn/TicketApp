@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // ✅ Riverpod Eklendi
-import 'package:ticketapp/presentation/web/pages/home/widgets/home_asset_video_provider.dart'; // ✅ Provider Importu
 
+import '../data/providers/home_web/home_asset_video_provider.dart';
 import '../presentation/web/navigation/widgets/main_scaffold.dart';
 
 // ✅ StatefulWidget -> ConsumerStatefulWidget dönüşümü
