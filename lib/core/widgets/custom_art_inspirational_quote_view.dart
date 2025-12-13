@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../util/responsive_utils.dart';
+import 'optimized_cached_image.dart';
+
 class InspirationalQuoteView extends StatelessWidget {
   final String word;
   final String author;
@@ -24,7 +27,11 @@ class InspirationalQuoteView extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(imageUrl, fit: BoxFit.cover),
+            OptimizedCachedImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              width: context.screenWidth > 1400 ? 1400 : context.screenWidth,
+            ),
 
             // 2. Siyah Kaplama (Yazının okunabilirliği için)
             Container(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_colors.dart';
-import '../../../../../../core/util/responsive_utils.dart'; // Core dosyanız
+import '../../../../../../core/util/responsive_utils.dart';
+import '../../../../../../core/widgets/optimized_cached_image.dart'; // Core dosyanız
 
 class MetaforLanding extends StatefulWidget {
   const MetaforLanding({super.key});
@@ -333,10 +334,16 @@ class _MetaforLandingState extends State<MetaforLanding>
                   height: context.responsive(
                       mobile: 250.0, tablet: 350.0, desktop: 450.0),
                   // Eski heybetli yükseklik
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: NetworkImage(
+                      // OptimizedCachedImage.provider static metodunu çağırıyoruz
+                      image: OptimizedCachedImage.provider(
                         'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2Fai_metafor_image.png?alt=media&token=6f20f048-b88c-46c0-beb6-da4f4eb76c49',
+                        context: context,
+                        // Genişlik olarak ekranın genişliğini verebilirsiniz (max width)
+                        width: context.screenWidth > 1400
+                            ? 1400
+                            : context.screenWidth,
                       ),
                       fit: BoxFit.cover,
                     ),

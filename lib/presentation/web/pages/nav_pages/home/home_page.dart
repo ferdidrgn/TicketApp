@@ -52,7 +52,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     widget.scrollController.addListener(_onScroll);
 
     // ✅ Video Yükleme Başlatıcı
-    // Sayfa ilk oluştuğunda videoyu hazırlamaya başla
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       ref.read(homeAssetsProvider.notifier).initializeVideo();
     });
@@ -72,9 +71,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     // En tepe kontrolü
     if (scrollPosition < 150) {
-      if (widget.activeSection!.value != 'home') {
+      if (widget.activeSection!.value != 'home')
         widget.activeSection!.value = 'home';
-      }
       return;
     }
 
@@ -94,6 +92,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       final context = globalKey.currentContext;
       if (context != null) {
         final RenderBox box = context.findRenderObject()! as RenderBox;
+        // Sliver yapısında da global pozisyon hesabı aynı mantıkla çalışır
         final position = box.localToGlobal(Offset.zero);
         final distance = (position.dy - 100).abs();
 
@@ -104,10 +103,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     });
 
-    if (currentSection != null &&
-        currentSection != widget.activeSection?.value) {
+    if (currentSection != null && currentSection != widget.activeSection?.value)
       widget.activeSection?.value = currentSection!;
-    }
   }
 
   @override
@@ -116,28 +113,18 @@ class _HomePageState extends ConsumerState<HomePage> {
     final videoState = ref.watch(homeAssetsProvider);
     final isVideoReady = videoState.isVideoReady;
 
-    // 2. ✅ VİDEO OYNATMA GARANTİSİ (Geri Dönüş Fix)
-    // Eğer video yüklüyse ama durmuşsa (başka sayfadan geri gelindiğinde), tekrar oynat.
-    if (isVideoReady && videoState.videoController != null) {
-      if (!videoState.videoController!.value.isPlaying) {
-        videoState.videoController!.play();
-      }
-    }
+    // 2. Video Oynatma Garantisi
+    if (isVideoReady && videoState.videoController != null) if (!videoState
+        .videoController!.value.isPlaying) videoState.videoController!.play();
 
-    // 3. ✅ ANİMASYON TETİKLEYİCİSİ
-    // Video hazır olduğunda, Splash ekranının kaybolma süresi (yaklaşık 800-1000ms)
-    // kadar bekle ve sonra içerik animasyonlarını (yazıların kayması vb.) başlat.
-    if (isVideoReady && !_internalAnimationTrigger) {
+    // 3. Animasyon Tetikleyicisi
+    if (isVideoReady && !_internalAnimationTrigger)
       Future.delayed(const Duration(milliseconds: 1000), () {
-        if (mounted) {
-          setState(() => _internalAnimationTrigger = true);
-        }
+        if (mounted) setState(() => _internalAnimationTrigger = true);
       });
-    }
 
-    // 4. DataSplashGuard Entegrasyonu
     return SplashDataGuard(
-      isLoading: !isVideoReady, // Video hazır değilse Splash göster
+      isLoading: !isVideoReady,
       loadingMessage: 'Oyunlar yükleniyor...',
       child: Listener(
         onPointerSignal: (final pointerSignal) {
@@ -150,79 +137,78 @@ class _HomePageState extends ConsumerState<HomePage> {
             ));
           }
         },
-        child: Stack(
-          children: [
-            ScrollConfiguration(
-              behavior: ScrollConfiguration.of(context).copyWith(
-                dragDevices: {
-                  PointerDeviceKind.touch,
-                  PointerDeviceKind.mouse,
-                  PointerDeviceKind.trackpad,
-                },
-                scrollbars: false,
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {
+              PointerDeviceKind.touch,
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.trackpad,
+            },
+            scrollbars: false,
+          ),
+          // 🔥 PERFORMANS İÇİN DÖNÜŞTÜRÜLDÜ: CustomScrollView
+          child: CustomScrollView(
+            controller: widget.scrollController,
+            physics: const BouncingScrollPhysics(),
+            // 🔥 CRITICAL: Ekrana girmeden 1500px öncesini render et.
+            // Bu sayede kullanıcı scroll yaparken beyaz ekran görmez ama
+            // tüm sayfa da baştan yüklenmez.
+            cacheExtent: 1500,
+            slivers: [
+              // 1. Hero Section (Video)
+              SliverToBoxAdapter(
+                key: _homeKey,
+                // Video zaten ağır olduğu için RepaintBoundary'ye gerek yok, kendi içinde yönetiyor.
+                child: HeroVideoSection(
+                    startAnimations: _internalAnimationTrigger),
               ),
-              child: SingleChildScrollView(
-                controller: widget.scrollController,
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    // Hero Section (Video)
-                    Container(
-                      key: _homeKey,
-                      child: HeroVideoSection(
-                        // Splash bittikten sonra true olan trigger'ı kullanıyoruz
-                        startAnimations: _internalAnimationTrigger,
-                      ),
-                    ),
 
-                    // Shows
-                    Container(
-                      key: widget.showsKey,
-                      child: const ShowsSection(),
-                    ),
+              // 2. Shows Section
+              SliverToBoxAdapter(
+                  key: widget.showsKey, child: const ShowsSection()),
 
-                    const TheaterSectionDivider(
-                      style: DividerStyle.spotlight,
-                      height: 150,
-                    ),
+              const SliverToBoxAdapter(
+                  child: TheaterSectionDivider(
+                      style: DividerStyle.spotlight, height: 150)),
 
-                    // Artistic / Metafor
-                    Container(
-                      key: widget.artisticKey,
-                      child: MetaforLanding(),
-                    ),
+              // 3. Artistic / Metafor Landing
+              SliverToBoxAdapter(
+                  key: widget.artisticKey,
+                  // 🔥 RepaintBoundary: Bu bölümün animasyonu diğerlerini etkilemesin.
+                  child: const RepaintBoundary(child: MetaforLanding())),
 
-                    const TheaterSectionDivider(
-                      style: DividerStyle.spotlight,
-                      height: 150,
-                    ),
+              const SliverToBoxAdapter(
+                  child: TheaterSectionDivider(
+                      style: DividerStyle.spotlight, height: 150)),
 
-                    const GozYapVazYapLanding(),
+              // 4. Göz Kap Vaz Yap Landing
+              const SliverToBoxAdapter(
+                  child: RepaintBoundary(child: GozYapVazYapLanding())),
 
-                    const TheaterSectionDivider(
-                      style: DividerStyle.spotlight,
-                      height: 150,
-                    ),
+              const SliverToBoxAdapter(
+                  child: TheaterSectionDivider(
+                      style: DividerStyle.spotlight, height: 150)),
 
-                    KurtarBeniDoktorLanding(),
+              // 5. Kurtar Beni Doktor Landing
+              SliverToBoxAdapter(
+                  child: RepaintBoundary(child: KurtarBeniDoktorLanding())),
 
-                    const TheaterSectionDivider(
-                      style: DividerStyle.iconCenter,
-                      height: 120,
-                    ),
+              const SliverToBoxAdapter(
+                  child: TheaterSectionDivider(
+                      style: DividerStyle.iconCenter, height: 120)),
 
-                    // Info Sections
-                    Container(key: widget.aboutKey, child: AboutCard()),
-                    Container(key: widget.teamKey, child: const TeamCard()),
-                    Container(
-                        key: widget.contactKey, child: const ContactCard()),
+              // 6. Info Sections (About, Team, Contact)
+              SliverToBoxAdapter(key: widget.aboutKey, child: AboutCard()),
 
-                    const ArtFooter(),
-                  ],
-                ),
-              ),
-            ),
-          ],
+              SliverToBoxAdapter(key: widget.teamKey, child: const TeamCard()),
+
+              SliverToBoxAdapter(
+                  key: widget.contactKey, child: const ContactCard()),
+
+              // 7. Footer
+              const SliverToBoxAdapter(child: ArtFooter()),
+            ],
+          ),
         ),
       ),
     );

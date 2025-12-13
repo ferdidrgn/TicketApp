@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../core/util/responsive_utils.dart';
+import '../../../../../../core/widgets/optimized_cached_image.dart';
 
 class KurtarBeniDoktorLanding extends StatelessWidget {
   const KurtarBeniDoktorLanding({super.key});
@@ -110,17 +111,18 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
                   const SizedBox(width: 12),
                   Flexible(
                     child: ShaderMask(
-                      shaderCallback: (final bounds) => const LinearGradient(
-                        colors: [
-                          WebColors.primaryGoldLight,
-                          WebColors.primaryGold
-                        ],
-                      ).createShader(bounds),
+                      shaderCallback: (final bounds) =>
+                          const LinearGradient(
+                            colors: [
+                              WebColors.primaryGoldLight,
+                              WebColors.primaryGold
+                            ],
+                          ).createShader(bounds),
                       child: Text(
                         'KURTAR BENİ DOKTOR',
                         style: TextStyle(
                           fontSize:
-                              context.responsive(mobile: 20.0, desktop: 35.0),
+                          context.responsive(mobile: 20.0, desktop: 35.0),
                           fontWeight: FontWeight.w900,
                           letterSpacing: 2,
                           color: Colors.white,
@@ -137,12 +139,12 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
               const SizedBox(height: 10),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: WebColors.primaryGold.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(16),
                   border:
-                      Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+                  Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
                 ),
                 child: Text(
                   "Anton Çehov'dan",
@@ -238,10 +240,11 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           // Kadro Listesi (Map kullanımı)
-          ..._castMembers.map((final member) => Padding(
+          ..._castMembers.map((final member) =>
+              Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child:
-                    _buildCastCard(context, member['name']!, member['role']!),
+                _buildCastCard(context, member['name']!, member['role']!),
               )),
         ],
       ),
@@ -249,7 +252,8 @@ class KurtarBeniDoktorLanding extends StatelessWidget {
   }
 
   // Cast Card Helper (Widget yerine Metot extraction - daha performanslı ve temiz)
-  Widget _buildCastCard(final BuildContext context, final String name, final String role) {
+  Widget _buildCastCard(final BuildContext context, final String name,
+      final String role) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -316,7 +320,8 @@ class _HeroImageCardState extends State<_HeroImageCard> {
       onExit: (final _) => setState(() => _isHovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        transform: Matrix4.identity()..scale(_isHovered ? 1.02 : 1.0),
+        transform: Matrix4.identity()
+          ..scale(_isHovered ? 1.02 : 1.0),
         child: Container(
           height: height,
           decoration: BoxDecoration(
@@ -324,7 +329,7 @@ class _HeroImageCardState extends State<_HeroImageCard> {
             boxShadow: [
               BoxShadow(
                 color:
-                    WebColors.primaryGold.withOpacity(_isHovered ? 0.25 : 0.1),
+                WebColors.primaryGold.withOpacity(_isHovered ? 0.25 : 0.1),
                 blurRadius: _isHovered ? 32 : 20,
                 offset: const Offset(0, 8),
               ),
@@ -335,13 +340,11 @@ class _HeroImageCardState extends State<_HeroImageCard> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(
-                  'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
-                  fit: BoxFit.fitHeight,
-                  errorBuilder: (final context, final error, final stackTrace) => Container(
-                    color: WebColors.darkBlueSurface,
-                    child: const Icon(Icons.broken_image, size: 64),
-                  ),
+                OptimizedCachedImage(
+                    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FkurtarBeniDoktor%2F21903122132.png?alt=media&token=21913d43-e257-45fb-8d2e-4d1065b0be8b',
+                    fit: BoxFit.fitHeight,
+                    width: context.
+                    screenWidth > 1400 ? 1400 : context.screenWidth,
                 ),
                 // Gradient Overlay
                 Container(

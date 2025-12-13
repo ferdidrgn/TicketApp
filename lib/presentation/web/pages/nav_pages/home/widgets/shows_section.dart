@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/core/widgets/shimmer.dart';
 import '../../../../../../core/theme/app_colors.dart';
+import '../../../../../../core/widgets/optimized_cached_image.dart';
 import '../../../../../../data/providers/show/show_provider.dart';
 import '../../../../../../domain/entities/show.dart';
 
@@ -350,15 +351,15 @@ class _ShowCardState extends State<_ShowCard>
       child: isMobile
           ? Listener(
               // Mobilde dokunma efekti
-              onPointerDown: (_) => setState(() => _isActive = true),
-              onPointerUp: (_) => setState(() => _isActive = false),
-              onPointerCancel: (_) => setState(() => _isActive = false),
+              onPointerDown: (final _) => setState(() => _isActive = true),
+              onPointerUp: (final _) => setState(() => _isActive = false),
+              onPointerCancel: (final _) => setState(() => _isActive = false),
               child: cardWidget,
             )
           : MouseRegion(
               // Desktopta hover efekti
-              onEnter: (_) => setState(() => _isActive = true),
-              onExit: (_) => setState(() => _isActive = false),
+              onEnter: (final _) => setState(() => _isActive = true),
+              onExit: (final _) => setState(() => _isActive = false),
               cursor: SystemMouseCursors.click,
               child: cardWidget,
             ),
@@ -410,17 +411,14 @@ class _ShowCardState extends State<_ShowCard>
         ));
   }
 
-  Widget _buildImage() {
-    return Positioned.fill(
-      child: CachedNetworkImage(
-        imageUrl: widget.imageUrl,
-        fit: BoxFit.cover,
-        placeholder: (_, __) => Container(color: WebColors.darkBlueSurface),
-        errorWidget: (_, __, ___) =>
-            Container(color: WebColors.darkBlueSurface),
-      ),
-    );
-  }
+  Widget _buildImage() => Positioned.fill(
+        child: OptimizedCachedImage(
+          imageUrl: widget.imageUrl,
+          fit: BoxFit.cover,
+          width: 300,
+          height: 400,
+        ),
+      );
 
   Widget _buildGradientOverlay() {
     return Positioned.fill(
@@ -441,7 +439,7 @@ class _ShowCardState extends State<_ShowCard>
     );
   }
 
-  Widget _buildBorder(BuildContext context) {
+  Widget _buildBorder(final BuildContext context) {
     return Positioned.fill(
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),

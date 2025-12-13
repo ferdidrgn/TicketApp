@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
+import '../../../../../../core/widgets/optimized_cached_image.dart';
 import '../../../../../../data/datasources/player/player_remote_data_source_and_impl.dart';
 import '../../../../../../data/datasources/show/show_remote_data_source_and_impl.dart';
 import '../../../../../../domain/entities/player.dart';
@@ -264,11 +265,13 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
             // 1. KATMAN: GÖRSEL
             if (widget.member?.imageUrl != null)
               Positioned.fill(
-                child: Image.network(
-                  widget.member!.imageUrl!,
+                child: OptimizedCachedImage(
+                  imageUrl: widget.member!.imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (final _, final __, final ___) =>
-                      Container(color: WebColors.darkBlueSurface),
+                  width: context.responsive(
+                      mobile: 170.0, tablet: 220.0, desktop: 280.0),
+                  height: context.responsive(
+                      mobile: 260.0, tablet: 320.0, desktop: 380.0),
                 ),
               ),
 

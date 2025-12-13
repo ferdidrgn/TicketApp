@@ -50,10 +50,8 @@ class OptimizedCachedImage extends StatelessWidget {
       ),
       errorWidget: errorBuilder ??
           (final context, final url, final error) => Container(
-                color: const Color(0xFF1a1a2e),
-                child:
-                    const Icon(Icons.error_outline, color: Color(0xFFD4AF37)),
-              ),
+              color: const Color(0xFF1a1a2e),
+              child: const Icon(Icons.error_outline, color: Color(0xFFD4AF37))),
       // Aşağıdaki private metotları static yaptık ki hem buradan hem provider'dan erişilsin
       memCacheHeight: _calculateCacheSize(context, height),
       memCacheWidth: _calculateCacheSize(context, width),
