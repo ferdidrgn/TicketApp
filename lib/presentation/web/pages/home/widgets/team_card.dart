@@ -67,8 +67,6 @@ class TeamCard extends ConsumerWidget {
             ),
           ),
           SizedBox(height: context.responsive(mobile: 30.0, desktop: 50.0)),
-
-          // Data Durum Yönetimi
           castAsyncValue.when(
             data: (final players) {
               if (players.isEmpty) {
@@ -79,8 +77,16 @@ class TeamCard extends ConsumerWidget {
             },
             loading: () =>
                 const CircularProgressIndicator(color: WebColors.primaryGold),
-            error: (final err, final stack) => const Text('Yüklenemedi',
-                style: TextStyle(color: WebColors.error)),
+
+            // 👇 BU KISMI GÜNCELLEYİN 👇
+            error: (final err, final stack) {
+              // Geliştirme aşamasında hatayı ekranda görmek için:
+              return Text(
+                'Hata: $err',
+                style: const TextStyle(color: WebColors.error),
+                textAlign: TextAlign.center,
+              );
+            },
           ),
         ],
       ),
