@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/widgets/shimmer.dart';
-import 'custom_gradient_background_image.dart';
+import '../../../../../shared/widgets/custom_gradient_background_image.dart';
 
 class CustomVerticalShowCard extends StatelessWidget {
   final String imageUrl;

@@ -7,11 +7,9 @@ import 'package:ticketapp/features/players/presentation/providers/player_notifie
 import 'package:ticketapp/features/seat/presentation/pages/seat_details.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_notifier.dart';
 import 'package:ticketapp/features/stages/domain/entities/stage.dart';
-
 import '../../../../core/services/local_storage_service.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/custom_description_card.dart';
-import '../../../../shared/widgets/custom_stage_card.dart';
 import '../../../../shared/widgets/custom_title.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/shimmer.dart';
@@ -24,6 +22,7 @@ import '../../../players/presentation/providers/player_state.dart';
 import '../../../stages/presentation/providers/stage_notifier.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../../stages/presentation/providers/stage_state.dart';
+import '../../../stages/presentation/widgets/custom_stage_card.dart';
 import '../../../users/presentation/providers/user_provider.dart';
 import '../../domain/entities/show.dart';
 import '../providers/show_provider.dart';
@@ -99,9 +98,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             .where((final id) => id.trim().isNotEmpty && id != '0')
             .toSet()
             .toList();
-        if (stageIds.isNotEmpty) {
+        if (stageIds.isNotEmpty)
           unawaited(ref.read(stageProvider.notifier).loadStagesByIds(stageIds));
-        }
       }
     });
 

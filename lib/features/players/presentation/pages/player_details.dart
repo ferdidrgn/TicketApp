@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/features/shows/data/datasources/show_remote_data_source_and_impl.dart';
-import '../../../../shared/widgets/custom_show_card.dart';
+import '../../../shows/presentation/widgets/mobile/custom_show_card.dart';
 import '../../../../shared/widgets/custom_title.dart';
 import '../../../../shared/widgets/shimmer.dart';
 import '../../../shows/domain/entities/show.dart';
