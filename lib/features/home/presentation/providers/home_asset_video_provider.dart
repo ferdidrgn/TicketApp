@@ -19,11 +19,11 @@ class HomeAssetsState {
   });
 
   HomeAssetsState copyWith({
-    VideoPlayerController? videoController,
-    bool? isVideoReady,
-    bool? isLoading,
-    bool? hasError,
-    String? errorMessage,
+    final VideoPlayerController? videoController,
+    final bool? isVideoReady,
+    final bool? isLoading,
+    final bool? hasError,
+    final String? errorMessage,
   }) {
     return HomeAssetsState(
       videoController: videoController ?? this.videoController,
@@ -40,17 +40,14 @@ class HomeAssetsNotifier extends Notifier<HomeAssetsState> {
   // 🚀 DEĞİŞİKLİK 1: Constructor yerine build() metodu geldi.
   // Başlangıç değerini burada veriyoruz.
   @override
-  HomeAssetsState build() {
-    return HomeAssetsState();
-  }
+  HomeAssetsState build() => HomeAssetsState();
 
   bool _isInitializing = false;
 
   Future<void> initializeVideo() async {
     // state'e erişim aynen devam eder
-    if (_isInitializing || (state.isVideoReady && !state.hasError)) {
+    if (_isInitializing || (state.isVideoReady && !state.hasError))
       return;
-    }
 
     _isInitializing = true;
     state = state.copyWith(isLoading: true);
@@ -98,11 +95,9 @@ class HomeAssetsNotifier extends Notifier<HomeAssetsState> {
 
   Future<void> playVideo() async {
     final controller = state.videoController;
-    if (controller != null && controller.value.isInitialized) {
-      if (!controller.value.isPlaying) {
+    if (controller != null && controller.value.isInitialized)
+      if (!controller.value.isPlaying)
         await controller.play();
-      }
-    }
   }
 
 // Notifier'da dispose yoktur, Riverpod kendi halleder.
