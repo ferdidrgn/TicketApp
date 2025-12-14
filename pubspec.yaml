@@ -88,9 +88,9 @@ dependencies:
   intl: # Tarih ve sayı biçimlendirme için.
 
   # Diğer Kütüphaneler
-  flutter_riverpod:  # State yönetimi için Riverpod.
+  flutter_riverpod: ^3.0.3  # State yönetimi için Riverpod.
   freezed_annotation:  # Immutable veri sınıfları için.
-  riverpod_annotation:  # Riverpod için anotasyon desteği.
+  riverpod_annotation: ^3.0.3  # Riverpod için anotasyon desteği.
   json_annotation: # JSON veri sınıfları için.
 
   # Web Plugins
@@ -105,9 +105,9 @@ dev_dependencies:
   # Kod Üretimi
   flutter_lints:   # Kod kalitesini artıran lint kuralları.
   injectable_generator:  # Injectable için otomatik kod üretimi.
-  build_runner: # Kod üretimi aracı.
+  build_runner: ^2.10.4 # Kod üretimi aracı.
   freezed: # Freezed ile veri sınıfları oluşturur.
-  riverpod_generator: # Riverpod için kod üretimi.
+  riverpod_generator: ^3.0.3 # Riverpod için kod üretimi.
   json_serializable:  # JSON veri sınıfları için.
 
   # Native Splash Screen

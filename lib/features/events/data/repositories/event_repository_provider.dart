@@ -1,0 +1,15 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/features/events/domain/repositories/event_repository.dart';
+import '../../../../core/network/connectivity_provider.dart';
+import '../datasources/event_remote_data_source_provider.dart';
+import 'event_repository_impl.dart';
+
+final eventRepositoryProvider = Provider<EventRepository>((final ref) {
+  final remoteDataSource = ref.watch(eventRemoteDataSourceProvider);
+  //final internetService = ref.watch(internetServiceProvider);
+
+  return EventRepositoryImpl(
+    remoteDataSource: remoteDataSource,
+    //internetService: internetService,
+  );
+});

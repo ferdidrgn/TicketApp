@@ -2,9 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'package:ticketapp/presentation/mobil/pages/splash/splash_data_guard.dart';
-
-// Core imports
+import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
+import 'core/config/firebase_options.dart';
+import 'core/config/router/app_router.dart';
 import 'core/constants/app_constants.dart';
 import 'core/network/connectivity_wrapper.dart';
 import 'core/services/local_storage_service.dart';
@@ -12,11 +12,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_notifier.dart';
 import 'core/theme/web_theme.dart';
 import 'core/util/platform_checker.dart';
-import 'firebase_options.dart';
-
-// Provider ve Router import
-import 'data/providers/login/login_provider.dart';
-import 'router/app_router.dart';
+import 'features/login/presentation/providers/login_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
