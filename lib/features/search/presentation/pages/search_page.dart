@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/features/players/presentation/widgets/players_card.dart';
 import '../../../../core/services/pagination_controller.dart';
 import '../../../../shared/navigation/widgets/bottom_nav_bar.dart';
 import '../../../../shared/widgets/custom_category_card.dart';
@@ -248,7 +249,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   'Eşleşen Etkinlikler', filteredShows!, _buildShowCard,
                   showAllAction: _buildShowAllButton()),
             if (filteredPlayers?.isNotEmpty ?? false)
-              _buildSection('Oyuncular', filteredPlayers!, _buildPlayerCard),
+              _buildPlayerCard(context, filteredPlayers!),
             if (filteredStages?.isNotEmpty ?? false)
               _buildSection(
                   'Gösteri Mekanları', filteredStages!, _buildVenueCard),
@@ -315,7 +316,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       );
 
   Widget _buildShowCard(final BuildContext context, final Show show) =>
-      CustomVerticalShowCard(
+      ShowCard(
         key: ValueKey(show.id),
         gameName: show.name,
         imageUrl: show.imageUrl,
@@ -335,18 +336,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 builder: (final _) => StageDetailPage(stageId: stage.id))),
       );
 
-  Widget _buildPlayerCard(final BuildContext context, final Player player) =>
-      CustomStageCard(
-        text: '${player.firstName} ${player.lastName}',
-        imageUrl: player.imageUrl,
-        onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => PlayerDetailPage(playerId: player.id))),
-      );
-
   Widget _buildTeamCard(final BuildContext context, final Team team) =>
-      CustomVerticalShowCard(
+      ShowCard(
         gameName: team.name,
         imageUrl: team.imageUrl,
         onTap: () => Navigator.push(
@@ -359,5 +350,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         onPressed: () => BottomNavBar.of(context)?.changeTabWithCategory(1, ""),
         child: const Text('Tümünü Göster',
             style: TextStyle(fontSize: 16, color: Colors.red)),
+      );
+
+  Widget _buildPlayerCard(
+          final BuildContext context, final List<Player> players) =>
+      PlayersCard(
+        title: "OYUNCULAR",
+        players: players,
+        primaryColor: Theme.of(context).primaryColor, // Senin Kırmızın,
+        onPlayerTap: (final id) => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (final _) => PlayerDetailPage(playerId: id))),
       );
 }

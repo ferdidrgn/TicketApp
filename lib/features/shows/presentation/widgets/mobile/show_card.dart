@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/widgets/shimmer.dart';
 import '../../../../../shared/widgets/custom_gradient_background_image.dart';
 
-class CustomVerticalShowCard extends StatelessWidget {
+class ShowCard extends StatelessWidget {
   final String imageUrl;
   final String gameName;
   final double width;
@@ -11,7 +11,7 @@ class CustomVerticalShowCard extends StatelessWidget {
   final BorderRadius borderRadius;
   final VoidCallback onTap;
 
-  const CustomVerticalShowCard({
+  const ShowCard({
     super.key,
     required this.imageUrl,
     required this.gameName,

@@ -22,7 +22,7 @@ import 'package:ticketapp/features/stages/presentation/providers/stage_state.dar
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
 
 import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
-import '../widgets/mobile/show_cast_list.dart';
+import '../../../players/presentation/widgets/players_card.dart';
 import '../widgets/mobile/show_photo_gallery.dart';
 
 class ShowDetailPage extends ConsumerStatefulWidget {
@@ -184,7 +184,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                         ),
 
                         // AKTİF OYUNCULAR
-                        ShowCastList(
+                        PlayersCard(
                           title: "OYUNCU KADROSU",
                           players: playerState
                               .getPlayersByIds(showData.nowPlayersId),
@@ -198,7 +198,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
                         // ESKİ OYUNCULAR
                         if (showData.oldPlayersId.isNotEmpty)
-                          ShowCastList(
+                          PlayersCard(
                             title: "ESKİ KADRO",
                             players: playerState
                                 .getPlayersByIds(showData.oldPlayersId),

@@ -2,14 +2,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 
-class ShowCastList extends StatelessWidget {
+class PlayersCard extends StatelessWidget {
   final List<Player> players;
   final String title;
   final Color primaryColor;
   final bool isGrayscale;
   final Function(String) onPlayerTap;
 
-  const ShowCastList({
+  const PlayersCard({
     super.key,
     required this.players,
     required this.title,

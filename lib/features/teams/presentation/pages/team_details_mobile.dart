@@ -134,7 +134,7 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
 
   Widget _buildEventCard(final BuildContext context, final Show? show) =>
       GestureDetector(
-          child: CustomVerticalShowCard(
+          child: ShowCard(
               imageUrl: show?.imageUrl ?? 'https://via.placeholder.com/150',
               gameName: show?.name ?? 'No Name',
               onTap: () {

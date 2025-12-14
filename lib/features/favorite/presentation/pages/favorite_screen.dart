@@ -121,7 +121,7 @@ class FavoritesPage extends StatelessWidget {
       'Etkinlik 15'
     ];
     return GestureDetector(
-      child: CustomVerticalShowCard(
+      child: ShowCard(
         imageUrl:
             'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
         gameName: events[index],

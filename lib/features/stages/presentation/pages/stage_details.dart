@@ -190,7 +190,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
 
   Widget _buildEventCard(final BuildContext context, final Show? show) {
     return GestureDetector(
-        child: CustomVerticalShowCard(
+        child: ShowCard(
             imageUrl: show?.imageUrl ?? 'https://via.placeholder.com/150',
             gameName: show?.name ?? 'No Name',
             onTap: () {

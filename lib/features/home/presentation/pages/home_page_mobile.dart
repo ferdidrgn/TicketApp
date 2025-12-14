@@ -293,7 +293,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildShowList(final List<Show> shows) {
     return _buildHorizontalList(
       items: shows,
-      itemBuilder: (final show) => CustomVerticalShowCard(
+      itemBuilder: (final show) => ShowCard(
         imageUrl: show.imageUrl,
         gameName: show.name,
         onTap: () => _navigateToPage(ShowDetailPage(showId: show.id)),
