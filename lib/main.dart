@@ -35,35 +35,28 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
+    // 1. Kullanıcının seçtiği mod (Light / Dark / System)
     final themeMode = ref.watch(themeProvider);
     final bool isWeb = PlatformChecker.isWeb;
 
-    // 1. Router'ı Provider'dan alıyoruz (Artık Auth dinleyen akıllı bir router)
+    // 2. Router
     final router = ref.watch(appRouterProvider);
 
-    // 2. Global Yüklenme Durumunu İzle (Login kontrolü yapılıyor mu?)
+    // 3. Auth Loading Durumu (Sadece Mobil için kritik)
     final loginState = ref.watch(loginProvider);
-    // Sadece Mobil'de Login Loading'i önemlidir. Web'de zaten atlıyoruz.
     final bool isAuthLoading = !isWeb && loginState.isLoading;
-
-    final ThemeData theme = isWeb
-        ? WebTheme.darkTheme
-        : (themeMode == ThemeMode.dark
-            ? AppTheme.darkTheme
-            : AppTheme.lightTheme);
-
-    final ThemeMode effectiveThemeMode = isWeb ? ThemeMode.dark : themeMode;
 
     return MaterialApp.router(
       routerConfig: router,
-      // ✅ Provider'dan gelen router
       debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
-      theme: theme,
-      darkTheme: theme,
-      themeMode: effectiveThemeMode,
+      theme: AppTheme.lightTheme,
+      darkTheme: isWeb ? WebTheme.darkTheme : AppTheme.darkTheme,
+      // Web ise zorla Dark yap, Mobil ise kullanıcının seçimine (veya sisteme) bırak.
+      themeMode: isWeb ? ThemeMode.dark : themeMode,
+      // -----------------------------------------------------------------------
 
-      // 🎯 GLOBAL BUILDER: İşte "Splash Screen" widget'ının yeni evi burası
+      // 🎯 GLOBAL BUILDER & SPLASH GUARD
       builder: (final context, final child) {
         // Router'dan gelen asıl sayfa
         final safeChild = child ?? const SizedBox.shrink();
