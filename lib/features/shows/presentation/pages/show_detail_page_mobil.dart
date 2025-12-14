@@ -1,31 +1,24 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/services/local_storage_service.dart';
+import 'package:ticketapp/features/events/presentation/providers/event_provider.dart';
+import 'package:ticketapp/features/events/presentation/providers/event_state.dart';
+import 'package:ticketapp/features/login/presentation/providers/login_provider.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_notifier.dart';
+import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
 import 'package:ticketapp/features/seat/presentation/pages/seat_details.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_notifier.dart';
-import 'package:ticketapp/features/stages/domain/entities/stage.dart';
-import '../../../../core/services/local_storage_service.dart';
-import '../../../../core/util/date_formatter.dart';
-import '../../../../shared/widgets/custom_description_card.dart';
-import '../../../../shared/widgets/custom_title.dart';
-import '../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../shared/widgets/shimmer.dart';
-import '../../../events/presentation/providers/event_provider.dart';
-import '../../../events/presentation/providers/event_state.dart';
-import '../../../login/presentation/providers/login_provider.dart';
-import '../../../players/domain/entities/player.dart';
-import '../../../players/presentation/providers/player_provider.dart';
-import '../../../players/presentation/providers/player_state.dart';
-import '../../../stages/presentation/providers/stage_notifier.dart';
-import '../../../stages/presentation/providers/stage_provider.dart';
-import '../../../stages/presentation/providers/stage_state.dart';
-import '../../../stages/presentation/widgets/custom_stage_card.dart';
-import '../../../users/presentation/providers/user_provider.dart';
-import '../../domain/entities/show.dart';
-import '../providers/show_provider.dart';
+import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
+import 'package:ticketapp/features/stages/presentation/providers/stage_provider.dart';
+import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
+import '../widgets/mobile/show_cast_list.dart';
+import '../widgets/mobile/show_event_list.dart';
+import '../widgets/mobile/show_info_section.dart';
+import '../widgets/mobile/show_parallax_header.dart';
+import '../widgets/mobile/show_photo_gallery.dart';
 
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
@@ -37,6 +30,8 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -45,549 +40,219 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     });
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // Veri yükleme mantığı
   Future<void> _fetchInitialData() async {
     final showNotifier = ref.read(showProvider.notifier);
-    Show? showData = ref.read(showProvider).getShowById(widget.showId);
+    var showData = ref.read(showProvider).getShowById(widget.showId);
 
-    if (showData == null)
-      try {
-        await showNotifier.loadShowsByIds([widget.showId]);
-        showData = ref.read(showProvider).getShowById(widget.showId);
-        if (showData == null) {
-          showNotifier.setErrorState("Gösteri yüklenemedi.");
-          return;
-        }
-      } catch (e) {
-        showNotifier.setErrorState("Gösteri yüklenemedi: $e");
-        return;
-      }
-
-    if (showData.eventsId.isNotEmpty) {
-      final validEventIds =
-          showData.eventsId.where((final id) => id.trim().isNotEmpty).toList();
-      if (validEventIds.isNotEmpty)
-        unawaited(
-            ref.read(eventProvider.notifier).loadEventsByIds(validEventIds));
+    if (showData == null) {
+      await showNotifier.loadShowsByIds([widget.showId]);
     }
+    showData = ref.read(showProvider).getShowById(widget.showId);
 
-    final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}
-        .where((final id) => id.trim().isNotEmpty)
-        .toList();
-
-    if (allPlayerIds.isNotEmpty)
-      unawaited(
-          ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
+    if (showData != null) {
+      if (showData.eventsId.isNotEmpty) {
+        final validEventIds = showData.eventsId
+            .where((final id) => id.trim().isNotEmpty)
+            .toList();
+        if (validEventIds.isNotEmpty) {
+          unawaited(
+              ref.read(eventProvider.notifier).loadEventsByIds(validEventIds));
+        }
+      }
+      final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}
+          .where((final id) => id.trim().isNotEmpty)
+          .toList();
+      if (allPlayerIds.isNotEmpty) {
+        unawaited(
+            ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
+      }
+    }
   }
 
   @override
   Widget build(final BuildContext context) {
     final showState = ref.watch(showProvider);
+    final showData = showState.getShowById(widget.showId);
     final eventState = ref.watch(eventProvider);
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
-    final showData = showState.getShowById(widget.showId);
 
+    // Etkinlik sahne dinleyicisi
     ref.listen<EventState>(eventProvider, (final previous, final next) {
-      final bool justLoadedEvents = (previous?.dataList?.isEmpty ?? true) &&
-          (next.dataList?.isNotEmpty ?? false);
-
-      if (justLoadedEvents) {
+      if ((previous?.dataList?.isEmpty ?? true) &&
+          (next.dataList?.isNotEmpty ?? false)) {
         final stageIds = next.dataList!
             .map((final e) => e.stageId)
-            .whereType<String>()
-            .where((final id) => id.trim().isNotEmpty && id != '0')
+            .where((final id) => id.isNotEmpty && id != '0')
             .toSet()
             .toList();
-        if (stageIds.isNotEmpty)
-          unawaited(ref.read(stageProvider.notifier).loadStagesByIds(stageIds));
+        if (stageIds.isNotEmpty) {
+          ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
+        }
       }
     });
 
+    if (showState.isLoading && showData == null) {
+      return const Scaffold(
+          backgroundColor: Color(0xFF0a0a1a),
+          body: Center(
+              child: CircularProgressIndicator(color: Color(0xFFD4AF37))));
+    }
+
+    if (showData == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0a0a1a),
+        body: Center(
+            child: Text("Gösteri bulunamadı",
+                style: TextStyle(color: Colors.white70))),
+      );
+    }
+
     return Scaffold(
-        appBar: AppBar(
-            title: Text(showData?.name ?? 'Gösteri Detayları'),
-            centerTitle: true),
-        body: showState.isLoading && !showState.hasData
-            ? const Center(child: CircularProgressIndicator())
-            : (!showState.hasData)
-                ? Center(
-                    child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Text(showState.errorMessage ??
-                            'Gösteri bulunamadı veya yüklenemedi.')))
-                : _buildShowDetails(
-                    showData!, eventState, playerState, stageState));
-  }
+      backgroundColor: const Color(0xFF0a0a1a),
+      body: Stack(
+        children: [
+          // 1. WIDGET: Parallax Arka Plan
+          ShowParallaxHeader(
+            imageUrl: showData.imageUrl,
+            scrollController: _scrollController,
+          ),
 
-  Widget _buildShowDetails(final Show showData, final EventState eventState,
-          final PlayerState playerState, final StageState stageState) =>
-      SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 5).copyWith(bottom: 20),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            _buildShowImage(showData.imageUrl),
-            _buildShowTitle(showData.name),
-            _buildBottomSheetCard(
-                context, showData, eventState, playerState, stageState)
-          ]));
+          // 2. Scroll İçerik
+          CustomScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Şeffaf alan (Resmi görmek için)
+              SliverToBoxAdapter(
+                  child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.45)),
 
-  Widget _buildShowImage(final String imageUrl) => Container(
-        padding: const EdgeInsets.all(15),
-        child: AspectRatio(
-          aspectRatio: 9 / 13,
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.6),
-                  blurRadius: 8,
-                  offset: const Offset(0, 6),
+              // Ana İçerik Gövdesi
+              SliverToBoxAdapter(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFF0a0a1a),
+                        const Color(0xFF0a0a1a)
+                      ],
+                      stops: const [0.0, 0.1, 1.0],
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+
+                      // 3. WIDGET: Başlık ve Açılır/Kapanır Açıklama
+                      ShowInfoSection(
+                        title: showData.name,
+                        description: showData.description,
+                      ),
+
+                      // 4. WIDGET: Etkinlik Listesi
+                      ShowEventList(
+                        events: eventState.dataList
+                                ?.where((final e) =>
+                                    showData.eventsId.contains(e.id))
+                                .toList() ??
+                            [],
+                        stageState: stageState,
+                        onTicketTap: (final eventId) =>
+                            _handleTicketPurchase(showData.id, eventId),
+                      ),
+
+                      // 5. WIDGET: Aktif Oyuncu Listesi
+                      ShowCastList(
+                        title: "OYUNCU KADROSU",
+                        players:
+                            playerState.getPlayersByIds(showData.nowPlayersId),
+                        onPlayerTap: (final id) => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (final _) =>
+                                    PlayerDetailPage(playerId: id))),
+                      ),
+
+                      // 6. WIDGET: Eski Oyuncu Listesi (Varsa)
+                      if (showData.oldPlayersId.isNotEmpty)
+                        ShowCastList(
+                          title: "ESKİ KADRO",
+                          isGrayscale: true,
+                          players: playerState
+                              .getPlayersByIds(showData.oldPlayersId),
+                          onPlayerTap: (final id) => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (final _) =>
+                                      PlayerDetailPage(playerId: id))),
+                        ),
+
+                      if (showData.photosShowId.isNotEmpty)
+                        ShowPhotoGallery(photos: showData.photosShowId),
+
+                      const SizedBox(height: 100), // Alt boşluk
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+
+          // 7. Geri Butonu (Buzlu Cam)
+          Positioned(
+            top: 50,
+            left: 20,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (final context, final url) => const ShimmerLoading(
-                    width: double.infinity, height: double.infinity),
-                errorWidget: (final context, final url, final error) =>
-                    Container(
-                        decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(20)),
-                        child: const Center(
-                            child: Icon(Icons.broken_image_outlined,
-                                size: 50, color: Colors.grey))),
+              borderRadius: BorderRadius.circular(15),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  height: 45,
+                  width: 45,
+                  decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.white24)),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.white, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      );
-
-  Widget _buildShowTitle(final String name) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 15),
-        child: CustomSectionTitle(
-            title: name,
-            fontSize: 28,
-            alignment: Alignment.center,
-            fontWeight: FontWeight.bold),
-      );
-
-  Widget _buildShimmerList() => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15.0),
-      child: Column(
-          children: List.generate(
-              2,
-              (final index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: ShimmerLoading(width: double.infinity, height: 90),
-                  ))));
-
-  Widget _buildShimmerRow() => SizedBox(
-      height: 170,
-      child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: 4,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          itemBuilder: (final context, final index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: ShimmerLoading(height: 170, width: 120),
-              )));
-
-  Widget _buildBottomSheetCard(
-      final BuildContext context,
-      final Show showData,
-      final EventState eventState,
-      final PlayerState playerState,
-      final StageState stageState) {
-    final nowPlayerDataList =
-        playerState.getPlayersByIds(showData.nowPlayersId);
-    final oldPlayerDataList =
-        playerState.getPlayersByIds(showData.oldPlayersId);
-
-    return Container(
-      padding: const EdgeInsets.only(top: 25, bottom: 20),
-      margin: const EdgeInsets.only(top: 10),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CustomDescriptionCard(
-                description: showData.description.replaceAll('\\n', '\n')),
-            const SizedBox(height: 25),
-            const CustomSectionTitle(title: 'Etkinlik Takvimi', fontSize: 22),
-            const SizedBox(height: 15),
-            _buildEventList(showData, eventState, stageState),
-            const SizedBox(height: 25),
-            const CustomSectionTitle(title: 'Ekip', fontSize: 22),
-            const SizedBox(height: 10),
-            _buildPlayerSection(
-              playerState: playerState,
-              playerIds: showData.nowPlayersId,
-              playerDataList: nowPlayerDataList,
-              emptyMessage: 'Aktif ekip bilgisi bulunamadı.',
-              isOldPlayers: false,
-            ),
-            const SizedBox(height: 20),
-            const CustomSectionTitle(title: 'Eski Ekip', fontSize: 22),
-            const SizedBox(height: 10),
-            _buildPlayerSection(
-              playerState: playerState,
-              playerIds: showData.oldPlayersId,
-              playerDataList: oldPlayerDataList,
-              emptyMessage: 'Eski ekip bilgisi bulunamadı.',
-              isOldPlayers: true,
-            ),
-            const SizedBox(height: 25),
-            const CustomSectionTitle(title: 'Oyundan Kareler', fontSize: 22),
-            const SizedBox(height: 10),
-            _buildGamePhotoSection(showData.photosShowId),
-          ],
-        ),
-      ),
     );
   }
 
-  /// Oyuncu bölümü için merkezi widget
-  Widget _buildPlayerSection({
-    required final PlayerState playerState,
-    required final List<String> playerIds,
-    required final List<Player> playerDataList,
-    required final String emptyMessage,
-    required final bool isOldPlayers,
-  }) {
-    // ID listesi boşsa direkt boş mesaj göster
-    if (playerIds.isEmpty) return _buildEmptyListWidget(emptyMessage);
+  void _handleTicketPurchase(final String showId, final String eventId) {
+    final loginState = ref.read(loginProvider);
+    final String? userId = loginState.user?.uid ??
+        ref.read(userProvider).dataSingle?.id ??
+        LocalStorageService.userUid;
 
-    // Yükleniyor ve henüz veri yoksa shimmer göster
-    if (playerState.isLoading && playerDataList.isEmpty)
-      return _buildShimmerRow();
-
-    // Veri varsa göster
-    if (playerDataList.isNotEmpty)
-      return isOldPlayers
-          ? _buildOldPlayers(playerDataList)
-          : _buildNowPlayers(playerDataList);
-
-    // Yükleme bitti ama veri gelmedi - hata durumu
-    if (!playerState.isLoading && playerDataList.isEmpty)
-      return _buildEmptyListWidget('Ekip verileri yüklenemedi.');
-
-    return _buildEmptyListWidget(emptyMessage);
-  }
-
-  Widget _buildEventList(final Show showData, final EventState eventState,
-      final StageState stageState) {
-    if (eventState.isLoading && !eventState.hasData) return _buildShimmerList();
-
-    if (eventState.hasData &&
-        eventState.dataList!
-            .any((final e) => showData.eventsId.contains(e.id))) {
-      return Column(
-          children: eventState.dataList!
-              .where((final e) => showData.eventsId.contains(e.id))
-              .map((final event) {
-        final Stage? stage = stageState.getStageById(event.stageId);
-        final stageName = stageState.isLoading && stage == null
-            ? "Yükleniyor..."
-            : (stage?.name ?? "Sahne adı verisi yok");
-        return _buildEventCard(event.date.toString(), event.id, showData.id,
-            stageName, "İstanbul");
-      }).toList());
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Lütfen önce giriş yapınız.")));
+      return;
     }
-
-    return _buildEmptyListWidget('Yaklaşan etkinlik bulunmamaktadır.');
-  }
-
-  Widget _buildEventCard(
-    final String date,
-    final String eventId,
-    final String showId,
-    final String stageName,
-    final String city,
-  ) {
-    final Map<String, String> formattedDate =
-        DateFormatter.formatForEventCard(date);
-    final String dayText = formattedDate['day'] ?? '?';
-    final String monthText = formattedDate['monthName'] ?? '-';
-    final String timeText = formattedDate['time'] ?? '--:--';
-
-    return InkWell(
-      onTap: () {
-        final loginState = ref.read(loginProvider);
-        String? userId = loginState.user?.uid;
-
-        if (userId == null) {
-          final userState = ref.read(userProvider);
-          userId = userState.dataSingle?.id;
-        }
-
-        userId ??= LocalStorageService.userUid;
-
-        if (userId == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Kullanıcı oturumu bulunamadı.")));
-          Navigator.of(context).pushReplacementNamed('/login');
-          return;
-        }
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
+    Navigator.push(
+        context,
+        MaterialPageRoute(
             builder: (final context) => SeatSelectionScreen(
-                showId: showId, eventId: eventId, customerId: userId!),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.grey.withOpacity(0.15),
-                blurRadius: 10,
-                offset: const Offset(0, 4)),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 70,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(dayText,
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white)),
-                  const SizedBox(height: 2),
-                  Text(monthText,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white70)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(stageName,
-                      style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 5),
-                  Text("$city • $timeText",
-                      style:
-                          const TextStyle(fontSize: 14, color: Colors.black54),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis)
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
-          ],
-        ),
-      ),
-    );
+                showId: showId, eventId: eventId, customerId: userId)));
   }
-
-  Widget _buildNowPlayers(final List<Player> nowPlayerDataList) => SizedBox(
-        height: 195,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          itemCount: nowPlayerDataList.length,
-          itemBuilder: (final context, final index) {
-            final player = nowPlayerDataList[index];
-            return CustomStageCard(
-                text: '${player.firstName}\n${player.lastName}',
-                imageUrl: player.imageUrl,
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (final context) =>
-                              PlayerDetailPage(playerId: player.id)));
-                });
-          },
-        ),
-      );
-
-  Widget _buildOldPlayers(final List<Player> oldPlayerDataList) => SizedBox(
-        height: 195,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          itemCount: oldPlayerDataList.length,
-          itemBuilder: (final context, final index) {
-            final player = oldPlayerDataList[index];
-            return Stack(children: [
-              CustomStageCard(
-                text: '${player.firstName}\n${player.lastName}',
-                imageUrl: player.imageUrl,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (final context) =>
-                            PlayerDetailPage(playerId: player.id)),
-                  );
-                },
-              ),
-              Positioned.fill(
-                  child: IgnorePointer(
-                      ignoring: true,
-                      child: Container(
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.black.withOpacity(0.3)))))
-            ]);
-          },
-        ),
-      );
-
-  Widget _buildGamePhotoSection(final List<String> photoDataList) {
-    if (photoDataList.isEmpty)
-      return _buildEmptyListWidget('Oyundan kareler bulunamadı.');
-
-    return SizedBox(
-      height: 170,
-      width: double.infinity,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-        itemCount: photoDataList.length,
-        itemBuilder: (final context, final index) {
-          final photoUrl = photoDataList[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: GestureDetector(
-                child: _buildGamePhotoCard(photoUrl),
-                onTap: () => _showFullImage(context, photoUrl)),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildGamePhotoCard(final String? photoUrl) => SizedBox(
-        width: 130,
-        height: 160,
-        child: Card(
-          elevation: 6,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          clipBehavior: Clip.antiAlias,
-          child: CachedNetworkImage(
-              imageUrl: photoUrl ?? '',
-              height: double.infinity,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (final context, final url) => const ShimmerLoading(
-                  width: double.infinity, height: double.infinity),
-              errorWidget: (final context, final url, final error) =>
-                  const Center(
-                      child: Icon(Icons.image_not_supported_outlined,
-                          color: Colors.grey))),
-        ),
-      );
-
-  Widget _buildEmptyListWidget(final String message) => SizedBox(
-        height: 100,
-        child: Center(
-            child: Text(message,
-                style: TextStyle(color: Colors.grey[600], fontSize: 15),
-                textAlign: TextAlign.center)),
-      );
-
-  void _showFullImage(final BuildContext context, final String url) =>
-      showDialog(
-        context: context,
-        barrierColor: const Color(0xFF0a0a1a).withOpacity(0.95),
-        builder: (final _) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.zero,
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                InteractiveViewer(
-                  minScale: 0.5,
-                  maxScale: 4.0,
-                  panEnabled: true,
-                  boundaryMargin: const EdgeInsets.all(double.infinity),
-                  child: Center(
-                    child: OptimizedCachedImage(
-                      imageUrl: url,
-                      fit: BoxFit.contain,
-                      width: MediaQuery.of(context).size.width,
-                      height: MediaQuery.of(context).size.height,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 20,
-                  right: 20,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                          color: const Color(0xFFD4AF37),
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.5),
-                              blurRadius: 10,
-                            )
-                          ]),
-                      child: const Icon(Icons.close,
-                          color: Color(0xFF0a0a1a), size: 24),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
 }

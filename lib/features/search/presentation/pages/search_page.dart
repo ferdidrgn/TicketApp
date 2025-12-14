@@ -6,7 +6,7 @@ import '../../../../shared/navigation/widgets/bottom_nav_bar.dart';
 import '../../../../shared/widgets/custom_category_card.dart';
 import '../../../../shared/widgets/custom_search.dart';
 import '../../../shows/presentation/widgets/mobile/custom_show_card.dart';
-import '../../../stages/presentation/widgets/custom_stage_card.dart';
+import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
 import '../../../../shared/widgets/shimmer.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
