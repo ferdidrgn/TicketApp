@@ -1,0 +1,54 @@
+import 'package:ticketapp/core/common/base_notifier.dart';
+import 'package:ticketapp/features/teams/presentation/providers/team_provider.dart';
+import 'package:ticketapp/features/teams/presentation/providers/team_state.dart';
+
+class TeamNotifier extends BaseNotifier<TeamState> {
+  @override
+  TeamState initialState() => const TeamState();
+
+  Future<void> loadTeams(final bool isLimit) => execute(
+        () => ref.read(getTeamsUseCaseProvider).call(isLimit),
+        onSuccess: (final teams) => state = state.copyWith(dataList: teams),
+      );
+
+  Future<void> loadTeamsByIds(final List<String> teamsIds) =>
+      execute(
+        () => ref.read(getTeamByIdUseCaseProvider).call(teamsIds),
+        onSuccess: (final teams) => state = state.copyWith(dataList: teams),
+      );
+}
+
+extension TeamStateX on TeamState {
+  /// Belirli bir takım var mı?
+  bool hasTeam(final String teamId) {
+    if (dataList == null) return false;
+    return dataList!.any((final team) => team.id == teamId);
+  }
+
+  /// Belirli bir takımı getir
+  dynamic getTeamById(final String teamId) {
+    if (dataList == null) return null;
+    try {
+      return dataList!.firstWhere((final team) => team.id == teamId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Toplam takım sayısı
+  int get teamCount => dataList?.length ?? 0;
+
+  /// Takım listesi boş mu değil mi?
+  bool get hasData => dataList != null && dataList!.isNotEmpty;
+
+  /// Tüm takım ID'leri
+  List<String> get teamIds =>
+      dataList?.map((final team) => team.id).toList() ?? [];
+
+  /// İlk takım veya null
+  dynamic get firstTeam =>
+      dataList?.isNotEmpty == true ? dataList!.first : null;
+
+  /// Son takım veya null
+  dynamic get lastTeam => dataList?.isNotEmpty == true ? dataList!.last : null;
+}
