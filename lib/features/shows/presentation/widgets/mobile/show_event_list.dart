@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/features/events/domain/entities/event.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
+
 import '../../../../stages/presentation/providers/stage_notifier.dart';
 
 class ShowEventList extends StatelessWidget {
@@ -18,37 +19,35 @@ class ShowEventList extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    if (events.isEmpty)
-      return const Padding(
-        padding: EdgeInsets.all(20),
-        child: Text("Yaklaşan etkinlik bulunmamaktadır.",
-            style: TextStyle(color: Colors.white38)),
-      );
+    if (events.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final primaryColor = theme.primaryColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final surfaceColor = theme.cardColor; // Kart rengi (Dark/Light uyumlu)
+    final backgroundColor = theme.scaffoldBackgroundColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Bölüm Başlığı
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
           child: Row(
             children: [
-              Container(width: 4, height: 24, color: const Color(0xFFD4AF37)),
+              Container(width: 4, height: 24, color: primaryColor),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 "ETKİNLİK TAKVİMİ",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: textColor,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+                  letterSpacing: 1,
                 ),
               ),
             ],
           ),
         ),
-
-        // Liste
         SizedBox(
           height: 140,
           child: ListView.builder(
@@ -70,14 +69,14 @@ class ShowEventList extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF151525),
+                      color: surfaceColor,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white10),
                       boxShadow: const [
                         BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 10,
-                            offset: Offset(0, 5))
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: Offset(0, 5),
+                        )
                       ],
                     ),
                     padding: const EdgeInsets.all(15),
@@ -87,24 +86,29 @@ class ShowEventList extends StatelessWidget {
                         Container(
                           width: 60,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0a0a1a),
+                            color: backgroundColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color:
-                                    const Color(0xFFD4AF37).withOpacity(0.3)),
+                                color: primaryColor.withOpacity(0.5)),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(dateInfo['day'] ?? '00',
-                                  style: const TextStyle(
-                                      color: Color(0xFFD4AF37),
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold)),
                               Text(
-                                  dateInfo['monthName']?.toUpperCase() ?? 'AAA',
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 12)),
+                                dateInfo['day'] ?? '00',
+                                style: TextStyle(
+                                  color: primaryColor,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                dateInfo['monthName']?.toUpperCase() ?? 'AAA',
+                                style: TextStyle(
+                                  color: textColor.withOpacity(0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -119,37 +123,35 @@ class ShowEventList extends StatelessWidget {
                                 stage?.name ?? 'Sahne Bilgisi Yok',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15),
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               ),
                               const SizedBox(height: 5),
-                              Row(
-                                children: [
-                                  const Icon(Icons.access_time,
-                                      color: Colors.white54, size: 14),
-                                  const SizedBox(width: 5),
-                                  Text(dateInfo['time'] ?? '00:00',
-                                      style: const TextStyle(
-                                          color: Colors.white54, fontSize: 13)),
-                                ],
+                              Text(
+                                "${dateInfo['time']} • İstanbul",
+                                style: TextStyle(
+                                  color: textColor.withOpacity(0.6),
+                                  fontSize: 13,
+                                ),
                               ),
                               const Spacer(),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xFFD4AF37).withOpacity(0.1),
+                                  color: primaryColor.withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   "BİLET AL >",
                                   style: TextStyle(
-                                      color: Color(0xFFD4AF37),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold),
+                                    color: primaryColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
