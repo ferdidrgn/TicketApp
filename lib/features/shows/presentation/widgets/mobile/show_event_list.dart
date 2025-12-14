@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/app_colors.dart'; // ✅ Senin renk dosyan
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/features/events/domain/entities/event.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
@@ -21,11 +22,18 @@ class ShowEventList extends StatelessWidget {
   Widget build(final BuildContext context) {
     if (events.isEmpty) return const SizedBox.shrink();
 
-    final theme = Theme.of(context);
-    final primaryColor = theme.primaryColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final surfaceColor = theme.cardColor; // Kart rengi (Dark/Light uyumlu)
-    final backgroundColor = theme.scaffoldBackgroundColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // RENKLER
+    const brandRed = AppLightColors.primary; // Kırmızı Vurgu
+    final textColor =
+        isDark ? AppDarkColors.textPrimary : AppLightColors.textPrimary;
+
+    // Kart Arka Planı: Dark modda senin tanımladığın Surface rengi
+    final cardBgColor = isDark ? AppDarkColors.surface : AppLightColors.surface;
+
+    // Tarih Kutusu Arka Planı: Dark modda biraz daha koyu gri
+    final dateBoxColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,7 +42,8 @@ class ShowEventList extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
           child: Row(
             children: [
-              Container(width: 4, height: 24, color: primaryColor),
+              Container(width: 4, height: 24, color: brandRed),
+              // ✅ Kırmızı Çubuk
               const SizedBox(width: 10),
               Text(
                 "ETKİNLİK TAKVİMİ",
@@ -69,13 +78,14 @@ class ShowEventList extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: surfaceColor,
+                      color: cardBgColor, // ✅ Senin Surface rengin
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [
+                      border: isDark ? Border.all(color: Colors.white10) : null,
+                      boxShadow: [
                         BoxShadow(
-                          color: Colors.black12,
+                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
                           blurRadius: 10,
-                          offset: Offset(0, 5),
+                          offset: const Offset(0, 5),
                         )
                       ],
                     ),
@@ -86,18 +96,19 @@ class ShowEventList extends StatelessWidget {
                         Container(
                           width: 60,
                           decoration: BoxDecoration(
-                            color: backgroundColor,
+                            color: dateBoxColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: primaryColor.withOpacity(0.5)),
+                                color: brandRed
+                                    .withOpacity(0.5)), // ✅ Kırmızı Çerçeve
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 dateInfo['day'] ?? '00',
-                                style: TextStyle(
-                                  color: primaryColor,
+                                style: const TextStyle(
+                                  color: brandRed, // ✅ Kırmızı Gün
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -138,17 +149,19 @@ class ShowEventList extends StatelessWidget {
                                 ),
                               ),
                               const Spacer(),
+                              // Bilet Al Butonu
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: primaryColor.withOpacity(0.15),
+                                  color: brandRed.withOpacity(0.15),
+                                  // ✅ Hafif Kırmızı Zemin
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Text(
+                                child: const Text(
                                   "BİLET AL >",
                                   style: TextStyle(
-                                    color: primaryColor,
+                                    color: brandRed, // ✅ Kırmızı Yazı
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),

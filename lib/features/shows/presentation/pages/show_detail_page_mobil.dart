@@ -5,6 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
+
+// RENK DOSYANI MUTLAKA IMPORT ET
+import 'package:ticketapp/core/theme/app_colors.dart';
+
+// PROVIDERLAR
 import 'package:ticketapp/features/events/domain/entities/event.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_provider.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_state.dart';
@@ -13,6 +18,8 @@ import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_notifier.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
+import 'package:ticketapp/features/players/presentation/providers/player_state.dart';
+import 'package:ticketapp/features/players/presentation/widgets/players_card.dart';
 import 'package:ticketapp/features/seat/presentation/pages/seat_details.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_notifier.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
@@ -21,8 +28,6 @@ import 'package:ticketapp/features/stages/presentation/providers/stage_provider.
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
 
-import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
-import '../../../players/presentation/widgets/players_card.dart';
 import '../widgets/mobile/show_photo_gallery.dart';
 
 class ShowDetailPage extends ConsumerStatefulWidget {
@@ -82,9 +87,20 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   @override
   Widget build(final BuildContext context) {
+    // 🎨 KRİTİK RENK AYARLARI
     final theme = Theme.of(context);
-    final backgroundColor = theme.scaffoldBackgroundColor;
-    final primaryColor = theme.primaryColor; // Senin Kırmızın
+    final isDark = theme.brightness == Brightness.dark;
+
+    // 1. Arka Plan: Dark ise senin Koyu Rengin, Light ise Beyaz
+    final backgroundColor =
+        isDark ? AppDarkColors.background : AppLightColors.background;
+
+    // 2. Metin Rengi: Dark ise Beyaz, Light ise Siyah
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    // 3. 🔥 VURGU RENGİ (KIRMIZI): Asla temadan çekmiyoruz, zorla senin Kırmızı rengini veriyoruz.
+    // Böylece Dark Mode'da Griye dönüşmüyor.
+    const brandColor = AppLightColors.primary;
 
     final showState = ref.watch(showProvider);
     final showData = showState.getShowById(widget.showId);
@@ -109,15 +125,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     if (showState.isLoading && showData == null) {
       return Scaffold(
           backgroundColor: backgroundColor,
-          body: Center(child: CircularProgressIndicator(color: primaryColor)));
+          body: Center(child: CircularProgressIndicator(color: brandColor)));
     }
 
     if (showData == null) {
       return Scaffold(
         backgroundColor: backgroundColor,
         body: Center(
-            child: Text("Gösteri bulunamadı",
-                style: TextStyle(color: theme.textTheme.bodyMedium?.color))),
+            child:
+                Text("Gösteri bulunamadı", style: TextStyle(color: textColor))),
       );
     }
 
@@ -125,15 +141,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       backgroundColor: backgroundColor,
       body: Stack(
         children: [
-          // 1. ARKA PLAN RESMİ (Ayrı Widget'a gitmeden burada çağırdık)
+          // 1. ARKA PLAN RESMİ
           _ShowParallaxHeader(
             imageUrl: showData.imageUrl,
             scrollController: _scrollController,
             backgroundColor: backgroundColor,
           ),
 
-          // 2. SCROLL İÇERİK
-          // RepaintBoundary ile sararak kasma sorununu önlüyoruz
+          // 2. İÇERİK
           RepaintBoundary(
             child: CustomScrollView(
               controller: _scrollController,
@@ -160,11 +175,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                       children: [
                         const SizedBox(height: 20),
 
-                        // BİLGİ BÖLÜMÜ
+                        // BİLGİ BÖLÜMÜ (Renkleri gönderiyoruz)
                         _ShowInfoSection(
                           title: showData.name,
                           description: showData.description,
-                          primaryColor: primaryColor,
+                          primaryColor: brandColor,
+                          // 🔥 Zorla Kırmızı
+                          textColor: textColor,
+                          isDark: isDark,
                         ),
 
                         // ETKİNLİK LİSTESİ
@@ -175,20 +193,21 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                                   .toList() ??
                               [],
                           stageState: stageState,
-                          primaryColor: primaryColor,
-                          surfaceColor: theme.cardColor,
-                          // Temadan gelen kart rengi
-                          backgroundColor: backgroundColor,
+                          primaryColor: brandColor,
+                          // 🔥 Zorla Kırmızı
+                          textColor: textColor,
+                          // Kart rengi Dark modda senin Surface rengin olsun
+                          surfaceColor:
+                              isDark ? AppDarkColors.surface : Colors.white,
                           onTicketTap: (final eventId) =>
                               _handleTicketPurchase(showData.id, eventId),
                         ),
 
-                        // AKTİF OYUNCULAR
+                        // OYUNCU LİSTESİ
                         PlayersCard(
                           title: "OYUNCU KADROSU",
                           players: playerState
                               .getPlayersByIds(showData.nowPlayersId),
-                          primaryColor: primaryColor,
                           onPlayerTap: (final id) => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -202,7 +221,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                             title: "ESKİ KADRO",
                             players: playerState
                                 .getPlayersByIds(showData.oldPlayersId),
-                            primaryColor: primaryColor,
                             isGrayscale: true,
                             onPlayerTap: (final id) => Navigator.push(
                                 context,
@@ -213,9 +231,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
                         // GALERİ
                         if (showData.photosShowId.isNotEmpty)
-                          ShowPhotoGallery(
-                            photos: showData.photosShowId,
-                          ),
+                          ShowPhotoGallery(photos: showData.photosShowId),
 
                         const SizedBox(height: 100),
                       ],
@@ -238,22 +254,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                   height: 45,
                   width: 45,
                   decoration: BoxDecoration(
-                      color: (theme.brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black)
-                          .withOpacity(0.1),
+                      color: (isDark ? Colors.white : Colors.black)
+                          .withOpacity(0.2),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
-                          color: (theme.brightness == Brightness.dark
-                              ? Colors.white24
-                              : Colors.black12))),
+                          color: (isDark ? Colors.white24 : Colors.black12))),
                   child: IconButton(
                     icon: Icon(Icons.arrow_back_ios_new,
-                        color: theme.iconTheme.color ??
-                            (theme.brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black),
-                        size: 20),
+                        color: isDark ? Colors.white : Colors.black, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -285,7 +293,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 }
 
 // -----------------------------------------------------------------------------
-// YARDIMCI WIDGETLAR (Aynı dosya içinde private class olarak)
+// YARDIMCI WIDGETLAR (ÖZEL RENK MANTIĞI İLE GÜNCELLENDİ)
 // -----------------------------------------------------------------------------
 
 class _ShowParallaxHeader extends StatelessWidget {
@@ -293,11 +301,10 @@ class _ShowParallaxHeader extends StatelessWidget {
   final ScrollController scrollController;
   final Color backgroundColor;
 
-  const _ShowParallaxHeader({
-    required this.imageUrl,
-    required this.scrollController,
-    required this.backgroundColor,
-  });
+  const _ShowParallaxHeader(
+      {required this.imageUrl,
+      required this.scrollController,
+      required this.backgroundColor});
 
   @override
   Widget build(final BuildContext context) {
@@ -317,8 +324,9 @@ class _ShowParallaxHeader extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               CachedNetworkImage(
-                imageUrl: imageUrl, fit: BoxFit.cover,
-                memCacheHeight: 800, // Optimizasyon
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                memCacheHeight: 800,
                 errorWidget: (final context, final url, final error) =>
                     Container(color: backgroundColor),
               ),
@@ -350,11 +358,15 @@ class _ShowInfoSection extends StatefulWidget {
   final String title;
   final String description;
   final Color primaryColor;
+  final Color textColor;
+  final bool isDark;
 
   const _ShowInfoSection(
       {required this.title,
       required this.description,
-      required this.primaryColor});
+      required this.primaryColor,
+      required this.textColor,
+      required this.isDark});
 
   @override
   State<_ShowInfoSection> createState() => _ShowInfoSectionState();
@@ -366,8 +378,6 @@ class _ShowInfoSectionState extends State<_ShowInfoSection>
 
   @override
   Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.white;
     final cleanDesc = widget.description.replaceAll('\\n', '\n');
 
     return Padding(
@@ -378,18 +388,25 @@ class _ShowInfoSectionState extends State<_ShowInfoSection>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-                color: widget.primaryColor,
+                // Dark modda arka plan şeffaf, kenar çizgisi Kırmızı
+                color: widget.isDark
+                    ? widget.primaryColor.withOpacity(0.1)
+                    : widget.primaryColor,
+                border: widget.isDark
+                    ? Border.all(color: widget.primaryColor)
+                    : null,
                 borderRadius: BorderRadius.circular(20)),
-            child: const Text("TİYATRO",
+            child: Text("TİYATRO",
+                // Dark modda yazı Kırmızı, Light modda Beyaz
                 style: TextStyle(
-                    color: Colors.white,
+                    color: widget.isDark ? widget.primaryColor : Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 15),
           Text(widget.title,
               style: TextStyle(
-                  color: textColor,
+                  color: widget.textColor,
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   height: 1.1)),
@@ -400,13 +417,14 @@ class _ShowInfoSectionState extends State<_ShowInfoSection>
               const SizedBox(width: 5),
               Text("4.8 (120 İnceleme)",
                   style: TextStyle(
-                      color: textColor.withOpacity(0.7), fontSize: 14)),
+                      color: widget.textColor.withOpacity(0.7), fontSize: 14)),
               const SizedBox(width: 20),
-              Icon(Icons.timer, color: textColor.withOpacity(0.5), size: 18),
+              Icon(Icons.timer,
+                  color: widget.textColor.withOpacity(0.5), size: 18),
               const SizedBox(width: 5),
               Text("120 Dk",
                   style: TextStyle(
-                      color: textColor.withOpacity(0.7), fontSize: 14)),
+                      color: widget.textColor.withOpacity(0.7), fontSize: 14)),
             ],
           ),
           const SizedBox(height: 25),
@@ -424,7 +442,7 @@ class _ShowInfoSectionState extends State<_ShowInfoSection>
                       ? TextOverflow.visible
                       : TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: textColor.withOpacity(0.8),
+                      color: widget.textColor.withOpacity(0.8),
                       fontSize: 16,
                       height: 1.6,
                       fontWeight: FontWeight.w300),
@@ -432,23 +450,26 @@ class _ShowInfoSectionState extends State<_ShowInfoSection>
                 const SizedBox(height: 10),
                 GestureDetector(
                   onTap: () => setState(() => _isExpanded = !_isExpanded),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                          _isExpanded
-                              ? "Daha Az Göster"
-                              : "Daha Fazlasını Göster",
-                          style: TextStyle(
-                              color: widget.primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14)),
-                      Icon(
-                          _isExpanded
-                              ? Icons.keyboard_arrow_up
-                              : Icons.keyboard_arrow_down,
-                          color: widget.primaryColor),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                            _isExpanded
+                                ? "Daha Az Göster"
+                                : "Daha Fazlasını Göster",
+                            style: TextStyle(
+                                color: widget.primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14)),
+                        Icon(
+                            _isExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: widget.primaryColor),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -465,7 +486,7 @@ class _ShowEventList extends StatelessWidget {
   final StageState stageState;
   final Color primaryColor;
   final Color surfaceColor;
-  final Color backgroundColor;
+  final Color textColor;
   final Function(String) onTicketTap;
 
   const _ShowEventList(
@@ -473,14 +494,12 @@ class _ShowEventList extends StatelessWidget {
       required this.stageState,
       required this.primaryColor,
       required this.surfaceColor,
-      required this.backgroundColor,
+      required this.textColor,
       required this.onTicketTap});
 
   @override
   Widget build(final BuildContext context) {
     if (events.isEmpty) return const SizedBox.shrink();
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,7 +555,10 @@ class _ShowEventList extends StatelessWidget {
                         Container(
                           width: 60,
                           decoration: BoxDecoration(
-                            color: backgroundColor,
+                            // Dark modda tarih kutusu için hafif bir arka plan
+                            color: textColor == Colors.white
+                                ? Colors.white10
+                                : Colors.grey[100],
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                                 color: primaryColor.withOpacity(0.5)),

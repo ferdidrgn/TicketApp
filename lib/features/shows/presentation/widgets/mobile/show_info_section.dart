@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/app_colors.dart'; // ✅ Senin renk dosyan
 
 class ShowInfoSection extends StatefulWidget {
   final String title;
@@ -25,8 +26,16 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryColor = theme.primaryColor; // Senin Kırmızın
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final isDark = theme.brightness == Brightness.dark;
+
+    // 🔥 KRİTİK DÜZELTME:
+    // Marka rengini (Kırmızı) her iki modda da sabit tutuyoruz.
+    // Dark modda grileşmemesi için AppLightColors.primary kullanıyoruz.
+    const brandRed = AppLightColors.primary;
+
+    // Metin Rengi: Dark ise Beyaz, Light ise Siyah
+    final textColor =
+        isDark ? AppDarkColors.textPrimary : AppLightColors.textPrimary;
     final cleanDesc = widget.description.replaceAll('\\n', '\n');
 
     return Padding(
@@ -34,36 +43,41 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Kategori Etiketi
+          // KATEGORİ ETİKETİ (TİYATRO)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: primaryColor,
+              // Dark modda çok patlamaması için hafif şeffaflık verebiliriz ama kırmızı kalmalı
+              color: brandRed.withOpacity(isDark ? 0.2 : 1.0),
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryColor.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                )
-              ],
+              border: isDark ? Border.all(color: brandRed) : null,
+              // Dark'ta kırmızı çerçeve
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: brandRed.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
             ),
-            child: const Text(
+            child: Text(
               "TİYATRO",
               style: TextStyle(
-                  color: Colors.white,
+                  // Dark modda zemin şeffaf olduğu için yazı kırmızı olsun, Light'ta zemin dolu olduğu için yazı beyaz.
+                  color: isDark ? brandRed : Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 15),
 
-          // Başlık
+          // BAŞLIK
           Text(
             widget.title,
             style: TextStyle(
               color: textColor,
-              // Temaya göre siyah veya beyaz
               fontSize: 32,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.1,
@@ -72,10 +86,11 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
           ),
           const SizedBox(height: 10),
 
-          // İstatistikler
+          // İSTATİSTİKLER
           Row(
             children: [
-              Icon(Icons.star, color: primaryColor, size: 20),
+              const Icon(Icons.star, color: brandRed, size: 20),
+              // ⭐ Yıldız Kırmızı
               const SizedBox(width: 5),
               Text(
                 "${widget.rating} (120 İnceleme)",
@@ -94,7 +109,7 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
           ),
           const SizedBox(height: 25),
 
-          // Açılır/Kapanır Açıklama
+          // AÇIKLAMA VE BUTON
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -116,28 +131,35 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                // "DAHA FAZLA GÖSTER" BUTONU
                 GestureDetector(
                   onTap: () => setState(() => _isExpanded = !_isExpanded),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _isExpanded
-                            ? "Daha Az Göster"
-                            : "Daha Fazlasını Göster",
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _isExpanded
+                              ? "Daha Az Göster"
+                              : "Daha Fazlasını Göster",
+                          style: const TextStyle(
+                            color: brandRed, // ✅ Yazı Rengi Kırmızı
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                      Icon(
-                        _isExpanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        color: primaryColor,
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Icon(
+                          _isExpanded
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          color: brandRed, // ✅ Ok Rengi Kırmızı
+                          size: 20,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

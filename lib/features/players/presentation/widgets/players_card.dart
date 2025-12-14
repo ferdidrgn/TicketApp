@@ -5,7 +5,6 @@ import 'package:ticketapp/features/players/domain/entities/player.dart';
 class PlayersCard extends StatelessWidget {
   final List<Player> players;
   final String title;
-  final Color primaryColor;
   final bool isGrayscale;
   final Function(String) onPlayerTap;
 
@@ -13,7 +12,6 @@ class PlayersCard extends StatelessWidget {
     super.key,
     required this.players,
     required this.title,
-    required this.primaryColor,
     required this.onPlayerTap,
     this.isGrayscale = false,
   });
@@ -36,7 +34,7 @@ class PlayersCard extends StatelessWidget {
               Container(
                   width: 4,
                   height: 24,
-                  color: isGrayscale ? Colors.grey : primaryColor),
+                  color: isGrayscale ? Colors.grey : theme.primaryColor),
               const SizedBox(width: 10),
               Text(
                 title,

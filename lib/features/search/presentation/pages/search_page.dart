@@ -357,7 +357,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       PlayersCard(
         title: "OYUNCULAR",
         players: players,
-        primaryColor: Theme.of(context).primaryColor, // Senin Kırmızın,
         onPlayerTap: (final id) => Navigator.push(
             context,
             MaterialPageRoute(

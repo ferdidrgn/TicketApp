@@ -14,6 +14,9 @@ class ShowParallaxHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Temanın arka plan rengini al (Light: Beyaz, Dark: Koyu)
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+
     return AnimatedBuilder(
       animation: scrollController,
       builder: (context, child) {
@@ -21,7 +24,6 @@ class ShowParallaxHeader extends StatelessWidget {
         if (scrollController.hasClients) {
           offset = scrollController.offset;
         }
-        // Resmin yukarı kayma ve büyüme efekti
         return Positioned(
           top: -offset * 0.5,
           left: 0,
@@ -34,16 +36,22 @@ class ShowParallaxHeader extends StatelessWidget {
               CachedNetworkImage(
                 imageUrl: imageUrl,
                 fit: BoxFit.cover,
+                // Arka plan yüklenirken temanın rengini göster
                 errorWidget: (context, url, error) =>
-                    Container(color: const Color(0xFF151525)),
+                    Container(color: backgroundColor),
               ),
-              // Okunurluk için karartma
+              // Gradient: Resimden -> Sayfa Rengine yumuşak geçiş
               Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.black12, Colors.black54, Color(0xFF0a0a1a)],
+                    colors: [
+                      Colors.black12, // Üst kısım hafif
+                      Colors.black54, // Orta kısım koyulaşıyor
+                      backgroundColor, // Alt kısım tamamen sayfa rengi
+                    ],
+                    stops: const [0.0, 0.6, 1.0],
                   ),
                 ),
               ),
@@ -51,8 +59,8 @@ class ShowParallaxHeader extends StatelessWidget {
               if (offset > 0)
                 BackdropFilter(
                   filter: ImageFilter.blur(
-                    sigmaX: (offset / 100).clamp(0, 10),
-                    sigmaY: (offset / 100).clamp(0, 10),
+                    sigmaX: (offset / 100).clamp(0, 5),
+                    sigmaY: (offset / 100).clamp(0, 5),
                   ),
                   child: Container(color: Colors.transparent),
                 ),
