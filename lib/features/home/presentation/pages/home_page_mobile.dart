@@ -8,7 +8,7 @@ import '../../../../shared/widgets/custom_category_card.dart';
 import '../../../../shared/widgets/custom_dots_indicator.dart';
 import '../../../../shared/widgets/custom_floating_action_button.dart';
 import '../../../../shared/widgets/custom_search.dart';
-import '../../../shows/presentation/widgets/mobile/custom_show_card.dart';
+import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
 import '../../../../shared/widgets/custom_title.dart';
 import '../../../../shared/widgets/shimmer.dart';

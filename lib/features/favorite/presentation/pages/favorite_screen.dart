@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../shows/presentation/widgets/mobile/custom_show_card.dart';
+import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
 import '../../../../shared/widgets/custom_title.dart';
 import '../../../players/presentation/pages/player_details.dart';

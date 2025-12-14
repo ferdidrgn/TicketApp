@@ -21,6 +21,10 @@ import 'package:ticketapp/features/stages/presentation/providers/stage_provider.
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
 
+import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
+import '../widgets/mobile/show_cast_list.dart';
+import '../widgets/mobile/show_photo_gallery.dart';
+
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
 
@@ -58,8 +62,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
     if (showData != null) {
       if (showData.eventsId.isNotEmpty) {
-        final validEventIds =
-            showData.eventsId.where((final id) => id.trim().isNotEmpty).toList();
+        final validEventIds = showData.eventsId
+            .where((final id) => id.trim().isNotEmpty)
+            .toList();
         if (validEventIds.isNotEmpty) {
           unawaited(
               ref.read(eventProvider.notifier).loadEventsByIds(validEventIds));
@@ -165,8 +170,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                         // ETKİNLİK LİSTESİ
                         _ShowEventList(
                           events: eventState.dataList
-                                  ?.where(
-                                      (final e) => showData.eventsId.contains(e.id))
+                                  ?.where((final e) =>
+                                      showData.eventsId.contains(e.id))
                                   .toList() ??
                               [],
                           stageState: stageState,
@@ -179,7 +184,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                         ),
 
                         // AKTİF OYUNCULAR
-                        _ShowCastList(
+                        ShowCastList(
                           title: "OYUNCU KADROSU",
                           players: playerState
                               .getPlayersByIds(showData.nowPlayersId),
@@ -193,7 +198,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
                         // ESKİ OYUNCULAR
                         if (showData.oldPlayersId.isNotEmpty)
-                          _ShowCastList(
+                          ShowCastList(
                             title: "ESKİ KADRO",
                             players: playerState
                                 .getPlayersByIds(showData.oldPlayersId),
@@ -208,9 +213,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
                         // GALERİ
                         if (showData.photosShowId.isNotEmpty)
-                          _ShowPhotoGallery(
+                          ShowPhotoGallery(
                             photos: showData.photosShowId,
-                            primaryColor: primaryColor,
                           ),
 
                         const SizedBox(height: 100),
@@ -589,215 +593,6 @@ class _ShowEventList extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ShowCastList extends StatelessWidget {
-  final List<Player> players;
-  final String title;
-  final Color primaryColor;
-  final bool isGrayscale;
-  final Function(String) onPlayerTap;
-
-  const _ShowCastList(
-      {required this.players,
-      required this.title,
-      required this.primaryColor,
-      required this.onPlayerTap,
-      this.isGrayscale = false});
-
-  @override
-  Widget build(final BuildContext context) {
-    if (players.isEmpty) return const SizedBox.shrink();
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-          child: Row(
-            children: [
-              Container(
-                  width: 4,
-                  height: 24,
-                  color: isGrayscale ? Colors.grey : primaryColor),
-              const SizedBox(width: 10),
-              Text(title,
-                  style: TextStyle(
-                      color: textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1)),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 160,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            itemCount: players.length,
-            itemBuilder: (final context, final index) {
-              final player = players[index];
-              return GestureDetector(
-                onTap: () => onPlayerTap(player.id),
-                child: Container(
-                  width: 100,
-                  margin: const EdgeInsets.only(right: 15),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: isGrayscale ? Colors.grey : primaryColor,
-                              width: 2),
-                          boxShadow: const [
-                            BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 8,
-                                offset: Offset(0, 4))
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: isGrayscale
-                              ? ColorFiltered(
-                                  colorFilter: const ColorFilter.mode(
-                                      Colors.grey, BlendMode.saturation),
-                                  child: CachedNetworkImage(
-                                      imageUrl: player.imageUrl,
-                                      fit: BoxFit.cover,
-                                      memCacheHeight: 200,
-                                      memCacheWidth: 200))
-                              : CachedNetworkImage(
-                                  imageUrl: player.imageUrl,
-                                  fit: BoxFit.cover,
-                                  memCacheHeight: 200,
-                                  memCacheWidth: 200),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text("${player.firstName}\n${player.lastName}",
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: isGrayscale
-                                  ? textColor.withOpacity(0.5)
-                                  : textColor,
-                              fontSize: 12,
-                              fontWeight: isGrayscale
-                                  ? FontWeight.normal
-                                  : FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ShowPhotoGallery extends StatelessWidget {
-  final List<String> photos;
-  final Color primaryColor;
-
-  const _ShowPhotoGallery({required this.photos, required this.primaryColor});
-
-  @override
-  Widget build(final BuildContext context) {
-    if (photos.isEmpty) return const SizedBox.shrink();
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-          child: Row(
-            children: [
-              Container(width: 4, height: 24, color: primaryColor),
-              const SizedBox(width: 10),
-              Text("OYUNDAN KARELER",
-                  style: TextStyle(
-                      color: textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1)),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            itemCount: photos.length,
-            itemBuilder: (final context, final index) {
-              return GestureDetector(
-                onTap: () => showDialog(
-                  context: context,
-                  barrierColor: Colors.black.withOpacity(0.95),
-                  builder: (final _) => Dialog(
-                    backgroundColor: Colors.transparent,
-                    insetPadding: EdgeInsets.zero,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        InteractiveViewer(
-                            child: CachedNetworkImage(imageUrl: photos[index])),
-                        Positioned(
-                            top: 50,
-                            right: 20,
-                            child: GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.1),
-                                        shape: BoxShape.circle),
-                                    child: const Icon(Icons.close,
-                                        color: Colors.white)))),
-                      ],
-                    ),
-                  ),
-                ),
-                child: Container(
-                  width: 260,
-                  margin: const EdgeInsets.only(right: 15),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: const [
-                        BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(0, 4))
-                      ]),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: CachedNetworkImage(
-                        imageUrl: photos[index],
-                        fit: BoxFit.cover,
-                        memCacheHeight: 400,
-                        memCacheWidth: 600),
                   ),
                 ),
               );

@@ -1,12 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/pagination_controller.dart';
 import '../../../../shared/navigation/widgets/bottom_nav_bar.dart';
 import '../../../../shared/widgets/custom_category_card.dart';
 import '../../../../shared/widgets/custom_search.dart';
-import '../../../shows/presentation/widgets/mobile/custom_show_card.dart';
-import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
 import '../../../../shared/widgets/shimmer.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
@@ -14,9 +13,11 @@ import '../../../players/presentation/providers/player_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../../../teams/presentation/pages/team_details_mobile.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
