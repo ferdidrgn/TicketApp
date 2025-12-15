@@ -14,30 +14,28 @@ class CustomSectionTitle extends StatelessWidget {
     required this.title,
     this.fontSize,
     this.alignment,
-    this.fontWeight,
+    this.fontWeight = FontWeight.bold,
     this.backgroundColor = Colors.transparent,
     this.textColor,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final isDarkMode = context.isDarkMode;
-
-    final effectiveColor =
-        textColor ?? (isDarkMode ? Colors.white : Colors.black);
+    final effectiveColor = textColor ?? context.textColor;
 
     final textStyle = Theme.of(context).textTheme.headlineMedium!.copyWith(
         fontSize: fontSize, color: effectiveColor, fontWeight: fontWeight);
 
-    return Row(children: [
-      Container(width: 4, height: 24, color: context.primaryColor),
-      const SizedBox(width: 10),
-      Container(
-        color: backgroundColor,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-        alignment: alignment ?? Alignment.centerLeft,
-        child: Text(title, style: textStyle),
-      )
-    ]);
+    return Container(
+      margin: EdgeInsets.only(top: 15),
+      child: Row(children: [
+        Container(width: 4, height: 24, color: context.primaryColor),
+        const SizedBox(width: 10),
+        Container(
+            color: backgroundColor,
+            alignment: alignment ?? Alignment.centerLeft,
+            child: Text(title, style: textStyle))
+      ]),
+    );
   }
 }

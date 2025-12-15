@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 
+import '../../../../shared/widgets/custom_title.dart';
+
 class PlayersCard extends StatelessWidget {
   final List<Player> players;
   final String title;
@@ -28,26 +30,8 @@ class PlayersCard extends StatelessWidget {
       children: [
         // BAŞLIK KISMI (Burası aynı kalsın ki sayfa bütünlüğü bozulmasın)
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-          child: Row(
-            children: [
-              Container(
-                  width: 4,
-                  height: 24,
-                  color: isGrayscale ? Colors.grey : theme.primaryColor),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-        ),
+            padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
+            child: CustomSectionTitle(title: title, fontSize: 20)),
 
         // SENİN İSTEDİĞİN TASARIM BURADA BAŞLIYOR
         SizedBox(

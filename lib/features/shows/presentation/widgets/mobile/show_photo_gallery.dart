@@ -1,13 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../../shared/widgets/custom_title.dart';
+
 class ShowPhotoGallery extends StatelessWidget {
   final List<String> photos;
 
   const ShowPhotoGallery({super.key, required this.photos});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (photos.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
@@ -18,23 +20,8 @@ class ShowPhotoGallery extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-          child: Row(
-            children: [
-              Container(width: 4, height: 24, color: primaryColor),
-              const SizedBox(width: 10),
-              Text(
-                "OYUNDAN KARELER",
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-        ),
+            padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
+            child: CustomSectionTitle(title: "OYUNDAN KARELER", fontSize: 20)),
         SizedBox(
           height: 180,
           child: ListView.builder(
@@ -42,7 +29,7 @@ class ShowPhotoGallery extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 15),
             itemCount: photos.length,
-            itemBuilder: (context, index) {
+            itemBuilder: (final context, final index) {
               return GestureDetector(
                 onTap: () => _showFullImage(context, photos[index]),
                 child: Container(
@@ -65,7 +52,7 @@ class ShowPhotoGallery extends StatelessWidget {
                       memCacheHeight: 400,
                       // Optimizasyon
                       memCacheWidth: 600,
-                      placeholder: (context, url) =>
+                      placeholder: (final context, final url) =>
                           Container(color: theme.scaffoldBackgroundColor),
                     ),
                   ),
@@ -78,11 +65,11 @@ class ShowPhotoGallery extends StatelessWidget {
     );
   }
 
-  void _showFullImage(BuildContext context, String imageUrl) {
+  void _showFullImage(final BuildContext context, final String imageUrl) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.95),
-      builder: (_) => Dialog(
+      builder: (final _) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: EdgeInsets.zero,
         child: Stack(

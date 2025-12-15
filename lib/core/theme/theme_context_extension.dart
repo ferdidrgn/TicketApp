@@ -25,6 +25,8 @@ extension ThemeContextExtension on BuildContext {
 
   Color get errorColor => colors.error;
 
+  Color get textColor => colors.onSecondary;
+
   // --- Özel Gradient Mantığın ---
   /// [isActive]: Eğer true ise temanın aktif renklerini (Kırmızı veya Mor),
   /// false ise pasif gri renkleri döndürür.
