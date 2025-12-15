@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/router/page_transitions.dart';
+
+// --- SAYFA IMPORTLARI ---
 import '../../../features/home/presentation/pages/wrapper/app_home_page.dart';
 import '../../../features/login/presentation/pages/login_screen.dart';
 import '../../../features/login/presentation/providers/login_provider.dart';
@@ -13,42 +15,35 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
   // 1. Login State'i izle
   final loginState = ref.watch(loginProvider);
 
-  // 2. 🔥 YENİ EKLENEN KISIM: Router'ı dürtecek bir dinleyici oluşturuyoruz.
-  // Bu dinleyiciye ihtiyacımız var çünkü GoRouter, "Ne zaman tekrar redirect çalıştırayım?" diye sorar.
-  // LoginState her değiştiğinde bu notifier tetiklenecek.
+  // 2. Router'ı dürtecek bir dinleyici (Notifier) oluştur.
+  // GoRouter, "refreshListenable" sayesinde bu değişken her değiştiğinde yönlendirmeyi tekrar kontrol eder.
   final authNotifier = ValueNotifier(loginState);
 
-  // Riverpod dinleyicisi: State her değiştiğinde Router'ın dinleyicisini güncelle.
-  ref.listen(loginProvider, (previous, next) {
-    authNotifier.value = next; // Router'a "Hey, durum değişti!" sinyali gönder.
+  // 3. Riverpod dinleyicisi: State her değiştiğinde authNotifier'ı güncelle.
+  ref.listen(loginProvider, (final previous, final next) {
+    authNotifier.value = next;
   });
 
   return GoRouter(
     debugLogDiagnostics: true,
     initialLocation: '/home',
 
-    // 3. 🔥 YENİ EKLENEN KISIM: refreshListenable
-    // Router artık bu notifier her değiştiğinde "redirect" fonksiyonunu tekrar çalıştıracak.
+    // 🔥 BU SATIR KRİTİK: LoginState değişince Router'ı tetikler
     refreshListenable: authNotifier,
 
+    // 🛡️ YÖNLENDİRME MANTIĞI (GUARD)
     redirect: (final context, final state) {
       final isWeb = kIsWeb;
       final currentPath = state.uri.path;
 
-      // Web Senaryosu
+      // --- WEB SENARYOSU ---
       if (isWeb) {
         if (currentPath == '/') return '/home';
         return null;
       }
 
-      // Mobil Senaryosu
-      // 🔥 DİKKAT: Artık doğrudan 'loginState' yerine en güncel 'authNotifier.value' üzerinden de bakabiliriz
-      // ama ref.watch(loginProvider) zaten bu fonksiyonu rebuild ettirmez, refreshListenable ettirir.
-      // O yüzden buradaki loginState değişkeni (yukarıda tanımlı) o anki güncel değer olmayabilir.
-      // EN SAĞLAMI: redirect içinde provider'ı tekrar okumaktır AMA GoRouter içinde ref.read önerilmez.
-      // Bu yüzden refreshListenable üzerinden gelen tetikleme ile loginState değişkeninin güncel halini kullanmamız lazım.
-      // Yukarıdaki ref.watch sayesinde bu provider her değiştiğinde bu blok (appRouterProvider)
-      // yeniden oluştuğu için loginState günceldir.
+      // --- MOBİL SENARYOSU ---
+      // Not: refreshListenable sayesinde bu blok loginState her değiştiğinde çalışır.
 
       final isLoggedIn = loginState.user != null;
       final isLoggingIn = currentPath == '/login';
@@ -58,22 +53,21 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       // 1. Yükleniyorsa Bekle (null döndür, mevcut sayfada -Splash- kalsın)
       if (isLoading) return null;
 
-      // 2. Yükleme Bitti, Giriş Yapılmamış -> Login'e git
+      // 2. Yükleme Bitti, Giriş Yapılmamış -> Login'e git (Onboarding hariç)
       if (!isLoggedIn && !isLoggingIn && !isOnboarding) return '/login';
 
       // 3. Giriş Yapılmış ama Login sayfasına gitmeye çalışıyor -> Home'a at
       if (isLoggedIn && isLoggingIn) return '/home';
 
-      return null;
+      return null; // Her şey yolundaysa geçişe izin ver
     },
 
     routes: [
-      // ... (Route tanımların AYNI kalsın) ...
-      // Home, Login, ShowDetail vs.
+      // ✅ HOME
       GoRoute(
         path: '/home',
         name: 'home',
-        pageBuilder: (context, state) {
+        pageBuilder: (final context, final state) {
           final startAnimations = state.extra is Map
               ? (state.extra! as Map)['startAnimations'] ?? false
               : false;
@@ -85,30 +79,36 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           );
         },
       ),
+
+      // ✅ LOGIN
       GoRoute(
         path: '/login',
         name: 'login',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const LoginScreen(),
           transitionsBuilder: slideTransition,
           transitionDuration: const Duration(milliseconds: 400),
         ),
       ),
+
+      // ✅ ONBOARDING
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OnboardingContainer(),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 600),
         ),
       ),
+
+      // ✅ SHOW DETAIL
       GoRoute(
         path: '/show/:id',
         name: 'showDetail',
-        pageBuilder: (context, state) {
+        pageBuilder: (final context, final state) {
           final showId = state.pathParameters['id']!;
           return CustomTransitionPage(
             key: state.pageKey,
@@ -119,6 +119,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         },
       ),
     ],
-    errorBuilder: (context, state) => NotFoundPage(errorPath: state.uri.path),
+
+    // 404 Hata Sayfası
+    errorBuilder: (final context, final state) =>
+        NotFoundPage(errorPath: state.uri.path),
   );
 });

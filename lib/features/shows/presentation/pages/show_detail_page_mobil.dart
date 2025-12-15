@@ -88,7 +88,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
     // Arka plan rengi
     final backgroundColor =
-        isDark ? AppDarkColors.background : AppLightColors.background;
+        isDark ? AppDarkColors.primary : AppLightColors.background;
 
     // Metin rengi
     final textColor = isDark ? Colors.white : Colors.black;

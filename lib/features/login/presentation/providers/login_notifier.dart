@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ticketapp/core/common/base_notifier.dart';
@@ -7,65 +8,80 @@ import 'login_provider.dart';
 import 'login_state.dart';
 
 class LoginNotifier extends BaseNotifier<LoginState> {
-  // 🚀 DÜZELTME 1: Riverpod 2.0 Notifier yapısında başlangıç noktası build() metodudur.
-  // Burada initialize işlemini başlatmamız gerekiyor.
+  StreamSubscription<User?>? _authStateSubscription;
+
   @override
   LoginState build() {
-    // 1. Başlangıç state'ini LocalStorage'dan al (isLoading: true olarak gelir)
-    state = LoginState.fromLocalStorage();
+    // 1. Başlangıçta Loading durumunda başla
+    state = LoginState(isLoading: true);
 
-    // 2. İşlemi asenkron olarak başlat (Build sırasında çakışmaması için Future.microtask)
+    // 2. Başlatma işlemini tetikle
     Future.microtask(() => initialize());
 
     return state;
   }
 
-  // BaseNotifier'dan gelen zorunlu override (Eğer BaseNotifier kullanıyorsan)
+  // BaseNotifier zorunluluğu
   @override
-  LoginState initialState() {
-    return LoginState.fromLocalStorage();
-  }
+  LoginState initialState() => LoginState(isLoading: true);
 
   Future<void> initialize() async {
-    try {
-      await LocalStorageService.init();
+    await LocalStorageService.init();
 
-      if (state.isPersisted || LocalStorageService.isLoggedIn) {
-        await getCurrentUser();
-      } else {
-        // Kullanıcı yok, yüklemeyi bitir.
+    // 🔥 KESİN ÇÖZÜM: Firebase'i Canlı Dinle
+    // Manuel kontrol yerine Firebase'e "Durum değişince haber ver" diyoruz.
+    _authStateSubscription?.cancel();
+    _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      (final User? firebaseUser) async {
+        if (firebaseUser != null) {
+          // ✅ KULLANICI BULUNDU (Anonymous veya Normal)
+          // LocalStorage'daki rol bilgisini al veya varsayılan ata
+          String userRole = LocalStorageService.userRole ?? 'user';
+
+          // Eğer anonymous ise ve rol atanmamışsa guest yap
+          if (firebaseUser.isAnonymous) {
+            userRole = RoleManager.getDefaultRoleForLoginMethod('anonymous');
+          }
+
+          // State'i güncelle ve içeri al
+          state = state.copyWith(
+            user: firebaseUser,
+            isLoading: false,
+            // Yükleme bitti
+            isGuest: firebaseUser.isAnonymous,
+            userRole: userRole,
+            errorMessage: null,
+          );
+
+          // Bilgileri tazele
+          await LocalStorageService.saveEssentialUserData(
+            uid: firebaseUser.uid,
+            displayName: firebaseUser.displayName,
+            role: userRole,
+          );
+        } else {
+          // ❌ KULLANICI YOK (Çıkış Yapılmış)
+          // Yüklemeyi bitir ki Router 'Login' sayfasına yönlendirebilsin
+          state = state.copyWith(user: null, isLoading: false, isGuest: false);
+        }
+      },
+      onError: (error) {
+        // Hata olsa bile loading'i kapat ki sonsuz döngü olmasın
+        state =
+            state.copyWith(isLoading: false, errorMessage: error.toString());
+      },
+    );
+
+    // ⚠️ EMNİYET SÜBAPI: Eğer Firebase çok geç cevap verirse (internet yoksa)
+    // 4 saniye sonra hala loading ise manuel kapat.
+    Future.delayed(const Duration(seconds: 4), () {
+      if (state.isLoading) {
         state = state.copyWith(isLoading: false);
       }
-    } catch (e) {
-      // Hata olsa bile sonsuz döngüde kalmamak için loading'i kapat
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
-    }
+    });
   }
 
-  Future<void> getCurrentUser() => execute(
-        () => ref.read(getCurrentUserUseCaseProvider).call(),
-        onSuccess: (final user) {
-          if (user != null) {
-            state = state.copyWith(
-              user: user,
-              isLoading: false,
-              // Yükleme bitti
-              errorMessage: null,
-              isPersisted: false,
-              userRole: LocalStorageService.userRole,
-            );
-          } else {
-            // User null geldiyse (Token süresi dolmuş vs.)
-            _handlePersistedUserNotFound();
-          }
-        },
-      );
-
-  void _handlePersistedUserNotFound() {
-    _clearPersistedData();
-    // Kullanıcı bulunamadıysa sıfırla ve Yüklemeyi Bitir (isLoading: false)
-    state = LoginState(isLoading: false);
-  }
+  // --- DİĞER METODLAR (Senin Kodların) ---
 
   Future<void> signInWithGoogle() => execute(
         () => ref.read(signInWithGoogleUseCaseProvider).call(),
@@ -74,50 +90,25 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> _handleGoogleSignInSuccess(
       final GoogleSignInAccount? googleUser) async {
-    state = state.copyWith(googleUser: googleUser, isGuest: false);
+    // Not: Google girişi başarılı olunca yukarıdaki 'authStateChanges' tetiklenecek
+    // ve state'i otomatik güncelleyecek. Biz sadece ekstra işlemleri yapalım.
+    state = state.copyWith(googleUser: googleUser);
 
-    await execute(
-      () => ref.read(getCurrentUserUseCaseProvider).call(),
-      onSuccess: (final user) async {
-        if (user != null) {
-          final userRole = RoleManager.getDefaultRoleForLoginMethod('google');
-
-          await LocalStorageService.saveEssentialUserData(
-              uid: user.uid, displayName: user.displayName, role: userRole);
-
-          state = state.copyWith(
-            isLoading: false,
-            user: user,
-            errorMessage: null,
-            isGuest: false,
-            userRole: userRole,
-            isPersisted: false,
-          );
-        }
-      },
-    );
+    // Auth state listener zaten yakalayacak ama biz süreci hızlandırmak için tetikleyebiliriz
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      final userRole = RoleManager.getDefaultRoleForLoginMethod('google');
+      await LocalStorageService.saveEssentialUserData(
+          uid: currentUser.uid,
+          displayName: currentUser.displayName,
+          role: userRole);
+    }
   }
 
   Future<void> signInAnonymously() => execute(
         () => ref.read(signInAnonymouslyUseCaseProvider).call(),
-        onSuccess: (final user) async {
-          if (user != null) {
-            final userRole =
-                RoleManager.getDefaultRoleForLoginMethod('anonymous');
-
-            await LocalStorageService.saveEssentialUserData(
-                uid: user.uid, displayName: user.displayName, role: userRole);
-
-            state = state.copyWith(
-              user: user,
-              isLoading: false,
-              // Yükleme bitti
-              isGuest: true,
-              userRole: userRole,
-              errorMessage: null,
-              isPersisted: false,
-            );
-          }
+        onSuccess: (final user) {
+          // Auth Listener bunu yakalayacak, burası boş kalabilir veya log atabilirsin
         },
       );
 
@@ -128,14 +119,12 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     required final Function(String) onAutoRetrievalTimeout,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-
     final result = await ref.read(verifyPhoneUseCaseProvider).call(
           phoneNumber: phoneNumber,
           onVerificationCompleted: onVerificationCompleted,
           onCodeSent: onCodeSent,
           onAutoRetrievalTimeout: onAutoRetrievalTimeout,
         );
-
     result.fold(
       (final failure) => state =
           state.copyWith(isLoading: false, errorMessage: failure.message),
@@ -156,43 +145,11 @@ class LoginNotifier extends BaseNotifier<LoginState> {
               .read(verifyOtpUseCaseProvider)
               .call(state.verificationId!, otp);
         },
-        onSuccess: (final success) => _handleOtpVerificationResult(success),
+        onSuccess: (final success) {
+          if (!success) state = state.copyWith(errorMessage: "Invalid OTP");
+          // Başarılıysa Auth Listener yakalar
+        },
       );
-
-  Future<void> _handleOtpVerificationResult(final bool success) async {
-    if (!success) {
-      state = state.copyWith(errorMessage: "Invalid OTP");
-      return;
-    }
-
-    final userResult = await ref.read(getCurrentUserUseCaseProvider).call();
-    userResult.fold(
-      (final failure) => state = state.copyWith(errorMessage: failure.message),
-      (final user) async {
-        if (user != null) {
-          final userRole = RoleManager.getDefaultRoleForLoginMethod('phone');
-
-          await LocalStorageService.saveEssentialUserData(
-            uid: user.uid,
-            displayName: user.displayName,
-            role: userRole,
-          );
-
-          state = state.copyWith(
-            user: user,
-            phoneNumber: user.phoneNumber,
-            isGuest: false,
-            isCodeSent: false,
-            verificationId: null,
-            errorMessage: null,
-            userRole: userRole,
-            isPersisted: false,
-            isLoading: false,
-          );
-        }
-      },
-    );
-  }
 
   Future<void> updateUserRole(final String newRole) async {
     if (state.user != null) {
@@ -207,56 +164,34 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> signOut() async {
     try {
-      state = state.copyWith(isLoading: true, user: null);
-
-      final result = await ref.read(signOutUseCaseProvider).call();
-      result.fold((final failure) {
-        // Hata olsa bile local'de çıkış yapılmış gibi davran
-        _resetState();
-      }, (final success) {
-        _resetState();
-      });
+      state = state.copyWith(isLoading: true); // Çıkarken loading göster
+      await ref.read(signOutUseCaseProvider).call();
+      // Auth Listener null user'ı yakalayacak ve state'i sıfırlayacak
     } catch (e) {
-      _resetState(errorMessage: 'Çıkış yapılamadı: $e');
+      state =
+          state.copyWith(isLoading: false, errorMessage: 'Çıkış hatası: $e');
     }
-  }
-
-  // State'i sıfırlayan yardımcı metod
-  void _resetState({String? errorMessage}) {
-    state = LoginState(
-      user: null,
-      googleUser: null,
-      isLoading: false,
-      // Yükleme bitti
-      errorMessage: errorMessage,
-      isGuest: false,
-      isCodeSent: false,
-      verificationId: null,
-      phoneNumber: null,
-      isPersisted: false,
-      userRole: null,
-      isAccountDeleted: false,
-    );
   }
 
   Future<void> deleteAccount() => execute(
         () async {
-          final currentUserId = state.user?.uid;
-          if (currentUserId == null) throw Exception('User ID not found');
-
-          final authDeleteResult =
-              await ref.read(deleteAccountUseCaseProvider).call();
-          return authDeleteResult;
+          if (state.user == null) throw Exception('User ID not found');
+          return await ref.read(deleteAccountUseCaseProvider).call();
         },
         onSuccess: (final success) async {
-          await _clearPersistedData();
-          state = LoginState(isLoading: false)
-              .copyWith(isAccountDeleted: true, errorMessage: null);
+          await LocalStorageService.clearAllUserData();
+          // Auth Listener yakalar
         },
       );
 
-  Future<void> _clearPersistedData() async =>
-      LocalStorageService.clearAllUserData();
-
-  void clearLoginState() => state = LoginState(isLoading: false);
+  void clearLoginState() {
+    // State'i tamamen sıfırla ve loading'i kapat
+    state = LoginState(
+      user: null,
+      isLoading: false, // Sonsuz loading'i kırmak için false yapıyoruz
+      isGuest: false,
+      errorMessage: null,
+      // Diğer alanlar zaten varsayılan null gelir
+    );
+  }
 }
