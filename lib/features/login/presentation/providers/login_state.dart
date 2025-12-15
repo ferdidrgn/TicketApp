@@ -25,7 +25,7 @@ class LoginState extends BaseState {
     this.isAccountDeleted = false,
     this.userRole,
     this.isPersisted = false,
-    super.isLoading = false,
+    super.isLoading = true,
     super.errorMessage,
   });
 

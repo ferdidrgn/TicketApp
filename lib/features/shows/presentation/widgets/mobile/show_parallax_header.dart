@@ -5,18 +5,17 @@ import 'package:flutter/material.dart';
 class ShowParallaxHeader extends StatelessWidget {
   final String imageUrl;
   final ScrollController scrollController;
+  final Color backgroundColor;
 
   const ShowParallaxHeader({
     super.key,
     required this.imageUrl,
     required this.scrollController,
+    required this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Temanın arka plan rengini al (Light: Beyaz, Dark: Koyu)
-    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
-
     return AnimatedBuilder(
       animation: scrollController,
       builder: (context, child) {
@@ -28,34 +27,30 @@ class ShowParallaxHeader extends StatelessWidget {
           top: -offset * 0.5,
           left: 0,
           right: 0,
-          height: MediaQuery.of(context).size.height * 0.6 +
-              (offset < 0 ? -offset : 0),
+          height: MediaQuery.of(context).size.height * 0.6 + (offset < 0 ? -offset : 0),
           child: Stack(
             fit: StackFit.expand,
             children: [
               CachedNetworkImage(
                 imageUrl: imageUrl,
                 fit: BoxFit.cover,
-                // Arka plan yüklenirken temanın rengini göster
-                errorWidget: (context, url, error) =>
-                    Container(color: backgroundColor),
+                memCacheHeight: 800,
+                errorWidget: (context, url, error) => Container(color: backgroundColor),
               ),
-              // Gradient: Resimden -> Sayfa Rengine yumuşak geçiş
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black12, // Üst kısım hafif
-                      Colors.black54, // Orta kısım koyulaşıyor
-                      backgroundColor, // Alt kısım tamamen sayfa rengi
+                      Colors.black12,
+                      Colors.black54,
+                      backgroundColor,
                     ],
                     stops: const [0.0, 0.6, 1.0],
                   ),
                 ),
               ),
-              // Scroll yaptıkça artan bulanıklık (Blur)
               if (offset > 0)
                 BackdropFilter(
                   filter: ImageFilter.blur(

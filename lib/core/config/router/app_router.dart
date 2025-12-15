@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart'; // kIsWeb için gerekli
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/router/page_transitions.dart';
@@ -10,96 +10,105 @@ import '../../../features/shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../errors/not_found_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((final ref) {
+  // 1. Login State'i izle
   final loginState = ref.watch(loginProvider);
+
+  // 2. 🔥 YENİ EKLENEN KISIM: Router'ı dürtecek bir dinleyici oluşturuyoruz.
+  // Bu dinleyiciye ihtiyacımız var çünkü GoRouter, "Ne zaman tekrar redirect çalıştırayım?" diye sorar.
+  // LoginState her değiştiğinde bu notifier tetiklenecek.
+  final authNotifier = ValueNotifier(loginState);
+
+  // Riverpod dinleyicisi: State her değiştiğinde Router'ın dinleyicisini güncelle.
+  ref.listen(loginProvider, (previous, next) {
+    authNotifier.value = next; // Router'a "Hey, durum değişti!" sinyali gönder.
+  });
 
   return GoRouter(
     debugLogDiagnostics: true,
-    // Uygulama açılışında direkt buraya gitmeye çalışır
     initialLocation: '/home',
 
-    // 🛡️ YÖNLENDİRME MANTIĞI (GUARD)
+    // 3. 🔥 YENİ EKLENEN KISIM: refreshListenable
+    // Router artık bu notifier her değiştiğinde "redirect" fonksiyonunu tekrar çalıştıracak.
+    refreshListenable: authNotifier,
+
     redirect: (final context, final state) {
-      // Platform Kontrolü (SplashRouter yerine direkt kIsWeb)
-      // kIsWeb: Flutter'ın kendi değişkenidir. Web'de true, mobilde false döner.
       final isWeb = kIsWeb;
       final currentPath = state.uri.path;
 
-      // 1. WEB SENARYOSU
+      // Web Senaryosu
       if (isWeb) {
-        // Web'de kök dizine (/) gelindiyse /home'a yönlendir.
         if (currentPath == '/') return '/home';
-        // Diğer tüm linklere (örn: /show/123) izin ver.
         return null;
       }
 
-      // 2. MOBİL SENARYOSU
-      // Mobil ise Auth kontrolü şarttır.
+      // Mobil Senaryosu
+      // 🔥 DİKKAT: Artık doğrudan 'loginState' yerine en güncel 'authNotifier.value' üzerinden de bakabiliriz
+      // ama ref.watch(loginProvider) zaten bu fonksiyonu rebuild ettirmez, refreshListenable ettirir.
+      // O yüzden buradaki loginState değişkeni (yukarıda tanımlı) o anki güncel değer olmayabilir.
+      // EN SAĞLAMI: redirect içinde provider'ı tekrar okumaktır AMA GoRouter içinde ref.read önerilmez.
+      // Bu yüzden refreshListenable üzerinden gelen tetikleme ile loginState değişkeninin güncel halini kullanmamız lazım.
+      // Yukarıdaki ref.watch sayesinde bu provider her değiştiğinde bu blok (appRouterProvider)
+      // yeniden oluştuğu için loginState günceldir.
+
       final isLoggedIn = loginState.user != null;
       final isLoggingIn = currentPath == '/login';
       final isOnboarding = currentPath == '/onboarding';
+      final isLoading = loginState.isLoading;
 
-      // Eğer Auth durumu hala yükleniyorsa (Loading), yönlendirme yapma.
-      // Çünkü main.dart'taki Global Splash zaten ekranda dönüyor.
-      if (loginState.isLoading) return null;
+      // 1. Yükleniyorsa Bekle (null döndür, mevcut sayfada -Splash- kalsın)
+      if (isLoading) return null;
 
-      // KURAL A: Giriş yapmamış kullanıcıyı Login'e at (Onboarding hariç)
+      // 2. Yükleme Bitti, Giriş Yapılmamış -> Login'e git
       if (!isLoggedIn && !isLoggingIn && !isOnboarding) return '/login';
 
-      // KURAL B: Giriş yapmış kullanıcı Login sayfasına gitmeye çalışırsa Home'a at
+      // 3. Giriş Yapılmış ama Login sayfasına gitmeye çalışıyor -> Home'a at
       if (isLoggedIn && isLoggingIn) return '/home';
 
-      return null; // Her şey yolundaysa geçişe izin ver
+      return null;
     },
 
     routes: [
-      // ✅ HOME
+      // ... (Route tanımların AYNI kalsın) ...
+      // Home, Login, ShowDetail vs.
       GoRoute(
         path: '/home',
         name: 'home',
-        pageBuilder: (final context, final state) {
+        pageBuilder: (context, state) {
           final startAnimations = state.extra is Map
               ? (state.extra! as Map)['startAnimations'] ?? false
               : false;
-
           return CustomTransitionPage(
             key: state.pageKey,
             child: AppHomePage(startAnimations: startAnimations),
-            // Yeni dosyadan gelen transition fonksiyonu
             transitionsBuilder: fadeTransition,
             transitionDuration: const Duration(milliseconds: 500),
           );
         },
       ),
-
-      // ✅ LOGIN
       GoRoute(
         path: '/login',
         name: 'login',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
+        pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const LoginScreen(),
           transitionsBuilder: slideTransition,
           transitionDuration: const Duration(milliseconds: 400),
         ),
       ),
-
-      // ✅ ONBOARDING
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
+        pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OnboardingContainer(),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 600),
         ),
       ),
-
-      // ✅ SHOW DETAIL
       GoRoute(
         path: '/show/:id',
         name: 'showDetail',
-        pageBuilder: (final context, final state) {
+        pageBuilder: (context, state) {
           final showId = state.pathParameters['id']!;
           return CustomTransitionPage(
             key: state.pageKey,
@@ -110,9 +119,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         },
       ),
     ],
-
-    // 404 Hata Sayfası
-    errorBuilder: (final context, final state) =>
-        NotFoundPage(errorPath: state.uri.path),
+    errorBuilder: (context, state) => NotFoundPage(errorPath: state.uri.path),
   );
 });

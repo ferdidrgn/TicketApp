@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../shared/widgets/custom_event_card.dart';
+import '../../../events/presentation/widgets/events_card.dart';
 import '../../../../shared/widgets/custom_title.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -86,7 +86,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       itemCount: shows.length,
       itemBuilder: (final context, final index) {
         final show = shows[index];
-        return EventCard(
+        return EventsCard(
           imageUrl: show.imageUrl,
           showName: show.name,
           category: show.category,

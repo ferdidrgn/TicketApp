@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../shared/widgets/custom_event_card.dart';
+import '../../../events/presentation/widgets/events_card.dart';
 import '../../../../shared/widgets/custom_title.dart';
 
 class NearbyEventsPage extends StatefulWidget {
@@ -85,7 +85,7 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
           Expanded(
             child: ListView(
               children: const [
-                EventCard(
+                EventsCard(
                   imageUrl:
                       'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
                   showName: 'Cimri',
@@ -95,7 +95,7 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
                   price: 150,
                 ),
                 SizedBox(height: 16),
-                EventCard(
+                EventsCard(
                   imageUrl:
                       'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
                   showName: 'Hamlet',
@@ -105,7 +105,7 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
                   price: 100,
                 ),
                 SizedBox(height: 16),
-                EventCard(
+                EventsCard(
                   imageUrl:
                       'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
                   showName: 'Gözlerimi Kaparım Vazifemi Yaparım',
