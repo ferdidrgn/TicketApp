@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/players/presentation/widgets/players_card.dart';
@@ -182,10 +181,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 letterSpacing: -0.5,
+                color: Colors.white,
               ),
         ),
-        elevation: 0,
-        backgroundColor: context.colors.surface,
       ),
       body: Container(
         decoration: BoxDecoration(

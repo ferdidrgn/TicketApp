@@ -1,5 +1,6 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../features/discovery/presentation/pages/discovery_page.dart';
 import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
 import '../../../features/home/presentation/pages/home_page_mobile.dart';
@@ -38,8 +39,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   @override
   Widget build(final BuildContext context) {
-    final bottomNavBarTheme = Theme.of(context).bottomNavigationBarTheme;
-    final textTheme = Theme.of(context).textTheme;
+    final bottomNavBarTheme = context.theme.bottomNavigationBarTheme;
+    final textTheme = context.textTheme;
 
     return Scaffold(
       appBar: AppBar(
