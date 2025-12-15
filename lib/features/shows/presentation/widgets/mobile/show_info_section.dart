@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 class ShowInfoSection extends StatefulWidget {
   final String title;
   final String description;
-  final Color primaryColor;
-  final Color textColor;
-  final bool isDark;
 
   const ShowInfoSection({
     super.key,
     required this.title,
     required this.description,
-    required this.primaryColor,
-    required this.textColor,
-    required this.isDark,
   });
 
   @override
@@ -26,8 +21,16 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
   bool _isExpanded = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final cleanDesc = widget.description.replaceAll('\\n', '\n');
+
+    final isDark = context.isDarkMode;
+
+    // Metin rengi
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    // Sabit marka rengi
+    const brandColor = AppLightColors.primary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -37,17 +40,15 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: widget.isDark
-                  ? widget.primaryColor.withOpacity(0.1)
-                  : widget.primaryColor,
+              color: isDark ? brandColor.withOpacity(0.1) : brandColor,
               border:
-                  widget.isDark ? Border.all(color: widget.primaryColor) : null,
+                  isDark ? Border.all(color: brandColor) : null,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               "TİYATRO",
               style: TextStyle(
-                color: widget.isDark ? widget.primaryColor : Colors.white,
+                color: isDark ? brandColor : Colors.white,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -57,7 +58,7 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
           Text(
             widget.title,
             style: TextStyle(
-              color: widget.textColor,
+              color: textColor,
               fontSize: 32,
               fontWeight: FontWeight.bold,
               height: 1.1,
@@ -66,7 +67,7 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
           const SizedBox(height: 10),
           Row(
             children: [
-              Icon(Icons.star, color: widget.primaryColor, size: 20),
+              Icon(Icons.star, color: widget.brandColor, size: 20),
               const SizedBox(width: 5),
               Text(
                 "4.8 (120 İnceleme)",
@@ -118,7 +119,7 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
                               ? "Daha Az Göster"
                               : "Daha Fazlasını Göster",
                           style: TextStyle(
-                            color: widget.primaryColor,
+                            color: widget.brandColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -127,7 +128,7 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
                           _isExpanded
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
-                          color: widget.primaryColor,
+                          color: widget.brandColor,
                         ),
                       ],
                     ),

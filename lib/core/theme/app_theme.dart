@@ -8,22 +8,22 @@ mixin AppTheme {
     brightness: Brightness.light,
     primarySwatch: Colors.red,
     colorScheme: ColorScheme.light(
-      primary: Colors.red,
-      primaryContainer: Colors.redAccent,
-      secondary: Colors.red.shade200,
-      secondaryContainer: Colors.red.shade100,
-      surface: Colors.white,
-      error: Colors.red,
-      onPrimary: Colors.white,
-      onSecondary: Colors.black,
-      onSurface: Colors.black,
-      onError: Colors.black,
+      primary: AppLightColors.primary,
+      primaryContainer: AppLightColors.primaryVariant,
+      secondary: AppLightColors.secondary,
+      secondaryContainer: AppLightColors.secondaryVariant,
+      surface: AppLightColors.surface,
+      error: AppLightColors.error,
+      onPrimary: AppLightColors.onPrimary,
+      onSecondary: AppLightColors.onSecondary,
+      onSurface: AppLightColors.onSurface,
+      onError: AppLightColors.onError,
     ),
-    appBarTheme: _appBarTheme(Colors.red),
+    appBarTheme: _appBarTheme(AppLightColors.primary),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Colors.white,
-      selectedItemColor: Colors.red,
-      unselectedItemColor: Colors.grey,
+      backgroundColor: AppLightColors.background,
+      selectedItemColor: AppLightColors.primary,
+      unselectedItemColor: AppLightColors.textSecondary,
     ),
     textTheme: AppTextStyles.lightTextTheme,
   );
@@ -54,10 +54,13 @@ mixin AppTheme {
 
   static AppBarTheme _appBarTheme(final Color backgroundColor) => AppBarTheme(
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white, size: 30),
+        iconTheme:
+            const IconThemeData(color: AppDarkColors.onPrimary, size: 30),
         backgroundColor: backgroundColor,
         titleTextStyle: const TextStyle(
-            color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            color: AppDarkColors.onPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.bold),
         systemOverlayStyle: SystemUiOverlayStyle.light,
       );
 }

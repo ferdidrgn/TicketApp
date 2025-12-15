@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/theme/app_colors.dart'; // ✅ Renk dosyan
-import 'package:ticketapp/shared/widgets/shimmer.dart'; // Shimmer widget'ın
+import 'package:ticketapp/shared/widgets/shimmer.dart';
+import '../../../../core/theme/theme_context_extension.dart';
 
 class EventsCard extends StatelessWidget {
   final String imageUrl;
@@ -25,36 +25,21 @@ class EventsCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    // 🎨 TEMA VE RENKLER
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Marka Rengi (Kırmızı)
-    const brandRed = AppLightColors.primary;
-
-    // Kart Rengi: Dark ise senin Surface rengin, Light ise Beyaz
-    final cardColor = isDark ? AppDarkColors.surface : Colors.white;
-
-    // Yazı Renkleri
-    final titleColor = isDark ? Colors.white : Colors.black;
-    final subTextColor = isDark ? Colors.white70 : Colors.grey[700];
-
-    // Tarih Kutusu Rengi
-    final dateBoxColor = isDark ? const Color(0xFF1E1E1E) : Colors.grey[100];
-
     return Container(
-      width: 280, // Kart genişliği
+      width: 280,
       margin: const EdgeInsets.only(right: 15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Card(
           elevation: 4,
-          color: cardColor, // ✅ Temaya uygun arka plan
+          // ✅ 1. Değişiklik: Arka plan rengini extension'dan alıyoruz
+          color: context.surfaceColor,
+
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            // Dark modda ince beyaz çerçeve, Light modda çerçeve yok
-            side: isDark
+            // ✅ 2. Değişiklik: isDark kontrolünü extension üzerinden yapıyoruz
+            side: context.isDarkMode
                 ? const BorderSide(color: Colors.white10, width: 0.5)
                 : BorderSide.none,
           ),
@@ -72,11 +57,14 @@ class EventsCard extends StatelessWidget {
                       width: double.infinity,
                       height: 150,
                       fit: BoxFit.cover,
-                      placeholder: (final context, final url) => const ShimmerLoading(
+                      placeholder: (context, url) => const ShimmerLoading(
                           width: double.infinity, height: 150),
-                      errorWidget: (final context, final url, final error) => Container(
+                      // Hata durumunda gri tonunu extension'dan veya manuel ayarlayabilirsin
+                      errorWidget: (context, url, error) => Container(
                         height: 150,
-                        color: isDark ? Colors.grey[800] : Colors.grey[300],
+                        color: context.isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.grey[300],
                         child:
                             const Icon(Icons.broken_image, color: Colors.grey),
                       ),
@@ -91,20 +79,21 @@ class EventsCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                          color: brandRed, // ✅ Kırmızı Etiket
+                          // ✅ 3. Değişiklik: Marka rengi (Primary) extension'dan geliyor
+                          color: context.primaryColor,
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: brandRed.withOpacity(0.4),
+                              color: context.primaryColor.withOpacity(0.4),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             )
                           ]),
                       child: Text(
                         category.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
+                        style: context.textTheme.labelSmall?.copyWith(
+                          // ✅ TextTheme kullanımı
+                          color: Colors.white, // Etiket içi hep beyaz
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
                         ),
@@ -131,11 +120,13 @@ class EventsCard extends StatelessWidget {
                       ),
                       child: Text(
                         showName,
-                        style: const TextStyle(
-                          color: Colors.white, // Resim üstü her zaman beyaz
-                          fontSize: 16,
+                        // Resim üzerindeki yazı her zaman beyaz kalmalı, temadan bağımsız
+                        style: context.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                          shadows: [
+                            const Shadow(color: Colors.black, blurRadius: 4)
+                          ],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -153,15 +144,16 @@ class EventsCard extends StatelessWidget {
                     // Sahne Bilgisi
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 14, color: brandRed),
+                        // ✅ İkon rengi Primary
+                        Icon(Icons.location_on,
+                            size: 14, color: context.primaryColor),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             stage,
-                            style: TextStyle(
-                              fontSize: 13,
+                            // ✅ Yazı rengi otomatik (Light: Siyah, Dark: Beyaz)
+                            style: context.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
-                              color: titleColor, // Temaya göre değişir
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -172,7 +164,10 @@ class EventsCard extends StatelessWidget {
 
                     const SizedBox(height: 8),
                     Divider(
-                        color: isDark ? Colors.white12 : Colors.black12,
+                        // Divider rengi
+                        color: context.isDarkMode
+                            ? Colors.white12
+                            : Colors.black12,
                         height: 1),
                     const SizedBox(height: 8),
 
@@ -184,13 +179,12 @@ class EventsCard extends StatelessWidget {
                         Row(
                           children: [
                             Icon(Icons.calendar_today,
-                                size: 14, color: subTextColor),
+                                size: 14, color: Colors.grey),
                             const SizedBox(width: 4),
                             Text(
                               date,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: subTextColor,
+                              style: context.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey, // Tarih genelde gri kalır
                               ),
                             ),
                           ],
@@ -199,10 +193,10 @@ class EventsCard extends StatelessWidget {
                         // Fiyat
                         Text(
                           '₺${price.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 16,
+                          style: context.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: brandRed, // ✅ Fiyat Kırmızı
+                            color:
+                                context.primaryColor, // ✅ Fiyat rengi Primary
                           ),
                         ),
                       ],

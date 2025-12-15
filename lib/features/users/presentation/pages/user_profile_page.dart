@@ -81,7 +81,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       ),
     );
   }
-  
+
   List<Widget> _buildUserSpecificButtons(final String userId) => [
         _btn('Profilini Düzenle', Icons.edit,
             () => _navigateTo(UserProfileEditScreen(userId: userId))),
