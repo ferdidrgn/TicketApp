@@ -1095,7 +1095,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }
 
   Future<void> _deleteAccount(final String userId) async {
-    showDialog(
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (final context) => CustomLoadingDialog(

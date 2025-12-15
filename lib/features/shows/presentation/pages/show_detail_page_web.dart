@@ -7,7 +7,6 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_notifier.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_notifier.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
-
 import '../../../../core/services/local_storage_service.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
+import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 
 import '../../../../shared/widgets/custom_title.dart';
 
@@ -67,34 +68,18 @@ class PlayersCard extends StatelessWidget {
                               ? ColorFiltered(
                                   colorFilter: const ColorFilter.mode(
                                       Colors.grey, BlendMode.saturation),
-                                  child: CachedNetworkImage(
+                                  child: OptimizedCachedImage(
                                     imageUrl: player.imageUrl,
                                     width: 120,
                                     height: 120,
                                     fit: BoxFit.cover,
-                                    memCacheHeight: 300,
-                                    // Optimizasyon
-                                    memCacheWidth: 300,
-                                    placeholder: (final context, final url) =>
-                                        Container(color: Colors.grey[800]),
-                                    errorWidget: (final context, final url,
-                                            final error) =>
-                                        const Icon(Icons.person, size: 50),
                                   ),
                                 )
-                              : CachedNetworkImage(
+                              : OptimizedCachedImage(
                                   imageUrl: player.imageUrl,
                                   width: 120,
                                   height: 120,
                                   fit: BoxFit.cover,
-                                  memCacheHeight: 300,
-                                  // Optimizasyon
-                                  memCacheWidth: 300,
-                                  placeholder: (final context, final url) =>
-                                      Container(color: Colors.grey[800]),
-                                  errorWidget:
-                                      (final context, final url, final error) =>
-                                          const Icon(Icons.person, size: 50),
                                 ),
                         ),
 
