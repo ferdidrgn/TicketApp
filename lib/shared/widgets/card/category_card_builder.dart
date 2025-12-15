@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../navigation/widgets/bottom_nav_bar.dart';
+import '../../navigation/widgets/bottom_nav_bar.dart';
 
 class CategoryCardBuilder extends StatelessWidget {
   final List<Map<String, Object>>? categories;
