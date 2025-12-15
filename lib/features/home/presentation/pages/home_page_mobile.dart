@@ -11,6 +11,7 @@ import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/custom_floating_action_button.dart';
 import '../../../../shared/widgets/shimmer.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
+import '../../../campaigns/presentation/pages/campaign_showcase_page.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../search/presentation/pages/search_page.dart';
@@ -34,7 +35,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       _loadAllData();
     });
     _scrollController.addListener(() {
@@ -57,7 +58,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   void _navigateToPage(final Widget page) =>
       Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
 
-  Widget _resolveDetailPage(String url) {
+  Widget _resolveDetailPage(final String url) {
     try {
       final id = url.split('/').last;
       if (url.contains('/shows')) return PlayerDetailPage(playerId: id);
@@ -70,7 +71,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final campaignState = ref.watch(campaignProvider);
     final showState = ref.watch(showProvider);
     final stageState = ref.watch(stageProvider);
@@ -106,7 +107,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             physics: const BouncingScrollPhysics(),
             children: [
               // 1. STORY (VİTRİN)
-              _buildSectionHeader("Öne Çıkanlar", "Vitrin"),
+              _buildSectionHeader("Öne Çıkanlar", "Vitrin",
+                  onTap: () => _navigateToPage(const CampaignShowcasePage())),
               _buildStoryCircles(campaignState),
               const SizedBox(height: 30),
 
@@ -179,7 +181,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // --- 1. STORY CIRCLES ---
-  Widget _buildStoryCircles(LoadableState<dynamic, List<Campaign>> state) {
+  Widget _buildStoryCircles(
+      final LoadableState<dynamic, List<Campaign>> state) {
     if (!state.hasData) return const SizedBox();
     final list = state.dataList!;
     return SizedBox(
@@ -188,11 +191,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         itemCount: list.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 18),
-        itemBuilder: (context, index) {
+        separatorBuilder: (final _, final __) => const SizedBox(width: 18),
+        itemBuilder: (final context, final index) {
           final item = list[index];
           return GestureDetector(
-            onTap: () => _navigateToPage(_resolveDetailPage(item.url)),
+            onTap: () =>
+                _navigateToPage(CampaignShowcasePage(initialIndex: index)),
             child: Column(
               children: [
                 Container(
@@ -263,8 +267,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 15),
-        itemBuilder: (context, index) {
+        separatorBuilder: (final _, final __) => const SizedBox(width: 15),
+        itemBuilder: (final context, final index) {
           final cat = categories[index];
           final color = cat['color'] as Color;
 
@@ -308,7 +312,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // 🔥🔥🔥 3. TAM KAOTİK SANAT DUVARI (KEŞFET) 🔥🔥🔥
-  Widget _buildChaoticCollage(LoadableState<dynamic, List<Show>> state) {
+  Widget _buildChaoticCollage(final LoadableState<dynamic, List<Show>> state) {
     if (state.isLoading)
       return const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
@@ -423,10 +427,10 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // 🔥 GÖRSEL KART TASARIMI (FİLTRELİ) 🔥
   Widget _buildArtCard({
-    required Show show,
-    bool isTrend = false,
-    bool isWide = false,
-    String? tagText,
+    required final Show show,
+    final bool isTrend = false,
+    final bool isWide = false,
+    final String? tagText,
   }) {
     return GestureDetector(
       onTap: () => _navigateToPage(ShowDetailPage(showId: show.id)),
@@ -536,7 +540,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // --- 4. GLASS STAGE LIST ---
-  Widget _buildGlassStageList(LoadableState<dynamic, List<Stage>> state) {
+  Widget _buildGlassStageList(final LoadableState<dynamic, List<Stage>> state) {
     if (state.isLoading)
       return const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
@@ -548,8 +552,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         itemCount: state.dataList!.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 15),
-        itemBuilder: (context, index) {
+        separatorBuilder: (final _, final __) => const SizedBox(width: 15),
+        itemBuilder: (final context, final index) {
           final stage = state.dataList![index];
           return GestureDetector(
             onTap: () => _navigateToPage(StageDetailPage(stageId: stage.id)),
@@ -626,7 +630,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(
                             10,
-                            (_) => Container(
+                            (final _) => Container(
                                 width: 2,
                                 height: 6,
                                 color: Colors.grey[600])))),
@@ -670,26 +674,46 @@ class _HomePageState extends ConsumerState<HomePage> {
       decoration: BoxDecoration(
           color: context.scaffoldBackgroundColor, shape: BoxShape.circle));
 
-  Widget _buildSectionHeader(String title, String subtitle) {
+  Widget _buildSectionHeader(String title, String subtitle,
+      {VoidCallback? onTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title,
-                style: context.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            Text(subtitle,
-                style:
-                    context.textTheme.bodySmall?.copyWith(color: Colors.grey))
-          ]),
-          Container(
+          // Sol taraf: Başlıklar
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: context.textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(subtitle,
+                  style: context.textTheme.bodySmall
+                      ?.copyWith(color: Colors.grey)),
+            ],
+          ),
+
+          // Sağ taraf: Ok İşareti (Tıklanabilir)
+          GestureDetector(
+            onTap: onTap, // <-- Tıklama özelliği buraya bağlandı
+            child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey.withOpacity(0.3))),
-              child: const Icon(Icons.arrow_forward, size: 16))
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                // Tıklanabilir olduğu belli olsun diye hafif renk verelim
+                color: onTap != null
+                    ? context.primaryColor.withOpacity(0.1)
+                    : Colors.transparent,
+              ),
+              child: Icon(
+                Icons.arrow_forward,
+                size: 16,
+                color: onTap != null ? context.primaryColor : Colors.grey,
+              ),
+            ),
+          )
         ],
       ),
     );
