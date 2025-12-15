@@ -24,190 +24,187 @@ class EventsCard extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 15),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Card(
-          elevation: 4,
-          // ✅ 1. Değişiklik: Arka plan rengini extension'dan alıyoruz
-          color: context.surfaceColor,
+  Widget build(final BuildContext context) => Container(
+        width: 280,
+        margin: const EdgeInsets.only(right: 15),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Card(
+            elevation: 4,
+            // ✅ 1. Değişiklik: Arka plan rengini extension'dan alıyoruz
+            color: context.surfaceColor,
 
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            // ✅ 2. Değişiklik: isDark kontrolünü extension üzerinden yapıyoruz
-            side: context.isDarkMode
-                ? const BorderSide(color: Colors.white10, width: 0.5)
-                : BorderSide.none,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                children: [
-                  // --- RESİM ---
-                  ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(16)),
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      width: double.infinity,
-                      height: 150,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const ShimmerLoading(
-                          width: double.infinity, height: 150),
-                      // Hata durumunda gri tonunu extension'dan veya manuel ayarlayabilirsin
-                      errorWidget: (context, url, error) => Container(
-                        height: 150,
-                        color: context.isDarkMode
-                            ? Colors.grey[800]
-                            : Colors.grey[300],
-                        child:
-                            const Icon(Icons.broken_image, color: Colors.grey),
-                      ),
-                    ),
-                  ),
-
-                  // --- KATEGORİ ETİKETİ (Sağ Üst) ---
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                          // ✅ 3. Değişiklik: Marka rengi (Primary) extension'dan geliyor
-                          color: context.primaryColor,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: context.primaryColor.withOpacity(0.4),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            )
-                          ]),
-                      child: Text(
-                        category.toUpperCase(),
-                        style: context.textTheme.labelSmall?.copyWith(
-                          // ✅ TextTheme kullanımı
-                          color: Colors.white, // Etiket içi hep beyaz
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // --- İSİM (Gradient Üzeri) ---
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(12, 24, 12, 10),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.9),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                      child: Text(
-                        showName,
-                        // Resim üzerindeki yazı her zaman beyaz kalmalı, temadan bağımsız
-                        style: context.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            const Shadow(color: Colors.black, blurRadius: 4)
-                          ],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // --- DETAYLAR ---
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                // ✅ 2. Değişiklik: isDark kontrolünü extension üzerinden yapıyoruz
+                side: context.isDarkMode
+                    ? const BorderSide(color: Colors.white10, width: 0.5)
+                    : BorderSide.none),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
                   children: [
-                    // Sahne Bilgisi
-                    Row(
-                      children: [
-                        // ✅ İkon rengi Primary
-                        Icon(Icons.location_on,
-                            size: 14, color: context.primaryColor),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            stage,
-                            // ✅ Yazı rengi otomatik (Light: Siyah, Dark: Beyaz)
-                            style: context.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                    // --- RESİM ---
+                    ClipRRect(
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(16)),
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        width: double.infinity,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        placeholder: (final context, final url) =>
+                            const ShimmerLoading(
+                                width: double.infinity, height: 150),
+                        // Hata durumunda gri tonunu extension'dan veya manuel ayarlayabilirsin
+                        errorWidget: (final context, final url, final error) =>
+                            Container(
+                          height: 150,
+                          color: context.isDarkMode
+                              ? Colors.grey[800]
+                              : Colors.grey[300],
+                          child: const Icon(Icons.broken_image,
+                              color: Colors.grey),
                         ),
-                      ],
+                      ),
                     ),
 
-                    const SizedBox(height: 8),
-                    Divider(
-                        // Divider rengi
-                        color: context.isDarkMode
-                            ? Colors.white12
-                            : Colors.black12,
-                        height: 1),
-                    const SizedBox(height: 8),
-
-                    // Tarih ve Fiyat
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Tarih
-                        Row(
-                          children: [
-                            Icon(Icons.calendar_today,
-                                size: 14, color: Colors.grey),
-                            const SizedBox(width: 4),
-                            Text(
-                              date,
-                              style: context.textTheme.bodySmall?.copyWith(
-                                color: Colors.grey, // Tarih genelde gri kalır
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // Fiyat
-                        Text(
-                          '₺${price.toStringAsFixed(0)}',
-                          style: context.textTheme.titleMedium?.copyWith(
+                    // --- KATEGORİ ETİKETİ (Sağ Üst) ---
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                            // ✅ 3. Değişiklik: Marka rengi (Primary) extension'dan geliyor
+                            color: context.primaryColor,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: context.primaryColor.withOpacity(0.4),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              )
+                            ]),
+                        child: Text(
+                          category.toUpperCase(),
+                          style: context.textTheme.labelSmall?.copyWith(
+                            // ✅ TextTheme kullanımı
+                            color: Colors.white, // Etiket içi hep beyaz
                             fontWeight: FontWeight.bold,
-                            color:
-                                context.primaryColor, // ✅ Fiyat rengi Primary
+                            letterSpacing: 0.5,
                           ),
                         ),
-                      ],
+                      ),
+                    ),
+
+                    // --- İSİM (Gradient Üzeri) ---
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(12, 24, 12, 10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.9),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Text(
+                          showName,
+                          // Resim üzerindeki yazı her zaman beyaz kalmalı, temadan bağımsız
+                          style: context.textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              const Shadow(color: Colors.black, blurRadius: 4)
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+
+                // --- DETAYLAR ---
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      // Sahne Bilgisi
+                      Row(
+                        children: [
+                          // ✅ İkon rengi Primary
+                          Icon(Icons.location_on,
+                              size: 14, color: context.primaryColor),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              stage,
+                              // ✅ Yazı rengi otomatik (Light: Siyah, Dark: Beyaz)
+                              style: context.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+                      Divider(
+                          // Divider rengi
+                          color: context.isDarkMode
+                              ? Colors.white12
+                              : Colors.black12,
+                          height: 1),
+                      const SizedBox(height: 8),
+
+                      // Tarih ve Fiyat
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Tarih
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_today,
+                                  size: 14, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text(
+                                date,
+                                style: context.textTheme.bodySmall
+                                    ?.copyWith(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+
+                          // Fiyat
+                          Text(
+                            '₺${price.toStringAsFixed(0)}',
+                            style: context.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: context.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }

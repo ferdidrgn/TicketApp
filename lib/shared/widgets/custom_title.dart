@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 class CustomSectionTitle extends StatelessWidget {
   final String title;
@@ -8,7 +9,6 @@ class CustomSectionTitle extends StatelessWidget {
   final Color backgroundColor;
   final Color? textColor;
 
-  // Constructor
   const CustomSectionTitle({
     super.key,
     required this.title,
@@ -21,19 +21,23 @@ class CustomSectionTitle extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    TextStyle textStyle;
+    final isDarkMode = context.isDarkMode;
 
-    // TextStyle'ı ayarlıyoruz
-    textStyle = Theme.of(context)
-        .textTheme
-        .headlineMedium!
-        .copyWith(fontSize: fontSize, color: textColor, fontWeight: fontWeight);
+    final effectiveColor =
+        textColor ?? (isDarkMode ? Colors.white : Colors.black);
 
-    return Container(
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-      alignment: alignment ?? Alignment.centerLeft,
-      child: Text(title, style: textStyle),
-    );
+    final textStyle = Theme.of(context).textTheme.headlineMedium!.copyWith(
+        fontSize: fontSize, color: effectiveColor, fontWeight: fontWeight);
+
+    return Row(children: [
+      Container(width: 4, height: 24, color: context.primaryColor),
+      const SizedBox(width: 10),
+      Container(
+        color: backgroundColor,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+        alignment: alignment ?? Alignment.centerLeft,
+        child: Text(title, style: textStyle),
+      )
+    ]);
   }
 }

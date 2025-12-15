@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/features/events/domain/entities/event.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_provider.dart';
@@ -21,6 +22,7 @@ import 'package:ticketapp/features/stages/presentation/providers/stage_notifier.
 import 'package:ticketapp/features/stages/presentation/providers/stage_provider.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
+import 'package:ticketapp/shared/widgets/custom_title.dart';
 import '../../domain/entities/show.dart';
 import '../widgets/mobile/show_info_section.dart'; // Bilgi ve Açıklama
 import '../widgets/mobile/show_parallax_header.dart'; // Arka plan
@@ -72,18 +74,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}
           .where((final id) => id.trim().isNotEmpty)
           .toList();
-      if (allPlayerIds.isNotEmpty) {
+      if (allPlayerIds.isNotEmpty)
         unawaited(
             ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
-      }
     }
   }
 
   @override
   Widget build(final BuildContext context) {
-    // 🎨 TEMA AYARLARI
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = context.isDarkMode;
 
     // Arka plan rengi
     final backgroundColor =
@@ -91,9 +90,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
     // Metin rengi
     final textColor = isDark ? Colors.white : Colors.black;
-
-    // Sabit marka rengi
-    const brandColor = AppLightColors.primary;
 
     final showState = ref.watch(showProvider);
     final showData = showState.getShowById(widget.showId);
@@ -110,23 +106,19 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             .where((final id) => id.isNotEmpty && id != '0')
             .toSet()
             .toList();
-        if (stageIds.isNotEmpty) {
+        if (stageIds.isNotEmpty)
           ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
-        }
       }
     });
 
-    if (showState.isLoading && showData == null) {
+    if (showState.isLoading && showData == null)
       return Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
 
-    if (showData == null) {
+    if (showData == null)
       return Scaffold(
-        body: Center(
-            child:
-                Text("Gösteri bulunamadı", style: TextStyle(color: textColor))),
-      );
-    }
+          body: Center(
+              child: Text("Gösteri bulunamadı",
+                  style: TextStyle(color: textColor))));
 
     return Scaffold(
       body: Stack(
@@ -164,12 +156,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
                         // 3. MODÜLER INFO SECTION
                         ShowInfoSection(
-                          title: showData.name,
-                          description: showData.description,
-                          primaryColor: brandColor,
-                          textColor: textColor,
-                          isDark: isDark,
-                        ),
+                            title: showData.name,
+                            description: showData.description),
 
                         // 4. ETKİNLİK LİSTESİ (Helper Method ile EventsCard kullanımı)
                         _buildEventList(
@@ -180,8 +168,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                               [],
                           show: showData,
                           stageState: stageState,
-                          primaryColor: brandColor,
-                          textColor: textColor,
                         ),
 
                         // 5. MODÜLER PLAYER CARD (Aktif Kadro)
@@ -236,14 +222,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                   height: 45,
                   width: 45,
                   decoration: BoxDecoration(
-                      color: (isDark ? Colors.white : Colors.black)
-                          .withOpacity(0.2),
+                      color: (textColor).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
                           color: (isDark ? Colors.white24 : Colors.black12))),
                   child: IconButton(
                     icon: Icon(Icons.arrow_back_ios_new,
-                        color: isDark ? Colors.white : Colors.black, size: 20),
+                        color: textColor, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -255,13 +240,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  // ✅ KISA YOL: EventsCard'ı Listeleyen Helper
   Widget _buildEventList(
       {required final List<Event> events,
       required final Show show,
-      required final StageState stageState,
-      required final Color primaryColor,
-      required final Color textColor}) {
+      required final StageState stageState}) {
     if (events.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -269,20 +251,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       children: [
         // Başlık
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-          child: Row(
-            children: [
-              Container(width: 4, height: 24, color: primaryColor),
-              const SizedBox(width: 10),
-              Text("ETKİNLİK TAKVİMİ",
-                  style: TextStyle(
-                      color: textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1)),
-            ],
-          ),
-        ),
+            padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
+            child: CustomSectionTitle(title: "ETKİNLİK TAKVİMİ", fontSize: 20)),
 
         // Liste
         SizedBox(
@@ -298,7 +268,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
               final dateInfo =
                   DateFormatter.formatForEventCard(event.date.toString());
 
-              // 🔥 SENİN EventsCard WIDGET'IN BURADA KULLANILIYOR
               return EventsCard(
                 imageUrl: show.imageUrl,
                 showName: show.name,
@@ -318,7 +287,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   void _handleTicketPurchase(final String showId, final String eventId) {
     final loginState = ref.read(loginProvider);
-    String? userId = loginState.user?.uid ??
+    final String? userId = loginState.user?.uid ??
         ref.read(userProvider).dataSingle?.id ??
         LocalStorageService.userUid;
 
@@ -331,6 +300,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         context,
         MaterialPageRoute(
             builder: (final context) => SeatSelectionScreen(
-                showId: showId, eventId: eventId, customerId: userId!)));
+                showId: showId, eventId: eventId, customerId: userId)));
   }
 }

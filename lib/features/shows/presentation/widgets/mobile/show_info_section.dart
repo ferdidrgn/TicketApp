@@ -67,21 +67,21 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
           const SizedBox(height: 10),
           Row(
             children: [
-              Icon(Icons.star, color: widget.brandColor, size: 20),
+              Icon(Icons.star, color: brandColor, size: 20),
               const SizedBox(width: 5),
               Text(
                 "4.8 (120 İnceleme)",
                 style: TextStyle(
-                    color: widget.textColor.withOpacity(0.7), fontSize: 14),
+                    color: textColor.withOpacity(0.7), fontSize: 14),
               ),
               const SizedBox(width: 20),
               Icon(Icons.timer,
-                  color: widget.textColor.withOpacity(0.5), size: 18),
+                  color: textColor.withOpacity(0.5), size: 18),
               const SizedBox(width: 5),
               Text(
                 "120 Dk",
                 style: TextStyle(
-                    color: widget.textColor.withOpacity(0.7), fontSize: 14),
+                    color: textColor.withOpacity(0.7), fontSize: 14),
               ),
             ],
           ),
@@ -100,7 +100,7 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
                       ? TextOverflow.visible
                       : TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: widget.textColor.withOpacity(0.8),
+                    color: textColor.withOpacity(0.8),
                     fontSize: 16,
                     height: 1.6,
                     fontWeight: FontWeight.w300,
@@ -119,7 +119,7 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
                               ? "Daha Az Göster"
                               : "Daha Fazlasını Göster",
                           style: TextStyle(
-                            color: widget.brandColor,
+                            color: brandColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -128,7 +128,7 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
                           _isExpanded
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
-                          color: widget.brandColor,
+                          color: brandColor,
                         ),
                       ],
                     ),
