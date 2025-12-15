@@ -31,6 +31,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   bool _isLoadingLocalData = true;
   late AnimationController _waveController;
   late Animation<double> _waveAnimation;
+  late AnimationController _glowController;
+  late Animation<double> _glowAnimation;
 
   @override
   void initState() {
@@ -48,11 +50,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     _waveAnimation = Tween<double>(begin: -0.1, end: 0.1).animate(
       CurvedAnimation(parent: _waveController, curve: Curves.easeInOut),
     );
+
+    _glowController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _glowAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _waveController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
@@ -98,13 +110,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     }
 
     return Scaffold(
+      backgroundColor: colors.background,
       body: Stack(
         children: [
           // Arkaplan su boyası efekti
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _waveAnimation,
-              builder: (final context, final child) {
+              builder: (context, child) {
                 return Transform.translate(
                   offset: Offset(0, _waveAnimation.value * 20),
                   child: CustomPaint(
@@ -125,7 +138,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // Sanatsal Profil Kartı (Aynı kaldı)
+                // Profil Başlığı
+                _buildProfileHeader(theme),
+                const SizedBox(height: 20),
+
+                // Sanatsal Profil Kartı
                 _buildArtisticProfileCard(loginState.user, theme, loginState),
                 const SizedBox(height: 32),
 
@@ -133,7 +150,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 _buildFunctionalSection(loginState, theme),
                 const SizedBox(height: 32),
 
-                // TEMA AYARI - Sergi Işıklandırması (Aynı kaldı)
+                // TEMA AYARI - Sergi Işıklandırması
                 _buildThemeSelectorArtistic(ref, theme),
                 const SizedBox(height: 32),
 
@@ -148,11 +165,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
+  Widget _buildProfileHeader(final ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Sergi Odası',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w300,
+            letterSpacing: 1.5,
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
+          ),
+        ),
+        Text(
+          'Profil Koleksiyonun',
+          style: theme.textTheme.headlineLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 32,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildArtisticProfileCard(
-      final User? firebaseUser,
-      final ThemeData theme,
-      final LoginState loginState,
-      ) {
+    final User? firebaseUser,
+    final ThemeData theme,
+    final LoginState loginState,
+  ) {
     final isGuest = loginState.isGuest;
     final displayName = firebaseUser?.displayName ??
         _localUserData?['displayName'] ??
@@ -213,7 +254,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 ),
                 const SizedBox(height: 20),
 
-                // Portre çerçevesi
+                // Portre çerçevesi (antik çerçeve efekti)
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -240,10 +281,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         ),
                       ],
                     ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.transparent,
-                      backgroundImage: NetworkImage(photoURL),
+                    child: AnimatedBuilder(
+                      animation: _glowAnimation,
+                      builder: (final context, final child) {
+                        return CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.transparent,
+                          backgroundImage: NetworkImage(photoURL),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  theme.colorScheme.primary
+                                      .withOpacity(0.1 * _glowAnimation.value),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -288,10 +346,82 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           'Misafir Sergisi', Icons.person, Colors.orange),
                   ],
                 ),
+
+                // Tablo altı imzası
+                const SizedBox(height: 20),
+                Container(
+                  width: 100,
+                  height: 2,
+                  color: theme.colorScheme.primary.withOpacity(0.3),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'TicketApp Galerisi',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    letterSpacing: 1.2,
+                  ),
+                ),
               ],
             ),
           ),
+
+          // Köşe süsleri
+          Positioned(
+            top: 20,
+            right: 20,
+            child: _buildCornerOrnament(),
+          ),
+          Positioned(
+            bottom: 20,
+            left: 20,
+            child: _buildCornerOrnament(),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildArtTag(
+      final String text, final IconData icon, final Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCornerOrnament() {
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Colors.grey[300]!,
+          width: 2,
+        ),
+        borderRadius: BorderRadius.circular(6),
       ),
     );
   }
@@ -609,8 +739,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildThemeButton(
-      final String label, final ThemeMode mode, final IconData icon, final WidgetRef ref) {
+  Widget _buildThemeButton(final String label, final ThemeMode mode,
+      final IconData icon, final WidgetRef ref) {
     final isActive = ref.watch(themeProvider) == mode;
     return GestureDetector(
       onTap: () => ref.read(themeProvider.notifier).setTheme(mode),
@@ -630,13 +760,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           ),
           boxShadow: isActive
               ? [
-            BoxShadow(
-              color:
-              Theme.of(context).colorScheme.primary.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ]
+                  BoxShadow(
+                    color:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
               : null,
         ),
         child: Column(
@@ -910,40 +1040,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // Yardımcı widget'lar ve metotlar...
-  Widget _buildArtTag(final String text, final IconData icon, final Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _getLoginMethod(final User? firebaseUser) {
     if (firebaseUser == null) return 'anonymous';
-    if (firebaseUser.providerData.any((final p) => p.providerId == 'google.com'))
-      return 'google';
+    if (firebaseUser.providerData
+        .any((final p) => p.providerId == 'google.com')) return 'google';
     if (firebaseUser.providerData.any((final p) => p.providerId == 'phone'))
       return 'phone';
     return 'anonymous';
@@ -1050,9 +1150,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   const SizedBox(height: 4),
                   Text(
                     '• Tüm kişisel verileriniz silinecek\n'
-                        '• Bilet koleksiyonunuz kaybolacak\n'
-                        '• Favori sergileriniz silinecek\n'
-                        '• Bu işlem geri alınamaz!',
+                    '• Bilet koleksiyonunuz kaybolacak\n'
+                    '• Favori sergileriniz silinecek\n'
+                    '• Bu işlem geri alınamaz!',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.red[700]!.withOpacity(0.8),
@@ -1139,21 +1239,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }
 
   void _showSuccessDialog() => showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (final context) => CustomSuccessDialog(
-      message: 'Koleksiyonunuz başarıyla temizlendi',
-      onConfirm: () => _navigateToLogin(),
-    ),
-  );
+        context: context,
+        barrierDismissible: false,
+        builder: (final context) => CustomSuccessDialog(
+          message: 'Koleksiyonunuz başarıyla temizlendi',
+          onConfirm: () => _navigateToLogin(),
+        ),
+      );
 
   void _showErrorDialog(final String message) => showDialog(
-    context: context,
-    builder: (final context) => CustomErrorDialog(
-      message: message,
-      onConfirm: () => Navigator.pop(context),
-    ),
-  );
+        context: context,
+        builder: (final context) => CustomErrorDialog(
+          message: message,
+          onConfirm: () => Navigator.pop(context),
+        ),
+      );
 }
 
 // Su boyası efekti için custom painter
