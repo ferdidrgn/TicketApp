@@ -59,57 +59,47 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // Profil Kartı (Artık Rol bilgisini de içeriyor)
           _profileCard(loginState.user, theme, loginState),
           const SizedBox(height: 20),
+
           if (loginState.user != null)
             ..._buildUserSpecificButtons(loginState.user!.uid),
+
           ..._buildGeneralButtons(),
+
           _themeSelectorCard(ref, theme),
+
           _buildAuthButton(loginState),
+
           if (loginState.user != null) ..._buildDangerZone(loginState),
-          _buildLocalStorageInfo(),
+
+          // _buildLocalStorageInfo() KARTINI BURADAN SİLDİM
+
           const SizedBox(height: 50),
         ],
       ),
     );
   }
-
+  
   List<Widget> _buildUserSpecificButtons(final String userId) => [
-        _btn(
-          'Profilini Düzenle',
-          Icons.edit,
-          () => _navigateTo(UserProfileEditScreen(userId: userId)),
-        ),
-        _btn(
-          'Biletlerim',
-          Icons.theaters_rounded,
-          () => _navigateTo(MyTicketPage(userId: userId)),
-        ),
-        _btn(
-          'Favori Etkinliklerim',
-          Icons.favorite,
-          () => _navigateTo(FavoritesPage()),
-        ),
+        _btn('Profilini Düzenle', Icons.edit,
+            () => _navigateTo(UserProfileEditScreen(userId: userId))),
+        _btn('Biletlerim', Icons.theaters_rounded,
+            () => _navigateTo(MyTicketPage(userId: userId))),
+        _btn('Favori Etkinliklerim', Icons.favorite,
+            () => _navigateTo(FavoritesPage())),
         const SizedBox(height: 20),
       ];
 
   List<Widget> _buildGeneralButtons() => [
-        _btn(
-          'Bildirim Ayarları',
-          Icons.notifications,
-          () => _navigateTo(const PermissionSettingsScreen()),
-        ),
-        _btn(
-          'Uygulama Ayarları',
-          Icons.settings,
-          () => _navigateTo(const AppSettingsPage()),
-        ),
+        _btn('Bildirim Ayarları', Icons.notifications,
+            () => _navigateTo(const PermissionSettingsScreen())),
+        _btn('Uygulama Ayarları', Icons.settings,
+            () => _navigateTo(const AppSettingsPage())),
         const SizedBox(height: 20),
-        _btn(
-          'Gizlilik ve Güvenlik',
-          Icons.privacy_tip,
-          () => _navigateTo(const ContractsPage()),
-        ),
+        _btn('Gizlilik ve Güvenlik', Icons.privacy_tip,
+            () => _navigateTo(const ContractsPage())),
         _btn('Sıkça Sorulan Sorular', Icons.help, () {}),
         const SizedBox(height: 20),
         _btn('Destek ve Bağış', Icons.coffee, () {}),
@@ -128,6 +118,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           _deleteAccountButton(loginState.user!.uid),
       ];
 
+  // --- GÜNCELLENEN PROFİL KARTI ---
   Widget _profileCard(
     final User? firebaseUser,
     final ThemeData theme,
@@ -135,12 +126,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   ) {
     final textTheme = theme.textTheme;
 
+    // İsim bilgisi (Firebase yoksa Local'dan, o da yoksa varsayılan)
     final displayName = firebaseUser?.displayName ??
         _localUserData?['displayName'] ??
         'İsimsiz Kullanıcı';
+
     final email = firebaseUser?.email ?? 'Mail bilgisi bulunamadı';
+
     final photoURL =
         firebaseUser?.photoURL ?? 'https://via.placeholder.com/150';
+
+    // Rol bilgisi Local Storage'dan çekiliyor
+    final String? userRole = _localUserData?['role'];
+
     final isGuest = loginState.isGuest;
 
     if (firebaseUser == null && _localUserData == null)
@@ -152,9 +150,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment(1, -0.5),
-            end: Alignment(0.1, 0.7),
-            //stops: [0.2, 0.8],  // ✅ %20 beyaz, %80 renk
+            begin: const Alignment(1, -0.5),
+            end: const Alignment(0.1, 0.7),
             colors: isGuest
                 ? [Colors.white, Colors.orange.shade100]
                 : [Colors.white, theme.primaryColor.withOpacity(0.1)],
@@ -208,15 +205,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             const SizedBox(height: 16),
 
-            // Badges
+            // Badges (Login Metodu & Misafir)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Login Method Badge (sadece misafir değilse)
                 if (!isGuest)
                   _buildLoginMethodChip(_getLoginMethod(firebaseUser), theme),
-
-                // Guest Badge (sadece misafir ise)
                 if (isGuest) _buildGuestChip(),
               ],
             ),
@@ -236,7 +230,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return 'anonymous';
   }
 
-  // 🎨 Login Method Chip
   Widget _buildLoginMethodChip(
       final String loginMethod, final ThemeData theme) {
     final color = _getLoginMethodColor(loginMethod);
@@ -268,7 +261,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  // 🎨 Guest Chip
   Widget _buildGuestChip() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -417,32 +409,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         onPressed: () => _showDeleteAccountDialog(userId),
       ));
 
-  Widget _buildLocalStorageInfo() {
-    if (_localUserData == null) return const SizedBox();
-
-    return Card(
-      color: Colors.grey[100],
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Local Storage Bilgileri:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-            Text('UID: ${_localUserData?['uid'] ?? 'Yok'}',
-                style: const TextStyle(fontSize: 10)),
-            Text('İsim: ${_localUserData?['displayName'] ?? 'Yok'}',
-                style: const TextStyle(fontSize: 10)),
-            Text('Rol: ${_localUserData?['role'] ?? 'Yok'}',
-                style: const TextStyle(fontSize: 10)),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showThemeDialog(final WidgetRef ref) => showDialog(
       context: context,
       builder: (final _) => AlertDialog(
@@ -543,41 +509,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
 
     try {
-      print('🗑️ Hesap silme başlatıldı: $userId');
-
-      // 1. Firestore'dan kullanıcı verilerini sil
       final userNotifier = ref.read(userProvider.notifier);
       final bool isDeleteUserDocument = await userNotifier.deleteUser(userId);
-
-      print('📦 Firestore silme sonucu: $isDeleteUserDocument');
 
       if (!isDeleteUserDocument) {
         _closeDialogAndShowError('Kullanıcı verileri silinemedi');
         return;
       }
 
-      // 2. Firebase Auth'tan hesabı sil
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        print('🔥 Firebase Auth silme başlatıldı');
         await currentUser.delete();
-        print('✅ Firebase Auth silindi');
-
-        // 3. Local storage temizle
         await LocalStorageService.clearAllUserData();
-        print('💾 Local storage temizlendi');
-
-        // 4. Provider state'i sıfırla
         ref.read(loginProvider.notifier).clearLoginState();
-        print('🔄 Provider state sıfırlandı');
         ref.read(userProvider.notifier).clearUserState();
       }
 
-      // 5. Başarılı
-      print('🎉 Hesap silme tamamlandı');
       _closeDialogAndShowSuccess();
     } catch (e) {
-      print('❌ Delete Account Error: $e');
       _closeDialogAndShowError('Hesap silinirken hata: $e');
     }
   }

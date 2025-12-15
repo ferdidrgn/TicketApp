@@ -56,8 +56,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     final showNotifier = ref.read(showProvider.notifier);
     var showData = ref.read(showProvider).getShowById(widget.showId);
 
-    if (showData == null)
-      await showNotifier.loadShowsByIds([widget.showId]);
+    if (showData == null) await showNotifier.loadShowsByIds([widget.showId]);
 
     showData = ref.read(showProvider).getShowById(widget.showId);
 
@@ -118,14 +117,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     });
 
     if (showState.isLoading && showData == null) {
-      return Scaffold(
-          backgroundColor: backgroundColor,
-          body: Center(child: CircularProgressIndicator(color: brandColor)));
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (showData == null) {
       return Scaffold(
-        backgroundColor: backgroundColor,
         body: Center(
             child:
                 Text("Gösteri bulunamadı", style: TextStyle(color: textColor))),
@@ -133,15 +129,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     }
 
     return Scaffold(
-      backgroundColor: backgroundColor,
       body: Stack(
         children: [
           // 1. MODÜLER PARALLAX HEADER
           ShowParallaxHeader(
-            imageUrl: showData.imageUrl,
-            scrollController: _scrollController,
-            backgroundColor: backgroundColor,
-          ),
+              imageUrl: showData.imageUrl, scrollController: _scrollController),
 
           // 2. İÇERİK
           RepaintBoundary(
