@@ -20,8 +20,33 @@ class AppConstants {
   static const String shareUrl =
       'https://play.google.com/store/apps/details?id=com.ferdidrgn.ticketapp';
 
-  // Other Constants
+  // Footer Constants
   static const String appName = 'TiyatRol App'; // Application name
   static const String appNameTr = 'Bilet Satış Uygulaması'; // Application name
   static const String copyright = '© 2025 My Company'; // Copyright
+
+  //Shows Constants
+  // Animasyon süreleri
+  static const Duration heroAnimationDuration = Duration(milliseconds: 800);
+  static const Duration contentAnimationDuration = Duration(milliseconds: 500);
+  static const Duration floatAnimationDuration = Duration(seconds: 3);
+
+  // Stagger efekti
+  static const int staggerAnimationDelay = 70;
+
+  // Parallax efekt
+  static const double parallaxFactor = 0.25;
+
+  // Galeri ayarları
+  static const int galleryItemsPerPage = 8;
+
+  // Padding değerleri
+  static const double mobilePadding = 16.0;
+  static const double tabletPadding = 40.0;
+  static const double desktopPadding = 100.0;
+
+  // Boyutlar
+  static const double heroHeightMobile = 500.0;
+  static const double heroHeightTablet = 600.0;
+  static const double heroHeightDesktop = 700.0;
 }

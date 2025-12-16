@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/custom_floating_action_button.dart';
@@ -51,8 +54,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (mounted) {
       setState(() {
         _scrollOffset = _scrollController.offset;
-        // Search bar 200px scroll sonrası AppBar'a taşınsın
-        _showSearchInAppBar = _scrollOffset > 200;
+        _showSearchInAppBar = _scrollOffset > 250;
       });
     }
   }
@@ -83,66 +85,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       backgroundColor: bg,
       extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Stack(
-          children: [
-            GlassAppBar(scrollOffset: _scrollOffset),
-            // Animated search bar in AppBar
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              top: _showSearchInAppBar ? 0 : -100,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: kToolbarHeight,
-                padding: const EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  bottom: 8,
-                ),
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: GestureDetector(
-                    onTap: _openSearch,
-                    child: Container(
-                      height: 45,
-                      decoration: BoxDecoration(
-                        color: context.primaryColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: context.primaryColor.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16),
-                          Icon(
-                            Icons.search,
-                            color: context.primaryColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            "Ara...",
-                            style: TextStyle(
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.6)
-                                  : Colors.black.withOpacity(0.5),
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      appBar: _buildAnimatedAppBar(context, isDark),
       floatingActionButton: CustomFloatingActionButton(
         onPressed: _loadAllData,
       ),
@@ -163,10 +106,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
               // Artistic Search Bar (ana sayfa)
               AnimatedOpacity(
-                duration: const Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
                 opacity: _showSearchInAppBar ? 0 : 1,
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
                   height: _showSearchInAppBar ? 0 : null,
                   child: ArtisticSearchBar(onTap: _openSearch),
                 ),
@@ -266,6 +211,136 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAnimatedAppBar(
+      final BuildContext context, final bool isDark) {
+    final opacity = (_scrollOffset / 100).clamp(0.0, 0.9);
+
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(kToolbarHeight),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          systemOverlayStyle:
+              isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+          flexibleSpace: ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: _scrollOffset > 50 ? 12 : 0,
+                sigmaY: _scrollOffset > 50 ? 12 : 0,
+              ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                decoration: BoxDecoration(
+                  color: context.scaffoldBackgroundColor.withOpacity(opacity),
+                  border: _scrollOffset > 50
+                      ? Border(
+                          bottom: BorderSide(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.05)
+                                : Colors.black.withOpacity(0.05),
+                            width: 1,
+                          ),
+                        )
+                      : null,
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        // Logo
+                        Expanded(
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 300),
+                            opacity: _showSearchInAppBar ? 0 : 1,
+                            child: Text(
+                              "TicketApp",
+                              style: context.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Compact Search Button
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOut,
+                          width: _showSearchInAppBar
+                              ? MediaQuery.of(context).size.width - 40
+                              : 0,
+                          height: _showSearchInAppBar ? 42 : 0,
+                          child: _showSearchInAppBar
+                              ? GestureDetector(
+                                  onTap: _openSearch,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.white.withOpacity(0.08)
+                                          : Colors.black.withOpacity(0.04),
+                                      borderRadius: BorderRadius.circular(21),
+                                      border: Border.all(
+                                        color: context.primaryColor
+                                            .withOpacity(0.15),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(21),
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(
+                                          sigmaX: 10,
+                                          sigmaY: 10,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const SizedBox(width: 16),
+                                            Icon(
+                                              Icons.search,
+                                              color: context.primaryColor
+                                                  .withOpacity(0.8),
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                "Ara...",
+                                                style: TextStyle(
+                                                  color: isDark
+                                                      ? Colors.white
+                                                          .withOpacity(0.5)
+                                                      : Colors.black
+                                                          .withOpacity(0.4),
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
