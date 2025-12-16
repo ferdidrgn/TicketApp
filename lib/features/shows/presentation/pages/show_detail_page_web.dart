@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_notifier.dart';
@@ -25,16 +27,67 @@ import '../providers/show_provider.dart';
 
 /// Animasyon ve UI sabitleri
 class _UiConstants {
-  static const Duration heroDuration =
-      Duration(milliseconds: 1000); // Süre kısaltıldı
-  static const Duration contentDuration =
-      Duration(milliseconds: 600); // Süre kısaltıldı
-  static const Duration floatDuration =
-      Duration(seconds: 4); // Yavaşlatıldı (Daha az yük)
-  static const int staggerDelay = 80; // Gecikme azaltıldı
-  static const double parallaxFactor = 0.3; // Parallax etkisi hafifletildi
+  static const Duration heroDuration = Duration(milliseconds: 1000);
+  static const Duration contentDuration = Duration(milliseconds: 600);
+  static const Duration floatDuration = Duration(seconds: 4);
+  static const int staggerDelay = 80;
+  static const double parallaxFactor = 0.3;
   static const int galleryItemsPerPage = 8;
 }
+
+// Gallery Provider tanımları
+@immutable
+class GalleryState {
+  final int currentIndex;
+  final int totalImages;
+
+  const GalleryState({
+    this.currentIndex = 0,
+    this.totalImages = 0,
+  });
+
+  GalleryState copyWith({
+    final int? currentIndex,
+    final int? totalImages,
+  }) {
+    return GalleryState(
+      currentIndex: currentIndex ?? this.currentIndex,
+      totalImages: totalImages ?? this.totalImages,
+    );
+  }
+}
+
+class GalleryNotifier extends StateNotifier<GalleryState> {
+  GalleryNotifier() : super(const GalleryState());
+
+  void setCurrentIndex(final int index) {
+    state = state.copyWith(currentIndex: index);
+  }
+
+  void nextImage() {
+    if (state.currentIndex < (state.totalImages - 1)) {
+      state = state.copyWith(currentIndex: state.currentIndex + 1);
+    }
+  }
+
+  void previousImage() {
+    if (state.currentIndex > 0) {
+      state = state.copyWith(currentIndex: state.currentIndex - 1);
+    }
+  }
+
+  void reset() {
+    state = const GalleryState();
+  }
+
+  void setTotalImages(final int total) {
+    state = state.copyWith(totalImages: total);
+  }
+}
+
+final galleryProvider = StateNotifierProvider<GalleryNotifier, GalleryState>(
+  (final ref) => GalleryNotifier(),
+);
 
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
@@ -56,8 +109,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   late final Animation<double> _contentFade;
 
   final ScrollController _scrollController = ScrollController();
-
-  // ValueNotifier optimizasyonu: Sadece parallax gerekiyorsa dinle
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
 
   bool _isDataLoaded = false;
@@ -66,7 +117,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   void initState() {
     super.initState();
     _initControllers();
-    // Scroll listener'ı sadece Desktop'ta veya güçlü cihazlarda aktif etmek bir seçenek olabilir
     _initScrollListener();
 
     WidgetsBinding.instance.addPostFrameCallback((final _) {
@@ -81,11 +131,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         vsync: this, duration: _UiConstants.contentDuration);
     _floatingController =
         AnimationController(vsync: this, duration: _UiConstants.floatDuration);
-    // Floating animasyonunu hemen başlatma, sayfa yüklenince başlat
 
     _heroFade = CurvedAnimation(parent: _heroController, curve: Curves.easeOut);
-    _heroSlide = Tween<Offset>(
-            begin: const Offset(0, 0.15), end: Offset.zero) // Mesafe kısaltıldı
+    _heroSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
         .animate(CurvedAnimation(
             parent: _heroController, curve: Curves.easeOutCubic));
     _contentFade =
@@ -96,8 +144,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     if (!mounted) return;
 
     _heroController.forward();
-
-    // Floating (Parçacık) animasyonunu başlat
     _floatingController.repeat(reverse: true);
 
     Future.delayed(const Duration(milliseconds: 400), () {
@@ -106,9 +152,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   }
 
   void _initScrollListener() => _scrollController.addListener(() {
-        if (mounted)
-          // Debounce benzeri bir optimizasyon yapılabilir ama şimdilik doğrudan atıyoruz
-          _scrollNotifier.value = _scrollController.offset;
+        if (mounted) _scrollNotifier.value = _scrollController.offset;
       });
 
   Future<void> _precacheHeaderImage() async {
@@ -177,8 +221,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
     if (mounted) {
       setState(() => _isDataLoaded = true);
-
-      // Splash süresini biraz kısalttım (600ms), kullanıcı daha hızlı görsün
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) _startPageAnimations();
       });
@@ -226,15 +268,12 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                     onRetry: () => _safePop(context)))
             : Stack(
                 children: [
-                  // RepaintBoundary performansı artırır (gereksiz boyamayı önler)
                   RepaintBoundary(
                     child: _BackgroundParticles(animation: _floatingController),
                   ),
-
                   CustomScrollView(
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
-                    // Cache extent düşürüldü (daha az bellek kullanımı)
                     cacheExtent: 500,
                     slivers: [
                       SliverToBoxAdapter(
@@ -259,7 +298,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                       ),
                     ],
                   ),
-
                   const Positioned(
                       top: 40, left: 20, child: _FloatingBackButton()),
                 ],
@@ -284,12 +322,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         }
       });
 }
-
-// ... Alt bileşenler aynı kalacak ...
-// (Burada kod tekrarını önlemek için alt bileşenleri kopyalamıyorum, önceki versiyondaki gibidir)
-
-// Sadece değişen _BackgroundParticles widget'ını aşağıya ekliyorum
-// Diğer widget'lar (MainContent, DesktopLayout vb.) yukarıdaki gibidir.
 
 class _MainContent extends StatelessWidget {
   final Show showData;
@@ -829,41 +861,455 @@ class _GallerySectionState extends ConsumerState<_GallerySection> {
 
   @override
   Widget build(final BuildContext context) {
-    if (widget.photos.isEmpty)
+    if (widget.photos.isEmpty) {
       return const _EmptyStateMessage(message: 'Galeri boş.');
+    }
 
-    if (context.isMobile) {
+    final isMobile = context.isMobile;
+    final allPhotos = widget.photos;
+
+    if (isMobile) {
       return SizedBox(
         height: 180,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
-          itemCount: widget.photos.length,
-          itemBuilder: (final _, final i) => Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _GalleryItem(url: widget.photos[i], width: 220, height: 180),
-          ),
+          itemCount: allPhotos.length,
+          itemBuilder: (final context, final index) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _GalleryItem(
+                url: allPhotos[index],
+                width: 220,
+                height: 180,
+                index: index,
+                allPhotos: allPhotos,
+                onImageChange: (final newIndex) {
+                  ref.read(galleryProvider.notifier).setCurrentIndex(newIndex);
+                },
+                isMobile: isMobile,
+              ),
+            );
+          },
         ),
       );
     }
 
     final totalPages =
-        (widget.photos.length / _UiConstants.galleryItemsPerPage).ceil();
+        (allPhotos.length / _UiConstants.galleryItemsPerPage).ceil();
     final startIndex = _currentPage * _UiConstants.galleryItemsPerPage;
     final endIndex = math.min(
-        startIndex + _UiConstants.galleryItemsPerPage, widget.photos.length);
-    final currentPhotos = widget.photos.sublist(startIndex, endIndex);
+      startIndex + _UiConstants.galleryItemsPerPage,
+      allPhotos.length,
+    );
+    final currentPhotos = allPhotos.sublist(startIndex, endIndex);
 
     return Column(
       children: [
-        _DesktopGalleryGrid(photos: currentPhotos),
+        Wrap(
+          spacing: context.gridSpacing,
+          runSpacing: context.gridSpacing,
+          children: currentPhotos.asMap().entries.map((final entry) {
+            final actualIndex = startIndex + entry.key;
+            return _GalleryItem(
+              url: entry.value,
+              width: 280,
+              height: 210,
+              index: actualIndex,
+              allPhotos: allPhotos,
+              onImageChange: (final newIndex) {
+                ref.read(galleryProvider.notifier).setCurrentIndex(newIndex);
+                final newPage =
+                    (newIndex / _UiConstants.galleryItemsPerPage).floor();
+                if (newPage != _currentPage && newPage < totalPages) {
+                  setState(() {
+                    _currentPage = newPage;
+                  });
+                }
+              },
+              isMobile: isMobile,
+            );
+          }).toList(),
+        ),
         if (totalPages > 1)
           _PaginationControls(
             currentPage: _currentPage,
             totalPages: totalPages,
-            onPageChanged: (final page) => setState(() => _currentPage = page),
+            onPageChanged: (final page) {
+              setState(() {
+                _currentPage = page;
+              });
+            },
           ),
       ],
+    );
+  }
+}
+
+class _GalleryItem extends StatelessWidget {
+  final String url;
+  final double width;
+  final double height;
+  final int index;
+  final List<String> allPhotos;
+  final Function(int) onImageChange;
+  final bool isMobile;
+
+  const _GalleryItem({
+    required this.url,
+    required this.width,
+    required this.height,
+    required this.index,
+    required this.allPhotos,
+    required this.onImageChange,
+    required this.isMobile,
+  });
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => _showFullImageGallery(context),
+          child: Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border:
+                  Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFD4AF37).withOpacity(0.15),
+                  blurRadius: 20,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: OptimizedCachedImage(
+                imageUrl: url,
+                width: width,
+                height: height,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ),
+      );
+
+  void _showFullImageGallery(BuildContext context) {
+    final allImages = allPhotos;
+
+    // BuildContext'ten ref'e eriş
+    final ref = ProviderScope.containerOf(context);
+
+    // Önce galeri state'ini ayarla
+    ref.read(galleryProvider.notifier).setCurrentIndex(index);
+    ref.read(galleryProvider.notifier).setTotalImages(allImages.length);
+
+    showDialog(
+      context: context,
+      barrierColor: const Color(0xFF0a0a1a).withOpacity(0.98),
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final galleryState = ref.watch(galleryProvider);
+            final currentIndex = galleryState.currentIndex;
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: EdgeInsets.zero,
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Arka plan overlay
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          color: Colors.transparent,
+                        ),
+                      ),
+                    ),
+
+                    // Ana görsel ve kontroller
+                    Positioned.fill(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Görsel sayacı
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: Text(
+                              '${currentIndex + 1} / ${allImages.length}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+
+                          // Görsel container
+                          Container(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.9,
+                              maxHeight:
+                                  MediaQuery.of(context).size.height * 0.8,
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Ana görsel
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: OptimizedCachedImage(
+                                    key: ValueKey(currentIndex),
+                                    imageUrl: allImages[currentIndex],
+                                    fit: BoxFit.contain,
+                                    width: MediaQuery.of(context).size.width *
+                                        0.85,
+                                    height: MediaQuery.of(context).size.height *
+                                        0.75,
+                                  ),
+                                ),
+
+                                // Sol ok (önceki görsel)
+                                if (currentIndex > 0)
+                                  Positioned(
+                                    left: 20,
+                                    child: _GalleryNavButton(
+                                      icon: Icons.arrow_back_ios_rounded,
+                                      onTap: () {
+                                        ref
+                                            .read(galleryProvider.notifier)
+                                            .previousImage();
+                                      },
+                                    ),
+                                  ),
+
+                                // Sağ ok (sonraki görsel)
+                                if (currentIndex < allImages.length - 1)
+                                  Positioned(
+                                    right: 20,
+                                    child: _GalleryNavButton(
+                                      icon: Icons.arrow_forward_ios_rounded,
+                                      onTap: () {
+                                        ref
+                                            .read(galleryProvider.notifier)
+                                            .nextImage();
+                                      },
+                                    ),
+                                  ),
+
+                                // Klavye kontrolleri
+                                RawKeyboardListener(
+                                  focusNode: FocusNode(),
+                                  onKey: (RawKeyEvent event) {
+                                    if (event is RawKeyDownEvent) {
+                                      if (event.logicalKey ==
+                                          LogicalKeyboardKey.arrowLeft) {
+                                        if (currentIndex > 0) {
+                                          ref
+                                              .read(galleryProvider.notifier)
+                                              .previousImage();
+                                        }
+                                      } else if (event.logicalKey ==
+                                          LogicalKeyboardKey.arrowRight) {
+                                        if (currentIndex <
+                                            allImages.length - 1) {
+                                          ref
+                                              .read(galleryProvider.notifier)
+                                              .nextImage();
+                                        }
+                                      } else if (event.logicalKey ==
+                                          LogicalKeyboardKey.escape) {
+                                        Navigator.pop(context);
+                                      }
+                                    }
+                                  },
+                                  child: const SizedBox(),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Küçük thumbnail'ler (mobil değilse)
+                          if (!isMobile && allImages.length > 1)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 30),
+                              child: Container(
+                                height: 80,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: allImages.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(width: 10),
+                                  itemBuilder: (context, idx) {
+                                    return GestureDetector(
+                                      onTap: () {
+                                        ref
+                                            .read(galleryProvider.notifier)
+                                            .setCurrentIndex(idx);
+                                      },
+                                      child: Container(
+                                        width: 60,
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: idx == currentIndex
+                                                ? const Color(0xFFD4AF37)
+                                                : Colors.transparent,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          child: OptimizedCachedImage(
+                                            imageUrl: allImages[idx],
+                                            fit: BoxFit.cover,
+                                            width: 60,
+                                            height: 60,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // Kapatma butonu
+                    Positioned(
+                      top: 40,
+                      right: 40,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1a1a2e).withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: const Color(0xFFD4AF37)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Color(0xFFD4AF37),
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Swipe gesture (mobil için)
+                    if (isMobile)
+                      Positioned.fill(
+                        child: Row(
+                          children: [
+                            // Sol swipe alanı
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (currentIndex > 0) {
+                                    ref
+                                        .read(galleryProvider.notifier)
+                                        .previousImage();
+                                  }
+                                },
+                                child: Container(
+                                  color: Colors.transparent,
+                                ),
+                              ),
+                            ),
+
+                            // Sağ swipe alanı
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (currentIndex < allImages.length - 1) {
+                                    ref
+                                        .read(galleryProvider.notifier)
+                                        .nextImage();
+                                  }
+                                },
+                                child: Container(
+                                  color: Colors.transparent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      // Dialog kapatıldığında state'i sıfırla
+      final ref = ProviderScope.containerOf(context);
+      ref.read(galleryProvider.notifier).reset();
+    });
+  }
+}
+
+class _GalleryNavButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _GalleryNavButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1a1a2e).withOpacity(0.8),
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: const Color(0xFFD4AF37)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFFD4AF37),
+            size: 24,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -965,7 +1411,8 @@ class _AnimatedUnderline extends StatelessWidget {
 }
 
 class _DateBox extends StatelessWidget {
-  final String day, month;
+  final String day;
+  final String month;
 
   const _DateBox({required this.day, required this.month});
 
@@ -1018,124 +1465,7 @@ class _EventLocationRow extends StatelessWidget {
       );
 }
 
-class _DesktopGalleryGrid extends StatelessWidget {
-  final List<String> photos;
-
-  const _DesktopGalleryGrid({required this.photos});
-
-  @override
-  Widget build(final BuildContext context) => LayoutBuilder(
-        builder: (final ctx, final constraints) {
-          final crossAxisCount =
-              context.responsive(mobile: 2, tablet: 3, desktop: 4);
-          final spacing = context.gridSpacing;
-          final itemWidth =
-              (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /
-                  crossAxisCount;
-          final itemHeight = itemWidth * 0.75;
-          return Wrap(
-            spacing: spacing,
-            runSpacing: spacing,
-            children: photos
-                .map((final url) => _GalleryItem(
-                    url: url, width: itemWidth, height: itemHeight))
-                .toList(),
-          );
-        },
-      );
-}
-
-class _GalleryItem extends StatelessWidget {
-  final String url;
-  final double width, height;
-
-  const _GalleryItem(
-      {required this.url, required this.width, required this.height});
-
-  @override
-  Widget build(final BuildContext context) => MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: () => _showFullImage(context, url),
-          child: Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
-              boxShadow: [
-                BoxShadow(
-                    color: const Color(0xFFD4AF37).withOpacity(0.15),
-                    blurRadius: 20)
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: OptimizedCachedImage(
-                  imageUrl: url,
-                  width: width,
-                  height: height,
-                  fit: BoxFit.cover),
-            ),
-          ),
-        ),
-      );
-
-  void _showFullImage(final BuildContext context, final String url) =>
-      showDialog(
-        context: context,
-        barrierColor: const Color(0xFF0a0a1a).withOpacity(0.95),
-        builder: (final _) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.zero,
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                InteractiveViewer(
-                  minScale: 0.5,
-                  maxScale: 4.0,
-                  panEnabled: true,
-                  boundaryMargin: const EdgeInsets.all(double.infinity),
-                  child: Center(
-                    child: OptimizedCachedImage(
-                      imageUrl: url,
-                      fit: BoxFit.contain,
-                      width: MediaQuery.of(context).size.width,
-                      height: MediaQuery.of(context).size.height,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 20,
-                  right: 20,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                          color: const Color(0xFFD4AF37),
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.5),
-                              blurRadius: 10,
-                            )
-                          ]),
-                      child: const Icon(Icons.close,
-                          color: Color(0xFF0a0a1a), size: 24),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-}
+// _DesktopGalleryGrid'i kaldırdık çünkü _GallerySectionState'te zaten aynı işlevi yapıyor
 
 class _AnimatedPoster extends StatelessWidget {
   final String imageUrl;
@@ -1193,13 +1523,15 @@ class _GlassDescriptionCard extends StatelessWidget {
 }
 
 class _PaginationControls extends StatelessWidget {
-  final int currentPage, totalPages;
+  final int currentPage;
+  final int totalPages;
   final Function(int) onPageChanged;
 
-  const _PaginationControls(
-      {required this.currentPage,
-      required this.totalPages,
-      required this.onPageChanged});
+  const _PaginationControls({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPageChanged,
+  });
 
   @override
   Widget build(final BuildContext context) => Container(
@@ -1233,8 +1565,11 @@ class _PageButton extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
 
-  const _PageButton(
-      {required this.icon, required this.enabled, required this.onTap});
+  const _PageButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
 
   @override
   Widget build(final BuildContext context) => MouseRegion(
@@ -1320,14 +1655,6 @@ class _EmptyStateMessage extends StatelessWidget {
           ],
         ),
       );
-}
-
-class _LoadingState extends StatelessWidget {
-  const _LoadingState();
-
-  @override
-  Widget build(final BuildContext context) =>
-      Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
 }
 
 class _ErrorState extends StatelessWidget {
