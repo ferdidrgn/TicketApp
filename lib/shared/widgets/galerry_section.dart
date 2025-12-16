@@ -31,6 +31,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
     }
 
     final isMobile = context.isMobile;
+    final isTablet = context.isTablet;
     final allPhotos = widget.photos;
 
     if (isMobile) {
@@ -57,6 +58,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
       );
     }
 
+    // Desktop/Tablet için GridView
     final totalPages =
         (allPhotos.length / AppConstants.galleryItemsPerPage).ceil();
     final startIndex = _currentPage * AppConstants.galleryItemsPerPage;
@@ -68,21 +70,42 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
 
     return Column(
       children: [
-        Wrap(
-          spacing: context.gridSpacing,
-          runSpacing: context.gridSpacing,
-          children: currentPhotos.asMap().entries.map((final entry) {
-            final actualIndex = startIndex + entry.key;
-            return GalleryItem(
-              url: entry.value,
-              width: 280,
-              height: 210,
-              index: actualIndex,
-              allPhotos: allPhotos,
-              isMobile: isMobile,
+        // Desktop için GridView (yan yana 3-4 item)
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Ekran genişliğine göre column sayısı belirle
+            final crossAxisCount = isTablet ? 3 : 4;
+            final spacing = context.gridSpacing;
+            final itemWidth =
+                (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /
+                    crossAxisCount;
+            final itemHeight = itemWidth * 0.75;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: spacing,
+                childAspectRatio: 1.33, // 4:3 aspect ratio
+              ),
+              itemCount: currentPhotos.length,
+              itemBuilder: (context, index) {
+                final actualIndex = startIndex + index;
+                return GalleryItem(
+                  url: currentPhotos[index],
+                  width: itemWidth,
+                  height: itemHeight,
+                  index: actualIndex,
+                  allPhotos: allPhotos,
+                  isMobile: false,
+                );
+              },
             );
-          }).toList(),
+          },
         ),
+
         if (totalPages > 1)
           GalleryPaginationControls(
             currentPage: _currentPage,
@@ -403,50 +426,17 @@ class GalleryViewerDialog extends StatelessWidget {
                     ),
                   ),
 
-                  // Küçük thumbnail'ler (mobil değilse)
+                  // Küçük thumbnail'ler (scrollable)
                   if (!isMobile && allImages.length > 1)
                     Padding(
                       padding: const EdgeInsets.only(top: 30),
                       child: Container(
-                        height: 80,
+                        height: 100, // Daha büyük container
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          scrollDirection: Axis.horizontal,
-                          itemCount: allImages.length,
-                          separatorBuilder: (final _, final __) =>
-                              const SizedBox(width: 10),
-                          itemBuilder: (final context, final idx) {
-                            return GestureDetector(
-                              onTap: () {
-                                ref
-                                    .read(galleryProvider.notifier)
-                                    .setCurrentIndex(idx);
-                              },
-                              child: Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: idx == currentIndex
-                                        ? Color(0xFFD4AF37)
-                                        : Colors.transparent,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: OptimizedCachedImage(
-                                    imageUrl: allImages[idx],
-                                    fit: BoxFit.cover,
-                                    width: 60,
-                                    height: 60,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
+                        child: _ThumbnailCarousel(
+                          allImages: allImages,
+                          currentIndex: currentIndex,
+                          ref: ref,
                         ),
                       ),
                     ),
@@ -515,6 +505,83 @@ class GalleryViewerDialog extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ThumbnailCarousel extends StatelessWidget {
+  final List<String> allImages;
+  final int currentIndex;
+  final WidgetRef ref;
+
+  const _ThumbnailCarousel({
+    required this.allImages,
+    required this.currentIndex,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: allImages.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final imageUrl = entry.value;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: GestureDetector(
+              onTap: () {
+                ref.read(galleryProvider.notifier).setCurrentIndex(idx);
+              },
+              child: Container(
+                width: 70, // Daha büyük thumbnail'ler
+                height: 70,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: idx == currentIndex
+                        ? Color(0xFFD4AF37)
+                        : Colors.transparent,
+                    width: 3, // Daha kalın border
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Stack(
+                    children: [
+                      OptimizedCachedImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        width: 70,
+                        height: 70,
+                      ),
+                      // Aktif thumbnail için overlay
+                      if (idx == currentIndex)
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            color: Color(0xFFD4AF37).withOpacity(0.3),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
