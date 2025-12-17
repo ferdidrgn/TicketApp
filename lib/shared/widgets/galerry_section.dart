@@ -23,7 +23,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
   int _currentPage = 0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (widget.photos.isEmpty) {
       return const EmptyStateMessage(
         message: 'Galeri boş.',
@@ -50,7 +50,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
             mainAxisSpacing: 12,
             childAspectRatio: 4 / 3,
           ),
-          itemBuilder: (_, index) {
+          itemBuilder: (final _, final index) {
             return _GalleryItem(
               url: photos[index],
               index: index,
@@ -68,7 +68,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: photos.length,
-            itemBuilder: (_, index) {
+            itemBuilder: (final _, final index) {
               return Container(
                 width: 160, // Sabit genişlik
                 margin: const EdgeInsets.only(right: 12),
@@ -98,7 +98,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
     return Column(
       children: [
         LayoutBuilder(
-          builder: (context, constraints) {
+          builder: (final context, final constraints) {
             final crossAxisCount = isTablet ? 3 : 4;
             final spacing = context.gridSpacing;
 
@@ -112,7 +112,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
                 mainAxisSpacing: spacing,
                 childAspectRatio: 4 / 3,
               ),
-              itemBuilder: (_, index) {
+              itemBuilder: (final _, final index) {
                 return _GalleryItem(
                   url: photos[start + index],
                   index: start + index,
@@ -127,7 +127,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
           GalleryPaginationControls(
             currentPage: _currentPage,
             totalPages: totalPages,
-            onPageChanged: (page) {
+            onPageChanged: (final page) {
               setState(() => _currentPage = page);
             },
           ),
@@ -153,7 +153,7 @@ class _GalleryItem extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     return GestureDetector(
       onTap: () {
         ref.read(galleryProvider.notifier).setCurrentIndex(index);
@@ -161,11 +161,11 @@ class _GalleryItem extends ConsumerWidget {
         showDialog(
           context: context,
           barrierColor: Colors.black.withOpacity(0.95),
-          builder: (_) => GalleryViewerDialog(
+          builder: (final _) => GalleryViewerDialog(
             images: allPhotos,
             isMobile: isMobile,
           ),
-        ).then((_) {
+        ).then((final _) {
           ref.read(galleryProvider.notifier).reset();
         });
       },
@@ -214,12 +214,12 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
     super.dispose();
   }
 
-  void _onPageChanged(int index) {
+  void _onPageChanged(final int index) {
     ref.read(galleryProvider.notifier).setCurrentIndex(index);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final currentIndex = ref.watch(galleryProvider).currentIndex;
 
     return Dialog(
@@ -282,7 +282,7 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
                       controller: _pageController,
                       itemCount: widget.images.length,
                       onPageChanged: _onPageChanged,
-                      itemBuilder: (context, index) {
+                      itemBuilder: (final context, final index) {
                         return Padding(
                           padding: const EdgeInsets.all(20),
                           child: InteractiveViewer(
@@ -342,7 +342,7 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
               ThumbnailCarousel(
                 images: widget.images,
                 isMobile: widget.isMobile,
-                onThumbnailTap: (index) {
+                onThumbnailTap: (final index) {
                   _pageController.animateToPage(
                     index,
                     duration: const Duration(milliseconds: 300),
@@ -388,7 +388,7 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
     super.dispose();
   }
 
-  void _scroll(bool forward) {
+  void _scroll(final bool forward) {
     _controller.animateTo(
       _controller.offset + (forward ? 200 : -200),
       duration: const Duration(milliseconds: 300),
@@ -397,7 +397,7 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final currentIndex = ref.watch(galleryProvider).currentIndex;
 
     return SizedBox(
@@ -416,7 +416,7 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: widget.images.length,
-              itemBuilder: (_, index) {
+              itemBuilder: (final _, final index) {
                 final isActive = index == currentIndex;
 
                 return GestureDetector(
@@ -474,7 +474,7 @@ class _NavBtn extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
