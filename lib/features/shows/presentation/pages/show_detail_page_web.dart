@@ -46,8 +46,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
 
-  bool _isDataLoaded = false;
-  Show? _showData;
+  // _showData değişkenini kaldırdık, veriyi doğrudan provider'dan okuyacağız.
+  bool _isInitLoading = true;
 
   @override
   void initState() {
@@ -56,7 +56,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     _initScrollListener();
 
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (mounted) _fetchInitialData();
+      _fetchInitialData();
     });
   }
 
@@ -110,13 +110,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     });
   }
 
-  Future<void> _precacheHeaderImage() async {
-    final showData = ref.read(showProvider).getShowById(widget.showId);
-    if (showData != null && mounted) {
+  // Header resmini önbelleğe alma
+  Future<void> _precacheHeaderImage(final Show show) async {
+    if (mounted) {
       try {
         await precacheImage(
           OptimizedCachedImage.provider(
-            showData.imageUrl,
+            show.imageUrl,
             context: context,
             width: MediaQuery.of(context).size.width,
           ),
@@ -129,38 +129,40 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   }
 
   Future<void> _fetchInitialData() async {
-    if (_isDataLoaded) return;
-
     final showNotifier = ref.read(showProvider.notifier);
-    Show? showData = ref.read(showProvider).getShowById(widget.showId);
 
-    if (showData == null) {
+    // 1. Önce Show Provider'da veri var mı kontrol et
+    Show? currentShow = ref.read(showProvider).getShowById(widget.showId);
+
+    // 2. Veri yoksa sunucudan çek
+    if (currentShow == null) {
       try {
         await showNotifier.loadShowsByIds([widget.showId]);
-        showData = ref.read(showProvider).getShowById(widget.showId);
-        if (showData == null) {
+        // Yükleme bitti, güncel veriyi tekrar kontrol et
+        currentShow = ref.read(showProvider).getShowById(widget.showId);
+
+        if (currentShow == null) {
           if (mounted) {
-            showNotifier.setErrorState("Gösteri yüklenemedi.");
-            setState(() => _isDataLoaded = true);
+            showNotifier.setErrorState("Gösteri bulunamadı.");
+            setState(() => _isInitLoading = false);
           }
           return;
         }
-        _showData = showData;
       } catch (e) {
         if (mounted) {
-          showNotifier.setErrorState("Gösteri yüklenemedi: $e");
-          setState(() => _isDataLoaded = true);
+          showNotifier.setErrorState("Veri yüklenirken hata oluştu: $e");
+          setState(() => _isInitLoading = false);
         }
         return;
       }
-    } else {
-      _showData = showData;
     }
 
+    // Buraya geldiysek elimizde kesinlikle currentShow var demektir.
     final List<Future> futures = [];
 
-    if (_showData!.eventsId.isNotEmpty) {
-      final validEvents = _showData!.eventsId
+    // Events yükle
+    if (currentShow.eventsId.isNotEmpty) {
+      final validEvents = currentShow.eventsId
           .where((final id) => id.trim().isNotEmpty)
           .toList();
       if (validEvents.isNotEmpty) {
@@ -170,7 +172,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       }
     }
 
-    final allPlayers = {..._showData!.nowPlayersId, ..._showData!.oldPlayersId}
+    // Oyuncuları yükle
+    final allPlayers = {...currentShow.nowPlayersId, ...currentShow.oldPlayersId}
         .where((final id) => id.trim().isNotEmpty)
         .toList();
 
@@ -182,11 +185,12 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
     await Future.wait(futures);
 
-    if (mounted) _precacheHeaderImage();
-
     if (mounted) {
-      setState(() => _isDataLoaded = true);
-      Future.delayed(const Duration(milliseconds: 600), () {
+      await _precacheHeaderImage(currentShow);
+      setState(() => _isInitLoading = false);
+
+      // Animasyonları başlat
+      Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) _startPageAnimations();
       });
     }
@@ -217,36 +221,47 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
 
-    _listenForStageData();
+    // REAKTİF KISIM: Veriyi değişkenden değil, doğrudan STATE'ten alıyoruz.
+    // Böylece loadShowsByIds tamamlandığı an burası null olmaktan çıkıp doluyor.
+    final showData = showState.getShowById(widget.showId);
+
+    _listenForStageData(showData);
 
     return SplashDataGuard(
-      isLoading: !_isDataLoaded,
+      // Veri yükleniyorsa VEYA (hata yoksa ama veri henüz gelmemişse) loading göster
+      isLoading: _isInitLoading || (showData == null && !showState.hasError),
       loadingMessage: 'Oyun detayları hazırlanıyor...',
       child: Scaffold(
-        backgroundColor: Color(0xFF0a0a1a),
-        body: _showData == null
+        backgroundColor: const Color(0xFF0a0a1a),
+        // showData null ise ve loading bitmişse hata vardır
+        body: showData == null
             ? _buildErrorState(showState)
-            : _buildSuccessState(eventState, playerState, stageState),
+            : _buildSuccessState(showData, eventState, playerState, stageState),
       ),
     );
   }
 
   Widget _buildErrorState(final ShowState showState) {
+    // Eğer hala loading ise boş dön, SplashDataGuard zaten loading gösteriyor
     if (showState.isLoading) return const SizedBox();
 
     return Center(
       child: ErrorStateWidget(
-        message: showState.errorMessage,
-        onRetry: () => _safePop(context),
+        message: showState.errorMessage ?? "Oyun bilgisi bulunamadı.",
+        onRetry: () {
+          setState(() => _isInitLoading = true);
+          _fetchInitialData();
+        },
       ),
     );
   }
 
   Widget _buildSuccessState(
-    final EventState eventState,
-    final PlayerState playerState,
-    final StageState stageState,
-  ) {
+      final Show showData,
+      final EventState eventState,
+      final PlayerState playerState,
+      final StageState stageState,
+      ) {
     return Stack(
       children: [
         // Arka plan
@@ -260,7 +275,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           slivers: [
             SliverToBoxAdapter(
               child: ShowDetailHero(
-                showData: _showData!,
+                showData: showData,
                 scrollNotifier: _scrollNotifier,
                 fadeAnimation: _heroFade,
                 slideAnimation: _heroSlide,
@@ -271,7 +286,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               child: FadeTransition(
                 opacity: _contentFade,
                 child: _MainContent(
-                  showData: _showData!,
+                  showData: showData,
                   eventState: eventState,
                   playerState: playerState,
                   stageState: stageState,
@@ -291,11 +306,12 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     );
   }
 
-  void _listenForStageData() {
+  void _listenForStageData(final Show? showData) {
     ref.listen<EventState>(eventProvider, (final previous, final next) {
       final justLoaded = (previous?.dataList?.isEmpty ?? true) &&
           (next.dataList?.isNotEmpty ?? false);
-      if (justLoaded && mounted && _showData != null) {
+
+      if (justLoaded && mounted && showData != null) {
         final stageIds = next.dataList!
             .map((final e) => e.stageId)
             .whereType<String>()
