@@ -1,7 +1,4 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/custom_floating_action_button.dart';
@@ -16,7 +13,6 @@ import '../../../stages/presentation/providers/stage_provider.dart';
 import '../widgets/mobile/artistic_search_bar.dart';
 import '../widgets/mobile/category_grid.dart';
 import '../widgets/mobile/decorative_elements.dart';
-import '../widgets/mobile/glass_app_bar.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
 import '../widgets/mobile/show_collage.dart';
 import '../widgets/mobile/stage_carousel.dart';
@@ -87,35 +83,36 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        toolbarHeight: 0, // AppBar yüksekliğini 0 yap
+        toolbarHeight: _showSearchInAppBar ? 70 : 0,
         flexibleSpace: AnimatedContainer(
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOutCubic,
-          height: _showSearchInAppBar ? 110 : 0,
-          child: OverflowBox(
-            maxHeight: 110,
-            alignment: Alignment.topCenter,
-            child: Container(
-              color: Colors.transparent,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: _showSearchInAppBar ? 20 : 0,
-                    left: 20,
-                    right: 20,
-                  ),
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 300),
-                    opacity: _showSearchInAppBar ? 1 : 0,
-                    child: AnimatedScale(
-                      duration: const Duration(milliseconds: 400),
-                      scale: _showSearchInAppBar ? 1 : 0.9,
-                      curve: Curves.easeOutBack,
+          height: _showSearchInAppBar ? 60 : 0,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: _showSearchInAppBar ? 8 : 0,
+                left: 20,
+                right: 20,
+              ),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: _showSearchInAppBar ? 1 : 0,
+                child: AnimatedScale(
+                  duration: const Duration(milliseconds: 400),
+                  scale: _showSearchInAppBar ? 1 : 0.9,
+                  curve: Curves.easeOutBack,
+                  child: Material(
+                    color: Colors.transparent, // ÖNEMLİ: Transparent renk
+                    child: InkWell(
+                      onTap: _openSearch,
+                      // Direkt burada tıklama olayı
+                      borderRadius: BorderRadius.circular(24),
+                      // ArtisticSearchBar'ın border radius'u ile aynı
                       child: ArtisticSearchBar(
-                        onTap: _openSearch,
-                        isCompact:
-                            true, // Bu prop'u ArtisticSearchBar'a eklemelisiniz
+                        onTap: _openSearch, // Yine içeride de olabilir
+                        isCompact: true,
                       ),
                     ),
                   ),
