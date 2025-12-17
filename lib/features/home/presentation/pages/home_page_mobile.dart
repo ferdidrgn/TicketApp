@@ -85,7 +85,47 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       backgroundColor: bg,
       extendBodyBehindAppBar: true,
-      appBar: _buildAnimatedAppBar(context, isDark),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: 0, // AppBar yüksekliğini 0 yap
+        flexibleSpace: AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
+          height: _showSearchInAppBar ? 110 : 0,
+          child: OverflowBox(
+            maxHeight: 110,
+            alignment: Alignment.topCenter,
+            child: Container(
+              color: Colors.transparent,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: _showSearchInAppBar ? 20 : 0,
+                    left: 20,
+                    right: 20,
+                  ),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    opacity: _showSearchInAppBar ? 1 : 0,
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 400),
+                      scale: _showSearchInAppBar ? 1 : 0.9,
+                      curve: Curves.easeOutBack,
+                      child: ArtisticSearchBar(
+                        onTap: _openSearch,
+                        isCompact:
+                            true, // Bu prop'u ArtisticSearchBar'a eklemelisiniz
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       floatingActionButton: CustomFloatingActionButton(
         onPressed: _loadAllData,
       ),
@@ -95,27 +135,18 @@ class _HomePageState extends ConsumerState<HomePage> {
           const AmbientLightEffect(),
           const FloatingParticles(),
 
-          // Main content
+          // Main content - Üstten padding'i kaldırıyoruz
           ListView(
             controller: _scrollController,
-            padding: const EdgeInsets.only(top: 110, bottom: 100),
+            padding: const EdgeInsets.only(top: 20, bottom: 100),
+            // Top padding'i azalt
             physics: const BouncingScrollPhysics(),
             children: [
               // Hero text
               const HeroSection(),
 
-              // Artistic Search Bar (ana sayfa)
-              AnimatedOpacity(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-                opacity: _showSearchInAppBar ? 0 : 1,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                  height: _showSearchInAppBar ? 0 : null,
-                  child: ArtisticSearchBar(onTap: _openSearch),
-                ),
-              ),
+              // Artistic Search Bar (ana sayfa) - Normal boyutta
+              ArtisticSearchBar(onTap: _openSearch),
 
               const SizedBox(height: 20),
 
@@ -211,136 +242,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildAnimatedAppBar(
-      final BuildContext context, final bool isDark) {
-    final opacity = (_scrollOffset / 100).clamp(0.0, 0.9);
-
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          systemOverlayStyle:
-              isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-          flexibleSpace: ClipRRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: _scrollOffset > 50 ? 12 : 0,
-                sigmaY: _scrollOffset > 50 ? 12 : 0,
-              ),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                decoration: BoxDecoration(
-                  color: context.scaffoldBackgroundColor.withOpacity(opacity),
-                  border: _scrollOffset > 50
-                      ? Border(
-                          bottom: BorderSide(
-                            color: isDark
-                                ? Colors.white.withOpacity(0.05)
-                                : Colors.black.withOpacity(0.05),
-                            width: 1,
-                          ),
-                        )
-                      : null,
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        // Logo
-                        Expanded(
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 300),
-                            opacity: _showSearchInAppBar ? 0 : 1,
-                            child: Text(
-                              "TicketApp",
-                              style: context.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Compact Search Button
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeInOut,
-                          width: _showSearchInAppBar
-                              ? MediaQuery.of(context).size.width - 40
-                              : 0,
-                          height: _showSearchInAppBar ? 42 : 0,
-                          child: _showSearchInAppBar
-                              ? GestureDetector(
-                                  onTap: _openSearch,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? Colors.white.withOpacity(0.08)
-                                          : Colors.black.withOpacity(0.04),
-                                      borderRadius: BorderRadius.circular(21),
-                                      border: Border.all(
-                                        color: context.primaryColor
-                                            .withOpacity(0.15),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(21),
-                                      child: BackdropFilter(
-                                        filter: ImageFilter.blur(
-                                          sigmaX: 10,
-                                          sigmaY: 10,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const SizedBox(width: 16),
-                                            Icon(
-                                              Icons.search,
-                                              color: context.primaryColor
-                                                  .withOpacity(0.8),
-                                              size: 20,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                "Ara...",
-                                                style: TextStyle(
-                                                  color: isDark
-                                                      ? Colors.white
-                                                          .withOpacity(0.5)
-                                                      : Colors.black
-                                                          .withOpacity(0.4),
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
