@@ -41,10 +41,12 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
     Future.microtask(() {
       final state = ref.read(showProvider);
-      if (!state.isLoading && state.dataList == null)
-        // Burada limit koymak performansı artırır, gerekirse servisinize limit parametresi ekleyin
+
+      if (!state.isLoading &&
+          (state.dataList == null || state.dataList!.isEmpty))
         ref.read(showProvider.notifier).loadShows(false);
     });
+
     _headerController.forward();
   }
 

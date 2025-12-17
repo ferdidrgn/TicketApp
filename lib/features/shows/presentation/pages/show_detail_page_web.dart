@@ -46,7 +46,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
 
-  // _showData değişkenini kaldırdık, veriyi doğrudan provider'dan okuyacağız.
+  // Başlangıçta loading true
   bool _isInitLoading = true;
 
   @override
@@ -55,9 +55,57 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     _initControllers();
     _initScrollListener();
 
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _fetchInitialData();
-    });
+    Future.microtask(() => _fetchInitialData());
+  }
+
+  // --- KRİTİK DÜZELTME: Veri Çekme Mantığı ---
+  Future<void> _fetchInitialData() async {
+    if (!mounted) return;
+
+    final state = ref.read(showProvider);
+
+    // 1. Veri zaten hafızada var mı kontrol et
+    final Show? existingShow = state.getShowById(widget.showId) ??
+        (state.dataSingle?.id == widget.showId ? state.dataSingle : null);
+
+    // Eğer veri varsa, hemen loading'i kapat ve animasyonları başlat
+    if (existingShow != null) {
+      if (mounted) {
+        setState(() => _isInitLoading = false);
+        _startPageAnimations();
+        // Arka planda alt verileri (oyuncular, eventler) güncellemek istersen yine çağırabilirsin
+        await _loadSubData(existingShow);
+      }
+      return;
+    }
+
+    // 2. Veri yoksa API'den çek
+    try {
+      // Sadece bu ID'ye ait veriyi iste
+      await ref.read(showProvider.notifier).loadShowsByIds([widget.showId]);
+
+      // Yükleme sonrası state'i tekrar oku
+      final updatedState = ref.read(showProvider);
+      final loadedShow =
+          updatedState.getShowById(widget.showId) ?? updatedState.dataSingle;
+
+      if (loadedShow != null && loadedShow.id == widget.showId) {
+        // Alt verileri (Event/Player) yükle
+        await _loadSubData(loadedShow);
+
+        if (mounted)
+          // Resmi önceden yükle
+          await _precacheHeaderImage(loadedShow);
+      }
+    } catch (e) {
+      debugPrint("ShowDetail Fetch Error: $e");
+    } finally {
+      // Başarılı da olsa başarısız da olsa loading'i bitir ki ekran takılmasın
+      if (mounted) {
+        setState(() => _isInitLoading = false);
+        _startPageAnimations();
+      }
+    }
   }
 
   void _initControllers() {
@@ -95,24 +143,19 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
   void _startPageAnimations() {
     if (!mounted) return;
-
     _heroController.forward();
     _floatingController.repeat(reverse: true);
-
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) _contentController.forward();
     });
   }
 
-  void _initScrollListener() {
-    _scrollController.addListener(() {
-      if (mounted) _scrollNotifier.value = _scrollController.offset;
-    });
-  }
+  void _initScrollListener() => _scrollController.addListener(() {
+        if (mounted) _scrollNotifier.value = _scrollController.offset;
+      });
 
-  // Header resmini önbelleğe alma
   Future<void> _precacheHeaderImage(final Show show) async {
-    if (mounted) {
+    if (mounted && show.imageUrl.isNotEmpty)
       try {
         await precacheImage(
           OptimizedCachedImage.provider(
@@ -125,83 +168,30 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       } catch (e) {
         debugPrint('Image precache warning: $e');
       }
-    }
   }
 
-  Future<void> _fetchInitialData() async {
-    final showNotifier = ref.read(showProvider.notifier);
+  Future<void> _loadSubData(final Show show) async {
+    final futures = <Future>[];
 
-    // 1. Önce Show Provider'da veri var mı kontrol et
-    Show? currentShow = ref.read(showProvider).getShowById(widget.showId);
+    // Events
+    if (show.eventsId.isNotEmpty)
+      futures
+          .add(ref.read(eventProvider.notifier).loadEventsByIds(show.eventsId));
 
-    // 2. Veri yoksa sunucudan çek
-    if (currentShow == null) {
-      try {
-        await showNotifier.loadShowsByIds([widget.showId]);
-        // Yükleme bitti, güncel veriyi tekrar kontrol et
-        currentShow = ref.read(showProvider).getShowById(widget.showId);
+    // Players (Hem şimdiki hem eski oyuncuları topla)
+    final allPlayers = {...show.nowPlayersId, ...show.oldPlayersId}.toList();
+    if (allPlayers.isNotEmpty)
+      futures
+          .add(ref.read(playerProvider.notifier).getPlayersByIds(allPlayers));
 
-        if (currentShow == null) {
-          if (mounted) {
-            showNotifier.setErrorState("Gösteri bulunamadı.");
-            setState(() => _isInitLoading = false);
-          }
-          return;
-        }
-      } catch (e) {
-        if (mounted) {
-          showNotifier.setErrorState("Veri yüklenirken hata oluştu: $e");
-          setState(() => _isInitLoading = false);
-        }
-        return;
-      }
-    }
-
-    // Buraya geldiysek elimizde kesinlikle currentShow var demektir.
-    final List<Future> futures = [];
-
-    // Events yükle
-    if (currentShow.eventsId.isNotEmpty) {
-      final validEvents = currentShow.eventsId
-          .where((final id) => id.trim().isNotEmpty)
-          .toList();
-      if (validEvents.isNotEmpty) {
-        futures.add(
-          ref.read(eventProvider.notifier).loadEventsByIds(validEvents),
-        );
-      }
-    }
-
-    // Oyuncuları yükle
-    final allPlayers = {...currentShow.nowPlayersId, ...currentShow.oldPlayersId}
-        .where((final id) => id.trim().isNotEmpty)
-        .toList();
-
-    if (allPlayers.isNotEmpty) {
-      futures.add(
-        ref.read(playerProvider.notifier).getPlayersByIds(allPlayers),
-      );
-    }
-
-    await Future.wait(futures);
-
-    if (mounted) {
-      await _precacheHeaderImage(currentShow);
-      setState(() => _isInitLoading = false);
-
-      // Animasyonları başlat
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) _startPageAnimations();
-      });
-    }
+    if (futures.isNotEmpty) await Future.wait(futures);
   }
 
-  void _safePop(final BuildContext context) {
-    if (context.canPop()) {
+  void _handleBackNavigation() {
+    if (context.canPop())
       context.pop();
-    } else {
+    else
       context.go('/home', extra: {'section': 'shows'});
-    }
   }
 
   @override
@@ -221,106 +211,113 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
 
-    // REAKTİF KISIM: Veriyi değişkenden değil, doğrudan STATE'ten alıyoruz.
-    // Böylece loadShowsByIds tamamlandığı an burası null olmaktan çıkıp doluyor.
-    final showData = showState.getShowById(widget.showId);
+    // Ekrana basılacak veriyi bul
+    final showData = showState.getShowById(widget.showId) ??
+        (showState.dataSingle?.id == widget.showId
+            ? showState.dataSingle
+            : null);
+
+    // Loading Durumu Kontrolü (Daha güvenli hale getirildi)
+    // 1. Init loading hala true ise -> LOADING
+    // 2. Init bitti ama veri yok VE provider hala meşgulse -> LOADING
+    bool isLoading = _isInitLoading;
+    if (!_isInitLoading && showData == null && showState.isLoading)
+      isLoading = true;
 
     _listenForStageData(showData);
 
     return SplashDataGuard(
-      // Veri yükleniyorsa VEYA (hata yoksa ama veri henüz gelmemişse) loading göster
-      isLoading: _isInitLoading || (showData == null && !showState.hasError),
+      isLoading: isLoading,
       loadingMessage: 'Oyun detayları hazırlanıyor...',
       child: Scaffold(
         backgroundColor: const Color(0xFF0a0a1a),
-        // showData null ise ve loading bitmişse hata vardır
-        body: showData == null
+        // Loading bitti ama hala veri yoksa hata göster
+        body: !isLoading && showData == null
             ? _buildErrorState(showState)
-            : _buildSuccessState(showData, eventState, playerState, stageState),
+            : (showData != null // Veri varsa içeriği göster
+                ? _buildSuccessState(
+                    showData, eventState, playerState, stageState)
+                : const SizedBox()), // Ara durum (nadiren olur)
       ),
     );
   }
 
-  Widget _buildErrorState(final ShowState showState) {
-    // Eğer hala loading ise boş dön, SplashDataGuard zaten loading gösteriyor
-    if (showState.isLoading) return const SizedBox();
-
-    return Center(
-      child: ErrorStateWidget(
-        message: showState.errorMessage ?? "Oyun bilgisi bulunamadı.",
-        onRetry: () {
-          setState(() => _isInitLoading = true);
-          _fetchInitialData();
-        },
-      ),
-    );
-  }
+  Widget _buildErrorState(final ShowState showState) => Center(
+        child: ErrorStateWidget(
+          message: showState.errorMessage ?? "Oyun bilgisi bulunamadı.",
+          onRetry: () {
+            setState(() => _isInitLoading = true);
+            _fetchInitialData();
+          },
+        ),
+      );
 
   Widget _buildSuccessState(
-      final Show showData,
-      final EventState eventState,
-      final PlayerState playerState,
-      final StageState stageState,
-      ) {
-    return Stack(
-      children: [
-        // Arka plan
-        _BackgroundParticles(animation: _floatingController),
-
-        // Ana içerik
-        CustomScrollView(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(),
-          cacheExtent: 500,
-          slivers: [
-            SliverToBoxAdapter(
-              child: ShowDetailHero(
-                showData: showData,
-                scrollNotifier: _scrollNotifier,
-                fadeAnimation: _heroFade,
-                slideAnimation: _heroSlide,
-                floatingAnimation: _floatingController,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: FadeTransition(
-                opacity: _contentFade,
-                child: _MainContent(
+    final Show showData,
+    final EventState eventState,
+    final PlayerState playerState,
+    final StageState stageState,
+  ) =>
+      Stack(
+        children: [
+          _BackgroundParticles(animation: _floatingController),
+          CustomScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            cacheExtent: 500,
+            slivers: [
+              SliverToBoxAdapter(
+                child: ShowDetailHero(
                   showData: showData,
-                  eventState: eventState,
-                  playerState: playerState,
-                  stageState: stageState,
+                  scrollNotifier: _scrollNotifier,
+                  fadeAnimation: _heroFade,
+                  slideAnimation: _heroSlide,
+                  floatingAnimation: _floatingController,
                 ),
               ),
+              SliverToBoxAdapter(
+                child: FadeTransition(
+                  opacity: _contentFade,
+                  child: _MainContent(
+                    showData: showData,
+                    eventState: eventState,
+                    playerState: playerState,
+                    stageState: stageState,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Positioned(
+            top: 40,
+            left: 20,
+            child: _FloatingBackButton(
+              onTap: _handleBackNavigation,
             ),
-          ],
-        ),
-
-        // Navigasyon butonu
-        const Positioned(
-          top: 40,
-          left: 20,
-          child: _FloatingBackButton(),
-        ),
-      ],
-    );
-  }
+          ),
+        ],
+      );
 
   void _listenForStageData(final Show? showData) {
+    // Stage datası için listener
     ref.listen<EventState>(eventProvider, (final previous, final next) {
-      final justLoaded = (previous?.dataList?.isEmpty ?? true) &&
-          (next.dataList?.isNotEmpty ?? false);
+      // Sadece veri yeni yüklendiğinde tetikle
+      final previousEmpty = previous?.dataList?.isEmpty ?? true;
+      final nextNotEmpty = next.dataList?.isNotEmpty ?? false;
 
-      if (justLoaded && mounted && showData != null) {
+      if (previousEmpty && nextNotEmpty && showData != null) {
         final stageIds = next.dataList!
             .map((final e) => e.stageId)
             .whereType<String>()
             .where((final id) => id.trim().isNotEmpty && id != '0')
             .toSet()
             .toList();
-        if (stageIds.isNotEmpty) {
-          ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
-        }
+
+        if (stageIds.isNotEmpty)
+          // Future.microtask içine alarak build çakışmalarını önle
+          Future.microtask(() {
+            ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
+          });
       }
     });
   }
@@ -508,37 +505,31 @@ class _MobileLayout extends StatelessWidget {
 }
 
 class _FloatingBackButton extends StatelessWidget {
-  const _FloatingBackButton();
+  final VoidCallback onTap;
+
+  const _FloatingBackButton({required this.onTap});
 
   @override
-  Widget build(final BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/home', extra: {'section': 'shows'});
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Color(0xFF1a1a2e).withOpacity(0.9),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Color(0xFFD4AF37).withOpacity(0.5),
+  Widget build(final BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Color(0xFF1a1a2e).withOpacity(0.9),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Color(0xFFD4AF37).withOpacity(0.5),
+              ),
+            ),
+            child: Icon(
+              Icons.arrow_back_rounded,
+              color: Color(0xFFD4AF37),
             ),
           ),
-          child: Icon(
-            Icons.arrow_back_rounded,
-            color: Color(0xFFD4AF37),
-          ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class _AnimatedPoster extends StatelessWidget {
@@ -547,31 +538,29 @@ class _AnimatedPoster extends StatelessWidget {
   const _AnimatedPoster({required this.imageUrl});
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 380),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFFD4AF37).withOpacity(0.4),
-            blurRadius: 50,
-            spreadRadius: 5,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: AspectRatio(
-          aspectRatio: 9 / 13,
-          child: OptimizedCachedImage(
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
+  Widget build(final BuildContext context) => Container(
+        constraints: const BoxConstraints(maxWidth: 380),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0xFFD4AF37).withOpacity(0.4),
+              blurRadius: 50,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: AspectRatio(
+            aspectRatio: 9 / 13,
+            child: OptimizedCachedImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class _GlassDescriptionCard extends StatelessWidget {
@@ -580,33 +569,31 @@ class _GlassDescriptionCard extends StatelessWidget {
   const _GlassDescriptionCard({required this.description});
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Color(0xFF1a1a2e).withOpacity(0.8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Color(0xFFD4AF37).withOpacity(0.3),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFFD4AF37).withOpacity(0.1),
-            blurRadius: 30,
+  Widget build(final BuildContext context) => Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Color(0xFF1a1a2e).withOpacity(0.8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Color(0xFFD4AF37).withOpacity(0.3),
           ),
-        ],
-      ),
-      child: Text(
-        description.replaceAll('\\n', '\n'),
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 16,
-          height: 1.9,
-          letterSpacing: 0.3,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0xFFD4AF37).withOpacity(0.1),
+              blurRadius: 30,
+            ),
+          ],
         ),
-      ),
-    );
-  }
+        child: Text(
+          description.replaceAll('\\n', '\n'),
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 16,
+            height: 1.9,
+            letterSpacing: 0.3,
+          ),
+        ),
+      );
 }
 
 class _BackgroundParticles extends StatelessWidget {
@@ -653,57 +640,55 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title, required this.icon});
 
   @override
-  Widget build(final BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFFD4AF37),
-                Color(0xFFF5E6A3),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0xFFD4AF37).withOpacity(0.4),
-                blurRadius: 15,
-              ),
-            ],
-          ),
-          child: Icon(
-            icon,
-            color: Color(0xFF0a0a1a),
-            size: 22,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Container(
-            height: 1,
+  Widget build(final BuildContext context) => Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFFD4AF37).withOpacity(0.5),
-                  Colors.transparent,
+                  Color(0xFFD4AF37),
+                  Color(0xFFF5E6A3),
                 ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFFD4AF37).withOpacity(0.4),
+                  blurRadius: 15,
+                ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: Color(0xFF0a0a1a),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFFD4AF37).withOpacity(0.5),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      );
 }
