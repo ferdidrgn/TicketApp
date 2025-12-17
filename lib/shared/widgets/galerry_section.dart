@@ -37,15 +37,21 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
 
     /// MOBILE → horizontal list
     if (isMobile) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final itemWidth = screenWidth * 0.75; // Ekranın %75'i
+      final itemHeight = itemWidth * 0.75; // 4:3 aspect ratio
+
       return SizedBox(
-        height: 180,
+        height: itemHeight + 20, // İtem yüksekliği + padding
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: photos.length,
           itemBuilder: (_, index) {
-            return Padding(
-              padding: const EdgeInsets.only(right: 12),
+            return Container(
+              width: itemWidth,
+              margin: const EdgeInsets.only(right: 12),
               child: _GalleryItem(
                 url: photos[index],
                 index: index,
