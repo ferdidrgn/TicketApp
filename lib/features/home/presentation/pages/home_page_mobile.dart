@@ -79,11 +79,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     final showState = ref.watch(showProvider);
     final stageState = ref.watch(stageProvider);
 
-    final isDark = context.isDarkMode;
-    final bg = isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
-
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: context.isDarkMode
+          ? const Color(0xFF0F0F0F)
+          : const Color(0xFFFAFAFA),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
