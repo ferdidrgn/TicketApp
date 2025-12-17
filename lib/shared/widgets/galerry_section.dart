@@ -37,31 +37,52 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
 
     /// MOBILE → horizontal list
     if (isMobile) {
-      final screenWidth = MediaQuery.of(context).size.width;
-      final itemWidth = screenWidth * 0.75; // Ekranın %75'i
-      final itemHeight = itemWidth * 0.75; // 4:3 aspect ratio
-
-      return SizedBox(
-        height: itemHeight + 20, // İtem yüksekliği + padding
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+      // Eğer çok fazla resim varsa horizontal, azsa grid göster
+      if (photos.length <= 4) {
+        // Grid göster
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: photos.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 4 / 3,
+          ),
           itemBuilder: (_, index) {
-            return Container(
-              width: itemWidth,
-              margin: const EdgeInsets.only(right: 12),
-              child: _GalleryItem(
-                url: photos[index],
-                index: index,
-                allPhotos: photos,
-                isMobile: true,
-              ),
+            return _GalleryItem(
+              url: photos[index],
+              index: index,
+              allPhotos: photos,
+              isMobile: true,
             );
           },
-        ),
-      );
+        );
+      } else {
+        // Horizontal list göster
+        return SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: photos.length,
+            itemBuilder: (_, index) {
+              return Container(
+                width: 160, // Sabit genişlik
+                margin: const EdgeInsets.only(right: 12),
+                child: _GalleryItem(
+                  url: photos[index],
+                  index: index,
+                  allPhotos: photos,
+                  isMobile: true,
+                ),
+              );
+            },
+          ),
+        );
+      }
     }
 
     /// DESKTOP / TABLET
