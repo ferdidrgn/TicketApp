@@ -81,12 +81,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final colors = context.colors;
     final isDark = theme.brightness == Brightness.dark;
 
-    if (loginState.isLoading || _isLoadingLocalData) {
+    if (loginState.isLoading || _isLoadingLocalData)
       return Scaffold(
         backgroundColor: colors.background,
         body: const Center(child: CircularProgressIndicator()),
       );
-    }
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -545,7 +544,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: functionalButtons.length,
-                separatorBuilder: (context, index) => Padding(
+                separatorBuilder: (final context, final index) => Padding(
                   padding: const EdgeInsets.only(left: 70),
                   // Çizgiyi ikondan sonra başlat
                   child: Divider(
@@ -553,7 +552,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     color: colors.outline.withOpacity(0.1),
                   ),
                 ),
-                itemBuilder: (context, index) {
+                itemBuilder: (final context, final index) {
                   final button = functionalButtons[index];
                   return _buildFunctionalButton(
                     title: button['title'] as String,
@@ -866,14 +865,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }
 
   Widget _buildSecurityButton({
-    required String label,
-    required String subLabel,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    required ThemeData theme,
-    bool isDestructive = false,
-    bool isPrimary = false,
+    required final String label,
+    required final String subLabel,
+    required final IconData icon,
+    required final Color color,
+    required final VoidCallback onTap,
+    required final ThemeData theme,
+    final bool isDestructive = false,
+    final bool isPrimary = false,
   }) {
     return Material(
       color: Colors.transparent,

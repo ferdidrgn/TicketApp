@@ -5,11 +5,15 @@ import '../../../../shared/widgets/custom_floating_action_button.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../campaigns/presentation/pages/campaign_showcase_page.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
+import '../../../favorite/presentation/pages/favorite_screen.dart';
+import '../../../login/presentation/providers/login_provider.dart';
 import '../../../search/presentation/pages/search_page.dart';
+import '../../../settings/presentation/pages/permission_settings.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import '../../../tickets/presentation/pages/my_ticket_page.dart';
 import '../widgets/mobile/artistic_search_bar.dart';
 import '../widgets/mobile/category_grid.dart';
 import '../widgets/mobile/decorative_elements.dart';
@@ -74,6 +78,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final campaignState = ref.watch(campaignProvider);
     final showState = ref.watch(showProvider);
     final stageState = ref.watch(stageProvider);
+    final loginState = ref.watch(loginProvider);
 
     return Scaffold(
       backgroundColor: context.isDarkMode
@@ -212,15 +217,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
               // Bottom extras
               QuickActionsGrid(
-                onNotificationsTap: () {
-                  // TODO: Bildirimler sayfası
-                },
-                onFavoritesTap: () {
-                  // TODO: Favoriler sayfası
-                },
-                onTicketsTap: () {
-                  // TODO: Biletlerim sayfası
-                },
+                onNotificationsTap: () =>
+                    _navigateTo(const PermissionSettingsScreen()),
+                onFavoritesTap: () => _navigateTo(FavoritesPage()),
+                onTicketsTap: () =>
+                    _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
                 onCalendarTap: () {
                   // TODO: Etkinlik takvimi
                 },
@@ -241,4 +242,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
   }
+
+  void _navigateTo(final Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (final _) => page));
 }
