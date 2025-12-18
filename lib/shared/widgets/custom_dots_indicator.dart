@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 class DotsIndicator extends StatelessWidget {
   final int itemCount;
@@ -13,26 +14,24 @@ class DotsIndicator extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(itemCount, (final index) {
-        final isSelected = index == currentIndex;
-        return GestureDetector(
-          onTap: () => onPageSelected(index),
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 5),
-            width: isSelected ? 10 : 8,
-            height: isSelected ? 10 : 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey,
+  Widget build(final BuildContext context) => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(itemCount, (final index) {
+          final isSelected = index == currentIndex;
+          return GestureDetector(
+            onTap: () => onPageSelected(index),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              width: isSelected ? 10 : 8,
+              height: isSelected ? 10 : 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? context.colors.primary
+                    : Colors.grey,
+              ),
             ),
-          ),
-        );
-      }),
-    );
-  }
+          );
+        }),
+      );
 }

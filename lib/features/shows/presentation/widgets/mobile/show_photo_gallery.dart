@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
-import '../../../../../shared/widgets/custom_title.dart';
+import '../../../../../shared/widgets/section_header.dart';
 
 class ShowPhotoGallery extends StatelessWidget {
   final List<String> photos;
@@ -14,7 +14,7 @@ class ShowPhotoGallery extends StatelessWidget {
           Padding(
               padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
               child:
-                  CustomSectionTitle(title: "OYUNDAN KARELER", fontSize: 20)),
+              SectionHeader(title: "OYUNDAN KARELER", fontSize: 20)),
           SizedBox(
             height: 180,
             child: ListView.builder(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
+import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
-import '../../../../shared/widgets/custom_title.dart';
 
 class NearbyEventsPage extends StatefulWidget {
   const NearbyEventsPage({super.key});
@@ -77,7 +76,7 @@ class _NearbyEventsPageState extends State<NearbyEventsPage> {
         padding: const EdgeInsets.all(15),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const CustomSectionTitle(title: 'Yakınınızdaki Etkinlikler'),
+            const SectionHeader(title: 'Yakınınızdaki Etkinlikler'),
             IconButton(
                 icon: const Icon(Icons.filter_list),
                 onPressed: _showFilterDialog),

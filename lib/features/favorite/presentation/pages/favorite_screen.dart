@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../shows/presentation/widgets/mobile/show_card.dart';
-import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
-import '../../../../shared/widgets/custom_title.dart';
+import '../../../../shared/widgets/section_header.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
+import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
+import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
 
 class Favorite {
   final String title;
@@ -74,13 +74,13 @@ class FavoritesPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            const CustomSectionTitle(title: 'Favori Oyunlar'),
+            const SectionHeader(title: 'Favori Oyunlar'),
             _buildShows(),
             const SizedBox(height: 20),
-            const CustomSectionTitle(title: 'Favori Sahneler'),
+            const SectionHeader(title: 'Favori Sahneler'),
             _buildStageSection(),
             const SizedBox(height: 20),
-            const CustomSectionTitle(title: 'Favori Oyuncular'),
+            const SectionHeader(title: 'Favori Oyuncular'),
             _buildPlayers(),
           ],
         ),

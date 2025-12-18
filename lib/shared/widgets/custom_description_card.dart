@@ -17,9 +17,8 @@ class _CustomDescriptionCardState extends State<CustomDescriptionCard> {
     String? displayDescription = widget.description.replaceAll('\\n', '\n');
 
     // Eğer açıklama uzunsa, kısalt
-    if (!isExpanded && displayDescription.length > 100) {
+    if (!isExpanded && displayDescription.length > 100)
       displayDescription = '${displayDescription.substring(0, 100)}...';
-    }
 
     return Card(
       shape: RoundedRectangleBorder(

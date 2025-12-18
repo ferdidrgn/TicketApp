@@ -17,8 +17,7 @@ class InspirationalQuoteView extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return ClipRRect(
+  Widget build(final BuildContext context)=> ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: Container(
         height: 250,
@@ -81,4 +80,3 @@ class InspirationalQuoteView extends StatelessWidget {
       ),
     );
   }
-}

@@ -4,12 +4,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/features/teams/data/datasources/team_remote_data_source_and_impl.dart';
 import '../../../../shared/widgets/custom_description_card.dart';
-import '../../../shows/presentation/widgets/mobile/show_card.dart';
-import '../../../../shared/widgets/custom_title.dart';
+import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/shimmer.dart';
 import '../../../shows/data/datasources/show_remote_data_source_and_impl.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
+import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../domain/entities/team.dart';
 
 class TeamDetailsPage extends StatefulWidget {
@@ -83,16 +83,16 @@ class _TeamDetailsPageState extends State<TeamDetailsPage> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
         Container(padding: const EdgeInsets.all(16), child: _buildTeamImage()),
         const SizedBox(height: 16),
-        CustomSectionTitle(title: team?.name ?? 'Ekip Adı', fontSize: 28),
+        SectionHeader(title: team?.name ?? 'Ekip Adı', fontSize: 28),
         const SizedBox(height: 16),
         CustomDescriptionCard(
             description: team?.description.replaceAll('\\n', '\n') ??
                 'No description available'),
         const SizedBox(height: 16),
-        const CustomSectionTitle(title: 'Gösteriler', fontSize: 20),
+        const SectionHeader(title: 'Gösteriler', fontSize: 20),
         _buildShowList(),
         const SizedBox(height: 16),
-        const CustomSectionTitle(title: 'Takım Fotoğrafları', fontSize: 20),
+        const SectionHeader(title: 'Takım Fotoğrafları', fontSize: 20),
         _buildPhotosSection()
       ]));
 

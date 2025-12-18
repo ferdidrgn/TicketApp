@@ -3,12 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../../../shows/presentation/widgets/mobile/show_card.dart';
-import '../../../../shared/widgets/custom_title.dart';
+import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/shimmer.dart';
 import '../../../shows/data/datasources/show_remote_data_source_and_impl.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
+import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../data/datasources/stage_remote_data_source_and_impl.dart';
 import '../../domain/entities/stage.dart';
 
@@ -157,7 +157,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
         children: [
           _buildStageInfo(),
           const SizedBox(height: 16),
-          const CustomSectionTitle(title: 'Eşleşen Etkinlikler', fontSize: 20),
+          const SectionHeader(title: 'Eşleşen Etkinlikler', fontSize: 20),
           _buildShowList(),
           const SizedBox(height: 16),
           //_buildStageMap(_stage),
@@ -237,7 +237,7 @@ class _StageDetailPageState extends State<StageDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CustomSectionTitle(title: title, fontSize: 20),
+          SectionHeader(title: title, fontSize: 20),
           Text(
             content,
             style: const TextStyle(

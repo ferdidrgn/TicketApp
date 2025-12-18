@@ -1,9 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
-
-import '../../../../shared/widgets/custom_title.dart';
+import '../../../../shared/widgets/section_header.dart';
 
 class PlayersCard extends StatelessWidget {
   final List<Player> players;
@@ -32,7 +30,7 @@ class PlayersCard extends StatelessWidget {
         // BAŞLIK KISMI (Burası aynı kalsın ki sayfa bütünlüğü bozulmasın)
         Padding(
             padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-            child: CustomSectionTitle(title: title, fontSize: 20)),
+            child: SectionHeader(title: title, fontSize: 20)),
 
         // SENİN İSTEDİĞİN TASARIM BURADA BAŞLIYOR
         SizedBox(

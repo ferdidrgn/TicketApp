@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 class CustomElevatedButton extends StatefulWidget {
   final String text;
@@ -40,73 +41,70 @@ class _CustomElevatedButtonState extends State<CustomElevatedButton> {
   }
 
   @override
-  Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: _isPressed
-            ? []
-            : [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 6,
-                    offset: const Offset(0, 4)),
-              ],
-      ),
-      child: Material(
-        color: widget.backgroundColor ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
+  Widget build(final BuildContext context) => AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          // 👇 Hover & Splash efektlerini tamamen devre dışı bırakıyoruz
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          hoverColor: Colors.transparent,
-          focusColor: Colors.transparent,
-          onTap: _handleTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 100),
-            padding: const EdgeInsets.all(18),
-            transform: _isPressed
-                ? (Matrix4.identity()..scale(0.98))
-                : Matrix4.identity(),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (widget.iconData != null)
-                  Icon(widget.iconData,
-                      color: widget.iconColor ??
-                          theme.bottomNavigationBarTheme.selectedItemColor,
-                      size: 24)
-                else if (widget.iconAsset != null)
-                  widget.iconAsset!
-                else
-                  const SizedBox(width: 0),
-                Expanded(
-                    child: Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: Text(
-                          widget.text,
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: widget.textColor ??
-                                  theme.textTheme.bodyLarge?.color),
-                        ))),
-                if (widget.showArrow)
-                  Icon(Icons.arrow_forward_ios,
-                      size: 20,
-                      color: widget.arrowColor ??
-                          theme.iconTheme.color?.withOpacity(0.6)),
-              ],
+          boxShadow: _isPressed
+              ? []
+              : [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 4)),
+                ],
+        ),
+        child: Material(
+          color: widget.backgroundColor ?? context.theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            // 👇 Hover & Splash efektlerini tamamen devre dışı bırakıyoruz
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+            focusColor: Colors.transparent,
+            onTap: _handleTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              padding: const EdgeInsets.all(18),
+              transform: _isPressed
+                  ? (Matrix4.identity()..scale(0.98))
+                  : Matrix4.identity(),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (widget.iconData != null)
+                    Icon(widget.iconData,
+                        color: widget.iconColor ??
+                            context.theme.bottomNavigationBarTheme
+                                .selectedItemColor,
+                        size: 24)
+                  else if (widget.iconAsset != null)
+                    widget.iconAsset!
+                  else
+                    const SizedBox(width: 0),
+                  Expanded(
+                      child: Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Text(
+                            widget.text,
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: widget.textColor ??
+                                    context.theme.textTheme.bodyLarge?.color),
+                          ))),
+                  if (widget.showArrow)
+                    Icon(Icons.arrow_forward_ios,
+                        size: 20,
+                        color: widget.arrowColor ??
+                            context.theme.iconTheme.color?.withOpacity(0.6)),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }

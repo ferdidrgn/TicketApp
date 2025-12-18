@@ -12,11 +12,9 @@ class AnimatedTitle extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return AnimatedBuilder(
-      animation: glowAnimation,
-      builder: (final context, final child) {
-        return Container(
+  Widget build(final BuildContext context) => AnimatedBuilder(
+        animation: glowAnimation,
+        builder: (final context, final child) => Container(
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
@@ -46,8 +44,6 @@ class AnimatedTitle extends StatelessWidget {
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
 }

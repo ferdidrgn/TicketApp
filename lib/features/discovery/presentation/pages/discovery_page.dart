@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
-import '../../../../shared/widgets/custom_title.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 
@@ -72,7 +72,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const CustomSectionTitle(title: 'Keşfet'),
+        const SectionHeader(title: 'Keşfet'),
         IconButton(
           icon: const Icon(Icons.filter_list),
           onPressed: () => _showFilterPopup(context),
@@ -331,7 +331,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CustomSectionTitle(
+          const SectionHeader(
               title: "Filitrele", fontWeight: FontWeight.bold),
           const SizedBox(height: 20),
           _buildCategoryFilter(widget.setModalState),
@@ -352,7 +352,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 ),
               );
             },
-            child: CustomSectionTitle(
+            child: SectionHeader(
                 title: 'Uygula',
                 fontSize: 20,
                 textColor: Theme.of(context).colorScheme.error,

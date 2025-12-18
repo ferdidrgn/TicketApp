@@ -9,12 +9,12 @@ import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/features/events/domain/entities/event.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_provider.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_state.dart';
-import 'package:ticketapp/features/events/presentation/widgets/events_card.dart'; // Senin tekil kartın
+import 'package:ticketapp/features/events/presentation/widgets/events_card.dart';
 import 'package:ticketapp/features/login/presentation/providers/login_provider.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_notifier.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
-import 'package:ticketapp/features/players/presentation/widgets/players_card.dart'; // Senin oyuncu kartın
+import 'package:ticketapp/features/players/presentation/widgets/players_card.dart';
 import 'package:ticketapp/features/seat/presentation/pages/seat_details.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_notifier.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
@@ -22,11 +22,11 @@ import 'package:ticketapp/features/stages/presentation/providers/stage_notifier.
 import 'package:ticketapp/features/stages/presentation/providers/stage_provider.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
-import 'package:ticketapp/shared/widgets/custom_title.dart';
+import '../../../../shared/widgets/section_header.dart';
 import '../../domain/entities/show.dart';
-import '../widgets/mobile/show_info_section.dart'; // Bilgi ve Açıklama
-import '../widgets/mobile/show_parallax_header.dart'; // Arka plan
-import '../widgets/mobile/show_photo_gallery.dart'; // Galeri
+import '../widgets/mobile/show_info_section.dart';
+import '../widgets/mobile/show_parallax_header.dart';
+import '../widgets/mobile/show_photo_gallery.dart';
 
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
@@ -252,7 +252,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         // Başlık
         Padding(
             padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-            child: CustomSectionTitle(title: "ETKİNLİK TAKVİMİ", fontSize: 20)),
+            child: SectionHeader(title: "ETKİNLİK TAKVİMİ", fontSize: 20)),
 
         // Liste
         SizedBox(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 class CustomArtWordsCard extends StatelessWidget {
   final String word;
@@ -18,13 +19,10 @@ class CustomArtWordsCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    final cardColor = backgroundColor ?? colorScheme.surfaceContainerHighest;
-    final primaryTextColor = textColor ?? colorScheme.onSurface;
-    final secondaryTextColor =
-        textColor?.withOpacity(0.7) ?? colorScheme.onSurface.withOpacity(0.7);
+    final cardColor = backgroundColor ?? context.colors.surfaceContainerHighest;
+    final primaryTextColor = textColor ?? context.colors.onSurface;
+    final secondaryTextColor = textColor?.withOpacity(0.7) ??
+        context.colors.onSurface.withOpacity(0.7);
 
     return Center(
       child: Container(

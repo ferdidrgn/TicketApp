@@ -17,7 +17,6 @@ mixin ArtQuotes {
     {"word": "Sanat, görünmez olanı görünür kılmaktır", "author": "Paul Klee"},
   ];
 
-  static Map<String, String> getRandomQuote() {
-    return quotes[DateTime.now().second % quotes.length];
-  }
+  static Map<String, String> getRandomQuote() =>
+      quotes[DateTime.now().second % quotes.length];
 }
