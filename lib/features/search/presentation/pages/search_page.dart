@@ -43,11 +43,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   bool _isLoadingMore = false;
 
-  List<Show>? _filteredShows;
-  List<Player>? _filteredPlayers;
-  List<Stage>? _filteredStages;
-  List<Team>? _filteredTeams;
-
   @override
   void initState() {
     super.initState();
@@ -99,10 +94,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       _playersPage = 0;
       _stagesPage = 0;
       _teamsPage = 0;
-      _filteredShows = null;
-      _filteredPlayers = null;
-      _filteredStages = null;
-      _filteredTeams = null;
     });
   }
 
