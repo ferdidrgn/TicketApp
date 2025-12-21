@@ -458,19 +458,21 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     ];
   }
 
+// _SearchPageState sınıfının içinde bu metodu güncelle:
+
   List<Widget> _buildFilteredSection(
-    final ({bool players, bool shows, bool stages, bool teams}) loading,
-    final ({
+    ({bool players, bool shows, bool stages, bool teams}) loading,
+    ({
       List<Player> players,
       List<Show> shows,
       List<Stage> stages,
       List<Team> teams
     }) data,
   ) {
-    // 1. Grid Helper
-    Widget grid(
-        final List<dynamic> items, final Widget Function(BuildContext, dynamic) builder,
-        {final int cross = 2, final double ratio = 0.8}) {
+    // 1. Standart Grid Helper (Oyuncu, Mekan, Ekip için)
+    Widget standardGrid(
+        List<dynamic> items, Widget Function(BuildContext, dynamic) builder,
+        {int cross = 2, double ratio = 0.8}) {
       return SliverPadding(
         padding: const EdgeInsets.all(16),
         sliver: SliverGrid(
@@ -478,18 +480,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               crossAxisCount: cross,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: ratio // Burası dinamik oldu
-              ),
+              childAspectRatio: ratio),
           delegate: SliverChildBuilderDelegate(
-              (final ctx, final i) => builder(ctx, items[i]),
+              (ctx, i) => builder(ctx, items[i]),
               childCount: items.length),
         ),
       );
     }
 
-    // 2. Shimmer Helper (DÜZELTİLEN KISIM)
-    // height parametresini kaldırdım, grid hücresini doldurması için ratio kullandım.
-    Widget shimmer({final int cross = 2, final double ratio = 0.8}) {
+    // 2. Standart Shimmer Helper
+    Widget standardShimmer({int cross = 2, double ratio = 0.8}) {
       return SliverPadding(
         padding: const EdgeInsets.all(16),
         sliver: SliverGrid(
@@ -497,10 +497,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               crossAxisCount: cross,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: ratio // <-- ARTIK PARAMETREYİ KULLANIYOR
-              ),
+              childAspectRatio: ratio),
           delegate: SliverChildBuilderDelegate(
-              (final _, final __) => const ShimmerLoading(
+              (_, __) => const ShimmerLoading(
                   width: double.infinity,
                   height: double.infinity,
                   borderRadius: 16),
@@ -509,45 +508,81 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       );
     }
 
-    // 3. Switch Case
+    // 3. Mozaik Shimmer (Sadece Etkinlikler için)
+    Widget mosaicShimmer() => SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (_, index) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                        child: ShimmerLoading(
+                            width: double.infinity,
+                            height: 200 + (index % 2) * 80,
+                            borderRadius: 20)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: ShimmerLoading(
+                            width: double.infinity,
+                            height: 280 - (index % 2) * 80,
+                            borderRadius: 20)),
+                  ],
+                ),
+              ),
+              childCount: 4,
+            ),
+          ),
+        );
+
+    // KONTROL MANTIĞI
     return switch (_selectedFilter) {
+      // CASE 1: ETKİNLİKLER (MOZAİK / KAOTİK TASARIM)
       1 => [
-          // Shows: Default ratio 0.8
           if (loading.shows)
-            shimmer(ratio: 0.8)
+            mosaicShimmer()
           else
-            grid(data.shows, (final c, final s) => _GridCards.show(c, s as Show),
-                ratio: 0.8),
+            _ChaoticMosaicBuilder(
+                items: data.shows,
+                builder: (c, s, h) =>
+                    _GridCards.showMosaic(c, s as Show, height: h)),
           if (data.shows.isEmpty && !loading.shows)
             _buildEmptyState(msg: "Etkinlik bulunamadı"),
         ],
+
+      // CASE 2: OYUNCULAR (STANDART GRID - 3 Sütun)
       2 => [
-          // Players: Ratio 0.7 (Daha uzun kartlar) ve 3 sütun
           if (loading.players)
-            shimmer(cross: 3, ratio: 0.7)
+            standardShimmer(cross: 3, ratio: 0.7)
           else
-            grid(data.players, (final c, final p) => _GridCards.player(c, p as Player),
+            standardGrid(
+                data.players, (c, p) => _GridCards.player(c, p as Player),
                 cross: 3, ratio: 0.7),
           if (data.players.isEmpty && !loading.players)
             _buildEmptyState(msg: "Oyuncu bulunamadı"),
         ],
+
+      // CASE 3: MEKANLAR (STANDART GRID - 2 Sütun, Yatay)
       3 => [
-          // Stages: Ratio 1.2 (Yatay kartlar)
           if (loading.stages)
-            shimmer(ratio: 1.2)
+            standardShimmer(ratio: 1.2)
           else
-            grid(
-                data.stages, (final c, final s) => _GridCards.vertical(c, s as Stage, true),
+            standardGrid(
+                data.stages, (c, s) => _GridCards.vertical(c, s as Stage, true),
                 ratio: 1.2),
           if (data.stages.isEmpty && !loading.stages)
             _buildEmptyState(msg: "Mekan bulunamadı"),
         ],
+
+      // CASE 4: EKİPLER (STANDART GRID - 2 Sütun, Yatay)
       4 => [
-          // Teams: Ratio 1.2 (Yatay kartlar)
           if (loading.teams)
-            shimmer(ratio: 1.2)
+            standardShimmer(ratio: 1.2)
           else
-            grid(data.teams, (final c, final t) => _GridCards.vertical(c, t as Team, false),
+            standardGrid(
+                data.teams, (c, t) => _GridCards.vertical(c, t as Team, false),
                 ratio: 1.2),
           if (data.teams.isEmpty && !loading.teams)
             _buildEmptyState(msg: "Ekip bulunamadı"),
@@ -577,119 +612,256 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       );
 }
 
+class _ChaoticMosaicBuilder<T> extends StatelessWidget {
+  final List<T> items;
+  final Widget Function(BuildContext, T, double) builder;
+
+  const _ChaoticMosaicBuilder({required this.items, required this.builder});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            // Listeyi 3'erli gruplar (chunks) halinde işle
+            final chunkIndex = index * 3;
+            if (chunkIndex >= items.length) return null;
+
+            // Bu gruptaki itemları al (güvenli şekilde)
+            final item1 = items[chunkIndex];
+            final item2 =
+                (chunkIndex + 1 < items.length) ? items[chunkIndex + 1] : null;
+            final item3 =
+                (chunkIndex + 2 < items.length) ? items[chunkIndex + 2] : null;
+
+            // Desen Tipi: Çift indeksler Tip A (Sol Büyük), Tek indeksler Tip B (Sağ Büyük)
+            final isTypeA = index % 2 == 0;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16), // Gruplar arası boşluk
+              child: isTypeA
+                  ? _buildTypeA(context, item1, item2, item3) // Sol Büyük
+                  : _buildTypeB(context, item1, item2, item3), // Sağ Büyük
+            );
+          },
+          childCount: (items.length / 3).ceil(),
+        ),
+      ),
+    );
+  }
+
+  // TİP A: Sol tarafta devasa tek kart, Sağda iki küçük kart
+  Widget _buildTypeA(BuildContext context, T item1, T? item2, T? item3) {
+    return IntrinsicHeight(
+      // Yükseklikleri eşitlemek veya kontrol etmek için
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // SOL: Büyük Kart (Girintili efekt için biraz aşağı itilmiş)
+          Expanded(
+            flex: 10,
+            child: Transform.translate(
+              offset: const Offset(0, 10), // Modern sarkma efekti
+              child: builder(context, item1, 320),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // SAĞ: Varsa 2 tane alt alta küçük kart
+          Expanded(
+            flex: 9, // Hafif asimetri (10'a 9 oran)
+            child: Column(
+              children: [
+                if (item2 != null)
+                  SizedBox(height: 150, child: builder(context, item2, 150)),
+                if (item3 != null) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(height: 150, child: builder(context, item3, 150)),
+                ]
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // TİP B: Solda iki küçük kart, Sağda devasa tek kart
+  Widget _buildTypeB(BuildContext context, T item1, T? item2, T? item3) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // SOL: Küçük kartlar sütunu
+          Expanded(
+            flex: 9,
+            child: Column(
+              children: [
+                SizedBox(height: 150, child: builder(context, item1, 150)),
+                if (item2 != null) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(height: 150, child: builder(context, item2, 150)),
+                ]
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // SAĞ: Büyük Kart (Burada item3 varsa onu büyük yapıyoruz, yoksa yer tutucu)
+          if (item3 != null)
+            Expanded(
+              flex: 10,
+              child: Transform.translate(
+                offset: const Offset(0, -10), // Bu sefer yukarı çıkıntı efekti
+                child: builder(context, item3, 320),
+              ),
+            )
+          else
+            const Spacer(flex: 10),
+        ],
+      ),
+    );
+  }
+}
+
 // =============================================================================
 // 5. CARD IMPLEMENTATIONS (KART TASARIMLARI)
 // =============================================================================
 
 class _GridCards {
-  static Widget show(final BuildContext context, final Show show) =>
+  // 1. MOZAİK İÇİN (Yükseklik alır)
+  static Widget showMosaic(BuildContext context, Show show,
+          {required double height}) =>
+      _BaseCardContainer(
+        onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => ShowDetailPage(showId: show.id))),
+        width: double.infinity,
+        child: SizedBox(
+          // Yüksekliği zorlamak için
+          height: height,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              OptimizedCachedImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
+              Container(
+                  decoration: BoxDecoration(gradient: _Styles.darkGradient)),
+              Positioned(
+                bottom: 12,
+                left: 12,
+                right: 12,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _BadgeLabel("ETKİNLİK", isDark: true),
+                      const SizedBox(height: 8),
+                      Text(show.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2)),
+                    ]),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  // 2. STANDART GRID İÇİN (Yükseklik almaz, Aspect Ratio'ya uyar)
+  static Widget player(BuildContext context, Player player) =>
       _BaseCardContainer(
         onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (final _) => ShowDetailPage(showId: show.id))),
+                builder: (_) => PlayerDetailPage(playerId: player.id))),
+        child: Column(
+          children: [
+            Expanded(
+                child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: OptimizedCachedImage(
+                            imageUrl: player.imageUrl, fit: BoxFit.cover)))),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                children: [
+                  const _BadgeLabel("OYUNCU"),
+                  const SizedBox(height: 2),
+                  Text(player.firstName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.onSurface)),
+                  Text(player.lastName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: context.colors.onSurface.withOpacity(0.8))),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  // 3. STANDART GRID İÇİN (Mekan ve Ekip)
+  static Widget vertical(BuildContext context, dynamic item, bool isStage) =>
+      _BaseCardContainer(
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => isStage
+                    ? StageDetailPage(stageId: item.id)
+                    : TeamDetailsPage(teamId: item.id))),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            OptimizedCachedImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
+            OptimizedCachedImage(imageUrl: item.imageUrl, fit: BoxFit.cover),
             Container(
-                decoration: BoxDecoration(gradient: _Styles.darkGradient)),
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.7)
+                ],
+                        stops: const [
+                  0.6,
+                  1.0
+                ]))),
             Positioned(
               bottom: 12,
               left: 12,
               right: 12,
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _BadgeLabel("ETKİNLİK", isDark: true),
-                    const SizedBox(height: 8),
-                    Text(show.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2)),
-                  ]),
-            ),
-          ],
-        ),
-      );
-
-  static Widget player(final BuildContext context, final Player player) =>
-      _BaseCardContainer(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => PlayerDetailPage(playerId: player.id))),
-        child: Column(
-          children: [
-            Expanded(
-                child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: OptimizedCachedImage(
-                            imageUrl: player.imageUrl, fit: BoxFit.cover)))),
-            const _BadgeLabel("OYUNCU"),
-            const SizedBox(height: 4),
-            Text(player.firstName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.onSurface)),
-            Text(player.lastName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: context.colors.onSurface.withOpacity(0.8))),
-            const SizedBox(height: 8),
-          ],
-        ),
-      );
-
-  static Widget vertical(
-          final BuildContext context, final dynamic item, final bool isStage) =>
-      _BaseCardContainer(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => isStage
-                    ? StageDetailPage(stageId: item.id)
-                    : TeamDetailsPage(teamId: item.id))),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-                child: OptimizedCachedImage(
-                    imageUrl: item.imageUrl, fit: BoxFit.cover)),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     _BadgeLabel(isStage ? "MEKAN" : "EKİP"),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(item.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: context.colors.onSurface)),
+                            color: Colors.white)),
                   ]),
             ),
           ],
         ),
       );
-}
-
-// =============================================================================
+} // =============================================================================
 // 6. SECTIONS (YATAY LİSTELER)
 // =============================================================================
 
