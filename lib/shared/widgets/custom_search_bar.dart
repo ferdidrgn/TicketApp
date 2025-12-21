@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../../../../core/theme/theme_context_extension.dart';
+import '../../core/theme/theme_context_extension.dart';
 
 /// Sanat eseri gibi tasarlanmış search bar
 /// Hem ana sayfada hem AppBar'da kullanılabilir
-class ArtisticSearchBar extends StatefulWidget {
+class CustomSearchbar extends StatefulWidget {
   final VoidCallback onTap;
   final String hintText;
-  final bool isCompact; // Yeni prop: compact mod için
+  final bool isCompact;
 
-  const ArtisticSearchBar({
+  const CustomSearchbar({
     super.key,
     required this.onTap,
     this.hintText = "Tiyatro, konser, sanatçı ara...",
@@ -17,10 +17,10 @@ class ArtisticSearchBar extends StatefulWidget {
   });
 
   @override
-  State<ArtisticSearchBar> createState() => _ArtisticSearchBarState();
+  State<CustomSearchbar> createState() => _CustomSearchbarState();
 }
 
-class _ArtisticSearchBarState extends State<ArtisticSearchBar>
+class _CustomSearchbarState extends State<CustomSearchbar>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;

@@ -21,9 +21,7 @@ class _CustomDescriptionCardState extends State<CustomDescriptionCard> {
       displayDescription = '${displayDescription.substring(0, 100)}...';
 
     return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 4,
       margin: const EdgeInsets.symmetric(vertical: 10),
       child: Padding(

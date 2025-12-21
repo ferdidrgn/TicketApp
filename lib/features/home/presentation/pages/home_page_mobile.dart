@@ -14,7 +14,7 @@ import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../../tickets/presentation/pages/my_ticket_page.dart';
-import '../widgets/mobile/artistic_search_bar.dart';
+import '../../../../shared/widgets/custom_search_bar.dart';
 import '../widgets/mobile/category_grid.dart';
 import '../widgets/mobile/decorative_elements.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
@@ -115,7 +115,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       // Direkt burada tıklama olayı
                       borderRadius: BorderRadius.circular(24),
                       // ArtisticSearchBar'ın border radius'u ile aynı
-                      child: ArtisticSearchBar(
+                      child: CustomSearchbar(
                         onTap: _openSearch, // Yine içeride de olabilir
                         isCompact: true,
                       ),
@@ -147,7 +147,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               const HeroSection(),
 
               // Artistic Search Bar (ana sayfa) - Normal boyutta
-              ArtisticSearchBar(onTap: _openSearch),
+              CustomSearchbar(onTap: _openSearch),
 
               const SizedBox(height: 20),
 
