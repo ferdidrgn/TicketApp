@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_context_extension.dart';
-import '../../../../shared/widgets/background/immersive_background.dart';
+import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_floating_action_button.dart';
 import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
@@ -122,7 +122,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       ),
       floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
-      body: ImmersiveBackground(
+      body: CustomAppBackground(
         child: Stack(
           children: [
             // Main content - Üstten padding'i kaldırıyoruz

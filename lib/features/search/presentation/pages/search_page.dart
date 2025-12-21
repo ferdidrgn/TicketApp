@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import '../../../../core/theme/theme_context_extension.dart';
-import '../../../../shared/widgets/background/immersive_background.dart';
+import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
@@ -309,7 +309,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
       // 2. ExtendBodyBehindAppBar önemli, içerik en tepeye kadar çıksın
       extendBodyBehindAppBar: true,
-      body: ImmersiveBackground(
+      body: CustomAppBackground(
         backgroundColor: context.isDarkMode
             ? const Color(0xFF10141C) // Daha lacivert/koyu bir zemin
             : const Color(0xFFF0F4F8),

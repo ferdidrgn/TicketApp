@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../features/home/presentation/widgets/mobile/decorative_elements.dart';
 
-class ImmersiveBackground extends StatelessWidget {
+class CustomAppBackground extends StatelessWidget {
   final Widget child;
   final Color? backgroundColor;
   final Color? ambientColor;
   final Color? particleColor;
 
-  const ImmersiveBackground({
+  const CustomAppBackground({
     super.key,
     required this.child,
     this.backgroundColor,
