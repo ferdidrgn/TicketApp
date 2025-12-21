@@ -51,12 +51,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _onScroll() {
-    if (mounted) {
+    if (mounted)
       setState(() {
         _scrollOffset = _scrollController.offset;
         _showSearchInAppBar = _scrollOffset > 250;
       });
-    }
   }
 
   void _loadAllData() {
@@ -65,13 +64,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     ref.read(stageProvider.notifier).loadStages(true);
   }
 
-  void _navigateToPage(final Widget page) {
-    Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
-  }
+  void _openSearch() => _navigateToPage(const SearchPage());
 
-  void _openSearch() {
-    _navigateToPage(const SearchPage());
-  }
+  void _navigateToPage(final Widget page) =>
+      Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
 
   @override
   Widget build(final BuildContext context) {
