@@ -14,7 +14,7 @@ import 'package:ticketapp/features/login/presentation/providers/login_provider.d
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_notifier.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
-import 'package:ticketapp/features/players/presentation/widgets/players_card.dart';
+import 'package:ticketapp/features/players/presentation/widgets/players_bubble_card.dart';
 import 'package:ticketapp/features/seat/presentation/pages/seat_details.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_notifier.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
@@ -174,7 +174,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                         ),
 
                         // 5. MODÜLER PLAYER CARD (Aktif Kadro)
-                        PlayersCard(
+                        PlayersBubbleCard(
                           title: "OYUNCU KADROSU",
                           players: playerState
                               .getPlayersByIds(showData.nowPlayersId),
@@ -187,7 +187,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
                         // 6. MODÜLER PLAYER CARD (Eski Kadro)
                         if (showData.oldPlayersId.isNotEmpty)
-                          PlayersCard(
+                          PlayersBubbleCard(
                             title: "ESKİ KADRO",
                             players: playerState
                                 .getPlayersByIds(showData.oldPlayersId),

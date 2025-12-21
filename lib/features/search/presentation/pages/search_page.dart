@@ -7,9 +7,11 @@ import 'package:ticketapp/core/theme/app_colors.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../shared/widgets/section_header.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../players/presentation/providers/player_provider.dart';
+import '../../../players/presentation/widgets/players_hero_card.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -1266,52 +1268,17 @@ class PlayerSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(title: "Oyuncular", subtitle: "Sahnenin Yıldızları"),
+        const SectionHeader(
+            title: "Oyuncular", subtitle: "Sahnenin Yıldızları"),
         SizedBox(
           height: 190,
           child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: players.length,
-            physics: const BouncingScrollPhysics(),
-            itemBuilder: (final context, final index) {
-              final player = players[index];
-              return Container(
-                width: 120,
-                margin: const EdgeInsets.only(right: 12),
-                child: GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (final _) =>
-                            PlayerDetailPage(playerId: player.id)),
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: OptimizedCachedImage(
-                          imageUrl: player.imageUrl,
-                          width: 120,
-                          height: 120,
-                          isCircular: true,
-                          borderRadius: 60,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text("${player.firstName}\n${player.lastName}",
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: context.colors.onSurface)),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: players.length,
+              physics: const BouncingScrollPhysics(),
+              itemBuilder: (final context, final index) =>
+                  PlayerHeroCard(player: players[index])),
         ),
         const SizedBox(height: 32),
       ],
@@ -1340,7 +1307,7 @@ class PlayerSection extends StatelessWidget {
                         child: ShimmerLoading(
                             height: 120, width: 120, isCircular: true)),
                     const SizedBox(height: 8),
-                    ShimmerLoading(height: 12, width: 80, borderRadius: 4),
+                    ShimmerCard(height: 12, width: 80),
                   ],
                 ),
               );

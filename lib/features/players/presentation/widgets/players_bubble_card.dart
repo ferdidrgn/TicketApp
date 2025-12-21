@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 
-class PlayersCard extends StatelessWidget {
+class PlayersBubbleCard extends StatelessWidget {
   final List<Player> players;
   final String title;
   final bool isGrayscale;
   final Function(String) onPlayerTap;
 
-  const PlayersCard({
+  const PlayersBubbleCard({
     super.key,
     required this.players,
     required this.title,
@@ -19,10 +20,7 @@ class PlayersCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    if (players.isEmpty) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.white;
+    final textColor = context.textTheme.bodyLarge?.color ?? Colors.white;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,10 +51,9 @@ class PlayersCard extends StatelessWidget {
                   child: Card(
                     elevation: 3,
                     // Kart rengini temaya uygun hale getirdim
-                    color: theme.cardColor,
+                    color: context.theme.cardColor,
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(60)),
-                    ),
+                        borderRadius: BorderRadius.all(Radius.circular(60))),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
