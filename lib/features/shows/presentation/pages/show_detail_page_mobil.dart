@@ -55,6 +55,23 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   }
 
   Future<void> _fetchInitialData() async {
+    ref.listen<EventState>(
+      eventProvider,
+      (final previous, final next) {
+        if ((previous?.dataList?.isEmpty ?? true) &&
+            (next.dataList?.isNotEmpty ?? false)) {
+          final stageIds = next.dataList!
+              .map((final e) => e.stageId)
+              .where((final id) => id.isNotEmpty && id != '0')
+              .toSet()
+              .toList();
+
+          if (stageIds.isNotEmpty)
+            ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
+        }
+      },
+    );
+
     final showNotifier = ref.read(showProvider.notifier);
     var showData = ref.read(showProvider).getShowById(widget.showId);
 
@@ -96,20 +113,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     final eventState = ref.watch(eventProvider);
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
-
-    // Sahne verilerini yükleme
-    ref.listen<EventState>(eventProvider, (final previous, final next) {
-      if ((previous?.dataList?.isEmpty ?? true) &&
-          (next.dataList?.isNotEmpty ?? false)) {
-        final stageIds = next.dataList!
-            .map((final e) => e.stageId)
-            .where((final id) => id.isNotEmpty && id != '0')
-            .toSet()
-            .toList();
-        if (stageIds.isNotEmpty)
-          ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
-      }
-    });
 
     if (showState.isLoading && showData == null)
       return Scaffold(body: Center(child: CircularProgressIndicator()));
