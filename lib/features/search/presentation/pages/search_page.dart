@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
-import '../../../../core/services/pagination_controller.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../players/domain/entities/player.dart';
@@ -86,8 +85,6 @@ class NetworkImageWithFallback extends StatelessWidget {
   }
 }
 
-// ... (Importlar ve Shimmer Widgetları aynı kalacak, burayı atlıyorum) ...
-
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -96,31 +93,50 @@ class SearchPage extends ConsumerStatefulWidget {
 }
 
 class _SearchPageState extends ConsumerState<SearchPage> {
-  // ... (Değişkenler ve initState aynı) ...
-  PaginationController<Show>? showsPagination;
-  PaginationController<Player>? playersPagination;
-  PaginationController<Stage>? stagesPagination;
-  PaginationController<Team>? teamsPagination;
-
   final TextEditingController _textEditingController = TextEditingController();
-  Timer? _debounce;
+  final ScrollController _scrollController = ScrollController();
   bool _isInitialized = false;
   int _selectedFilterIndex = 0;
+
+  // Manuel pagination
+  int _showsPage = 0;
+  int _playersPage = 0;
+  int _stagesPage = 0;
+  int _teamsPage = 0;
+  final int _itemsPerPage = 20;
+
+  bool _isLoadingMore = false;
+
+  List<Show>? _filteredShows;
+  List<Player>? _filteredPlayers;
+  List<Stage>? _filteredStages;
+  List<Team>? _filteredTeams;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initializeData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeData();
+      _scrollController.addListener(_onScroll);
+    });
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _textEditingController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  // ... (Data Logic kısımları aynı) ...
+  void _onScroll() {
+    if (_selectedFilterIndex == 0) return; // Tümü'nde pagination yok
+
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreItems();
+    }
+  }
+
   Future<void> _initializeData() async {
     if (_isInitialized) return;
     await Future.wait([
@@ -133,37 +149,87 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       if (ref.read(teamProvider).isListNullOrEmpty)
         ref.read(teamProvider.notifier).loadTeams(true),
     ]);
-    _initializePaginationControllers();
     setState(() => _isInitialized = true);
   }
 
-  void _initializePaginationControllers() {
-    showsPagination = _createPagination(ref.read(showProvider).dataList);
-    playersPagination = _createPagination(ref.read(playerProvider).dataList);
-    stagesPagination = _createPagination(ref.read(stageProvider).dataList);
-    teamsPagination = _createPagination(ref.read(teamProvider).dataList);
-  }
-
-  PaginationController<T>? _createPagination<T>(final List<T>? list) {
-    if (list == null) return null;
-    return PaginationController(allItems: list, itemsPerPage: 20);
-  }
-
   void _onSearchChanged(final String query) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      ref.read(searchQueryProvider.notifier).setQuery(query.toLowerCase());
-      setState(() {
-        showsPagination?.reset();
-        playersPagination?.reset();
-        stagesPagination?.reset();
-        teamsPagination?.reset();
-      });
+    ref.read(searchQueryProvider.notifier).setQuery(query.toLowerCase());
+    // Debounce bitince otomatik resetlenecek, widget rebuild olacak
+  }
+
+  void _resetPagination() {
+    setState(() {
+      _showsPage = 0;
+      _playersPage = 0;
+      _stagesPage = 0;
+      _teamsPage = 0;
+      _filteredShows = null;
+      _filteredPlayers = null;
+      _filteredStages = null;
+      _filteredTeams = null;
     });
   }
 
-  List<T>? _filterItems<T>(final List<T>? items,
-      final String Function(T) selector, final String query) {
+  void _loadMoreItems() {
+    if (_isLoadingMore) return;
+
+    setState(() => _isLoadingMore = true);
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          if (_selectedFilterIndex == 1) {
+            final totalShows = _filterItems(
+                  ref.read(showProvider).dataList,
+                  (s) => s.name,
+                  ref.read(searchQueryProvider),
+                )?.length ??
+                0;
+            if ((_showsPage + 1) * _itemsPerPage < totalShows) {
+              _showsPage++;
+            }
+          } else if (_selectedFilterIndex == 2) {
+            final totalPlayers = _filterItems(
+                  ref.read(playerProvider).dataList,
+                  (p) => '${p.firstName} ${p.lastName}',
+                  ref.read(searchQueryProvider),
+                )?.length ??
+                0;
+            if ((_playersPage + 1) * _itemsPerPage < totalPlayers) {
+              _playersPage++;
+            }
+          } else if (_selectedFilterIndex == 3) {
+            final totalStages = _filterItems(
+                  ref.read(stageProvider).dataList,
+                  (s) => s.name,
+                  ref.read(searchQueryProvider),
+                )?.length ??
+                0;
+            if ((_stagesPage + 1) * _itemsPerPage < totalStages) {
+              _stagesPage++;
+            }
+          } else if (_selectedFilterIndex == 4) {
+            final totalTeams = _filterItems(
+                  ref.read(teamProvider).dataList,
+                  (t) => t.name,
+                  ref.read(searchQueryProvider),
+                )?.length ??
+                0;
+            if ((_teamsPage + 1) * _itemsPerPage < totalTeams) {
+              _teamsPage++;
+            }
+          }
+          _isLoadingMore = false;
+        });
+      }
+    });
+  }
+
+  List<T>? _filterItems<T>(
+    final List<T>? items,
+    final String Function(T) selector,
+    final String query,
+  ) {
     if (items == null) return null;
     if (query.isEmpty) return items;
     return items
@@ -171,7 +237,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         .toList();
   }
 
-  // --- UI BUILD (DÜZELTİLEN KISIM) ---
+  List<T> _getPaginatedItems<T>(List<T> items, int page) {
+    final endIndex = math.min((page + 1) * _itemsPerPage, items.length);
+    return items.sublist(0, endIndex);
+  }
+
   @override
   Widget build(final BuildContext context) {
     final searchQuery = ref.watch(searchQueryProvider);
@@ -180,28 +250,51 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final stageState = ref.watch(stageProvider);
     final teamState = ref.watch(teamProvider);
 
-    // Yükleniyor durumlarını kontrol et
     final bool showsLoading = showState.isLoading || !_isInitialized;
     final bool playersLoading = playerState.isLoading || !_isInitialized;
     final bool stagesLoading = stageState.isLoading || !_isInitialized;
     final bool teamsLoading = teamState.isLoading || !_isInitialized;
 
-    final shows = _filterItems(showState.dataList, (s) => s.name, searchQuery);
+    // Her query değişiminde cache'i temizle ve yeniden filtrele
+    final shows =
+        _filterItems(showState.dataList, (s) => s.name, searchQuery) ??
+            <Show>[];
     final players = _filterItems(playerState.dataList,
-        (p) => '${p.firstName} ${p.lastName}', searchQuery);
+            (p) => '${p.firstName} ${p.lastName}', searchQuery) ??
+        <Player>[];
     final stages =
-        _filterItems(stageState.dataList, (s) => s.name, searchQuery);
-    final teams = _filterItems(teamState.dataList, (t) => t.name, searchQuery);
+        _filterItems(stageState.dataList, (s) => s.name, searchQuery) ??
+            <Stage>[];
+    final teams =
+        _filterItems(teamState.dataList, (t) => t.name, searchQuery) ??
+            <Team>[];
 
-    // Hiçbir sonuç yok mu kontrolü (Loading bittiyse ve listeler boşsa)
+    // Pagination uygula
+    final paginatedShows = _selectedFilterIndex == 0
+        ? shows
+        : (shows.isNotEmpty ? _getPaginatedItems(shows, _showsPage) : <Show>[]);
+    final paginatedPlayers = _selectedFilterIndex == 0
+        ? players
+        : (players.isNotEmpty
+            ? _getPaginatedItems(players, _playersPage)
+            : <Player>[]);
+    final paginatedStages = _selectedFilterIndex == 0
+        ? stages
+        : (stages.isNotEmpty
+            ? _getPaginatedItems(stages, _stagesPage)
+            : <Stage>[]);
+    final paginatedTeams = _selectedFilterIndex == 0
+        ? teams
+        : (teams.isNotEmpty ? _getPaginatedItems(teams, _teamsPage) : <Team>[]);
+
     final bool isAllEmpty = !showsLoading &&
         !playersLoading &&
         !stagesLoading &&
         !teamsLoading &&
-        (shows?.isEmpty ?? true) &&
-        (players?.isEmpty ?? true) &&
-        (stages?.isEmpty ?? true) &&
-        (teams?.isEmpty ?? true);
+        paginatedShows.isEmpty &&
+        paginatedPlayers.isEmpty &&
+        paginatedStages.isEmpty &&
+        paginatedTeams.isEmpty;
 
     return Scaffold(
       backgroundColor: context.scaffoldBackgroundColor,
@@ -211,9 +304,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           SafeArea(
             bottom: false,
             child: CustomScrollView(
+              controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               slivers: [
-                // 1. HEADER
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
@@ -231,38 +324,28 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ),
                 ),
 
-                // 2. FILTERS
                 SliverToBoxAdapter(
                   child: FilterList(
-                      selectedIndex: _selectedFilterIndex,
-                      onSelected: (index) =>
-                          setState(() => _selectedFilterIndex = index)),
+                    selectedIndex: _selectedFilterIndex,
+                    onSelected: (index) {
+                      setState(() => _selectedFilterIndex = index);
+                      _resetPagination();
+                    },
+                  ),
                 ),
 
-                // 3. CONTENT
-
-                // --- OYUNCULAR ---
-                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 2) ...[
+                // TÜMÜ - Yatay scroll sections
+                if (_selectedFilterIndex == 0) ...[
                   if (playersLoading)
                     const SliverToBoxAdapter(
-                      child: PlayerSection(players: [], isLoading: true),
-                    )
-                  else if (players != null && players.isNotEmpty)
+                        child: PlayerSection(players: [], isLoading: true))
+                  else if (paginatedPlayers.isNotEmpty)
                     SliverToBoxAdapter(
-                      child: PlayerSection(players: players),
-                    ),
-                ],
-
-                // --- ETKİNLİKLER (GİRİFT MOZAİK) ---
-                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 1) ...[
+                        child: PlayerSection(players: paginatedPlayers)),
                   if (showsLoading)
                     const HorizontalMosaicSection(shows: [], isLoading: true)
-                  else if (shows != null && shows.isNotEmpty)
-                    HorizontalMosaicSection(shows: shows),
-                ],
-
-                // --- MEKANLAR ---
-                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 3) ...[
+                  else if (paginatedShows.isNotEmpty)
+                    HorizontalMosaicSection(shows: paginatedShows),
                   if (stagesLoading)
                     const SliverToBoxAdapter(
                       child: HorizontalListSection(
@@ -273,49 +356,62 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         isLoading: true,
                       ),
                     )
-                  else if (stages != null && stages.isNotEmpty)
+                  else if (paginatedStages.isNotEmpty)
                     SliverToBoxAdapter(
                       child: HorizontalListSection(
                         title: "Mekanlar",
                         subtitle: "Atmosfer",
-                        items: stages,
+                        items: paginatedStages,
                         isStage: true,
-                        isLoading: false,
                       ),
                     ),
-                ],
-
-                // --- EKİPLER ---
-                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 4) ...[
                   if (teamsLoading)
                     const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.only(bottom: 100),
-                        child: HorizontalListSection(
-                          title: "Ekipler",
-                          subtitle: "Mutfak",
-                          items: [],
-                          isStage: false,
-                          isLoading: true,
-                        ),
+                      child: HorizontalListSection(
+                        title: "Ekipler",
+                        subtitle: "Mutfak",
+                        items: [],
+                        isStage: false,
+                        isLoading: true,
                       ),
                     )
-                  else if (teams != null && teams.isNotEmpty)
+                  else if (paginatedTeams.isNotEmpty)
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 100),
-                        child: HorizontalListSection(
-                          title: "Ekipler",
-                          subtitle: "Mutfak",
-                          items: teams,
-                          isStage: false,
-                          isLoading: false,
-                        ),
+                      child: HorizontalListSection(
+                        title: "Ekipler",
+                        subtitle: "Mutfak",
+                        items: paginatedTeams,
+                        isStage: false,
                       ),
                     ),
+                ]
+                // FİLTRE SEÇİLİ - Dikey mozaik
+                else if (_selectedFilterIndex == 1) ...[
+                  if (showsLoading)
+                    _buildMosaicShimmer(context, itemCount: 6)
+                  else if (paginatedShows.isNotEmpty)
+                    _buildShowsMosaic(context, paginatedShows),
+                  if (_isLoadingMore) _buildLoadingIndicator(),
+                ] else if (_selectedFilterIndex == 2) ...[
+                  if (playersLoading)
+                    _buildMosaicShimmer(context, itemCount: 6)
+                  else if (paginatedPlayers.isNotEmpty)
+                    _buildPlayersMosaic(context, paginatedPlayers),
+                  if (_isLoadingMore) _buildLoadingIndicator(),
+                ] else if (_selectedFilterIndex == 3) ...[
+                  if (stagesLoading)
+                    _buildMosaicShimmer(context, itemCount: 6)
+                  else if (paginatedStages.isNotEmpty)
+                    _buildStagesMosaic(context, paginatedStages),
+                  if (_isLoadingMore) _buildLoadingIndicator(),
+                ] else if (_selectedFilterIndex == 4) ...[
+                  if (teamsLoading)
+                    _buildMosaicShimmer(context, itemCount: 6)
+                  else if (paginatedTeams.isNotEmpty)
+                    _buildTeamsMosaic(context, paginatedTeams),
+                  if (_isLoadingMore) _buildLoadingIndicator(),
                 ],
 
-                // --- EMPTY STATE (HİÇBİR SONUÇ YOKSA) ---
                 if (isAllEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
@@ -323,25 +419,23 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.search_off_rounded,
-                            size: 80,
-                            color: context.colors.onSurface.withOpacity(0.2),
-                          ),
+                          Icon(Icons.search_off_rounded,
+                              size: 80,
+                              color: context.colors.onSurface.withOpacity(0.2)),
                           const SizedBox(height: 16),
-                          Text(
-                            "Aradığınız kriterlere uygun\nsonuç bulunamadı.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: context.colors.onSurface.withOpacity(0.5),
-                            ),
-                          ),
+                          Text("Aradığınız kriterlere uygun\nsonuç bulunamadı.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: context.colors.onSurface
+                                      .withOpacity(0.5))),
                         ],
                       ),
                     ),
                   ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
           ),
@@ -349,25 +443,424 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ),
     );
   }
+
+  Widget _buildLoadingIndicator() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(context.primaryColor),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // DİKEY MOZAİK - ETKİNLİKLER
+  Widget _buildShowsMosaic(BuildContext context, List<Show> shows) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            if (index % 2 == 0 && index + 1 < shows.length) {
+              return _buildShowTwoColumnRow(context, shows, index);
+            } else if (index % 2 == 0) {
+              return _buildShowCard(context, shows[index], height: 240);
+            }
+            return const SizedBox.shrink();
+          },
+          childCount: (shows.length / 1.5).ceil(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShowTwoColumnRow(
+      BuildContext context, List<Show> shows, int index) {
+    final show1 = shows[index];
+    final show2 = index + 1 < shows.length ? shows[index + 1] : null;
+    final random = math.Random(index);
+    final height1 = 200.0 + random.nextDouble() * 100;
+    final height2 = show2 != null ? 200.0 + random.nextDouble() * 100 : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _buildShowCard(context, show1, height: height1)),
+          const SizedBox(width: 12),
+          if (show2 != null)
+            Expanded(child: _buildShowCard(context, show2, height: height2)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShowCard(BuildContext context, Show show,
+      {required double height}) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => ShowDetailPage(showId: show.id))),
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 6))
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            NetworkImageWithFallback(
+                imageUrl: show.imageUrl, fit: BoxFit.cover, borderRadius: 0),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
+                  stops: const [0.5, 1.0],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: context.primaryColor,
+                        borderRadius: BorderRadius.circular(6)),
+                    child: const Text('ETKİNLİK',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5)),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(show.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // DİKEY MOZAİK - OYUNCULAR
+  Widget _buildPlayersMosaic(BuildContext context, List<Player> players) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.75,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _buildPlayerCard(context, players[index]),
+          childCount: players.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayerCard(BuildContext context, Player player) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => PlayerDetailPage(playerId: player.id))),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
+          ],
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 3,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
+                child: NetworkImageWithFallback(
+                    imageUrl: player.imageUrl,
+                    fit: BoxFit.cover,
+                    borderRadius: 0),
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Center(
+                child: Text('${player.firstName} ${player.lastName}',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: context.colors.onSurface)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // DİKEY MOZAİK - MEKANLAR
+  Widget _buildStagesMosaic(BuildContext context, List<Stage> stages) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final stage = stages[index];
+            final random = math.Random(index);
+            final height = 180.0 + random.nextDouble() * 80;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildStageCard(context, stage, height: height),
+            );
+          },
+          childCount: stages.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStageCard(BuildContext context, Stage stage,
+      {required double height}) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => StageDetailPage(stageId: stage.id))),
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 15,
+                offset: const Offset(0, 6))
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            NetworkImageWithFallback(
+                imageUrl: stage.imageUrl, fit: BoxFit.cover, borderRadius: 0),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                  stops: const [0.3, 1.0],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 20,
+              bottom: 20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                        color: context.primaryColor,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: const Text('MEKAN',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5)),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(stage.name,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // DİKEY MOZAİK - EKİPLER
+  Widget _buildTeamsMosaic(BuildContext context, List<Team> teams) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 1.2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _buildTeamCard(context, teams[index]),
+          childCount: teams.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTeamCard(BuildContext context, Team team) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => TeamDetailsPage(teamId: team.id))),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            NetworkImageWithFallback(
+                imageUrl: team.imageUrl, fit: BoxFit.cover, borderRadius: 0),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.75)],
+                  stops: const [0.5, 1.0],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: context.primaryColor,
+                        borderRadius: BorderRadius.circular(6)),
+                    child: const Text('EKİP',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(team.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          height: 1.1)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMosaicShimmer(BuildContext context, {int itemCount = 6}) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            if (index % 2 == 0 && index + 1 < itemCount) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                        child: ShimmerLoading(
+                            width: double.infinity,
+                            height: 200 + (index % 3) * 30,
+                            borderRadius: 20)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: ShimmerLoading(
+                            width: double.infinity,
+                            height: 220 + (index % 2) * 40,
+                            borderRadius: 20)),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+          childCount: (itemCount / 2).ceil(),
+        ),
+      ),
+    );
+  }
 }
 
+// YATAY SCROLL SECTIONS (ORİJİNAL TASARIM)
 class HorizontalMosaicSection extends StatelessWidget {
   final List<Show> shows;
   final bool isLoading;
 
-  const HorizontalMosaicSection({
-    super.key,
-    required this.shows,
-    this.isLoading = false,
-  });
+  const HorizontalMosaicSection(
+      {super.key, required this.shows, this.isLoading = false});
 
   @override
   Widget build(final BuildContext context) {
-    if (isLoading) {
-      return _buildMosaicShimmer(context);
-    }
+    if (isLoading) return _buildShimmer(context);
 
-    // Sütun sayısını hesapla
     final int columnCount = (shows.length / 2).ceil();
 
     return SliverToBoxAdapter(
@@ -375,11 +868,9 @@ class HorizontalMosaicSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionTitle(
-            title: "Etkinlikler Vitrini",
-            subtitle: "Akışta Kal",
-          ),
+              title: "Etkinlikler Vitrini", subtitle: "Akışta Kal"),
           SizedBox(
-            height: 340, // Toplam yükseklik
+            height: 340,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -388,34 +879,28 @@ class HorizontalMosaicSection extends StatelessWidget {
               itemBuilder: (final context, final index) {
                 final int firstIndex = index * 2;
                 final int secondIndex = firstIndex + 1;
-
                 final Show? show1 =
                     firstIndex < shows.length ? shows[firstIndex] : null;
                 final Show? show2 =
                     secondIndex < shows.length ? shows[secondIndex] : null;
-
                 if (show1 == null) return const SizedBox();
 
-                // --- GİRİFT MOZAİK DESENİ ---
-                // 4 adımlı bir döngü ile kartların birleşim noktasını sürekli değiştiriyoruz.
-                // Bu sayede "düzenli düzensizlik" (organik) bir görünüm oluşur.
                 int flexTop, flexBottom;
                 final int patternStep = index % 4;
-
                 switch (patternStep) {
-                  case 0: // Üst çok baskın
+                  case 0:
                     flexTop = 5;
                     flexBottom = 2;
                     break;
-                  case 1: // Alt hafif baskın
+                  case 1:
                     flexTop = 3;
                     flexBottom = 4;
                     break;
-                  case 2: // Alt çok baskın
+                  case 2:
                     flexTop = 2;
                     flexBottom = 5;
                     break;
-                  case 3: // Üst hafif baskın
+                  case 3:
                     flexTop = 4;
                     flexBottom = 3;
                     break;
@@ -425,11 +910,10 @@ class HorizontalMosaicSection extends StatelessWidget {
                 }
 
                 return Container(
-                  width: 155, // Biraz daha daraltarak sıkışık/dolu görünüm
+                  width: 155,
                   margin: const EdgeInsets.only(right: 10),
                   child: Column(
                     children: [
-                      // --- ÜST KART ---
                       Expanded(
                         flex: flexTop,
                         child: _MosaicShowCard(
@@ -442,10 +926,7 @@ class HorizontalMosaicSection extends StatelessWidget {
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: 10), // Kartlar arası boşluk
-
-                      // --- ALT KART ---
+                      const SizedBox(height: 10),
                       if (show2 != null)
                         Expanded(
                           flex: flexBottom,
@@ -460,7 +941,7 @@ class HorizontalMosaicSection extends StatelessWidget {
                           ),
                         )
                       else
-                        Spacer(flex: flexBottom), // Kart yoksa boşluk bırak
+                        Spacer(flex: flexBottom),
                     ],
                   ),
                 );
@@ -473,16 +954,13 @@ class HorizontalMosaicSection extends StatelessWidget {
     );
   }
 
-  // Shimmer için de aynı deseni kullanıyoruz ki yüklenirken görüntü zıplamasın
-  Widget _buildMosaicShimmer(final BuildContext context) {
+  Widget _buildShimmer(BuildContext context) {
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionTitle(
-            title: "Etkinlikler Vitrini",
-            subtitle: "Akışta Kal",
-          ),
+              title: "Etkinlikler Vitrini", subtitle: "Akışta Kal"),
           SizedBox(
             height: 340,
             child: ListView.builder(
@@ -520,19 +998,17 @@ class HorizontalMosaicSection extends StatelessWidget {
                       Expanded(
                         flex: flexTop,
                         child: const ShimmerLoading(
-                          width: double.infinity,
-                          height: double.infinity,
-                          borderRadius: 20,
-                        ),
+                            width: double.infinity,
+                            height: double.infinity,
+                            borderRadius: 20),
                       ),
                       const SizedBox(height: 10),
                       Expanded(
                         flex: flexBottom,
                         child: const ShimmerLoading(
-                          width: double.infinity,
-                          height: double.infinity,
-                          borderRadius: 20,
-                        ),
+                            width: double.infinity,
+                            height: double.infinity,
+                            borderRadius: 20),
                       ),
                     ],
                   ),
@@ -547,15 +1023,11 @@ class HorizontalMosaicSection extends StatelessWidget {
   }
 }
 
-// Mozaik Kart Tasarımı
 class _MosaicShowCard extends StatelessWidget {
   final Show show;
   final VoidCallback onTap;
 
-  const _MosaicShowCard({
-    required this.show,
-    required this.onTap,
-  });
+  const _MosaicShowCard({required this.show, required this.onTap});
 
   @override
   Widget build(final BuildContext context) {
@@ -567,26 +1039,21 @@ class _MosaicShowCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 6,
+                offset: const Offset(0, 3)),
           ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Resim
             NetworkImageWithFallback(
-              imageUrl: show.imageUrl,
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-              borderRadius: 0,
-            ),
-
-            // Gölge Efekti
+                imageUrl: show.imageUrl,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                borderRadius: 0),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -597,8 +1064,6 @@ class _MosaicShowCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Metinler
             Positioned(
               bottom: 10,
               left: 10,
@@ -614,27 +1079,21 @@ class _MosaicShowCard extends StatelessWidget {
                       color: context.primaryColor.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
-                      "ETKİNLİK",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: const Text("ETKİNLİK",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    show.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      height: 1.1,
-                    ),
-                  ),
+                  Text(show.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          height: 1.1)),
                 ],
               ),
             ),
@@ -644,10 +1103,6 @@ class _MosaicShowCard extends StatelessWidget {
     );
   }
 }
-
-// =============================================================================
-// COMPONENT WIDGETS (HORIZONTAL LISTS & PLAYERS)
-// =============================================================================
 
 class HorizontalListSection extends StatelessWidget {
   final String title;
@@ -678,13 +1133,9 @@ class HorizontalListSection extends StatelessWidget {
               itemCount: isLoading ? 5 : items.length,
               physics: const BouncingScrollPhysics(),
               itemBuilder: (final context, final index) {
-                if (isLoading) {
+                if (isLoading)
                   return const ShimmerCard(width: 220, height: 150);
-                }
-                return HorizontalCard(
-                  item: items[index],
-                  isStage: isStage,
-                );
+                return HorizontalCard(item: items[index], isStage: isStage);
               },
             ),
           ),
@@ -696,21 +1147,11 @@ class HorizontalListSection extends StatelessWidget {
 class HorizontalCard extends StatelessWidget {
   final dynamic item;
   final bool isStage;
-  final bool isLoading;
 
-  const HorizontalCard({
-    super.key,
-    required this.item,
-    required this.isStage,
-    this.isLoading = false,
-  });
+  const HorizontalCard({super.key, required this.item, required this.isStage});
 
   @override
   Widget build(final BuildContext context) {
-    if (isLoading) {
-      return const ShimmerCard(width: 220, height: 150);
-    }
-
     return GestureDetector(
       onTap: () {
         if (isStage)
@@ -737,10 +1178,9 @@ class HorizontalCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
           ],
         ),
         padding: const EdgeInsets.all(4),
@@ -751,11 +1191,10 @@ class HorizontalCard extends StatelessWidget {
               width: 90,
               height: 142,
               child: NetworkImageWithFallback(
-                imageUrl: item.imageUrl,
-                width: 90,
-                height: 142,
-                borderRadius: 16,
-              ),
+                  imageUrl: item.imageUrl,
+                  width: 90,
+                  height: 142,
+                  borderRadius: 16),
             ),
             Expanded(
               child: Padding(
@@ -764,27 +1203,21 @@ class HorizontalCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      isStage ? "MEKAN" : "EKİP",
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: context.primaryColor,
-                      ),
-                    ),
+                    Text(isStage ? "MEKAN" : "EKİP",
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: context.primaryColor)),
                     const SizedBox(height: 4),
                     Flexible(
-                      child: Text(
-                        item.name,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.onSurface,
-                        ),
-                      ),
+                      child: Text(item.name,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: context.colors.onSurface)),
                     ),
                   ],
                 ),
@@ -801,17 +1234,12 @@ class PlayerSection extends StatelessWidget {
   final List<Player> players;
   final bool isLoading;
 
-  const PlayerSection({
-    super.key,
-    required this.players,
-    this.isLoading = false,
-  });
+  const PlayerSection(
+      {super.key, required this.players, this.isLoading = false});
 
   @override
   Widget build(final BuildContext context) {
-    if (isLoading) {
-      return _buildPlayerShimmer();
-    }
+    if (isLoading) return _buildShimmer();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -848,17 +1276,14 @@ class PlayerSection extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        "${player.firstName}\n${player.lastName}",
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: context.colors.onSurface,
-                        ),
-                      ),
+                      Text("${player.firstName}\n${player.lastName}",
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: context.colors.onSurface)),
                     ],
                   ),
                 ),
@@ -871,14 +1296,11 @@ class PlayerSection extends StatelessWidget {
     );
   }
 
-  Widget _buildPlayerShimmer() {
+  Widget _buildShimmer() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(
-          title: "Oyuncular",
-          subtitle: "Sahnenin Yıldızları",
-        ),
+        const SectionTitle(title: "Oyuncular", subtitle: "Sahnenin Yıldızları"),
         SizedBox(
           height: 190,
           child: ListView.builder(
@@ -893,12 +1315,8 @@ class PlayerSection extends StatelessWidget {
                 child: Column(
                   children: [
                     Expanded(
-                      child: ShimmerLoading(
-                        height: 120,
-                        width: 120,
-                        isCircular: true,
-                      ),
-                    ),
+                        child: ShimmerLoading(
+                            height: 120, width: 120, isCircular: true)),
                     const SizedBox(height: 8),
                     ShimmerLoading(height: 12, width: 80, borderRadius: 4),
                   ],
@@ -913,10 +1331,6 @@ class PlayerSection extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// SUPPORT WIDGETS
-// =============================================================================
-
 class SectionTitle extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -929,24 +1343,18 @@ class SectionTitle extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              subtitle.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                letterSpacing: 2.0,
-                fontWeight: FontWeight.bold,
-                color: context.primaryColor.withOpacity(0.8),
-              ),
-            ),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: context.colors.onSurface,
-                letterSpacing: -0.5,
-              ),
-            ),
+            Text(subtitle.toUpperCase(),
+                style: TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 2.0,
+                    fontWeight: FontWeight.bold,
+                    color: context.primaryColor.withOpacity(0.8))),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.onSurface,
+                    letterSpacing: -0.5)),
             const SizedBox(height: 12),
           ],
         ),
@@ -957,11 +1365,8 @@ class FilterList extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onSelected;
 
-  const FilterList({
-    super.key,
-    required this.selectedIndex,
-    required this.onSelected,
-  });
+  const FilterList(
+      {super.key, required this.selectedIndex, required this.onSelected});
 
   @override
   Widget build(final BuildContext context) {
@@ -1037,26 +1442,18 @@ class _ArtisticBrushChipState extends State<ArtisticBrushChip>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
+        duration: const Duration(milliseconds: 300), vsync: this);
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
-    if (widget.isSelected) {
-      _controller.forward();
-    }
+    if (widget.isSelected) _controller.forward();
   }
 
   @override
   void didUpdateWidget(final ArtisticBrushChip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isSelected != oldWidget.isSelected) {
-      if (widget.isSelected) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
+      widget.isSelected ? _controller.forward() : _controller.reverse();
     }
   }
 
