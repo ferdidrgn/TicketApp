@@ -3,7 +3,7 @@ import 'package:ticketapp/core/constants/app_constants.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 
-import '../../../../../shared/navigation/empty_state_message_web.dart';
+import '../../../../../shared/widgets/empty_state_message_web.dart';
 
 class PlayerSection extends StatelessWidget {
   final List<Player> players;

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/constants/app_constants.dart';
 import '../../core/util/responsive_utils.dart';
 import '../../features/shows/presentation/providers/galerry_provider.dart';
-import '../navigation/empty_state_message_web.dart';
+import 'empty_state_message_web.dart';
 import 'optimized_cached_image.dart';
 
 /// ------------------------------------------------------------

@@ -7,7 +7,7 @@ import 'package:ticketapp/features/events/presentation/providers/event_state.dar
 import 'package:ticketapp/features/login/presentation/providers/login_provider.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
-import '../../../../../shared/navigation/empty_state_message_web.dart';
+import '../../../../../shared/widgets/empty_state_message_web.dart';
 import '../../../../stages/presentation/providers/stage_notifier.dart';
 import '../../../domain/entities/show.dart';
 
