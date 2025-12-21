@@ -4,32 +4,36 @@ import '../../../../../core/theme/theme_context_extension.dart';
 
 // Ambient light effect in the background
 class AmbientLightEffect extends StatelessWidget {
-  const AmbientLightEffect({super.key});
+  final Color? color;
+
+  const AmbientLightEffect({super.key, this.color});
 
   @override
-  Widget build(final BuildContext context) {
-    return Positioned(
-      top: -100,
-      right: -100,
-      child: Container(
-        width: 300,
-        height: 300,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: context.primaryColor.withOpacity(0.15),
+  Widget build(final BuildContext context) => Positioned(
+        top: -100,
+        right: -100,
+        child: Container(
+          width: 300,
+          height: 300,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            // Eğer renk gelirse onu kullan, gelmezse temadaki rengi kullan
+            color: (color ?? context.primaryColor).withOpacity(0.15),
+          ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 // Floating particles for ambient effect
 class FloatingParticles extends StatelessWidget {
-  const FloatingParticles({super.key});
+  final Color? color;
+
+  const FloatingParticles({super.key, this.color});
 
   @override
   Widget build(final BuildContext context) {
-    final random = math.Random(1); // Fixed seed for consistent positioning
+    // Burada işlem olduğu için süslü parantez kalmak zorunda
+    final random = math.Random(1);
     final screenSize = MediaQuery.of(context).size;
 
     return SizedBox.expand(
@@ -42,9 +46,9 @@ class FloatingParticles extends StatelessWidget {
               width: random.nextDouble() * 3 + 1,
               height: random.nextDouble() * 3 + 1,
               decoration: BoxDecoration(
-                color: context.primaryColor.withOpacity(
-                  random.nextDouble() * 0.3 + 0.1,
-                ),
+                // Dışarıdan gelen rengi kullan
+                color: (color ?? context.primaryColor)
+                    .withOpacity(random.nextDouble() * 0.3 + 0.1),
                 shape: BoxShape.circle,
               ),
             ),
@@ -60,50 +64,49 @@ class HeroSection extends StatelessWidget {
   const HeroSection({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Transform.rotate(
-            angle: -0.03,
-            child: Text(
-              "SANAT",
-              style: TextStyle(
-                fontSize: 42,
-                fontWeight: FontWeight.w900,
-                color: context.primaryColor.withOpacity(0.7),
-                letterSpacing: -2,
-                shadows: [
-                  Shadow(
-                    color: context.isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(2, 2),
-                  ),
-                ],
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Transform.rotate(
+              angle: -0.03,
+              child: Text(
+                "SANAT",
+                style: TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  color: context.primaryColor.withOpacity(0.7),
+                  letterSpacing: -2,
+                  shadows: [
+                    Shadow(
+                      color: context.isDarkMode
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(2, 2),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Transform.translate(
-            offset: const Offset(30, -15),
-            child: Text(
-              "DUVARI",
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.w800,
-                color: context.isDarkMode ? Colors.grey[400] : Colors.grey[700],
-                fontStyle: FontStyle.italic,
-                letterSpacing: 3,
+            Transform.translate(
+              offset: const Offset(30, -15),
+              child: Text(
+                "DUVARI",
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w800,
+                  color:
+                      context.isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                  fontStyle: FontStyle.italic,
+                  letterSpacing: 3,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 }
 
 // Divider with accent
@@ -111,38 +114,36 @@ class DividerWithAccent extends StatelessWidget {
   const DividerWithAccent({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      child: Column(
-        children: [
-          Container(
-            height: 2,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  context.primaryColor.withOpacity(0.3),
-                  Colors.transparent,
-                ],
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+        child: Column(
+          children: [
+            Container(
+              height: 2,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    context.primaryColor.withOpacity(0.3),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
-          ),
-          Transform.translate(
-            offset: const Offset(20, -1),
-            child: Container(
-              height: 1,
-              width: 100,
-              color: context.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+            Transform.translate(
+              offset: const Offset(20, -1),
+              child: Container(
+                height: 1,
+                width: 100,
+                color: context.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 }
 
-/// Bottom quote - İlham verici alıntı
+// Bottom quote
 class BottomQuote extends StatelessWidget {
   const BottomQuote({super.key});
 

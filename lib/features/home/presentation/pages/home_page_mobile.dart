@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_context_extension.dart';
+import '../../../../shared/widgets/background/immersive_background.dart';
 import '../../../../shared/widgets/custom_floating_action_button.dart';
 import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
@@ -93,10 +94,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             bottom: false,
             child: Padding(
               padding: EdgeInsets.only(
-                top: _showSearchInAppBar ? 8 : 0,
-                left: 20,
-                right: 20,
-              ),
+                  top: _showSearchInAppBar ? 8 : 0, left: 20, right: 20),
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 300),
                 opacity: _showSearchInAppBar ? 1 : 0,
@@ -124,115 +122,113 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       ),
       floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
-      body: Stack(
-        children: [
-          // Ambient lighting effects
-          const AmbientLightEffect(),
-          const FloatingParticles(),
+      body: ImmersiveBackground(
+        child: Stack(
+          children: [
+            // Main content - Üstten padding'i kaldırıyoruz
+            ListView(
+              controller: _scrollController,
+              padding: const EdgeInsets.only(top: 20, bottom: 100),
+              // Top padding'i azalt
+              physics: const BouncingScrollPhysics(),
+              children: [
+                // Hero text
+                const HeroSection(),
 
-          // Main content - Üstten padding'i kaldırıyoruz
-          ListView(
-            controller: _scrollController,
-            padding: const EdgeInsets.only(top: 20, bottom: 100),
-            // Top padding'i azalt
-            physics: const BouncingScrollPhysics(),
-            children: [
-              // Hero text
-              const HeroSection(),
+                // Artistic Search Bar (ana sayfa) - Normal boyutta
+                CustomSearchbar(onTap: _openSearch),
 
-              // Artistic Search Bar (ana sayfa) - Normal boyutta
-              CustomSearchbar(onTap: _openSearch),
+                const SizedBox(height: 20),
 
-              const SizedBox(height: 20),
-
-              // Stories (Campaigns)
-              SectionHeader(
-                title: "Öne Çıkanlar",
-                subtitle: "Vitrin",
-                onTap: () => _navigateToPage(const CampaignShowcasePage()),
-              ),
-              StoryCircles(
-                state: campaignState,
-                onStoryTap: (final index) => _navigateToPage(
-                  CampaignShowcasePage(initialIndex: index),
+                // Stories (Campaigns)
+                SectionHeader(
+                  title: "Öne Çıkanlar",
+                  subtitle: "Vitrin",
+                  onTap: () => _navigateToPage(const CampaignShowcasePage()),
                 ),
-              ),
-              const DividerWithAccent(),
-              const SizedBox(height: 30),
-
-              // Categories
-              SectionHeader(
-                title: "Kategoriler",
-                subtitle: "Sanatın Renkleri",
-                onTap: () {}, // TODO: Kategori sayfası
-              ),
-              const CategoryGrid(),
-              const DividerWithAccent(),
-              const SizedBox(height: 30),
-
-              // Discover Shows
-              SectionHeader(
-                title: "Keşfet",
-                subtitle: "Sana Özel Seçkiler",
-                onTap: () {}, // TODO: Kategori sayfası
-              ),
-              ShowCollage(
-                state: showState,
-                onShowTap: (final showId) => _navigateToPage(
-                  ShowDetailPage(showId: showId),
+                StoryCircles(
+                  state: campaignState,
+                  onStoryTap: (final index) => _navigateToPage(
+                    CampaignShowcasePage(initialIndex: index),
+                  ),
                 ),
-              ),
-              const DividerWithAccent(),
-              const SizedBox(height: 30),
+                const DividerWithAccent(),
+                const SizedBox(height: 30),
 
-              // Venues
-              SectionHeader(
-                title: "Mekanlar",
-                subtitle: "Şehrin Sahneleri",
-                onTap: () {}, // TODO: Mekanlar sayfası
-              ),
-              StageCarousel(
-                state: stageState,
-                onStageTap: (final stageId) => _navigateToPage(
-                  StageDetailPage(stageId: stageId),
+                // Categories
+                SectionHeader(
+                  title: "Kategoriler",
+                  subtitle: "Sanatın Renkleri",
+                  onTap: () {}, // TODO: Kategori sayfası
                 ),
-              ),
-              const DividerWithAccent(),
-              const SizedBox(height: 30),
+                const CategoryGrid(),
+                const DividerWithAccent(),
+                const SizedBox(height: 30),
 
-              // Special offer
-              const TicketStubCard(
-                title: "Romeo & Juliet",
-                subtitle: "%20 İndirim Fırsatı",
-                imageUrl:
-                    'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
-              ),
-              const SizedBox(height: 30),
+                // Discover Shows
+                SectionHeader(
+                  title: "Keşfet",
+                  subtitle: "Sana Özel Seçkiler",
+                  onTap: () {}, // TODO: Kategori sayfası
+                ),
+                ShowCollage(
+                  state: showState,
+                  onShowTap: (final showId) => _navigateToPage(
+                    ShowDetailPage(showId: showId),
+                  ),
+                ),
+                const DividerWithAccent(),
+                const SizedBox(height: 30),
 
-              // Bottom extras
-              QuickActionsGrid(
-                onNotificationsTap: () =>
-                    _navigateTo(const PermissionSettingsScreen()),
-                onFavoritesTap: () => _navigateTo(FavoritesPage()),
-                onTicketsTap: () =>
-                    _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
-                onCalendarTap: () {
-                  // TODO: Etkinlik takvimi
-                },
-              ),
-              const SizedBox(height: 30),
+                // Venues
+                SectionHeader(
+                  title: "Mekanlar",
+                  subtitle: "Şehrin Sahneleri",
+                  onTap: () {}, // TODO: Mekanlar sayfası
+                ),
+                StageCarousel(
+                  state: stageState,
+                  onStageTap: (final stageId) => _navigateToPage(
+                    StageDetailPage(stageId: stageId),
+                  ),
+                ),
+                const DividerWithAccent(),
+                const SizedBox(height: 30),
 
-              const TrendingNowSection(),
-              const SizedBox(height: 30),
+                // Special offer
+                const TicketStubCard(
+                  title: "Romeo & Juliet",
+                  subtitle: "%20 İndirim Fırsatı",
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
+                ),
+                const SizedBox(height: 30),
 
-              const NewsletterSubscribe(),
-              const SizedBox(height: 40),
+                // Bottom extras
+                QuickActionsGrid(
+                  onNotificationsTap: () =>
+                      _navigateTo(const PermissionSettingsScreen()),
+                  onFavoritesTap: () => _navigateTo(FavoritesPage()),
+                  onTicketsTap: () =>
+                      _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
+                  onCalendarTap: () {
+                    // TODO: Etkinlik takvimi
+                  },
+                ),
+                const SizedBox(height: 30),
 
-              const BottomQuote(),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ],
+                const TrendingNowSection(),
+                const SizedBox(height: 30),
+
+                const NewsletterSubscribe(),
+                const SizedBox(height: 40),
+
+                const BottomQuote(),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

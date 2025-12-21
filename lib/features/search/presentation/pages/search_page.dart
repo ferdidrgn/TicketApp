@@ -309,33 +309,44 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
       // 2. ExtendBodyBehindAppBar önemli, içerik en tepeye kadar çıksın
       extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          Positioned.fill(child: ImmersiveBackground.search(context)),
-          SafeArea(
-            bottom: false,
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(child: _buildHeader(query)),
-                SliverToBoxAdapter(child: _buildFilterList()),
-                if (isAllEmpty)
-                  _buildEmptyState()
-                else if (_selectedFilter == 0)
-                  ..._buildAllSections(loading, data)
-                else
-                  ..._buildFilteredSection(loading, data),
-                if (_loadingMore)
-                  const SliverToBoxAdapter(
-                      child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: CircularProgressIndicator()))),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
-              ],
+      body: ImmersiveBackground(
+        backgroundColor: context.isDarkMode
+            ? const Color(0xFF10141C) // Daha lacivert/koyu bir zemin
+            : const Color(0xFFF0F4F8),
+        // Daha soğuk bir gri/beyaz
+
+        ambientColor: Colors.indigoAccent,
+        // Işık huzmesi indigo renginde olsun
+
+        particleColor: Colors.blueGrey.withOpacity(0.3),
+        // Parçacıklar mavi-gri olsun
+        child: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(child: _buildHeader(query)),
+                  SliverToBoxAdapter(child: _buildFilterList()),
+                  if (isAllEmpty)
+                    _buildEmptyState()
+                  else if (_selectedFilter == 0)
+                    ..._buildAllSections(loading, data)
+                  else
+                    ..._buildFilteredSection(loading, data),
+                  if (_loadingMore)
+                    const SliverToBoxAdapter(
+                        child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Center(child: CircularProgressIndicator()))),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
