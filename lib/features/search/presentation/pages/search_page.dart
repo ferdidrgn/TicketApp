@@ -229,7 +229,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const TopHeader(title: "Harikuladeler"),
+                        const TopHeader(title: "Tablolarımız"),
                         const SizedBox(height: 20),
                         GlassSearchBar(
                           controller: _textEditingController,
