@@ -1,28 +1,19 @@
 import 'dart:async';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Arama sorgusunu debounce eden provider
 final searchQueryProvider =
-StateNotifierProvider.autoDispose<SearchQueryNotifier, String>(
-      (final ref) => SearchQueryNotifier(),
-);
+    NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
 
-class SearchQueryNotifier extends StateNotifier<String> {
-  SearchQueryNotifier() : super('');
+class SearchQueryNotifier extends Notifier<String> {
+  Timer? _debounce;
 
-  Timer? _debounceTimer;
+  @override
+  String build() => '';
 
   /// Yeni sorgu geldiğinde 500ms bekler, sonra state'i günceller
   void setQuery(final String query) {
-    _debounceTimer?.cancel(); // önceki timer iptal
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      state = query;
-    });
-  }
-
-  @override
-  void dispose() {
-    _debounceTimer?.cancel();
-    super.dispose();
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () => state = query);
   }
 }
