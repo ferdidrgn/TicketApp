@@ -24,125 +24,12 @@ import '../../../teams/presentation/pages/team_details_mobile.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/search_query_provider.dart';
 
-class SearchPage extends ConsumerStatefulWidget {
-  const SearchPage({super.key});
+// =============================================================================
+// ORTAK UTILITY BİLEŞENLERİ
+// =============================================================================
 
-  @override
-  ConsumerState<SearchPage> createState() => _SearchPageState();
-}
-
-class _SearchPageState extends ConsumerState<SearchPage> {
-  final TextEditingController _textEditingController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  bool _isInitialized = false;
-  int _selectedFilterIndex = 0;
-
-  // Manuel pagination
-  int _showsPage = 0;
-  int _playersPage = 0;
-  int _stagesPage = 0;
-  int _teamsPage = 0;
-  final int _itemsPerPage = 20;
-
-  bool _isLoadingMore = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _initializeData();
-      _scrollController.addListener(_onScroll);
-    });
-  }
-
-  @override
-  void dispose() {
-    _textEditingController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_selectedFilterIndex == 0) return; // Tümü'nde pagination yok
-
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) _loadMoreItems();
-  }
-
-  Future<void> _initializeData() async {
-    if (_isInitialized) return;
-    await Future.wait([
-      if (ref.read(showProvider).isListNullOrEmpty)
-        ref.read(showProvider.notifier).loadShows(true),
-      if (ref.read(playerProvider).isListNullOrEmpty)
-        ref.read(playerProvider.notifier).getPlayers(true),
-      if (ref.read(stageProvider).isListNullOrEmpty)
-        ref.read(stageProvider.notifier).loadStages(true),
-      if (ref.read(teamProvider).isListNullOrEmpty)
-        ref.read(teamProvider.notifier).loadTeams(true),
-    ]);
-    setState(() => _isInitialized = true);
-  }
-
-  // Debounce bitince otomatik resetlenecek, widget rebuild olacak
-  void _onSearchChanged(final String query) =>
-      ref.read(searchQueryProvider.notifier).setQuery(query.toLowerCase());
-
-  void _resetPagination() => setState(() {
-        _showsPage = 0;
-        _playersPage = 0;
-        _stagesPage = 0;
-        _teamsPage = 0;
-      });
-
-  void _loadMoreItems() {
-    if (_isLoadingMore) return;
-
-    setState(() => _isLoadingMore = true);
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted)
-        setState(() {
-          if (_selectedFilterIndex == 1) {
-            final totalShows = _filterItems(
-                  ref.read(showProvider).dataList,
-                  (final s) => s.name,
-                  ref.read(searchQueryProvider),
-                )?.length ??
-                0;
-            if ((_showsPage + 1) * _itemsPerPage < totalShows) _showsPage++;
-          } else if (_selectedFilterIndex == 2) {
-            final totalPlayers = _filterItems(
-                  ref.read(playerProvider).dataList,
-                  (final p) => '${p.firstName} ${p.lastName}',
-                  ref.read(searchQueryProvider),
-                )?.length ??
-                0;
-            if ((_playersPage + 1) * _itemsPerPage < totalPlayers)
-              _playersPage++;
-          } else if (_selectedFilterIndex == 3) {
-            final totalStages = _filterItems(
-                  ref.read(stageProvider).dataList,
-                  (final s) => s.name,
-                  ref.read(searchQueryProvider),
-                )?.length ??
-                0;
-            if ((_stagesPage + 1) * _itemsPerPage < totalStages) _stagesPage++;
-          } else if (_selectedFilterIndex == 4) {
-            final totalTeams = _filterItems(
-                  ref.read(teamProvider).dataList,
-                  (final t) => t.name,
-                  ref.read(searchQueryProvider),
-                )?.length ??
-                0;
-            if ((_teamsPage + 1) * _itemsPerPage < totalTeams) _teamsPage++;
-          }
-          _isLoadingMore = false;
-        });
-    });
-  }
-
-  List<T>? _filterItems<T>(
+class _SearchUtils {
+  static List<T>? filterItems<T>(
     final List<T>? items,
     final String Function(T) selector,
     final String query,
@@ -154,735 +41,392 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         .toList();
   }
 
-  //start and end item index
-  List<T> _getPaginatedItems<T>(final List<T> items, final int page) =>
-      items.sublist(0, math.min((page + 1) * _itemsPerPage, items.length));
+  static List<T> paginateItems<T>(
+      final List<T> items, final int page, final int itemsPerPage) {
+    final start = page * itemsPerPage;
+    final end = math.min(start + itemsPerPage, items.length);
+    return items.sublist(0, end);
+  }
+}
 
-  @override
-  Widget build(final BuildContext context) {
-    final searchQuery = ref.watch(searchQueryProvider);
-    final showState = ref.watch(showProvider);
-    final playerState = ref.watch(playerProvider);
-    final stageState = ref.watch(stageProvider);
-    final teamState = ref.watch(teamProvider);
-
-    final bool showsLoading = showState.isLoading || !_isInitialized;
-    final bool playersLoading = playerState.isLoading || !_isInitialized;
-    final bool stagesLoading = stageState.isLoading || !_isInitialized;
-    final bool teamsLoading = teamState.isLoading || !_isInitialized;
-
-    // Her query değişiminde cache'i temizle ve yeniden filtrele
-    final shows =
-        _filterItems(showState.dataList, (final s) => s.name, searchQuery) ??
-            <Show>[];
-    final players = _filterItems(playerState.dataList,
-            (final p) => '${p.firstName} ${p.lastName}', searchQuery) ??
-        <Player>[];
-    final stages =
-        _filterItems(stageState.dataList, (final s) => s.name, searchQuery) ??
-            <Stage>[];
-    final teams =
-        _filterItems(teamState.dataList, (final t) => t.name, searchQuery) ??
-            <Team>[];
-
-    // Pagination uygula
-    final paginatedShows = _selectedFilterIndex == 0
-        ? shows
-        : (shows.isNotEmpty ? _getPaginatedItems(shows, _showsPage) : <Show>[]);
-    final paginatedPlayers = _selectedFilterIndex == 0
-        ? players
-        : (players.isNotEmpty
-            ? _getPaginatedItems(players, _playersPage)
-            : <Player>[]);
-    final paginatedStages = _selectedFilterIndex == 0
-        ? stages
-        : (stages.isNotEmpty
-            ? _getPaginatedItems(stages, _stagesPage)
-            : <Stage>[]);
-    final paginatedTeams = _selectedFilterIndex == 0
-        ? teams
-        : (teams.isNotEmpty ? _getPaginatedItems(teams, _teamsPage) : <Team>[]);
-
-    final bool isAllEmpty = !showsLoading &&
-        !playersLoading &&
-        !stagesLoading &&
-        !teamsLoading &&
-        paginatedShows.isEmpty &&
-        paginatedPlayers.isEmpty &&
-        paginatedStages.isEmpty &&
-        paginatedTeams.isEmpty;
-
-    return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
-      body: Stack(
+class _SearchShimmers {
+  static Widget horizontalMosaic() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Positioned.fill(child: ThemeBackground()),
-          SafeArea(
-            bottom: false,
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const TopHeader(title: "Harikuladeler"),
-                        const SizedBox(height: 20),
-                        GlassSearchBar(
-                          controller: _textEditingController,
-                          onChanged: _onSearchChanged,
-                        ),
-                      ],
-                    ),
+          const SectionHeader(
+              title: "Etkinlikler Vitrini", subtitle: "Akışta Kal"),
+          SizedBox(
+            height: 340,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: 4,
+              physics: const NeverScrollableScrollPhysics(),
+              itemBuilder: (final context, final index) {
+                final pattern = index % 4;
+                final flexes = _getMosaicFlexes(pattern);
+                return Container(
+                  width: 155,
+                  margin: const EdgeInsets.only(right: 10),
+                  child: Column(
+                    children: [
+                      Expanded(flex: flexes.$1, child: _shimmerBox(20)),
+                      const SizedBox(height: 10),
+                      Expanded(flex: flexes.$2, child: _shimmerBox(20)),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      );
+
+  static Widget horizontalList(
+          {required final String title, required final String subtitle}) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(title: title, subtitle: subtitle),
+          SizedBox(
+            height: 150,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: 5,
+              physics: const NeverScrollableScrollPhysics(),
+              itemBuilder: (final context, final index) =>
+                  const ShimmerCard(width: 220, height: 150),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      );
+
+  static Widget playerSection() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+              title: "Performansçılar", subtitle: "Sahnenin Yıldızları"),
+          SizedBox(
+            height: 190,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: 5,
+              physics: const NeverScrollableScrollPhysics(),
+              itemBuilder: (final context, final index) => Container(
+                width: 120,
+                margin: const EdgeInsets.only(right: 12),
+                child: Column(
+                  children: [
+                    Expanded(child: ShimmerCard(height: 120, width: 120)),
+                    const SizedBox(height: 8),
+                    ShimmerLoading(height: 12, width: 80, isCircular: true),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      );
+
+  static Widget verticalGrid({
+    final int crossAxisCount = 2,
+    final double itemHeight = 200,
+    final int itemCount = 6,
+  }) =>
+      GridView.builder(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.8,
+        ),
+        itemCount: itemCount,
+        itemBuilder: (final context, final index) =>
+            _shimmerBox(16, height: itemHeight),
+      );
+
+  static Widget _shimmerBox(final double borderRadius,
+          {final double? height}) =>
+      ShimmerLoading(
+        width: double.infinity,
+        height: height ?? double.infinity,
+        borderRadius: borderRadius,
+      );
+
+  static (int, int) _getMosaicFlexes(final int pattern) {
+    switch (pattern) {
+      case 0:
+        return (5, 2);
+      case 1:
+        return (3, 4);
+      case 2:
+        return (2, 5);
+      case 3:
+        return (4, 3);
+      default:
+        return (1, 1);
+    }
+  }
+}
+
+class _SearchGrids {
+  static SliverGrid buildGrid<T>({
+    required final List<T> items,
+    required final Widget Function(BuildContext, T) itemBuilder,
+    final int crossAxisCount = 2,
+    final double childAspectRatio = 0.8,
+    final double spacing = 16,
+  }) =>
+      SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          childAspectRatio: childAspectRatio,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (final context, final index) => itemBuilder(context, items[index]),
+          childCount: items.length,
+        ),
+      );
+}
+
+class _SearchCards {
+  static Widget showCard(final BuildContext context, final Show show,
+          final VoidCallback onTap) =>
+      _baseCard(
+        context: context,
+        imageUrl: show.imageUrl,
+        label: "ETKİNLİK",
+        title: show.name,
+        onTap: onTap,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+          stops: const [0.4, 1.0],
+        ),
+      );
+
+  static Widget playerCard(final BuildContext context, final Player player,
+          final VoidCallback onTap) =>
+      Container(
+        decoration: _cardDecoration(context),
+        child: Column(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: OptimizedCachedImage(
+                    imageUrl: player.imageUrl,
+                    fit: BoxFit.cover,
                   ),
                 ),
+              ),
+            ),
+            _cardLabel(context, "OYUNCU"),
+            const SizedBox(height: 4),
+            Text(
+              player.firstName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: context.colors.onSurface,
+              ),
+            ),
+            Text(
+              player.lastName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: context.colors.onSurface.withOpacity(0.8),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
 
-                SliverToBoxAdapter(
-                  child: FilterList(
-                    selectedIndex: _selectedFilterIndex,
-                    onSelected: (final index) {
-                      setState(() => _selectedFilterIndex = index);
-                      _resetPagination();
-                    },
+  static Widget stageCard(final BuildContext context, final Stage stage,
+          final VoidCallback onTap) =>
+      _verticalCard(
+        context: context,
+        imageUrl: stage.imageUrl,
+        label: "MEKAN",
+        title: stage.name,
+        onTap: onTap,
+      );
+
+  static Widget teamCard(final BuildContext context, final Team team,
+          final VoidCallback onTap) =>
+      _verticalCard(
+        context: context,
+        imageUrl: team.imageUrl,
+        label: "EKİP",
+        title: team.name,
+        onTap: onTap,
+      );
+
+  static Widget _verticalCard({
+    required final BuildContext context,
+    required final String imageUrl,
+    required final String label,
+    required final String title,
+    required final VoidCallback onTap,
+  }) =>
+      Container(
+        decoration: _cardDecoration(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
+                child:
+                    OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _cardLabel(context, label),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: context.colors.onSurface,
+                    ),
                   ),
-                ),
-
-                // TÜMÜ - Yatay scroll sections
-                if (_selectedFilterIndex == 0) ...[
-                  if (playersLoading)
-                    const SliverToBoxAdapter(
-                        child: PlayerSection(players: [], isLoading: true))
-                  else if (paginatedPlayers.isNotEmpty)
-                    SliverToBoxAdapter(
-                        child: PlayerSection(players: paginatedPlayers)),
-                  if (showsLoading)
-                    const HorizontalMosaicSection(shows: [], isLoading: true)
-                  else if (paginatedShows.isNotEmpty)
-                    HorizontalMosaicSection(shows: paginatedShows),
-                  if (stagesLoading)
-                    const SliverToBoxAdapter(
-                      child: HorizontalListSection(
-                        title: "Mekanlar",
-                        subtitle: "Atmosfer",
-                        items: [],
-                        isStage: true,
-                        isLoading: true,
-                      ),
-                    )
-                  else if (paginatedStages.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: HorizontalListSection(
-                        title: "Mekanlar",
-                        subtitle: "Atmosfer",
-                        items: paginatedStages,
-                        isStage: true,
-                      ),
-                    ),
-                  if (teamsLoading)
-                    const SliverToBoxAdapter(
-                      child: HorizontalListSection(
-                        title: "Ekipler",
-                        subtitle: "Mutfak",
-                        items: [],
-                        isStage: false,
-                        isLoading: true,
-                      ),
-                    )
-                  else if (paginatedTeams.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: HorizontalListSection(
-                        title: "Ekipler",
-                        subtitle: "Mutfak",
-                        items: paginatedTeams,
-                        isStage: false,
-                      ),
-                    ),
-                ]
-                // FİLTRE SEÇİLİ - Dikey mozaik
-                else if (_selectedFilterIndex == 1) ...[
-                  if (showsLoading)
-                    _buildMosaicShimmer(context, itemCount: 6)
-                  else if (paginatedShows.isNotEmpty)
-                    _buildShowsMosaic(context, paginatedShows),
-                  if (_isLoadingMore) _buildLoadingIndicator(),
-                ] else if (_selectedFilterIndex == 2) ...[
-                  if (playersLoading)
-                    _buildMosaicShimmer(context, itemCount: 6)
-                  else if (paginatedPlayers.isNotEmpty)
-                    _buildPlayersMosaic(context, paginatedPlayers),
-                  if (_isLoadingMore) _buildLoadingIndicator(),
-                ] else if (_selectedFilterIndex == 3) ...[
-                  if (stagesLoading)
-                    _buildMosaicShimmer(context, itemCount: 6)
-                  else if (paginatedStages.isNotEmpty)
-                    _buildStagesMosaic(context, paginatedStages),
-                  if (_isLoadingMore) _buildLoadingIndicator(),
-                ] else if (_selectedFilterIndex == 4) ...[
-                  if (teamsLoading)
-                    _buildMosaicShimmer(context, itemCount: 6)
-                  else if (paginatedTeams.isNotEmpty)
-                    _buildTeamsMosaic(context, paginatedTeams),
-                  if (_isLoadingMore) _buildLoadingIndicator(),
                 ],
+              ),
+            ),
+          ],
+        ),
+      );
 
-                if (isAllEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.search_off_rounded,
-                              size: 80,
-                              color: context.colors.onSurface.withOpacity(0.2)),
-                          const SizedBox(height: 16),
-                          Text("Aradığınız kriterlere uygun\nsonuç bulunamadı.",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: context.colors.onSurface
-                                      .withOpacity(0.5))),
-                        ],
+  static Widget _baseCard({
+    required final BuildContext context,
+    required final String imageUrl,
+    required final String label,
+    required final String title,
+    required final VoidCallback onTap,
+    required final Gradient gradient,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [_cardShadow],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover),
+                Container(decoration: BoxDecoration(gradient: gradient)),
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  right: 12,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _cardLabel(context, label, isDark: true),
+                      const SizedBox(height: 8),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingIndicator() => SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(context.primaryColor),
-            ),
-          ),
         ),
       );
 
-  // DİKEY MOZAİK - ETKİNLİKLER
-  Widget _buildShowsMosaic(
-          final BuildContext context, final List<Show> shows) =>
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (final context, final listIndex) {
-              // Her iterasyonda 2 item işle (tek veya çift sütun)
-              final baseIndex = listIndex * 2;
-              if (baseIndex >= shows.length) return const SizedBox.shrink();
-
-              final show1 = shows[baseIndex];
-              final show2 =
-                  baseIndex + 1 < shows.length ? shows[baseIndex + 1] : null;
-
-              // Mozaik karmaşıklığı için değişken yükseklikler
-              final random = math.Random(baseIndex);
-
-              // 3 farklı desen: tek büyük, iki küçük, veya asimetrik
-              final pattern = listIndex % 3;
-
-              if (pattern == 0 && show2 != null) {
-                // İki sütunlu - değişken yükseklikler
-                final height1 = 180.0 + random.nextDouble() * 120;
-                final height2 = 180.0 + random.nextDouble() * 120;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                          child:
-                              _buildShowCard(context, show1, height: height1)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child:
-                              _buildShowCard(context, show2, height: height2)),
-                    ],
-                  ),
-                );
-              } else if (pattern == 1 && show2 != null) {
-                // Bir büyük solda, bir küçük sağda
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: _buildShowCard(context, show1, height: 280),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: _buildShowCard(context, show2, height: 180),
-                      ),
-                    ],
-                  ),
-                );
-              } else {
-                // Tek kart - tam genişlik
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildShowCard(context, show1, height: 240),
-                );
-              }
-            },
-            childCount: (shows.length / 2).ceil(),
-          ),
-        ),
+  static BoxDecoration _cardDecoration(final BuildContext context) =>
+      BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: context.colors.surface,
+        boxShadow: [_cardShadow],
       );
 
-  Widget _buildShowCard(final BuildContext context, final Show show,
-          {required final double height}) =>
-      GestureDetector(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => ShowDetailPage(showId: show.id))),
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6))
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              OptimizedCachedImage(
-                  imageUrl: show.imageUrl, fit: BoxFit.cover, borderRadius: 0),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.85)
-                    ],
-                    stops: const [0.5, 1.0],
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 16,
-                left: 16,
-                right: 16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: context.primaryColor,
-                          borderRadius: BorderRadius.circular(6)),
-                      child: const Text('ETKİNLİK',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(show.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+  static BoxShadow get _cardShadow => BoxShadow(
+        color: Colors.black.withOpacity(0.1),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
       );
 
-  // DİKEY MOZAİK - OYUNCULAR
-  Widget _buildPlayersMosaic(
-          final BuildContext context, final List<Player> players) =>
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (final context, final listIndex) {
-              final baseIndex = listIndex * 2;
-              if (baseIndex >= players.length) return const SizedBox.shrink();
-
-              final player1 = players[baseIndex];
-              final player2 = baseIndex + 1 < players.length
-                  ? players[baseIndex + 1]
-                  : null;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Expanded(child: _buildPlayerCard(context, player1)),
-                    if (player2 != null) ...[
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildPlayerCard(context, player2)),
-                    ] else
-                      const Expanded(child: SizedBox()),
-                  ],
-                ),
-              );
-            },
-            childCount: (players.length / 2).ceil(),
-          ),
+  static Widget _cardLabel(final BuildContext context, final String text,
+          {final bool isDark = false}) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: isDark
+              ? context.primaryColor.withOpacity(0.9)
+              : context.primaryColor,
+          borderRadius: BorderRadius.circular(4),
         ),
-      );
-
-  Widget _buildPlayerCard(final BuildContext context, final Player player) =>
-      GestureDetector(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => PlayerDetailPage(playerId: player.id))),
-        child: Container(
-          height: 220,
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4))
-            ],
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                flex: 3,
-                child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: OptimizedCachedImage(
-                      imageUrl: player.imageUrl,
-                      fit: BoxFit.cover,
-                      borderRadius: 0),
-                ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Center(
-                    child: Text('${player.firstName} ${player.lastName}',
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: context.colors.onSurface)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-  // DİKEY MOZAİK - MEKANLAR
-  Widget _buildStagesMosaic(
-          final BuildContext context, final List<Stage> stages) =>
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (final context, final listIndex) {
-              final baseIndex = listIndex * 2;
-              if (baseIndex >= stages.length) return const SizedBox.shrink();
-
-              final stage1 = stages[baseIndex];
-              final stage2 =
-                  baseIndex + 1 < stages.length ? stages[baseIndex + 1] : null;
-
-              // Mozaik için değişken layoutlar
-              final random = math.Random(baseIndex);
-              final pattern = listIndex % 3;
-
-              if (pattern == 0)
-                // Tek büyük kart
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildStageCard(context, stage1,
-                      height: 240 + random.nextDouble() * 40),
-                );
-              else if (stage2 != null) {
-                // İki sütun
-                final height1 = 180.0 + random.nextDouble() * 80;
-                final height2 = 180.0 + random.nextDouble() * 80;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                          child: _buildStageCard(context, stage1,
-                              height: height1)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: _buildStageCard(context, stage2,
-                              height: height2)),
-                    ],
-                  ),
-                );
-              } else
-                // Tek kart kaldı
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildStageCard(context, stage1, height: 200),
-                );
-            },
-            childCount: stages.length,
-          ),
-        ),
-      );
-
-  Widget _buildStageCard(final BuildContext context, final Stage stage,
-          {required final double height}) =>
-      GestureDetector(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => StageDetailPage(stageId: stage.id))),
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6))
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              OptimizedCachedImage(
-                  imageUrl: stage.imageUrl, fit: BoxFit.cover, borderRadius: 0),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [Colors.black.withOpacity(0.7), Colors.transparent],
-                    stops: const [0.3, 1.0],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 20,
-                bottom: 20,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                          color: context.primaryColor,
-                          borderRadius: BorderRadius.circular(8)),
-                      child: const Text('MEKAN',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(stage.name,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-  // DİKEY MOZAİK - EKİPLER
-  Widget _buildTeamsMosaic(
-          final BuildContext context, final List<Team> teams) =>
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (final context, final listIndex) {
-              final baseIndex = listIndex * 2;
-              if (baseIndex >= teams.length) return const SizedBox.shrink();
-
-              final team1 = teams[baseIndex];
-              final team2 =
-                  baseIndex + 1 < teams.length ? teams[baseIndex + 1] : null;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Expanded(child: _buildTeamCard(context, team1)),
-                    if (team2 != null) ...[
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildTeamCard(context, team2)),
-                    ] else
-                      const Expanded(child: SizedBox()),
-                  ],
-                ),
-              );
-            },
-            childCount: (teams.length / 2).ceil(),
-          ),
-        ),
-      );
-
-  Widget _buildTeamCard(final BuildContext context, final Team team) =>
-      GestureDetector(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => TeamDetailsPage(teamId: team.id))),
-        child: Container(
-          height: 180,
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4))
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              OptimizedCachedImage(
-                  imageUrl: team.imageUrl, fit: BoxFit.cover, borderRadius: 0),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.75)
-                    ],
-                    stops: const [0.5, 1.0],
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 12,
-                left: 12,
-                right: 12,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: context.primaryColor,
-                          borderRadius: BorderRadius.circular(6)),
-                      child: const Text('EKİP',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2)),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(team.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            height: 1.1)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-  Widget _buildMosaicShimmer(final BuildContext context,
-          {final int itemCount = 6}) =>
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (final context, final index) {
-              if (index % 2 == 0 && index + 1 < itemCount) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                          child: ShimmerLoading(
-                              width: double.infinity,
-                              height: 200 + (index % 3) * 30,
-                              borderRadius: 20)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: ShimmerLoading(
-                              width: double.infinity,
-                              height: 220 + (index % 2) * 40,
-                              borderRadius: 20)),
-                    ],
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-            childCount: (itemCount / 2).ceil(),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
           ),
         ),
       );
 }
 
-// YATAY SCROLL SECTIONS (ORİJİNAL TASARIM)
+// =============================================================================
+// YATAY SCROLL BİLEŞENLERİ
+// =============================================================================
+
 class HorizontalMosaicSection extends StatelessWidget {
   final List<Show> shows;
   final bool isLoading;
 
-  const HorizontalMosaicSection(
-      {super.key, required this.shows, this.isLoading = false});
+  const HorizontalMosaicSection({
+    super.key,
+    required this.shows,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(final BuildContext context) {
-    if (isLoading) return _buildShimmer(context);
+    if (isLoading)
+      return SliverToBoxAdapter(child: _SearchShimmers.horizontalMosaic());
 
     return SliverToBoxAdapter(
       child: Column(
@@ -898,71 +442,24 @@ class HorizontalMosaicSection extends StatelessWidget {
               itemCount: (shows.length / 2).ceil(),
               physics: const BouncingScrollPhysics(),
               itemBuilder: (final context, final index) {
-                final int firstIndex = index * 2;
-                final int secondIndex = firstIndex + 1;
-                final Show? show1 =
-                    firstIndex < shows.length ? shows[firstIndex] : null;
-                final Show? show2 =
-                    secondIndex < shows.length ? shows[secondIndex] : null;
+                final show1 = _getShow(shows, index * 2);
+                final show2 = _getShow(shows, index * 2 + 1);
                 if (show1 == null) return const SizedBox();
 
-                int flexTop, flexBottom;
-                final int patternStep = index % 4;
-                switch (patternStep) {
-                  case 0:
-                    flexTop = 5;
-                    flexBottom = 2;
-                    break;
-                  case 1:
-                    flexTop = 3;
-                    flexBottom = 4;
-                    break;
-                  case 2:
-                    flexTop = 2;
-                    flexBottom = 5;
-                    break;
-                  case 3:
-                    flexTop = 4;
-                    flexBottom = 3;
-                    break;
-                  default:
-                    flexTop = 1;
-                    flexBottom = 1;
-                }
-
+                final flexes = _SearchShimmers._getMosaicFlexes(index % 4);
                 return Container(
                   width: 155,
                   margin: const EdgeInsets.only(right: 10),
                   child: Column(
                     children: [
                       Expanded(
-                        flex: flexTop,
-                        child: _MosaicShowCard(
-                          show: show1,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (final _) =>
-                                    ShowDetailPage(showId: show1.id)),
-                          ),
-                        ),
-                      ),
+                          flex: flexes.$1, child: _mosaicCard(context, show1)),
                       const SizedBox(height: 10),
-                      if (show2 != null)
-                        Expanded(
-                          flex: flexBottom,
-                          child: _MosaicShowCard(
-                            show: show2,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (final _) =>
-                                      ShowDetailPage(showId: show2.id)),
-                            ),
-                          ),
-                        )
-                      else
-                        Spacer(flex: flexBottom),
+                      show2 != null
+                          ? Expanded(
+                              flex: flexes.$2,
+                              child: _mosaicCard(context, show2))
+                          : Spacer(flex: flexes.$2),
                     ],
                   ),
                 );
@@ -975,123 +472,31 @@ class HorizontalMosaicSection extends StatelessWidget {
     );
   }
 
-  Widget _buildShimmer(final BuildContext context) => SliverToBoxAdapter(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(
-                title: "Etkinlikler Vitrini", subtitle: "Akışta Kal"),
-            SizedBox(
-              height: 340,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: 4,
-                physics: const NeverScrollableScrollPhysics(),
-                itemBuilder: (final context, final index) {
-                  int flexTop, flexBottom;
-                  final int patternStep = index % 4;
-                  switch (patternStep) {
-                    case 0:
-                      flexTop = 5;
-                      flexBottom = 2;
-                      break;
-                    case 1:
-                      flexTop = 3;
-                      flexBottom = 4;
-                      break;
-                    case 2:
-                      flexTop = 2;
-                      flexBottom = 5;
-                      break;
-                    default:
-                      flexTop = 4;
-                      flexBottom = 3;
-                      break;
-                  }
+  Show? _getShow(final List<Show> shows, final int index) =>
+      index < shows.length ? shows[index] : null;
 
-                  return Container(
-                    width: 155,
-                    margin: const EdgeInsets.only(right: 10),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          flex: flexTop,
-                          child: const ShimmerLoading(
-                              width: double.infinity,
-                              height: double.infinity,
-                              borderRadius: 20),
-                        ),
-                        const SizedBox(height: 10),
-                        Expanded(
-                          flex: flexBottom,
-                          child: const ShimmerLoading(
-                              width: double.infinity,
-                              height: double.infinity,
-                              borderRadius: 20),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
-        ),
-      );
-}
-
-class _MosaicShowCard extends StatelessWidget {
-  final Show show;
-  final VoidCallback onTap;
-
-  const _MosaicShowCard({required this.show, required this.onTap});
-
-  @override
-  Widget build(final BuildContext context) => GestureDetector(
-        onTap: onTap,
+  Widget _mosaicCard(final BuildContext context, final Show show) =>
+      GestureDetector(
+        onTap: () => _navigateToShow(context, show),
         child: Container(
           decoration: BoxDecoration(
             color: context.colors.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3)),
+              BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6)
             ],
           ),
-          clipBehavior: Clip.antiAlias,
           child: Stack(
             fit: StackFit.expand,
             children: [
-              OptimizedCachedImage(
-                  imageUrl: show.imageUrl,
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                  borderRadius: 0),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.85)
-                    ],
-                    stops: const [0.5, 1.0],
-                  ),
-                ),
-              ),
+              OptimizedCachedImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
+              Container(decoration: _mosaicGradient),
               Positioned(
                 bottom: 10,
                 left: 10,
                 right: 10,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -1113,14 +518,29 @@ class _MosaicShowCard extends StatelessWidget {
                         style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            height: 1.1)),
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
             ],
           ),
         ),
+      );
+
+  BoxDecoration get _mosaicGradient => BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
+          stops: const [0.5, 1.0],
+        ),
+      );
+
+  void _navigateToShow(final BuildContext context, final Show show) =>
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (final _) => ShowDetailPage(showId: show.id)),
       );
 }
 
@@ -1141,27 +561,29 @@ class HorizontalListSection extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(title: title, subtitle: subtitle),
-          SizedBox(
-            height: 150,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: isLoading ? 5 : items.length,
-              physics: const BouncingScrollPhysics(),
-              itemBuilder: (final context, final index) {
-                if (isLoading)
-                  return const ShimmerCard(width: 220, height: 150);
-                return HorizontalCard(item: items[index], isStage: isStage);
-              },
-            ),
+  Widget build(final BuildContext context) {
+    if (isLoading)
+      return _SearchShimmers.horizontalList(title: title, subtitle: subtitle);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title: title, subtitle: subtitle),
+        SizedBox(
+          height: 150,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: items.length,
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (final context, final index) =>
+                HorizontalCard(item: items[index], isStage: isStage),
           ),
-          const SizedBox(height: 32),
-        ],
-      );
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
 }
 
 class HorizontalCard extends StatelessWidget {
@@ -1172,52 +594,33 @@ class HorizontalCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => GestureDetector(
-        onTap: () {
-          if (isStage)
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (final _) => StageDetailPage(stageId: item.id)));
-          else
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (final _) => TeamDetailsPage(teamId: item.id)));
-        },
+        onTap: () => _navigate(context),
         child: Container(
           width: 220,
           margin: const EdgeInsets.only(right: 12),
           decoration: BoxDecoration(
             color: context.colors.surface,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              bottomRight: Radius.circular(20),
-              topRight: Radius.circular(4),
-              bottomLeft: Radius.circular(4),
-            ),
+            borderRadius: _cardBorderRadius,
             boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4))
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
             ],
           ),
           padding: const EdgeInsets.all(4),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
                 width: 90,
                 height: 142,
                 child: OptimizedCachedImage(
-                    imageUrl: item.imageUrl,
-                    width: 90,
-                    height: 142,
-                    borderRadius: 16),
+                  imageUrl: item.imageUrl,
+                  width: 90,
+                  height: 142,
+                  borderRadius: 16,
+                ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1246,6 +649,22 @@ class HorizontalCard extends StatelessWidget {
           ),
         ),
       );
+
+  BorderRadius get _cardBorderRadius => const BorderRadius.only(
+        topLeft: Radius.circular(20),
+        bottomRight: Radius.circular(20),
+        topRight: Radius.circular(4),
+        bottomLeft: Radius.circular(4),
+      );
+
+  void _navigate(final BuildContext context) {
+    final route = isStage
+        ? MaterialPageRoute(
+            builder: (final _) => StageDetailPage(stageId: item.id))
+        : MaterialPageRoute(
+            builder: (final _) => TeamDetailsPage(teamId: item.id));
+    Navigator.push(context, route);
+  }
 }
 
 class PlayerSection extends StatelessWidget {
@@ -1256,49 +675,546 @@ class PlayerSection extends StatelessWidget {
       {super.key, required this.players, this.isLoading = false});
 
   @override
-  Widget build(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-              title: "Performansçılar", subtitle: "Sahnenin Yıldızları"),
-          if (isLoading)
-            _buildShimmer()
-          else
-            SizedBox(
-              height: 190,
-              child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: players.length,
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (final context, final index) =>
-                      PlayerHeroCard(player: players[index])),
-            ),
-          const SizedBox(height: 32),
-        ],
+  Widget build(final BuildContext context) {
+    if (isLoading) return _SearchShimmers.playerSection();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(
+            title: "Performansçılar", subtitle: "Sahnenin Yıldızları"),
+        SizedBox(
+          height: 190,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: players.length,
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (final context, final index) =>
+                PlayerHeroCard(player: players[index]),
+          ),
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+}
+
+// =============================================================================
+// ANA SEARCH PAGE (En Sade Hali)
+// =============================================================================
+
+class SearchPage extends ConsumerStatefulWidget {
+  const SearchPage({super.key});
+
+  @override
+  ConsumerState<SearchPage> createState() => _SearchPageState();
+}
+
+class _SearchPageState extends ConsumerState<SearchPage> {
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final int _itemsPerPage = 20;
+
+  bool _isInitialized = false;
+  int _selectedFilter = 0;
+  int _showsPage = 0, _playersPage = 0, _stagesPage = 0, _teamsPage = 0;
+  bool _loadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      _initializeData();
+      _scrollController.addListener(_onScroll);
+    });
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeData() async {
+    if (_isInitialized) return;
+    await Future.wait([
+      if (ref.read(showProvider).isListNullOrEmpty)
+        ref.read(showProvider.notifier).loadShows(true),
+      if (ref.read(playerProvider).isListNullOrEmpty)
+        ref.read(playerProvider.notifier).getPlayers(true),
+      if (ref.read(stageProvider).isListNullOrEmpty)
+        ref.read(stageProvider.notifier).loadStages(true),
+      if (ref.read(teamProvider).isListNullOrEmpty)
+        ref.read(teamProvider.notifier).loadTeams(true),
+    ]);
+    setState(() => _isInitialized = true);
+  }
+
+  void _onScroll() {
+    if (_selectedFilter == 0 || _loadingMore) return;
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreItems();
+    }
+  }
+
+  void _loadMoreItems() {
+    setState(() => _loadingMore = true);
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() {
+        final query = ref.read(searchQueryProvider);
+        final counts = _getTotalCounts(query);
+
+        if (_selectedFilter == 1 &&
+            (_showsPage + 1) * _itemsPerPage < counts.shows) _showsPage++;
+        if (_selectedFilter == 2 &&
+            (_playersPage + 1) * _itemsPerPage < counts.players) _playersPage++;
+        if (_selectedFilter == 3 &&
+            (_stagesPage + 1) * _itemsPerPage < counts.stages) _stagesPage++;
+        if (_selectedFilter == 4 &&
+            (_teamsPage + 1) * _itemsPerPage < counts.teams) _teamsPage++;
+
+        _loadingMore = false;
+      });
+    });
+  }
+
+  ({int shows, int players, int stages, int teams}) _getTotalCounts(
+          final String query) =>
+      (
+        shows: _SearchUtils.filterItems(
+                    ref.read(showProvider).dataList, (final s) => s.name, query)
+                ?.length ??
+            0,
+        players: _SearchUtils.filterItems(ref.read(playerProvider).dataList,
+                    (final p) => '${p.firstName} ${p.lastName}', query)
+                ?.length ??
+            0,
+        stages: _SearchUtils.filterItems(ref.read(stageProvider).dataList,
+                    (final s) => s.name, query)
+                ?.length ??
+            0,
+        teams: _SearchUtils.filterItems(
+                    ref.read(teamProvider).dataList, (final t) => t.name, query)
+                ?.length ??
+            0,
       );
 
-  Widget _buildShimmer() => SizedBox(
-        height: 190,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: 5,
-          physics: const BouncingScrollPhysics(),
-          itemBuilder: (final context, final index) => Container(
-            width: 120,
-            margin: const EdgeInsets.only(right: 12),
-            child: Column(
-              children: [
-                Expanded(child: ShimmerCard(height: 120, width: 120)),
-                const SizedBox(height: 8),
-                ShimmerLoading(height: 12, width: 80, isCircular: true),
+  List<T> _getPaginatedItems<T>(final List<T> items, final int page) =>
+      _SearchUtils.paginateItems(items, page, _itemsPerPage);
+
+  @override
+  Widget build(final BuildContext context) {
+    final query = ref.watch(searchQueryProvider);
+    final states = (
+      shows: ref.watch(showProvider),
+      players: ref.watch(playerProvider),
+      stages: ref.watch(stageProvider),
+      teams: ref.watch(teamProvider),
+    );
+
+    // İsimlendirilmiş Kayıt (Named Record) oluşturuyoruz
+    final loadingStates = (
+      shows: states.shows.isLoading || !_isInitialized,
+      players: states.players.isLoading || !_isInitialized,
+      stages: states.stages.isLoading || !_isInitialized,
+      teams: states.teams.isLoading || !_isInitialized,
+    );
+
+    final filtered = (
+      shows: _SearchUtils.filterItems(
+              states.shows.dataList, (final s) => s.name, query) ??
+          [],
+      players: _SearchUtils.filterItems(states.players.dataList,
+              (final p) => '${p.firstName} ${p.lastName}', query) ??
+          [],
+      stages: _SearchUtils.filterItems(
+              states.stages.dataList, (final s) => s.name, query) ??
+          [],
+      teams: _SearchUtils.filterItems(
+              states.teams.dataList, (final t) => t.name, query) ??
+          [],
+    );
+
+    // İsimlendirilmiş Kayıt (Named Record) oluşturuyoruz
+    final paginated = (
+      shows: _selectedFilter == 0
+          ? filtered.shows
+          : _getPaginatedItems(filtered.shows, _showsPage),
+      players: _selectedFilter == 0
+          ? filtered.players
+          : _getPaginatedItems(filtered.players, _playersPage),
+      stages: _selectedFilter == 0
+          ? filtered.stages
+          : _getPaginatedItems(filtered.stages, _stagesPage),
+      teams: _selectedFilter == 0
+          ? filtered.teams
+          : _getPaginatedItems(filtered.teams, _teamsPage),
+    );
+
+    final isEmpty = !loadingStates.shows &&
+        !loadingStates.players &&
+        !loadingStates.stages &&
+        !loadingStates.teams &&
+        paginated.shows.isEmpty &&
+        paginated.players.isEmpty &&
+        paginated.stages.isEmpty &&
+        paginated.teams.isEmpty;
+
+    return Scaffold(
+      backgroundColor: context.scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: ThemeBackground()),
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildHeader(context),
+                _buildFilters(),
+                // Artık burada hata vermeyecek çünkü aşağıda imzaları düzelttik
+                ..._buildContent(
+                  context: context,
+                  filter: _selectedFilter,
+                  loading: loadingStates,
+                  paginated: paginated,
+                  isEmpty: isEmpty,
+                ),
+                if (_loadingMore) _buildLoadingIndicator(),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  SliverToBoxAdapter _buildHeader(final BuildContext context) =>
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const TopHeader(title: "Tablolarımız"),
+              const SizedBox(height: 20),
+              GlassSearchBar(
+                controller: _textController,
+                onChanged: (final q) => ref
+                    .read(searchQueryProvider.notifier)
+                    .setQuery(q.toLowerCase()),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  SliverToBoxAdapter _buildFilters() => SliverToBoxAdapter(
+        child: FilterList(
+          selectedIndex: _selectedFilter,
+          onSelected: (final index) {
+            setState(() {
+              _selectedFilter = index;
+              _showsPage = _playersPage = _stagesPage = _teamsPage = 0;
+            });
+            WidgetsBinding.instance.addPostFrameCallback((final _) {
+              _scrollController.animateTo(0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut);
+            });
+          },
+        ),
+      );
+
+  // DÜZELTME 1: Parametre imzasına {} eklendi.
+  List<Widget> _buildContent({
+    required final BuildContext context,
+    required final int filter,
+    required final ({
+      bool shows,
+      bool players,
+      bool stages,
+      bool teams
+    }) loading,
+    required final ({
+      List<Show> shows,
+      List<Player> players,
+      List<Stage> stages,
+      List<Team> teams
+    }) paginated,
+    required final bool isEmpty,
+  }) {
+    if (isEmpty) return [_buildEmptyState(context)];
+
+    return filter == 0
+        ? _buildAllContent(loading: loading, paginated: paginated)
+        : _buildFilteredContent(
+            context: context,
+            filter: filter,
+            loading: loading,
+            paginated: paginated);
+  }
+
+  // DÜZELTME 2: Parametre imzasına {} eklendi.
+  List<Widget> _buildAllContent({
+    required final ({
+      bool shows,
+      bool players,
+      bool stages,
+      bool teams
+    }) loading,
+    required final ({
+      List<Show> shows,
+      List<Player> players,
+      List<Stage> stages,
+      List<Team> teams
+    }) paginated,
+  }) {
+    final widgets = <Widget>[];
+
+    if (loading.players || paginated.players.isNotEmpty) {
+      widgets.add(SliverToBoxAdapter(
+        child: PlayerSection(
+            players: paginated.players, isLoading: loading.players),
+      ));
+    }
+
+    if (loading.shows || paginated.shows.isNotEmpty) {
+      widgets.add(HorizontalMosaicSection(
+          shows: paginated.shows, isLoading: loading.shows));
+    }
+
+    if (loading.stages || paginated.stages.isNotEmpty) {
+      widgets.add(SliverToBoxAdapter(
+        child: HorizontalListSection(
+          title: "Mekanlar",
+          subtitle: "Atmosfer",
+          items: paginated.stages,
+          isStage: true,
+          isLoading: loading.stages,
+        ),
+      ));
+    }
+
+    if (loading.teams || paginated.teams.isNotEmpty) {
+      widgets.add(SliverToBoxAdapter(
+        child: HorizontalListSection(
+          title: "Ekipler",
+          subtitle: "Mutfak",
+          items: paginated.teams,
+          isStage: false,
+          isLoading: loading.teams,
+        ),
+      ));
+    }
+
+    return widgets;
+  }
+
+  // DÜZELTME 3: Parametre imzasına {} eklendi.
+  List<Widget> _buildFilteredContent({
+    required final BuildContext context,
+    required final int filter,
+    required final ({
+      bool shows,
+      bool players,
+      bool stages,
+      bool teams
+    }) loading,
+    required final ({
+      List<Show> shows,
+      List<Player> players,
+      List<Stage> stages,
+      List<Team> teams
+    }) paginated,
+  }) {
+    switch (filter) {
+      case 1:
+        return _buildShowsContent(context, loading.shows, paginated.shows);
+      case 2:
+        return _buildPlayersContent(
+            context, loading.players, paginated.players);
+      case 3:
+        return _buildStagesContent(context, loading.stages, paginated.stages);
+      case 4:
+        return _buildTeamsContent(context, loading.teams, paginated.teams);
+      default:
+        return [];
+    }
+  }
+
+  List<Widget> _buildShowsContent(final BuildContext context,
+          final bool loading, final List<Show> shows) =>
+      [
+        if (loading)
+          _buildShimmerGrid(context)
+        else if (shows.isNotEmpty)
+          _buildShowsGrid(shows),
+        if (shows.isEmpty) _buildTypeEmptyState(context, "etkinlik"),
+      ];
+
+  List<Widget> _buildPlayersContent(final BuildContext context,
+          final bool loading, final List<Player> players) =>
+      [
+        if (loading)
+          _buildShimmerGrid(context, crossAxisCount: 3, itemHeight: 180),
+        if (players.isNotEmpty) _buildPlayersGrid(players),
+        if (players.isEmpty) _buildTypeEmptyState(context, "oyuncu"),
+      ];
+
+  List<Widget> _buildStagesContent(final BuildContext context,
+          final bool loading, final List<Stage> stages) =>
+      [
+        if (loading) _buildShimmerGrid(context, childAspectRatio: 1.2),
+        if (stages.isNotEmpty) _buildStagesGrid(stages),
+        if (stages.isEmpty) _buildTypeEmptyState(context, "mekan"),
+      ];
+
+  List<Widget> _buildTeamsContent(final BuildContext context,
+          final bool loading, final List<Team> teams) =>
+      [
+        if (loading) _buildShimmerGrid(context, childAspectRatio: 1.2),
+        if (teams.isNotEmpty) _buildTeamsGrid(teams),
+        if (teams.isEmpty) _buildTypeEmptyState(context, "ekip"),
+      ];
+
+  SliverToBoxAdapter _buildShimmerGrid(
+    final BuildContext context, {
+    final int crossAxisCount = 2,
+    final double itemHeight = 200,
+    final double childAspectRatio = 0.8,
+  }) =>
+      SliverToBoxAdapter(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: _SearchShimmers.verticalGrid(
+            crossAxisCount: crossAxisCount,
+            itemHeight: itemHeight,
+          ),
+        ),
+      );
+
+  SliverGrid _buildShowsGrid(final List<Show> shows) => _SearchGrids.buildGrid(
+        items: shows,
+        itemBuilder: (final context, final show) => _SearchCards.showCard(
+          context,
+          show,
+          () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (final _) => ShowDetailPage(showId: show.id))),
+        ),
+      );
+
+  SliverGrid _buildPlayersGrid(final List<Player> players) =>
+      _SearchGrids.buildGrid(
+        items: players,
+        crossAxisCount: 3,
+        childAspectRatio: 0.7,
+        itemBuilder: (final context, final player) => _SearchCards.playerCard(
+          context,
+          player,
+          () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (final _) => PlayerDetailPage(playerId: player.id))),
+        ),
+      );
+
+  SliverGrid _buildStagesGrid(final List<Stage> stages) =>
+      _SearchGrids.buildGrid(
+        items: stages,
+        childAspectRatio: 1.2,
+        itemBuilder: (final context, final stage) => _SearchCards.stageCard(
+          context,
+          stage,
+          () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (final _) => StageDetailPage(stageId: stage.id))),
+        ),
+      );
+
+  SliverGrid _buildTeamsGrid(final List<Team> teams) => _SearchGrids.buildGrid(
+        items: teams,
+        childAspectRatio: 1.2,
+        itemBuilder: (final context, final team) => _SearchCards.teamCard(
+          context,
+          team,
+          () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (final _) => TeamDetailsPage(teamId: team.id))),
+        ),
+      );
+
+  SliverFillRemaining _buildEmptyState(final BuildContext context) =>
+      SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search_off_rounded,
+                  size: 80, color: context.colors.onSurface.withOpacity(0.2)),
+              const SizedBox(height: 16),
+              Text("Aradığınız kriterlere uygun\nsonuç bulunamadı.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: context.colors.onSurface.withOpacity(0.5))),
+            ],
+          ),
+        ),
+      );
+
+  SliverFillRemaining _buildTypeEmptyState(
+      final BuildContext context, final String type) {
+    final query = ref.read(searchQueryProvider);
+    return SliverFillRemaining(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off_rounded,
+                size: 80, color: context.colors.onSurface.withOpacity(0.2)),
+            const SizedBox(height: 16),
+            Text(
+              query.isEmpty
+                  ? "$type aramak için yazmaya başlayın"
+                  : '"$query" için $type bulunamadı',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: context.colors.onSurface.withOpacity(0.5)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  SliverToBoxAdapter _buildLoadingIndicator() => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Center(
+            child: CircularProgressIndicator(
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(context.primaryColor)),
           ),
         ),
       );
 }
+// =============================================================================
+// DİĞER BİLEŞENLER (Kısa ve Öz)
+// =============================================================================
 
 class FilterList extends StatelessWidget {
   final int selectedIndex;
@@ -1310,7 +1226,7 @@ class FilterList extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final filters = ["Tümü", "Etkinlikler", "Oyuncular", "Mekanlar", "Ekipler"];
-    final List<List<Color>> artisticColorPalettes = [
+    final palettes = [
       [
         WebColors.darkBlueBackground,
         WebColors.darkBlueSurface,
@@ -1342,7 +1258,7 @@ class FilterList extends StatelessWidget {
           child: ArtisticBrushChip(
             text: filters[index],
             isSelected: selectedIndex == index,
-            colors: artisticColorPalettes[index],
+            colors: palettes[index],
             onTap: () => onSelected(index),
           ),
         ),
@@ -1371,25 +1287,22 @@ class ArtisticBrushChip extends StatefulWidget {
 
 class _ArtisticBrushChipState extends State<ArtisticBrushChip>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _controller = AnimationController(
+    duration: const Duration(milliseconds: 300),
+    vsync: this,
+  )..forwardIf(widget.isSelected);
+
+  late final Animation<double> _scale =
+      Tween<double>(begin: 1.0, end: 0.95).animate(
+    CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+  );
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-        duration: const Duration(milliseconds: 300), vsync: this);
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-    if (widget.isSelected) _controller.forward();
-  }
-
-  @override
-  void didUpdateWidget(final ArtisticBrushChip oldWidget) {
+  void didUpdateWidget(covariant final ArtisticBrushChip oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isSelected != oldWidget.isSelected)
-      widget.isSelected ? _controller.forward() : _controller.reverse();
+    widget.isSelected != oldWidget.isSelected
+        ? (widget.isSelected ? _controller.forward() : _controller.reverse())
+        : null;
   }
 
   @override
@@ -1403,58 +1316,20 @@ class _ArtisticBrushChipState extends State<ArtisticBrushChip>
         onTap: widget.onTap,
         onTapDown: (final _) => _controller.forward(),
         onTapUp: (final _) => _controller.reverse(),
-        onTapCancel: () => _controller.reverse(),
+        onTapCancel: _controller.reverse,
         child: ScaleTransition(
-          scale: _scaleAnimation,
+          scale: _scale,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             margin: const EdgeInsets.symmetric(horizontal: 2),
             constraints: const BoxConstraints(minWidth: 90),
             decoration: BoxDecoration(
-              borderRadius: _createArtisticBorderRadius(),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: widget.isSelected
-                    ? [widget.colors[0], widget.colors[1]]
-                    : [
-                        context.isDarkMode
-                            ? const Color(0xFF2D2D2D)
-                            : const Color(0xFFF8FAFC),
-                        context.isDarkMode
-                            ? const Color(0xFF3C3E4A)
-                            : const Color(0xFFEDF2F7),
-                      ],
-              ),
+              borderRadius: _borderRadius,
+              gradient: _gradient(context),
               border: Border.all(
-                color: widget.isSelected
-                    ? widget.colors[0].withOpacity(0.8)
-                    : context.colors.onSurface.withOpacity(0.1),
-                width: widget.isSelected ? 2 : 1,
-              ),
-              boxShadow: widget.isSelected
-                  ? [
-                      BoxShadow(
-                          color: widget.colors[0].withOpacity(0.4),
-                          blurRadius: 15,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 3)),
-                      BoxShadow(
-                          color: widget.colors[2].withOpacity(0.2),
-                          blurRadius: 10,
-                          spreadRadius: -2,
-                          offset: const Offset(0, -2)),
-                      BoxShadow(
-                          color: widget.colors[0].withOpacity(0.1),
-                          blurRadius: 25,
-                          spreadRadius: 5),
-                    ]
-                  : [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2))
-                    ],
+                  color: _borderColor(context),
+                  width: widget.isSelected ? 2 : 1),
+              boxShadow: _shadows,
             ),
             child: Stack(
               children: [
@@ -1490,12 +1365,59 @@ class _ArtisticBrushChipState extends State<ArtisticBrushChip>
         ),
       );
 
-  BorderRadius _createArtisticBorderRadius() => BorderRadius.only(
+  BorderRadius get _borderRadius => BorderRadius.only(
         topLeft: const Radius.circular(24),
         bottomRight: const Radius.circular(24),
         topRight: Radius.circular(widget.isSelected ? 10 : 18),
         bottomLeft: Radius.circular(widget.isSelected ? 18 : 10),
       );
+
+  LinearGradient _gradient(final BuildContext context) => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: widget.isSelected
+            ? [widget.colors[0], widget.colors[1]]
+            : [
+                context.isDarkMode
+                    ? const Color(0xFF2D2D2D)
+                    : const Color(0xFFF8FAFC),
+                context.isDarkMode
+                    ? const Color(0xFF3C3E4A)
+                    : const Color(0xFFEDF2F7),
+              ],
+      );
+
+  Color _borderColor(final BuildContext context) => widget.isSelected
+      ? widget.colors[0].withOpacity(0.8)
+      : context.colors.onSurface.withOpacity(0.1);
+
+  List<BoxShadow> get _shadows => widget.isSelected
+      ? [
+          BoxShadow(
+              color: widget.colors[0].withOpacity(0.4),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, 3)),
+          BoxShadow(
+              color: widget.colors[2].withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: -2,
+              offset: const Offset(0, -2)),
+          BoxShadow(
+              color: widget.colors[0].withOpacity(0.1),
+              blurRadius: 25,
+              spreadRadius: 5),
+        ]
+      : [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ];
+}
+
+extension on AnimationController {
+  void forwardIf(final bool condition) => condition ? forward() : null;
 }
 
 class _PaintDropletPainter extends CustomPainter {
@@ -1505,19 +1427,19 @@ class _PaintDropletPainter extends CustomPainter {
 
   @override
   void paint(final Canvas canvas, final Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = colors[1].withOpacity(0.15);
+    final paint = Paint()..style = PaintingStyle.fill;
     final rng = math.Random(colors.hashCode);
+
     for (int i = 0; i < 8; i++) {
-      final x = rng.nextDouble() * size.width;
-      final y = rng.nextDouble() * size.height;
-      final radius = rng.nextDouble() * 6 + 2;
-      final colorIndex = rng.nextInt(colors.length);
-      paint.color =
-          colors[colorIndex].withOpacity(rng.nextDouble() * 0.2 + 0.1);
+      paint.color = colors[rng.nextInt(colors.length)]
+          .withOpacity(rng.nextDouble() * 0.2 + 0.1);
       canvas.drawOval(
-          Rect.fromCircle(center: Offset(x, y), radius: radius), paint);
+        Rect.fromCircle(
+            center: Offset(
+                rng.nextDouble() * size.width, rng.nextDouble() * size.height),
+            radius: rng.nextDouble() * 6 + 2),
+        paint,
+      );
     }
   }
 
