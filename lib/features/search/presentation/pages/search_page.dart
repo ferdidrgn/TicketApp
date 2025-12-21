@@ -63,9 +63,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     if (_selectedFilterIndex == 0) return; // Tümü'nde pagination yok
 
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _loadMoreItems();
-    }
+        _scrollController.position.maxScrollExtent - 200) _loadMoreItems();
   }
 
   Future<void> _initializeData() async {
@@ -83,19 +81,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     setState(() => _isInitialized = true);
   }
 
-  void _onSearchChanged(final String query) {
-    ref.read(searchQueryProvider.notifier).setQuery(query.toLowerCase());
-    // Debounce bitince otomatik resetlenecek, widget rebuild olacak
-  }
+  // Debounce bitince otomatik resetlenecek, widget rebuild olacak
+  void _onSearchChanged(final String query) =>
+      ref.read(searchQueryProvider.notifier).setQuery(query.toLowerCase());
 
-  void _resetPagination() {
-    setState(() {
-      _showsPage = 0;
-      _playersPage = 0;
-      _stagesPage = 0;
-      _teamsPage = 0;
-    });
-  }
+  void _resetPagination() => setState(() {
+        _showsPage = 0;
+        _playersPage = 0;
+        _stagesPage = 0;
+        _teamsPage = 0;
+      });
 
   void _loadMoreItems() {
     if (_isLoadingMore) return;
@@ -103,7 +98,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     setState(() => _isLoadingMore = true);
 
     Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
+      if (mounted)
         setState(() {
           if (_selectedFilterIndex == 1) {
             final totalShows = _filterItems(
@@ -112,9 +107,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ref.read(searchQueryProvider),
                 )?.length ??
                 0;
-            if ((_showsPage + 1) * _itemsPerPage < totalShows) {
-              _showsPage++;
-            }
+            if ((_showsPage + 1) * _itemsPerPage < totalShows) _showsPage++;
           } else if (_selectedFilterIndex == 2) {
             final totalPlayers = _filterItems(
                   ref.read(playerProvider).dataList,
@@ -122,9 +115,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ref.read(searchQueryProvider),
                 )?.length ??
                 0;
-            if ((_playersPage + 1) * _itemsPerPage < totalPlayers) {
+            if ((_playersPage + 1) * _itemsPerPage < totalPlayers)
               _playersPage++;
-            }
           } else if (_selectedFilterIndex == 3) {
             final totalStages = _filterItems(
                   ref.read(stageProvider).dataList,
@@ -132,9 +124,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ref.read(searchQueryProvider),
                 )?.length ??
                 0;
-            if ((_stagesPage + 1) * _itemsPerPage < totalStages) {
-              _stagesPage++;
-            }
+            if ((_stagesPage + 1) * _itemsPerPage < totalStages) _stagesPage++;
           } else if (_selectedFilterIndex == 4) {
             final totalTeams = _filterItems(
                   ref.read(teamProvider).dataList,
@@ -142,13 +132,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ref.read(searchQueryProvider),
                 )?.length ??
                 0;
-            if ((_teamsPage + 1) * _itemsPerPage < totalTeams) {
-              _teamsPage++;
-            }
+            if ((_teamsPage + 1) * _itemsPerPage < totalTeams) _teamsPage++;
           }
           _isLoadingMore = false;
         });
-      }
     });
   }
 
@@ -164,10 +151,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         .toList();
   }
 
-  List<T> _getPaginatedItems<T>(final List<T> items, final int page) {
-    final endIndex = math.min((page + 1) * _itemsPerPage, items.length);
-    return items.sublist(0, endIndex);
-  }
+  //start and end item index
+  List<T> _getPaginatedItems<T>(final List<T> items, final int page) =>
+      items.sublist(0, math.min((page + 1) * _itemsPerPage, items.length));
 
   @override
   Widget build(final BuildContext context) {
