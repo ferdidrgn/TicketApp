@@ -7,6 +7,8 @@ class OptimizedCachedImage extends StatelessWidget {
   final double? width;
   final double? height;
   final BoxFit fit;
+  final double borderRadius;
+  final bool isCircular;
   final Widget Function(BuildContext, String, dynamic)? errorBuilder;
 
   const OptimizedCachedImage({
@@ -15,12 +17,12 @@ class OptimizedCachedImage extends StatelessWidget {
     this.width,
     this.height,
     this.fit = BoxFit.cover,
+    this.borderRadius = 8.0,
+    this.isCircular = false,
     this.errorBuilder,
   });
 
-  /// ✅ YENİ EKLENEN KISIM: Provider Üretici
-  /// Bu metot, precacheImage yaparken widget ile AYNI optimizasyon ayarlarını
-  /// kullanan bir provider döndürür.
+  /// ✅ Provider Üretici (Precache işlemleri için)
   static CachedNetworkImageProvider provider(
     final String imageUrl, {
     required final BuildContext context,
@@ -29,7 +31,6 @@ class OptimizedCachedImage extends StatelessWidget {
   }) {
     return CachedNetworkImageProvider(
       imageUrl,
-      // Widget'taki memCacheWidth/Height mantığının aynısı:
       maxWidth: _calculateCacheSize(context, width),
       maxHeight: _calculateCacheSize(context, height),
     );
@@ -37,34 +38,68 @@ class OptimizedCachedImage extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    return CachedNetworkImage(
-      imageUrl: imageUrl,
-      width: width,
-      height: height,
-      fit: fit,
-      fadeInDuration: const Duration(milliseconds: 300),
-      fadeInCurve: Curves.easeOut,
-      placeholder: (final context, final url) => ShimmerLoading(
-        width: width ?? double.infinity,
-        height: height ?? double.infinity,
+    // Eğer yuvarlak ise yarıçapı hesapla, değilse normal radius kullan
+    final double effectiveRadius =
+        isCircular ? (height ?? width ?? 50) / 2 : borderRadius;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(effectiveRadius),
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: width,
+        height: height,
+        fit: fit,
+        // Animasyon Ayarları
+        fadeInDuration: const Duration(milliseconds: 300),
+        fadeInCurve: Curves.easeOut,
+
+        // Bellek Optimizasyonu (Çok Önemli!)
+        // Resmi ekranda göründüğü boyutta cache'ler, devasa resimleri küçültür.
+        memCacheHeight: _calculateCacheSize(context, height),
+        memCacheWidth: _calculateCacheSize(context, width),
+
+        // Yükleniyor (Shimmer)
+        placeholder: (final context, final url) => ShimmerLoading(
+          width: width ?? double.infinity,
+          height: height ?? double.infinity,
+          borderRadius: effectiveRadius, // Shimmer da aynı şekli alsın
+          isCircular: isCircular,
+        ),
+
+        // Hata Durumu (Eski kodunuzdaki tasarıma sadık kalındı)
+        errorWidget: errorBuilder ??
+            (final context, final url, final error) {
+              final isDarkMode =
+                  Theme.of(context).brightness == Brightness.dark;
+              return Container(
+                width: width,
+                height: height,
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? Colors.grey[800]!.withOpacity(0.5)
+                      : Colors.grey[200]!.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(effectiveRadius),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.broken_image_outlined, // Veya photo_outlined
+                    color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                    size: (width != null && width! < 50) ? 20 : 24,
+                  ),
+                ),
+              );
+            },
       ),
-      errorWidget: errorBuilder ??
-          (final context, final url, final error) => Container(
-              color: const Color(0xFF1a1a2e),
-              child: const Icon(Icons.error_outline, color: Color(0xFFD4AF37))),
-      // Aşağıdaki private metotları static yaptık ki hem buradan hem provider'dan erişilsin
-      memCacheHeight: _calculateCacheSize(context, height),
-      memCacheWidth: _calculateCacheSize(context, width),
     );
   }
 
-  /// Helper metodu static yaptık (Kod tekrarını önlemek için)
+  /// Cache boyutunu hesaplayan yardımcı metot
   static int? _calculateCacheSize(
       final BuildContext context, final double? size) {
-    if (size == null) return null;
-    // Cihazın piksel yoğunluğunu al (Örn: Retina ekranlarda 2.0 veya 3.0)
+    if (size == null || size == double.infinity) return null;
+    // Cihazın piksel yoğunluğunu al (Retina ekranlar için x2, x3 gibi)
     final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-    // Boyutu piksel yoğunluğu ile çarpıp int'e çevir
+    // Biraz tolerans ekleyerek (cache kalitesi düşmesin diye) int'e çevir
     return (size * devicePixelRatio).round();
   }
 }

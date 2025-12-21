@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
+import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../players/presentation/providers/player_provider.dart';
@@ -19,71 +20,6 @@ import '../../../teams/domain/entities/team.dart';
 import '../../../teams/presentation/pages/team_details_mobile.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/search_query_provider.dart';
-
-class NetworkImageWithFallback extends StatelessWidget {
-  final String imageUrl;
-  final double? width;
-  final double? height;
-  final BoxFit fit;
-  final double borderRadius;
-  final bool isCircular;
-
-  const NetworkImageWithFallback({
-    super.key,
-    required this.imageUrl,
-    this.width,
-    this.height,
-    this.fit = BoxFit.cover,
-    this.borderRadius = 8.0,
-    this.isCircular = false,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    return ClipRRect(
-      borderRadius: isCircular
-          ? BorderRadius.circular((height ?? width ?? 50) / 2)
-          : BorderRadius.circular(borderRadius),
-      child: Image.network(
-        imageUrl,
-        width: width,
-        height: height,
-        fit: fit,
-        loadingBuilder: (final context, final child, final loadingProgress) {
-          if (loadingProgress == null) return child;
-          return ShimmerLoading(
-            width: width ?? 100.0,
-            height: height ?? 100.0,
-            borderRadius: borderRadius,
-            isCircular: isCircular,
-          );
-        },
-        errorBuilder: (final context, final error, final stackTrace) {
-          return Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? Colors.grey[800]!.withOpacity(0.5)
-                  : Colors.grey[200]!.withOpacity(0.5),
-              borderRadius: isCircular
-                  ? BorderRadius.circular((height ?? width ?? 50) / 2)
-                  : BorderRadius.circular(borderRadius),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.photo_outlined,
-                color:
-                    context.isDarkMode ? Colors.grey[600]! : Colors.grey[400]!,
-                size: (width ?? height ?? 40) / 2,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -550,7 +486,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            NetworkImageWithFallback(
+            OptimizedCachedImage(
                 imageUrl: show.imageUrl, fit: BoxFit.cover, borderRadius: 0),
             Container(
               decoration: BoxDecoration(
@@ -660,7 +596,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               child: ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(20)),
-                child: NetworkImageWithFallback(
+                child: OptimizedCachedImage(
                     imageUrl: player.imageUrl,
                     fit: BoxFit.cover,
                     borderRadius: 0),
@@ -770,7 +706,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            NetworkImageWithFallback(
+            OptimizedCachedImage(
                 imageUrl: stage.imageUrl, fit: BoxFit.cover, borderRadius: 0),
             Container(
               decoration: BoxDecoration(
@@ -872,7 +808,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            NetworkImageWithFallback(
+            OptimizedCachedImage(
                 imageUrl: team.imageUrl, fit: BoxFit.cover, borderRadius: 0),
             Container(
               decoration: BoxDecoration(
@@ -1157,7 +1093,7 @@ class _MosaicShowCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            NetworkImageWithFallback(
+            OptimizedCachedImage(
                 imageUrl: show.imageUrl,
                 width: double.infinity,
                 height: double.infinity,
@@ -1299,7 +1235,7 @@ class HorizontalCard extends StatelessWidget {
             SizedBox(
               width: 90,
               height: 142,
-              child: NetworkImageWithFallback(
+              child: OptimizedCachedImage(
                   imageUrl: item.imageUrl,
                   width: 90,
                   height: 142,
@@ -1376,7 +1312,7 @@ class PlayerSection extends StatelessWidget {
                   child: Column(
                     children: [
                       Expanded(
-                        child: NetworkImageWithFallback(
+                        child: OptimizedCachedImage(
                           imageUrl: player.imageUrl,
                           width: 120,
                           height: 120,
