@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:ui';
-import 'dart:math' as math; // Random yükseklikler için
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// --- PROJE İÇİ IMPORTLARINIZI BURAYA EKLEYİN ---
+// (Örnek olarak bıraktım, kendi yollarınızı koruyun)
 import '../../../../core/services/pagination_controller.dart';
 import '../../../../core/theme/theme_context_extension.dart';
-import '../../../../shared/navigation/widgets/bottom_nav_bar.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../players/presentation/providers/player_provider.dart';
@@ -98,7 +100,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     });
   }
 
-  // --- HELPER: FILTER ---
   List<T>? _filterItems<T>(
       List<T>? items, String Function(T) selector, String query) {
     if (items == null) return null;
@@ -112,7 +113,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final searchQuery = ref.watch(searchQueryProvider);
-
     final showState = ref.watch(showProvider);
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
@@ -132,9 +132,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Arka plan
-          const Positioned.fill(child: _ThemeBackground()),
-
+          const Positioned.fill(child: ThemeBackground()),
           SafeArea(
             bottom: false,
             child: CustomScrollView(
@@ -147,9 +145,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildArtisticTitle(context),
+                        const ArtisticTitle(),
                         const SizedBox(height: 20),
-                        _buildGlassSearchBar(context),
+                        GlassSearchBar(
+                          controller: _textEditingController,
+                          onChanged: _onSearchChanged,
+                        ),
                       ],
                     ),
                   ),
@@ -157,9 +158,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
                 // 2. FILTERS
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 24, bottom: 16),
-                    child: _buildPaintChips(),
+                  child: FilterList(
+                    selectedIndex: _selectedFilterIndex,
+                    onSelected: (index) =>
+                        setState(() => _selectedFilterIndex = index),
                   ),
                 ),
 
@@ -174,56 +176,41 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           _selectedFilterIndex == 2) &&
                       (players?.isNotEmpty ?? false))
                     SliverToBoxAdapter(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle(
-                              context, "Sahnenin Yıldızları", "Oyuncular"),
-                          _buildPlayerReel(players!),
-                          const SizedBox(height: 32),
-                        ],
-                      ),
+                      child: PlayerSection(players: players!),
                     ),
 
-                  // --- YENİ ETKİNLİKLER (SCATTERED MASONRY) ---
+                  // ETKİNLİKLER (Masonry)
                   if ((_selectedFilterIndex == 0 ||
                           _selectedFilterIndex == 1) &&
-                      (shows?.isNotEmpty ?? false)) ...[
-                    SliverToBoxAdapter(
-                      child: _buildSectionTitle(
-                          context, "Akışta Kal", "Etkinlikler Vitrini"),
-                    ),
-                    _buildScatteredMasonry(shows!),
-                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                  ],
+                      (shows?.isNotEmpty ?? false))
+                    ScatteredMasonrySection(shows: shows!),
 
                   // MEKANLAR
                   if ((_selectedFilterIndex == 0 ||
                           _selectedFilterIndex == 3) &&
                       (stages?.isNotEmpty ?? false))
                     SliverToBoxAdapter(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle(context, "Atmosfer", "Mekanlar"),
-                          _buildHorizontalCards(stages!, isStage: true),
-                          const SizedBox(height: 32),
-                        ],
+                      child: HorizontalListSection(
+                        title: "Mekanlar",
+                        subtitle: "Atmosfer",
+                        items: stages!,
+                        isStage: true,
                       ),
                     ),
 
-                  // EKİPLER
+                  // EKİPLER (Hatanın olduğu kısım artık burası)
                   if ((_selectedFilterIndex == 0 ||
                           _selectedFilterIndex == 4) &&
                       (teams?.isNotEmpty ?? false))
                     SliverToBoxAdapter(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle(context, "Mutfak", "Ekipler"),
-                          _buildHorizontalCards(teams!, isStage: false),
-                          const SizedBox(height: 100),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 100),
+                        child: HorizontalListSection(
+                          title: "Ekipler",
+                          subtitle: "Mutfak",
+                          items: teams!,
+                          isStage: false,
+                        ),
                       ),
                     ),
 
@@ -250,91 +237,308 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ),
     );
   }
+}
 
-  // --- WIDGET BUILDERS ---
+// -----------------------------------------------------------------------------
+// --- REFACTORED WIDGETS ---
+// -----------------------------------------------------------------------------
 
-  Widget _buildArtisticTitle(BuildContext context) {
-    return ShaderMask(
-      shaderCallback: (bounds) => LinearGradient(
-        colors: context.appGradient(isActive: true),
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ).createShader(bounds),
-      child: const Text(
-        "Keşfet",
-        style: TextStyle(
-          fontSize: 42,
-          fontWeight: FontWeight.w900,
-          fontFamily: 'Serif',
-          letterSpacing: -1.5,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
+/// **YENİ:** Ekipler ve Mekanlar için Yatay Liste Konteynerı
+class HorizontalListSection extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final List<dynamic> items;
+  final bool isStage;
 
-  Widget _buildGlassSearchBar(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.isDarkMode
-                ? Colors.white.withOpacity(0.08)
-                : Colors.white.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(24),
-            border:
-                Border.all(color: context.colors.onSurface.withOpacity(0.1)),
-          ),
-          child: TextField(
-            controller: _textEditingController,
-            onChanged: _onSearchChanged,
-            style: TextStyle(color: context.colors.onSurface),
-            decoration: InputDecoration(
-              hintText: 'Sanatın izini sür...',
-              hintStyle: TextStyle(
-                color: context.colors.onSurface.withOpacity(0.5),
-                fontStyle: FontStyle.italic,
-              ),
-              prefixIcon:
-                  Icon(Icons.search_rounded, color: context.primaryColor),
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            ),
+  const HorizontalListSection({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.items,
+    required this.isStage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle(title: title, subtitle: subtitle),
+        SizedBox(
+          height: 150,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: items.length,
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (context, index) {
+              return HorizontalCard(
+                item: items[index],
+                isStage: isStage,
+              );
+            },
           ),
         ),
-      ),
+        const SizedBox(height: 32),
+      ],
     );
   }
+}
 
-  Widget _buildPaintChips() {
-    final filters = ["Tümü", "Etkinlikler", "Oyuncular", "Mekanlar", "Ekipler"];
-    return SizedBox(
-      height: 55,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: filters.length,
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: (context, index) {
-          final isSelected = _selectedFilterIndex == index;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedFilterIndex = index),
-            child: _PaintStroke(
-              text: filters[index],
-              isSelected: isSelected,
-              context: context,
-            ),
+/// **YENİ:** Taşma Sorununu Çözen Özel Kart Widget'ı
+class HorizontalCard extends StatelessWidget {
+  final dynamic item;
+  final bool isStage;
+
+  const HorizontalCard({
+    super.key,
+    required this.item,
+    required this.isStage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        if (isStage) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => StageDetailPage(stageId: item.id)),
           );
-        },
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => TeamDetailsPage(teamId: item.id)),
+          );
+        }
+      },
+      child: Container(
+        width: 220,
+        // Sabit genişlik
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            bottomRight: Radius.circular(20),
+            topRight: Radius.circular(4),
+            bottomLeft: Radius.circular(4),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min, // Önemli: İçerik kadar yer kapla
+          children: [
+            // 1. Resim Alanı (Sabit Boyut)
+            SizedBox(
+              width: 90,
+              height: 142,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  item.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+
+            // 2. Metin Alanı (Kalan Alan)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isStage ? "MEKAN" : "EKİP",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: context.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Taşmayı önleyen Text yapısı
+                    Flexible(
+                      child: Text(
+                        item.name,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true, // Alt satıra geçmeyi zorla
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
 
-  Widget _buildSectionTitle(
-      BuildContext context, String subtitle, String title) {
+class PlayerSection extends StatelessWidget {
+  final List<Player> players;
+
+  const PlayerSection({super.key, required this.players});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionTitle(title: "Oyuncular", subtitle: "Sahnenin Yıldızları"),
+        SizedBox(
+          height: 190,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: players.length,
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (context, index) {
+              final player = players[index];
+              return Container(
+                width: 120,
+                margin: const EdgeInsets.only(right: 12),
+                child: GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => PlayerDetailPage(playerId: player.id)),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(60),
+                            image: DecorationImage(
+                              image: NetworkImage(player.imageUrl),
+                              fit: BoxFit.cover,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4))
+                            ],
+                            border: Border.all(
+                                color: context.colors.surface, width: 2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "${player.firstName}\n${player.lastName}",
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: context.colors.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+}
+
+class ScatteredMasonrySection extends StatelessWidget {
+  final List<Show> shows;
+
+  const ScatteredMasonrySection({super.key, required this.shows});
+
+  @override
+  Widget build(BuildContext context) {
+    final leftColumn = <Widget>[];
+    final rightColumn = <Widget>[];
+
+    for (int i = 0; i < shows.length; i++) {
+      final double heightFactor = (i % 3 == 0) ? 1.4 : (i % 2 == 0 ? 1.0 : 1.2);
+      final double topMargin = (i == 1) ? 40.0 : 0.0;
+
+      final card = Padding(
+        padding: EdgeInsets.only(bottom: 16, top: topMargin),
+        child: _ScatteredShowCard(
+          show: shows[i],
+          heightFactor: heightFactor,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => ShowDetailPage(showId: shows[i].id)),
+          ),
+        ),
+      );
+
+      if (i % 2 == 0) {
+        leftColumn.add(card);
+      } else {
+        rightColumn.add(card);
+      }
+    }
+
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionTitle(
+              title: "Etkinlikler Vitrini", subtitle: "Akışta Kal"),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: Column(children: leftColumn)),
+                const SizedBox(width: 16),
+                Expanded(child: Column(children: rightColumn)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+// --- DİĞER KÜÇÜK YARDIMCI WIDGET'LAR ---
+
+class SectionTitle extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const SectionTitle({super.key, required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Column(
@@ -363,323 +567,49 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ),
     );
   }
-
-  // --- "DAĞINIK" (SCATTERED) MASONRY LAYOUT ---
-  Widget _buildScatteredMasonry(List<Show> shows) {
-    // Listeyi iki sütuna ayırıyoruz
-    final leftColumn = <Widget>[];
-    final rightColumn = <Widget>[];
-
-    for (int i = 0; i < shows.length; i++) {
-      // Rastgelelik hissi vermek için index bazlı yükseklik faktörleri
-      // Bu sayede kartlar "kısa, uzun, orta" gibi farklı boylarda oluşur
-      final double heightFactor = (i % 3 == 0) ? 1.4 : (i % 2 == 0 ? 1.0 : 1.2);
-
-      // Sağ sütunu biraz aşağıdan başlatmak veya araları açmak için offset
-      final double topMargin = (i == 1) ? 40.0 : 0.0;
-
-      final card = Padding(
-        padding: EdgeInsets.only(bottom: 16, top: topMargin),
-        child: _ScatteredShowCard(
-          show: shows[i],
-          heightFactor: heightFactor,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => ShowDetailPage(showId: shows[i].id)),
-          ),
-        ),
-      );
-
-      if (i % 2 == 0) {
-        leftColumn.add(card);
-      } else {
-        rightColumn.add(card);
-      }
-    }
-
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(children: leftColumn),
-            ),
-            const SizedBox(width: 16), // Sütunlar arası boşluk
-            Expanded(
-              child: Column(children: rightColumn),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlayerReel(List<Player> players) {
-    return SizedBox(
-      height: 190,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: players.length,
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: (context, index) {
-          final player = players[index];
-          return Container(
-            width: 120,
-            margin: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => PlayerDetailPage(playerId: player.id)),
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(60),
-                        image: DecorationImage(
-                          image: NetworkImage(player.imageUrl),
-                          fit: BoxFit.cover,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4))
-                        ],
-                        border:
-                            Border.all(color: context.colors.surface, width: 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "${player.firstName}\n${player.lastName}",
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: context.colors.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildHorizontalCards(List<dynamic> items, {required bool isStage}) {
-    return SizedBox(
-      height: 150,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: items.length,
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return GestureDetector(
-            onTap: () {
-              if (isStage) {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => StageDetailPage(stageId: item.id)));
-              } else {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => TeamDetailsPage(teamId: item.id)));
-              }
-            },
-            child: Container(
-              width: 220,
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                  color: context.colors.surface,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                    topRight: Radius.circular(4),
-                    bottomLeft: Radius.circular(4),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4))
-                  ]),
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.network(item.imageUrl,
-                        width: 90, height: 142, fit: BoxFit.cover),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isStage ? "MEKAN" : "EKİP",
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: context.primaryColor),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item.name,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.onSurface),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 }
 
-// -----------------------------------------------------------------------------
-// --- DESIGN COMPONENTS ---
-// -----------------------------------------------------------------------------
+class FilterList extends StatelessWidget {
+  final int selectedIndex;
+  final Function(int) onSelected;
 
-/// **YENİ:** Dağınık Masonry için özel kart
-class _ScatteredShowCard extends StatelessWidget {
-  final Show show;
-  final double
-      heightFactor; // Yükseklik çarpanı (1.0 = Kare, >1.0 = Dikdörtgen)
-  final VoidCallback onTap;
-
-  const _ScatteredShowCard({
-    required this.show,
-    required this.heightFactor,
-    required this.onTap,
-  });
+  const FilterList(
+      {super.key, required this.selectedIndex, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
-    // Base height (en kısa kart boyu)
-    const double baseHeight = 180;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: baseHeight * heightFactor,
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
-            topRight: Radius.circular(8),
-            bottomLeft: Radius.circular(8),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+    final filters = ["Tümü", "Etkinlikler", "Oyuncular", "Mekanlar", "Ekipler"];
+    return SizedBox(
+      height: 55,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: filters.length,
+        physics: const BouncingScrollPhysics(),
+        itemBuilder: (context, index) {
+          final isSelected = selectedIndex == index;
+          return GestureDetector(
+            onTap: () => onSelected(index),
+            child: PaintStroke(
+              text: filters[index],
+              isSelected: isSelected,
             ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(show.imageUrl, fit: BoxFit.cover),
-
-            // Gradient Overlay
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                  stops: const [0.6, 1.0],
-                ),
-              ),
-            ),
-
-            // Text Content
-            Positioned(
-              bottom: 12,
-              left: 12,
-              right: 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Kategori Etiketi (Opsiyonel)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    margin: const EdgeInsets.only(bottom: 6),
-                    decoration: BoxDecoration(
-                      color: context.primaryColor.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text("ETKİNLİK",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  Text(
-                    show.name,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
-class _PaintStroke extends StatelessWidget {
+class PaintStroke extends StatelessWidget {
   final String text;
   final bool isSelected;
-  final BuildContext context;
 
-  const _PaintStroke(
-      {required this.text, required this.isSelected, required this.context});
+  const PaintStroke({super.key, required this.text, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appGradient(isActive: true);
-
     return Container(
       margin: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -731,8 +661,78 @@ class _PaintStroke extends StatelessWidget {
   }
 }
 
-class _ThemeBackground extends StatelessWidget {
-  const _ThemeBackground();
+class ArtisticTitle extends StatelessWidget {
+  const ArtisticTitle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (bounds) => LinearGradient(
+        colors: context.appGradient(isActive: true),
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(bounds),
+      child: const Text(
+        "Keşfet",
+        style: TextStyle(
+          fontSize: 42,
+          fontWeight: FontWeight.w900,
+          fontFamily: 'Serif',
+          letterSpacing: -1.5,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+}
+
+class GlassSearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final Function(String) onChanged;
+
+  const GlassSearchBar(
+      {super.key, required this.controller, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.isDarkMode
+                ? Colors.white.withOpacity(0.08)
+                : Colors.white.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(24),
+            border:
+                Border.all(color: context.colors.onSurface.withOpacity(0.1)),
+          ),
+          child: TextField(
+            controller: controller,
+            onChanged: onChanged,
+            style: TextStyle(color: context.colors.onSurface),
+            decoration: InputDecoration(
+              hintText: 'Sanatın izini sür...',
+              hintStyle: TextStyle(
+                color: context.colors.onSurface.withOpacity(0.5),
+                fontStyle: FontStyle.italic,
+              ),
+              prefixIcon:
+                  Icon(Icons.search_rounded, color: context.primaryColor),
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ThemeBackground extends StatelessWidget {
+  const ThemeBackground({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -750,6 +750,97 @@ class _ThemeBackground extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(color: Colors.transparent),
+      ),
+    );
+  }
+}
+
+class _ScatteredShowCard extends StatelessWidget {
+  final Show show;
+  final double heightFactor;
+  final VoidCallback onTap;
+
+  const _ScatteredShowCard({
+    required this.show,
+    required this.heightFactor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const double baseHeight = 180;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: baseHeight * heightFactor,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
+            topRight: Radius.circular(8),
+            bottomLeft: Radius.circular(8),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(show.imageUrl, fit: BoxFit.cover),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                  stops: const [0.6, 1.0],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: context.primaryColor.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text("ETKİNLİK",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                  Text(
+                    show.name,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
