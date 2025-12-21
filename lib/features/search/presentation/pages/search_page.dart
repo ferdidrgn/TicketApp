@@ -160,10 +160,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 // 2. FILTERS
                 SliverToBoxAdapter(
                   child: FilterList(
-                    selectedIndex: _selectedFilterIndex,
-                    onSelected: (final index) =>
-                        setState(() => _selectedFilterIndex = index),
-                  ),
+                      selectedIndex: _selectedFilterIndex,
+                      onSelected: (final index) =>
+                          setState(() => _selectedFilterIndex = index)),
                 ),
 
                 // 3. CONTENT
@@ -176,9 +175,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   if ((_selectedFilterIndex == 0 ||
                           _selectedFilterIndex == 2) &&
                       (players?.isNotEmpty ?? false))
-                    SliverToBoxAdapter(
-                      child: PlayerSection(players: players!),
-                    ),
+                    SliverToBoxAdapter(child: PlayerSection(players: players!)),
 
                   // ETKİNLİKLER (Masonry)
                   if ((_selectedFilterIndex == 0 ||
