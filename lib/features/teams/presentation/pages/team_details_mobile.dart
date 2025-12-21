@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/features/teams/data/datasources/team_remote_data_source_and_impl.dart';
 import '../../../../shared/widgets/custom_description_card.dart';
 import '../../../../shared/widgets/section_header.dart';
-import '../../../../shared/widgets/shimmer.dart';
+import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../shows/data/datasources/show_remote_data_source_and_impl.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';

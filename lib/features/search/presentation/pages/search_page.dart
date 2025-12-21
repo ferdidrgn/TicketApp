@@ -3,12 +3,10 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shimmer/shimmer.dart';
-
-// Kendi proje importlarınızın yollarını koruyun
 import 'package:ticketapp/core/theme/app_colors.dart';
 import '../../../../core/services/pagination_controller.dart';
 import '../../../../core/theme/theme_context_extension.dart';
+import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../players/presentation/providers/player_provider.dart';
@@ -22,99 +20,6 @@ import '../../../teams/domain/entities/team.dart';
 import '../../../teams/presentation/pages/team_details_mobile.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/search_query_provider.dart';
-
-// =============================================================================
-// SHIMMER WIDGETS
-// =============================================================================
-
-class ShimmerLoading extends StatelessWidget {
-  final double height;
-  final double width;
-  final double borderRadius;
-  final bool isCircular;
-
-  const ShimmerLoading({
-    super.key,
-    this.height = 190.0,
-    this.width = 130.0,
-    this.borderRadius = 8.0,
-    this.isCircular = false,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: context.isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
-      highlightColor:
-          context.isDarkMode ? Colors.grey[600]! : Colors.grey[100]!,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: isCircular
-              ? BorderRadius.circular(height / 2)
-              : BorderRadius.circular(borderRadius),
-        ),
-      ),
-    );
-  }
-}
-
-class ShimmerCard extends StatelessWidget {
-  final double width;
-  final double height;
-  final bool showTextLine;
-
-  const ShimmerCard({
-    super.key,
-    this.width = 220,
-    this.height = 150,
-    this.showTextLine = true,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-          topRight: Radius.circular(4),
-          bottomLeft: Radius.circular(4),
-        ),
-      ),
-      child: Column(
-        children: [
-          Expanded(
-            child: ShimmerLoading(
-              height: height - (showTextLine ? 40 : 0),
-              width: width,
-              borderRadius: 16,
-            ),
-          ),
-          if (showTextLine)
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ShimmerLoading(height: 10, width: 60, borderRadius: 4),
-                  const SizedBox(height: 6),
-                  ShimmerLoading(
-                      height: 14, width: width - 40, borderRadius: 4),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 class NetworkImageWithFallback extends StatelessWidget {
   final String imageUrl;
@@ -135,7 +40,7 @@ class NetworkImageWithFallback extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return ClipRRect(
       borderRadius: isCircular
           ? BorderRadius.circular((height ?? width ?? 50) / 2)
@@ -145,7 +50,7 @@ class NetworkImageWithFallback extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        loadingBuilder: (context, child, loadingProgress) {
+        loadingBuilder: (final context, final child, final loadingProgress) {
           if (loadingProgress == null) return child;
           return ShimmerLoading(
             width: width ?? 100.0,
@@ -154,7 +59,7 @@ class NetworkImageWithFallback extends StatelessWidget {
             isCircular: isCircular,
           );
         },
-        errorBuilder: (context, error, stackTrace) {
+        errorBuilder: (final context, final error, final stackTrace) {
           return Container(
             width: width,
             height: height,
@@ -181,9 +86,7 @@ class NetworkImageWithFallback extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// MAIN SEARCH PAGE
-// =============================================================================
+// ... (Importlar ve Shimmer Widgetları aynı kalacak, burayı atlıyorum) ...
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -193,7 +96,7 @@ class SearchPage extends ConsumerStatefulWidget {
 }
 
 class _SearchPageState extends ConsumerState<SearchPage> {
-  // Pagination Controllers
+  // ... (Değişkenler ve initState aynı) ...
   PaginationController<Show>? showsPagination;
   PaginationController<Player>? playersPagination;
   PaginationController<Stage>? stagesPagination;
@@ -202,8 +105,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   final TextEditingController _textEditingController = TextEditingController();
   Timer? _debounce;
   bool _isInitialized = false;
-
-  // 0: Tümü, 1: Etkinlik, 2: Oyuncu, 3: Mekan, 4: Ekip
   int _selectedFilterIndex = 0;
 
   @override
@@ -219,10 +120,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     super.dispose();
   }
 
-  // --- DATA LOGIC ---
+  // ... (Data Logic kısımları aynı) ...
   Future<void> _initializeData() async {
     if (_isInitialized) return;
-
     await Future.wait([
       if (ref.read(showProvider).isListNullOrEmpty)
         ref.read(showProvider.notifier).loadShows(true),
@@ -233,7 +133,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       if (ref.read(teamProvider).isListNullOrEmpty)
         ref.read(teamProvider.notifier).loadTeams(true),
     ]);
-
     _initializePaginationControllers();
     setState(() => _isInitialized = true);
   }
@@ -272,7 +171,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         .toList();
   }
 
-  // --- UI BUILD ---
+  // --- UI BUILD (DÜZELTİLEN KISIM) ---
   @override
   Widget build(final BuildContext context) {
     final searchQuery = ref.watch(searchQueryProvider);
@@ -281,6 +180,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final stageState = ref.watch(stageProvider);
     final teamState = ref.watch(teamProvider);
 
+    // Yükleniyor durumlarını kontrol et
     final bool showsLoading = showState.isLoading || !_isInitialized;
     final bool playersLoading = playerState.isLoading || !_isInitialized;
     final bool stagesLoading = stageState.isLoading || !_isInitialized;
@@ -292,6 +192,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final stages =
         _filterItems(stageState.dataList, (s) => s.name, searchQuery);
     final teams = _filterItems(teamState.dataList, (t) => t.name, searchQuery);
+
+    // Hiçbir sonuç yok mu kontrolü (Loading bittiyse ve listeler boşsa)
+    final bool isAllEmpty = !showsLoading &&
+        !playersLoading &&
+        !stagesLoading &&
+        !teamsLoading &&
+        (shows?.isEmpty ?? true) &&
+        (players?.isEmpty ?? true) &&
+        (stages?.isEmpty ?? true) &&
+        (teams?.isEmpty ?? true);
 
     return Scaffold(
       backgroundColor: context.scaffoldBackgroundColor,
@@ -330,60 +240,83 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 ),
 
                 // 3. CONTENT
-                // OYUNCULAR
-                if ((_selectedFilterIndex == 0 || _selectedFilterIndex == 2))
-                  if (playersLoading || (players?.isEmpty ?? true))
-                    SliverToBoxAdapter(
-                      child: PlayerSection(players: const [], isLoading: true),
+
+                // --- OYUNCULAR ---
+                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 2) ...[
+                  if (playersLoading)
+                    const SliverToBoxAdapter(
+                      child: PlayerSection(players: [], isLoading: true),
                     )
-                  else if (players?.isNotEmpty ?? false)
+                  else if (players != null && players.isNotEmpty)
                     SliverToBoxAdapter(
-                      child: PlayerSection(players: players!),
+                      child: PlayerSection(players: players),
                     ),
+                ],
 
-                // ETKİNLİKLER (GİRİFT / İÇ İÇE MOZAİK)
-                if ((_selectedFilterIndex == 0 || _selectedFilterIndex == 1))
-                  if (showsLoading || (shows?.isEmpty ?? true))
+                // --- ETKİNLİKLER (GİRİFT MOZAİK) ---
+                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 1) ...[
+                  if (showsLoading)
                     const HorizontalMosaicSection(shows: [], isLoading: true)
-                  else if (shows?.isNotEmpty ?? false)
-                    HorizontalMosaicSection(shows: shows!),
+                  else if (shows != null && shows.isNotEmpty)
+                    HorizontalMosaicSection(shows: shows),
+                ],
 
-                // MEKANLAR
-                if ((_selectedFilterIndex == 0 || _selectedFilterIndex == 3))
-                  SliverToBoxAdapter(
-                    child: HorizontalListSection(
-                      title: "Mekanlar",
-                      subtitle: "Atmosfer",
-                      items: stages ?? [],
-                      isStage: true,
-                      isLoading: stagesLoading,
-                    ),
-                  ),
-
-                // EKİPLER
-                if ((_selectedFilterIndex == 0 || _selectedFilterIndex == 4))
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 100),
+                // --- MEKANLAR ---
+                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 3) ...[
+                  if (stagesLoading)
+                    const SliverToBoxAdapter(
                       child: HorizontalListSection(
-                        title: "Ekipler",
-                        subtitle: "Mutfak",
-                        items: teams ?? [],
-                        isStage: false,
-                        isLoading: teamsLoading,
+                        title: "Mekanlar",
+                        subtitle: "Atmosfer",
+                        items: [],
+                        isStage: true,
+                        isLoading: true,
+                      ),
+                    )
+                  else if (stages != null && stages.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: HorizontalListSection(
+                        title: "Mekanlar",
+                        subtitle: "Atmosfer",
+                        items: stages,
+                        isStage: true,
+                        isLoading: false,
                       ),
                     ),
-                  ),
+                ],
 
-                // EMPTY STATE
-                if (!showsLoading &&
-                    !playersLoading &&
-                    !stagesLoading &&
-                    !teamsLoading &&
-                    (shows?.isEmpty ?? true) &&
-                    (players?.isEmpty ?? true) &&
-                    (stages?.isEmpty ?? true) &&
-                    (teams?.isEmpty ?? true))
+                // --- EKİPLER ---
+                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 4) ...[
+                  if (teamsLoading)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 100),
+                        child: HorizontalListSection(
+                          title: "Ekipler",
+                          subtitle: "Mutfak",
+                          items: [],
+                          isStage: false,
+                          isLoading: true,
+                        ),
+                      ),
+                    )
+                  else if (teams != null && teams.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 100),
+                        child: HorizontalListSection(
+                          title: "Ekipler",
+                          subtitle: "Mutfak",
+                          items: teams,
+                          isStage: false,
+                          isLoading: false,
+                        ),
+                      ),
+                    ),
+                ],
+
+                // --- EMPTY STATE (HİÇBİR SONUÇ YOKSA) ---
+                if (isAllEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
@@ -391,15 +324,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.search_off,
-                            size: 64,
-                            color: context.colors.onSurface.withOpacity(0.3),
+                            Icons.search_off_rounded,
+                            size: 80,
+                            color: context.colors.onSurface.withOpacity(0.2),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            "Sanat eseri bulunamadı...",
+                            "Aradığınız kriterlere uygun\nsonuç bulunamadı.",
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 16,
+                              fontWeight: FontWeight.w500,
                               color: context.colors.onSurface.withOpacity(0.5),
                             ),
                           ),
@@ -416,10 +351,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 }
 
-// =============================================================================
-// REFACTORED MOSAIC SECTION (GİRİFT MOZAİK)
-// =============================================================================
-
 class HorizontalMosaicSection extends StatelessWidget {
   final List<Show> shows;
   final bool isLoading;
@@ -431,11 +362,12 @@ class HorizontalMosaicSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (isLoading) {
       return _buildMosaicShimmer(context);
     }
 
+    // Sütun sayısını hesapla
     final int columnCount = (shows.length / 2).ceil();
 
     return SliverToBoxAdapter(
@@ -453,7 +385,7 @@ class HorizontalMosaicSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: columnCount,
               physics: const BouncingScrollPhysics(),
-              itemBuilder: (context, index) {
+              itemBuilder: (final context, final index) {
                 final int firstIndex = index * 2;
                 final int secondIndex = firstIndex + 1;
 
@@ -464,77 +396,71 @@ class HorizontalMosaicSection extends StatelessWidget {
 
                 if (show1 == null) return const SizedBox();
 
-                // --- GİRİFT (KARMAŞIK) MOZAİK MANTIĞI ---
-                // 4 Adımlı bir desen kullanarak kartların birleşme noktasını
-                // sürekli değiştiriyoruz. Bu bir dalga/karmaşa etkisi yaratır.
-                // Desen:
-                // 0: Çok Üst Ağır (Flex 5:2) -> Üst kart büyük
-                // 1: Orta Alt Ağır (Flex 3:4) -> Alt kart biraz büyük
-                // 2: Çok Alt Ağır (Flex 2:5) -> Alt kart çok büyük
-                // 3: Orta Üst Ağır (Flex 4:3) -> Üst kart biraz büyük
-
-                int flex1, flex2;
+                // --- GİRİFT MOZAİK DESENİ ---
+                // 4 adımlı bir döngü ile kartların birleşim noktasını sürekli değiştiriyoruz.
+                // Bu sayede "düzenli düzensizlik" (organik) bir görünüm oluşur.
+                int flexTop, flexBottom;
                 final int patternStep = index % 4;
 
                 switch (patternStep) {
-                  case 0: // Üst çok geniş
-                    flex1 = 5;
-                    flex2 = 2;
+                  case 0: // Üst çok baskın
+                    flexTop = 5;
+                    flexBottom = 2;
                     break;
-                  case 1: // Alt biraz geniş
-                    flex1 = 3;
-                    flex2 = 4;
+                  case 1: // Alt hafif baskın
+                    flexTop = 3;
+                    flexBottom = 4;
                     break;
-                  case 2: // Alt çok geniş
-                    flex1 = 2;
-                    flex2 = 5;
+                  case 2: // Alt çok baskın
+                    flexTop = 2;
+                    flexBottom = 5;
                     break;
-                  case 3: // Üst biraz geniş
-                    flex1 = 4;
-                    flex2 = 3;
+                  case 3: // Üst hafif baskın
+                    flexTop = 4;
+                    flexBottom = 3;
                     break;
-                  default: // Eşit (olur da pattern şaşarsa)
-                    flex1 = 1;
-                    flex2 = 1;
+                  default:
+                    flexTop = 1;
+                    flexBottom = 1;
                 }
 
                 return Container(
-                  width: 155, // Biraz daha daraltarak "sıkışık/içe içe" hissi
+                  width: 155, // Biraz daha daraltarak sıkışık/dolu görünüm
                   margin: const EdgeInsets.only(right: 10),
                   child: Column(
                     children: [
-                      // Üst Kart
+                      // --- ÜST KART ---
                       Expanded(
-                        flex: flex1,
+                        flex: flexTop,
                         child: _MosaicShowCard(
                           show: show1,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) =>
+                                builder: (final _) =>
                                     ShowDetailPage(showId: show1.id)),
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 10), // Boşluk biraz daha az
+                      const SizedBox(height: 10), // Kartlar arası boşluk
 
-                      // Alt Kart
+                      // --- ALT KART ---
                       if (show2 != null)
                         Expanded(
-                          flex: flex2,
+                          flex: flexBottom,
                           child: _MosaicShowCard(
                             show: show2,
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
+                                  builder: (final _) =>
                                       ShowDetailPage(showId: show2.id)),
                             ),
                           ),
                         )
                       else
-                        Spacer(flex: flex2),
+                        Spacer(flex: flexBottom), // Kart yoksa boşluk bırak
                     ],
                   ),
                 );
@@ -547,7 +473,8 @@ class HorizontalMosaicSection extends StatelessWidget {
     );
   }
 
-  Widget _buildMosaicShimmer(BuildContext context) {
+  // Shimmer için de aynı deseni kullanıyoruz ki yüklenirken görüntü zıplamasın
+  Widget _buildMosaicShimmer(final BuildContext context) {
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,26 +490,25 @@ class HorizontalMosaicSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: 4,
               physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) {
-                // Shimmer da aynı deseni takip etsin
-                int flex1, flex2;
+              itemBuilder: (final context, final index) {
+                int flexTop, flexBottom;
                 final int patternStep = index % 4;
                 switch (patternStep) {
                   case 0:
-                    flex1 = 5;
-                    flex2 = 2;
+                    flexTop = 5;
+                    flexBottom = 2;
                     break;
                   case 1:
-                    flex1 = 3;
-                    flex2 = 4;
+                    flexTop = 3;
+                    flexBottom = 4;
                     break;
                   case 2:
-                    flex1 = 2;
-                    flex2 = 5;
+                    flexTop = 2;
+                    flexBottom = 5;
                     break;
                   default:
-                    flex1 = 4;
-                    flex2 = 3;
+                    flexTop = 4;
+                    flexBottom = 3;
                     break;
                 }
 
@@ -592,7 +518,7 @@ class HorizontalMosaicSection extends StatelessWidget {
                   child: Column(
                     children: [
                       Expanded(
-                        flex: flex1,
+                        flex: flexTop,
                         child: const ShimmerLoading(
                           width: double.infinity,
                           height: double.infinity,
@@ -601,7 +527,7 @@ class HorizontalMosaicSection extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Expanded(
-                        flex: flex2,
+                        flex: flexBottom,
                         child: const ShimmerLoading(
                           width: double.infinity,
                           height: double.infinity,
@@ -621,6 +547,7 @@ class HorizontalMosaicSection extends StatelessWidget {
   }
 }
 
+// Mozaik Kart Tasarımı
 class _MosaicShowCard extends StatelessWidget {
   final Show show;
   final VoidCallback onTap;
@@ -631,13 +558,13 @@ class _MosaicShowCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: context.colors.surface,
-          borderRadius: BorderRadius.circular(16), // Köşeler biraz daha keskin
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -650,6 +577,7 @@ class _MosaicShowCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Resim
             NetworkImageWithFallback(
               imageUrl: show.imageUrl,
               width: double.infinity,
@@ -657,6 +585,8 @@ class _MosaicShowCard extends StatelessWidget {
               fit: BoxFit.cover,
               borderRadius: 0,
             ),
+
+            // Gölge Efekti
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -667,6 +597,8 @@ class _MosaicShowCard extends StatelessWidget {
                 ),
               ),
             ),
+
+            // Metinler
             Positioned(
               bottom: 10,
               left: 10,
@@ -1055,7 +987,7 @@ class FilterList extends StatelessWidget {
     ];
 
     return SizedBox(
-      height: 65,
+      height: 80,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),

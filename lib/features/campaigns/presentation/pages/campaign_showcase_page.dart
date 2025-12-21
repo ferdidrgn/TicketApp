@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/custom_dots_indicator.dart';
-import '../../../../shared/widgets/shimmer.dart';
+import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../../../players/presentation/pages/player_details.dart';

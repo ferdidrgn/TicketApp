@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/shared/widgets/shimmer.dart';
+import 'package:ticketapp/shared/widgets/card/shimmer_card.dart';
 
 class OptimizedCachedImage extends StatelessWidget {
   final String imageUrl;

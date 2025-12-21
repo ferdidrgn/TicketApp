@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:ui';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
-import 'package:ticketapp/shared/widgets/shimmer.dart';
-
+import 'package:ticketapp/shared/widgets/card/shimmer_card.dart';
 import '../../../shows/presentation/providers/show_notifier.dart';
 import '../../domain/entities/player.dart';
 import '../providers/player_notifier.dart';

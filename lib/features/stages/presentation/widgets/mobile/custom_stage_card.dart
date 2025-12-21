@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../../shared/widgets/shimmer.dart';
+import '../../../../../shared/widgets/card/shimmer_card.dart';
 
 class CustomStageCard extends StatelessWidget {
   final String text;

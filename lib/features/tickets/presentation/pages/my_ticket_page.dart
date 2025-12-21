@@ -5,7 +5,7 @@ import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_mod
 import 'package:ticketapp/features/tickets/presentation/providers/ticket_provider.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/particle_decoration.dart';
-import '../../../../shared/widgets/shimmer.dart';
+import '../../../../shared/widgets/card/shimmer_card.dart';
 import 'my_ticket_viewmodel.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../../shared/widgets/shimmer.dart';
+import '../../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../domain/entities/show.dart';
 import '../../providers/show_provider.dart';
 

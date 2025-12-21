@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../../core/common/base_loadable_state.dart';
-import '../../../../../shared/widgets/shimmer.dart';
+import '../../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../stages/domain/entities/stage.dart';
 
 class StageCarousel extends StatelessWidget {
