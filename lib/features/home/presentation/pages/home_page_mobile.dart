@@ -123,9 +123,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
       ),
-      floatingActionButton: CustomFloatingActionButton(
-        onPressed: _loadAllData,
-      ),
+      floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
       body: Stack(
         children: [
           // Ambient lighting effects
