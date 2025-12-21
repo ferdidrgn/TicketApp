@@ -8,6 +8,7 @@ import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../../../shared/widgets/top_header.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../players/presentation/providers/player_provider.dart';
@@ -228,7 +229,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const ArtisticTitle(),
+                        const TopHeader(title: "Harikuladeler"),
                         const SizedBox(height: 20),
                         GlassSearchBar(
                           controller: _textEditingController,
@@ -359,518 +360,516 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  Widget _buildLoadingIndicator() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(context.primaryColor),
+  Widget _buildLoadingIndicator() => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(context.primaryColor),
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 
   // DİKEY MOZAİK - ETKİNLİKLER
-  Widget _buildShowsMosaic(final BuildContext context, final List<Show> shows) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (final context, final listIndex) {
-            // Her iterasyonda 2 item işle (tek veya çift sütun)
-            final baseIndex = listIndex * 2;
-            if (baseIndex >= shows.length) return const SizedBox.shrink();
+  Widget _buildShowsMosaic(
+          final BuildContext context, final List<Show> shows) =>
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (final context, final listIndex) {
+              // Her iterasyonda 2 item işle (tek veya çift sütun)
+              final baseIndex = listIndex * 2;
+              if (baseIndex >= shows.length) return const SizedBox.shrink();
 
-            final show1 = shows[baseIndex];
-            final show2 =
-                baseIndex + 1 < shows.length ? shows[baseIndex + 1] : null;
+              final show1 = shows[baseIndex];
+              final show2 =
+                  baseIndex + 1 < shows.length ? shows[baseIndex + 1] : null;
 
-            // Mozaik karmaşıklığı için değişken yükseklikler
-            final random = math.Random(baseIndex);
+              // Mozaik karmaşıklığı için değişken yükseklikler
+              final random = math.Random(baseIndex);
 
-            // 3 farklı desen: tek büyük, iki küçük, veya asimetrik
-            final pattern = listIndex % 3;
+              // 3 farklı desen: tek büyük, iki küçük, veya asimetrik
+              final pattern = listIndex % 3;
 
-            if (pattern == 0 && show2 != null) {
-              // İki sütunlu - değişken yükseklikler
-              final height1 = 180.0 + random.nextDouble() * 120;
-              final height2 = 180.0 + random.nextDouble() * 120;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                        child: _buildShowCard(context, show1, height: height1)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child: _buildShowCard(context, show2, height: height2)),
-                  ],
-                ),
-              );
-            } else if (pattern == 1 && show2 != null) {
-              // Bir büyük solda, bir küçük sağda
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: _buildShowCard(context, show1, height: 280),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: _buildShowCard(context, show2, height: 180),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              // Tek kart - tam genişlik
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildShowCard(context, show1, height: 240),
-              );
-            }
-          },
-          childCount: (shows.length / 2).ceil(),
+              if (pattern == 0 && show2 != null) {
+                // İki sütunlu - değişken yükseklikler
+                final height1 = 180.0 + random.nextDouble() * 120;
+                final height2 = 180.0 + random.nextDouble() * 120;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                          child:
+                              _buildShowCard(context, show1, height: height1)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child:
+                              _buildShowCard(context, show2, height: height2)),
+                    ],
+                  ),
+                );
+              } else if (pattern == 1 && show2 != null) {
+                // Bir büyük solda, bir küçük sağda
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: _buildShowCard(context, show1, height: 280),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: _buildShowCard(context, show2, height: 180),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                // Tek kart - tam genişlik
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildShowCard(context, show1, height: 240),
+                );
+              }
+            },
+            childCount: (shows.length / 2).ceil(),
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   Widget _buildShowCard(final BuildContext context, final Show show,
-      {required final double height}) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (final _) => ShowDetailPage(showId: show.id))),
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 12,
-                offset: const Offset(0, 6))
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            OptimizedCachedImage(
-                imageUrl: show.imageUrl, fit: BoxFit.cover, borderRadius: 0),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
-                  stops: const [0.5, 1.0],
+          {required final double height}) =>
+      GestureDetector(
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (final _) => ShowDetailPage(showId: show.id))),
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6))
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              OptimizedCachedImage(
+                  imageUrl: show.imageUrl, fit: BoxFit.cover, borderRadius: 0),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.85)
+                    ],
+                    stops: const [0.5, 1.0],
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: context.primaryColor,
-                        borderRadius: BorderRadius.circular(6)),
-                    child: const Text('ETKİNLİK',
-                        style: TextStyle(
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: context.primaryColor,
+                          borderRadius: BorderRadius.circular(6)),
+                      child: const Text('ETKİNLİK',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(show.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5)),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(show.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2)),
-                ],
+                            height: 1.2)),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   // DİKEY MOZAİK - OYUNCULAR
   Widget _buildPlayersMosaic(
-      final BuildContext context, final List<Player> players) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (final context, final listIndex) {
-            final baseIndex = listIndex * 2;
-            if (baseIndex >= players.length) return const SizedBox.shrink();
+          final BuildContext context, final List<Player> players) =>
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (final context, final listIndex) {
+              final baseIndex = listIndex * 2;
+              if (baseIndex >= players.length) return const SizedBox.shrink();
 
-            final player1 = players[baseIndex];
-            final player2 =
-                baseIndex + 1 < players.length ? players[baseIndex + 1] : null;
+              final player1 = players[baseIndex];
+              final player2 = baseIndex + 1 < players.length
+                  ? players[baseIndex + 1]
+                  : null;
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Expanded(child: _buildPlayerCard(context, player1)),
-                  if (player2 != null) ...[
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildPlayerCard(context, player2)),
-                  ] else
-                    const Expanded(child: SizedBox()),
-                ],
-              ),
-            );
-          },
-          childCount: (players.length / 2).ceil(),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildPlayerCard(context, player1)),
+                    if (player2 != null) ...[
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildPlayerCard(context, player2)),
+                    ] else
+                      const Expanded(child: SizedBox()),
+                  ],
+                ),
+              );
+            },
+            childCount: (players.length / 2).ceil(),
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildPlayerCard(final BuildContext context, final Player player) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (final _) => PlayerDetailPage(playerId: player.id))),
-      child: Container(
-        height: 220, // <--- BU SATIR EKLENDİ (Yükseklik sınırı)
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
-          ],
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
-                child: OptimizedCachedImage(
-                    imageUrl: player.imageUrl,
-                    fit: BoxFit.cover,
-                    borderRadius: 0),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Padding(
-                // <--- Estetik için biraz padding eklendi
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                child: Center(
-                  child: Text('${player.firstName} ${player.lastName}',
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.onSurface)),
+  Widget _buildPlayerCard(final BuildContext context, final Player player) =>
+      GestureDetector(
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (final _) => PlayerDetailPage(playerId: player.id))),
+        child: Container(
+          height: 220,
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4))
+            ],
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                flex: 3,
+                child: ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: OptimizedCachedImage(
+                      imageUrl: player.imageUrl,
+                      fit: BoxFit.cover,
+                      borderRadius: 0),
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: Center(
+                    child: Text('${player.firstName} ${player.lastName}',
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: context.colors.onSurface)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   // DİKEY MOZAİK - MEKANLAR
   Widget _buildStagesMosaic(
-      final BuildContext context, final List<Stage> stages) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (final context, final listIndex) {
-            final baseIndex = listIndex * 2;
-            if (baseIndex >= stages.length) return const SizedBox.shrink();
+          final BuildContext context, final List<Stage> stages) =>
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (final context, final listIndex) {
+              final baseIndex = listIndex * 2;
+              if (baseIndex >= stages.length) return const SizedBox.shrink();
 
-            final stage1 = stages[baseIndex];
-            final stage2 =
-                baseIndex + 1 < stages.length ? stages[baseIndex + 1] : null;
+              final stage1 = stages[baseIndex];
+              final stage2 =
+                  baseIndex + 1 < stages.length ? stages[baseIndex + 1] : null;
 
-            // Mozaik için değişken layoutlar
-            final random = math.Random(baseIndex);
-            final pattern = listIndex % 3;
+              // Mozaik için değişken layoutlar
+              final random = math.Random(baseIndex);
+              final pattern = listIndex % 3;
 
-            if (pattern == 0) {
-              // Tek büyük kart
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildStageCard(context, stage1,
-                    height: 240 + random.nextDouble() * 40),
-              );
-            } else if (stage2 != null) {
-              // İki sütun
-              final height1 = 180.0 + random.nextDouble() * 80;
-              final height2 = 180.0 + random.nextDouble() * 80;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                        child:
-                            _buildStageCard(context, stage1, height: height1)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child:
-                            _buildStageCard(context, stage2, height: height2)),
-                  ],
-                ),
-              );
-            } else {
-              // Tek kart kaldı
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildStageCard(context, stage1, height: 200),
-              );
-            }
-          },
-          childCount: stages.length,
+              if (pattern == 0)
+                // Tek büyük kart
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildStageCard(context, stage1,
+                      height: 240 + random.nextDouble() * 40),
+                );
+              else if (stage2 != null) {
+                // İki sütun
+                final height1 = 180.0 + random.nextDouble() * 80;
+                final height2 = 180.0 + random.nextDouble() * 80;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                          child: _buildStageCard(context, stage1,
+                              height: height1)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _buildStageCard(context, stage2,
+                              height: height2)),
+                    ],
+                  ),
+                );
+              } else
+                // Tek kart kaldı
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildStageCard(context, stage1, height: 200),
+                );
+            },
+            childCount: stages.length,
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   Widget _buildStageCard(final BuildContext context, final Stage stage,
-      {required final double height}) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (final _) => StageDetailPage(stageId: stage.id))),
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 15,
-                offset: const Offset(0, 6))
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            OptimizedCachedImage(
-                imageUrl: stage.imageUrl, fit: BoxFit.cover, borderRadius: 0),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Colors.black.withOpacity(0.7), Colors.transparent],
-                  stops: const [0.3, 1.0],
+          {required final double height}) =>
+      GestureDetector(
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (final _) => StageDetailPage(stageId: stage.id))),
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6))
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              OptimizedCachedImage(
+                  imageUrl: stage.imageUrl, fit: BoxFit.cover, borderRadius: 0),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                    stops: const [0.3, 1.0],
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 20,
-              bottom: 20,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                        color: context.primaryColor,
-                        borderRadius: BorderRadius.circular(8)),
-                    child: const Text('MEKAN',
-                        style: TextStyle(
+              Positioned(
+                left: 20,
+                bottom: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                          color: context.primaryColor,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: const Text('MEKAN',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(stage.name,
+                        style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5)),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(stage.name,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
-                ],
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   // DİKEY MOZAİK - EKİPLER
-  Widget _buildTeamsMosaic(final BuildContext context, final List<Team> teams) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (final context, final listIndex) {
-            final baseIndex = listIndex * 2;
-            if (baseIndex >= teams.length) return const SizedBox.shrink();
+  Widget _buildTeamsMosaic(
+          final BuildContext context, final List<Team> teams) =>
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (final context, final listIndex) {
+              final baseIndex = listIndex * 2;
+              if (baseIndex >= teams.length) return const SizedBox.shrink();
 
-            final team1 = teams[baseIndex];
-            final team2 =
-                baseIndex + 1 < teams.length ? teams[baseIndex + 1] : null;
+              final team1 = teams[baseIndex];
+              final team2 =
+                  baseIndex + 1 < teams.length ? teams[baseIndex + 1] : null;
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Expanded(child: _buildTeamCard(context, team1)),
-                  if (team2 != null) ...[
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildTeamCard(context, team2)),
-                  ] else
-                    const Expanded(child: SizedBox()),
-                ],
-              ),
-            );
-          },
-          childCount: (teams.length / 2).ceil(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTeamCard(final BuildContext context, final Team team) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (final _) => TeamDetailsPage(teamId: team.id))),
-      child: Container(
-        height: 180,
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            OptimizedCachedImage(
-                imageUrl: team.imageUrl, fit: BoxFit.cover, borderRadius: 0),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.75)],
-                  stops: const [0.5, 1.0],
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 12,
-              left: 12,
-              right: 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: context.primaryColor,
-                        borderRadius: BorderRadius.circular(6)),
-                    child: const Text('EKİP',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2)),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(team.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          height: 1.1)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMosaicShimmer(final BuildContext context,
-      {final int itemCount = 6}) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (final context, final index) {
-            if (index % 2 == 0 && index + 1 < itemCount) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    Expanded(
-                        child: ShimmerLoading(
-                            width: double.infinity,
-                            height: 200 + (index % 3) * 30,
-                            borderRadius: 20)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child: ShimmerLoading(
-                            width: double.infinity,
-                            height: 220 + (index % 2) * 40,
-                            borderRadius: 20)),
+                    Expanded(child: _buildTeamCard(context, team1)),
+                    if (team2 != null) ...[
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildTeamCard(context, team2)),
+                    ] else
+                      const Expanded(child: SizedBox()),
                   ],
                 ),
               );
-            }
-            return const SizedBox.shrink();
-          },
-          childCount: (itemCount / 2).ceil(),
+            },
+            childCount: (teams.length / 2).ceil(),
+          ),
         ),
-      ),
-    );
-  }
+      );
+
+  Widget _buildTeamCard(final BuildContext context, final Team team) =>
+      GestureDetector(
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (final _) => TeamDetailsPage(teamId: team.id))),
+        child: Container(
+          height: 180,
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4))
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              OptimizedCachedImage(
+                  imageUrl: team.imageUrl, fit: BoxFit.cover, borderRadius: 0),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.75)
+                    ],
+                    stops: const [0.5, 1.0],
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 12,
+                left: 12,
+                right: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: context.primaryColor,
+                          borderRadius: BorderRadius.circular(6)),
+                      child: const Text('EKİP',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2)),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(team.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            height: 1.1)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildMosaicShimmer(final BuildContext context,
+          {final int itemCount = 6}) =>
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (final context, final index) {
+              if (index % 2 == 0 && index + 1 < itemCount) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                          child: ShimmerLoading(
+                              width: double.infinity,
+                              height: 200 + (index % 3) * 30,
+                              borderRadius: 20)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: ShimmerLoading(
+                              width: double.infinity,
+                              height: 220 + (index % 2) * 40,
+                              borderRadius: 20)),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+            childCount: (itemCount / 2).ceil(),
+          ),
+        ),
+      );
 }
 
 // YATAY SCROLL SECTIONS (ORİJİNAL TASARIM)
@@ -885,20 +884,18 @@ class HorizontalMosaicSection extends StatelessWidget {
   Widget build(final BuildContext context) {
     if (isLoading) return _buildShimmer(context);
 
-    final int columnCount = (shows.length / 2).ceil();
-
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(
+          const SectionHeader(
               title: "Etkinlikler Vitrini", subtitle: "Akışta Kal"),
           SizedBox(
             height: 340,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: columnCount,
+              itemCount: (shows.length / 2).ceil(),
               physics: const BouncingScrollPhysics(),
               itemBuilder: (final context, final index) {
                 final int firstIndex = index * 2;
@@ -978,73 +975,71 @@ class HorizontalMosaicSection extends StatelessWidget {
     );
   }
 
-  Widget _buildShimmer(final BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionTitle(
-              title: "Etkinlikler Vitrini", subtitle: "Akışta Kal"),
-          SizedBox(
-            height: 340,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 4,
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (final context, final index) {
-                int flexTop, flexBottom;
-                final int patternStep = index % 4;
-                switch (patternStep) {
-                  case 0:
-                    flexTop = 5;
-                    flexBottom = 2;
-                    break;
-                  case 1:
-                    flexTop = 3;
-                    flexBottom = 4;
-                    break;
-                  case 2:
-                    flexTop = 2;
-                    flexBottom = 5;
-                    break;
-                  default:
-                    flexTop = 4;
-                    flexBottom = 3;
-                    break;
-                }
+  Widget _buildShimmer(final BuildContext context) => SliverToBoxAdapter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+                title: "Etkinlikler Vitrini", subtitle: "Akışta Kal"),
+            SizedBox(
+              height: 340,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: 4,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (final context, final index) {
+                  int flexTop, flexBottom;
+                  final int patternStep = index % 4;
+                  switch (patternStep) {
+                    case 0:
+                      flexTop = 5;
+                      flexBottom = 2;
+                      break;
+                    case 1:
+                      flexTop = 3;
+                      flexBottom = 4;
+                      break;
+                    case 2:
+                      flexTop = 2;
+                      flexBottom = 5;
+                      break;
+                    default:
+                      flexTop = 4;
+                      flexBottom = 3;
+                      break;
+                  }
 
-                return Container(
-                  width: 155,
-                  margin: const EdgeInsets.only(right: 10),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        flex: flexTop,
-                        child: const ShimmerLoading(
-                            width: double.infinity,
-                            height: double.infinity,
-                            borderRadius: 20),
-                      ),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        flex: flexBottom,
-                        child: const ShimmerLoading(
-                            width: double.infinity,
-                            height: double.infinity,
-                            borderRadius: 20),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                  return Container(
+                    width: 155,
+                    margin: const EdgeInsets.only(right: 10),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          flex: flexTop,
+                          child: const ShimmerLoading(
+                              width: double.infinity,
+                              height: double.infinity,
+                              borderRadius: 20),
+                        ),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          flex: flexBottom,
+                          child: const ShimmerLoading(
+                              width: double.infinity,
+                              height: double.infinity,
+                              borderRadius: 20),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 32),
+          ],
+        ),
+      );
 }
 
 class _MosaicShowCard extends StatelessWidget {
@@ -1054,78 +1049,79 @@ class _MosaicShowCard extends StatelessWidget {
   const _MosaicShowCard({required this.show, required this.onTap});
 
   @override
-  Widget build(final BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 6,
-                offset: const Offset(0, 3)),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            OptimizedCachedImage(
-                imageUrl: show.imageUrl,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                borderRadius: 0),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
-                  stops: const [0.5, 1.0],
+  Widget build(final BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3)),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              OptimizedCachedImage(
+                  imageUrl: show.imageUrl,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  borderRadius: 0),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.85)
+                    ],
+                    stops: const [0.5, 1.0],
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              bottom: 10,
-              left: 10,
-              right: 10,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: context.primaryColor.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(4),
+              Positioned(
+                bottom: 10,
+                left: 10,
+                right: 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: context.primaryColor.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text("ETKİNLİK",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text("ETKİNLİK",
-                        style: TextStyle(
+                    const SizedBox(height: 4),
+                    Text(show.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(show.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          height: 1.1)),
-                ],
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            height: 1.1)),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class HorizontalListSection extends StatelessWidget {
@@ -1148,7 +1144,7 @@ class HorizontalListSection extends StatelessWidget {
   Widget build(final BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionTitle(title: title, subtitle: subtitle),
+          SectionHeader(title: title, subtitle: subtitle),
           SizedBox(
             height: 150,
             child: ListView.builder(
@@ -1175,83 +1171,81 @@ class HorizontalCard extends StatelessWidget {
   const HorizontalCard({super.key, required this.item, required this.isStage});
 
   @override
-  Widget build(final BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        if (isStage)
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (final _) => StageDetailPage(stageId: item.id)));
-        else
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (final _) => TeamDetailsPage(teamId: item.id)));
-      },
-      child: Container(
-        width: 220,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            bottomRight: Radius.circular(20),
-            topRight: Radius.circular(4),
-            bottomLeft: Radius.circular(4),
-          ),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
-          ],
-        ),
-        padding: const EdgeInsets.all(4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 90,
-              height: 142,
-              child: OptimizedCachedImage(
-                  imageUrl: item.imageUrl,
-                  width: 90,
-                  height: 142,
-                  borderRadius: 16),
+  Widget build(final BuildContext context) => GestureDetector(
+        onTap: () {
+          if (isStage)
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (final _) => StageDetailPage(stageId: item.id)));
+          else
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (final _) => TeamDetailsPage(teamId: item.id)));
+        },
+        child: Container(
+          width: 220,
+          margin: const EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+              topRight: Radius.circular(4),
+              bottomLeft: Radius.circular(4),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(isStage ? "MEKAN" : "EKİP",
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: context.primaryColor)),
-                    const SizedBox(height: 4),
-                    Flexible(
-                      child: Text(item.name,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: true,
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4))
+            ],
+          ),
+          padding: const EdgeInsets.all(4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 90,
+                height: 142,
+                child: OptimizedCachedImage(
+                    imageUrl: item.imageUrl,
+                    width: 90,
+                    height: 142,
+                    borderRadius: 16),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(isStage ? "MEKAN" : "EKİP",
                           style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: context.colors.onSurface)),
-                    ),
-                  ],
+                              color: context.primaryColor)),
+                      const SizedBox(height: 4),
+                      Flexible(
+                        child: Text(item.name,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: true,
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: context.colors.onSurface)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class PlayerSection extends StatelessWidget {
@@ -1262,90 +1256,46 @@ class PlayerSection extends StatelessWidget {
       {super.key, required this.players, this.isLoading = false});
 
   @override
-  Widget build(final BuildContext context) {
-    if (isLoading) return _buildShimmer();
+  Widget build(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+              title: "Performansçılar", subtitle: "Sahnenin Yıldızları"),
+          if (isLoading)
+            _buildShimmer()
+          else
+            SizedBox(
+              height: 190,
+              child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: players.length,
+                  physics: const BouncingScrollPhysics(),
+                  itemBuilder: (final context, final index) =>
+                      PlayerHeroCard(player: players[index])),
+            ),
+          const SizedBox(height: 32),
+        ],
+      );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SectionHeader(
-            title: "Oyuncular", subtitle: "Sahnenin Yıldızları"),
-        SizedBox(
-          height: 190,
-          child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: players.length,
-              physics: const BouncingScrollPhysics(),
-              itemBuilder: (final context, final index) =>
-                  PlayerHeroCard(player: players[index])),
-        ),
-        const SizedBox(height: 32),
-      ],
-    );
-  }
-
-  Widget _buildShimmer() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SectionTitle(title: "Oyuncular", subtitle: "Sahnenin Yıldızları"),
-        SizedBox(
-          height: 190,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: 5,
-            physics: const BouncingScrollPhysics(),
-            itemBuilder: (final context, final index) {
-              return Container(
-                width: 120,
-                margin: const EdgeInsets.only(right: 12),
-                child: Column(
-                  children: [
-                    Expanded(
-                        child: ShimmerLoading(
-                            height: 120, width: 120, isCircular: true)),
-                    const SizedBox(height: 8),
-                    ShimmerCard(height: 12, width: 80),
-                  ],
-                ),
-              );
-            },
+  Widget _buildShimmer() => SizedBox(
+        height: 190,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: 5,
+          physics: const BouncingScrollPhysics(),
+          itemBuilder: (final context, final index) => Container(
+            width: 120,
+            margin: const EdgeInsets.only(right: 12),
+            child: Column(
+              children: [
+                Expanded(child: ShimmerCard(height: 120, width: 120)),
+                const SizedBox(height: 8),
+                ShimmerLoading(height: 12, width: 80, isCircular: true),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 32),
-      ],
-    );
-  }
-}
-
-class SectionTitle extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const SectionTitle({super.key, required this.title, required this.subtitle});
-
-  @override
-  Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(subtitle.toUpperCase(),
-                style: TextStyle(
-                    fontSize: 10,
-                    letterSpacing: 2.0,
-                    fontWeight: FontWeight.bold,
-                    color: context.primaryColor.withOpacity(0.8))),
-            Text(title,
-                style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.onSurface,
-                    letterSpacing: -0.5)),
-            const SizedBox(height: 12),
-          ],
         ),
       );
 }
@@ -1387,18 +1337,15 @@ class FilterList extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: filters.length,
         physics: const BouncingScrollPhysics(),
-        itemBuilder: (final context, final index) {
-          final isSelected = selectedIndex == index;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: ArtisticBrushChip(
-              text: filters[index],
-              isSelected: isSelected,
-              colors: artisticColorPalettes[index],
-              onTap: () => onSelected(index),
-            ),
-          );
-        },
+        itemBuilder: (final context, final index) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: ArtisticBrushChip(
+            text: filters[index],
+            isSelected: selectedIndex == index,
+            colors: artisticColorPalettes[index],
+            onTap: () => onSelected(index),
+          ),
+        ),
       ),
     );
   }
@@ -1441,9 +1388,8 @@ class _ArtisticBrushChipState extends State<ArtisticBrushChip>
   @override
   void didUpdateWidget(final ArtisticBrushChip oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isSelected != oldWidget.isSelected) {
+    if (widget.isSelected != oldWidget.isSelected)
       widget.isSelected ? _controller.forward() : _controller.reverse();
-    }
   }
 
   @override
@@ -1453,105 +1399,103 @@ class _ArtisticBrushChipState extends State<ArtisticBrushChip>
   }
 
   @override
-  Widget build(final BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (final _) => _controller.forward(),
-      onTapUp: (final _) => _controller.reverse(),
-      onTapCancel: () => _controller.reverse(),
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          constraints: const BoxConstraints(minWidth: 90),
-          decoration: BoxDecoration(
-            borderRadius: _createArtisticBorderRadius(),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: widget.isSelected
-                  ? [widget.colors[0], widget.colors[1]]
+  Widget build(final BuildContext context) => GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: (final _) => _controller.forward(),
+        onTapUp: (final _) => _controller.reverse(),
+        onTapCancel: () => _controller.reverse(),
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            margin: const EdgeInsets.symmetric(horizontal: 2),
+            constraints: const BoxConstraints(minWidth: 90),
+            decoration: BoxDecoration(
+              borderRadius: _createArtisticBorderRadius(),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: widget.isSelected
+                    ? [widget.colors[0], widget.colors[1]]
+                    : [
+                        context.isDarkMode
+                            ? const Color(0xFF2D2D2D)
+                            : const Color(0xFFF8FAFC),
+                        context.isDarkMode
+                            ? const Color(0xFF3C3E4A)
+                            : const Color(0xFFEDF2F7),
+                      ],
+              ),
+              border: Border.all(
+                color: widget.isSelected
+                    ? widget.colors[0].withOpacity(0.8)
+                    : context.colors.onSurface.withOpacity(0.1),
+                width: widget.isSelected ? 2 : 1,
+              ),
+              boxShadow: widget.isSelected
+                  ? [
+                      BoxShadow(
+                          color: widget.colors[0].withOpacity(0.4),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 3)),
+                      BoxShadow(
+                          color: widget.colors[2].withOpacity(0.2),
+                          blurRadius: 10,
+                          spreadRadius: -2,
+                          offset: const Offset(0, -2)),
+                      BoxShadow(
+                          color: widget.colors[0].withOpacity(0.1),
+                          blurRadius: 25,
+                          spreadRadius: 5),
+                    ]
                   : [
-                      context.isDarkMode
-                          ? const Color(0xFF2D2D2D)
-                          : const Color(0xFFF8FAFC),
-                      context.isDarkMode
-                          ? const Color(0xFF3C3E4A)
-                          : const Color(0xFFEDF2F7),
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2))
                     ],
             ),
-            border: Border.all(
-              color: widget.isSelected
-                  ? widget.colors[0].withOpacity(0.8)
-                  : context.colors.onSurface.withOpacity(0.1),
-              width: widget.isSelected ? 2 : 1,
-            ),
-            boxShadow: widget.isSelected
-                ? [
-                    BoxShadow(
-                        color: widget.colors[0].withOpacity(0.4),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 3)),
-                    BoxShadow(
-                        color: widget.colors[2].withOpacity(0.2),
-                        blurRadius: 10,
-                        spreadRadius: -2,
-                        offset: const Offset(0, -2)),
-                    BoxShadow(
-                        color: widget.colors[0].withOpacity(0.1),
-                        blurRadius: 25,
-                        spreadRadius: 5),
-                  ]
-                : [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2))
-                  ],
-          ),
-          child: Stack(
-            children: [
-              if (widget.isSelected)
-                Positioned.fill(
-                    child: CustomPaint(
-                        painter: _PaintDropletPainter(colors: widget.colors))),
-              Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 300),
-                    style: TextStyle(
-                      color: widget.isSelected
-                          ? Colors.white
-                          : context.colors.onSurface.withOpacity(0.7),
-                      fontWeight:
-                          widget.isSelected ? FontWeight.bold : FontWeight.w500,
-                      fontSize: 15,
+            child: Stack(
+              children: [
+                if (widget.isSelected)
+                  Positioned.fill(
+                      child: CustomPaint(
+                          painter:
+                              _PaintDropletPainter(colors: widget.colors))),
+                Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 300),
+                      style: TextStyle(
+                        color: widget.isSelected
+                            ? Colors.white
+                            : context.colors.onSurface.withOpacity(0.7),
+                        fontWeight: widget.isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                        fontSize: 15,
+                      ),
+                      child: Text(widget.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
+                          textAlign: TextAlign.center),
                     ),
-                    child: Text(widget.text,
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                        textAlign: TextAlign.center),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 
-  BorderRadius _createArtisticBorderRadius() {
-    return BorderRadius.only(
-      topLeft: const Radius.circular(24),
-      bottomRight: const Radius.circular(24),
-      topRight: Radius.circular(widget.isSelected ? 10 : 18),
-      bottomLeft: Radius.circular(widget.isSelected ? 18 : 10),
-    );
-  }
+  BorderRadius _createArtisticBorderRadius() => BorderRadius.only(
+        topLeft: const Radius.circular(24),
+        bottomRight: const Radius.circular(24),
+        topRight: Radius.circular(widget.isSelected ? 10 : 18),
+        bottomLeft: Radius.circular(widget.isSelected ? 18 : 10),
+      );
 }
 
 class _PaintDropletPainter extends CustomPainter {
@@ -1581,28 +1525,6 @@ class _PaintDropletPainter extends CustomPainter {
   bool shouldRepaint(covariant final CustomPainter oldDelegate) => false;
 }
 
-class ArtisticTitle extends StatelessWidget {
-  const ArtisticTitle({super.key});
-
-  @override
-  Widget build(final BuildContext context) {
-    return ShaderMask(
-      shaderCallback: (final bounds) => LinearGradient(
-        colors: context.appGradient(isActive: true),
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ).createShader(bounds),
-      child: const Text("Keşfet",
-          style: TextStyle(
-              fontSize: 42,
-              fontWeight: FontWeight.w900,
-              fontFamily: 'Serif',
-              letterSpacing: -1.5,
-              color: Colors.white)),
-    );
-  }
-}
-
 class GlassSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final Function(String) onChanged;
@@ -1611,62 +1533,58 @@ class GlassSearchBar extends StatelessWidget {
       {super.key, required this.controller, required this.onChanged});
 
   @override
-  Widget build(final BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.isDarkMode
-                ? Colors.white.withOpacity(0.08)
-                : Colors.white.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(24),
-            border:
-                Border.all(color: context.colors.onSurface.withOpacity(0.1)),
-          ),
-          child: TextField(
-            controller: controller,
-            onChanged: onChanged,
-            style: TextStyle(color: context.colors.onSurface),
-            decoration: InputDecoration(
-              hintText: 'Sanatın izini sür...',
-              hintStyle: TextStyle(
-                  color: context.colors.onSurface.withOpacity(0.5),
-                  fontStyle: FontStyle.italic),
-              prefixIcon:
-                  Icon(Icons.search_rounded, color: context.primaryColor),
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+  Widget build(final BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.isDarkMode
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.white.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(24),
+              border:
+                  Border.all(color: context.colors.onSurface.withOpacity(0.1)),
+            ),
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              style: TextStyle(color: context.colors.onSurface),
+              decoration: InputDecoration(
+                hintText: 'Sanatın izini sür...',
+                hintStyle: TextStyle(
+                    color: context.colors.onSurface.withOpacity(0.5),
+                    fontStyle: FontStyle.italic),
+                prefixIcon:
+                    Icon(Icons.search_rounded, color: context.primaryColor),
+                border: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class ThemeBackground extends StatelessWidget {
   const ThemeBackground({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            context.scaffoldBackgroundColor,
-            context.colors.surface.withOpacity(0.5)
-          ],
+  Widget build(final BuildContext context) => Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              context.scaffoldBackgroundColor,
+              context.colors.surface.withOpacity(0.5)
+            ],
+          ),
         ),
-      ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(color: Colors.transparent),
-      ),
-    );
-  }
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(color: Colors.transparent),
+        ),
+      );
 }

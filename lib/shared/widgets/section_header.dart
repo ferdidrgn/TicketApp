@@ -16,7 +16,7 @@ class SectionHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
-    this.fontSize,
+    this.fontSize = 10,
     this.alignment,
     this.fontWeight = FontWeight.bold,
     this.backgroundColor = Colors.transparent,
@@ -26,13 +26,13 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final effectiveColor = textColor ?? context.textColor;
+    final effectiveColor = textColor ?? context.primaryColor.withOpacity(0.8);
 
-    final textStyle = Theme.of(context).textTheme.headlineMedium!.copyWith(
-        fontSize: fontSize, color: effectiveColor, fontWeight: fontWeight);
+    final textStyle = context.textTheme.headlineMedium!.copyWith(
+        color: effectiveColor, fontSize: fontSize, fontWeight: fontWeight);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -42,21 +42,15 @@ class SectionHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textStyle,
-                ),
                 if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
-                  ),
+                  Text(subtitle!.toUpperCase(),
+                      style: textStyle.copyWith(letterSpacing: 2.0)),
+                Text(title,
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: context.colors.onSurface,
+                        letterSpacing: -0.5)),
               ],
             ),
           ),
