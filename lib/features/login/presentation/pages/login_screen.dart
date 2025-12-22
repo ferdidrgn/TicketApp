@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/login/presentation/pages/phone_login_page.dart';
-import '../../../../shared/widgets/custom_elevated_button.dart';
+import '../../../../shared/widgets/button/custom_elevated_button.dart';
 import '../../../users/presentation/pages/user_profile_edit.dart';
 import '../providers/login_provider.dart';
 import '../providers/login_state.dart';

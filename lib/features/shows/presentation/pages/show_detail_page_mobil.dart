@@ -12,7 +12,7 @@ import 'package:ticketapp/features/stages/presentation/providers/stage_provider.
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
 import 'package:ticketapp/shared/widgets/galerry_section.dart';
 import '../../../../core/util/date_formatter.dart';
-import '../../../../shared/widgets/card/glass_back_bottom.dart';
+import '../../../../shared/widgets/button/glass_back_button.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../login/presentation/providers/login_provider.dart';

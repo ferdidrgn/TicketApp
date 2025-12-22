@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../../core/theme/theme_notifier.dart';
-import '../../../../shared/widgets/custom_elevated_button.dart';
+import '../../../../shared/widgets/button/custom_elevated_button.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../appTools/presentation/pages/contracts.dart';
 import '../../../favorite/presentation/pages/favorite_screen.dart';

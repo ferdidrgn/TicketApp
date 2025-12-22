@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
-import '../../../../shared/widgets/custom_floating_action_button.dart';
+import '../../../../shared/widgets/button/custom_floating_action_button.dart';
 import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../campaigns/presentation/pages/campaign_showcase_page.dart';

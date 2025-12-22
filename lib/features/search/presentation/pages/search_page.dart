@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
-import '../../../../shared/widgets/card/glass_back_bottom.dart';
+import '../../../../shared/widgets/button/glass_back_button.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';

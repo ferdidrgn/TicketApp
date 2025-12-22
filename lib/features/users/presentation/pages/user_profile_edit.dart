@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/util/role_manager.dart';
 import '../../../../shared/widgets/custom_art_words_card.dart';
-import '../../../../shared/widgets/custom_elevated_button.dart';
+import '../../../../shared/widgets/button/custom_elevated_button.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../domain/entities/user.dart';

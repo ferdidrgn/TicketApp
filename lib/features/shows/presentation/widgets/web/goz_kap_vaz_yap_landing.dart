@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
-import 'package:ticketapp/shared/widgets/card/record_player_card.dart';
 import '../../../../../../core/theme/app_colors.dart';
+import '../../../../../shared/widgets/button/record_player_card.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 
 class GozYapVazYapLanding extends StatelessWidget {
