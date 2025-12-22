@@ -6,56 +6,67 @@ import '../pages/player_details.dart';
 
 class PlayerHeroCard extends StatelessWidget {
   final Player player;
-
-  final EdgeInsetsGeometry? margin;
-  final double width;
-  final double height;
-  final double borderRadius;
+  final VoidCallback? onTap;
 
   const PlayerHeroCard({
     super.key,
     required this.player,
-    this.margin,
-    this.width = 120,
-    this.height = 120,
-    this.borderRadius = 60,
+    this.onTap,
   });
 
   @override
-  Widget build(final BuildContext context) => Container(
-        width: width,
-        margin: margin ?? const EdgeInsets.only(right: 12),
-        child: GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => PlayerDetailPage(playerId: player.id)),
-          ),
-          child: Column(
-            children: [
-              Expanded(
+  Widget build(final BuildContext context) => GestureDetector(
+        onTap: onTap ??
+            () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (final _) =>
+                          PlayerDetailPage(playerId: player.id)),
+                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Resim Alanı (Daima 1:1 Kare oranında ama yuvarlak kesimli)
+            AspectRatio(
+              aspectRatio: 1, // En ve boy eşit olsun (tam daire için)
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: OptimizedCachedImage(
                   imageUrl: player.imageUrl,
-                  width: width,
-                  height: height,
                   isCircular: true,
-                  borderRadius: borderRadius,
                   fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
+            ),
+            const SizedBox(height: 10),
+            // İsim Alanı
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
                 "${player.firstName}\n${player.lastName}",
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.onSurface),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: context.colors.onSurface,
+                  height: 1.2,
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
 }
