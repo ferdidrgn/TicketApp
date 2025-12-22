@@ -59,13 +59,6 @@ class _Styles {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: context.colors.onSurface.withOpacity(0.1)),
       );
-
-  static final darkGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
-    stops: const [0.5, 1.0],
-  );
 }
 
 // =============================================================================
@@ -162,7 +155,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       _initData();
       _scrollController.addListener(_onScroll);
     });
@@ -212,22 +205,22 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             increment(
                 1,
                 _SearchLogic.totalCount(
-                    ref.read(showProvider).dataList, query, (s) => s.name));
+                    ref.read(showProvider).dataList, query, (final s) => s.name));
           case 2:
             increment(
                 2,
                 _SearchLogic.totalCount(ref.read(playerProvider).dataList,
-                    query, (p) => '${p.firstName} ${p.lastName}'));
+                    query, (final p) => '${p.firstName} ${p.lastName}'));
           case 3:
             increment(
                 3,
                 _SearchLogic.totalCount(
-                    ref.read(stageProvider).dataList, query, (s) => s.name));
+                    ref.read(stageProvider).dataList, query, (final s) => s.name));
           case 4:
             increment(
                 4,
                 _SearchLogic.totalCount(
-                    ref.read(teamProvider).dataList, query, (t) => t.name));
+                    ref.read(teamProvider).dataList, query, (final t) => t.name));
         }
         _loadingMore = false;
       });
@@ -237,9 +230,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void _onSeeAll(final int filterIndex) {
     setState(() {
       _selectedFilter = filterIndex;
-      _pages.updateAll((_, __) => 0);
+      _pages.updateAll((final _, final __) => 0);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (_scrollController.hasClients)
         _scrollController.animateTo(0,
             duration: const Duration(milliseconds: 300),
@@ -266,22 +259,22 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     final data = (
       shows: _SearchLogic.filterAndPaginate(
-          rawShows.dataList, query, (s) => s.name,
+          rawShows.dataList, query, (final s) => s.name,
           page: _selectedFilter == 1 ? _pages[1]! : 0,
           paginate: _selectedFilter == 1,
           limit: _selectedFilter == 0 ? 10 : null),
       players: _SearchLogic.filterAndPaginate(
-          rawPlayers.dataList, query, (p) => '${p.firstName} ${p.lastName}',
+          rawPlayers.dataList, query, (final p) => '${p.firstName} ${p.lastName}',
           page: _selectedFilter == 2 ? _pages[2]! : 0,
           paginate: _selectedFilter == 2,
           limit: _selectedFilter == 0 ? 10 : null),
       stages: _SearchLogic.filterAndPaginate(
-          rawStages.dataList, query, (s) => s.name,
+          rawStages.dataList, query, (final s) => s.name,
           page: _selectedFilter == 3 ? _pages[3]! : 0,
           paginate: _selectedFilter == 3,
           limit: _selectedFilter == 0 ? 10 : null),
       teams: _SearchLogic.filterAndPaginate(
-          rawTeams.dataList, query, (t) => t.name,
+          rawTeams.dataList, query, (final t) => t.name,
           page: _selectedFilter == 4 ? _pages[4]! : 0,
           paginate: _selectedFilter == 4,
           limit: _selectedFilter == 0 ? 10 : null),
@@ -549,9 +542,6 @@ class _PlayerSection extends StatelessWidget {
     ]);
   }
 }
-
-// ... (Geri kalan GlassSearchBar, FilterList, _GridHelpers, _GridCards vs. buraya yapıştırılacak) ...
-// ... (Önceki mesajdaki helper'lar ile aynı) ...
 
 class GlassSearchBar extends StatelessWidget {
   final TextEditingController controller;
