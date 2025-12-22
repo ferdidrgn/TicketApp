@@ -7,12 +7,24 @@ import '../pages/player_details.dart';
 class PlayerHeroCard extends StatelessWidget {
   final Player player;
 
-  const PlayerHeroCard({super.key, required this.player});
+  final EdgeInsetsGeometry? margin;
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const PlayerHeroCard({
+    super.key,
+    required this.player,
+    this.margin,
+    this.width = 120,
+    this.height = 120,
+    this.borderRadius = 60,
+  });
 
   @override
   Widget build(final BuildContext context) => Container(
-        width: 120,
-        margin: const EdgeInsets.only(right: 12),
+        width: width,
+        margin: margin ?? const EdgeInsets.only(right: 12),
         child: GestureDetector(
           onTap: () => Navigator.push(
             context,
@@ -24,21 +36,24 @@ class PlayerHeroCard extends StatelessWidget {
               Expanded(
                 child: OptimizedCachedImage(
                   imageUrl: player.imageUrl,
-                  width: 120,
-                  height: 120,
+                  width: width,
+                  height: height,
                   isCircular: true,
-                  borderRadius: 60,
+                  borderRadius: borderRadius,
+                  fit: BoxFit.cover,
                 ),
               ),
               const SizedBox(height: 8),
-              Text("${player.firstName}\n${player.lastName}",
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: context.colors.onSurface)),
+              Text(
+                "${player.firstName}\n${player.lastName}",
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.onSurface),
+              ),
             ],
           ),
         ),
