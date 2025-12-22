@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'app_colors.dart';
 import 'app_text_styles.dart';
 
@@ -66,7 +67,7 @@ mixin AppTheme {
 }
 
 List<Color> gradientColors(final BuildContext context, final isTrue) => isTrue
-    ? (Theme.of(context).brightness == Brightness.light
+    ? (context.theme.brightness == Brightness.light
         ? [Colors.red.shade300, Colors.red.shade900]
         : [Colors.pink[500]!, Colors.purple[600]!])
     : [Colors.grey[500]!, Colors.grey[800]!];

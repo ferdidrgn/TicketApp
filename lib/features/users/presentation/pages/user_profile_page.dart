@@ -296,7 +296,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     // Dış halka efekti
                     AnimatedBuilder(
                       animation: _badgeRotation,
-                      builder: (context, child) {
+                      builder: (final context, final child) {
                         return Transform.rotate(
                           angle: _badgeRotation.value,
                           child: Container(
@@ -514,9 +514,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       _buildStatItem('247', 'Bilet', Icons.confirmation_number,
                           theme.colorScheme.primary),
                       _buildStatItem('38', 'Favori', Icons.favorite,
-                          theme.colorScheme.secondary),
+                          theme.colorScheme.secondaryContainer.withRed(190)),
                       _buildStatItem('12', 'Sergi', Icons.museum,
-                          theme.colorScheme.tertiary),
+                          theme.colorScheme.secondaryContainer.withRed(150)),
                     ],
                   ),
                 ),
@@ -528,7 +528,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildPremiumBadge(ThemeData theme) {
+  Widget _buildPremiumBadge(final ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -566,7 +566,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildLevelBadge(ThemeData theme, String level, Color color) {
+  Widget _buildLevelBadge(
+      final ThemeData theme, final String level, final Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
       decoration: BoxDecoration(
@@ -600,7 +601,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildActivityBadge(ThemeData theme, String status, Color color) {
+  Widget _buildActivityBadge(
+      final ThemeData theme, final String status, final Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
@@ -638,7 +640,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildCornerIcon(IconData icon, Color color, ThemeData theme) {
+  Widget _buildCornerIcon(
+      final IconData icon, final Color color, final ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
@@ -655,9 +658,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildArtBadge(
-      String title, IconData icon, Color color, ThemeData theme,
-      {bool isActive = true}) {
+  Widget _buildArtBadge(final String title, final IconData icon,
+      final Color color, final ThemeData theme,
+      {final bool isActive = true}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       decoration: BoxDecoration(
@@ -696,8 +699,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildStatItem(
-      String value, String label, IconData icon, Color color) {
+  Widget _buildStatItem(final String value, final String label,
+      final IconData icon, final Color color) {
     return Column(
       children: [
         Container(
@@ -712,24 +715,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         Text(
           value,
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+              fontSize: 20, fontWeight: FontWeight.bold, color: color),
         ),
         Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            color: color.withOpacity(0.6),
+            fontWeight: FontWeight.bold,
+            // Opacity yok, direkt temanın ana yazı rengi (Beyaz veya Siyah)
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
     );
   }
-
-  // Diğer widget'lar aynı kalacak, sadece _buildArtisticProfileCard yerine
-  // _buildLuxuryProfileCard kullanıldı. Aşağıdaki fonksiyonlar değişmeden kalacak:
 
   // İşlevsel bölüm (değişmeden)
   Widget _buildFunctionalSection(
@@ -737,7 +736,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final colors = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    List<Map<String, dynamic>> functionalButtons = [
+    final List<Map<String, dynamic>> functionalButtons = [
       if (loginState.user != null)
         {
           'title': 'Profil Portresi',
