@@ -11,7 +11,6 @@ class ShowMosaicGallery extends StatelessWidget {
   final ScrollPhysics? physics;
   final EdgeInsetsGeometry? padding;
 
-  /// Bu widget hem dikey (Sliver) hem yatay (Box) çalışabilir.
   const ShowMosaicGallery({
     super.key,
     required this.shows,
@@ -31,10 +30,12 @@ class ShowMosaicGallery extends StatelessWidget {
 
     if (shows.isEmpty) return const SizedBox();
 
+    // =========================================================================
     // YATAY MOD (Horizontal - Showcase Vitrini)
-    if (direction == Axis.horizontal)
+    // =========================================================================
+    if (direction == Axis.horizontal) {
       return SizedBox(
-        height: 340, // Yatay mod için sabit yükseklik
+        height: 340,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: padding ?? const EdgeInsets.symmetric(horizontal: 16),
@@ -47,7 +48,6 @@ class ShowMosaicGallery extends StatelessWidget {
 
             if (s1 == null) return const SizedBox();
 
-            // Her sütun için dinamik flex oranları (Ritmi bozan estetik yapı)
             final flexes = switch (index % 4) {
               0 => (5, 2),
               1 => (3, 4),
@@ -78,9 +78,11 @@ class ShowMosaicGallery extends StatelessWidget {
           },
         ),
       );
+    }
 
+    // =========================================================================
     // DİKEY MOD (Vertical - Sliver List)
-    // SearchPage içinde Sliver kullanıldığı için SliverPadding döndürüyoruz.
+    // =========================================================================
     return SliverPadding(
       padding:
           padding as EdgeInsets? ?? const EdgeInsets.symmetric(horizontal: 16),
@@ -95,8 +97,8 @@ class ShowMosaicGallery extends StatelessWidget {
             final s2 = (chunk + 1 < shows.length) ? shows[chunk + 1] : null;
             final s3 = (chunk + 2 < shows.length) ? shows[chunk + 2] : null;
 
-            // Satırın sol ağırlıklı mı sağ ağırlıklı mı olacağı
-            final isLeftHeavy = 2 % index == 0;
+            //Öneriyi kabul edince patlıyor. Bu şekilde kalsın çünkü index 0 olursa 0 a bölünülmez
+            final isLeftHeavy = index % 2 == 0;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
