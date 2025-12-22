@@ -16,6 +16,7 @@ import '../../../players/presentation/providers/player_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
@@ -98,9 +99,8 @@ class _SearchLogic {
             .toList();
 
     // Eğer limit verilmişse (Tümü modu), sadece ilk N öğeyi al
-    if (limit != null && !paginate) {
+    if (limit != null && !paginate)
       return filtered.sublist(0, math.min(limit, filtered.length));
-    }
 
     // Sayfalama aktifse
     if (!paginate) return filtered;
@@ -418,10 +418,25 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   isLoading: loading.players,
                   onSeeAll: () => _onSeeAll(2))),
         if (loading.shows || data.shows.isNotEmpty)
-          _HorizontalMosaicSection(
-              shows: data.shows,
-              isLoading: loading.shows,
-              onSeeAll: () => _onSeeAll(1)),
+          SliverToBoxAdapter(
+            // Yatay liste olduğu için SliverToBoxAdapter içine alıyoruz
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionHeader(
+                  title: "Etkinlikler Vitrini",
+                  subtitle: "Akışta Kal",
+                  onTap: () => _onSeeAll(1),
+                ),
+                ShowMosaicGallery(
+                  shows: data.shows,
+                  isLoading: loading.shows,
+                  direction: Axis.horizontal,
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
         if (loading.stages || data.stages.isNotEmpty)
           SliverToBoxAdapter(
               child: _HorizontalListSection(
@@ -453,13 +468,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   ) =>
       switch (_selectedFilter) {
         1 => [
-            if (l.shows)
-              _GridHelpers.mosaicShimmer()
-            else
-              _ChaoticMosaicBuilder(
-                  items: d.shows,
-                  builder: (final c, final s, final h) =>
-                      _GridCards.showMosaic(c, s as Show, height: h)),
+            ShowMosaicGallery(
+                shows: d.shows, isLoading: l.shows, direction: Axis.vertical),
             if (d.shows.isEmpty && !l.shows)
               _buildEmptyState(msg: "Etkinlik bulunamadı"),
           ],
@@ -560,30 +570,6 @@ class _GridHelpers {
               childCount: 6),
         ),
       );
-
-  static Widget mosaicShimmer() => SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-                (final _, final index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                              child: ShimmerLoading(
-                                  width: double.infinity,
-                                  height: 200 + (index % 2) * 80,
-                                  borderRadius: 20)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                              child: ShimmerLoading(
-                                  width: double.infinity,
-                                  height: 280 - (index % 2) * 80,
-                                  borderRadius: 20)),
-                        ])),
-                childCount: 4)),
-      );
 }
 
 class _GridCards {
@@ -616,186 +602,6 @@ class _GridCards {
                             height: 1.2)),
                   ])),
         ]),
-      );
-
-  static Widget showMosaic(final BuildContext context, final Show s,
-          {required final double height}) =>
-      _BaseCardContainer(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => ShowDetailPage(showId: s.id))),
-        width: double.infinity,
-        child: _cardStack(s.imageUrl, s.name, "ETKİNLİK",
-            h: height, grad: _Styles.darkGradient),
-      );
-
-  static Widget vertical(
-          final BuildContext context, final dynamic item, final bool isStage) =>
-      _BaseCardContainer(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => isStage
-                    ? StageDetailPage(stageId: item.id)
-                    : TeamDetailsPage(teamId: item.id))),
-        child: LayoutBuilder(
-          builder: (final context, final constraints) => Stack(
-            children: [
-              // Arka plan görseli
-              Positioned.fill(
-                child: OptimizedCachedImage(
-                  imageUrl: item.imageUrl,
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              // Dinamik gradient overlay
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isStage
-                          ? [
-                              Colors.cyan.withOpacity(0.15),
-                              Colors.blue.withOpacity(0.25),
-                              Colors.indigo.withOpacity(0.35),
-                              Colors.black.withOpacity(0.85),
-                            ]
-                          : [
-                              Colors.orange.withOpacity(0.15),
-                              Colors.deepOrange.withOpacity(0.25),
-                              Colors.red.withOpacity(0.35),
-                              Colors.black.withOpacity(0.85),
-                            ],
-                      stops: const [0.0, 0.3, 0.6, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Nokta pattern overlay
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _DotPatternPainter(
-                    color: Colors.white.withOpacity(0.05),
-                  ),
-                ),
-              ),
-
-              // Alt bilgi alanı
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.7),
-                        Colors.black.withOpacity(0.92),
-                      ],
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isStage
-                                ? [
-                                    Colors.cyan.shade400,
-                                    Colors.blue.shade600,
-                                  ]
-                                : [
-                                    Colors.orange.shade400,
-                                    Colors.deepOrange.shade600,
-                                  ],
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isStage ? Colors.cyan : Colors.orange)
-                                  .withOpacity(0.5),
-                              blurRadius: 12,
-                              spreadRadius: 1,
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isStage ? Icons.location_on : Icons.group,
-                              color: Colors.white,
-                              size: 12,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isStage ? "MEKAN" : "EKİP",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // İsim
-                      Text(
-                        item.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          height: 1.2,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black87,
-                              offset: Offset(0, 2),
-                              blurRadius: 4,
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Üst sol köşe dekoratif çizgi
-              Positioned(
-                top: 0,
-                left: 0,
-                child: CustomPaint(
-                  size: const Size(60, 60),
-                  painter: _CornerLinePainter(
-                    color: (isStage ? Colors.cyan : Colors.orange)
-                        .withOpacity(0.6),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       );
 
   // Yeni büyük kart tasarımları (Show All / Filter modları için)
@@ -879,7 +685,6 @@ class _GridCards {
                   ),
                 ),
               ),
-
             ],
           ),
         ),
@@ -1052,202 +857,6 @@ class _GridCards {
           ),
         ),
       );
-
-  // Küçük oyuncu kartı (horizontal listeler için)
-  static Widget player(final BuildContext context, final Player p) =>
-      _BaseCardContainer(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => PlayerDetailPage(playerId: p.id))),
-        child: Column(children: [
-          Expanded(
-              child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: OptimizedCachedImage(
-                          imageUrl: p.imageUrl, fit: BoxFit.cover)))),
-          Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Column(children: [
-                const _BadgeLabel("OYUNCU"),
-                const SizedBox(height: 2),
-                Text(p.firstName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: context.colors.onSurface)),
-                Text(p.lastName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: context.colors.onSurface.withOpacity(0.8))),
-              ])),
-        ]),
-      );
-}
-
-class _ChaoticMosaicBuilder<T> extends StatelessWidget {
-  final List<T> items;
-  final Widget Function(BuildContext, T, double) builder;
-
-  const _ChaoticMosaicBuilder({required this.items, required this.builder});
-
-  @override
-  Widget build(final BuildContext context) => SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((final context, final index) {
-          final chunk = index * 3;
-          if (chunk >= items.length) return null;
-          final i1 = items[chunk];
-          final i2 = (chunk + 1 < items.length) ? items[chunk + 1] : null;
-          final i3 = (chunk + 2 < items.length) ? items[chunk + 2] : null;
-          final isA = index % 2 == 0;
-
-          return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: IntrinsicHeight(
-                  child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    if (isA) ...[
-                      _big(context, i1, 10),
-                      const SizedBox(width: 12),
-                      _smallCol(context, i2, i3)
-                    ],
-                    if (!isA) ...[
-                      _smallCol(context, i1, i2),
-                      const SizedBox(width: 12),
-                      i3 != null
-                          ? _big(context, i3, -10)
-                          : const Spacer(flex: 10)
-                    ],
-                  ])));
-        }, childCount: (items.length / 3).ceil())),
-      );
-
-  Widget _big(final BuildContext c, final T item, final double offset) =>
-      Expanded(
-          flex: 10,
-          child: Transform.translate(
-              offset: Offset(0, offset), child: builder(c, item, 320)));
-
-  Widget _smallCol(final BuildContext c, final T? i1, final T? i2) => Expanded(
-      flex: 9,
-      child: Column(children: [
-        if (i1 != null) SizedBox(height: 150, child: builder(c, i1, 150)),
-        if (i2 != null) ...[
-          const SizedBox(height: 12),
-          SizedBox(height: 150, child: builder(c, i2, 150))
-        ],
-      ]));
-}
-
-class _HorizontalMosaicSection extends StatelessWidget {
-  final List<Show> shows;
-  final bool isLoading;
-  final VoidCallback? onSeeAll;
-
-  const _HorizontalMosaicSection(
-      {required this.shows, this.isLoading = false, this.onSeeAll});
-
-  @override
-  Widget build(final BuildContext context) {
-    if (isLoading) return _shimmer();
-    return SliverToBoxAdapter(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SectionHeader(
-          title: "Etkinlikler Vitrini",
-          subtitle: "Akışta Kal",
-          onTap: onSeeAll),
-      SizedBox(
-          height: 340,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: (shows.length / 2).ceil(),
-            physics: const BouncingScrollPhysics(),
-            itemBuilder: (final context, final index) {
-              final s1 = (index * 2 < shows.length) ? shows[index * 2] : null;
-              final s2 =
-                  (index * 2 + 1 < shows.length) ? shows[index * 2 + 1] : null;
-              if (s1 == null) return const SizedBox();
-              final flexes = switch (index % 4) {
-                0 => (5, 2),
-                1 => (3, 4),
-                2 => (2, 5),
-                _ => (4, 3)
-              };
-              return Container(
-                  width: 155,
-                  margin: const EdgeInsets.only(right: 10),
-                  child: Column(children: [
-                    Expanded(
-                        flex: flexes.$1,
-                        child: _GridCards.showMosaic(context, s1,
-                            height: double.infinity)),
-                    const SizedBox(height: 10),
-                    s2 != null
-                        ? Expanded(
-                            flex: flexes.$2,
-                            child: _GridCards.showMosaic(context, s2,
-                                height: double.infinity))
-                        : Spacer(flex: flexes.$2),
-                  ]));
-            },
-          )),
-      const SizedBox(height: 32),
-    ]));
-  }
-
-  Widget _shimmer() => SliverToBoxAdapter(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SectionHeader(
-            title: "Etkinlikler Vitrini",
-            subtitle: "Akışta Kal",
-            onTap: onSeeAll),
-        SizedBox(
-            height: 340,
-            child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: 4,
-                physics: const NeverScrollableScrollPhysics(),
-                itemBuilder: (final _, final i) {
-                  final f = switch (i % 4) {
-                    0 => (5, 2),
-                    1 => (3, 4),
-                    2 => (2, 5),
-                    _ => (4, 3)
-                  };
-                  return Container(
-                      width: 155,
-                      margin: const EdgeInsets.only(right: 10),
-                      child: Column(children: [
-                        Expanded(
-                            flex: f.$1,
-                            child: const ShimmerLoading(
-                                width: double.infinity,
-                                height: double.infinity,
-                                borderRadius: 16)),
-                        const SizedBox(height: 10),
-                        Expanded(
-                            flex: f.$2,
-                            child: const ShimmerLoading(
-                                width: double.infinity,
-                                height: double.infinity,
-                                borderRadius: 16))
-                      ]));
-                })),
-        const SizedBox(height: 32),
-      ]));
 }
 
 class _HorizontalListSection extends StatelessWidget {
@@ -1733,33 +1342,6 @@ class _PaintDropletPainter extends CustomPainter {
                   rng.nextDouble() * size.height),
               radius: rng.nextDouble() * 6 + 2),
           paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant final CustomPainter oldDelegate) => false;
-}
-
-// Diagonal pattern painter (etkinlikler için)
-class _DiagonalLinePainter extends CustomPainter {
-  final Color color;
-
-  _DiagonalLinePainter({required this.color});
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    const spacing = 20.0;
-    for (double i = -size.height; i < size.width + size.height; i += spacing) {
-      canvas.drawLine(
-        Offset(i, 0),
-        Offset(i + size.height, size.height),
-        paint,
-      );
     }
   }
 
