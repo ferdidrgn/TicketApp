@@ -43,9 +43,55 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (mounted) _fetchInitialData();
-    });
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    final showNotifier = ref.read(showProvider.notifier);
+
+    var showData = ref.read(showProvider).getShowById(widget.showId);
+
+    if (showData == null) {
+      await showNotifier.loadShowsByIds([widget.showId]);
+      showData = ref.read(showProvider).getShowById(widget.showId);
+    }
+
+    if (showData == null) return;
+
+    /// EVENTS
+    final eventIds =
+        showData.eventsId.where((id) => id.trim().isNotEmpty).toList();
+
+    if (eventIds.isNotEmpty) {
+      await ref.read(eventProvider.notifier).loadEventsByIds(eventIds);
+    }
+
+    /// 🔥 STAGES (EKSİK OLAN BUYDU)
+    final events = ref.read(eventProvider).dataList ?? [];
+
+    final stageIds = events
+        .map((e) => e.stageId)
+        .where((id) => id.isNotEmpty && id != '0')
+        .toSet()
+        .toList();
+
+    if (stageIds.isNotEmpty) {
+      unawaited(
+        ref.read(stageProvider.notifier).loadStagesByIds(stageIds),
+      );
+    }
+
+    /// PLAYERS
+    final playerIds = {
+      ...showData.nowPlayersId,
+      ...showData.oldPlayersId,
+    }.where((id) => id.trim().isNotEmpty).toList();
+
+    if (playerIds.isNotEmpty) {
+      unawaited(
+        ref.read(playerProvider.notifier).getPlayersByIds(playerIds),
+      );
+    }
   }
 
   @override
@@ -54,58 +100,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     super.dispose();
   }
 
-  Future<void> _fetchInitialData() async {
-    ref.listen<EventState>(
-      eventProvider,
-      (final previous, final next) {
-        if ((previous?.dataList?.isEmpty ?? true) &&
-            (next.dataList?.isNotEmpty ?? false)) {
-          final stageIds = next.dataList!
-              .map((final e) => e.stageId)
-              .where((final id) => id.isNotEmpty && id != '0')
-              .toSet()
-              .toList();
-
-          if (stageIds.isNotEmpty)
-            ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
-        }
-      },
-    );
-
-    final showNotifier = ref.read(showProvider.notifier);
-    var showData = ref.read(showProvider).getShowById(widget.showId);
-
-    if (showData == null) await showNotifier.loadShowsByIds([widget.showId]);
-
-    showData = ref.read(showProvider).getShowById(widget.showId);
-
-    if (showData != null) {
-      if (showData.eventsId.isNotEmpty) {
-        final validEventIds = showData.eventsId
-            .where((final id) => id.trim().isNotEmpty)
-            .toList();
-        if (validEventIds.isNotEmpty)
-          unawaited(
-              ref.read(eventProvider.notifier).loadEventsByIds(validEventIds));
-      }
-      final allPlayerIds = {...showData.nowPlayersId, ...showData.oldPlayersId}
-          .where((final id) => id.trim().isNotEmpty)
-          .toList();
-      if (allPlayerIds.isNotEmpty)
-        unawaited(
-            ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds));
-    }
-  }
-
   @override
   Widget build(final BuildContext context) {
     final isDark = context.isDarkMode;
-
-    // Arka plan rengi
     final backgroundColor =
         isDark ? AppDarkColors.primary : AppLightColors.background;
-
-    // Metin rengi
     final textColor = isDark ? Colors.white : Colors.black;
 
     final showState = ref.watch(showProvider);
@@ -114,124 +113,124 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     final playerState = ref.watch(playerProvider);
     final stageState = ref.watch(stageProvider);
 
-    if (showState.isLoading && showData == null)
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (showState.isLoading && showData == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-    if (showData == null)
-      return Scaffold(
-          body: Center(
-              child: Text("Gösteri bulunamadı",
-                  style: TextStyle(color: textColor))));
+    if (showData == null) {
+      return Center(
+        child: Text(
+          "Gösteri bulunamadı",
+          style: TextStyle(color: textColor),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Stack(
         children: [
-          // 1. MODÜLER PARALLAX HEADER
+          /// HEADER
           ShowParallaxHeader(
-              imageUrl: showData.imageUrl, scrollController: _scrollController),
-
-          // 2. İÇERİK
-          RepaintBoundary(
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                    child: SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.45)),
-                SliverToBoxAdapter(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          backgroundColor,
-                          backgroundColor
-                        ],
-                        stops: const [0.0, 0.1, 1.0],
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-
-                        // 3. MODÜLER INFO SECTION
-                        ShowInfoSection(
-                            title: showData.name,
-                            description: showData.description),
-
-                        // 4. ETKİNLİK LİSTESİ (Helper Method ile EventsCard kullanımı)
-                        _buildEventList(
-                          events: eventState.dataList
-                                  ?.where((final e) =>
-                                      showData.eventsId.contains(e.id))
-                                  .toList() ??
-                              [],
-                          show: showData,
-                          stageState: stageState,
-                        ),
-
-                        // 5. MODÜLER PLAYER CARD (Aktif Kadro)
-                        PlayersBubbleCard(
-                          title: "OYUNCU KADROSU",
-                          players: playerState
-                              .getPlayersByIds(showData.nowPlayersId),
-                          onPlayerTap: (final id) => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (final _) =>
-                                      PlayerDetailPage(playerId: id))),
-                        ),
-
-                        // 6. MODÜLER PLAYER CARD (Eski Kadro)
-                        if (showData.oldPlayersId.isNotEmpty)
-                          PlayersBubbleCard(
-                            title: "ESKİ KADRO",
-                            players: playerState
-                                .getPlayersByIds(showData.oldPlayersId),
-                            isGrayscale: true,
-                            // Gri Çerçeve
-                            onPlayerTap: (final id) => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (final _) =>
-                                        PlayerDetailPage(playerId: id))),
-                          ),
-
-                        // 7. MODÜLER GALERİ
-                        if (showData.photosShowId.isNotEmpty)
-                          ShowPhotoGallery(photos: showData.photosShowId),
-
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            imageUrl: showData.imageUrl,
+            scrollController: _scrollController,
           ),
 
-          // GERİ BUTONU
+          /// CONTENT
+          CustomScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.45,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: backgroundColor,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(30),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
+                      ShowInfoSection(
+                        title: showData.name,
+                        description: showData.description,
+                      ),
+                      _buildEventList(
+                        events: eventState.dataList
+                                ?.where((final e) =>
+                                    showData.eventsId.contains(e.id))
+                                .toList() ??
+                            [],
+                        show: showData,
+                        stageState: stageState,
+                      ),
+                      PlayersBubbleCard(
+                        title: "OYUNCU KADROSU",
+                        players:
+                            playerState.getPlayersByIds(showData.nowPlayersId),
+                        onPlayerTap: (final id) => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (final _) =>
+                                PlayerDetailPage(playerId: id),
+                          ),
+                        ),
+                      ),
+                      if (showData.oldPlayersId.isNotEmpty)
+                        PlayersBubbleCard(
+                          title: "ESKİ KADRO",
+                          players: playerState
+                              .getPlayersByIds(showData.oldPlayersId),
+                          isGrayscale: true,
+                          onPlayerTap: (final id) => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (final _) =>
+                                  PlayerDetailPage(playerId: id),
+                            ),
+                          ),
+                        ),
+                      if (showData.photosShowId.isNotEmpty)
+                        ShowPhotoGallery(
+                          photos: showData.photosShowId,
+                        ),
+                      const SizedBox(height: 120),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          /// BACK BUTTON
           Positioned(
-            top: 50,
-            left: 20,
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(14),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  height: 45,
-                  width: 45,
+                  height: 44,
+                  width: 44,
                   decoration: BoxDecoration(
-                      color: (textColor).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                          color: (isDark ? Colors.white24 : Colors.black12))),
+                    color: textColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                    ),
+                  ),
                   child: IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new,
-                        color: textColor, size: 20),
+                    icon: Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 18,
+                      color: textColor,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
