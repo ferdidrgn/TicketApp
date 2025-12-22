@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../domain/entities/show.dart';
@@ -169,7 +170,7 @@ class _MosaicCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.red.withOpacity(0.4),
                           borderRadius: BorderRadius.circular(4),
                           border:
                               Border.all(color: Colors.white.withOpacity(0.3))),
