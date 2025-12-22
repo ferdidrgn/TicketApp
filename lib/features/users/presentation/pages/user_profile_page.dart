@@ -151,10 +151,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 _buildLuxuryProfileCard(loginState.user, theme, loginState),
                 const SizedBox(height: 40),
 
-                _buildFunctionalSection(loginState, theme),
+                _buildThemeSelectorArtistic(ref, theme),
                 const SizedBox(height: 32),
 
-                _buildThemeSelectorArtistic(ref, theme),
+                _buildFunctionalSection(loginState, theme),
                 const SizedBox(height: 32),
 
                 _buildSecuritySection(loginState, theme),

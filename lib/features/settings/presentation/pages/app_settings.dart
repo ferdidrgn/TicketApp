@@ -3,7 +3,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/url_launcher_service.dart';
 import '../../../../shared/widgets/custom_art_words_card.dart';
-import '../../../../shared/widgets/custom_elevated_button.dart';
+import '../../../../shared/widgets/button/custom_elevated_button.dart';
 
 class AppSettingsPage extends StatelessWidget {
   const AppSettingsPage({super.key});
