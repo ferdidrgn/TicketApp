@@ -18,11 +18,11 @@ class PlayerHeroCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     // =========================================================================
     // 1. DURUM: YÜKLENİYOR (SHIMMER)
     // =========================================================================
-    if (isLoading || player == null) {
+    if (isLoading || player == null)
       return Container(
         width: 120, // Senin kodundaki genişlik
         margin: const EdgeInsets.only(right: 12), // Senin kodundaki margin
@@ -48,7 +48,6 @@ class PlayerHeroCard extends StatelessWidget {
           ],
         ),
       );
-    }
 
     // =========================================================================
     // 2. DURUM: VERİ GELDİ (SENİN KODUN - BİREBİR)
