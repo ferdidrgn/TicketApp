@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
+import '../../../../shared/widgets/card/glass_back_bottom.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
@@ -204,8 +205,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           case 1:
             increment(
                 1,
-                _SearchLogic.totalCount(
-                    ref.read(showProvider).dataList, query, (final s) => s.name));
+                _SearchLogic.totalCount(ref.read(showProvider).dataList, query,
+                    (final s) => s.name));
           case 2:
             increment(
                 2,
@@ -214,13 +215,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           case 3:
             increment(
                 3,
-                _SearchLogic.totalCount(
-                    ref.read(stageProvider).dataList, query, (final s) => s.name));
+                _SearchLogic.totalCount(ref.read(stageProvider).dataList, query,
+                    (final s) => s.name));
           case 4:
             increment(
                 4,
-                _SearchLogic.totalCount(
-                    ref.read(teamProvider).dataList, query, (final t) => t.name));
+                _SearchLogic.totalCount(ref.read(teamProvider).dataList, query,
+                    (final t) => t.name));
         }
         _loadingMore = false;
       });
@@ -263,8 +264,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           page: _selectedFilter == 1 ? _pages[1]! : 0,
           paginate: _selectedFilter == 1,
           limit: _selectedFilter == 0 ? 10 : null),
-      players: _SearchLogic.filterAndPaginate(
-          rawPlayers.dataList, query, (final p) => '${p.firstName} ${p.lastName}',
+      players: _SearchLogic.filterAndPaginate(rawPlayers.dataList, query,
+          (final p) => '${p.firstName} ${p.lastName}',
           page: _selectedFilter == 2 ? _pages[2]! : 0,
           paginate: _selectedFilter == 2,
           limit: _selectedFilter == 0 ? 10 : null),
@@ -332,7 +333,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Widget _buildHeader(final String query) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const TopHeader(title: "Tablolarımız"),
+          Row(
+            children: [
+              GlassBackButton(),
+              const TopHeader(title: "Tablolarımız"),
+            ],
+          ),
           const SizedBox(height: 20),
           GlassSearchBar(
               controller: _textController,
