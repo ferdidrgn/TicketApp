@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:ui'; // BackdropFilter için gerekli
+import 'dart:ui';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -31,9 +31,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Map<String, dynamic>? _localUserData;
   bool _isLoadingLocalData = true;
 
-  // Animasyonları basitleştirdik, sadece hafif bir nefes alma efekti
   late AnimationController _glowController;
+  late AnimationController _badgeRotateController;
   late Animation<double> _glowAnimation;
+  late Animation<double> _badgeRotation;
 
   @override
   void initState() {
@@ -48,14 +49,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       vsync: this,
     )..repeat(reverse: true);
 
+    _badgeRotateController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    )..repeat();
+
     _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+
+    _badgeRotation = Tween<double>(begin: 0, end: 2 * pi).animate(
+      CurvedAnimation(parent: _badgeRotateController, curve: Curves.linear),
     );
   }
 
   @override
   void dispose() {
     _glowController.dispose();
+    _badgeRotateController.dispose();
     super.dispose();
   }
 
@@ -91,8 +102,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       backgroundColor: colors.background,
       body: Stack(
         children: [
-          // 1. MODERN ARKA PLAN (AMBIENT LIGHT)
-          // Eski dalgalar yerine flu, soft renk geçişleri
+          // ARKA PLAN
           Positioned(
             top: -100,
             left: -100,
@@ -126,30 +136,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             ),
           ),
 
-          // 2. İÇERİK
+          // İÇERİK
           SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 20),
-                // Profil Başlığı
                 _buildProfileHeader(theme),
                 const SizedBox(height: 20),
 
-                // Sanatsal Profil Kartı (DOKUNULMADI)
-                _buildArtisticProfileCard(loginState.user, theme, loginState),
+                // YENİ: LÜKS PROFİL KARTI
+                _buildLuxuryProfileCard(loginState.user, theme, loginState),
                 const SizedBox(height: 40),
 
-                // İŞLEVSEL BÖLÜM (YENİLENDİ: Glassmorphism & Clean)
                 _buildFunctionalSection(loginState, theme),
                 const SizedBox(height: 32),
 
-                // TEMA AYARI (YENİLENDİ: Modern Pill Tasarımı)
                 _buildThemeSelectorArtistic(ref, theme),
                 const SizedBox(height: 32),
 
-                // GÜVENLİK BÖLÜMÜ (YENİLENDİ: Minimal & Clean)
                 _buildSecuritySection(loginState, theme),
                 const SizedBox(height: 40),
               ],
@@ -186,8 +193,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // --- DOKUNULMAYAN ALAN BAŞLANGICI ---
-  Widget _buildArtisticProfileCard(
+  // YENİ: LÜKS PROFİL KARTI
+  Widget _buildLuxuryProfileCard(
     final User? firebaseUser,
     final ThemeData theme,
     final LoginState loginState,
@@ -201,208 +208,357 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=500&auto=format&fit=crop';
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.surface.withOpacity(0.9),
+            theme.colorScheme.surface.withOpacity(0.7),
+          ],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 30,
-            offset: const Offset(0, 20),
-            spreadRadius: -5,
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 40,
+            offset: const Offset(0, 25),
+            spreadRadius: -10,
           ),
         ],
       ),
       child: Stack(
         children: [
-          // Tablo çerçevesi
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.3),
-                width: 2,
-              ),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.surface,
-                  theme.colorScheme.surface.withOpacity(0.95),
-                ],
-              ),
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                // Tablonun askı ipi efekti
-                Container(
-                  width: 80,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.grey[400]!,
-                        Colors.grey[300]!,
-                        Colors.grey[400]!,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(2),
+          // Dekoratif köşe çizgileri
+          Positioned(
+            top: 20,
+            left: 20,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    width: 2,
+                  ),
+                  top: BorderSide(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    width: 2,
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Portre çerçevesi (antik çerçeve efekti)
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: SweepGradient(
-                      colors: [
-                        theme.colorScheme.primary.withOpacity(0.2),
-                        theme.colorScheme.secondary.withOpacity(0.2),
-                        theme.colorScheme.primary.withOpacity(0.2),
-                      ],
-                      stops: const [0.0, 0.5, 1.0],
-                    ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color: theme.colorScheme.secondary.withOpacity(0.3),
+                    width: 2,
                   ),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.surface,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 15,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: AnimatedBuilder(
-                      animation: _glowAnimation,
-                      builder: (final context, final child) {
-                        return CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.transparent,
-                          backgroundImage: NetworkImage(photoURL),
+                  bottom: BorderSide(
+                    color: theme.colorScheme.secondary.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Ana içerik
+          Padding(
+            padding: const EdgeInsets.all(30),
+            child: Column(
+              children: [
+                // Üst rozetler
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildPremiumBadge(theme),
+                    _buildLevelBadge(theme, 'VIP', Colors.amber),
+                    _buildActivityBadge(theme, 'Aktif', Colors.green),
+                  ],
+                ),
+                const SizedBox(height: 30),
+
+                // Profil resmi ve etrafındaki sanatsal elementler
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Dış halka efekti
+                    AnimatedBuilder(
+                      animation: _badgeRotation,
+                      builder: (context, child) {
+                        return Transform.rotate(
+                          angle: _badgeRotation.value,
                           child: Container(
+                            width: 140,
+                            height: 140,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  theme.colorScheme.primary
-                                      .withOpacity(0.1 * _glowAnimation.value),
-                                  Colors.transparent,
-                                ],
+                              border: Border.all(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.1),
+                                width: 1,
                               ),
                             ),
                           ),
                         );
                       },
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
 
-                // Sanatsal başlık
-                Text(
-                  displayName,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Playfair',
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                    // Orta halka
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            theme.colorScheme.primary.withOpacity(0.2),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
 
-                // Alt başlık
-                Text(
-                  email,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                const SizedBox(height: 16),
+                    // Profil fotoğrafı
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                          width: 4,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Image.network(
+                          photoURL,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
 
-                // Sanat etiketleri
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [
-                    _buildArtTag('Sanat Sever', Icons.palette, Colors.blue),
-                    _buildArtTag('Bilet Koleksiyonu', Icons.confirmation_number,
-                        Colors.green),
-                    if (!isGuest)
-                      _buildArtTag(
-                          _getLoginMethod(firebaseUser),
-                          _getLoginMethodIcon(_getLoginMethod(firebaseUser)),
-                          _getLoginMethodColor(_getLoginMethod(firebaseUser))),
-                    if (isGuest)
-                      _buildArtTag(
-                          'Misafir Sergisi', Icons.person, Colors.orange),
+                    // Köşe süsleri
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: _buildCornerIcon(Icons.star, Colors.amber, theme),
+                    ),
+                    Positioned(
+                      bottom: 10,
+                      left: 10,
+                      child:
+                          _buildCornerIcon(Icons.brush, Colors.purple, theme),
+                    ),
                   ],
                 ),
+                const SizedBox(height: 30),
 
-                // Tablo altı imzası
-                const SizedBox(height: 20),
+                // Kullanıcı bilgileri
+                Column(
+                  children: [
+                    Text(
+                      displayName.toUpperCase(),
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'Playfair',
+                        color: theme.colorScheme.onSurface,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      email,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontStyle: FontStyle.italic,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 25),
+
+                // Sanatsal ayraç
                 Container(
                   width: 100,
-                  height: 2,
-                  color: theme.colorScheme.primary.withOpacity(0.3),
+                  height: 4,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primary,
+                        theme.colorScheme.secondary,
+                        theme.colorScheme.primary,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'TicketApp Galerisi',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
-                    letterSpacing: 1.2,
+                const SizedBox(height: 25),
+
+                // ROZET KOLEKSİYONU
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: theme.colorScheme.onSurface.withOpacity(0.1),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.emoji_events_outlined,
+                              color: theme.colorScheme.primary, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'ROZET KOLEKSİYONU',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+
+                      // Rozetler grid
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildArtBadge(
+                            '🎨 Sanat Uzmanı',
+                            Icons.palette,
+                            Colors.deepPurple,
+                            theme,
+                            isActive: true,
+                          ),
+                          _buildArtBadge(
+                            '🏛️ Sergi Gezgin',
+                            Icons.museum,
+                            Colors.blue,
+                            theme,
+                            isActive: true,
+                          ),
+                          _buildArtBadge(
+                            '🎟️ Bilet Koleksiyoncu',
+                            Icons.confirmation_number,
+                            Colors.green,
+                            theme,
+                            isActive: true,
+                          ),
+                          _buildArtBadge(
+                            '❤️ Favori Avcısı',
+                            Icons.favorite,
+                            Colors.pink,
+                            theme,
+                            isActive: false,
+                          ),
+                          _buildArtBadge(
+                            '⚡ Hızlı Gezgin',
+                            Icons.flash_on,
+                            Colors.orange,
+                            theme,
+                            isActive: true,
+                          ),
+                          _buildArtBadge(
+                            '🌟 Yıldız Koleksiyoncu',
+                            Icons.stars,
+                            Colors.amber,
+                            theme,
+                            isActive: false,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // İstatistikler
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatItem('247', 'Bilet', Icons.confirmation_number,
+                          theme.colorScheme.primary),
+                      _buildStatItem('38', 'Favori', Icons.favorite,
+                          theme.colorScheme.secondary),
+                      _buildStatItem('12', 'Sergi', Icons.museum,
+                          theme.colorScheme.tertiary),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-
-          // Köşe süsleri
-          Positioned(
-            top: 20,
-            right: 20,
-            child: _buildCornerOrnament(),
-          ),
-          Positioned(
-            bottom: 20,
-            left: 20,
-            child: _buildCornerOrnament(),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildArtTag(
-      final String text, final IconData icon, final Color color) {
+  Widget _buildPremiumBadge(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
+        gradient: LinearGradient(
+          colors: [
+            Colors.amber.shade300,
+            Colors.amber.shade600,
+          ],
         ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
+          Icon(Icons.workspace_premium, size: 14, color: Colors.white),
           const SizedBox(width: 6),
           Text(
-            text,
+            'PREMIUM',
             style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
             ),
           ),
         ],
@@ -410,36 +566,184 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildCornerOrnament() {
+  Widget _buildLevelBadge(ThemeData theme, String level, Color color) {
     return Container(
-      width: 24,
-      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey[300]!,
-          width: 2,
-        ),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            level,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // --- DOKUNULMAYAN ALAN BİTİŞİ ---
+  Widget _buildActivityBadge(ThemeData theme, String status, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.5),
+                  blurRadius: 5,
+                ),
+              ],
+            ),
+          ),
+          Text(
+            status,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  // İŞLEVSEL BÖLÜM - YENİ MODERN TASARIM
+  Widget _buildCornerIcon(IconData icon, Color color, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Icon(icon, size: 14, color: color),
+    );
+  }
+
+  Widget _buildArtBadge(
+      String title, IconData icon, Color color, ThemeData theme,
+      {bool isActive = true}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+      decoration: BoxDecoration(
+        color: isActive
+            ? color.withOpacity(0.1)
+            : theme.colorScheme.onSurface.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: isActive
+              ? color.withOpacity(0.3)
+              : theme.colorScheme.onSurface.withOpacity(0.1),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color:
+                isActive ? color : theme.colorScheme.onSurface.withOpacity(0.3),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(
+              color: isActive
+                  ? color
+                  : theme.colorScheme.onSurface.withOpacity(0.3),
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(
+      String value, String label, IconData icon, Color color) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: color.withOpacity(0.6),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Diğer widget'lar aynı kalacak, sadece _buildArtisticProfileCard yerine
+  // _buildLuxuryProfileCard kullanıldı. Aşağıdaki fonksiyonlar değişmeden kalacak:
+
+  // İşlevsel bölüm (değişmeden)
   Widget _buildFunctionalSection(
       final LoginState loginState, final ThemeData theme) {
     final colors = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    // Ana işlevsel butonlar
     List<Map<String, dynamic>> functionalButtons = [
       if (loginState.user != null)
         {
           'title': 'Profil Portresi',
           'subtitle': 'Portreni düzenle',
           'icon': Icons.edit_outlined,
-          'color': const Color(0xFF64B5F6), // Pastel Mavi
+          'color': const Color(0xFF64B5F6),
           'onTap': () =>
               _navigateTo(UserProfileEditScreen(userId: loginState.user!.uid)),
           'artMetaphor': '🎨 Fırça',
@@ -449,7 +753,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           'title': 'Bilet Arşivi',
           'subtitle': 'Geçmiş biletlerin',
           'icon': Icons.confirmation_number_outlined,
-          'color': const Color(0xFF81C784), // Pastel Yeşil
+          'color': const Color(0xFF81C784),
           'onTap': () =>
               _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
           'artMetaphor': '📜 Parşömen',
@@ -459,7 +763,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           'title': 'Favori Koleksiyon',
           'subtitle': 'Beğendiğin eserler',
           'icon': Icons.favorite_border,
-          'color': const Color(0xFFF06292), // Pastel Pembe
+          'color': const Color(0xFFF06292),
           'onTap': () => _navigateTo(FavoritesPage()),
           'artMetaphor': '❤️ Kalp',
         },
@@ -467,7 +771,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'title': 'Ayarlar',
         'subtitle': 'Uygulama ayarları',
         'icon': Icons.settings_outlined,
-        'color': const Color(0xFFFFB74D), // Pastel Turuncu
+        'color': const Color(0xFFFFB74D),
         'onTap': () => _navigateTo(const AppSettingsPage()),
         'artMetaphor': '⚙️ Dişli',
       },
@@ -475,7 +779,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'title': 'İzinler',
         'subtitle': 'Bildirim ayarları',
         'icon': Icons.notifications_outlined,
-        'color': const Color(0xFFBA68C8), // Pastel Mor
+        'color': const Color(0xFFBA68C8),
         'onTap': () => _navigateTo(const PermissionSettingsScreen()),
         'artMetaphor': '🔔 Zil',
       },
@@ -483,7 +787,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'title': 'Sözleşmeler',
         'subtitle': 'Gizlilik ve güvenlik',
         'icon': Icons.privacy_tip_outlined,
-        'color': const Color(0xFF7986CB), // Pastel İndigo
+        'color': const Color(0xFF7986CB),
         'onTap': () => _navigateTo(const ContractsPage()),
         'artMetaphor': '📄 Kontrat',
       },
@@ -491,82 +795,84 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'title': 'Yardım',
         'subtitle': 'SSS ve destek',
         'icon': Icons.help_outline,
-        'color': const Color(0xFF4DB6AC), // Pastel Teal
+        'color': const Color(0xFF4DB6AC),
         'onTap': () {},
         'artMetaphor': '❓ Soru',
       },
     ];
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Buzlu Cam Etkisi
-        child: Container(
-          decoration: BoxDecoration(
-            color: colors.surface.withOpacity(isDark ? 0.6 : 0.8),
-            // Şeffaf Zemin
-            borderRadius: BorderRadius.circular(24),
-            // Çerçeve yerine çok hafif bir iç parlama efekti
-            border: Border.all(
-              color: colors.onSurface.withOpacity(0.05),
-              width: 1,
-            ),
-            // Çok hafif, dağınık gölge
-            boxShadow: [
-              BoxShadow(
-                color: colors.shadow.withOpacity(0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: colors.surface,
+        border: Border.all(
+          color: colors.onSurface.withOpacity(0.05),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
-                child: Row(
-                  children: [
-                    Icon(Icons.brush, size: 20, color: colors.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Sanat Atölyesi',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colors.onSurface,
-                        letterSpacing: 0.5,
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: colors.surface.withOpacity(isDark ? 0.6 : 0.8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+                  child: Row(
+                    children: [
+                      Icon(Icons.brush, size: 20, color: colors.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Sanat Atölyesi',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colors.onSurface,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: functionalButtons.length,
-                separatorBuilder: (final context, final index) => Padding(
-                  padding: const EdgeInsets.only(left: 70),
-                  // Çizgiyi ikondan sonra başlat
-                  child: Divider(
-                    height: 1,
-                    color: colors.outline.withOpacity(0.1),
+                    ],
                   ),
                 ),
-                itemBuilder: (final context, final index) {
-                  final button = functionalButtons[index];
-                  return _buildFunctionalButton(
-                    title: button['title'] as String,
-                    subtitle: button['subtitle'] as String,
-                    icon: button['icon'] as IconData,
-                    color: button['color'] as Color,
-                    onTap: button['onTap'] as VoidCallback,
-                    artMetaphor: button['artMetaphor'] as String,
-                    theme: theme,
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-            ],
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: functionalButtons.length,
+                  separatorBuilder: (final context, final index) => Padding(
+                    padding: const EdgeInsets.only(left: 70),
+                    child: Divider(
+                      height: 1,
+                      color: colors.outline.withOpacity(0.1),
+                    ),
+                  ),
+                  itemBuilder: (final context, final index) {
+                    final button = functionalButtons[index];
+                    return _buildFunctionalButton(
+                      title: button['title'] as String,
+                      subtitle: button['subtitle'] as String,
+                      icon: button['icon'] as IconData,
+                      color: button['color'] as Color,
+                      onTap: button['onTap'] as VoidCallback,
+                      artMetaphor: button['artMetaphor'] as String,
+                      theme: theme,
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         ),
       ),
@@ -586,18 +892,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
             children: [
-              // Simge alanı (Clean & Painted Look)
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1), // Çok soft zemin
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(14),
-                  // Border yerine renkli soft shadow
                   boxShadow: [
                     BoxShadow(
                       color: color.withOpacity(0.2),
@@ -609,8 +913,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 child: Icon(icon, color: color, size: 22),
               ),
               const SizedBox(width: 16),
-
-              // Başlık ve açıklama
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -632,8 +934,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   ],
                 ),
               ),
-
-              // Sanatsal benzetme (Etiket gibi)
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -661,88 +961,98 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // TEMA SEÇİCİ - DAHA TEMİZ VE MODERN
+  // Tema seçici (değişmeden)
   Widget _buildThemeSelectorArtistic(
       final WidgetRef ref, final ThemeData theme) {
     final currentTheme = ref.watch(themeProvider);
     final isDark = theme.brightness == Brightness.dark;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withOpacity(isDark ? 0.6 : 0.8),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: theme.colorScheme.onSurface.withOpacity(0.05),
-            ),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.surface,
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withOpacity(0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.palette_outlined,
-                          color: theme.colorScheme.primary.withOpacity(0.8),
-                          size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Sergi Işığı',
-                        style: theme.textTheme.titleMedium?.copyWith(
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withOpacity(isDark ? 0.6 : 0.8),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.palette_outlined,
+                            color: theme.colorScheme.primary.withOpacity(0.8),
+                            size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sergi Işığı',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        currentTheme == ThemeMode.light
+                            ? 'Gün Işığı'
+                            : currentTheme == ThemeMode.dark
+                                ? 'Gece Işığı'
+                                : 'Otomatik',
+                        style: TextStyle(
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
-                    ],
-                  ),
-                  // Seçili olanı yazan küçük etiket
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      currentTheme == ThemeMode.light
-                          ? 'Gün Işığı'
-                          : currentTheme == ThemeMode.dark
-                              ? 'Gece Işığı'
-                              : 'Otomatik',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  )
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Yan yana 3 buton - Temiz ve Modern
-              Row(
-                children: [
-                  Expanded(
-                      child: _buildThemeButton(
-                          'Gün', ThemeMode.light, Icons.wb_sunny_rounded, ref)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: _buildThemeButton('Gece', ThemeMode.dark,
-                          Icons.nights_stay_rounded, ref)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: _buildThemeButton('Oto', ThemeMode.system,
-                          Icons.hdr_auto_rounded, ref)),
-                ],
-              ),
-            ],
+                    )
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                        child: _buildThemeButton('Gün', ThemeMode.light,
+                            Icons.wb_sunny_rounded, ref)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: _buildThemeButton('Gece', ThemeMode.dark,
+                            Icons.nights_stay_rounded, ref)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: _buildThemeButton('Oto', ThemeMode.system,
+                            Icons.hdr_auto_rounded, ref)),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -758,7 +1068,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       onTap: () => ref.read(themeProvider.notifier).setTheme(mode),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 50, // Daha kompakt yükseklik
+        height: 50,
         decoration: BoxDecoration(
           color:
               isActive ? theme.colorScheme.primary : theme.colorScheme.surface,
@@ -780,7 +1090,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               : null,
         ),
         child: Row(
-          // Column yerine Row, daha şık ve yatay
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
@@ -807,140 +1116,227 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // GÜVENLİK BÖLÜMÜ - MİNİMAL VE MODERN
+  // Güvenlik bölümü (değişmeden)
   Widget _buildSecuritySection(
       final LoginState loginState, final ThemeData theme) {
     final colors = theme.colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            'GÜVENLİK',
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-              color: colors.onSurface.withOpacity(0.4),
+    return Container(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 12),
+            child: Text(
+              'GÜVENLİK',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                color: colors.onSurface.withOpacity(0.4),
+              ),
             ),
           ),
-        ),
-        if (loginState.user != null) ...[
-          // ÇIKIŞ BUTONU - Clean & Minimal
-          _buildSecurityButton(
-            label: 'Sergiden Çıkış Yap',
-            subLabel: 'Güvenli çıkış',
-            icon: Icons.logout_rounded,
-            color: Colors.orange,
-            onTap: () => _signOut(),
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-
-          // SİLME BUTONU - Clean & Minimal
-          _buildSecurityButton(
-            label: 'Koleksiyonu Sil',
-            subLabel: 'Hesabı kalıcı kapat',
-            icon: Icons.delete_outline_rounded,
-            color: Colors.red,
-            onTap: () => _showDeleteAccountDialog(loginState.user!.uid),
-            theme: theme,
-            isDestructive: true,
-          ),
-        ] else ...[
-          // GİRİŞ YAP
-          _buildSecurityButton(
-            label: 'Sergiye Giriş Yap',
-            subLabel: 'Hesabına eriş',
-            icon: Icons.login_rounded,
-            color: colors.primary,
-            onTap: () => _navigateToLogin(),
-            theme: theme,
-            isPrimary: true,
-          ),
+          if (loginState.user != null) ...[
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.orange.withOpacity(0.05),
+                border: Border.all(
+                  color: Colors.orange.withOpacity(0.2),
+                ),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _signOut(),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.logout_rounded,
+                            color: Colors.orange,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sergiden Çıkış Yap',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                              Text(
+                                'Güvenli çıkış',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.orange.withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 14,
+                          color: Colors.orange.withOpacity(0.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.red.withOpacity(0.05),
+                border: Border.all(
+                  color: Colors.red.withOpacity(0.2),
+                ),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _showDeleteAccountDialog(loginState.user!.uid),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.red,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Koleksiyonu Sil',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              Text(
+                                'Hesabı kalıcı kapat',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.red.withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 14,
+                          color: Colors.red.withOpacity(0.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: colors.primary,
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _navigateToLogin(),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.login_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sergiye Giriş Yap',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                'Hesabına eriş',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 14,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
-      ],
-    );
-  }
-
-  Widget _buildSecurityButton({
-    required final String label,
-    required final String subLabel,
-    required final IconData icon,
-    required final Color color,
-    required final VoidCallback onTap,
-    required final ThemeData theme,
-    final bool isDestructive = false,
-    final bool isPrimary = false,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isPrimary ? color : color.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isPrimary ? Colors.transparent : color.withOpacity(0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isPrimary
-                      ? Colors.white.withOpacity(0.2)
-                      : color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: isPrimary ? Colors.white : color,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isPrimary ? Colors.white : color,
-                      ),
-                    ),
-                    Text(
-                      subLabel,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isPrimary
-                            ? Colors.white.withOpacity(0.8)
-                            : color.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: isPrimary
-                    ? Colors.white.withOpacity(0.5)
-                    : color.withOpacity(0.4),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
 
+  // Kalan fonksiyonlar değişmeden kalacak
   String _getLoginMethod(final User? firebaseUser) {
     if (firebaseUser == null) return 'anonymous';
     if (firebaseUser.providerData

@@ -24,12 +24,11 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
 
   @override
   Widget build(final BuildContext context) {
-    if (widget.photos.isEmpty) {
+    if (widget.photos.isEmpty)
       return const EmptyStateMessage(
         message: 'Galeri boş.',
         icon: Icons.photo_library,
       );
-    }
 
     final isMobile = context.isMobile;
     final isTablet = context.isTablet;

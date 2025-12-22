@@ -26,9 +26,7 @@ class PlayersBubbleCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // BAŞLIK KISMI (Burası aynı kalsın ki sayfa bütünlüğü bozulmasın)
-        Padding(
-            padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
-            child: SectionHeader(title: title, fontSize: 20)),
+        SectionHeader(title: title, fontSize: 20),
 
         // SENİN İSTEDİĞİN TASARIM BURADA BAŞLIYOR
         SizedBox(

@@ -32,7 +32,8 @@ class SectionHeader extends StatelessWidget {
         color: effectiveColor, fontSize: fontSize, fontWeight: fontWeight);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5)
+          .copyWith(top: 30),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -54,7 +55,7 @@ class SectionHeader extends StatelessWidget {
               ],
             ),
           ),
-          NavigationButton(onTap: onTap),
+          if (onTap != null) NavigationButton(onTap: onTap),
         ],
       ),
     );
