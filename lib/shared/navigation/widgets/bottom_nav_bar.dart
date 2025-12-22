@@ -38,38 +38,34 @@ class _BottomNavBarState extends State<BottomNavBar> {
       ];
 
   @override
-  Widget build(final BuildContext context) {
-    final bottomNavBarTheme = context.theme.bottomNavigationBarTheme;
-    final textTheme = context.textTheme;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'TiyatRol ',
-          style: textTheme.headlineLarge
-              ?.copyWith(fontSize: 30, color: Colors.white),
+  Widget build(final BuildContext context) => Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'TiyatRol ',
+            style: context.textTheme.headlineLarge
+                ?.copyWith(fontSize: 30, color: Colors.white),
+          ),
+          centerTitle: true,
+          automaticallyImplyLeading: false,
         ),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
-      body: IndexedStack(index: _selectedIndex, children: _pages),
-      extendBody: true, //BottomNavBar background transparent
-      bottomNavigationBar: CurvedNavigationBar(
-        backgroundColor: Colors.transparent,
-        color: bottomNavBarTheme.selectedItemColor!,
-        buttonBackgroundColor: bottomNavBarTheme.selectedItemColor,
-        height: 50,
-        items: const [
-          Icon(Icons.home, size: 30),
-          Icon(Icons.event_seat_sharp, size: 30),
-          Icon(Icons.location_city, size: 30),
-          Icon(Icons.people, size: 30),
-        ],
-        animationCurve: Curves.easeInOut,
-        animationDuration: const Duration(milliseconds: 600),
-        index: _selectedIndex,
-        onTap: _onItemTapped,
-      ),
-    );
-  }
+        body: IndexedStack(index: _selectedIndex, children: _pages),
+        extendBody: true, //BottomNavBar background transparent
+        bottomNavigationBar: CurvedNavigationBar(
+          backgroundColor: Colors.transparent,
+          color: context.theme.bottomNavigationBarTheme.selectedItemColor!,
+          buttonBackgroundColor:
+              context.theme.bottomNavigationBarTheme.selectedItemColor,
+          height: 50,
+          items: const [
+            Icon(Icons.home, size: 30),
+            Icon(Icons.event_seat_sharp, size: 30),
+            Icon(Icons.location_city, size: 30),
+            Icon(Icons.people, size: 30),
+          ],
+          animationCurve: Curves.easeInOut,
+          animationDuration: const Duration(milliseconds: 600),
+          index: _selectedIndex,
+          onTap: _onItemTapped,
+        ),
+      );
 }
