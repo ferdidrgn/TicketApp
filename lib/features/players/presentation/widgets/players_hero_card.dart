@@ -6,8 +6,8 @@ import '../../domain/entities/player.dart';
 import '../pages/player_details.dart';
 
 class PlayerHeroCard extends StatelessWidget {
-  final Player? player; // Veri yoksa null olabilir
-  final bool isLoading; // Shimmer kontrolü
+  final Player? player;
+  final bool isLoading;
   final VoidCallback? onTap;
 
   const PlayerHeroCard({
@@ -19,29 +19,24 @@ class PlayerHeroCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    // =========================================================================
-    // 1. DURUM: YÜKLENİYOR (SHIMMER)
-    // =========================================================================
     if (isLoading || player == null)
       return Container(
-        width: 120, // Senin kodundaki genişlik
-        margin: const EdgeInsets.only(right: 12), // Senin kodundaki margin
+        width: 120, // Tasarımındaki sabit genişlik
+        margin: const EdgeInsets.only(right: 12),
         child: Column(
           children: [
             // Resim Alanı (Yuvarlak Shimmer)
-            // Senin kodunda Expanded var, Shimmer için sabit boyut veriyoruz ki düzgün dursun
             const SizedBox(
               height: 120,
               width: 120,
               child: ShimmerLoading(
                 width: 120,
                 height: 120,
-                isCircular: true, // Yuvarlak olması için
+                isCircular: true, // Yuvarlak efekt
               ),
             ),
             const SizedBox(height: 8),
-
-            // İsim Alanı (Çubuk Shimmer)
+            // İsim Alanı (Çubuk Shimmerlar)
             const ShimmerLoading(height: 12, width: 80, borderRadius: 4),
             const SizedBox(height: 4),
             const ShimmerLoading(height: 12, width: 60, borderRadius: 4),
@@ -49,9 +44,6 @@ class PlayerHeroCard extends StatelessWidget {
         ),
       );
 
-    // =========================================================================
-    // 2. DURUM: VERİ GELDİ (SENİN KODUN - BİREBİR)
-    // =========================================================================
     return GestureDetector(
       onTap: onTap ??
           () => Navigator.push(
@@ -67,7 +59,7 @@ class PlayerHeroCard extends StatelessWidget {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(60), // Tam daire (120/2)
+                borderRadius: BorderRadius.circular(60),
                 child: OptimizedCachedImage(
                   imageUrl: player!.imageUrl,
                   fit: BoxFit.cover,
