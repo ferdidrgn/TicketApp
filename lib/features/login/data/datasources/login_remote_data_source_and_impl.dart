@@ -68,8 +68,12 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   @override
   Future<GoogleSignInAccount?> signInWithGoogle() async {
     try {
+      // 🔥 DÜZELTME 1: Önce Google oturumunu kapat ki her seferinde hesap seçtirsin.
+      await _googleSignIn.signOut();
+
+      // 1. Google Penceresini Aç
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
+      if (googleUser == null) return null; // Kullanıcı vazgeçti
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
@@ -77,13 +81,30 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
       final AuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
 
-      await _auth.signInWithCredential(credential);
+      // 2. Mevcut Kullanıcıyı Kontrol Et
+      final currentUser = _auth.currentUser;
+
+      if (currentUser != null && currentUser.isAnonymous) {
+        // --- MİSAFİR BAĞLAMA ---
+        try {
+          await currentUser.linkWithCredential(credential);
+          await currentUser.reload(); // Kullanıcıyı yenile
+        } on FirebaseAuthException catch (e) {
+          // Hata varsa temizlik yap
+          await _googleSignIn.signOut();
+
+          if (e.code == 'credential-already-in-use')
+            throw Exception(
+                'Bu Google hesabı zaten başka bir hesaba bağlı. Lütfen başka bir hesap seçin.');
+          rethrow;
+        }
+      } else // --- NORMAL GİRİŞ ---
+        await _auth.signInWithCredential(credential);
 
       return googleUser;
     } catch (e) {
-      // Hatayı konsola yazdıralım ki ne olduğunu görelim
-
-      throw Exception('Google Giriş Hatası: $e');
+      await _googleSignIn.signOut();
+      throw Exception(e.toString().replaceAll("Exception: ", ""));
     }
   }
 
@@ -114,10 +135,9 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
       await user.delete();
       return true;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'requires-recent-login') {
+      if (e.code == 'requires-recent-login')
         throw Exception(
             'Hesabı silmek için son zamanlarda giriş yapmalısınız. Lütfen tekrar giriş yapın.');
-      }
       throw Exception('Hesap silme başarısız: ${e.message}');
     } catch (e) {
       throw Exception('Hesap silme başarısız: $e');
