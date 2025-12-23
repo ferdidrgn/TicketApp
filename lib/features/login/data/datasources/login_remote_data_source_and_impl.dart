@@ -4,10 +4,15 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 abstract class LoginRemoteDataSource {
   Future<User?> getCurrentUser();
+
   Future<User?> signInAnonymously();
+
   Future<GoogleSignInAccount?> signInWithGoogle();
+
   Future<bool> signOut();
+
   Future<bool> deleteAccount();
+
   Future<bool> verifyOtp(final String verificationId, final String otp);
 
   Future<String> verifyPhone({
@@ -77,8 +82,10 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
       print('✅ Google Sign-In başarılı');
       return googleUser;
     } catch (e) {
-      throw Exception(
-          'Google ile giriş yapılamadı. Lütfen daha sonra tekrar deneyin.');
+      // Hatayı konsola yazdıralım ki ne olduğunu görelim
+      print("GOOGLE GİRİŞ HATASI: $e");
+      // Gerçek hatayı fırlatalım
+      throw Exception('Google Giriş Hatası: $e');
     }
   }
 

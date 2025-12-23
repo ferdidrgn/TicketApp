@@ -4,6 +4,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/util/role_manager.dart';
+import '../../../users/data/models/user_model.dart';
+import '../../../users/domain/entities/user.dart' as entity;
+import '../../../users/presentation/providers/user_provider.dart';
 import 'login_provider.dart';
 import 'login_state.dart';
 
@@ -12,106 +15,121 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   @override
   LoginState build() {
-    // 1. Başlangıçta Loading durumunda başla
     state = LoginState(isLoading: true);
-
-    // 2. Başlatma işlemini tetikle
     Future.microtask(() => initialize());
-
     return state;
   }
 
-  // BaseNotifier zorunluluğu
   @override
   LoginState initialState() => LoginState(isLoading: true);
 
+  /// Uygulama başladığında Auth durumunu dinler ve kullanıcıyı senkronize eder.
   Future<void> initialize() async {
     await LocalStorageService.init();
 
-    // 🔥 KESİN ÇÖZÜM: Firebase'i Canlı Dinle
-    // Manuel kontrol yerine Firebase'e "Durum değişince haber ver" diyoruz.
-    _authStateSubscription?.cancel();
+    await _authStateSubscription?.cancel();
     _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen(
       (final User? firebaseUser) async {
         if (firebaseUser != null) {
-          // ✅ KULLANICI BULUNDU (Anonymous veya Normal)
-          // LocalStorage'daki rol bilgisini al veya varsayılan ata
           String userRole = LocalStorageService.userRole ?? 'user';
-
-          // Eğer anonymous ise ve rol atanmamışsa guest yap
           if (firebaseUser.isAnonymous) {
             userRole = RoleManager.getDefaultRoleForLoginMethod('anonymous');
           }
 
-          // State'i güncelle ve içeri al
           state = state.copyWith(
             user: firebaseUser,
             isLoading: false,
-            // Yükleme bitti
             isGuest: firebaseUser.isAnonymous,
             userRole: userRole,
             errorMessage: null,
           );
 
-          // Bilgileri tazele
           await LocalStorageService.saveEssentialUserData(
             uid: firebaseUser.uid,
             displayName: firebaseUser.displayName,
             role: userRole,
           );
+
+          // Misafir değilse Firestore ile senkronize et
+          if (!firebaseUser.isAnonymous) {
+            await _syncUserWithFirestore(firebaseUser, userRole);
+          }
         } else {
-          // ❌ KULLANICI YOK (Çıkış Yapılmış)
-          // Yüklemeyi bitir ki Router 'Login' sayfasına yönlendirebilsin
           state = state.copyWith(user: null, isLoading: false, isGuest: false);
         }
       },
-      onError: (error) {
-        // Hata olsa bile loading'i kapat ki sonsuz döngü olmasın
+      onError: (final error) {
         state =
             state.copyWith(isLoading: false, errorMessage: error.toString());
       },
     );
 
-    // ⚠️ EMNİYET SÜBAPI: Eğer Firebase çok geç cevap verirse (internet yoksa)
-    // 4 saniye sonra hala loading ise manuel kapat.
+    // Bağlantı gecikmesi durumunda sonsuz yüklemeyi önler
     Future.delayed(const Duration(seconds: 4), () {
-      if (state.isLoading) {
-        state = state.copyWith(isLoading: false);
-      }
+      if (state.isLoading) state = state.copyWith(isLoading: false);
     });
   }
 
-  // --- DİĞER METODLAR (Senin Kodların) ---
+  /// Firebase kullanıcısını Domain Entity'e çevirip veritabanına kaydeder (Mevcutsa güncellemez).
+  Future<void> _syncUserWithFirestore(
+      final User firebaseUser, final String role) async {
+    final nameParts = _splitName(firebaseUser.displayName ?? '');
 
-  Future<void> signInWithGoogle() => execute(
-        () => ref.read(signInWithGoogleUseCaseProvider).call(),
-        onSuccess: (final googleUser) => _handleGoogleSignInSuccess(googleUser),
-      );
+    final userEntity = entity.User(
+      id: firebaseUser.uid,
+      createdAt: DateTime.now().toIso8601String(),
+      updatedAt: DateTime.now().toIso8601String(),
+      firstName: nameParts['firstName'] ?? '',
+      lastName: nameParts['lastName'] ?? '',
+      imageUrl: firebaseUser.photoURL ?? '',
+      eMail: firebaseUser.email ?? '',
+      phoneNumber: firebaseUser.phoneNumber ?? '',
+      role: role,
+      age: 0,
+      city: '',
+      isPhoneActive: false,
+      fcmToken: '',
+      favoriteShows: const [],
+      favoriteStages: const [],
+      favoritePlayers: const [],
+      ticketsId: const [],
+    );
 
-  Future<void> _handleGoogleSignInSuccess(
-      final GoogleSignInAccount? googleUser) async {
-    // Not: Google girişi başarılı olunca yukarıdaki 'authStateChanges' tetiklenecek
-    // ve state'i otomatik güncelleyecek. Biz sadece ekstra işlemleri yapalım.
-    state = state.copyWith(googleUser: googleUser);
+    final userModel = UserModel.fromEntity(userEntity);
 
-    // Auth state listener zaten yakalayacak ama biz süreci hızlandırmak için tetikleyebiliriz
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      final userRole = RoleManager.getDefaultRoleForLoginMethod('google');
-      await LocalStorageService.saveEssentialUserData(
-          uid: currentUser.uid,
-          displayName: currentUser.displayName,
-          role: userRole);
-    }
+    await ref.read(saveUserUseCaseProvider).call(
+        userModel, firebaseUser.photoURL ?? '',
+        isUpdate: false // Kullanıcı varsa üzerine yazma
+        );
   }
 
-  Future<void> signInAnonymously() => execute(
-        () => ref.read(signInAnonymouslyUseCaseProvider).call(),
-        onSuccess: (final user) {
-          // Auth Listener bunu yakalayacak, burası boş kalabilir veya log atabilirsin
+  /// Google ile giriş işlemini başlatır.
+  Future<void> signInWithGoogle() => execute<GoogleSignInAccount?>(
+        () => ref.read(signInWithGoogleUseCaseProvider).call(),
+        onSuccess: (final googleUser) {
+          if (googleUser == null) {
+            // Kullanıcı pencereyi kapattı (Vazgeçti).
+            // BaseNotifier otomatik olarak isLoading = false yapacak.
+            // Ekstra bir şey yapmamıza gerek yok.
+            print("Google girişi kullanıcı tarafından iptal edildi.");
+            return;
+          }
+
+          // Giriş başarılı olduysa 'initialize' metodundaki
+          // Auth Listener (authStateChanges) otomatik devreye girecek
+          // ve Firestore kaydını yapacaktır.
         },
       );
 
+  /// Misafir girişi işlemini başlatır.
+  Future<void> signInAnonymously() => execute(
+        () => ref.read(signInAnonymouslyUseCaseProvider).call(),
+        onSuccess: (final user) {
+          // Başarılı olursa initialize'daki listener yakalar.
+        },
+      );
+
+  /// Telefon numarasına doğrulama kodu gönderir.
   Future<void> verifyPhone({
     required final String phoneNumber,
     required final Function(PhoneAuthCredential) onVerificationCompleted,
@@ -137,6 +155,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     );
   }
 
+  /// Kullanıcının girdiği OTP kodunu doğrular.
   Future<void> verifyOtp(final String otp) => execute(
         () {
           if (state.verificationId == null)
@@ -147,10 +166,10 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         },
         onSuccess: (final success) {
           if (!success) state = state.copyWith(errorMessage: "Invalid OTP");
-          // Başarılıysa Auth Listener yakalar
         },
       );
 
+  /// Kullanıcı rolünü günceller (Örn: Premium üyeliğe geçiş).
   Future<void> updateUserRole(final String newRole) async {
     if (state.user != null) {
       await LocalStorageService.saveEssentialUserData(
@@ -162,17 +181,18 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     }
   }
 
+  /// Oturumdan çıkış yapar.
   Future<void> signOut() async {
     try {
-      state = state.copyWith(isLoading: true); // Çıkarken loading göster
+      state = state.copyWith(isLoading: true);
       await ref.read(signOutUseCaseProvider).call();
-      // Auth Listener null user'ı yakalayacak ve state'i sıfırlayacak
     } catch (e) {
       state =
           state.copyWith(isLoading: false, errorMessage: 'Çıkış hatası: $e');
     }
   }
 
+  /// Hesabı tamamen siler.
   Future<void> deleteAccount() => execute(
         () async {
           if (state.user == null) throw Exception('User ID not found');
@@ -180,18 +200,25 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         },
         onSuccess: (final success) async {
           await LocalStorageService.clearAllUserData();
-          // Auth Listener yakalar
         },
       );
 
+  /// Login state'ini sıfırlar.
   void clearLoginState() {
-    // State'i tamamen sıfırla ve loading'i kapat
     state = LoginState(
       user: null,
-      isLoading: false, // Sonsuz loading'i kırmak için false yapıyoruz
+      isLoading: false,
       isGuest: false,
       errorMessage: null,
-      // Diğer alanlar zaten varsayılan null gelir
     );
+  }
+
+  Map<String, String> _splitName(final String fullName) {
+    if (fullName.isEmpty) return {'firstName': '', 'lastName': ''};
+    final List<String> parts = fullName.trim().split(' ');
+    if (parts.length == 1) return {'firstName': parts[0], 'lastName': ''};
+    final String lastName = parts.last;
+    final String firstName = parts.sublist(0, parts.length - 1).join(' ');
+    return {'firstName': firstName, 'lastName': lastName};
   }
 }

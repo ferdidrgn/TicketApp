@@ -15,45 +15,36 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
   final loginState = ref.watch(loginProvider);
   final authNotifier = ValueNotifier(loginState);
 
-  ref.listen(loginProvider, (final previous, final next) {
+  ref.listen(loginProvider, (final _, final next) {
     authNotifier.value = next;
   });
 
   return GoRouter(
-    debugLogDiagnostics: true,
     initialLocation: '/home',
     refreshListenable: authNotifier,
-
-    // 🛡️ YÖNLENDİRME MANTIĞI
     redirect: (final context, final state) {
-      final isWeb = kIsWeb;
       final currentPath = state.uri.path;
-
-      // Web kontrolü (Burası sende zaten vardı, aynen kalsın)
-      if (isWeb) {
-        if (currentPath == '/') return '/home';
-        return null;
-      }
-
       final isLoggedIn = loginState.user != null;
+
+      // Sayfa durumları
       final isLoggingIn = currentPath == '/login';
       final isPhoneLogin = currentPath == '/phone-login';
       final isOnboarding = currentPath == '/onboarding';
-      final isLoading = loginState.isLoading;
+      final isProfileEdit = currentPath.startsWith('/profile-edit');
 
       // Yükleniyorsa bekle
-      if (isLoading) return null;
+      if (loginState.isLoading) return null;
 
-      // 1. GÜVENLİK DUVARI: Giriş YAPILMAMIŞSA Login'e at
-      // (Burada !isLoggedIn olduğuna dikkat et)
+      // 1. Giriş yapılmamışsa ve Public sayfalarda değilse -> Login'e at
       if (!isLoggedIn && !isLoggingIn && !isOnboarding && !isPhoneLogin)
         return '/login';
 
-      // 2. ZATEN GİRİŞ YAPMIŞSA: Home'a at
-      // DİKKAT: Buradan 'isPhoneLogin'i SİLDİK.
-      // Neden? Çünkü telefonla giren kişi 'Profile Edit' sayfasına gitmeli.
-      // Eğer buraya isPhoneLogin eklersek, router onu zorla Home'a atar ve profil dolduramaz.
-      if (isLoggedIn && (isLoggingIn || isOnboarding)) return '/home';
+      // 2. Giriş yapılmışsa ve hala Login/Onboarding sayfalarındaysa -> Home'a at
+      if (isLoggedIn && (isLoggingIn || isOnboarding)) {
+        // Eğer kullanıcı zaten profil düzenlemede veya telefon girişindeyse karışma
+        if (isProfileEdit || isPhoneLogin) return null;
+        return '/home';
+      }
 
       return null;
     },
