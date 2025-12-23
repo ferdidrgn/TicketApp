@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
+import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import 'package:ticketapp/shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -43,89 +45,82 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   @override
   Widget build(final BuildContext context) {
     final showState = ref.watch(showProvider);
-    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 10),
-            if (showState.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (showState.hasError)
-              Center(child: Text(showState.errorMessage ?? 'Bir hata oluştu'))
-            else if (showState.dataList?.isEmpty ?? true)
-              Text('Bu kategori için etkinlik bulunamadı.',
-                  style: textTheme.bodyMedium)
-            else
-              Expanded(child: _buildEventList(showState.dataList!)),
-          ],
+      body: CustomAppBackground(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 10),
+              if (showState.isLoading)
+                const Center(child: CircularProgressIndicator())
+              else if (showState.hasError)
+                Center(child: Text(showState.errorMessage ?? 'Bir hata oluştu'))
+              else if (showState.dataList?.isEmpty ?? true)
+                Text('Bu kategori için etkinlik bulunamadı.',
+                    style: context.textTheme.bodyMedium)
+              else
+                Expanded(child: _buildEventList(showState.dataList!)),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const SectionHeader(title: 'Keşfet'),
-        IconButton(
-          icon: const Icon(Icons.filter_list),
-          onPressed: () => _showFilterPopup(context),
-        ),
-      ],
-    );
-  }
+  Widget _buildHeader() => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const SectionHeader(title: 'Keşfet'),
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () => _showFilterPopup(context),
+          ),
+        ],
+      );
 
-  Widget _buildEventList(final List<Show> shows) {
-    return ListView.builder(
-      itemCount: shows.length,
-      itemBuilder: (final context, final index) {
-        final show = shows[index];
-        return EventsCard(
-          imageUrl: show.imageUrl,
-          showName: show.name,
-          category: show.category,
-          date: "15.06.2023",
-          stage: "Sahne 1",
-          price: 150.0,
-        );
-      },
-    );
-  }
+  Widget _buildEventList(final List<Show> shows) => ListView.builder(
+        itemCount: shows.length,
+        itemBuilder: (final context, final index) {
+          final show = shows[index];
+          return EventsCard(
+            imageUrl: show.imageUrl,
+            showName: show.name,
+            category: show.category,
+            date: "15.06.2023",
+            stage: "Sahne 1",
+            price: 150.0,
+          );
+        },
+      );
 
   void _showFilterPopup(final BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (final context) {
-        return StatefulBuilder(
-          builder: (final context, final setModalState) {
-            return FilterBottomSheet(
-              selectedCategories: selectedCategories,
-              minPrice: minPrice,
-              maxPrice: maxPrice,
-              startDate: startDate,
-              endDate: endDate,
-              setModalState: setModalState,
-              onApplyFilters: (final filters) {
-                setState(() {
-                  selectedCategories = filters.selectedCategories;
-                  minPrice = filters.minPrice;
-                  maxPrice = filters.maxPrice;
-                  startDate = filters.startDate;
-                  endDate = filters.endDate;
-                });
-                Navigator.pop(context);
-                _fetchData();
-              },
-            );
+      builder: (final context) => StatefulBuilder(
+        builder: (final context, final setModalState) => FilterBottomSheet(
+          selectedCategories: selectedCategories,
+          minPrice: minPrice,
+          maxPrice: maxPrice,
+          startDate: startDate,
+          endDate: endDate,
+          setModalState: setModalState,
+          onApplyFilters: (final filters) {
+            setState(() {
+              selectedCategories = filters.selectedCategories;
+              minPrice = filters.minPrice;
+              maxPrice = filters.maxPrice;
+              startDate = filters.startDate;
+              endDate = filters.endDate;
+            });
+            Navigator.pop(context);
+            _fetchData();
           },
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -224,33 +219,31 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     );
   }
 
-  Widget _buildPriceRangeFilter(final StateSetter setModalState) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Fiyat Aralığı'),
-        RangeSlider(
-          values: RangeValues(minPrice, maxPrice),
-          min: 0,
-          max: 5200,
-          divisions: 10,
-          activeColor: Theme.of(context).colorScheme.error,
-          inactiveColor: Theme.of(context).focusColor,
-          onChanged: (final values) {
-            setModalState(() {
-              minPrice = values.start;
-              maxPrice = values.end;
-            });
-          },
-        ),
-        Text(
-            '₺${minPrice.toStringAsFixed(2)} - ₺${maxPrice.toStringAsFixed(2)}'),
-      ],
-    );
-  }
+  Widget _buildPriceRangeFilter(final StateSetter setModalState) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Fiyat Aralığı'),
+          RangeSlider(
+            values: RangeValues(minPrice, maxPrice),
+            min: 0,
+            max: 5200,
+            divisions: 10,
+            activeColor: Theme.of(context).colorScheme.error,
+            inactiveColor: Theme.of(context).focusColor,
+            onChanged: (final values) {
+              setModalState(() {
+                minPrice = values.start;
+                maxPrice = values.end;
+              });
+            },
+          ),
+          Text(
+              '₺${minPrice.toStringAsFixed(2)} - ₺${maxPrice.toStringAsFixed(2)}'),
+        ],
+      );
 
   Widget _buildDateRangePicker(final StateSetter setModalState) {
-    final theme = Theme.of(context);
+    final theme = context.theme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -325,44 +318,42 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   }
 
   @override
-  Widget build(final BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionHeader(
-              title: "Filitrele", fontWeight: FontWeight.bold),
-          const SizedBox(height: 20),
-          _buildCategoryFilter(widget.setModalState),
-          const SizedBox(height: 20),
-          _buildPriceRangeFilter(widget.setModalState),
-          const SizedBox(height: 20),
-          _buildDateRangePicker(widget.setModalState),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              widget.onApplyFilters(
-                FilterData(
-                  selectedCategories: selectedCategories,
-                  minPrice: minPrice,
-                  maxPrice: maxPrice,
-                  startDate: startDate,
-                  endDate: endDate,
-                ),
-              );
-            },
-            child: SectionHeader(
-                title: 'Uygula',
-                fontSize: 20,
-                textColor: Theme.of(context).colorScheme.error,
-                fontWeight: FontWeight.bold,
-                alignment: Alignment.center),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+                title: "Filitrele", fontWeight: FontWeight.bold),
+            const SizedBox(height: 20),
+            _buildCategoryFilter(widget.setModalState),
+            const SizedBox(height: 20),
+            _buildPriceRangeFilter(widget.setModalState),
+            const SizedBox(height: 20),
+            _buildDateRangePicker(widget.setModalState),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                widget.onApplyFilters(
+                  FilterData(
+                    selectedCategories: selectedCategories,
+                    minPrice: minPrice,
+                    maxPrice: maxPrice,
+                    startDate: startDate,
+                    endDate: endDate,
+                  ),
+                );
+              },
+              child: SectionHeader(
+                  title: 'Uygula',
+                  fontSize: 20,
+                  textColor: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.bold,
+                  alignment: Alignment.center),
+            ),
+          ],
+        ),
+      );
 }
 
 class FilterData {
