@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../../core/util/app_debug.dart';
-import '../../../../shared/widgets/custom_app_background.dart';
+import '../../../../shared/widgets/background/custom_app_background.dart';
 
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
