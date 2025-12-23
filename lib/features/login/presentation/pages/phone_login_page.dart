@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../../core/util/app_debug.dart';
-import '../providers/login_provider.dart';
+import '../../../../shared/widgets/custom_app_background.dart';
 
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
@@ -37,34 +41,40 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     });
   }
 
+  // --- FCM TOKEN KAYDETME (KRİTİK ADIM) ---
+  Future<void> _saveDeviceToken(final String userId) async {
+    try {
+      String? token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await FirebaseFirestore.instance.collection('users').doc(userId).set({
+          'fcmToken': token,
+          'lastLogin': FieldValue.serverTimestamp(),
+          'platform': 'mobile',
+        }, SetOptions(merge: true));
+        AppDebug.log("FCM Token Galeriye Mühürlendi.", tag: "FCM_AUTH");
+      }
+    } catch (e) {
+      AppDebug.log("Token Kayıt Hatası: $e", tag: "FCM_ERROR");
+    }
+  }
+
   // --- ADIM 1: SMS GÖNDERME ---
   Future<void> _verifyPhone() async {
     setState(() => _isLoading = true);
-    AppDebug.log("SMS İsteği Gönderiliyor...", tag: "AUTH_UI");
-
     String phone = _phoneController.text.trim();
     if (!phone.startsWith("+")) phone = "+90$phone";
 
     await _auth.verifyPhoneNumber(
       phoneNumber: phone,
-      // A) Otomatik Doğrulama (Android)
       verificationCompleted: (final PhoneAuthCredential credential) async {
-        AppDebug.log("Otomatik Doğrulama Başarılı", tag: "AUTH_UI");
-        await _auth.signInWithCredential(credential);
-        // AuthStateChanges zaten bizi içeri alacaktır
+        final result = await _auth.signInWithCredential(credential);
+        if (result.user != null) await _saveDeviceToken(result.user!.uid);
       },
-      // B) Hata Durumu
       verificationFailed: (final FirebaseAuthException e) {
         setState(() => _isLoading = false);
-        AppDebug.logError(e, null, "AUTH_ERROR");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Hata: ${e.message}")),
-        );
+        _showSnackBar("Hata: ${e.message}");
       },
-      // C) Kod Gönderildi (UI'ı değiştiren yer)
       codeSent: (final String verificationId, final int? resendToken) {
-        AppDebug.log("Kod Başarıyla Gönderildi: $verificationId",
-            tag: "AUTH_UI");
         setState(() {
           _verificationId = verificationId;
           _isCodeSent = true;
@@ -72,9 +82,8 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         });
         _startTimer();
       },
-      codeAutoRetrievalTimeout: (final String verificationId) {
-        _verificationId = verificationId;
-      },
+      codeAutoRetrievalTimeout: (final String verificationId) =>
+          _verificationId = verificationId,
       timeout: const Duration(seconds: 60),
     );
   }
@@ -82,7 +91,6 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   // --- ADIM 2: OTP DOĞRULAMA ---
   Future<void> _signInWithOTP() async {
     if (_verificationId == null) return;
-
     setState(() => _isLoading = true);
     try {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
@@ -90,17 +98,18 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         smsCode: _otpController.text.trim(),
       );
 
-      await _auth.signInWithCredential(credential);
-      AppDebug.log("Giriş Başarılı", tag: "AUTH_UI");
-      // Giriş başarılı olunca authStateChanges tetiklenir ve yönlendirme yapılır.
+      final result = await _auth.signInWithCredential(credential);
+      if (result.user != null) {
+        await _saveDeviceToken(result.user!.uid);
+      }
     } catch (e) {
       setState(() => _isLoading = false);
-      AppDebug.logError(e, null, "OTP_ERROR");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Hatalı kod girdiniz!")),
-      );
+      _showSnackBar("Hatalı kod girdiniz!");
     }
   }
+
+  void _showSnackBar(final String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   @override
   void dispose() {
@@ -112,79 +121,131 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
   @override
   Widget build(final BuildContext context) {
+    final theme = context.theme;
     return Scaffold(
-      appBar: AppBar(title: const Text("Telefon ile Giriş")),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _isCodeSent
-                ? _buildOtpUI()
-                : _buildPhoneUI(),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text("SERÜVENE KATIL",
+            style: theme.textTheme.labelLarge?.copyWith(letterSpacing: 4)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: CustomAppBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child:
+                        _isCodeSent ? _buildOtpUI(theme) : _buildPhoneUI(theme),
+                  ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildPhoneUI() {
+  Widget _buildPhoneUI(final ThemeData theme) {
     return Column(
+      key: const ValueKey('phone_ui'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        TextField(
-          controller: _phoneController,
-          keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: "Telefon Numaranız",
-            prefixText: "+90 ",
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: _verifyPhone,
-            child: const Text("KOD GÖNDER"),
-          ),
-        ),
+        Icon(Icons.phone_iphone_rounded,
+            size: 64, color: theme.colorScheme.primary),
+        const SizedBox(height: 24),
+        Text("DOĞRULAMA",
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 2)),
+        const SizedBox(height: 8),
+        Text("Serüvene başlamak için numaranı gir.",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.5))),
+        const SizedBox(height: 40),
+        _buildTextField(_phoneController, "5XX XXX XX XX", prefix: "+90 "),
+        const SizedBox(height: 24),
+        _buildArtisticButton("KOD GÖNDER", _verifyPhone, theme),
       ],
     );
   }
 
-  Widget _buildOtpUI() {
+  Widget _buildOtpUI(final ThemeData theme) {
     return Column(
+      key: const ValueKey('otp_ui'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          "Kalan Süre: ${_timerValue ~/ 60}:${(_timerValue % 60).toString().padLeft(2, '0')}",
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          "${_timerValue ~/ 60}:${(_timerValue % 60).toString().padLeft(2, '0')}",
+          style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w900, color: theme.colorScheme.primary),
         ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _otpController,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          decoration: const InputDecoration(
-            labelText: "SMS Kodu",
-            hintText: "000000",
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: _signInWithOTP,
-            child: const Text("ONAYLA VE GİRİŞ YAP"),
-          ),
-        ),
+        const SizedBox(height: 12),
+        Text("SMS KODUNU GİR",
+            style: theme.textTheme.labelLarge?.copyWith(letterSpacing: 2)),
+        const SizedBox(height: 40),
+        _buildTextField(_otpController, "000000", textAlign: TextAlign.center),
+        const SizedBox(height: 24),
+        _buildArtisticButton("DOĞRULA VE BAŞLA", _signInWithOTP, theme),
         if (_timerValue == 0)
           TextButton(
-            onPressed: _verifyPhone,
-            child: const Text("Kodu Tekrar Gönder"),
-          ),
+              onPressed: _verifyPhone,
+              child: Text("Yeniden Kod Gönder",
+                  style: TextStyle(color: theme.colorScheme.secondary))),
       ],
+    );
+  }
+
+  Widget _buildTextField(
+      final TextEditingController controller, final String hint,
+      {final String? prefix, final TextAlign textAlign = TextAlign.start}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surface.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.colors.primary.withOpacity(0.1)),
+      ),
+      child: TextField(
+        controller: controller,
+        textAlign: textAlign,
+        keyboardType: TextInputType.phone,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixText: prefix,
+          contentPadding: const EdgeInsets.all(20),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArtisticButton(
+      final String label, final VoidCallback onTap, final ThemeData theme) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              colors: [theme.colorScheme.primary, theme.colorScheme.secondary]),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: theme.colorScheme.primary.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10))
+          ],
+        ),
+        child: Center(
+            child: Text(label,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2))),
+      ),
     );
   }
 }
