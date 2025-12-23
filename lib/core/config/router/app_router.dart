@@ -2,24 +2,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/router/page_transitions.dart';
-
-// --- SAYFA IMPORTLARI ---
 import '../../../features/home/presentation/pages/wrapper/app_home_page.dart';
 import '../../../features/login/presentation/pages/login_screen.dart';
+import '../../../features/login/presentation/pages/phone_login_page.dart'; // ✅ Eklendi
 import '../../../features/login/presentation/providers/login_provider.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/shows/presentation/pages/show_detail_page.dart';
+import '../../../features/users/presentation/pages/user_profile_edit.dart'; // ✅ Eklendi
 import '../../errors/not_found_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((final ref) {
-  // 1. Login State'i izle
   final loginState = ref.watch(loginProvider);
-
-  // 2. Router'ı dürtecek bir dinleyici (Notifier) oluştur.
-  // GoRouter, "refreshListenable" sayesinde bu değişken her değiştiğinde yönlendirmeyi tekrar kontrol eder.
   final authNotifier = ValueNotifier(loginState);
 
-  // 3. Riverpod dinleyicisi: State her değiştiğinde authNotifier'ı güncelle.
   ref.listen(loginProvider, (final previous, final next) {
     authNotifier.value = next;
   });
@@ -27,39 +22,37 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
   return GoRouter(
     debugLogDiagnostics: true,
     initialLocation: '/home',
-
-    // 🔥 BU SATIR KRİTİK: LoginState değişince Router'ı tetikler
     refreshListenable: authNotifier,
 
-    // 🛡️ YÖNLENDİRME MANTIĞI (GUARD)
+    // 🛡️ YÖNLENDİRME MANTIĞI
     redirect: (final context, final state) {
       final isWeb = kIsWeb;
       final currentPath = state.uri.path;
 
-      // --- WEB SENARYOSU ---
       if (isWeb) {
         if (currentPath == '/') return '/home';
         return null;
       }
 
-      // --- MOBİL SENARYOSU ---
-      // Not: refreshListenable sayesinde bu blok loginState her değiştiğinde çalışır.
-
       final isLoggedIn = loginState.user != null;
       final isLoggingIn = currentPath == '/login';
+      final isPhoneLogin =
+          currentPath == '/phone-login'; // ✅ Telefon sayfası kontrolü
       final isOnboarding = currentPath == '/onboarding';
       final isLoading = loginState.isLoading;
 
-      // 1. Yükleniyorsa Bekle (null döndür, mevcut sayfada -Splash- kalsın)
       if (isLoading) return null;
 
-      // 2. Yükleme Bitti, Giriş Yapılmamış -> Login'e git (Onboarding hariç)
-      if (!isLoggedIn && !isLoggingIn && !isOnboarding) return '/login';
+      // 1. Giriş yapılmamışsa Login'e gönder (Onboarding veya Telefon girişi hariç)
+      if (!isLoggedIn && !isLoggingIn && !isOnboarding && !isPhoneLogin)
+        return '/login';
 
-      // 3. Giriş Yapılmış ama Login sayfasına gitmeye çalışıyor -> Home'a at
-      if (isLoggedIn && isLoggingIn) return '/home';
+      // 2. Giriş yapılmışsa ve hala Login/Onboarding sayfalarındaysa Home'a gönder
+      // DİKKAT: Burada '/profile-edit' kontrolü yapmıyoruz, oraya gitmesine izin veriyoruz.
+      if (isLoggedIn && (isLoggingIn || isOnboarding || isPhoneLogin))
+        return '/home';
 
-      return null; // Her şey yolundaysa geçişe izin ver
+      return null;
     },
 
     routes: [
@@ -80,6 +73,18 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         },
       ),
 
+      // ✅ ONBOARDING
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const OnboardingContainer(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
+      ),
+
       // ✅ LOGIN
       GoRoute(
         path: '/login',
@@ -92,16 +97,31 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         ),
       ),
 
-      // ✅ ONBOARDING
+      // ✅ PHONE LOGIN
       GoRoute(
-        path: '/onboarding',
-        name: 'onboarding',
+        path: '/phone-login',
+        name: 'phoneLogin',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const OnboardingContainer(),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 600),
+          child: const PhoneLogInPage(),
+          transitionsBuilder: slideTransition,
+          transitionDuration: const Duration(milliseconds: 400),
         ),
+      ),
+
+      // ✅ PROFILE EDIT
+      GoRoute(
+        path: '/profile-edit/:userId',
+        name: 'profileEdit',
+        pageBuilder: (final context, final state) {
+          final userId = state.pathParameters['userId']!;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: UserProfileEditScreen(userId: userId),
+            transitionsBuilder: fadeTransition,
+            transitionDuration: const Duration(milliseconds: 500),
+          );
+        },
       ),
 
       // ✅ SHOW DETAIL
