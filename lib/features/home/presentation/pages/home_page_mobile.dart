@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/features/settings/presentation/pages/app_settings.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/button/custom_floating_action_button.dart';
@@ -10,7 +11,6 @@ import '../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../../../favorite/presentation/pages/favorite_screen.dart';
 import '../../../login/presentation/providers/login_provider.dart';
 import '../../../search/presentation/pages/search_page.dart';
-import '../../../settings/presentation/pages/permission_settings.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
@@ -207,7 +207,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 // Bottom extras
                 QuickActionsGrid(
                   onNotificationsTap: () =>
-                      _navigateTo(const PermissionSettingsScreen()),
+                      _navigateTo(const AppSettingsPage()),
                   onFavoritesTap: () => _navigateTo(FavoritesPage()),
                   onTicketsTap: () =>
                       _navigateTo(MyTicketPage(userId: loginState.user!.uid)),

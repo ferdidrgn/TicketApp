@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
@@ -14,7 +15,6 @@ import '../../../favorite/presentation/pages/favorite_screen.dart';
 import '../../../login/presentation/providers/login_provider.dart';
 import '../../../login/presentation/providers/login_state.dart';
 import '../../../settings/presentation/pages/app_settings.dart';
-import '../../../settings/presentation/pages/permission_settings.dart';
 import '../../../tickets/presentation/pages/my_ticket_page.dart';
 import '../providers/user_provider.dart';
 import 'user_profile_edit.dart';
@@ -28,13 +28,13 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage>
     with TickerProviderStateMixin {
-  Map<String, dynamic>? _localUserData;
-  bool _isLoadingLocalData = true;
-
+  // --- STATE & ANIMATION ---
   late AnimationController _glowController;
   late AnimationController _badgeRotateController;
-  late Animation<double> _glowAnimation;
   late Animation<double> _badgeRotation;
+
+  bool _isLoadingLocalData = true;
+  Map<String, dynamic>? _localUserData;
 
   @override
   void initState() {
@@ -44,23 +44,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }
 
   void _initializeAnimations() {
-    _glowController = AnimationController(
-      duration: const Duration(seconds: 4),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _badgeRotateController = AnimationController(
-      duration: const Duration(seconds: 20),
-      vsync: this,
-    )..repeat();
-
-    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
-    );
-
+    _glowController =
+        AnimationController(duration: const Duration(seconds: 4), vsync: this)
+          ..repeat(reverse: true);
+    _badgeRotateController =
+        AnimationController(duration: const Duration(seconds: 20), vsync: this)
+          ..repeat();
     _badgeRotation = Tween<double>(begin: 0, end: 2 * pi).animate(
-      CurvedAnimation(parent: _badgeRotateController, curve: Curves.linear),
-    );
+        CurvedAnimation(parent: _badgeRotateController, curve: Curves.linear));
   }
 
   @override
@@ -73,70 +64,64 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Future<void> _loadLocalUserData() async {
     try {
       await LocalStorageService.init();
-      final userData = LocalStorageService.getEssentialUserData();
-      if (mounted) {
-        setState(() {
-          _localUserData = userData;
-          _isLoadingLocalData = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingLocalData = false;
-        });
-      }
+      _localUserData = LocalStorageService.getEssentialUserData();
+    } finally {
+      if (mounted) setState(() => _isLoadingLocalData = false);
     }
   }
 
+  // --- MAIN BUILD ---
   @override
   Widget build(final BuildContext context) {
     final loginState = ref.watch(loginProvider);
     final theme = context.theme;
-    final colors = context.colors;
 
-    // 1. Durum: Yükleniyor
     if (loginState.isLoading || _isLoadingLocalData) {
-      return Scaffold(
-        backgroundColor: colors.background,
-        body: const Center(child: CircularProgressIndicator()),
-      );
+      return Scaffold(body: const Center(child: CircularProgressIndicator()));
     }
 
-    // 2. Durum: Kullanıcı var mı?
-    // (isGuest true ise veya user null ise "Ziyaretçi" modundayız)
     final bool isUserLoggedIn = loginState.user != null && !loginState.isGuest;
 
     return Scaffold(
-      backgroundColor: colors.background,
+      backgroundColor: context.colors.background,
       body: Stack(
         children: [
-          _buildBackgroundBlur(colors), // Arka plan efektini aşağıya taşıdım
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildArtisticHeader(theme, !isUserLoggedIn),
-                const SizedBox(height: 30),
+          _buildBackgroundBlur(context.colors),
+          RefreshIndicator(
+            onRefresh: () async => ref.refresh(loginProvider),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildArtisticHeader(theme, !isUserLoggedIn),
+                  const SizedBox(height: 30),
 
-                // Dinamik İçerik: Ya kullanıcı kartı ya da "Giriş Yap" daveti
-                isUserLoggedIn
-                    ? _buildUserProfileCard(loginState.user, theme, loginState)
-                    : _buildAuthInvitationCard(theme),
+                  // Dinamik Profil Alanı (Login/Guest Switcher)
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: isUserLoggedIn
+                        ? _buildUserProfileCard(
+                            loginState.user, theme, loginState)
+                        : _buildAuthInvitationCard(theme),
+                  ),
 
-                const SizedBox(height: 32),
-                ThemeSelectorCard(),
+                  const SizedBox(height: 32),
+                  ThemeSelectorCard(),
 
-                const SizedBox(height: 32),
-                _buildFunctionalSection(loginState, theme, !isUserLoggedIn),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle(
+                      theme, isUserLoggedIn ? 'DENEYİM' : 'KEŞFET'),
+                  _buildFunctionalSection(loginState, theme, !isUserLoggedIn),
 
-                const SizedBox(height: 32),
-                _buildSecuritySection(loginState, theme, !isUserLoggedIn),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle(theme, 'GÜVENLİK VE GİZLİLİK'),
+                  _buildSecuritySection(loginState, theme, !isUserLoggedIn),
 
-                const SizedBox(height: 40),
-              ],
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ],
@@ -144,55 +129,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildAuthInvitationCard(final ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.lock_outline_rounded,
-              size: 40, color: theme.colorScheme.primary),
-          const SizedBox(height: 16),
-          Text(
-            'Bu Galeri Henüz İmzalanmadı',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Kendi sanat serüvenini kaydetmek ve koleksiyonunu ölümsüzleştirmek için giriş yapmalısın.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => /* Login ekranına yönlendir */ null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Serüvene Katıl (Giriş Yap)'),
-          ),
-        ],
+  // --- ARTISTIC WIDGETS ---
+
+  Widget _buildBackgroundBlur(final ColorScheme colors) {
+    return Positioned(
+      top: -100,
+      left: -100,
+      child: Container(
+        width: 300,
+        height: 300,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: colors.primary.withOpacity(0.12),
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+          child: Container(color: Colors.transparent),
+        ),
       ),
     );
   }
-
-  // --- WIDGETS ---
 
   Widget _buildArtisticHeader(final ThemeData theme, final bool isGuest) {
     return Column(
       children: [
-        // Üst Simge: Daha hafif ve zarif bir aura içinde
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -202,53 +162,39 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           child: Icon(Icons.auto_awesome_rounded,
               size: 28, color: theme.colorScheme.primary),
         ),
-
         const SizedBox(height: 16),
-
-        // Etiket: Daha geniş harf arası mesafe
         Text(
-          'ESTETİK HAFIZA, İSİMSİZ BAŞYAPIT\n SESSİZ FIRÇA İZLERİ',
+          'ESTETİK HAFIZA • İSİMSİZ BAŞYAPIT',
           style: theme.textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w300, // Daha sofistike bir incelik
-            letterSpacing: 6,
+            fontWeight: FontWeight.w300,
+            letterSpacing: 4,
             color: theme.colorScheme.primary.withOpacity(0.7),
             fontSize: 10,
           ),
         ),
-
         const SizedBox(height: 12),
-
-        // Ana Başlık: Çift renkli ve metaforik
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: ShaderMask(
             shaderCallback: (final bounds) => LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.secondary.withOpacity(0.8),
-              ],
+              colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
             ).createShader(bounds),
             child: Text(
-              isGuest ? 'Bi' : 'Bakmanın Değil, Görmenin Hikayesi',
+              isGuest
+                  ? 'Kendi Başyapıtını\nKeşfetmeye Başla'
+                  : 'Bakmanın Değil,\nGörmenin Hikayesi',
               textAlign: TextAlign.center,
               style: theme.textTheme.headlineLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                // Playfair ile kalın font çok şık durur
                 fontSize: 32,
                 color: Colors.white,
                 height: 1.1,
-                letterSpacing: -0.5,
-                fontFamily: 'PlayfairDisplay', // Eğer projenizde varsa
+                fontFamily: 'PlayfairDisplay',
               ),
             ),
           ),
         ),
-
         const SizedBox(height: 20),
-
-        // Sanatsal Ayraç: Klasik çizgi yerine "Nokta ve Çizgi" kompozisyonu
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -272,71 +218,52 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-// Yardımcı widget: Ayraç için küçük noktalar
-  Widget _buildDot() {
-    return Container(
-      width: 4,
-      height: 4,
-      decoration: BoxDecoration(
-        color: context.colors.secondary,
-        shape: BoxShape.circle,
-      ),
+  Widget _buildDot() => Container(
+        width: 4,
+        height: 4,
+        decoration: BoxDecoration(
+            color: context.colors.secondary, shape: BoxShape.circle),
+      );
+
+  BoxDecoration _artisticContainerDecoration(final ThemeData theme) {
+    return BoxDecoration(
+      color: theme.colorScheme.surface.withOpacity(0.7),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+      boxShadow: [
+        BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10))
+      ],
     );
   }
 
-  Widget _buildBackgroundBlur(final ColorScheme colors) {
-    return Positioned(
-      top: -100,
-      left: -100,
-      child: Container(
-        width: 300,
-        height: 300,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: colors.primary.withOpacity(0.12),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-          child: Container(color: Colors.transparent),
-        ),
-      ),
-    );
-  }
+  // --- PROFILE & AUTH CARDS ---
 
   Widget _buildUserProfileCard(
     final User? firebaseUser,
     final ThemeData theme,
     final LoginState loginState,
   ) {
+    // 1. Veri Hiyerarşisi: Firebase > Local Cache > Varsayılan
     final displayName = firebaseUser?.displayName ??
         _localUserData?['displayName'] ??
-        'Kullanıcı';
-    final email = firebaseUser?.email ?? firebaseUser?.phoneNumber ?? '';
+        'Sanatsever';
+
+    final email = firebaseUser?.email ??
+        _localUserData?['email'] ??
+        'seruven@sanat.com'; // Boş kalmasın diye bir placeholder
+
     final photoURL = firebaseUser?.photoURL ??
+        _localUserData?['photoURL'] ??
         'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=500&auto=format&fit=crop';
+
     final loginMethod = _getLoginMethod(firebaseUser);
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.surface.withOpacity(0.95),
-            theme.colorScheme.surface.withOpacity(0.85)
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 40,
-              offset: const Offset(0, 15),
-              spreadRadius: -5),
-        ],
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
+      decoration: _artisticContainerDecoration(theme),
       child: Stack(
         children: [
           Positioned(top: 20, left: 20, child: _buildCornerDeco(theme, true)),
@@ -346,95 +273,109 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             padding: const EdgeInsets.all(30),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _buildLoginMethodBadge(
-                        _getLoginMethodText(loginMethod),
-                        _getLoginMethodIcon(loginMethod),
-                        _getLoginMethodColor(loginMethod),
-                        theme),
-                  ],
+                // Giriş Metodu Rozeti
+                Align(
+                  alignment: Alignment.topRight,
+                  child: _buildLoginMethodBadge(
+                    _getLoginMethodText(loginMethod),
+                    _getLoginMethodIcon(loginMethod),
+                    _getLoginMethodColor(loginMethod),
+                    theme,
+                  ),
                 ),
+                const SizedBox(height: 10),
+
+                // Profil Resmi ve Animasyonlu Halka
                 Stack(
                   alignment: Alignment.center,
                   children: [
                     AnimatedBuilder(
                       animation: _badgeRotation,
-                      builder: (final context, final child) {
-                        return Transform.rotate(
-                          angle: _badgeRotation.value,
-                          child: Container(
-                            width: 130,
-                            height: 130,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: theme.colorScheme.primary
-                                      .withOpacity(0.2),
-                                  width: 1),
+                      builder: (final context, final child) => Transform.rotate(
+                        angle: _badgeRotation.value,
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: theme.colorScheme.primary.withOpacity(0.2),
+                              width: 1.5,
                             ),
                           ),
-                        );
-                      },
+                        ),
+                      ),
                     ),
                     Container(
-                      width: 100,
-                      height: 100,
+                      width: 90,
+                      height: 90,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(
-                            color: theme.colorScheme.onSurface.withOpacity(0.1),
-                            width: 4),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 20,
-                              spreadRadius: 2)
+                            color: theme.colorScheme.primary.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          )
                         ],
                       ),
                       child: ClipOval(
-                          child: OptimizedCachedImage(
-                              imageUrl: photoURL, fit: BoxFit.cover)),
+                        child: OptimizedCachedImage(
+                          imageUrl: photoURL,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+
+                const SizedBox(height: 24),
+
+                // --- İSİM BURADA KULLANILIYOR ---
                 Text(
-                  displayName.toUpperCase(),
-                  style: theme.textTheme.headlineMedium?.copyWith(
+                  displayName.toUpperCase(), // Değişken bağlandı
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
-                    fontSize: 22,
-                    color: theme.colorScheme.onSurface,
+                    letterSpacing: 1.2,
+                    fontFamily: 'PlayfairDisplay', // Sanatsal font
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+
+                const SizedBox(height: 6),
+
+                // --- EMAIL BURADA KULLANILIYOR ---
                 Text(
-                  email,
+                  email, // Değişken bağlandı
                   style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      fontStyle: FontStyle.italic),
-                  textAlign: TextAlign.center,
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    fontStyle: FontStyle.italic,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-                const SizedBox(height: 25),
+
+                const SizedBox(height: 30),
+
+                // İstatistik Paneli
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withOpacity(0.5),
+                    color: theme.colorScheme.primary.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.1)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatItem('0', 'Bilet', Icons.confirmation_number,
+                      _buildStatItem(
+                          '0',
+                          'Bilet',
+                          Icons.confirmation_number_outlined,
                           theme.colorScheme.primary),
                       _buildStatItem(
-                          '0', 'Favori', Icons.favorite, Colors.redAccent),
+                          '0',
+                          'Koleksiyon',
+                          Icons.auto_awesome_motion_rounded,
+                          theme.colorScheme.secondary),
                     ],
                   ),
                 ),
@@ -446,187 +387,158 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // --- GÜVENLİK BÖLÜMÜ ---
-  Widget _buildSecuritySection(
-      final LoginState loginState, final ThemeData theme, final bool isGuest) {
-    // MİSAFİR İSE: "Bağla" ve "Sil"
-    if (isGuest) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildAuthInvitationCard(final ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: _artisticContainerDecoration(theme),
+      child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              'HESAP BAĞLAMA',
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
-              ),
-            ),
+          Icon(Icons.auto_awesome_mosaic_rounded,
+              size: 48, color: theme.colorScheme.primary),
+          const SizedBox(height: 20),
+          Text(
+            'Koleksiyonun Henüz Başlamadı',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold, fontFamily: 'PlayfairDisplay'),
           ),
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.blue.withOpacity(0.05),
-              border: Border.all(color: Colors.blue.withOpacity(0.2)),
-            ),
-            child: ListTile(
-              onTap: _linkWithGoogle,
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.g_mobiledata_rounded,
-                    color: Colors.blue, size: 28),
-              ),
-              title: const Text('Google ile Bağla',
-                  style: TextStyle(
-                      color: Colors.blue, fontWeight: FontWeight.bold)),
-              subtitle: const Text('Misafir verilerini Google hesabına aktar'),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded,
-                  size: 14, color: Colors.blue),
-            ),
+          const SizedBox(height: 12),
+          Text(
+            'Sana özel sanatsal bir deneyim ve bilet arşivi için galerine ilk imzayı at.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.green.withOpacity(0.05),
-              border: Border.all(color: Colors.green.withOpacity(0.2)),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () => context.push('/login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              minimumSize: const Size(double.infinity, 54),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
             ),
-            child: ListTile(
-              onTap: _showPhoneLinkDialog,
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child:
-                    const Icon(Icons.phone_iphone_rounded, color: Colors.green),
-              ),
-              title: const Text('Telefon ile Bağla',
-                  style: TextStyle(
-                      color: Colors.green, fontWeight: FontWeight.bold)),
-              subtitle: const Text('Misafir verilerini telefonuna aktar'),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded,
-                  size: 14, color: Colors.green),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.red.withOpacity(0.05),
-              border: Border.all(color: Colors.red.withOpacity(0.2)),
-            ),
-            child: ListTile(
-              onTap: () => _showDeleteAccountDialog(loginState.user!.uid),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child:
-                    const Icon(Icons.delete_forever_rounded, color: Colors.red),
-              ),
-              title: const Text('Hesabı Sil',
-                  style: TextStyle(
-                      color: Colors.red, fontWeight: FontWeight.bold)),
-              subtitle: const Text('Misafir verilerini sil ve çık'),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded,
-                  size: 14, color: Colors.red),
-            ),
+            child: const Text('Serüvene Başla',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
           ),
         ],
-      );
-    }
-
-    // NORMAL KULLANICI İSE
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            'GÜVENLİK',
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.orange.withOpacity(0.05),
-            border: Border.all(color: Colors.orange.withOpacity(0.2)),
-          ),
-          child: ListTile(
-            onTap: _signOut,
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.logout_rounded, color: Colors.orange),
-            ),
-            title: const Text('Çıkış Yap',
-                style: TextStyle(
-                    color: Colors.orange, fontWeight: FontWeight.bold)),
-            subtitle: const Text('Oturumu güvenli sonlandır'),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.red.withOpacity(0.05),
-            border: Border.all(color: Colors.red.withOpacity(0.2)),
-          ),
-          child: ListTile(
-            onTap: () => _showDeleteAccountDialog(loginState.user!.uid),
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child:
-                  const Icon(Icons.delete_forever_rounded, color: Colors.red),
-            ),
-            title: const Text('Hesabı Sil',
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            subtitle: const Text('Tüm verileri kalıcı sil'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  // --- ACTIONS (İş Mantığı) ---
+  // --- SECTIONS ---
+
+  Widget _buildSectionTitle(final ThemeData theme, final String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, bottom: 12),
+      child: Text(
+        title,
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2,
+          color: theme.colorScheme.onSurface.withOpacity(0.4),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFunctionalSection(
+      final LoginState loginState, final ThemeData theme, final bool isGuest) {
+    return Container(
+      decoration: _artisticContainerDecoration(theme),
+      child: Column(
+        children: [
+          if (!isGuest) ...[
+            _buildListTile(
+                theme,
+                Icons.edit_outlined,
+                'Profil Düzenle',
+                'Bilgilerini güncelle',
+                Colors.blue,
+                () => _navigateTo(
+                    UserProfileEditScreen(userId: loginState.user!.uid))),
+            _buildListTile(
+                theme,
+                Icons.confirmation_number,
+                'Biletlerim',
+                'Etkinlik biletlerin',
+                Colors.green,
+                () => _navigateTo(MyTicketPage(userId: loginState.user!.uid))),
+            _buildListTile(
+                theme,
+                Icons.favorite,
+                'Favoriler',
+                'Kaydettiğin eserler',
+                Colors.pink,
+                () => _navigateTo(FavoritesPage())),
+          ],
+          _buildListTile(
+              theme,
+              Icons.settings,
+              'Ayarlar',
+              'Uygulama tercihleri',
+              Colors.orange,
+              () => _navigateTo(const AppSettingsPage())),
+          _buildListTile(
+              theme,
+              Icons.privacy_tip,
+              'Sözleşmeler',
+              'Yasal metinler',
+              Colors.deepPurple,
+              () => _navigateTo(const ContractsPage())),
+          _buildListTile(theme, Icons.help_outline, 'Yardım', 'Destek al',
+              Colors.teal, () {}),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecuritySection(
+      final LoginState loginState, final ThemeData theme, final bool isGuest) {
+    return Container(
+      decoration: _artisticContainerDecoration(theme),
+      child: Column(
+        children: [
+          if (isGuest) ...[
+            _buildListTile(
+                theme,
+                Icons.g_mobiledata_rounded,
+                'Google ile Bağla',
+                'Verilerini kalıcı hale getir',
+                Colors.blue,
+                _linkWithGoogle),
+            _buildListTile(
+                theme,
+                Icons.phone_iphone_rounded,
+                'Telefon ile Bağla',
+                'Numaranı ekle',
+                Colors.green,
+                _showPhoneLinkDialog),
+          ],
+          _buildListTile(theme, Icons.logout_rounded, 'Çıkış Yap',
+              'Oturumu sonlandır', Colors.orange, _signOut),
+          _buildListTile(
+              theme,
+              Icons.delete_forever_rounded,
+              'Hesabı Sil',
+              'Tüm verileri kalıcı sil',
+              Colors.red,
+              () => _showDeleteAccountDialog(loginState.user?.uid ?? '')),
+        ],
+      ),
+    );
+  }
+
+  // --- ACTIONS & BUSINESS LOGIC ---
 
   Future<void> _linkWithGoogle() async {
     try {
       await ref.read(loginProvider.notifier).signInWithGoogle();
     } catch (e) {
-      if (mounted) {
-        String errorMessage = e.toString().replaceAll("Exception: ", "");
-        if (errorMessage.contains("already-in-use") ||
-            errorMessage.contains("zaten başka")) {
-          _showErrorDialog(
-              "Bu Google hesabı zaten başka bir hesaba bağlı. Lütfen önce o hesaptan çıkış yapın veya başka bir hesap seçin.");
-        } else {
-          _showErrorDialog(errorMessage);
-        }
-      }
+      if (mounted) _showErrorDialog(e.toString().replaceAll("Exception: ", ""));
     }
   }
 
@@ -636,59 +548,39 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       context: context,
       builder: (final context) => AlertDialog(
         title: const Text("Telefon Bağla"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Lütfen telefon numaranızı giriniz:"),
-            const SizedBox(height: 10),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                hintText: "+905xxxxxxxxx",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.phone),
-              ),
-            ),
-          ],
+        content: TextField(
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+              hintText: "+905xxxxxxxxx", prefixIcon: Icon(Icons.phone)),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text("İptal")),
           ElevatedButton(
-            onPressed: () {
-              if (phoneController.text.isNotEmpty) {
-                Navigator.pop(context);
-                _startPhoneLinking(phoneController.text.trim());
-              }
-            },
-            child: const Text("Kod Gönder"),
-          ),
+              onPressed: () {
+                if (phoneController.text.isNotEmpty) {
+                  Navigator.pop(context);
+                  _startPhoneLinking(phoneController.text.trim());
+                }
+              },
+              child: const Text("Kod Gönder")),
         ],
       ),
     );
   }
 
-// 🔥 DÜZELTİLDİ: Parametreler Notifier'ın yeni haline uygun hale getirildi
   Future<void> _startPhoneLinking(final String phoneNumber) async {
     showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (final _) =>
-          const CustomLoadingDialog(message: "Kod gönderiliyor..."),
-    );
-
+        context: context,
+        barrierDismissible: false,
+        builder: (final _) =>
+            const CustomLoadingDialog(message: "Kod gönderiliyor..."));
     try {
-      // 🎯 Sadece telefon numarasını gönderiyoruz, gerisini Notifier hallediyor
       await ref.read(loginProvider.notifier).verifyPhone(phoneNumber);
-
       if (mounted) {
-        Navigator.pop(context); // Loading'i kapat
-
-        // Notifier state'i güncellediğinde (isCodeSent: true olduğunda)
-        // OTP dialoğunu göstermek için build içinde loginState'i dinleyebiliriz
-        // veya burada manuel tetikleyebiliriz:
+        Navigator.pop(context);
         _showOtpDialog();
       }
     } catch (e) {
@@ -706,38 +598,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       barrierDismissible: false,
       builder: (final context) => AlertDialog(
         title: const Text("Doğrulama Kodu"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("SMS ile gelen 6 haneli kodu giriniz."),
-            const SizedBox(height: 10),
-            TextField(
-              controller: otpController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 24, letterSpacing: 8),
-              decoration: const InputDecoration(
-                hintText: "000000",
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
+        content: TextField(
+            controller: otpController,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            textAlign: TextAlign.center),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text("İptal")),
           ElevatedButton(
-            onPressed: () async {
-              if (otpController.text.length == 6) {
-                Navigator.pop(context);
-                // 🎯 DÜZELTME 2: Buradaki verificationId gönderimini sildik
-                await _finalizePhoneLink(otpController.text);
-              }
-            },
-            child: const Text("Doğrula"),
-          ),
+              onPressed: () async {
+                if (otpController.text.length == 6) {
+                  Navigator.pop(context);
+                  await _finalizePhoneLink(otpController.text);
+                }
+              },
+              child: const Text("Doğrula")),
         ],
       ),
     );
@@ -745,38 +622,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   Future<void> _finalizePhoneLink(final String smsCode) async {
     showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (final _) => const CustomLoadingDialog(message: "Bağlanıyor..."),
-    );
-
-    try {
-      // 🎯 Notifier, verificationId'yi zaten kendi state'inden alacak
-      await ref.read(loginProvider.notifier).verifyOtp(smsCode);
-
-      if (mounted) {
-        Navigator.pop(context); // Loading kapa
-        _showSuccessDialog("Hesap başarıyla telefonunuza bağlandı!");
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        _showErrorDialog("Hata: ${e.toString()}");
-      }
-    }
-  }
-
-  Future<void> _signOut() async {
-    showDialog(
         context: context,
         barrierDismissible: false,
         builder: (final _) =>
-            const CustomLoadingDialog(message: "Çıkış yapılıyor..."));
+            const CustomLoadingDialog(message: "Bağlanıyor..."));
     try {
-      await LocalStorageService.clearAllUserData();
-      await ref.read(loginProvider.notifier).signOut();
-      if (mounted) Navigator.pop(context);
-      _navigateToLogin();
+      await ref.read(loginProvider.notifier).verifyOtp(smsCode);
+      if (mounted) {
+        Navigator.pop(context);
+        _showSuccessDialog("Hesap başarıyla bağlandı!");
+      }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
@@ -785,60 +640,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     }
   }
 
-  // 🔥 SİLME İŞLEMİ (DÜZELTİLDİ)
-  Future<void> _deleteAccount(final String userId) async {
-    Navigator.pop(context); // Onay penceresini kapat
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (final _) =>
-            const CustomLoadingDialog(message: "Hesap siliniyor..."));
-
+  Future<void> _signOut() async {
+    final confirmed = await _showConfirmDialog(
+        "Çıkış Yap", "Oturumunuz sonlandırılacak. Emin misiniz?");
+    if (!confirmed) return;
     try {
-      // 1. Notifier üzerinden hesabı sil (Auth + Firestore)
-      //    (Notifier içinde local storage da siliniyor zaten)
-      final userNotifier = ref.read(userProvider.notifier);
-      await userNotifier.deleteUser(userId); // Firestore verisini sil
-
-      await ref
-          .read(loginProvider.notifier)
-          .deleteAccount(); // Auth'tan sil ve state temizle
-
-      if (mounted) {
-        Navigator.pop(context); // Loading kapa
-        // Başarı mesajı
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (final _) => CustomSuccessDialog(
-            message: "Hesabınız başarıyla silindi.",
-            onConfirm: () {
-              // 🔥 KESİN ÇÖZÜM: Direkt login sayfasına at
-              _navigateToLogin();
-            },
-          ),
-        );
-      }
+      await LocalStorageService.clearAllUserData();
+      await ref.read(loginProvider.notifier).signOut();
+      if (mounted) context.go('/login');
     } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        _showErrorDialog(e.toString());
-      }
+      _showErrorDialog(e.toString());
     }
   }
-
-  void _navigateToLogin() => Navigator.of(context)
-      .pushNamedAndRemoveUntil('/login', (final route) => false);
-
-  void _navigateTo(final Widget page) =>
-      Navigator.of(context).push(MaterialPageRoute(builder: (final _) => page));
 
   void _showDeleteAccountDialog(final String userId) {
     showDialog(
       context: context,
       builder: (final context) => AlertDialog(
-        title: const Text('Hesabı Sil', style: TextStyle(color: Colors.red)),
-        content: const Text('Tüm veriler silinecek. Emin misiniz?'),
+        title: const Text('Hesabı Sil',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: const Text(
+            'Tüm verileriniz kalıcı olarak silinecek. Emin misiniz?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
@@ -846,7 +668,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red, foregroundColor: Colors.white),
-            onPressed: () => _deleteAccount(userId),
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteAccount(userId);
+            },
             child: const Text('SİL'),
           ),
         ],
@@ -854,199 +679,88 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  void _showSuccessDialog(final String msg) {
+  Future<void> _deleteAccount(final String userId) async {
     showDialog(
         context: context,
-        builder: (final _) => CustomSuccessDialog(
-              message: msg,
-              onConfirm: () {
-                // Silme durumunda login'e at, diğerlerinde dialog'u kapat
-                if (msg.contains("silindi")) _navigateToLogin();
-              },
-            ));
+        barrierDismissible: false,
+        builder: (final _) => const Center(child: CircularProgressIndicator()));
+    try {
+      await ref.read(userProvider.notifier).deleteUser(userId);
+      await ref.read(loginProvider.notifier).deleteAccount();
+      if (mounted) {
+        Navigator.pop(context);
+        _showSuccessDialog("Hesabınız silindi.");
+        context.go('/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        _showErrorDialog("Hata: $e");
+      }
+    }
   }
 
-  void _showErrorDialog(final String msg) {
-    showDialog(
-        context: context,
-        builder: (final _) => CustomErrorDialog(
-              message: msg,
-              onConfirm: () {},
-            ));
-  }
+  // --- HELPERS ---
 
-  Widget _buildThemeSelectorArtistic(
-      final WidgetRef ref, final ThemeData theme) {
-    final currentTheme = ref.watch(themeProvider);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border:
-              Border.all(color: theme.colorScheme.outline.withOpacity(0.1))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('TEMA TERCİHİ',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary)),
-          const SizedBox(height: 16),
-          Row(children: [
-            Expanded(
-                child: _buildThemeButton(
-                    'Açık', ThemeMode.light, Icons.wb_sunny_rounded, ref)),
-            const SizedBox(width: 10),
-            Expanded(
-                child: _buildThemeButton(
-                    'Koyu', ThemeMode.dark, Icons.nights_stay_rounded, ref)),
-            const SizedBox(width: 10),
-            Expanded(
-                child: _buildThemeButton('Sistem', ThemeMode.system,
-                    Icons.phone_iphone_rounded, ref)),
-          ]),
-        ],
-      ),
+  Widget _buildListTile(
+      final ThemeData theme,
+      final IconData icon,
+      final String title,
+      final String sub,
+      final Color color,
+      final VoidCallback onTap) {
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, color: color)),
+      title: Text(title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text(sub, style: const TextStyle(fontSize: 12)),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 12),
     );
   }
 
-  Widget _buildThemeButton(final String label, final ThemeMode mode,
-      final IconData icon, final WidgetRef ref) {
-    final theme = Theme.of(context);
-    final isActive = ref.watch(themeProvider) == mode;
-    return GestureDetector(
-      onTap: () => ref.read(themeProvider.notifier).setTheme(mode),
-      child: Container(
-        height: 45,
-        decoration: BoxDecoration(
-            color: isActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: isActive
-                    ? Colors.transparent
-                    : theme.colorScheme.outline.withOpacity(0.2))),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon,
-              size: 16,
-              color: isActive ? Colors.white : theme.colorScheme.onSurface),
-          const SizedBox(width: 6),
-          Text(label,
-              style: TextStyle(
-                  color: isActive ? Colors.white : theme.colorScheme.onSurface,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold))
-        ]),
-      ),
-    );
+  Future<bool> _showConfirmDialog(
+      final String title, final String content) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (final context) => AlertDialog(
+            title: Text(title),
+            content: Text(content),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text("Vazgeç")),
+              TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text("Evet")),
+            ],
+          ),
+        ) ??
+        false;
   }
 
-  Widget _buildFunctionalSection(
-      final LoginState loginState, final ThemeData theme, final bool isGuest) {
-    final buttons = isGuest
-        ? [
-            {
-              'title': 'Ayarlar',
-              'icon': Icons.settings,
-              'color': Colors.orange,
-              'onTap': () => _navigateTo(const AppSettingsPage())
-            },
-            {
-              'title': 'Sözleşmeler',
-              'icon': Icons.privacy_tip,
-              'color': Colors.purple,
-              'onTap': () => _navigateTo(const ContractsPage())
-            },
-            {
-              'title': 'Yardım',
-              'icon': Icons.help_outline,
-              'color': Colors.teal,
-              'onTap': () {}
-            },
-          ]
-        : [
-            {
-              'title': 'Profil Düzenle',
-              'icon': Icons.edit_outlined,
-              'color': Colors.blue,
-              'onTap': () => _navigateTo(
-                  UserProfileEditScreen(userId: loginState.user!.uid))
-            },
-            {
-              'title': 'Biletlerim',
-              'icon': Icons.confirmation_number,
-              'color': Colors.green,
-              'onTap': () =>
-                  _navigateTo(MyTicketPage(userId: loginState.user!.uid))
-            },
-            {
-              'title': 'Favoriler',
-              'icon': Icons.favorite,
-              'color': Colors.pink,
-              'onTap': () => _navigateTo(FavoritesPage())
-            },
-            {
-              'title': 'Ayarlar',
-              'icon': Icons.settings,
-              'color': Colors.orange,
-              'onTap': () => _navigateTo(const AppSettingsPage())
-            },
-            {
-              'title': 'İzinler',
-              'icon': Icons.notifications_outlined,
-              'color': Colors.purpleAccent,
-              'onTap': () => _navigateTo(const PermissionSettingsScreen())
-            },
-            {
-              'title': 'Sözleşmeler',
-              'icon': Icons.privacy_tip,
-              'color': Colors.deepPurple,
-              'onTap': () => _navigateTo(const ContractsPage())
-            },
-            {
-              'title': 'Yardım',
-              'icon': Icons.help_outline,
-              'color': Colors.teal,
-              'onTap': () {}
-            },
-          ];
+  void _navigateTo(final Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (final _) => page));
 
-    return Container(
-      decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border:
-              Border.all(color: theme.colorScheme.outline.withOpacity(0.1))),
-      child: Column(
-        children: buttons
-            .map((final btn) => ListTile(
-                  onTap: btn['onTap'] as VoidCallback,
-                  leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                          color: (btn['color'] as Color).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10)),
-                      child: Icon(btn['icon'] as IconData,
-                          color: btn['color'] as Color)),
-                  title: Text(btn['title'] as String,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                ))
-            .toList(),
-      ),
-    );
-  }
+  void _showErrorDialog(final String msg) => showDialog(
+      context: context,
+      builder: (final _) => CustomErrorDialog(message: msg, onConfirm: () {}));
 
-  // Helpers
+  void _showSuccessDialog(final String msg) => showDialog(
+      context: context,
+      builder: (final _) =>
+          CustomSuccessDialog(message: msg, onConfirm: () {}));
+
   String _getLoginMethod(final User? u) {
     if (u == null) return 'misafir';
-    if (u.providerData.any((final p) => p.providerId == 'google.com'))
+    if (u.providerData.any((p) => p.providerId == 'google.com'))
       return 'google';
-    if (u.providerData.any((final p) => p.providerId == 'phone'))
-      return 'phone';
+    if (u.providerData.any((p) => p.providerId == 'phone')) return 'phone';
     return 'misafir';
   }
 
@@ -1054,7 +768,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       ? 'Google'
       : m == 'phone'
           ? 'Telefon'
-          : 'Misafir';
+          : 'Ziyaretçi';
 
   IconData _getLoginMethodIcon(final String m) => m == 'google'
       ? Icons.g_mobiledata_rounded
@@ -1071,18 +785,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget _buildLoginMethodBadge(final String t, final IconData i, final Color c,
           final ThemeData th) =>
       Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-              color: c.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: c.withOpacity(0.5))),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(i, size: 12, color: c),
-            const SizedBox(width: 4),
-            Text(t,
-                style: TextStyle(
-                    color: c, fontSize: 10, fontWeight: FontWeight.bold))
-          ]));
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+            color: c.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: c.withOpacity(0.5))),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(i, size: 12, color: c),
+          const SizedBox(width: 4),
+          Text(t,
+              style: TextStyle(
+                  color: c, fontSize: 10, fontWeight: FontWeight.bold))
+        ]),
+      );
 
   Widget _buildCornerDeco(final ThemeData t, final bool tl) => Container(
       width: 40,
@@ -1113,6 +828,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         Text(v,
             style:
                 TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 18)),
-        Text(l, style: TextStyle(fontSize: 12))
+        Text(l, style: const TextStyle(fontSize: 12))
       ]);
 }
