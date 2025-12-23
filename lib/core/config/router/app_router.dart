@@ -29,6 +29,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       final isWeb = kIsWeb;
       final currentPath = state.uri.path;
 
+      // Web kontrolü (Burası sende zaten vardı, aynen kalsın)
       if (isWeb) {
         if (currentPath == '/') return '/home';
         return null;
@@ -36,21 +37,23 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       final isLoggedIn = loginState.user != null;
       final isLoggingIn = currentPath == '/login';
-      final isPhoneLogin =
-          currentPath == '/phone-login'; // ✅ Telefon sayfası kontrolü
+      final isPhoneLogin = currentPath == '/phone-login';
       final isOnboarding = currentPath == '/onboarding';
       final isLoading = loginState.isLoading;
 
+      // Yükleniyorsa bekle
       if (isLoading) return null;
 
-      // 1. Giriş yapılmamışsa Login'e gönder (Onboarding veya Telefon girişi hariç)
+      // 1. GÜVENLİK DUVARI: Giriş YAPILMAMIŞSA Login'e at
+      // (Burada !isLoggedIn olduğuna dikkat et)
       if (!isLoggedIn && !isLoggingIn && !isOnboarding && !isPhoneLogin)
         return '/login';
 
-      // 2. Giriş yapılmışsa ve hala Login/Onboarding sayfalarındaysa Home'a gönder
-      // DİKKAT: Burada '/profile-edit' kontrolü yapmıyoruz, oraya gitmesine izin veriyoruz.
-      if (isLoggedIn && (isLoggingIn || isOnboarding || isPhoneLogin))
-        return '/home';
+      // 2. ZATEN GİRİŞ YAPMIŞSA: Home'a at
+      // DİKKAT: Buradan 'isPhoneLogin'i SİLDİK.
+      // Neden? Çünkü telefonla giren kişi 'Profile Edit' sayfasına gitmeli.
+      // Eğer buraya isPhoneLogin eklersek, router onu zorla Home'a atar ve profil dolduramaz.
+      if (isLoggedIn && (isLoggingIn || isOnboarding)) return '/home';
 
       return null;
     },
