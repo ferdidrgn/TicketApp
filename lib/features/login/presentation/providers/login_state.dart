@@ -14,6 +14,8 @@ class LoginState extends BaseState {
   final bool isAccountDeleted;
   final bool isPersisted;
   final String? userRole;
+  final int timerValue; // Kalan saniye
+  final bool canResendCode; // Yeniden kod gönderilebilir mi?
 
   LoginState({
     this.user,
@@ -25,6 +27,8 @@ class LoginState extends BaseState {
     this.isAccountDeleted = false,
     this.userRole,
     this.isPersisted = false,
+    this.timerValue = 180, // Varsayılan 3 dakika
+    this.canResendCode = false,
     super.isLoading = true,
     super.errorMessage,
   });
@@ -38,9 +42,10 @@ class LoginState extends BaseState {
     final bool? isCodeSent,
     final bool? isGuest,
     final bool? isAccountDeleted,
-    final String? loginMethod,
     final String? userRole,
     final bool? isPersisted,
+    final int? timerValue,
+    final bool? canResendCode,
     final bool? isLoading,
     final String? errorMessage,
   }) =>
@@ -54,10 +59,13 @@ class LoginState extends BaseState {
         userRole: userRole ?? this.userRole,
         isAccountDeleted: isAccountDeleted ?? this.isAccountDeleted,
         isPersisted: isPersisted ?? this.isPersisted,
+        timerValue: timerValue ?? this.timerValue,
+        canResendCode: canResendCode ?? this.canResendCode,
         isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage ?? this.errorMessage,
       );
 
+  // --- GETTERLAR (Sınıf İçinde Olmalı) ---
   bool get isLoggedIn => user != null;
 
   bool get hasError => errorMessage != null && errorMessage!.isNotEmpty;
@@ -73,31 +81,37 @@ class LoginState extends BaseState {
 
   String get roleDisplayName => RoleManager.getRoleDisplayName(userRole);
 
-  // ✅ BASİTLEŞTİRİLMİŞ fromLocalStorage - YENİ LOCALSTORAGE'A GÖRE
+  // Sayaç formatı (02:45)
+  String get timerText {
+    final minutes = (timerValue / 60).floor().toString().padLeft(2, '0');
+    final seconds = (timerValue % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  // --- FACTORY METODU (Sınıf İçinde Olmalı) ---
   factory LoginState.fromLocalStorage() {
     try {
       final isLoggedIn = LocalStorageService.isLoggedIn;
-      if (!isLoggedIn) return LoginState();
+      if (!isLoggedIn) return LoginState(isLoading: false);
 
       return LoginState(
         isPersisted: true,
         isGuest: false,
-        userRole: LocalStorageService.userRole, // ✅ Direkt getter kullan
+        isLoading: false,
+        userRole: LocalStorageService.userRole,
       );
     } catch (e) {
-      // Eğer LocalStorageService initialize edilmemişse boş state döndür
-      return LoginState();
+      return LoginState(isLoading: false);
     }
   }
 
   // ✅ DEBUG için toString
   @override
   String toString() => 'LoginState{'
-      'users: ${user?.uid}, '
-      'isGuest: $isGuest, '
+      'user: ${user?.uid}, '
+      'isCodeSent: $isCodeSent, '
+      'timerValue: $timerValue, '
       'userRole: $userRole, '
-      'isPersisted: $isPersisted, '
-      'isLoading: $isLoading, '
-      'errorMessage: $errorMessage'
+      'isLoading: $isLoading'
       '}';
 }

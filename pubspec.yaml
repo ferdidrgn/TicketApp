@@ -60,7 +60,7 @@ dependencies:
   connectivity_plus: ^6.0.3
 
   # Firebase
-  firebase_core: ^4.2.0  # Firebase temel yapı.
+  firebase_core: ^4.3.0  # Firebase temel yapı.
   cloud_firestore:   # Firebase'in NoSQL veritabanı.
   firebase_storage:   # Firebase dosya depolama hizmeti.
   firebase_auth:  # Firebase kimlik doğrulama.
@@ -97,6 +97,9 @@ dependencies:
   flutter_web_plugins:
     sdk: flutter
   visibility_detector: ^0.4.0+2
+  firebase_crashlytics: ^5.0.6
+  firebase_analytics: ^12.1.0
+  firebase_messaging: ^16.1.0
 
 dev_dependencies:
   flutter_test:

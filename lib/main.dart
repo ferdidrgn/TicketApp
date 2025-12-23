@@ -1,3 +1,7 @@
+import 'dart:ui'; // PlatformDispatcher için gerekli
+import 'package:firebase_analytics/firebase_analytics.dart'; // EKLENDİ
+import 'package:firebase_crashlytics/firebase_crashlytics.dart'; // EKLENDİ
+import 'package:firebase_messaging/firebase_messaging.dart'; // EKLENDİ
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +22,34 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
+  // 1. Firebase'i Başlat
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Flutter çerçevesindeki hataları (UI hataları vb.) yakala
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+  // Asenkron hataları (Future, Stream vb.) yakala
+  PlatformDispatcher.instance.onError = (final error, final stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+
+  try {
+    final FirebaseMessaging messaging = FirebaseMessaging.instance;
+    // Kullanıcıya bildirim izni sor
+    final NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    debugPrint('🔔 Bildirim İzni Durumu: ${settings.authorizationStatus}');
+
+    // (Opsiyonel) Test için Token'ı yazdır
+    final fcmToken = await messaging.getToken();
+    debugPrint('🔑 FCM Token: $fcmToken');
+  } catch (e) {
+    debugPrint('⚠️ Messaging hatası: $e');
+  }
 
   try {
     await LocalStorageService.init();
@@ -35,14 +66,9 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    // 1. Kullanıcının seçtiği mod (Light / Dark / System)
     final themeMode = ref.watch(themeProvider);
     final bool isWeb = PlatformChecker.isWeb;
-
-    // 2. Router
     final router = ref.watch(appRouterProvider);
-
-    // 3. Auth Loading Durumu (Sadece Mobil için kritik)
     final loginState = ref.watch(loginProvider);
     final bool isAuthLoading = !isWeb && loginState.isLoading;
 
@@ -52,18 +78,11 @@ class MyApp extends ConsumerWidget {
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,
       darkTheme: isWeb ? WebTheme.darkTheme : AppTheme.darkTheme,
-      // Web ise zorla Dark yap, Mobil ise kullanıcının seçimine (veya sisteme) bırak.
       themeMode: isWeb ? ThemeMode.dark : themeMode,
-      // -----------------------------------------------------------------------
-
-      // 🎯 GLOBAL BUILDER & SPLASH GUARD
       builder: (final context, final child) {
-        // Router'dan gelen asıl sayfa
         final safeChild = child ?? const SizedBox.shrink();
 
         return ConnectivityWrapper(
-          // Auth kontrolü yapılırken kullanıcıya boş ekran gösterme,
-          // şık DataSplashGuard'ı göster.
           child: SplashDataGuard(
             isLoading: isAuthLoading,
             loadingMessage: 'TiyatRol Başlatılıyor...',

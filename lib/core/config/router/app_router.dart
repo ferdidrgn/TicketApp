@@ -10,6 +10,7 @@ import '../../../features/onboarding/presentation/pages/onboarding_container.dar
 import '../../../features/shows/presentation/pages/show_detail_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart'; // ✅ Eklendi
 import '../../errors/not_found_page.dart';
+// app_router.dart
 
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final loginState = ref.watch(loginProvider);
@@ -35,15 +36,23 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       // Yükleniyorsa bekle
       if (loginState.isLoading) return null;
 
-      // 1. Giriş yapılmamışsa ve Public sayfalarda değilse -> Login'e at
-      if (!isLoggedIn && !isLoggingIn && !isOnboarding && !isPhoneLogin)
+      // 1. Giriş YAPILMAMIŞSA ve korunmayan sayfalarda değilse -> Login'e at
+      if (!isLoggedIn && !isLoggingIn && !isOnboarding && !isPhoneLogin) {
         return '/login';
+      }
 
-      // 2. Giriş yapılmışsa ve hala Login/Onboarding sayfalarındaysa -> Home'a at
-      if (isLoggedIn && (isLoggingIn || isOnboarding)) {
-        // Eğer kullanıcı zaten profil düzenlemede veya telefon girişindeyse karışma
-        if (isProfileEdit || isPhoneLogin) return null;
-        return '/home';
+      // 2. Giriş YAPILMIŞSA
+      if (isLoggedIn) {
+        // Eğer kullanıcı şu an telefon doğrulama ekranındaysa,
+        // işlemi kendisi bitirene kadar orada kalsın (YÖNLENDİRME YAPMA)
+        if (isPhoneLogin) return null;
+
+        // Login veya Onboarding ekranındaysa Home'a at
+        if (isLoggingIn || isOnboarding) {
+          // Profil düzenleme ekranına gitmeye çalışıyorsa izin ver
+          if (isProfileEdit) return null;
+          return '/home';
+        }
       }
 
       return null;

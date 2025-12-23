@@ -653,6 +653,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
+// 🔥 DÜZELTİLDİ: Parametreler Notifier'ın yeni haline uygun hale getirildi
   Future<void> _startPhoneLinking(final String phoneNumber) async {
     showDialog(
       context: context,
@@ -662,48 +663,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
 
     try {
-      await ref.read(loginProvider.notifier).verifyPhone(
-            phoneNumber: phoneNumber,
-            onVerificationCompleted: (final credential) async {
-              if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+      // 🎯 Sadece telefon numarasını gönderiyoruz, gerisini Notifier hallediyor
+      await ref.read(loginProvider.notifier).verifyPhone(phoneNumber);
 
-              try {
-                final currentUser = FirebaseAuth.instance.currentUser;
-                if (currentUser != null) {
-                  await currentUser.linkWithCredential(credential);
-                  await LocalStorageService.saveEssentialUserData(
-                      uid: currentUser.uid,
-                      displayName: currentUser.phoneNumber,
-                      role: "user");
+      if (mounted) {
+        Navigator.pop(context); // Loading'i kapat
 
-                  if (mounted)
-                    _showSuccessDialog("Telefon başarıyla otomatik bağlandı!");
-                }
-              } on FirebaseAuthException catch (e) {
-                if (mounted) {
-                  if (e.code == 'credential-already-in-use') {
-                    _showErrorDialog("Bu numara zaten başka bir hesaba bağlı!");
-                  } else {
-                    _showErrorDialog("Hata: ${e.message}");
-                  }
-                }
-              }
-            },
-            onCodeSent: (final verificationId, final resendToken) {
-              if (mounted && Navigator.canPop(context)) Navigator.pop(context);
-              _showOtpDialog(verificationId);
-            },
-            onAutoRetrievalTimeout: (final id) {},
-          );
+        // Notifier state'i güncellediğinde (isCodeSent: true olduğunda)
+        // OTP dialoğunu göstermek için build içinde loginState'i dinleyebiliriz
+        // veya burada manuel tetikleyebiliriz:
+        _showOtpDialog();
+      }
     } catch (e) {
       if (mounted) {
-        if (Navigator.canPop(context)) Navigator.pop(context);
+        Navigator.pop(context);
         _showErrorDialog("Hata: $e");
       }
     }
   }
 
-  void _showOtpDialog(final String verificationId) {
+  void _showOtpDialog() {
     final otpController = TextEditingController();
     showDialog(
       context: context,
@@ -736,7 +715,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             onPressed: () async {
               if (otpController.text.length == 6) {
                 Navigator.pop(context);
-                await _finalizePhoneLink(verificationId, otpController.text);
+                // 🎯 DÜZELTME 2: Buradaki verificationId gönderimini sildik
+                await _finalizePhoneLink(otpController.text);
               }
             },
             child: const Text("Doğrula"),
@@ -746,8 +726,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Future<void> _finalizePhoneLink(
-      final String verificationId, final String smsCode) async {
+  Future<void> _finalizePhoneLink(final String smsCode) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -755,13 +734,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
 
     try {
+      // 🎯 Notifier, verificationId'yi zaten kendi state'inden alacak
       await ref.read(loginProvider.notifier).verifyOtp(smsCode);
-
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await LocalStorageService.saveEssentialUserData(
-            uid: user.uid, displayName: user.phoneNumber, role: "user");
-      }
 
       if (mounted) {
         Navigator.pop(context); // Loading kapa
@@ -769,16 +743,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Loading kapa
-
-        String err = e.toString();
-        if (err.contains("already-in-use")) {
-          _showErrorDialog("Bu numara zaten kullanımda.");
-        } else if (err.contains("invalid-verification-code")) {
-          _showErrorDialog("Kod hatalı.");
-        } else {
-          _showErrorDialog("Hata: $err");
-        }
+        Navigator.pop(context);
+        _showErrorDialog("Hata: ${e.toString()}");
       }
     }
   }
