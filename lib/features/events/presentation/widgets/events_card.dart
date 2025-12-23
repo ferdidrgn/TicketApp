@@ -29,15 +29,8 @@ class EventsCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-        // ✅ MANTIK BURADA:
-        // Eğer dışarıdan bir genişlik gelirse (örn: double.infinity) onu kullan.
-        // Gelmezse eski sistem 280 kullan (Home page bozulmaz).
         width: width ?? 280,
-
-        // Eğer dışarıdan margin gelirse onu kullan.
-        // Gelmezse eski sistem sağdan 15 boşluk bırak.
         margin: margin ?? const EdgeInsets.only(right: 15),
-
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
