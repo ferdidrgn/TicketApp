@@ -1,13 +1,12 @@
 import 'dart:math';
 import 'dart:ui';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
+import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/theme/theme_notifier.dart';
-import '../../../../shared/widgets/button/custom_elevated_button.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../appTools/presentation/pages/contracts.dart';
 import '../../../favorite/presentation/pages/favorite_screen.dart';
@@ -147,8 +146,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 _buildProfileHeader(theme),
                 const SizedBox(height: 20),
 
-                // YENİ: LÜKS PROFİL KARTI
-                _buildLuxuryProfileCard(loginState.user, theme, loginState),
+                // PROFİL KARTI
+                _buildProfileCard(loginState.user, theme, loginState),
                 const SizedBox(height: 40),
 
                 _buildThemeSelectorArtistic(ref, theme),
@@ -171,7 +170,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     return Column(
       children: [
         Text(
-          'SANAT GALERİSİ',
+          'PROFİL',
           style: theme.textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w900,
             letterSpacing: 3,
@@ -181,7 +180,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
         const SizedBox(height: 8),
         Text(
-          'Profil Koleksiyonun',
+          'Hesabınız',
           style: theme.textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.bold,
             fontSize: 28,
@@ -193,8 +192,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // YENİ: LÜKS PROFİL KARTI
-  Widget _buildLuxuryProfileCard(
+  Widget _buildProfileCard(
     final User? firebaseUser,
     final ThemeData theme,
     final LoginState loginState,
@@ -202,10 +200,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final isGuest = loginState.isGuest;
     final displayName = firebaseUser?.displayName ??
         _localUserData?['displayName'] ??
-        'Sanat Sever';
-    final email = firebaseUser?.email ?? 'sergi@ticketapp.com';
+        'Misafir Kullanıcı';
+    final email = firebaseUser?.email ?? 'Misafir';
     final photoURL = firebaseUser?.photoURL ??
         'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=500&auto=format&fit=crop';
+
+    final loginMethod = _getLoginMethod(firebaseUser);
+    final loginMethodIcon = _getLoginMethodIcon(loginMethod);
+    final loginMethodColor = _getLoginMethodColor(loginMethod);
+    final loginMethodText = _getLoginMethodText(loginMethod);
 
     return Container(
       width: double.infinity,
@@ -278,13 +281,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             padding: const EdgeInsets.all(30),
             child: Column(
               children: [
-                // Üst rozetler
+                // Kullanıcı durumu badge'leri
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildPremiumBadge(theme),
-                    _buildLevelBadge(theme, 'VIP', Colors.amber),
-                    _buildActivityBadge(theme, 'Aktif', Colors.green),
+                    // Kullanıcı tipi badge
+                    _buildUserTypeBadge(isGuest, theme),
+
+                    // Giriş yöntemi badge
+                    _buildLoginMethodBadge(loginMethodText, loginMethodIcon,
+                        loginMethodColor, theme),
                   ],
                 ),
                 const SizedBox(height: 30),
@@ -349,9 +355,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         ],
                       ),
                       child: ClipOval(
-                        child: Image.network(
-                          photoURL,
+                        child: OptimizedCachedImage(
+                          imageUrl: photoURL,
                           fit: BoxFit.cover,
+                          errorBuilder:
+                              (final context, final error, final stackTrace) {
+                            return Container(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              child: Icon(
+                                Icons.person,
+                                size: 50,
+                                color: theme.colorScheme.primary,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -383,6 +400,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         color: theme.colorScheme.onSurface,
                         letterSpacing: 1.5,
                       ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -392,6 +412,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         fontStyle: FontStyle.italic,
                         letterSpacing: 0.5,
                       ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -413,92 +436,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   ),
                 ),
                 const SizedBox(height: 25),
-
-                // ROZET KOLEKSİYONU
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: theme.colorScheme.onSurface.withOpacity(0.1),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.emoji_events_outlined,
-                              color: theme.colorScheme.primary, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'ROZET KOLEKSİYONU',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurface,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 15),
-
-                      // Rozetler grid
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          _buildArtBadge(
-                            '🎨 Sanat Uzmanı',
-                            Icons.palette,
-                            Colors.deepPurple,
-                            theme,
-                            isActive: true,
-                          ),
-                          _buildArtBadge(
-                            '🏛️ Sergi Gezgin',
-                            Icons.museum,
-                            Colors.blue,
-                            theme,
-                            isActive: true,
-                          ),
-                          _buildArtBadge(
-                            '🎟️ Bilet Koleksiyoncu',
-                            Icons.confirmation_number,
-                            Colors.green,
-                            theme,
-                            isActive: true,
-                          ),
-                          _buildArtBadge(
-                            '❤️ Favori Avcısı',
-                            Icons.favorite,
-                            Colors.pink,
-                            theme,
-                            isActive: false,
-                          ),
-                          _buildArtBadge(
-                            '⚡ Hızlı Gezgin',
-                            Icons.flash_on,
-                            Colors.orange,
-                            theme,
-                            isActive: true,
-                          ),
-                          _buildArtBadge(
-                            '🌟 Yıldız Koleksiyoncu',
-                            Icons.stars,
-                            Colors.amber,
-                            theme,
-                            isActive: false,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
 
                 // İstatistikler
                 Container(
@@ -528,20 +465,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildPremiumBadge(final ThemeData theme) {
+  Widget _buildUserTypeBadge(final bool isGuest, final ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.amber.shade300,
-            Colors.amber.shade600,
-          ],
+          colors: isGuest
+              ? [
+                  Colors.grey.shade400,
+                  Colors.grey.shade600,
+                ]
+              : [
+                  Colors.amber.shade300,
+                  Colors.amber.shade600,
+                ],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.withOpacity(0.3),
+            color: (isGuest ? Colors.grey : Colors.amber).withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -550,11 +492,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.workspace_premium, size: 14, color: Colors.white),
+          Icon(
+            isGuest ? Icons.person_outline : Icons.workspace_premium,
+            size: 14,
+            color: Colors.white,
+          ),
           const SizedBox(width: 6),
           Text(
-            'PREMIUM',
-            style: TextStyle(
+            isGuest ? 'MİSAFİR' : 'PREMIUM',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
               fontWeight: FontWeight.w900,
@@ -566,10 +512,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildLevelBadge(
-      final ThemeData theme, final String level, final Color color) {
+  Widget _buildLoginMethodBadge(
+    final String methodText,
+    final IconData icon,
+    final Color color,
+    final ThemeData theme,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
@@ -578,120 +528,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 8),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
           Text(
-            level,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityBadge(
-      final ThemeData theme, final String status, final Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            margin: const EdgeInsets.only(right: 6),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.5),
-                  blurRadius: 5,
-                ),
-              ],
-            ),
-          ),
-          Text(
-            status,
+            methodText,
             style: TextStyle(
               color: color,
               fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCornerIcon(
-      final IconData icon, final Color color, final ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Icon(icon, size: 14, color: color),
-    );
-  }
-
-  Widget _buildArtBadge(final String title, final IconData icon,
-      final Color color, final ThemeData theme,
-      {final bool isActive = true}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive
-            ? color.withOpacity(0.1)
-            : theme.colorScheme.onSurface.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: isActive
-              ? color.withOpacity(0.3)
-              : theme.colorScheme.onSurface.withOpacity(0.1),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 14,
-            color:
-                isActive ? color : theme.colorScheme.onSurface.withOpacity(0.3),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            title,
-            style: TextStyle(
-              color: isActive
-                  ? color
-                  : theme.colorScheme.onSurface.withOpacity(0.3),
-              fontSize: 12,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -722,7 +567,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            // Opacity yok, direkt temanın ana yazı rengi (Beyaz veya Siyah)
             color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
@@ -730,7 +574,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // İşlevsel bölüm (değişmeden)
+  Widget _buildCornerIcon(
+          final IconData icon, final Color color, final ThemeData theme) =>
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: Icon(icon, size: 14, color: color),
+      );
+
   Widget _buildFunctionalSection(
       final LoginState loginState, final ThemeData theme) {
     final colors = theme.colorScheme;
@@ -739,32 +599,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final List<Map<String, dynamic>> functionalButtons = [
       if (loginState.user != null)
         {
-          'title': 'Profil Portresi',
-          'subtitle': 'Portreni düzenle',
+          'title': 'Profil Düzenle',
+          'subtitle': 'Profil bilgilerini güncelle',
           'icon': Icons.edit_outlined,
           'color': const Color(0xFF64B5F6),
           'onTap': () =>
               _navigateTo(UserProfileEditScreen(userId: loginState.user!.uid)),
-          'artMetaphor': '🎨 Fırça',
         },
       if (loginState.user != null)
         {
-          'title': 'Bilet Arşivi',
-          'subtitle': 'Geçmiş biletlerin',
+          'title': 'Biletlerim',
+          'subtitle': 'Geçmiş biletlerim',
           'icon': Icons.confirmation_number_outlined,
           'color': const Color(0xFF81C784),
           'onTap': () =>
               _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
-          'artMetaphor': '📜 Parşömen',
         },
       if (loginState.user != null)
         {
-          'title': 'Favori Koleksiyon',
-          'subtitle': 'Beğendiğin eserler',
+          'title': 'Favoriler',
+          'subtitle': 'Beğendiğim etkinlikler',
           'icon': Icons.favorite_border,
           'color': const Color(0xFFF06292),
           'onTap': () => _navigateTo(FavoritesPage()),
-          'artMetaphor': '❤️ Kalp',
         },
       {
         'title': 'Ayarlar',
@@ -772,7 +629,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'icon': Icons.settings_outlined,
         'color': const Color(0xFFFFB74D),
         'onTap': () => _navigateTo(const AppSettingsPage()),
-        'artMetaphor': '⚙️ Dişli',
       },
       {
         'title': 'İzinler',
@@ -780,7 +636,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'icon': Icons.notifications_outlined,
         'color': const Color(0xFFBA68C8),
         'onTap': () => _navigateTo(const PermissionSettingsScreen()),
-        'artMetaphor': '🔔 Zil',
       },
       {
         'title': 'Sözleşmeler',
@@ -788,7 +643,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'icon': Icons.privacy_tip_outlined,
         'color': const Color(0xFF7986CB),
         'onTap': () => _navigateTo(const ContractsPage()),
-        'artMetaphor': '📄 Kontrat',
       },
       {
         'title': 'Yardım',
@@ -796,7 +650,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         'icon': Icons.help_outline,
         'color': const Color(0xFF4DB6AC),
         'onTap': () {},
-        'artMetaphor': '❓ Soru',
       },
     ];
 
@@ -832,10 +685,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
                   child: Row(
                     children: [
-                      Icon(Icons.brush, size: 20, color: colors.primary),
+                      Icon(Icons.dashboard, size: 20, color: colors.primary),
                       const SizedBox(width: 8),
                       Text(
-                        'Sanat Atölyesi',
+                        'Menü',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colors.onSurface,
@@ -864,7 +717,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       icon: button['icon'] as IconData,
                       color: button['color'] as Color,
                       onTap: button['onTap'] as VoidCallback,
-                      artMetaphor: button['artMetaphor'] as String,
                       theme: theme,
                     );
                   },
@@ -884,7 +736,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     required final IconData icon,
     required final Color color,
     required final VoidCallback onTap,
-    required final String artMetaphor,
     required final ThemeData theme,
   }) {
     return Material(
@@ -933,25 +784,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   ],
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: color.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  artMetaphor,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: theme.colorScheme.onSurface.withOpacity(0.3),
               ),
             ],
           ),
@@ -960,7 +796,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // Tema seçici (değişmeden)
   Widget _buildThemeSelectorArtistic(
       final WidgetRef ref, final ThemeData theme) {
     final currentTheme = ref.watch(themeProvider);
@@ -1004,7 +839,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                             size: 20),
                         const SizedBox(width: 8),
                         Text(
-                          'Sergi Işığı',
+                          'Tema Seç',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.onSurface,
@@ -1021,10 +856,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       ),
                       child: Text(
                         currentTheme == ThemeMode.light
-                            ? 'Gün Işığı'
+                            ? 'Açık'
                             : currentTheme == ThemeMode.dark
-                                ? 'Gece Işığı'
-                                : 'Otomatik',
+                                ? 'Koyu'
+                                : 'Sistem',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -1038,16 +873,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 Row(
                   children: [
                     Expanded(
-                        child: _buildThemeButton('Gün', ThemeMode.light,
+                        child: _buildThemeButton('Açık', ThemeMode.light,
                             Icons.wb_sunny_rounded, ref)),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: _buildThemeButton('Gece', ThemeMode.dark,
+                        child: _buildThemeButton('Koyu', ThemeMode.dark,
                             Icons.nights_stay_rounded, ref)),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: _buildThemeButton('Oto', ThemeMode.system,
-                            Icons.hdr_auto_rounded, ref)),
+                        child: _buildThemeButton('Sistem', ThemeMode.system,
+                            Icons.phone_iphone_rounded, ref)),
                   ],
                 ),
               ],
@@ -1115,7 +950,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // Güvenlik bölümü (değişmeden)
   Widget _buildSecuritySection(
       final LoginState loginState, final ThemeData theme) {
     final colors = theme.colorScheme;
@@ -1173,7 +1007,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Sergiden Çıkış Yap',
+                                'Çıkış Yap',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.orange,
@@ -1236,7 +1070,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Koleksiyonu Sil',
+                                'Hesabı Sil',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.red,
@@ -1303,7 +1137,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Sergiye Giriş Yap',
+                                'Giriş Yap',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -1335,7 +1169,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // Kalan fonksiyonlar değişmeden kalacak
+  // Kalan fonksiyonlar
   String _getLoginMethod(final User? firebaseUser) {
     if (firebaseUser == null) return 'anonymous';
     if (firebaseUser.providerData
@@ -1343,6 +1177,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     if (firebaseUser.providerData.any((final p) => p.providerId == 'phone'))
       return 'phone';
     return 'anonymous';
+  }
+
+  String _getLoginMethodText(final String method) {
+    switch (method) {
+      case 'google':
+        return 'Google';
+      case 'phone':
+        return 'Telefon';
+      case 'anonymous':
+        return 'Misafir';
+      default:
+        return 'Giriş';
+    }
   }
 
   IconData _getLoginMethodIcon(final String method) {
@@ -1407,7 +1254,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             Icon(Icons.delete_forever, color: Colors.red[800]),
             const SizedBox(width: 12),
             Text(
-              'Koleksiyonu Temizle',
+              'Hesabı Sil',
               style: TextStyle(
                 color: Colors.red[800],
                 fontWeight: FontWeight.bold,
@@ -1420,7 +1267,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tüm sanat koleksiyonunuzu kalıcı olarak silmek istiyor musunuz?',
+              'Hesabınızı kalıcı olarak silmek istiyor musunuz?',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
               ),
@@ -1481,7 +1328,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               Navigator.pop(context);
               _deleteAccount(userId);
             },
-            child: const Text('TÜMÜNÜ SİL'),
+            child: const Text('SİL'),
           ),
         ],
       ),
@@ -1493,7 +1340,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       context: context,
       barrierDismissible: false,
       builder: (final context) => CustomLoadingDialog(
-        message: 'Koleksiyon temizleniyor...',
+        message: 'Hesap siliniyor...',
       ),
     );
 
@@ -1502,7 +1349,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       final bool isDeleteUserDocument = await userNotifier.deleteUser(userId);
 
       if (!isDeleteUserDocument) {
-        _closeDialogAndShowError('Koleksiyon temizlenemedi');
+        _closeDialogAndShowError('Hesap silinemedi');
         return;
       }
 
@@ -1538,7 +1385,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         context: context,
         barrierDismissible: false,
         builder: (final context) => CustomSuccessDialog(
-          message: 'Koleksiyonunuz başarıyla temizlendi',
+          message: 'Hesabınız başarıyla silindi',
           onConfirm: () => _navigateToLogin(),
         ),
       );
