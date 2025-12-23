@@ -95,58 +95,92 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final theme = context.theme;
     final colors = context.colors;
 
-    // Misafir kontrolü (User var ama Anonymous mu?)
-    final isGuest = loginState.isGuest && loginState.user == null;
-
-    if (loginState.isLoading || _isLoadingLocalData)
+    // 1. Durum: Yükleniyor
+    if (loginState.isLoading || _isLoadingLocalData) {
       return Scaffold(
         backgroundColor: colors.background,
         body: const Center(child: CircularProgressIndicator()),
       );
+    }
+
+    // 2. Durum: Kullanıcı var mı?
+    // (isGuest true ise veya user null ise "Ziyaretçi" modundayız)
+    final bool isUserLoggedIn = loginState.user != null && !loginState.isGuest;
 
     return Scaffold(
       backgroundColor: colors.background,
       body: Stack(
         children: [
-          Positioned(
-            top: -100,
-            left: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color:
-                    colors.primary.withOpacity(context.isDarkMode ? 0.15 : 0.1),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-                child: Container(color: Colors.transparent),
-              ),
-            ),
-          ),
+          _buildBackgroundBlur(colors), // Arka plan efektini aşağıya taşıdım
           SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 20),
-                _buildArtisticHeader(theme, isGuest),
+                _buildArtisticHeader(theme, !isUserLoggedIn),
                 const SizedBox(height: 30),
-                if (isGuest)
-                  _buildGuestProfileCard(theme)
-                else
-                  _buildUserProfileCard(loginState.user, theme, loginState),
-                const SizedBox(height: 40),
+
+                // Dinamik İçerik: Ya kullanıcı kartı ya da "Giriş Yap" daveti
+                isUserLoggedIn
+                    ? _buildUserProfileCard(loginState.user, theme, loginState)
+                    : _buildAuthInvitationCard(theme),
+
+                const SizedBox(height: 32),
                 ThemeSelectorCard(),
+
                 const SizedBox(height: 32),
-                _buildFunctionalSection(loginState, theme, isGuest),
+                _buildFunctionalSection(loginState, theme, !isUserLoggedIn),
+
                 const SizedBox(height: 32),
-                _buildSecuritySection(loginState, theme, isGuest),
+                _buildSecuritySection(loginState, theme, !isUserLoggedIn),
+
                 const SizedBox(height: 40),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthInvitationCard(final ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.lock_outline_rounded,
+              size: 40, color: theme.colorScheme.primary),
+          const SizedBox(height: 16),
+          Text(
+            'Bu Galeri Henüz İmzalanmadı',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Kendi sanat serüvenini kaydetmek ve koleksiyonunu ölümsüzleştirmek için giriş yapmalısın.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () => /* Login ekranına yönlendir */ null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Serüvene Katıl (Giriş Yap)'),
           ),
         ],
       ),
@@ -158,129 +192,112 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget _buildArtisticHeader(final ThemeData theme, final bool isGuest) {
     return Column(
       children: [
-        Icon(Icons.museum_rounded, size: 32, color: theme.colorScheme.primary),
-        const SizedBox(height: 12),
+        // Üst Simge: Daha hafif ve zarif bir aura içinde
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: theme.colorScheme.primary.withOpacity(0.08),
+          ),
+          child: Icon(Icons.auto_awesome_rounded,
+              size: 28, color: theme.colorScheme.primary),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Etiket: Daha geniş harf arası mesafe
         Text(
-          isGuest ? 'SANAT SERÜVENİ' : 'KOLEKSİYONUNUZ',
+          'ESTETİK HAFIZA, İSİMSİZ BAŞYAPIT\n SESSİZ FIRÇA İZLERİ',
           style: theme.textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 4,
-            color: theme.colorScheme.primary,
-            fontSize: 12,
+            fontWeight: FontWeight.w300, // Daha sofistike bir incelik
+            letterSpacing: 6,
+            color: theme.colorScheme.primary.withOpacity(0.7),
+            fontSize: 10,
           ),
         ),
-        const SizedBox(height: 8),
-        ShaderMask(
-          shaderCallback: (final bounds) => LinearGradient(
-            colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.secondary,
-            ],
-          ).createShader(bounds),
-          child: Text(
-            isGuest ? 'Hoşgeldiniz' : 'Profiliniz',
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 36,
-              color: Colors.white,
-              letterSpacing: -1,
-              fontFamily: 'Playfair',
+
+        const SizedBox(height: 12),
+
+        // Ana Başlık: Çift renkli ve metaforik
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ShaderMask(
+            shaderCallback: (final bounds) => LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.secondary.withOpacity(0.8),
+              ],
+            ).createShader(bounds),
+            child: Text(
+              isGuest ? 'Bi' : 'Bakmanın Değil, Görmenin Hikayesi',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                // Playfair ile kalın font çok şık durur
+                fontSize: 32,
+                color: Colors.white,
+                height: 1.1,
+                letterSpacing: -0.5,
+                fontFamily: 'PlayfairDisplay', // Eğer projenizde varsa
+              ),
             ),
           ),
         ),
-        Container(
-          margin: const EdgeInsets.only(top: 10),
-          width: 60,
-          height: 3,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [
-              theme.colorScheme.primary.withOpacity(0),
-              theme.colorScheme.primary,
-              theme.colorScheme.primary.withOpacity(0),
-            ]),
-          ),
+
+        const SizedBox(height: 20),
+
+        // Sanatsal Ayraç: Klasik çizgi yerine "Nokta ve Çizgi" kompozisyonu
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildDot(),
+            Container(
+              width: 40,
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  theme.colorScheme.primary.withOpacity(0),
+                  theme.colorScheme.primary.withOpacity(0.5),
+                  theme.colorScheme.primary.withOpacity(0),
+                ]),
+              ),
+            ),
+            _buildDot(),
+          ],
         )
       ],
     );
   }
 
-  Widget _buildGuestProfileCard(final ThemeData theme) {
+// Yardımcı widget: Ayraç için küçük noktalar
+  Widget _buildDot() {
     return Container(
-      width: double.infinity,
+      width: 4,
+      height: 4,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.surface,
-            theme.colorScheme.surface.withOpacity(0.8),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2)),
+        color: context.colors.secondary,
+        shape: BoxShape.circle,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.colorScheme.primary.withOpacity(0.1),
-                border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
-                    width: 1),
-              ),
-              child: Icon(Icons.person_outline_rounded,
-                  size: 50, color: theme.colorScheme.primary),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "Misafir Sanatsever",
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Biletlerinizi saklamak ve etkinlikleri takip etmek için hesabınızı oluşturun.",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // MİSAFİR İÇİN GİRİŞ YAP BUTONU
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: _navigateToLogin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 4,
-                ),
-                icon: const Icon(Icons.login_rounded),
-                label: const Text(
-                  "GİRİŞ YAP / KAYIT OL",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
+    );
+  }
+
+  Widget _buildBackgroundBlur(final ColorScheme colors) {
+    return Positioned(
+      top: -100,
+      left: -100,
+      child: Container(
+        width: 300,
+        height: 300,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: colors.primary.withOpacity(0.12),
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+          child: Container(color: Colors.transparent),
         ),
       ),
     );
