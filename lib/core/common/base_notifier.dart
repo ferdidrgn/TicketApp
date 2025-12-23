@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../errors/failures.dart';
 import 'base_state.dart';
@@ -62,5 +63,21 @@ abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
   void clearErrorState() {
     if (state.errorMessage != null)
       state = state.copyWith(errorMessage: null) as T;
+  }
+
+  void logError(final Object e, [final StackTrace? stack]) {
+    assert(() {
+      // Sadece debug modda detaylı hata basar
+      print('❌ [ERROR]: $e');
+      if (stack != null) print(stack);
+      return true;
+    }());
+
+    FirebaseCrashlytics.instance.recordError(
+      e,
+      stack,
+      reason: 'BaseNotifier Log',
+      fatal: false, // Uygulamayı çökertmeyen hata olarak işaretle
+    );
   }
 }

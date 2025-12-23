@@ -155,11 +155,3 @@ class _RelatedData {
     required this.stages,
   });
 }
-
-/// Debug print helper - Production'da otomatik disable olur
-void debugPrint(final String message) {
-  assert(() {
-    print('[TicketNotifier] $message');
-    return true;
-  }());
-}

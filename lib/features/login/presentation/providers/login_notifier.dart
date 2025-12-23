@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/util/role_manager.dart';
+import '../../../../core/util/app_debug.dart';
 import '../../../users/data/models/user_model.dart';
 import '../../../users/domain/entities/user.dart' as entity;
 import '../../../users/presentation/providers/user_provider.dart';
@@ -84,20 +85,25 @@ class LoginNotifier extends BaseNotifier<LoginState> {
   Future<void> verifyPhone(final String phoneNumber) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
-    // Telefon numarasını düzenle (+90 ekle)
     String phone = phoneNumber.trim();
     if (!phone.startsWith("+")) phone = "+90$phone";
 
     await ref.read(verifyPhoneUseCaseProvider).call(
           phoneNumber: phone,
           onVerificationCompleted: (final credential) async {
-            // Android bazen SMS'i otomatik okur ve direkt giriş yapar
+            // 🎯 BURASI ÖNEMLİ: Eğer Android kodu otomatik yakalarsa
+            // buraya düşer. Eğer hemen giriş yapmasın istiyorsan
+            // state'i güncelleyip kullanıcıya bilgi verebilirsin.
+            // Ama genellikle kullanıcı deneyimi için direkt giriş tercih edilir.
             await FirebaseAuth.instance.signInWithCredential(credential);
           },
           onCodeSent: (final verificationId, final resendToken) {
+            // 🎯 SMS Gönderildiğinde burası tetiklenir ve Page'deki isCodeSent sayesinde
+            // Otomatik olarak OTP UI'ına geçiş yapılır.
             state = state.copyWith(
               verificationId: verificationId,
               isCodeSent: true,
+              // UI'ı değiştiren anahtar
               isLoading: false,
               timerValue: 180,
               canResendCode: false,
@@ -230,8 +236,8 @@ class LoginNotifier extends BaseNotifier<LoginState> {
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       }
-    } catch (e) {
-      throw ("FCM Token kaydedilemedi: $e");
+    } catch (e, stack) {
+      logError(e, stack);
     }
   }
 
