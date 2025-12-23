@@ -79,12 +79,10 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
 
       await _auth.signInWithCredential(credential);
 
-      print('✅ Google Sign-In başarılı');
       return googleUser;
     } catch (e) {
       // Hatayı konsola yazdıralım ki ne olduğunu görelim
-      print("GOOGLE GİRİŞ HATASI: $e");
-      // Gerçek hatayı fırlatalım
+
       throw Exception('Google Giriş Hatası: $e');
     }
   }
