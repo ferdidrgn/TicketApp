@@ -50,9 +50,8 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       final refreshedUser = FirebaseAuth.instance.currentUser;
 
       String userRole = LocalStorageService.userRole ?? 'user';
-      if (refreshedUser!.isAnonymous) {
+      if (refreshedUser!.isAnonymous)
         userRole = RoleManager.getDefaultRoleForLoginMethod('anonymous');
-      }
 
       state = state.copyWith(
         user: refreshedUser,
@@ -178,7 +177,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     try {
       await FirebaseFirestore.instance.collection('User').doc(userId).update({
         'fcmToken': FieldValue.delete(), // Token alanını siler
-        'updatedAt': FieldValue.serverTimestamp(),
+        '_updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
       throw ("Token silinirken hata oluştu: $e");
@@ -190,9 +189,8 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       state = state.copyWith(isLoading: true);
 
       final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId != null) {
+      if (userId != null)
         await _clearFcmToken(userId); // 🎯 Çıkıştan önce token'ı temizle
-      }
 
       await ref.read(signOutUseCaseProvider).call();
       await LocalStorageService.clearAllUserData();
@@ -233,7 +231,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       if (token != null) {
         await FirebaseFirestore.instance.collection('User').doc(userId).set({
           'fcmToken': token,
-          'updatedAt': FieldValue.serverTimestamp(),
+          '_updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       }
     } catch (e, stack) {
