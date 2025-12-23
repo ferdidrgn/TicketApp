@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ticketapp/core/common/base_notifier.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/util/role_manager.dart';
@@ -43,8 +44,9 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       final refreshedUser = FirebaseAuth.instance.currentUser;
 
       String userRole = LocalStorageService.userRole ?? 'user';
-      if (refreshedUser!.isAnonymous)
+      if (refreshedUser!.isAnonymous) {
         userRole = RoleManager.getDefaultRoleForLoginMethod('anonymous');
+      }
 
       state = state.copyWith(
         user: refreshedUser,
@@ -96,15 +98,13 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         .call(userModel, firebaseUser.photoURL ?? '', isUpdate: false);
   }
 
+  // --- GOOGLE GİRİŞ ---
   Future<void> signInWithGoogle() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-
     try {
       final result = await ref.read(signInWithGoogleUseCaseProvider).call();
-
       result.fold(
         (final failure) {
-          // Hatayı state'e yaz ama AYNI ZAMANDA FIRLAT
           state =
               state.copyWith(isLoading: false, errorMessage: failure.message);
           throw Exception(failure.message);
@@ -118,7 +118,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
-      rethrow; // 🔥 İŞTE BU SAYEDE PROFİL SAYFASI HATAYI GÖRECEK
+      rethrow;
     }
   }
 
@@ -126,6 +126,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         () => ref.read(signInAnonymouslyUseCaseProvider).call(),
       );
 
+  // --- TELEFON DOĞRULAMA (SADELEŞTİRİLDİ) ---
   Future<void> verifyPhone({
     required final String phoneNumber,
     required final Function(PhoneAuthCredential) onVerificationCompleted,
@@ -133,27 +134,22 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     required final Function(String) onAutoRetrievalTimeout,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-    final result = await ref.read(verifyPhoneUseCaseProvider).call(
+
+    // Sadece UseCase'i çağır, mantığı UI tarafındaki callback'lere bırak
+    await ref.read(verifyPhoneUseCaseProvider).call(
           phoneNumber: phoneNumber,
-          onVerificationCompleted: (final credential) async {
-            onVerificationCompleted(credential);
-            _updateStateWithUser(FirebaseAuth.instance.currentUser);
-          },
+          onVerificationCompleted: onVerificationCompleted,
           onCodeSent: onCodeSent,
           onAutoRetrievalTimeout: onAutoRetrievalTimeout,
         );
-    result.fold(
-      (final failure) => state =
-          state.copyWith(isLoading: false, errorMessage: failure.message),
-      (final verificationId) => state = state.copyWith(
-          isLoading: false, verificationId: verificationId, isCodeSent: true),
-    );
   }
 
+  // --- OTP DOĞRULAMA ---
   Future<void> verifyOtp(final String otp) => execute<bool>(
         () {
           if (state.verificationId == null)
             throw Exception('Verification ID not found');
+          // Kutuyu (Either) açmadan direkt döndür
           return ref
               .read(verifyOtpUseCaseProvider)
               .call(state.verificationId!, otp);
@@ -168,7 +164,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         },
       );
 
-  /// Oturumdan çıkış yapar.
   Future<void> signOut() async {
     try {
       state = state.copyWith(isLoading: true);
@@ -181,13 +176,18 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     }
   }
 
-  Future<void> deleteAccount() => execute(
-        () async {
+  Future<void> deleteAccount() => execute<bool>(
+        () {
           if (state.user == null) throw Exception('User ID not found');
-          return await ref.read(deleteAccountUseCaseProvider).call();
+          return ref.read(deleteAccountUseCaseProvider).call();
         },
         onSuccess: (final success) async {
+          // İşlem başarılıysa temizliği burada yapıyoruz
           await LocalStorageService.clearAllUserData();
+
+          // State'i tamamen sıfırla
+          state = LoginState(
+              user: null, isLoading: false, isGuest: false, errorMessage: null);
         },
       );
 

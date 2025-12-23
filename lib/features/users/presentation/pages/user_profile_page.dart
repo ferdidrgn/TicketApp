@@ -7,6 +7,7 @@ import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/theme/theme_notifier.dart';
+import '../../../../shared/widgets/card/theme_selector_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../appTools/presentation/pages/contracts.dart';
 import '../../../favorite/presentation/pages/favorite_screen.dart';
@@ -93,17 +94,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final loginState = ref.watch(loginProvider);
     final theme = context.theme;
     final colors = context.colors;
-    final isDark = theme.brightness == Brightness.dark;
 
-    // MİSAFİR KONTROLÜ
-    final isGuest = loginState.user == null || loginState.isGuest;
+    // Misafir kontrolü (User var ama Anonymous mu?)
+    final isGuest = loginState.isGuest && loginState.user == null;
 
-    if (loginState.isLoading || _isLoadingLocalData) {
+    if (loginState.isLoading || _isLoadingLocalData)
       return Scaffold(
         backgroundColor: colors.background,
         body: const Center(child: CircularProgressIndicator()),
       );
-    }
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -117,7 +116,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: colors.primary.withOpacity(isDark ? 0.15 : 0.1),
+                color:
+                    colors.primary.withOpacity(context.isDarkMode ? 0.15 : 0.1),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
@@ -139,7 +139,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 else
                   _buildUserProfileCard(loginState.user, theme, loginState),
                 const SizedBox(height: 40),
-                _buildThemeSelectorArtistic(ref, theme),
+                ThemeSelectorCard(),
                 const SizedBox(height: 32),
                 _buildFunctionalSection(loginState, theme, isGuest),
                 const SizedBox(height: 32),
@@ -256,6 +256,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // MİSAFİR İÇİN GİRİŞ YAP BUTONU
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _navigateToLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 4,
+                ),
+                icon: const Icon(Icons.login_rounded),
+                label: const Text(
+                  "GİRİŞ YAP / KAYIT OL",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -407,9 +429,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
+  // --- GÜVENLİK BÖLÜMÜ ---
   Widget _buildSecuritySection(
       final LoginState loginState, final ThemeData theme, final bool isGuest) {
-    // MİSAFİR GÖRÜNÜMÜ
+    // MİSAFİR İSE: "Bağla" ve "Sil"
     if (isGuest) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -506,7 +529,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       );
     }
 
-    // NORMAL KULLANICI GÖRÜNÜMÜ
+    // NORMAL KULLANICI İSE
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -571,7 +594,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // --- ACTIONS ---
+  // --- ACTIONS (İş Mantığı) ---
 
   Future<void> _linkWithGoogle() async {
     try {
@@ -648,6 +671,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 final currentUser = FirebaseAuth.instance.currentUser;
                 if (currentUser != null) {
                   await currentUser.linkWithCredential(credential);
+                  await LocalStorageService.saveEssentialUserData(
+                      uid: currentUser.uid,
+                      displayName: currentUser.phoneNumber,
+                      role: "user");
+
                   if (mounted)
                     _showSuccessDialog("Telefon başarıyla otomatik bağlandı!");
                 }
@@ -728,14 +756,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
     try {
       await ref.read(loginProvider.notifier).verifyOtp(smsCode);
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await LocalStorageService.saveEssentialUserData(
+            uid: user.uid, displayName: user.phoneNumber, role: "user");
+      }
+
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // Loading kapa
         _showSuccessDialog("Hesap başarıyla telefonunuza bağlandı!");
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
-        _showErrorDialog("Bağlantı Hatası: ${e.toString()}");
+        Navigator.pop(context); // Loading kapa
+
+        String err = e.toString();
+        if (err.contains("already-in-use")) {
+          _showErrorDialog("Bu numara zaten kullanımda.");
+        } else if (err.contains("invalid-verification-code")) {
+          _showErrorDialog("Kod hatalı.");
+        } else {
+          _showErrorDialog("Hata: $err");
+        }
       }
     }
   }
@@ -759,9 +802,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     }
   }
 
-  // 🔥 SİLME İŞLEMİ DÜZELTİLDİ: Login'e Zorla Yönlendir
+  // 🔥 SİLME İŞLEMİ (DÜZELTİLDİ)
   Future<void> _deleteAccount(final String userId) async {
-    Navigator.pop(context);
+    Navigator.pop(context); // Onay penceresini kapat
     showDialog(
         context: context,
         barrierDismissible: false,
@@ -769,24 +812,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             const CustomLoadingDialog(message: "Hesap siliniyor..."));
 
     try {
+      // 1. Notifier üzerinden hesabı sil (Auth + Firestore)
+      //    (Notifier içinde local storage da siliniyor zaten)
       final userNotifier = ref.read(userProvider.notifier);
-      await userNotifier.deleteUser(userId);
+      await userNotifier.deleteUser(userId); // Firestore verisini sil
 
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) await currentUser.delete();
-
-      await LocalStorageService.clearAllUserData();
-      ref.read(loginProvider.notifier).clearLoginState();
+      await ref
+          .read(loginProvider.notifier)
+          .deleteAccount(); // Auth'tan sil ve state temizle
 
       if (mounted) {
         Navigator.pop(context); // Loading kapa
+        // Başarı mesajı
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (final _) => CustomSuccessDialog(
             message: "Hesabınız başarıyla silindi.",
             onConfirm: () {
-              // SUCCESS DIALOG KAPANDIĞINDA KESİN YÖNLENDİRME
+              // 🔥 KESİN ÇÖZÜM: Direkt login sayfasına at
               _navigateToLogin();
             },
           ),
@@ -800,10 +844,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     }
   }
 
-  void _navigateToLogin() {
-    Navigator.of(context)
-        .pushNamedAndRemoveUntil('/login', (final route) => false);
-  }
+  void _navigateToLogin() => Navigator.of(context)
+      .pushNamedAndRemoveUntil('/login', (final route) => false);
 
   void _navigateTo(final Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (final _) => page));
@@ -835,9 +877,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         builder: (final _) => CustomSuccessDialog(
               message: msg,
               onConfirm: () {
-                if (msg.contains("silindi")) {
-                  _navigateToLogin();
-                }
+                // Silme durumunda login'e at, diğerlerinde dialog'u kapat
+                if (msg.contains("silindi")) _navigateToLogin();
               },
             ));
   }
@@ -920,7 +961,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // MENÜLER (BÜTÜN BUTONLAR GERİ EKLENDİ)
   Widget _buildFunctionalSection(
       final LoginState loginState, final ThemeData theme, final bool isGuest) {
     final buttons = isGuest
