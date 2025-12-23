@@ -9,16 +9,20 @@ class AppDebug {
       print('🚀 [$tag] ${DateTime.now().toString().split(' ').last}: $message');
   }
 
-  static void error(final Object e, [final StackTrace? stack]) {
+  static void logError(final Object e,
+      [final StackTrace? stack, final String tag = 'ERROR']) {
     assert(() {
-      print('❌ [ERROR]: $e');
+      print('❌ [$tag] - $e'); // tag parametresini buraya ekledik
       if (stack != null) print(stack);
       return true;
     }());
 
-    // Canlıda hata takibi için Crashlytics
-    FirebaseCrashlytics.instance
-        .recordError(e, stack, reason: 'AppDebug Logger', fatal: false);
+    FirebaseCrashlytics.instance.recordError(
+      e,
+      stack,
+      reason: tag, // Firebase'e hata nedeni olarak gönderiyoruz
+      fatal: false,
+    );
   }
 }
 

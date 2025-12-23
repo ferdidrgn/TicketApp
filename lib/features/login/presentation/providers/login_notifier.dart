@@ -81,8 +81,9 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   // --- TELEFON GİRİŞ SÜRECİ (OTP) ---
 
-  // 1. SMS Gönderimi
   Future<void> verifyPhone(final String phoneNumber) async {
+    AppDebug.log("SMS İsteği Başlatıldı: $phoneNumber",
+        tag: "AUTH"); // LOG EKLE
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     String phone = phoneNumber.trim();
@@ -91,27 +92,26 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     await ref.read(verifyPhoneUseCaseProvider).call(
           phoneNumber: phone,
           onVerificationCompleted: (final credential) async {
-            // 🎯 BURASI ÖNEMLİ: Eğer Android kodu otomatik yakalarsa
-            // buraya düşer. Eğer hemen giriş yapmasın istiyorsan
-            // state'i güncelleyip kullanıcıya bilgi verebilirsin.
-            // Ama genellikle kullanıcı deneyimi için direkt giriş tercih edilir.
+            AppDebug.log("Otomatik Doğrulama Tamamlandı!",
+                tag: "AUTH"); // LOG EKLE
             await FirebaseAuth.instance.signInWithCredential(credential);
           },
-          onCodeSent: (final verificationId, final resendToken) {
-            // 🎯 SMS Gönderildiğinde burası tetiklenir ve Page'deki isCodeSent sayesinde
-            // Otomatik olarak OTP UI'ına geçiş yapılır.
+          onCodeSent: (final String vId, final int? resendToken) {
+            AppDebug.log("SMS Kodu Gönderildi! ID: $vId",
+                tag: "AUTH"); // LOG EKLE
             state = state.copyWith(
-              verificationId: verificationId,
+              verificationId: vId,
               isCodeSent: true,
-              // UI'ı değiştiren anahtar
+              // Burası TRUE olmalı ki ekran değişsin
               isLoading: false,
               timerValue: 180,
               canResendCode: false,
             );
             _startTimer();
           },
-          onAutoRetrievalTimeout: (final verificationId) {
-            state = state.copyWith(verificationId: verificationId);
+          onAutoRetrievalTimeout: (final String vId) {
+            AppDebug.log("Zaman Aşımı ID: $vId", tag: "AUTH"); // LOG EKLE
+            state = state.copyWith(verificationId: vId);
           },
         );
   }
