@@ -11,6 +11,8 @@ class EventsCard extends StatelessWidget {
   final String stage;
   final double price;
   final VoidCallback? onTap;
+  final double? width;
+  final EdgeInsetsGeometry? margin;
 
   const EventsCard({
     super.key,
@@ -21,23 +23,29 @@ class EventsCard extends StatelessWidget {
     required this.stage,
     required this.price,
     this.onTap,
+    this.width,
+    this.margin,
   });
 
   @override
   Widget build(final BuildContext context) => Container(
-        width: 280,
-        margin: const EdgeInsets.only(right: 15),
+        // ✅ MANTIK BURADA:
+        // Eğer dışarıdan bir genişlik gelirse (örn: double.infinity) onu kullan.
+        // Gelmezse eski sistem 280 kullan (Home page bozulmaz).
+        width: width ?? 280,
+
+        // Eğer dışarıdan margin gelirse onu kullan.
+        // Gelmezse eski sistem sağdan 15 boşluk bırak.
+        margin: margin ?? const EdgeInsets.only(right: 15),
+
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Card(
             elevation: 4,
-            // ✅ 1. Değişiklik: Arka plan rengini extension'dan alıyoruz
             color: context.surfaceColor,
-
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                // ✅ 2. Değişiklik: isDark kontrolünü extension üzerinden yapıyoruz
                 side: context.isDarkMode
                     ? const BorderSide(color: Colors.white10, width: 0.5)
                     : BorderSide.none),
@@ -58,7 +66,6 @@ class EventsCard extends StatelessWidget {
                         placeholder: (final context, final url) =>
                             const ShimmerLoading(
                                 width: double.infinity, height: 150),
-                        // Hata durumunda gri tonunu extension'dan veya manuel ayarlayabilirsin
                         errorWidget: (final context, final url, final error) =>
                             Container(
                           height: 150,
@@ -71,7 +78,7 @@ class EventsCard extends StatelessWidget {
                       ),
                     ),
 
-                    // --- KATEGORİ ETİKETİ (Sağ Üst) ---
+                    // --- KATEGORİ ETİKETİ ---
                     Positioned(
                       top: 10,
                       right: 10,
@@ -79,7 +86,6 @@ class EventsCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                            // ✅ 3. Değişiklik: Marka rengi (Primary) extension'dan geliyor
                             color: context.primaryColor,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
@@ -92,8 +98,7 @@ class EventsCard extends StatelessWidget {
                         child: Text(
                           category.toUpperCase(),
                           style: context.textTheme.labelSmall?.copyWith(
-                            // ✅ TextTheme kullanımı
-                            color: Colors.white, // Etiket içi hep beyaz
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                           ),
@@ -101,7 +106,7 @@ class EventsCard extends StatelessWidget {
                       ),
                     ),
 
-                    // --- İSİM (Gradient Üzeri) ---
+                    // --- İSİM ---
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -120,7 +125,6 @@ class EventsCard extends StatelessWidget {
                         ),
                         child: Text(
                           showName,
-                          // Resim üzerindeki yazı her zaman beyaz kalmalı, temadan bağımsız
                           style: context.textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -141,17 +145,14 @@ class EventsCard extends StatelessWidget {
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
                     children: [
-                      // Sahne Bilgisi
                       Row(
                         children: [
-                          // ✅ İkon rengi Primary
                           Icon(Icons.location_on,
                               size: 14, color: context.primaryColor),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               stage,
-                              // ✅ Yazı rengi otomatik (Light: Siyah, Dark: Beyaz)
                               style: context.textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w500,
                               ),
@@ -161,21 +162,16 @@ class EventsCard extends StatelessWidget {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 8),
                       Divider(
-                          // Divider rengi
                           color: context.isDarkMode
                               ? Colors.white12
                               : Colors.black12,
                           height: 1),
                       const SizedBox(height: 8),
-
-                      // Tarih ve Fiyat
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Tarih
                           Row(
                             children: [
                               Icon(Icons.calendar_today,
@@ -188,8 +184,6 @@ class EventsCard extends StatelessWidget {
                               ),
                             ],
                           ),
-
-                          // Fiyat
                           Text(
                             '₺${price.toStringAsFixed(0)}',
                             style: context.textTheme.titleMedium?.copyWith(

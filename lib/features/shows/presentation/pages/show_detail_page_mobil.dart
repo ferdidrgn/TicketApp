@@ -292,6 +292,7 @@ class ShowEventSection extends ConsumerWidget {
                   DateFormatter.formatForEventCard(event.date.toString());
 
               return EventsCard(
+                width: 280,
                 imageUrl: showData.imageUrl,
                 showName: showData.name,
                 category: "TİYATRO",
