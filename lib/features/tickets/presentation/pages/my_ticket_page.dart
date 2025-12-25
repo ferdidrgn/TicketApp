@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_modal.dart';
 import 'package:ticketapp/features/tickets/presentation/providers/ticket_provider.dart';
 import '../../../../core/util/date_formatter.dart';
@@ -51,7 +52,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   @override
   Widget build(final BuildContext context) {
     super.build(context);
-    final theme = Theme.of(context);
+    final theme = context.theme;
     final viewModel = ref.watch(ticketViewModelProvider);
 
     // Debug için - istersek kaldırabiliriz
@@ -70,8 +71,6 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 
   PreferredSizeWidget _buildAppBar(final ThemeData theme) {
     return AppBar(
-      elevation: 10,
-      backgroundColor: theme.colorScheme.surface,
       leading: IconButton(
         icon: Icon(Icons.arrow_back_ios_new_rounded,
             color: theme.colorScheme.onSurface),
