@@ -48,9 +48,8 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     _cityController = TextEditingController();
 
     // Veriyi çek
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      ref.read(userProvider.notifier).loadUserById(widget.userId);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((final _) =>
+        ref.read(userProvider.notifier).loadUserById(widget.userId));
   }
 
   @override
@@ -86,9 +85,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
     // Veri geldiğinde form alanlarını doldur
     ref.listen(userProvider, (final previous, final next) {
-      if (next.dataSingle != null) {
-        _fillFields(next.dataSingle!);
-      }
+      if (next.dataSingle != null) _fillFields(next.dataSingle!);
     });
 
     return Scaffold(
@@ -114,144 +111,137 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
-  Widget _buildForm(final BuildContext context, final User? currentUser) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      physics: const BouncingScrollPhysics(),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            const CustomArtWordsCard(
-              word: 'Her sanatçı başlangıçta bir amatördür.',
-              author: 'Ralph Waldo Emerson',
-            ),
-            const SizedBox(height: 32),
-            _buildProfileImagePicker(),
-            const SizedBox(height: 32),
-            _buildSectionTitle('Temel Bilgiler'),
-            _buildFieldsGrid(),
-            const SizedBox(height: 24),
-            _buildSectionTitle('İletişim & Konum'),
-            CustomTextField(
-              controller: _phoneController,
-              label: 'Telefon Numarası',
-              prefixIcon: const Icon(Icons.phone_iphone_rounded),
-              keyboardType: TextInputType.phone,
-            ),
-            CustomTextField(
-              controller: _cityController,
-              label: 'Yaşadığın Şehir',
-              prefixIcon: const Icon(Icons.map_rounded),
-            ),
-            const SizedBox(height: 40),
-            _buildSaveButton(currentUser),
-            const SizedBox(height: 40),
-          ],
+  Widget _buildForm(final BuildContext context, final User? currentUser) =>
+      SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        physics: const BouncingScrollPhysics(),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              const CustomArtWordsCard(
+                word: 'Her sanatçı başlangıçta bir amatördür.',
+                author: 'Ralph Waldo Emerson',
+              ),
+              const SizedBox(height: 32),
+              _buildProfileImagePicker(),
+              const SizedBox(height: 32),
+              _buildSectionTitle('Temel Bilgiler'),
+              _buildFieldsGrid(),
+              const SizedBox(height: 24),
+              _buildSectionTitle('İletişim & Konum'),
+              CustomTextField(
+                controller: _phoneController,
+                label: 'Telefon Numarası',
+                prefixIcon: const Icon(Icons.phone_iphone_rounded),
+                keyboardType: TextInputType.phone,
+              ),
+              CustomTextField(
+                controller: _cityController,
+                label: 'Yaşadığın Şehir',
+                prefixIcon: const Icon(Icons.map_rounded),
+              ),
+              const SizedBox(height: 40),
+              _buildSaveButton(currentUser),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildFieldsGrid() {
-    return Column(
-      children: [
-        // Ad ve Soyad Satırı
-        Row(
-          children: [
-            Expanded(
-              child: CustomTextField(
-                controller: _firstNameController,
-                label: 'Ad',
-                isRequired: true,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: CustomTextField(
-                controller: _lastNameController,
-                label: 'Soyad',
-                isRequired: true,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // E-posta ve Yaş Satırı
-        Row(
-          children: [
-            Expanded(
-              flex: 3, // E-posta alanı daha geniş olsun
-              child: CustomTextField(
-                controller: _emailController,
-                label: 'E-Posta Adresi',
-                prefixIcon: const Icon(Icons.alternate_email_rounded),
-                keyboardType: TextInputType.emailAddress,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 1, // Yaş alanı daha dar kalsın
-              child: CustomTextField(
-                controller: _ageController,
-                label: 'Yaş',
-                prefixIcon: const Icon(Icons.cake_rounded),
-                keyboardType: TextInputType.number,
-                // Sadece rakam girmesini garanti altına almak için:
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileImagePicker() {
-    return Center(
-      child: Stack(
+  Widget _buildFieldsGrid() => Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: context.colors.primary, width: 2),
-            ),
-            child: CircleAvatar(
-              radius: 60,
-              backgroundImage: NetworkImage(_profileImageUrl),
-              backgroundColor: context.colors.surfaceVariant,
-            ),
+          // Ad ve Soyad Satırı
+          Row(
+            children: [
+              Expanded(
+                child: CustomTextField(
+                  controller: _firstNameController,
+                  label: 'Ad',
+                  isRequired: true,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CustomTextField(
+                  controller: _lastNameController,
+                  label: 'Soyad',
+                  isRequired: true,
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: FloatingActionButton.small(
-              onPressed: () => _showSnackBar('Görsel seçme yakında!'),
-              child: const Icon(Icons.camera_alt_rounded),
-            ),
-          )
+          const SizedBox(height: 8),
+          // E-posta ve Yaş Satırı
+          Row(
+            children: [
+              Expanded(
+                flex: 3, // E-posta alanı daha geniş olsun
+                child: CustomTextField(
+                  controller: _emailController,
+                  label: 'E-Posta Adresi',
+                  prefixIcon: const Icon(Icons.alternate_email_rounded),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 1, // Yaş alanı daha dar kalsın
+                child: CustomTextField(
+                  controller: _ageController,
+                  label: 'Yaş',
+                  prefixIcon: const Icon(Icons.cake_rounded),
+                  keyboardType: TextInputType.number,
+                  // Sadece rakam girmesini garanti altına almak için:
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+              ),
+            ],
+          ),
         ],
-      ),
-    );
-  }
+      );
 
-  Widget _buildSectionTitle(final String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16, left: 4),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title.toUpperCase(),
-          style: context.textTheme.labelLarge?.copyWith(
-            color: context.colors.primary,
-            letterSpacing: 1.5,
-            fontWeight: FontWeight.bold,
+  Widget _buildProfileImagePicker() => Center(
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: context.colors.primary, width: 2),
+              ),
+              child: CircleAvatar(
+                radius: 60,
+                backgroundImage: NetworkImage(_profileImageUrl),
+                backgroundColor: context.colors.surfaceVariant,
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: FloatingActionButton.small(
+                onPressed: () => _showSnackBar('Görsel seçme yakında!'),
+                child: const Icon(Icons.camera_alt_rounded),
+              ),
+            )
+          ],
+        ),
+      );
+
+  Widget _buildSectionTitle(final String title) => Padding(
+        padding: const EdgeInsets.only(bottom: 16, left: 4),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            title.toUpperCase(),
+            style: context.textTheme.labelLarge?.copyWith(
+              color: context.colors.primary,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 
   Widget _buildSaveButton(final User? currentUser) {
     final isLoading = ref.watch(userProvider).isLoading;
@@ -307,13 +297,12 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
-  void _showSnackBar(final String msg, {final bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showSnackBar(final String msg, {final bool isError = false}) =>
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: isError ? Colors.red : Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
 }
