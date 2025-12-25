@@ -1,12 +1,11 @@
-// PARTİKÜL DECORATION WIDGET
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 class ParticleDecoration extends StatefulWidget {
   final bool isPast;
-  final ThemeData theme;
 
-  const ParticleDecoration({super.key, required this.isPast, required this.theme});
+  const ParticleDecoration({super.key, required this.isPast});
 
   @override
   State<ParticleDecoration> createState() => _ParticleDecorationState();
@@ -36,6 +35,7 @@ class _ParticleDecorationState extends State<ParticleDecoration>
 
   @override
   Widget build(final BuildContext context) {
+    final themeColors = context.colors;
     return AnimatedBuilder(
       animation: _controller,
       builder: (final context, final child) {
@@ -48,15 +48,15 @@ class _ParticleDecorationState extends State<ParticleDecoration>
               colors: widget.isPast
                   ? [Colors.grey.shade400, Colors.grey.shade600]
                   : [
-                      widget.theme.colorScheme.primary,
-                      widget.theme.colorScheme.primaryContainer,
+                      themeColors.primary,
+                      themeColors.primaryContainer,
                     ],
             ),
             boxShadow: [
               BoxShadow(
                   color: widget.isPast
                       ? Colors.grey.withOpacity(0.5)
-                      : widget.theme.colorScheme.primary.withOpacity(0.4),
+                      : themeColors.primary.withOpacity(0.4),
                   blurRadius: 10,
                   spreadRadius: 2)
             ],
