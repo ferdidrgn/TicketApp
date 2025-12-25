@@ -7,8 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-
-// Kendi projene göre bu import yollarını kontrol et
 import 'core/config/firebase_options.dart';
 import 'core/config/router/app_router.dart';
 import 'core/constants/app_constants.dart';
@@ -35,27 +33,27 @@ Future<void> main() async {
     return true;
   };
 
-  // 3. Mobil İçin Sistem Arayüz Ayarları (Edge-to-Edge)
+  // context olmadığında PlatformDispatcher bize cihazın parlaklık ayarını doğrudan verir.
+  final bool isDarkMode =
+      PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+
   if (!PlatformChecker.isWeb) {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness:
+          isDarkMode ? Brightness.light : Brightness.dark,
     ));
-    // İçeriği sistem barlarının altına yay
+
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
-  // 4. Servis Başlatmaları
   try {
     await LocalStorageService.init();
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await FirebaseMessaging.instance
+        .requestPermission(alert: true, badge: true, sound: true);
   } catch (e) {
     debugPrint('Servis Başlatma Hatası: $e');
   }
