@@ -501,46 +501,45 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  Widget _buildSecuritySection(
-      final LoginState loginState, final ThemeData theme, final bool isGuest) {
-    return Container(
-      decoration: _artisticContainerDecoration(theme),
-      child: Column(
-        children: [
-          // 🔥 Guest kullanıcılar hesap yükseltme seçenekleri
-          if (isGuest) ...[
+  Widget _buildSecuritySection(final LoginState loginState,
+          final ThemeData theme, final bool isGuest) =>
+      Container(
+        decoration: _artisticContainerDecoration(theme),
+        child: Column(
+          children: [
+            // 🔥 Guest kullanıcılar hesap yükseltme seçenekleri
+            if (isGuest) ...[
+              _buildListTile(
+                  theme,
+                  Icons.g_mobiledata_rounded,
+                  'Google ile Bağla',
+                  'Verilerini kalıcı hale getir',
+                  Colors.blue,
+                  _linkWithGoogle),
+              _buildListTile(
+                  theme,
+                  Icons.phone_iphone_rounded,
+                  'Telefon ile Bağla',
+                  'Numaranı ekle',
+                  Colors.green,
+                  _showPhoneLinkDialog),
+            ],
+
+            // Çıkış seçeneği (her durumda)
+            _buildListTile(theme, Icons.logout_rounded, 'Çıkış Yap',
+                'Oturumu sonlandır', Colors.orange, _signOut),
+
+            // 🔥 Hesap silme (Guest dahil herkes silebilir)
             _buildListTile(
                 theme,
-                Icons.g_mobiledata_rounded,
-                'Google ile Bağla',
-                'Verilerini kalıcı hale getir',
-                Colors.blue,
-                _linkWithGoogle),
-            _buildListTile(
-                theme,
-                Icons.phone_iphone_rounded,
-                'Telefon ile Bağla',
-                'Numaranı ekle',
-                Colors.green,
-                _showPhoneLinkDialog),
+                Icons.delete_forever_rounded,
+                'Hesabı Sil',
+                'Tüm verileri kalıcı sil',
+                Colors.red,
+                () => _showDeleteAccountDialog(loginState.user?.uid ?? '')),
           ],
-
-          // Çıkış seçeneği (her durumda)
-          _buildListTile(theme, Icons.logout_rounded, 'Çıkış Yap',
-              'Oturumu sonlandır', Colors.orange, _signOut),
-
-          // 🔥 Hesap silme (Guest dahil herkes silebilir)
-          _buildListTile(
-              theme,
-              Icons.delete_forever_rounded,
-              'Hesabı Sil',
-              'Tüm verileri kalıcı sil',
-              Colors.red,
-              () => _showDeleteAccountDialog(loginState.user?.uid ?? '')),
-        ],
-      ),
-    );
-  }
+        ),
+      );
 
   // --- ACTIONS & BUSINESS LOGIC ---
 
