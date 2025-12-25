@@ -3,13 +3,14 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
+import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
+import 'package:ticketapp/shared/widgets/card/shimmer_card.dart';
+import '../../../shows/presentation/providers/show_notifier.dart';
 import '../../domain/entities/player.dart';
 import '../providers/player_notifier.dart';
 import '../providers/player_provider.dart';
-import '../../../../shared/widgets/button/glass_back_button.dart';
 
 class PlayerDetailPage extends ConsumerStatefulWidget {
   final String playerId;
@@ -21,116 +22,187 @@ class PlayerDetailPage extends ConsumerStatefulWidget {
 }
 
 class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchInitialData());
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (mounted) _fetchInitialData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchInitialData() async {
-    final playerNotifier = ref.read(playerProvider.notifier);
-    final showNotifier = ref.read(showProvider.notifier);
+    // 1. OYUNCU KONTROLÜ (Hafızada var mı?)
+    var player = ref.read(playerProvider).getPlayerById(widget.playerId);
 
-    await playerNotifier.getPlayersByIds([widget.playerId]);
-    final player = ref.read(playerProvider).getPlayerById(widget.playerId);
+    if (player == null) {
+      await ref
+          .read(playerProvider.notifier)
+          .getPlayersByIds([widget.playerId]);
+      player = ref.read(playerProvider).getPlayerById(widget.playerId);
+    }
 
+    // 2. OYUNLAR KONTROLÜ
     if (player != null) {
-      final allShowIds = [...player.nowShowsId, ...player.oldShowsId];
-      await showNotifier.loadShowsByIds(allShowIds);
+      final showState = ref.read(showProvider);
+
+      // Modelindeki 'nowShowsId' ve 'oldShowsId' listelerini birleştiriyoruz
+      final allPlayerShowIds = [...player.nowShowsId, ...player.oldShowsId];
+
+      // Sadece hafızada OLMAYAN (eksik) oyunları bul
+      final List<String> missingShowIds = allPlayerShowIds.where((final id) {
+        if (id.trim().isEmpty) return false;
+        return showState.getShowById(id) == null;
+      }).toList();
+
+      // Eksikleri yükle
+      if (missingShowIds.isNotEmpty) {
+        await ref.read(showProvider.notifier).loadShowsByIds(missingShowIds);
+      }
+
+      // 3. ETKİNLİKLER (Opsiyonel, gerekirse buraya eklenir)
     }
   }
 
   @override
   Widget build(final BuildContext context) {
-    final colors = context.colors;
+    // TEMA AYARLARI
+    final theme = Theme.of(context);
+    final backgroundColor = theme.scaffoldBackgroundColor;
+    final primaryColor = theme.primaryColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.white;
+
     final playerState = ref.watch(playerProvider);
     final showState = ref.watch(showProvider);
+
     final playerData = playerState.getPlayerById(widget.playerId);
 
-    if (playerState.isLoading && playerData == null)
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (playerData == null)
-      return const Scaffold(body: Center(child: Text("Sanatçı bulunamadı.")));
+    // Loading
+    if (playerState.isLoading && playerData == null) {
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: Center(child: CircularProgressIndicator(color: primaryColor)),
+      );
+    }
 
+    // Hata
+    if (playerData == null) {
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+        body: Center(
+            child:
+                Text("Oyuncu bulunamadı.", style: TextStyle(color: textColor))),
+      );
+    }
+
+    // --- GÖSTERİLERİ AYIKLA (Modeline uygun şekilde) ---
+    // 1. Aktif Gösteriler
     final activeShows = showState.dataList
-            ?.where((s) => playerData.nowShowsId.contains(s.id))
+            ?.where((final show) => playerData.nowShowsId.contains(show.id))
             .toList() ??
         [];
+
+    // 2. Eski Gösteriler
     final oldShows = showState.dataList
-            ?.where((s) => playerData.oldShowsId.contains(s.id))
+            ?.where((final show) => playerData.oldShowsId.contains(show.id))
             .toList() ??
         [];
 
     return Scaffold(
-      backgroundColor: colors.background,
+      backgroundColor: backgroundColor,
       body: CustomScrollView(
+        controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // --- 🎨 1. SANATÇI PORTRESİ (BLUR EFEKTLİ) ---
+          // --- 1. PARALLAX BAŞLIK ---
           SliverAppBar(
             expandedHeight: MediaQuery.of(context).size.height * 0.55,
             pinned: true,
             stretch: true,
-            leading: const Padding(
-                padding: EdgeInsets.all(8.0), child: GlassBackButton()),
-            backgroundColor: colors.background,
+            backgroundColor: backgroundColor,
+            elevation: 0,
+            leading: _buildBackButton(theme),
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [
                 StretchMode.zoomBackground,
                 StretchMode.blurBackground
               ],
+              centerTitle: true,
               title: Text(
-                  "${playerData.firstName} ${playerData.lastName}"
-                      .toUpperCase(),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      letterSpacing: 2)),
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CachedNetworkImage(
-                      imageUrl: playerData.imageUrl, fit: BoxFit.cover),
-                  DecoratedBox(
-                      decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                        Colors.transparent,
-                        colors.background
-                      ]))),
-                ],
+                "${playerData.firstName} ${playerData.lastName}",
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16),
               ),
+              background: _buildHeaderBackground(
+                  playerData, primaryColor, backgroundColor),
             ),
           ),
 
-          // --- 📜 2. SANATSAL YOLCULUK ---
+          // --- 2. İÇERİK ---
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 32),
-                  _buildSectionLabel(context, "SANATSAL YOLCULUK",
-                      "Sahne tozuna karışan bir ömür..."),
-                  const SizedBox(height: 16),
-                  Text(playerData.bio,
-                      style: context.textTheme.bodyLarge?.copyWith(
-                          height: 1.8, color: colors.onSurfaceVariant)),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 25),
+
+                  // Biyografi
+                  _buildSectionTitle("BİYOGRAFİ", primaryColor, textColor),
+                  const SizedBox(height: 15),
+                  // Modeline uygun 'bio' alanını kullanıyoruz
+                  Text(
+                    playerData.bio.isNotEmpty
+                        ? playerData.bio
+                        : "Biyografi bilgisi bulunamadı.",
+                    style: TextStyle(
+                      color: textColor.withOpacity(0.8),
+                      fontSize: 16,
+                      height: 1.6,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                  const SizedBox(height: 35),
+
+                  // AKTİF GÖSTERİLER
                   if (activeShows.isNotEmpty) ...[
-                    _buildSectionLabel(context, "SAHNE İMZALARI",
-                        "Şu an ruh verdiği karakterler"),
-                    _buildShowList(context, activeShows, false),
+                    _buildSectionTitle("GÖSTERİLERİ", primaryColor, textColor),
+                    const SizedBox(height: 20),
+                    _buildHorizontalShowList(
+                        context, activeShows, primaryColor, backgroundColor),
+                    const SizedBox(height: 30),
                   ],
-                  const SizedBox(height: 40),
+
+                  // ESKİ GÖSTERİLER
                   if (oldShows.isNotEmpty) ...[
-                    _buildSectionLabel(context, "ARŞİVDEKİ PERDELER",
-                        "Hafızalarda kalan temsiller"),
-                    _buildShowList(context, oldShows, true),
+                    _buildSectionTitle(
+                        "ESKİ GÖSTERİLERİ", primaryColor, textColor),
+                    const SizedBox(height: 20),
+                    // Eski gösteriler için isGrayscale: true yaptık
+                    _buildHorizontalShowList(
+                        context, oldShows, primaryColor, backgroundColor,
+                        isGrayscale: true),
                   ],
+
+                  if (activeShows.isEmpty &&
+                      oldShows.isEmpty &&
+                      !showState.isLoading)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Text("Kayıtlı gösteri bulunamadı.",
+                          style: TextStyle(color: textColor.withOpacity(0.5))),
+                    ),
+
                   const SizedBox(height: 100),
                 ],
               ),
@@ -141,59 +213,210 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage> {
     );
   }
 
-  Widget _buildSectionLabel(
-      BuildContext context, String title, String subtitle) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Container(width: 4, height: 20, color: context.colors.primary),
-        const SizedBox(width: 12),
-        Text(title,
-            style: context.textTheme.labelLarge
-                ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 2)),
-      ]),
-      Text(subtitle,
-          style: context.textTheme.bodySmall?.copyWith(
-              fontStyle: FontStyle.italic,
-              color: context.colors.primary.withOpacity(0.6))),
-    ]);
+  // --- YARDIMCI WIDGETLAR ---
+
+  Widget _buildBackButton(final ThemeData theme) {
+    return Center(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            height: 40,
+            width: 40,
+            decoration: BoxDecoration(
+                color: (theme.brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black)
+                    .withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white24)),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new,
+                  color: Colors.white, size: 18),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
-  Widget _buildShowList(BuildContext context, List shows, bool isGrayscale) {
+  Widget _buildHeaderBackground(
+      final Player player, final Color primaryColor, final Color bgColor) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CachedNetworkImage(
+          imageUrl: player.imageUrl,
+          fit: BoxFit.cover,
+          memCacheHeight: 800,
+          placeholder: (final context, final url) => Container(color: bgColor),
+          errorWidget: (final context, final url, final error) =>
+              Container(color: bgColor, child: const Icon(Icons.person)),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, bgColor.withOpacity(0.2), bgColor],
+              stops: const [0.5, 0.8, 1.0],
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 60,
+          left: 20,
+          right: 20,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                    color: primaryColor,
+                    borderRadius: BorderRadius.circular(20)),
+                child: const Text("OYUNCU",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "${player.firstName}\n${player.lastName}",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
+                    shadows: [
+                      Shadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5))
+                    ]),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(
+      final String title, final Color primaryColor, final Color textColor) {
+    return Row(
+      children: [
+        Container(width: 4, height: 24, color: primaryColor),
+        const SizedBox(width: 10),
+        Text(title,
+            style: TextStyle(
+                color: textColor,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1)),
+      ],
+    );
+  }
+
+  Widget _buildHorizontalShowList(final BuildContext context,
+      final List<Show> shows, final Color primaryColor, final Color bgColor,
+      {final bool isGrayscale = false}) {
     return SizedBox(
       height: 220,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: shows.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           final show = shows[index];
           return GestureDetector(
             onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => ShowDetailPage(showId: show.id))),
+                    builder: (final context) =>
+                        ShowDetailPage(showId: show.id))),
             child: Container(
               width: 160,
-              margin: const EdgeInsets.only(right: 16, top: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: ColorFiltered(
-                        colorFilter: ColorFilter.mode(
-                            isGrayscale ? Colors.grey : Colors.transparent,
-                            BlendMode.saturation),
-                        child: CachedNetworkImage(
-                            imageUrl: show.imageUrl, fit: BoxFit.cover),
+              margin: const EdgeInsets.only(right: 15),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4))
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  children: [
+                    ColorFiltered(
+                      colorFilter: isGrayscale
+                          ? const ColorFilter.mode(
+                              Colors.grey, BlendMode.saturation)
+                          : const ColorFilter.mode(
+                              Colors.transparent, BlendMode.saturation),
+                      child: CachedNetworkImage(
+                        imageUrl: show.imageUrl,
+                        fit: BoxFit.cover,
+                        height: double.infinity,
+                        width: double.infinity,
+                        memCacheHeight: 400,
+                        placeholder: (final context, final url) =>
+                            const ShimmerLoading(
+                                width: double.infinity,
+                                height: double.infinity),
+                        errorWidget: (final context, final url, final error) =>
+                            Container(
+                                color: bgColor, child: const Icon(Icons.error)),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(show.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                      maxLines: 1),
-                ],
+                    Container(
+                      decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.9)
+                          ],
+                              stops: const [
+                            0.5,
+                            1.0
+                          ])),
+                    ),
+                    Positioned(
+                      bottom: 15,
+                      left: 15,
+                      right: 15,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(show.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16)),
+                          const SizedBox(height: 5),
+                          Text("Detaylar >",
+                              style: TextStyle(
+                                  color: isGrayscale
+                                      ? Colors.white70
+                                      : primaryColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
               ),
             ),
           );
