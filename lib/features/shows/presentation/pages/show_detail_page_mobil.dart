@@ -25,7 +25,6 @@ import '../../domain/entities/show.dart';
 import '../providers/show_notifier.dart';
 import '../widgets/mobile/show_info_section.dart';
 import '../widgets/mobile/show_parallax_header.dart';
-import '../widgets/mobile/show_photo_gallery.dart';
 
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
