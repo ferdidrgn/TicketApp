@@ -187,12 +187,12 @@ class _TabSelector extends StatelessWidget {
 // ============================================================
 // ARTISTIC TICKET CARD (MÜZE KARTI TASARIMI)
 // ============================================================
-class _ArtisticTicketCard extends StatelessWidget {
+class _TicketCard extends StatelessWidget {
   final DetailedTicket detailedTicket;
   final bool isPast;
   final VoidCallback onTap;
 
-  const _ArtisticTicketCard({
+  const _TicketCard({
     required this.detailedTicket,
     required this.onTap,
     this.isPast = false,
@@ -385,7 +385,7 @@ class _TicketList extends StatelessWidget {
   Widget build(final BuildContext context) => ListView.builder(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
         itemCount: tickets.length,
-        itemBuilder: (final context, final index) => _ArtisticTicketCard(
+        itemBuilder: (final context, final index) => _TicketCard(
           detailedTicket: tickets[index],
           isPast: isPast,
           onTap: () => onTicketTap(tickets[index]),
