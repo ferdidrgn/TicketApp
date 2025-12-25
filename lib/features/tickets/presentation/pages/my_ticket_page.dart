@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_modal.dart';
 import 'package:ticketapp/features/tickets/presentation/providers/ticket_provider.dart';
-import 'package:ticketapp/shared/widgets/button/glass_back_button.dart';
+import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
@@ -56,61 +56,31 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 
     return Scaffold(
       backgroundColor: themeColors.surface,
-      body: CustomAppBackground(
-        child: Column(
-          children: [
-            _buildArtisticHeader(context),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: _ArtisticTabSelector(controller: _tabController),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadTicketData,
-                color: themeColors.primary,
-                child: _buildBody(viewModel),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildArtisticHeader(final BuildContext context) {
-    final themeColors = context.colors;
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Center(
+        child: CustomAppBackground(
+          child: SafeArea(
+            child: Column(
               children: [
-               GlassBackButton(),
-                Icon(Icons.theater_comedy_rounded,
-                    color: themeColors.primary.withOpacity(0.5), size: 28),
+                TopNormalHeader(
+                  title: 'Sanat Ajandan',
+                  subtitle: 'Unutulmaz anların koleksiyonu...',
+                  rightIcon: Icons.theater_comedy_rounded,
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: _TabSelector(controller: _tabController),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _loadTicketData,
+                    color: themeColors.primary,
+                    child: _buildBody(viewModel),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Sanat Ajandan',
-              style: context.textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: themeColors.onSurface,
-                letterSpacing: -1,
-              ),
-            ),
-            Text(
-              'Unutulmaz anların koleksiyonu...',
-              style: context.textTheme.bodyLarge?.copyWith(
-                color: themeColors.onSurfaceVariant.withOpacity(0.7),
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -124,15 +94,15 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
         itemBuilder: (final _, final __) => const ShimmerCard(),
       );
 
-    if (viewModel.isEmpty) return const _ArtisticEmptyState();
+    if (viewModel.isEmpty) return const _EmptyState();
 
     return TabBarView(
       controller: _tabController,
       children: [
-        _ArtisticTicketList(
+        _TicketList(
             tickets: viewModel.upcomingTickets,
             onTicketTap: _showTicketDetails),
-        _ArtisticTicketList(
+        _TicketList(
             tickets: viewModel.pastTickets,
             isPast: true,
             onTicketTap: _showTicketDetails),
@@ -153,10 +123,10 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 // ============================================================
 // ARTISTIC TAB SELECTOR (YÜKSEK KONTRASTLI)
 // ============================================================
-class _ArtisticTabSelector extends StatelessWidget {
+class _TabSelector extends StatelessWidget {
   final TabController controller;
 
-  const _ArtisticTabSelector({required this.controller});
+  const _TabSelector({required this.controller});
 
   @override
   Widget build(final BuildContext context) {
@@ -403,12 +373,12 @@ class _ArtInfoLine extends StatelessWidget {
       );
 }
 
-class _ArtisticTicketList extends StatelessWidget {
+class _TicketList extends StatelessWidget {
   final List<DetailedTicket> tickets;
   final bool isPast;
   final Function(DetailedTicket) onTicketTap;
 
-  const _ArtisticTicketList(
+  const _TicketList(
       {required this.tickets, required this.onTicketTap, this.isPast = false});
 
   @override
@@ -423,8 +393,8 @@ class _ArtisticTicketList extends StatelessWidget {
       );
 }
 
-class _ArtisticEmptyState extends StatelessWidget {
-  const _ArtisticEmptyState();
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
 
   @override
   Widget build(final BuildContext context) => Center(

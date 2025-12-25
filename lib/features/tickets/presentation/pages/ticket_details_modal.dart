@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../../core/util/date_formatter.dart';
 import 'my_ticket_viewmodel.dart';
 
@@ -28,20 +29,16 @@ class _LuxuryTicketDetails extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
+    final themeColors = context.colors;
     final dateInfo = DateFormatter.formatForEventCard(ticket.event?.date ?? '');
-    final eventYear = DateFormatter
-        .parseDateString(ticket.event?.date)
-        ?.year ??
-        DateTime
-            .now()
-            .year;
+    final eventYear = DateFormatter.parseDateString(ticket.event?.date)?.year ??
+        DateTime.now().year;
     final dateText = "${dateInfo['day']} ${dateInfo['monthName']} $eventYear";
     final timeText = dateInfo['time'] ?? '--:--';
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: themeColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
@@ -58,7 +55,7 @@ class _LuxuryTicketDetails extends StatelessWidget {
               width: 60,
               height: 5,
               decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: themeColors.onSurface.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(3))),
 
           Expanded(
@@ -69,8 +66,7 @@ class _LuxuryTicketDetails extends StatelessWidget {
                 // Event Image - FULL WIDTH
                 _LargeEventImage(
                     imageUrl: ticket.show?.imageUrl ?? '',
-                    title: ticket.show?.name ?? 'Gösteri Adı',
-                    theme: theme),
+                    title: ticket.show?.name ?? 'Gösteri Adı'),
                 const SizedBox(height: 32),
 
                 Padding(
@@ -78,16 +74,14 @@ class _LuxuryTicketDetails extends StatelessWidget {
                   child: Column(
                     children: [
                       // QR Code Section
-                      _LargeQRCodeSection(
-                          ticketId: ticket.ticket.id, theme: theme),
+                      _LargeQRCodeSection(ticketId: ticket.ticket.id),
                       const SizedBox(height: 32),
 
                       // Ticket Details
                       _DetailsSection(
                           ticket: ticket,
                           dateText: dateText,
-                          timeText: timeText,
-                          theme: theme),
+                          timeText: timeText),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -104,13 +98,13 @@ class _LuxuryTicketDetails extends StatelessWidget {
 class _LargeEventImage extends StatelessWidget {
   final String imageUrl;
   final String title;
-  final ThemeData theme;
 
-  const _LargeEventImage(
-      {required this.imageUrl, required this.title, required this.theme});
+  const _LargeEventImage({required this.imageUrl, required this.title});
 
   @override
   Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+
     return Container(
       height: 240,
       margin: EdgeInsets.zero,
@@ -122,7 +116,7 @@ class _LargeEventImage extends StatelessWidget {
               offset: const Offset(0, 10),
               spreadRadius: 2),
           BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.2),
+              color: themeColors.primary.withOpacity(0.2),
               blurRadius: 30,
               offset: const Offset(0, 15),
               spreadRadius: -5)
@@ -136,38 +130,36 @@ class _LargeEventImage extends StatelessWidget {
             width: double.infinity,
             height: double.infinity,
             fit: BoxFit.cover,
-            placeholder: (final context, final url) =>
-                Container(
-                    height: 240,
-                    decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            theme.colorScheme.surfaceVariant,
-                            theme.colorScheme.surfaceContainer,
-                          ],
-                        ))),
-            errorWidget: (final context, final url, final error) =>
-                Container(
-                  height: 240,
-                  decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [
-                        theme.colorScheme.surfaceVariant,
-                        theme.colorScheme.surfaceContainer
-                      ])),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image_rounded,
-                          size: 64, color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(height: 12),
-                      Text('Görsel yüklenemedi',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant)),
-                    ],
-                  ),
-                ),
+            placeholder: (final context, final url) => Container(
+                height: 240,
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    themeColors.surfaceVariant,
+                    themeColors.surfaceContainer,
+                  ],
+                ))),
+            errorWidget: (final context, final url, final error) => Container(
+              height: 240,
+              decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                themeColors.surfaceVariant,
+                themeColors.surfaceContainer
+              ])),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image_rounded,
+                      size: 64, color: themeColors.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text('Görsel yüklenemedi',
+                      style: context.textTheme.titleMedium
+                          ?.copyWith(color: themeColors.onSurfaceVariant)),
+                ],
+              ),
+            ),
           ),
 
           // Gradient overlay
@@ -196,7 +188,7 @@ class _LargeEventImage extends StatelessWidget {
             right: 24,
             bottom: 24,
             child: Text(title,
-                style: theme.textTheme.headlineSmall?.copyWith(
+                style: context.textTheme.headlineSmall?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
                   fontSize: 28,
@@ -219,15 +211,14 @@ class _LargeEventImage extends StatelessWidget {
 /// Modal içindeki QR kod bölümü.
 class _LargeQRCodeSection extends StatelessWidget {
   final String ticketId;
-  final ThemeData theme;
 
-  const _LargeQRCodeSection({
-    required this.ticketId,
-    required this.theme,
-  });
+  const _LargeQRCodeSection({required this.ticketId});
 
   @override
   Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+    final themeText = context.textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -238,8 +229,8 @@ class _LargeQRCodeSection extends StatelessWidget {
                 decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        theme.colorScheme.primary,
-                        theme.colorScheme.primaryContainer
+                        themeColors.primary,
+                        themeColors.primaryContainer
                       ],
                     ),
                     borderRadius: BorderRadius.circular(10)),
@@ -247,7 +238,7 @@ class _LargeQRCodeSection extends StatelessWidget {
                     color: Colors.white, size: 24)),
             const SizedBox(width: 12),
             Text('Bilet QR Kodu',
-                style: theme.textTheme.headlineSmall
+                style: context.textTheme.headlineSmall
                     ?.copyWith(fontWeight: FontWeight.w700, fontSize: 22)),
           ],
         ),
@@ -259,21 +250,21 @@ class _LargeQRCodeSection extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                theme.colorScheme.primaryContainer.withOpacity(0.8),
-                theme.colorScheme.primaryContainer.withOpacity(0.4),
+                themeColors.primaryContainer.withOpacity(0.8),
+                themeColors.primaryContainer.withOpacity(0.4),
               ],
             ),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.3), width: 2),
+                color: themeColors.primary.withOpacity(0.3), width: 2),
             boxShadow: [
               BoxShadow(
-                  color: theme.colorScheme.primary.withOpacity(0.2),
+                  color: themeColors.primary.withOpacity(0.2),
                   blurRadius: 30,
                   offset: const Offset(0, 12),
                   spreadRadius: -5),
               BoxShadow(
-                  color: theme.colorScheme.shadow.withOpacity(0.1),
+                  color: themeColors.shadow.withOpacity(0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8)),
             ],
@@ -290,7 +281,7 @@ class _LargeQRCodeSection extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                              color: theme.colorScheme.shadow.withOpacity(0.2),
+                              color: themeColors.shadow.withOpacity(0.2),
                               blurRadius: 20,
                               offset: const Offset(0, 8)),
                         ],
@@ -301,10 +292,10 @@ class _LargeQRCodeSection extends StatelessWidget {
                         size: 100,
                         eyeStyle: QrEyeStyle(
                             eyeShape: QrEyeShape.square,
-                            color: theme.colorScheme.primary),
+                            color: themeColors.primary),
                         dataModuleStyle: QrDataModuleStyle(
                             dataModuleShape: QrDataModuleShape.square,
-                            color: theme.colorScheme.primary),
+                            color: themeColors.primary),
                       )),
                   const SizedBox(width: 20),
 
@@ -317,20 +308,19 @@ class _LargeQRCodeSection extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                                color:
-                                theme.colorScheme.primary.withOpacity(0.15),
+                                color: themeColors.primary.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(8)),
                             child: Text('GİRİŞ KODU',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.primary,
+                                style: themeText.labelSmall?.copyWith(
+                                    color: themeColors.primary,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 1.2))),
                         const SizedBox(height: 12),
                         Text(
                           'Bu kodu girişte\ngösterin',
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: themeText.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimaryContainer,
+                              color: themeColors.onPrimaryContainer,
                               height: 1.3),
                         ),
                         const SizedBox(height: 12),
@@ -340,15 +330,15 @@ class _LargeQRCodeSection extends StatelessWidget {
                               vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                                color: theme.colorScheme.surface,
+                                color: themeColors.surface,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: theme.colorScheme.outline
-                                        .withOpacity(0.2))),
+                                    color:
+                                        themeColors.outline.withOpacity(0.2))),
                             child: Text(ticketId,
-                                style: theme.textTheme.bodySmall?.copyWith(
+                                style: themeText.bodySmall?.copyWith(
                                     fontFamily: 'monospace',
-                                    color: theme.colorScheme.onSurface,
+                                    color: themeColors.onSurface,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.5),
                                 maxLines: 2,
@@ -372,17 +362,17 @@ class _DetailsSection extends StatelessWidget {
   final DetailedTicket ticket;
   final String dateText;
   final String timeText;
-  final ThemeData theme;
 
   const _DetailsSection({
     required this.ticket,
     required this.dateText,
     required this.timeText,
-    required this.theme,
   });
 
   @override
   Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -394,8 +384,8 @@ class _DetailsSection extends StatelessWidget {
                 decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        theme.colorScheme.primary,
-                        theme.colorScheme.primaryContainer,
+                        themeColors.primary,
+                        themeColors.primaryContainer,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(10)),
@@ -403,7 +393,7 @@ class _DetailsSection extends StatelessWidget {
                     color: Colors.white, size: 24)),
             const SizedBox(width: 12),
             Text('Bilet Bilgileri',
-                style: theme.textTheme.headlineSmall
+                style: context.textTheme.headlineSmall
                     ?.copyWith(fontWeight: FontWeight.w700, fontSize: 22))
           ],
         ),
@@ -417,15 +407,15 @@ class _DetailsSection extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                theme.colorScheme.surfaceContainer.withOpacity(0.8),
-                theme.colorScheme.surfaceContainer.withOpacity(0.4),
+                themeColors.surfaceContainer.withOpacity(0.8),
+                themeColors.surfaceContainer.withOpacity(0.4),
               ],
             ),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: theme.colorScheme.primary, width: 1),
+            border: Border.all(color: themeColors.primary, width: 1),
             boxShadow: [
               BoxShadow(
-                  color: theme.colorScheme.shadow.withOpacity(0.1),
+                  color: themeColors.shadow.withOpacity(0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8))
             ],
@@ -436,39 +426,33 @@ class _DetailsSection extends StatelessWidget {
                   icon: Icons.event_seat_rounded,
                   title: 'Koltuk Numaraları',
                   subtitle: ticket.ticket.buySeats.join(", "),
-                  theme: theme,
                   isHighlighted: true),
               const _CustomDivider(),
               _InfoListTile(
                   icon: Icons.location_on_rounded,
                   title: 'Sahne',
-                  subtitle: ticket.stage?.name ?? 'Yükleniyor...',
-                  theme: theme),
+                  subtitle: ticket.stage?.name ?? 'Yükleniyor...'),
               const _CustomDivider(),
               _InfoListTile(
                   icon: Icons.calendar_month_rounded,
                   title: 'Tarih',
-                  subtitle: dateText,
-                  theme: theme),
+                  subtitle: dateText),
               const _CustomDivider(),
               _InfoListTile(
                   icon: Icons.access_time_filled_rounded,
                   title: 'Saat',
-                  subtitle: timeText,
-                  theme: theme),
+                  subtitle: timeText),
               const _CustomDivider(),
               _InfoListTile(
                   icon: Icons.payments_rounded,
                   title: 'Ödenen Tutar',
                   subtitle: '${ticket.ticket.orderPrice} TL',
-                  theme: theme,
                   isHighlighted: true),
               const _CustomDivider(),
               _InfoListTile(
                   icon: Icons.credit_card_rounded,
                   title: 'Ödeme Yöntemi',
                   subtitle: ticket.ticket.orderMethod,
-                  theme: theme,
                   isLast: true)
             ],
           ),
@@ -483,17 +467,11 @@ class _CustomDivider extends StatelessWidget {
   const _CustomDivider();
 
   @override
-  Widget build(final BuildContext context) {
-    return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Divider(
-            height: 1,
-            color: Theme
-                .of(context)
-                .colorScheme
-                .outline
-                .withOpacity(0.2)));
-  }
+  Widget build(final BuildContext context) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Divider(
+          height: 1,
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.2)));
 }
 
 /// Dikey liste içindeki her bir yatay bilgi satırı.
@@ -501,7 +479,6 @@ class _InfoListTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final ThemeData theme;
   final bool isHighlighted;
   final bool isLast;
 
@@ -509,20 +486,22 @@ class _InfoListTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.theme,
     this.isHighlighted = false,
     this.isLast = false,
   });
 
   @override
   Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+    final themeText = context.textTheme;
+
     // İkonun "arka plan" rengini belirler
     final iconBackgroundColor =
-    isHighlighted ? theme.colorScheme.primary : theme.colorScheme.tertiary;
+        isHighlighted ? themeColors.primary : themeColors.tertiary;
 
     // Alt başlığın (değerin) rengini belirler
     final subtitleColor =
-    isHighlighted ? theme.colorScheme.primary : theme.colorScheme.onSurface;
+        isHighlighted ? themeColors.primary : themeColors.onSurface;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -533,7 +512,7 @@ class _InfoListTile extends StatelessWidget {
             decoration: BoxDecoration(
                 color: iconBackgroundColor.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(14)),
-            child: Icon(icon, color: theme.colorScheme.primary, size: 24)),
+            child: Icon(icon, color: themeColors.primary, size: 24)),
         const SizedBox(width: 16),
 
         // Başlık ve Alt Başlık
@@ -542,15 +521,15 @@ class _InfoListTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title.toUpperCase(),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  style: themeText.labelMedium?.copyWith(
+                      color: themeColors.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
               Text(subtitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: themeText.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: subtitleColor,
                       height: 1.2),

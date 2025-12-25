@@ -10,7 +10,7 @@ import '../../../../shared/widgets/button/glass_back_button.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
-import '../../../../shared/widgets/top_header.dart';
+import '../../../../shared/widgets/top_gradient_header.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/providers/player_provider.dart';
 import '../../../players/presentation/widgets/players_hero_card.dart';
