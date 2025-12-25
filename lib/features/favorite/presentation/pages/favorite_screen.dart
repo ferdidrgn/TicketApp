@@ -1,229 +1,197 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/section_header.dart';
+import 'package:flutter/services.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
+import 'package:ticketapp/shared/widgets/top_normal_header.dart';
+import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
 
-class Favorite {
-  final String title;
-  final String description;
-  final String imageUrl;
+class FavoritesPage extends StatefulWidget {
+  const FavoritesPage({super.key});
 
-  Favorite({
-    required this.title,
-    required this.description,
-    required this.imageUrl,
-  });
+  @override
+  State<FavoritesPage> createState() => _FavoritesPageState();
 }
 
-class FavoritesPage extends StatelessWidget {
-  FavoritesPage({super.key});
+class _FavoritesPageState extends State<FavoritesPage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
 
-  // Örnek favori oyunlar, oyuncular ve sahneler verileri
-  final List<Favorite> favoriteGames = [
-    Favorite(
-      title: 'Oyun 1',
-      description: 'Macera dolu bir oyun.',
-      imageUrl: 'https://via.placeholder.com/150',
-    ),
-    Favorite(
-      title: 'Oyun 2',
-      description: 'Eğlenceli bir bulmaca oyunu.',
-      imageUrl: 'https://via.placeholder.com/150',
-    ),
-    // Daha fazla oyun ekleyebilirsiniz
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() => setState(() {}));
+  }
 
-  final List<Favorite> favoritePlayers = [
-    Favorite(
-      title: 'Oyuncu 1',
-      description: 'Başarılı bir oyuncu.',
-      imageUrl: 'https://via.placeholder.com/150',
-    ),
-    Favorite(
-      title: 'Oyuncu 2',
-      description: 'Tecrübeli bir sahne sanatçısı.',
-      imageUrl: 'https://via.placeholder.com/150',
-    ),
-    // Daha fazla oyuncu ekleyebilirsiniz
-  ];
-
-  final List<Favorite> favoriteScenes = [
-    Favorite(
-      title: 'Sahne 1',
-      description: 'Büyüleyici bir konser sahnesi.',
-      imageUrl: 'https://via.placeholder.com/150',
-    ),
-    Favorite(
-      title: 'Sahne 2',
-      description: 'Harika bir tiyatro performansı.',
-      imageUrl: 'https://via.placeholder.com/150',
-    ),
-    // Daha fazla sahne ekleyebilirsiniz
-  ];
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Favorilerim'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            const SectionHeader(title: 'Favori Oyunlar'),
-            _buildShows(),
-            const SizedBox(height: 20),
-            const SectionHeader(title: 'Favori Sahneler'),
-            _buildStageSection(),
-            const SizedBox(height: 20),
-            const SectionHeader(title: 'Favori Oyuncular'),
-            _buildPlayers(),
-          ],
-        ),
-      ),
-    );
-  }
+      backgroundColor: themeColors.surface,
+      body: CustomAppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Biletlerim sayfasıyla aynı sanatsal header
+              const TopNormalHeader(
+                title: 'Koleksiyonum',
+                subtitle: 'Kalbinde yer eden tüm sahneler...',
+                rightIcon: Icons.favorite_rounded,
+              ),
 
-  Widget _buildShows() {
-    return SizedBox(
-      height: 200,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: 10,
-        itemBuilder: (final context, final index) {
-          return _buildEventCard(context, index);
-        },
-      ),
-    );
-  }
+              // 3'lü Tab Seçici
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: _FavoriteTabSelector(controller: _tabController),
+              ),
 
-  Widget _buildEventCard(final BuildContext context, final int index) {
-    final List<String> events = [
-      'Etkinlik 1',
-      'Etkinlik 2',
-      'Etkinlik 3',
-      'Etkinlik 4',
-      'Etkinlik 5',
-      'Etkinlik 6',
-      'Etkinlik 7',
-      'Etkinlik 8',
-      'Etkinlik 9',
-      'Etkinlik 10',
-      'Etkinlik 11',
-      'Etkinlik 12',
-      'Etkinlik 13',
-      'Etkinlik 14',
-      'Etkinlik 15'
-    ];
-    return GestureDetector(
-      child: ShowCard(
-        imageUrl:
-            'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
-        gameName: events[index],
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final context) => const ShowDetailPage(showId: '0')),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStageSection() {
-    final List<String> venues = [
-      'Halit Akçatepe Sahnesi',
-      'Sahne 2',
-      'Sahne 3',
-      'Sahne 4',
-      'Sahne 5',
-      'Sahne 6',
-      'Sahne 7',
-      'Sahne 8',
-      'Sahne 9',
-      'Sahne 10',
-      'Sahne 11',
-      'Sahne 12',
-      'Sahne 13',
-      'Sahne 14',
-      'Sahne 15'
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 185,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: venues.length,
-            itemBuilder: (final context, final index) {
-              return CustomStageCard(
-                text: venues[index],
-                imageUrl:
-                    'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (final context) =>
-                            const StageDetailPage(stageId: '0')),
-                  );
-                },
-              );
-            },
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildShowGrid(context),
+                    _buildStageGrid(context),
+                    _buildPlayerGrid(context),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildPlayers() {
-    final List<String> players = [
-      'Oyuncu 1',
-      'Oyuncu 2',
-      'Oyuncu 3',
-      'Oyuncu 4',
-      'Oyuncu 5',
-      'Oyuncu 6',
-      'Oyuncu 7',
-      'Oyuncu 8',
-      'Oyuncu 9',
-      'Oyuncu 10',
-      'Oyuncu 11',
-      'Oyuncu 12',
-      'Oyuncu 13',
-      'Oyuncu 14',
-      'Oyuncu 15'
-    ];
-
-    return SizedBox(
-      height: 185,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: players.length,
-        itemBuilder: (final context, final index) {
-          return CustomStageCard(
-            text: players[index],
-            imageUrl:
-                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-cV2ZIk5Wi_uoyY1PdDVM2vFzuSMQATw7iw&s',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (final context) =>
-                        const PlayerDetailPage(playerId: "0")),
-              );
-            },
-          );
+  // --- OYUNLAR GRID ---
+  Widget _buildShowGrid(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: 6, // Geçici veri
+      itemBuilder: (context, index) => ShowCard(
+        imageUrl:
+            'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
+        gameName: 'Favori Oyun $index',
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const ShowDetailPage(showId: '0')));
         },
+      ),
+    );
+  }
+
+  // --- SAHNELER GRID ---
+  Widget _buildStageGrid(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: 4, // Geçici veri
+      itemBuilder: (context, index) => CustomStageCard(
+        text: 'Sahne $index',
+        imageUrl:
+            'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const StageDetailPage(stageId: '0')));
+        },
+      ),
+    );
+  }
+
+  // --- OYUNCULAR GRID ---
+  Widget _buildPlayerGrid(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: 5, // Geçici veri
+      itemBuilder: (context, index) => CustomStageCard(
+        text: 'Sanatçı $index',
+        imageUrl:
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-cV2ZIk5Wi_uoyY1PdDVM2vFzuSMQATw7iw&s',
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const PlayerDetailPage(playerId: "0")));
+        },
+      ),
+    );
+  }
+}
+
+// ============================================================
+// FAVORITE TAB SELECTOR
+// ============================================================
+class _FavoriteTabSelector extends StatelessWidget {
+  final TabController controller;
+
+  const _FavoriteTabSelector({required this.controller});
+
+  @override
+  Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: themeColors.surfaceVariant.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: themeColors.outlineVariant.withOpacity(0.3)),
+      ),
+      child: TabBar(
+        controller: controller,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          gradient: LinearGradient(
+            colors: [themeColors.primary, themeColors.primaryContainer],
+          ),
+        ),
+        labelColor: themeColors.onPrimary,
+        unselectedLabelColor: themeColors.onSurfaceVariant,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+        unselectedLabelStyle:
+            const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        tabs: const [
+          Tab(text: "Oyunlar"),
+          Tab(text: "Sahneler"),
+          Tab(text: "Sanatçılar"),
+        ],
       ),
     );
   }
