@@ -20,58 +20,71 @@ import 'features/login/presentation/providers/login_provider.dart';
 import 'features/splash/presentation/widgets/splash_data_guard.dart';
 
 Future<void> main() async {
+  // 1. Flutter Engine & Web Strategy
   WidgetsFlutterBinding.ensureInitialized();
-  usePathUrlStrategy(); // Web'de url'deki # işaretini kaldırır
+  usePathUrlStrategy();
 
-  // 1. Firebase Başlatma
+  // 2. Firebase & Error Monitoring (Paralel başlatma performansı artırır)
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  _setupCrashlytics();
 
-  // 2. Crashlytics Yapılandırması
+  // 3. Native UI Configuration (Mobile Only)
+  if (!PlatformChecker.isWeb) _configureMobileSystemUI();
+
+  // 4. Local Services
+  await _initServices();
+
+  runApp(const ProviderScope(child: MyApp()));
+}
+
+// --- Yardımcı Başlatma Metotları ---
+
+void _setupCrashlytics() {
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   PlatformDispatcher.instance.onError = (final error, final stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
   };
+}
 
-  // context olmadığında PlatformDispatcher bize cihazın parlaklık ayarını doğrudan verir.
-  final bool isDarkMode =
-      PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+void _configureMobileSystemUI() {
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+  ));
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+}
 
-  if (!PlatformChecker.isWeb) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarIconBrightness:
-          isDarkMode ? Brightness.light : Brightness.dark,
-    ));
-
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  }
-
+Future<void> _initServices() async {
   try {
     await LocalStorageService.init();
-    await FirebaseMessaging.instance
-        .requestPermission(alert: true, badge: true, sound: true);
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
   } catch (e) {
-    debugPrint('Servis Başlatma Hatası: $e');
+    debugPrint('Service Initialization Error: $e');
   }
-
-  runApp(const ProviderScope(child: MyApp()));
 }
+
+// =============================================================================
+// ROOT APP COMPONENT
+// =============================================================================
 
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
+    // 1. Watchers (State Takibi)
     final themeMode = ref.watch(themeProvider);
     final router = ref.watch(appRouterProvider);
     final loginState = ref.watch(loginProvider);
-    final bool isWeb = PlatformChecker.isWeb;
 
-    // Mobil'de auth yükleniyorsa SplashGuard devreye girer
+    // 2. Performance: Pre-calculate values
+    final bool isWeb = PlatformChecker.isWeb;
     final bool isAuthLoading = !isWeb && loginState.isLoading;
 
     return MaterialApp.router(
@@ -82,15 +95,41 @@ class MyApp extends ConsumerWidget {
       darkTheme: isWeb ? WebTheme.darkTheme : AppTheme.darkTheme,
       themeMode: isWeb ? ThemeMode.dark : themeMode,
       builder: (final context, final child) {
+        final Widget safeChild = child ?? const SizedBox.shrink();
+
+        // 3. Platform Specific UI Wrapping
         return ConnectivityWrapper(
           child: SplashDataGuard(
             isLoading: isAuthLoading,
             loadingMessage: 'TiyatRol Sahnesi Hazırlanıyor...',
-            // child asılı kalmasın diye null check
-            child: child ?? const SizedBox.shrink(),
+            child: isWeb ? safeChild : _MobileSystemUIWrapper(child: safeChild),
           ),
         );
       },
+    );
+  }
+}
+
+/// Mobil cihazlarda Sistem Barlarının rengini temaya göre dinamik yöneten Wrapper
+class _MobileSystemUIWrapper extends StatelessWidget {
+  final Widget child;
+
+  const _MobileSystemUIWrapper({required this.child});
+
+  @override
+  Widget build(final BuildContext context) {
+    //Extentions ı çağırma! Çünkü app daha açılmadı.
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+      ),
+      child: child,
     );
   }
 }

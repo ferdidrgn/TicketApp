@@ -1,5 +1,6 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../features/discovery/presentation/pages/discovery_page.dart';
 import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
@@ -37,8 +38,25 @@ class _BottomNavBarState extends State<BottomNavBar> {
       ];
 
   @override
-  Widget build(final BuildContext context) => Scaffold(
-        extendBody: true, // İçeriğin barın arkasına geçmesi için true kalmalı
+  Widget build(final BuildContext context) {
+    final bool isDark = context.isDarkMode;
+    // Temadaki navigasyon barı rengini alıyoruz
+    final navTheme = context.theme.bottomNavigationBarTheme;
+    final Color barColor =
+        navTheme.selectedItemColor ?? context.theme.primaryColor;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        // Alt barı tamamen şeffaf yapıyoruz
+        systemNavigationBarColor: barColor,
+        systemNavigationBarDividerColor: Colors.transparent,
+        // Alt bar üzerindeki tuşların rengini ayarlıyoruz
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
+        extendBody: true,
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
           title: Text(
             'TiyatRol ',
@@ -49,37 +67,25 @@ class _BottomNavBarState extends State<BottomNavBar> {
           automaticallyImplyLeading: false,
         ),
         body: IndexedStack(index: _selectedIndex, children: _pages),
-        bottomNavigationBar: Container(
-          // Rengi temadan alıyoruz, yoksa fallback olarak ana rengi kullanıyoruz
-          color: Colors.transparent,
-          child: SafeArea(
-            // Sadece alt kısımdaki sistem çizgisinden kaçıyoruz Sistem navigasyon barının yüksekliğini alıyoruz
-            child: Padding(
-              padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).padding.bottom > 0 ? 0 : 10),
-              child: CurvedNavigationBar(
-                backgroundColor: Colors.transparent,
-                color:
-                    context.theme.bottomNavigationBarTheme.selectedItemColor ??
-                        context.theme.primaryColor,
-                buttonBackgroundColor:
-                    context.theme.bottomNavigationBarTheme.selectedItemColor ??
-                        context.theme.primaryColor,
-                height: 60,
-                // 50 çok dardı, 60 daha ergonomik
-                index: _selectedIndex,
-                items: const [
-                  Icon(Icons.home, size: 30, color: Colors.white),
-                  Icon(Icons.event_seat_sharp, size: 30, color: Colors.white),
-                  Icon(Icons.location_city, size: 30, color: Colors.white),
-                  Icon(Icons.people, size: 30, color: Colors.white),
-                ],
-                animationCurve: Curves.easeInOut,
-                animationDuration: const Duration(milliseconds: 600),
-                onTap: _onItemTapped,
-              ),
-            ),
+        bottomNavigationBar: SafeArea(
+          top: false, // Üstten boşluk bırakma
+          child: CurvedNavigationBar(
+            backgroundColor: Colors.transparent,
+            color: navTheme.selectedItemColor ?? context.theme.primaryColor,
+            buttonBackgroundColor:
+                navTheme.selectedItemColor ?? context.theme.primaryColor,
+            height: 60,
+            index: _selectedIndex,
+            items: const [
+              Icon(Icons.home, size: 30, color: Colors.white),
+              Icon(Icons.event_seat_sharp, size: 30, color: Colors.white),
+              Icon(Icons.location_city, size: 30, color: Colors.white),
+              Icon(Icons.people, size: 30, color: Colors.white),
+            ],
+            onTap: _onItemTapped,
           ),
         ),
-      );
+      ),
+    );
+  }
 }
