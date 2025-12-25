@@ -10,9 +10,8 @@ mixin AutoRefreshOnReconnect<T extends ConsumerStatefulWidget>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _setupConnectivityListener();
-    });
+    WidgetsBinding.instance
+        .addPostFrameCallback((final _) => _setupConnectivityListener());
   }
 
   void _setupConnectivityListener() {

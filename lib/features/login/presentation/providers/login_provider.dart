@@ -13,7 +13,7 @@ import 'login_state.dart';
 
 /// Ana Login Notifier Provider
 final loginProvider =
-    NotifierProvider<LoginNotifier, LoginState>(LoginNotifier.new);
+    NotifierProvider.autoDispose<LoginNotifier, LoginState>(LoginNotifier.new);
 
 // İşlem durumu için yeni provider
 final loginProcessingProvider = StateProvider<bool>((final ref) => false);

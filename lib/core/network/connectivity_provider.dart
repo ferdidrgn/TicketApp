@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+final connectivityProvider =
+    NotifierProvider<ConnectivityNotifier, bool>(ConnectivityNotifier.new);
+
 class ConnectivityNotifier extends Notifier<bool> {
   StreamSubscription<List<ConnectivityResult>>? _subscription;
 
@@ -29,12 +32,7 @@ class ConnectivityNotifier extends Notifier<bool> {
     });
   }
 
-  bool _isConnected(final List<ConnectivityResult> results) {
-    // none dışında herhangi bir bağlantı varsa online
-    return results.isNotEmpty && !results.contains(ConnectivityResult.none);
-  }
+  // none dışında herhangi bir bağlantı varsa online
+  bool _isConnected(final List<ConnectivityResult> results) =>
+      results.isNotEmpty && !results.contains(ConnectivityResult.none);
 }
-
-final connectivityProvider = NotifierProvider<ConnectivityNotifier, bool>(
-  ConnectivityNotifier.new,
-);
