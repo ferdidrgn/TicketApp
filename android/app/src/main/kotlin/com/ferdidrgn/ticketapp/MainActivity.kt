@@ -1,10 +1,13 @@
-import androidx.core.view.WindowCompat
-import io.flutter.embedding.android.FlutterActivity
+package com.ferdidrgn.ticketapp
 
-class MainActivity: FlutterActivity() {
-    override fun onPostResume() {
-        super.onPostResume()
-        // Bu satır uygulamanın sistem çubuklarının altına uzanmasını sağlar
+import android.os.Bundle
+import io.flutter.embedding.android.FlutterActivity
+import androidx.core.view.WindowCompat
+
+class MainActivity : FlutterActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Flutter yerleşmeden önce ekran ayarını yap
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        super.onCreate(savedInstanceState)
     }
 }

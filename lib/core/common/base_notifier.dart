@@ -6,9 +6,15 @@ import 'base_state.dart';
 
 abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
   @override
-  T build() => initialState();
+  T build() {
+    ref.onDispose(onDispose);
+    return initialState();
+  }
 
   T initialState();
+
+  // Alt sınıfların temizlik yapması için opsiyonel metod
+  void onDispose() {}
 
   /// API çağrılarını wrap eden ana metod
   Future<void> execute<R>(

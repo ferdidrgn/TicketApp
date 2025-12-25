@@ -76,11 +76,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final loginState = ref.watch(loginProvider);
     final theme = context.theme;
 
+    // 🔥 Login state değişikliklerini dinle
+    ref.listen<LoginState>(loginProvider, (final previous, final next) {
+      // Çıkış yapıldıysa login'e yönlendir
+      if (previous?.user != null &&
+          next.user == null &&
+          !next.isLoading) if (mounted) context.go('/login');
+
+      // Error varsa göster
+      if (next.errorMessage != null &&
+          next.errorMessage!.isNotEmpty) if (mounted)
+        _showErrorSnackBar(next.errorMessage!);
+    });
+
     if (loginState.isLoading || _isLoadingLocalData) {
-      return Scaffold(body: const Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    final bool isUserLoggedIn = loginState.user != null && !loginState.isGuest;
+    // 🔥 Düzeltilmiş user kontrolü
+    final bool isUserLoggedIn = loginState.isLoggedIn && !loginState.isGuest;
 
     return Scaffold(
       backgroundColor: context.colors.background,
@@ -88,7 +104,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         children: [
           _buildBackgroundBlur(context.colors),
           RefreshIndicator(
-            onRefresh: () async => ref.refresh(loginProvider),
+            onRefresh: () async {
+              await _loadLocalUserData();
+              ref.invalidate(loginProvider);
+            },
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
@@ -98,7 +117,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   _buildArtisticHeader(theme, !isUserLoggedIn),
                   const SizedBox(height: 30),
 
-                  // Dinamik Profil Alanı (Login/Guest Switcher)
+                  // Dinamik Profil Alanı
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 500),
                     child: isUserLoggedIn
@@ -246,14 +265,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final ThemeData theme,
     final LoginState loginState,
   ) {
-    // 1. Veri Hiyerarşisi: Firebase > Local Cache > Varsayılan
     final displayName = firebaseUser?.displayName ??
         _localUserData?['displayName'] ??
         'Sanatsever';
 
-    final email = firebaseUser?.email ??
-        _localUserData?['email'] ??
-        'seruven@sanat.com'; // Boş kalmasın diye bir placeholder
+    final email =
+        firebaseUser?.email ?? _localUserData?['email'] ?? 'seruven@sanat.com';
 
     final photoURL = firebaseUser?.photoURL ??
         _localUserData?['photoURL'] ??
@@ -273,7 +290,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             padding: const EdgeInsets.all(30),
             child: Column(
               children: [
-                // Giriş Metodu Rozeti
                 Align(
                   alignment: Alignment.topRight,
                   child: _buildLoginMethodBadge(
@@ -284,8 +300,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // Profil Resmi ve Animasyonlu Halka
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -328,35 +342,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 24),
-
-                // --- İSİM BURADA KULLANILIYOR ---
                 Text(
-                  displayName.toUpperCase(), // Değişken bağlandı
+                  displayName.toUpperCase(),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
-                    fontFamily: 'PlayfairDisplay', // Sanatsal font
+                    fontFamily: 'PlayfairDisplay',
                   ),
                 ),
-
                 const SizedBox(height: 6),
-
-                // --- EMAIL BURADA KULLANILIYOR ---
                 Text(
-                  email, // Değişken bağlandı
+                  email,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withOpacity(0.5),
                     fontStyle: FontStyle.italic,
                     letterSpacing: 0.5,
                   ),
                 ),
-
                 const SizedBox(height: 30),
-
-                // İstatistik Paneli
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
@@ -451,7 +456,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       decoration: _artisticContainerDecoration(theme),
       child: Column(
         children: [
-          if (!isGuest) ...[
+          if (!isGuest && loginState.user != null) ...[
             _buildListTile(
                 theme,
                 Icons.edit_outlined,
@@ -502,6 +507,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       decoration: _artisticContainerDecoration(theme),
       child: Column(
         children: [
+          // 🔥 Guest kullanıcılar hesap yükseltme seçenekleri
           if (isGuest) ...[
             _buildListTile(
                 theme,
@@ -518,8 +524,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 Colors.green,
                 _showPhoneLinkDialog),
           ],
+
+          // Çıkış seçeneği (her durumda)
           _buildListTile(theme, Icons.logout_rounded, 'Çıkış Yap',
               'Oturumu sonlandır', Colors.orange, _signOut),
+
+          // 🔥 Hesap silme (Guest dahil herkes silebilir)
           _buildListTile(
               theme,
               Icons.delete_forever_rounded,
@@ -538,7 +548,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     try {
       await ref.read(loginProvider.notifier).signInWithGoogle();
     } catch (e) {
-      if (mounted) _showErrorDialog(e.toString().replaceAll("Exception: ", ""));
+      if (mounted)
+        _showErrorSnackBar(e.toString().replaceAll("Exception: ", ""));
     }
   }
 
@@ -572,13 +583,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }
 
   Future<void> _startPhoneLinking(final String phoneNumber) async {
+    if (!mounted) return;
+
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (final _) =>
             const CustomLoadingDialog(message: "Kod gönderiliyor..."));
+
     try {
       await ref.read(loginProvider.notifier).verifyPhone(phoneNumber);
+
       if (mounted) {
         Navigator.pop(context);
         _showOtpDialog();
@@ -586,7 +601,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        _showErrorDialog("Hata: $e");
+        _showErrorSnackBar("Hata: $e");
       }
     }
   }
@@ -621,46 +636,63 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }
 
   Future<void> _finalizePhoneLink(final String smsCode) async {
+    if (!mounted) return;
+
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (final _) =>
             const CustomLoadingDialog(message: "Bağlanıyor..."));
+
     try {
       await ref.read(loginProvider.notifier).verifyOtp(smsCode);
+
       if (mounted) {
         Navigator.pop(context);
-        _showSuccessDialog("Hesap başarıyla bağlandı!");
+        _showSuccessSnackBar("Hesap başarıyla bağlandı!");
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        _showErrorDialog("Hata: $e");
+        _showErrorSnackBar("Hata: $e");
       }
     }
   }
 
+  // 🔥 DÜZELTİLMİŞ ÇIKIŞ METODU
   Future<void> _signOut() async {
     final confirmed = await _showConfirmDialog(
         "Çıkış Yap", "Oturumunuz sonlandırılacak. Emin misiniz?");
-    if (!confirmed) return;
+
+    if (!confirmed || !mounted) return;
+
     try {
-      await LocalStorageService.clearAllUserData();
+      // Notifier içinde tüm temizlik yapılacak
       await ref.read(loginProvider.notifier).signOut();
-      if (mounted) context.go('/login');
     } catch (e) {
-      _showErrorDialog(e.toString());
+      if (mounted) _showErrorSnackBar("Çıkış hatası: $e");
     }
   }
 
   void _showDeleteAccountDialog(final String userId) {
+    if (userId.isEmpty) {
+      _showErrorSnackBar("Kullanıcı kimliği bulunamadı");
+      return;
+    }
+
+    final loginState = ref.read(loginProvider);
+    final isGuest = loginState.isGuest;
+
     showDialog(
       context: context,
       builder: (final context) => AlertDialog(
         title: const Text('Hesabı Sil',
             style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-        content: const Text(
-            'Tüm verileriniz kalıcı olarak silinecek. Emin misiniz?'),
+        content: Text(
+          isGuest
+              ? 'Misafir hesabınız ve tüm verileriniz kalıcı olarak silinecek. Bu işlem geri alınamaz. Emin misiniz?'
+              : 'Hesabınız, tüm biletleriniz, favorileriniz ve tüm verileriniz kalıcı olarak silinecek. Bu işlem geri alınamaz. Emin misiniz?',
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
@@ -679,23 +711,38 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
+  // 🔥 DÜZELTİLMİŞ HESAP SİLME METODU (Guest dahil)
   Future<void> _deleteAccount(final String userId) async {
+    if (!mounted) return;
+
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (final _) => const Center(child: CircularProgressIndicator()));
+
     try {
-      await ref.read(userProvider.notifier).deleteUser(userId);
+      // 1. Firestore'dan kullanıcı dökümanını sil (varsa)
+      // Guest user'lar için de Firestore kaydı olabilir
+      try {
+        await ref.read(userProvider.notifier).deleteUser(userId);
+      } catch (e) {
+        // Firestore'da kayıt yoksa devam et
+        debugPrint("Firestore user silme hatası (normal olabilir): $e");
+      }
+
+      // 2. Auth hesabını sil
+      // Bu işlem hem local storage'ı hem FCM token'ı temizleyecek
       await ref.read(loginProvider.notifier).deleteAccount();
+
       if (mounted) {
         Navigator.pop(context);
-        _showSuccessDialog("Hesabınız silindi.");
-        context.go('/login');
+        _showSuccessSnackBar("Hesabınız başarıyla silindi.");
+        // ref.listen otomatik /login'e yönlendirecek
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        _showErrorDialog("Hata: $e");
+        _showErrorSnackBar("Hesap silme hatası: $e");
       }
     }
   }
@@ -747,20 +794,37 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   void _navigateTo(final Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (final _) => page));
 
-  void _showErrorDialog(final String msg) => showDialog(
-      context: context,
-      builder: (final _) => CustomErrorDialog(message: msg, onConfirm: () {}));
+  void _showErrorSnackBar(final String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
-  void _showSuccessDialog(final String msg) => showDialog(
-      context: context,
-      builder: (final _) =>
-          CustomSuccessDialog(message: msg, onConfirm: () {}));
+  void _showSuccessSnackBar(final String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 
   String _getLoginMethod(final User? u) {
     if (u == null) return 'misafir';
-    if (u.providerData.any((p) => p.providerId == 'google.com'))
+    if (u.isAnonymous) return 'misafir';
+    if (u.providerData.any((final p) => p.providerId == 'google.com'))
       return 'google';
-    if (u.providerData.any((p) => p.providerId == 'phone')) return 'phone';
+    if (u.providerData.any((final p) => p.providerId == 'phone'))
+      return 'phone';
     return 'misafir';
   }
 

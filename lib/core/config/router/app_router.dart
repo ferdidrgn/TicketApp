@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/router/page_transitions.dart';
 import '../../../features/home/presentation/pages/wrapper/app_home_page.dart';
 import '../../../features/login/presentation/pages/login_screen.dart';
-import '../../../features/login/presentation/pages/phone_login_page.dart'; // ✅ Eklendi
+import '../../../features/login/presentation/pages/phone_login_page.dart';
 import '../../../features/login/presentation/providers/login_provider.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/shows/presentation/pages/show_detail_page.dart';
-import '../../../features/users/presentation/pages/user_profile_edit.dart'; // ✅ Eklendi
+import '../../../features/users/presentation/pages/user_profile_edit.dart';
 import '../../errors/not_found_page.dart';
 // app_router.dart
 
@@ -80,36 +80,39 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const OnboardingContainer(),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 600),
-        ),
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: const OnboardingContainer(),
+              transitionsBuilder: fadeTransition,
+              transitionDuration: const Duration(milliseconds: 600),
+            ),
       ),
 
       // ✅ LOGIN
       GoRoute(
         path: '/login',
         name: 'login',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const LoginScreen(),
-          transitionsBuilder: slideTransition,
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: const LoginScreen(),
+              transitionsBuilder: slideTransition,
+              transitionDuration: const Duration(milliseconds: 400),
+            ),
       ),
 
       // ✅ PHONE LOGIN
       GoRoute(
         path: '/phone-login',
         name: 'phoneLogin',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const PhoneLogInPage(),
-          transitionsBuilder: slideTransition,
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: const PhoneLogInPage(),
+              transitionsBuilder: slideTransition,
+              transitionDuration: const Duration(milliseconds: 400),
+            ),
       ),
 
       // ✅ PROFILE EDIT
