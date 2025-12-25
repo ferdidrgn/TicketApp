@@ -22,39 +22,41 @@ class FCMManager {
 
   // Servisi başlat ve izinleri yönet
   Future<void> init() async {
-    // 1. İzin İste
-    final NotificationSettings settings = await _fcm.requestPermission(
+    // 1. İzinleri tazele
+    await _fcm.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('FCM: Yetki verildi.');
-      _setupListeners();
-    }
+    await _fcm.subscribeToTopic(
+        "all_users"); //Firebase Console'dan tek tek cihaz seçmek yerine "all_users" konusuna mesaj atarak herkese ulaşabiliriz.
 
-    // 2. Cihaz Token'ını al (Backend için lazım olur)
+    // 2. Token'ı al (Konsola yazdır ki Firebase'den test yapabilesin)
     final String? token = await _fcm.getToken();
-    debugPrint("FCM Cihaz Token: $token");
+    debugPrint("--------------------------------------------------");
+    debugPrint("FCM ADRESİN (TOKEN): $token");
+    debugPrint("--------------------------------------------------");
+
+    // 3. Dinleyicileri (Kulakları) Aç
+    _setupListeners();
   }
 
   void _setupListeners() {
-    // UYGULAMA AÇIKKEN (Foreground)
+    // UYGULAMA AÇIKKEN GELEN HER MESAJI YAKALA
     FirebaseMessaging.onMessage.listen((final RemoteMessage message) {
-      _handleMessage(message, "Ön Plan");
+      debugPrint('FCM: Uygulama açıkken bir mesaj yakalandı!');
+      debugPrint('Başlık: ${message.notification?.title}');
+      debugPrint('İçerik: ${message.notification?.body}');
+
+      // Buraya bir SnackBar ekleyerek kullanıcıya canlı gösterebilirsin
     });
 
-    // ARKA PLANDA TIKLANDIĞINDA (Background Click)
+    // BİLDİRİME TIKLAYARAK GİRİLDİĞİNDE YAKALA
     FirebaseMessaging.onMessageOpenedApp.listen((final RemoteMessage message) {
-      _handleMessage(message, "Arka Plan Tıklama");
+      debugPrint('FCM: Bildirime tıklandı, kullanıcı içeride!');
+      // Örn: message.data['type'] == 'chat' ise mesaj sayfasına yönlendir
     });
-  }
-
-  void _handleMessage(final RemoteMessage message, final String context) {
-    debugPrint(
-        "FCM ($context): ${message.notification?.title} - ${message.notification?.body}");
-    // Buraya bildirim geldiğinde yapılacak global işlemler gelebilir
   }
 }
 
