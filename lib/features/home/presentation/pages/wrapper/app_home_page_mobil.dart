@@ -5,10 +5,7 @@ import 'package:ticketapp/shared/navigation/widgets/bottom_nav_bar.dart';
 class AppHomePage extends StatelessWidget {
   final bool startAnimations;
 
-  const AppHomePage({
-    super.key,
-    this.startAnimations = false,
-  });
+  const AppHomePage({super.key, this.startAnimations = false});
 
   @override
   Widget build(final BuildContext context) => const BottomNavBar();

@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class AppHomePage extends StatelessWidget {
   final bool startAnimations;
 
-  const AppHomePage({
-    super.key,
-    this.startAnimations = false,
-  });
+  const AppHomePage({super.key, this.startAnimations = false});
 
   @override
   Widget build(final BuildContext context) => throw UnsupportedError(

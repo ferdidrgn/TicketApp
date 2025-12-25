@@ -21,12 +21,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
   int _selectedIndex = 0;
   String? selectedCategoryTitle;
 
-  void changeTabWithCategory(final int index, final String? categoryTitle) {
-    setState(() {
-      _selectedIndex = index;
-      selectedCategoryTitle = categoryTitle;
-    });
-  }
+  void changeTabWithCategory(final int index, final String? categoryTitle) =>
+      setState(() {
+        _selectedIndex = index;
+        selectedCategoryTitle = categoryTitle;
+      });
 
   void _onItemTapped(final int index) => setState(() => _selectedIndex = index);
 
@@ -39,6 +38,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   @override
   Widget build(final BuildContext context) => Scaffold(
+        extendBody: true, // İçeriğin barın arkasına geçmesi için true kalmalı
         appBar: AppBar(
           title: Text(
             'TiyatRol ',
@@ -49,23 +49,37 @@ class _BottomNavBarState extends State<BottomNavBar> {
           automaticallyImplyLeading: false,
         ),
         body: IndexedStack(index: _selectedIndex, children: _pages),
-        extendBody: true, //BottomNavBar background transparent
-        bottomNavigationBar: CurvedNavigationBar(
-          backgroundColor: Colors.transparent,
-          color: context.theme.bottomNavigationBarTheme.selectedItemColor!,
-          buttonBackgroundColor:
-              context.theme.bottomNavigationBarTheme.selectedItemColor,
-          height: 50,
-          items: const [
-            Icon(Icons.home, size: 30),
-            Icon(Icons.event_seat_sharp, size: 30),
-            Icon(Icons.location_city, size: 30),
-            Icon(Icons.people, size: 30),
-          ],
-          animationCurve: Curves.easeInOut,
-          animationDuration: const Duration(milliseconds: 600),
-          index: _selectedIndex,
-          onTap: _onItemTapped,
+        bottomNavigationBar: Container(
+          // Rengi temadan alıyoruz, yoksa fallback olarak ana rengi kullanıyoruz
+          color: Colors.transparent,
+          child: SafeArea(
+            // Sadece alt kısımdaki sistem çizgisinden kaçıyoruz Sistem navigasyon barının yüksekliğini alıyoruz
+            child: Padding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom > 0 ? 0 : 10),
+              child: CurvedNavigationBar(
+                backgroundColor: Colors.transparent,
+                color:
+                    context.theme.bottomNavigationBarTheme.selectedItemColor ??
+                        context.theme.primaryColor,
+                buttonBackgroundColor:
+                    context.theme.bottomNavigationBarTheme.selectedItemColor ??
+                        context.theme.primaryColor,
+                height: 60,
+                // 50 çok dardı, 60 daha ergonomik
+                index: _selectedIndex,
+                items: const [
+                  Icon(Icons.home, size: 30, color: Colors.white),
+                  Icon(Icons.event_seat_sharp, size: 30, color: Colors.white),
+                  Icon(Icons.location_city, size: 30, color: Colors.white),
+                  Icon(Icons.people, size: 30, color: Colors.white),
+                ],
+                animationCurve: Curves.easeInOut,
+                animationDuration: const Duration(milliseconds: 600),
+                onTap: _onItemTapped,
+              ),
+            ),
+          ),
         ),
       );
 }

@@ -395,33 +395,31 @@ class ExampleWidget1 extends StatelessWidget with ResponsiveUtils {
   const ExampleWidget1({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      padding: getScreenPadding(context),
-      child: Column(
-        children: [
-          Text(
-            'Başlık',
-            style: TextStyle(
-              fontSize: getTitleFontSize(context),
-              fontWeight: FontWeight.bold,
+  Widget build(final BuildContext context) => Container(
+        padding: getScreenPadding(context),
+        child: Column(
+          children: [
+            Text(
+              'Başlık',
+              style: TextStyle(
+                fontSize: getTitleFontSize(context),
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: getGridCrossAxisCount(context),
-              crossAxisSpacing: getGridSpacing(context),
-              mainAxisSpacing: getGridSpacing(context),
+            const SizedBox(height: 16),
+            GridView.builder(
+              shrinkWrap: true,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: getGridCrossAxisCount(context),
+                crossAxisSpacing: getGridSpacing(context),
+                mainAxisSpacing: getGridSpacing(context),
+              ),
+              itemCount: 10,
+              itemBuilder: (final context, final index) => Container(),
             ),
-            itemCount: 10,
-            itemBuilder: (final context, final index) => Container(),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 }
 
 /// Örnek 2: Static metotlarla kullanım
@@ -429,41 +427,32 @@ class ExampleWidget2 extends StatelessWidget {
   const ExampleWidget2({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    return ResponsiveUtils.adaptive(
-      context,
-      mobile: _MobileLayout(),
-      desktop: _DesktopLayout(),
-    );
-  }
+  Widget build(final BuildContext context) => ResponsiveUtils.adaptive(context,
+      mobile: _MobileLayout(), desktop: _DesktopLayout());
 }
 
 class _MobileLayout extends StatelessWidget {
   @override
-  Widget build(final BuildContext context) {
-    return Padding(
-      padding: ResponsiveUtils.paddingAll(context),
-      child: const Column(
-        children: [
-          Text('Mobil Layout'),
-        ],
-      ),
-    );
-  }
+  Widget build(final BuildContext context) => Padding(
+        padding: ResponsiveUtils.paddingAll(context),
+        child: const Column(
+          children: [
+            Text('Mobil Layout'),
+          ],
+        ),
+      );
 }
 
 class _DesktopLayout extends StatelessWidget {
   @override
-  Widget build(final BuildContext context) {
-    return Padding(
-      padding: ResponsiveUtils.paddingAll(context),
-      child: const Row(
-        children: [
-          Text('Desktop Layout'),
-        ],
-      ),
-    );
-  }
+  Widget build(final BuildContext context) => Padding(
+        padding: ResponsiveUtils.paddingAll(context),
+        child: const Row(
+          children: [
+            Text('Desktop Layout'),
+          ],
+        ),
+      );
 }
 
 /// Örnek 3: Extension ile kullanım (EN KOLAY!)
@@ -471,36 +460,34 @@ class ExampleWidget3 extends StatelessWidget {
   const ExampleWidget3({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      padding: context.paddingAll,
-      margin: EdgeInsets.all(context.borderRadius()),
-      child: Column(
-        children: [
-          Text(
-            'Modern Başlık',
-            style: TextStyle(
-              fontSize: context.titleSize,
-              fontWeight: FontWeight.bold,
+  Widget build(final BuildContext context) => Container(
+        padding: context.paddingAll,
+        margin: EdgeInsets.all(context.borderRadius()),
+        child: Column(
+          children: [
+            Text(
+              'Modern Başlık',
+              style: TextStyle(
+                fontSize: context.titleSize,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          // Responsive widget seçimi
-          if (context.isMobile)
-            const Text('Mobil görünüm')
-          else
-            const Text('Desktop görünüm'),
-          const SizedBox(height: 16),
-          // Generic responsive değer
-          Container(
-            height: context.responsive(
-              mobile: 100.0,
-              tablet: 150.0,
-              desktop: 200.0,
+            const SizedBox(height: 16),
+            // Responsive widget seçimi
+            if (context.isMobile)
+              const Text('Mobil görünüm')
+            else
+              const Text('Desktop görünüm'),
+            const SizedBox(height: 16),
+            // Generic responsive değer
+            Container(
+              height: context.responsive(
+                mobile: 100.0,
+                tablet: 150.0,
+                desktop: 200.0,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 }

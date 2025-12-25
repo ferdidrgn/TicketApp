@@ -7,10 +7,7 @@ import '../../providers/home_asset_video_provider.dart';
 class AppHomePage extends ConsumerStatefulWidget {
   final bool startAnimations;
 
-  const AppHomePage({
-    super.key,
-    this.startAnimations = false,
-  });
+  const AppHomePage({super.key, this.startAnimations = false});
 
   @override
   ConsumerState<AppHomePage> createState() => _AppHomePageState();
