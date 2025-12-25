@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
+import 'package:ticketapp/features/appTools/presentation/pages/help_support_page.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/theme/theme_notifier.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
@@ -495,7 +496,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               Colors.deepPurple,
               () => _navigateTo(const ContractsPage())),
           _buildListTile(theme, Icons.help_outline, 'Yardım', 'Destek al',
-              Colors.teal, () {}),
+              Colors.teal, () => _navigateTo(const HelpSupportPage())),
         ],
       ),
     );
