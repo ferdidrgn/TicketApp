@@ -73,11 +73,10 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   // --- KULLANICI DURUM YÖNETİMİ ---
   Future<void> _handleAuthStateChange(final User? firebaseUser) async {
-    if (firebaseUser != null) {
+    if (firebaseUser != null)
       await _handleUserLogin(firebaseUser);
-    } else {
+    else
       await _handleUserLogout();
-    }
   }
 
   Future<void> _handleUserLogin(final User firebaseUser) async {
@@ -91,9 +90,8 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       }
 
       String userRole = LocalStorageService.userRole ?? 'user';
-      if (refreshedUser.isAnonymous) {
+      if (refreshedUser.isAnonymous)
         userRole = RoleManager.getDefaultRoleForLoginMethod('anonymous');
-      }
 
       state = state.copyWith(
         user: refreshedUser,
@@ -111,9 +109,8 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
       await _saveFcmToken(refreshedUser.uid);
 
-      if (!refreshedUser.isAnonymous) {
+      if (!refreshedUser.isAnonymous)
         await _syncUserWithFirestore(refreshedUser, userRole);
-      }
 
       AppDebug.log("Giriş başarılı: ${refreshedUser.uid}", tag: "AUTH");
     } catch (e, stack) {
@@ -174,17 +171,16 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     setLoadingState(true);
     final result = await ref.read(signInWithGoogleUseCaseProvider).call();
     result.fold(
-      (failure) => setErrorState(failure.message),
-      (user) => AppDebug.log("Google Login Başarılı", tag: "AUTH"),
+      (final failure) => setErrorState(failure.message),
+      (final user) => AppDebug.log("Google Login Başarılı", tag: "AUTH"),
     );
   }
 
   Future<void> signInAnonymously() async {
     await execute(
       () => ref.read(signInAnonymouslyUseCaseProvider).call(),
-      onSuccess: (final _) {
-        AppDebug.log("Anonim giriş başarılı", tag: "AUTH");
-      },
+      onSuccess: (final _) =>
+          AppDebug.log("Anonim giriş başarılı", tag: "AUTH"),
     );
   }
 
