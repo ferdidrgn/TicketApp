@@ -148,4 +148,27 @@ class User extends Equatable {
         'favoritePlayers': favoritePlayers,
         'ticketsId': ticketsId,
       };
+
+// ---------------------------
+  // User.empty (Başlangıç durumu)
+  // ---------------------------
+  factory User.empty(final String id) => User(
+        id: id,
+        createdAt: DateTime.now().toIso8601String(),
+        updatedAt: DateTime.now().toIso8601String(),
+        firstName: '',
+        lastName: '',
+        imageUrl: '',
+        phoneNumber: '',
+        age: 0,
+        eMail: '',
+        city: '',
+        isPhoneActive: false,
+        fcmToken: '',
+        role: 'users',
+        favoriteShows: const [],
+        favoriteStages: const [],
+        favoritePlayers: const [],
+        ticketsId: const [],
+      );
 }

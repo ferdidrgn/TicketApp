@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
-  final String? initialValue;
-  final TextEditingController? controller;
+  final TextEditingController? controller; // Patron bu!
   final ValueChanged<String>? onChanged;
   final TextInputType keyboardType;
   final bool isRequired;
@@ -13,11 +14,11 @@ class CustomTextField extends StatelessWidget {
   final String? hintText;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
     required this.label,
-    this.initialValue,
     this.controller,
     this.onChanged,
     this.keyboardType = TextInputType.text,
@@ -28,53 +29,43 @@ class CustomTextField extends StatelessWidget {
     this.hintText,
     this.prefixIcon,
     this.suffixIcon,
-  }) : assert(
-          initialValue == null || controller == null,
-          'initialValue ve controller aynı anda kullanılamaz',
-        );
+    this.inputFormatters,
+  });
 
   @override
   Widget build(final BuildContext context) {
-    final borderColor = Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : Colors.red;
-    const focusedBorderColor = Colors.purple;
+    final isDark = context.isDarkMode;
+    final borderColor = isDark ? Colors.white.withOpacity(0.3) : Colors.black12;
+    final focusedColor = context.primaryColor;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
         controller: controller,
-        initialValue: initialValue,
+        // Artık sadece controller var, kafa karışıklığı bitti.
+        inputFormatters: inputFormatters,
+        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
           labelText: label,
           hintText: hintText,
           prefixIcon: prefixIcon,
           suffixIcon: suffixIcon,
+          // Modern Border Tasarımı (Bilet sayfanla uyumlu)
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: borderColor, width: 1),
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(color: borderColor),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: borderColor, width: 1),
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(color: borderColor),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: focusedBorderColor, width: 2),
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(color: focusedColor, width: 1.5),
           ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.red, width: 1),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.red, width: 2),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           filled: true,
-          fillColor: Theme.of(context).colorScheme.surface,
-          hintStyle: TextStyle(color: Colors.grey[600]),
+          fillColor:
+              isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
         ),
         onChanged: onChanged,
         keyboardType: keyboardType,
@@ -83,7 +74,7 @@ class CustomTextField extends StatelessWidget {
         validator: validator ??
             (final value) {
               if (isRequired && (value == null || value.trim().isEmpty)) {
-                return '$label boş olamaz';
+                return '$label alanı boş bırakılamaz';
               }
               return null;
             },
