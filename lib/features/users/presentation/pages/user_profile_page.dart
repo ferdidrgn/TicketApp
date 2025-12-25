@@ -8,7 +8,6 @@ import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/appTools/presentation/pages/help_support_page.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
-import '../../../../core/theme/theme_notifier.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../appTools/presentation/pages/contracts.dart';
@@ -90,61 +89,63 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         _showErrorSnackBar(next.errorMessage!);
     });
 
-    if (loginState.isLoading || _isLoadingLocalData) {
+    if (loginState.isLoading || _isLoadingLocalData)
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
-    }
 
     // 🔥 Düzeltilmiş user kontrolü
     final bool isUserLoggedIn = loginState.isLoggedIn && !loginState.isGuest;
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      body: Stack(
-        children: [
-          _buildBackgroundBlur(context.colors),
-          RefreshIndicator(
-            onRefresh: () async {
-              await _loadLocalUserData();
-              ref.invalidate(loginProvider);
-            },
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildArtisticHeader(theme, !isUserLoggedIn),
-                  const SizedBox(height: 30),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            _buildBackgroundBlur(context.colors),
+            RefreshIndicator(
+              onRefresh: () async {
+                await _loadLocalUserData();
+                ref.invalidate(loginProvider);
+              },
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildArtisticHeader(theme, !isUserLoggedIn),
+                    const SizedBox(height: 30),
 
-                  // Dinamik Profil Alanı
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    child: isUserLoggedIn
-                        ? _buildUserProfileCard(
-                            loginState.user, theme, loginState)
-                        : _buildAuthInvitationCard(theme),
-                  ),
+                    // Dinamik Profil Alanı
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      child: isUserLoggedIn
+                          ? _buildUserProfileCard(
+                              loginState.user, theme, loginState)
+                          : _buildAuthInvitationCard(theme),
+                    ),
 
-                  const SizedBox(height: 32),
-                  ThemeSelectorCard(),
+                    const SizedBox(height: 32),
+                    ThemeSelectorCard(),
 
-                  const SizedBox(height: 32),
-                  _buildSectionTitle(
-                      theme, isUserLoggedIn ? 'DENEYİM' : 'KEŞFET'),
-                  _buildFunctionalSection(loginState, theme, !isUserLoggedIn),
+                    const SizedBox(height: 32),
+                    _buildSectionTitle(
+                        theme, isUserLoggedIn ? 'DENEYİM' : 'KEŞFET'),
+                    _buildFunctionalSection(loginState, theme, !isUserLoggedIn),
 
-                  const SizedBox(height: 32),
-                  _buildSectionTitle(theme, 'GÜVENLİK VE GİZLİLİK'),
-                  _buildSecuritySection(loginState, theme, !isUserLoggedIn),
+                    const SizedBox(height: 32),
+                    _buildSectionTitle(theme, 'GÜVENLİK VE GİZLİLİK'),
+                    _buildSecuritySection(loginState, theme, !isUserLoggedIn),
 
-                  const SizedBox(height: 40),
-                ],
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

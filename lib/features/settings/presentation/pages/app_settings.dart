@@ -29,91 +29,93 @@ class AppSettingsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.surface,
       body: CustomAppBackground(
-        child: Column(
-          children: [
-            // 🎨 SANATSAL HEADER (Koleksiyon sayfanla aynı dilde)
-            const TopNormalHeader(
-              title: 'ATÖLYE PANELİ',
-              subtitle: 'Serüvenin teknik detaylarını restore et...',
-              rightIcon: Icons.handyman_rounded,
-            ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // 🎨 SANATSAL HEADER (Koleksiyon sayfanla aynı dilde)
+              const TopNormalHeader(
+                title: 'ATÖLYE PANELİ',
+                subtitle: 'Serüvenin teknik detaylarını restore et...',
+                rightIcon: Icons.handyman_rounded,
+              ),
 
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 🕊️ İLHAM KARTI
-                    const InspirationalQuoteView(
-                      word:
-                          "Sanat, ruhun üzerindeki günlük yaşamın tozunu siler.",
-                      author: "Pablo Picasso",
-                      imageUrl:
-                          'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
-                    ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 🕊️ İLHAM KARTI
+                      const InspirationalQuoteView(
+                        word:
+                            "Sanat, ruhun üzerindeki günlük yaşamın tozunu siler.",
+                        author: "Pablo Picasso",
+                        imageUrl:
+                            'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
+                      ),
 
-                    const SizedBox(height: 32),
-                    _buildSectionTitle(context, 'DUYUSAL AYARLAR'),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 32),
+                      _buildSectionTitle(context, 'DUYUSAL AYARLAR'),
+                      const SizedBox(height: 16),
 
-                    _buildAtelierTile(
-                      context,
-                      title: 'Mekansal Rezonans',
-                      subtitle: 'Çevrendeki sanat duraklarını hisset.',
-                      icon: Icons.location_searching_rounded,
-                      color: colors.primary,
-                      onTap: () => _handlePermission(Permission.location),
-                    ),
-                    _buildAtelierTile(
-                      context,
-                      title: 'Sanat Fısıltıları',
-                      subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
-                      icon: Icons.vibration_rounded,
-                      color: colors.secondary,
-                      onTap: () => _handlePermission(Permission.notification),
-                    ),
+                      _buildAtelierTile(
+                        context,
+                        title: 'Mekansal Rezonans',
+                        subtitle: 'Çevrendeki sanat duraklarını hisset.',
+                        icon: Icons.location_searching_rounded,
+                        color: colors.primary,
+                        onTap: () => _handlePermission(Permission.location),
+                      ),
+                      _buildAtelierTile(
+                        context,
+                        title: 'Sanat Fısıltıları',
+                        subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
+                        icon: Icons.vibration_rounded,
+                        color: colors.secondary,
+                        onTap: () => _handlePermission(Permission.notification),
+                      ),
 
-                    const SizedBox(height: 32),
-                    _buildSectionTitle(context, 'GALERİ YAYILIMI'),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 32),
+                      _buildSectionTitle(context, 'GALERİ YAYILIMI'),
+                      const SizedBox(height: 16),
 
-                    _buildCreativeAction(
-                      context,
-                      title: 'Atölyeyi Puanla',
-                      desc: 'Bu koleksiyonu yıldızlarla parlat.',
-                      icon: Icons.auto_awesome_rounded,
-                      gradient: [colors.primary, colors.primaryContainer],
-                      onTap: () => UrlLauncherService.launchUrl(
-                          AppConstants.playStoreUrl),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildCreativeAction(
-                      context,
-                      title: 'İlhamı Paylaş',
-                      desc: 'Sanatı bir dostunun kalbine bırak.',
-                      icon: Icons.send_rounded,
-                      gradient: [colors.secondary, colors.secondaryContainer],
-                      onTap: _shareApp,
-                    ),
+                      _buildCreativeAction(
+                        context,
+                        title: 'Atölyeyi Puanla',
+                        desc: 'Bu koleksiyonu yıldızlarla parlat.',
+                        icon: Icons.auto_awesome_rounded,
+                        gradient: [colors.primary, colors.primaryContainer],
+                        onTap: () => UrlLauncherService.launchUrl(
+                            AppConstants.playStoreUrl),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildCreativeAction(
+                        context,
+                        title: 'İlhamı Paylaş',
+                        desc: 'Sanatı bir dostunun kalbine bırak.',
+                        icon: Icons.send_rounded,
+                        gradient: [colors.secondary, colors.secondaryContainer],
+                        onTap: _shareApp,
+                      ),
 
-                    const SizedBox(height: 40),
-                    Center(
-                      child: Text(
-                        'Versiyon 1.0.4 - Sanatla Tasarlandı',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colors.onSurface.withOpacity(0.3),
-                          letterSpacing: 1.5,
+                      const SizedBox(height: 40),
+                      Center(
+                        child: Text(
+                          'Versiyon 1.0.4 - Sanatla Tasarlandı',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.onSurface.withOpacity(0.3),
+                            letterSpacing: 1.5,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -197,43 +199,45 @@ class AppSettingsPage extends StatelessWidget {
     required final IconData icon,
     required final List<Color> gradient,
     required final VoidCallback onTap,
-  }) =>InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
-                  Text(desc,
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.8), fontSize: 12)),
-                ],
+  }) =>
+      InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+                colors: gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 28),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16)),
+                    Text(desc,
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 12)),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.open_in_new_rounded,
-                color: Colors.white70, size: 18),
-          ],
+              const Icon(Icons.open_in_new_rounded,
+                  color: Colors.white70, size: 18),
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
   Widget _buildSectionTitle(final BuildContext context, final String title) =>
       Text(
