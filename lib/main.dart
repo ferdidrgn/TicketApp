@@ -21,41 +21,39 @@ import 'features/login/presentation/providers/login_provider.dart';
 import 'features/splash/presentation/widgets/splash_data_guard.dart';
 
 // -----------------------------------------------------------------------------
-// 1. TOP-LEVEL & BACKGROUND HANDLER
-// Mutlaka herhangi bir class'ın dışında, en üstte olmalı!
+// 1. ARKA PLAN BİLDİRİM NÖBETÇİSİ (Background Handler)
 // -----------------------------------------------------------------------------
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(
     final RemoteMessage message) async {
-  // Arka planda Firebase servislerini kullanabilmek için tekrar initialize şart
+  // Arka planda Firebase servislerini kullanabilmek için tekrar initialize
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint("Nöbetçi: Arka planda bildirim yakalandı: ${message.messageId}");
 }
 
 Future<void> main() async {
-  // 2. Flutter Engine & Web Strategy
+  // 1. Flutter Engine & Web Strategy
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
-  // Firebase Başlatma
+  // 2. Firebase & Error Monitoring
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Arka plan nöbetçisini sisteme kaydet
+  // Bildirimleri kaydet
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   _setupCrashlytics();
 
+  // 3. Native UI Configuration
   if (!PlatformChecker.isWeb) _configureMobileSystemUI();
 
-  // Servisleri ve Bildirim Yöneticisini Başlat
+  // 4. Local Services (FCM burada başlıyor)
   await _initServices();
 
   runApp(const ProviderScope(child: MyApp()));
 }
 
-// -----------------------------------------------------------------------------
-// 2. YARDIMCI BAŞLATMA METOTLARI
-// -----------------------------------------------------------------------------
+// --- Yardımcı Başlatma Metotları ---
 
 void _setupCrashlytics() {
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
@@ -78,17 +76,11 @@ Future<void> _initServices() async {
   try {
     await LocalStorageService.init();
 
-    // FCM Manager'ı Singleton üzerinden başlatıyoruz
-    // Bu sayede tüm dinleyiciler (listeners) burada kurulur
     await FCMManager.instance.init();
   } catch (e) {
     debugPrint('Service Initialization Error: $e');
   }
 }
-
-// -----------------------------------------------------------------------------
-// 3. ROOT APP COMPONENT (Material 3 & Router)
-// -----------------------------------------------------------------------------
 
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
@@ -127,7 +119,7 @@ class MyApp extends ConsumerWidget {
   }
 }
 
-/// Mobil cihazlarda Sistem Barlarının rengini temaya göre dinamik yöneten Wrapper
+/// Mobil cihazlarda Sistem Barlarını yöneten Wrapper (Senin orijinal kodun)
 class _MobileSystemUIWrapper extends StatelessWidget {
   final Widget child;
 
