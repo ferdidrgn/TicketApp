@@ -8,7 +8,6 @@ class User extends Equatable {
   final String lastName;
   final String imageUrl;
   final String phoneNumber;
-  final int age;
   final String eMail;
   final String city;
   final bool isPhoneActive;
@@ -27,7 +26,6 @@ class User extends Equatable {
     required this.lastName,
     required this.imageUrl,
     required this.phoneNumber,
-    required this.age,
     required this.eMail,
     required this.city,
     required this.isPhoneActive,
@@ -48,7 +46,6 @@ class User extends Equatable {
         lastName,
         imageUrl,
         phoneNumber,
-        age,
         eMail,
         city,
         isPhoneActive,
@@ -71,7 +68,6 @@ class User extends Equatable {
     final String? lastName,
     final String? imageUrl,
     final String? phoneNumber,
-    final int? age,
     final String? eMail,
     final String? city,
     final bool? isPhoneActive,
@@ -90,7 +86,6 @@ class User extends Equatable {
         lastName: lastName ?? this.lastName,
         imageUrl: imageUrl ?? this.imageUrl,
         phoneNumber: phoneNumber ?? this.phoneNumber,
-        age: age ?? this.age,
         eMail: eMail ?? this.eMail,
         city: city ?? this.city,
         isPhoneActive: isPhoneActive ?? this.isPhoneActive,
@@ -115,7 +110,6 @@ class User extends Equatable {
             'https://example.com/default-image.png',
         phoneNumber:
             data?['phoneNumber'] as String? ?? 'Telefon numarası bulunamadı',
-        age: data?['age'] as int? ?? 0,
         eMail: data?['eMail'] as String? ?? 'E-mail bulunamadı',
         city: data?['city'] as String? ?? 'Şehir bulunamadı',
         isPhoneActive: data?['isPhoneActive'] as bool? ?? false,
@@ -137,7 +131,6 @@ class User extends Equatable {
         'lastName': lastName,
         'imageUrl': imageUrl,
         'phoneNumber': phoneNumber,
-        'age': age,
         'eMail': eMail,
         'city': city,
         'isPhoneActive': isPhoneActive,
@@ -160,7 +153,6 @@ class User extends Equatable {
         lastName: '',
         imageUrl: '',
         phoneNumber: '',
-        age: 0,
         eMail: '',
         city: '',
         isPhoneActive: false,

@@ -10,6 +10,7 @@ class LoginState extends BaseState {
   final String? email;
   final String? photoUrl;
   final String? phoneNumber;
+  final String? city;
   final String userRole;
 
   // Phone Verification
@@ -30,6 +31,7 @@ class LoginState extends BaseState {
     this.email,
     this.photoUrl,
     this.phoneNumber,
+    this.city,
     this.userRole = 'user',
     this.verificationId,
     this.isCodeSent = false,
@@ -103,6 +105,7 @@ class LoginState extends BaseState {
     final String? email,
     final String? photoUrl,
     final String? phoneNumber,
+    final String? city,
     final String? userRole,
     final String? verificationId,
     final bool? isCodeSent,
@@ -119,6 +122,7 @@ class LoginState extends BaseState {
         email: email ?? this.email,
         photoUrl: photoUrl ?? this.photoUrl,
         phoneNumber: phoneNumber ?? this.phoneNumber,
+        city: city ?? this.city,
         userRole: userRole ?? this.userRole,
         verificationId: verificationId ?? this.verificationId,
         isCodeSent: isCodeSent ?? this.isCodeSent,
@@ -136,9 +140,7 @@ class LoginState extends BaseState {
   factory LoginState.loading() => const LoginState(isLoading: true);
 
   /// Create logged out state
-  factory LoginState.loggedOut() {
-    return const LoginState(isLoading: false);
-  }
+  factory LoginState.loggedOut() => const LoginState(isLoading: false);
 
   /// Create from Firebase User
   factory LoginState.fromUser(final User user, final String role) => LoginState(

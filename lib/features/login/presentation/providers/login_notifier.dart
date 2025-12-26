@@ -4,6 +4,7 @@ import '../../../../core/common/base_notifier.dart';
 import '../../../../core/services/local_storage_service.dart';
 import '../../../../core/util/role_manager.dart';
 import '../../../auth/presentation/providers/auth_service.dart';
+import '../../../users/domain/entities/user.dart' as entity;
 import '../../../users/presentation/providers/user_data_service.dart';
 import 'login_state.dart';
 
@@ -137,9 +138,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     }
   }
 
-  Future<void> _handleUserLogout() async {
-    state = LoginState.loggedOut();
-  }
+  Future<void> _handleUserLogout() async => state = LoginState.loggedOut();
 
   // ========================================
   // SIGN IN METHODS
@@ -369,6 +368,17 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       } else
         state = state.copyWith(timerValue: state.timerValue - 1);
     });
+  }
+
+  // login_notifier.dart içinde
+  void refreshUserState(final entity.User updatedUser) {
+    state = state.copyWith(
+      displayName: '${updatedUser.firstName} ${updatedUser.lastName}',
+      photoUrl: updatedUser.imageUrl,
+      email: updatedUser.eMail,
+      phoneNumber: updatedUser.phoneNumber,
+      city: updatedUser.city,
+    );
   }
 
   /// Clear error (override from BaseNotifier to return void)

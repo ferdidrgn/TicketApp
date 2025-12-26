@@ -9,7 +9,6 @@ class UserModel {
   final String? lastName;
   final String? imageUrl;
   final String? phoneNumber;
-  final int? age;
   final String? eMail;
   final String? city;
   final bool? isPhoneActive;
@@ -28,7 +27,6 @@ class UserModel {
     this.lastName,
     this.imageUrl,
     this.phoneNumber,
-    this.age,
     this.eMail,
     this.city,
     this.isPhoneActive,
@@ -54,7 +52,6 @@ class UserModel {
       lastName: data['lastName'] as String?,
       imageUrl: data['imageUrl'] as String?,
       phoneNumber: data['phoneNumber'] as String?,
-      age: data['age'] as int?,
       eMail: data['eMail'] as String?,
       city: data['city'] as String?,
       isPhoneActive: data['isPhoneActive'] as bool?,
@@ -82,7 +79,6 @@ class UserModel {
         'lastName': lastName,
         'imageUrl': imageUrl,
         'phoneNumber': phoneNumber,
-        'age': age,
         'eMail': eMail,
         'city': city,
         'isPhoneActive': isPhoneActive,
@@ -101,7 +97,6 @@ class UserModel {
         firstName: firstName ?? 'İsim bulunamadı',
         lastName: lastName ?? 'Soyisim bulunamadı',
         phoneNumber: phoneNumber ?? 'Telefon numarası bulunamadı',
-        age: age ?? 0,
         imageUrl: imageUrl ?? 'https://example.com/default-image.png',
         eMail: eMail ?? 'E-mail bulunamadı',
         city: city ?? 'Şehir bulunamadı',
@@ -138,7 +133,6 @@ class UserModel {
         lastName: user.lastName,
         imageUrl: user.imageUrl,
         phoneNumber: user.phoneNumber,
-        age: user.age,
         eMail: user.eMail,
         city: user.city,
         isPhoneActive: user.isPhoneActive,

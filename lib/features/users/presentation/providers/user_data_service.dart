@@ -92,7 +92,6 @@ class UserDataService {
         eMail: email,
         phoneNumber: phoneNumber,
         role: role,
-        age: 0,
         city: '',
         isPhoneActive: isPhoneActive,
         fcmToken: '',

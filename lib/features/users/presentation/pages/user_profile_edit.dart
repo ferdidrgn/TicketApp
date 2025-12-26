@@ -14,6 +14,7 @@ import '../../../../shared/widgets/custom_art_words_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../auth/presentation/providers/storage_service.dart';
+import '../../../login/presentation/providers/login_provider.dart';
 import '../../domain/entities/user.dart';
 import '../providers/user_provider.dart';
 import '../providers/user_state.dart';
@@ -237,9 +238,9 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       if (_selectedImageFile != null) {
         final uploadedUrl = await _storageService.uploadProfileImage(
             widget.userId, _selectedImageFile!);
-        if (uploadedUrl != null) {
+        if (uploadedUrl != null)
           finalImageUrl = uploadedUrl; // Firebase'den gelen yeni URL (Tokenlı)
-        } else {
+        else {
           _showSnackBar("Fotoğraf yüklenemedi.", isError: true);
           return;
         }
@@ -269,6 +270,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         role: userToSave.role,
         photoUrl: finalImageUrl,
       );
+      ref.read(loginProvider.notifier).refreshUserState(userToSave);
 
       if (mounted) {
         setState(() {
