@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart'; // Fotoğraf seçimi için
 import 'package:shimmer/shimmer.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
@@ -31,9 +31,9 @@ class UserProfileEditScreen extends ConsumerStatefulWidget {
 class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
-  File? _selectedImageFile;
-
   final StorageService _storageService = StorageService();
+  File? _selectedImageFile; // Galeriden seçilen dosya
+
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
@@ -52,6 +52,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     _emailController = TextEditingController();
     _cityController = TextEditingController();
 
+    // Veriyi Firestore'dan çekmeye başla
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       ref.read(userProvider.notifier).loadUserById(widget.userId);
     });
@@ -67,6 +68,22 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     super.dispose();
   }
 
+  // Fotoğraf Seçme İşlemi (Galeriden)
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 75,
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  // Verileri Kontrolcülere Doldurma (UI Sync)
   void _fillFields(final User user) {
     if (_isInitialized) return;
     _firstNameController.text = user.firstName;
@@ -77,23 +94,16 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     _profileImageUrl = user.imageUrl.isNotEmpty
         ? user.imageUrl
         : 'https://via.placeholder.com/150';
+
     _isInitialized = true;
     if (mounted) setState(() {});
-  }
-
-  Future<void> _pickImage(final ImageSource source) async {
-    final XFile? pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImageFile = File(pickedFile.path);
-      });
-    }
   }
 
   @override
   Widget build(final BuildContext context) {
     final userState = ref.watch(userProvider);
 
+    // ⚡ VERİ GELDİĞİNDE KUTUCUKLARI DOLDURAN DİNLEYİCİ
     ref.listen<UserState>(userProvider, (final previous, final next) {
       if (!next.isLoading && next.dataSingle != null && !_isInitialized) {
         _fillFields(next.dataSingle!);
@@ -108,7 +118,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
             children: [
               TopNormalHeader(
                 title: 'Kimliğini Biçimlendir',
-                subtitle: 'Hafıza Sarayı\'ndaki izlerini güncelle...',
+                subtitle: 'Sanatçı profilini dünyaya tanıt...',
                 rightIcon: Icons.auto_fix_high_rounded,
               ),
               Expanded(
@@ -126,6 +136,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Widget _buildForm(final BuildContext context, final User? currentUser) =>
       SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
+        physics: const BouncingScrollPhysics(),
         child: Form(
           key: _formKey,
           child: Column(
@@ -134,9 +145,39 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                   word: 'Gelecek, güzelliğe inananlarındır.',
                   author: 'Eleanor Roosevelt'),
               const SizedBox(height: 32),
-              _buildAvatarPicker(),
+              _buildAvatarSection(),
               const SizedBox(height: 32),
-              _buildFields(),
+              _buildSectionTitle('Öz Kimlik Bilgileri'),
+              Row(
+                children: [
+                  Expanded(
+                      child: CustomTextField(
+                          controller: _firstNameController,
+                          label: 'Ad',
+                          isRequired: true)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: CustomTextField(
+                          controller: _lastNameController,
+                          label: 'Soyad',
+                          isRequired: true)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                  controller: _emailController,
+                  label: 'E-Posta Adresi',
+                  isRequired: false),
+              const SizedBox(height: 16),
+              CustomTextField(
+                  controller: _phoneController,
+                  label: 'Telefon Numarası',
+                  isRequired: false),
+              const SizedBox(height: 16),
+              CustomTextField(
+                  controller: _cityController,
+                  label: 'Yaşadığın Şehir',
+                  isRequired: false),
               const SizedBox(height: 40),
               _buildSaveButton(),
               const SizedBox(height: 40),
@@ -145,7 +186,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         ),
       );
 
-  Widget _buildAvatarPicker() => Center(
+  Widget _buildAvatarSection() => Center(
         child: Stack(
           children: [
             Container(
@@ -155,6 +196,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                   border: Border.all(color: context.colors.primary, width: 2)),
               child: CircleAvatar(
                 radius: 60,
+                backgroundColor: context.colors.surfaceVariant,
                 backgroundImage: _selectedImageFile != null
                     ? FileImage(_selectedImageFile!) as ImageProvider
                     : NetworkImage(_profileImageUrl),
@@ -164,45 +206,12 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               bottom: 0,
               right: 0,
               child: FloatingActionButton.small(
-                onPressed: () => _pickImage(ImageSource.gallery),
-                child: const Icon(Icons.camera_alt),
+                onPressed: _pickImage,
+                child: const Icon(Icons.camera_alt_rounded),
               ),
             )
           ],
         ),
-      );
-
-  Widget _buildFields() => Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                  child: CustomTextField(
-                      controller: _firstNameController,
-                      label: 'Ad',
-                      isRequired: true)),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: CustomTextField(
-                      controller: _lastNameController,
-                      label: 'Soyad',
-                      isRequired: true)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          CustomTextField(
-              controller: _emailController,
-              label: 'E-Posta',
-              isRequired: false),
-          const SizedBox(height: 16),
-          CustomTextField(
-              controller: _phoneController,
-              label: 'Telefon',
-              isRequired: false),
-          const SizedBox(height: 16),
-          CustomTextField(
-              controller: _cityController, label: 'Şehir', isRequired: false),
-        ],
       );
 
   Widget _buildSaveButton() {
@@ -216,27 +225,27 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
+  // ⚡ GÜNCELLEME VE SENKRONİZASYON MANTIĞI
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    String finalImageUrl = _profileImageUrl; // Başlangıçta mevcut URL
+    final currentUser = ref.read(userProvider).dataSingle;
+    String finalImageUrl = _profileImageUrl;
 
     try {
-      // 1. ADIM: STORAGE'A YÜKLE VE YENİ LİNKİ AL
+      // 1. ADIM: EĞER YENİ FOTOĞRAF VARSA STORAGE'A YÜKLE
       if (_selectedImageFile != null) {
-        final String? newlyUploadedUrl = await _storageService
-            .uploadProfileImage(widget.userId, _selectedImageFile!);
-
-        if (newlyUploadedUrl != null) {
-          finalImageUrl = newlyUploadedUrl;
+        final uploadedUrl = await _storageService.uploadProfileImage(
+            widget.userId, _selectedImageFile!);
+        if (uploadedUrl != null) {
+          finalImageUrl = uploadedUrl; // Firebase'den gelen yeni URL (Tokenlı)
         } else {
-          _showSnackBar("Fotoğraf sunucuya yüklenemedi.", isError: true);
+          _showSnackBar("Fotoğraf yüklenemedi.", isError: true);
           return;
         }
       }
 
-      final currentUser = ref.read(userProvider).dataSingle;
-
+      // 2. ADIM: VERİ NESNESİNİ GÜNCEL LİNKLE OLUŞTUR
       final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
@@ -244,15 +253,16 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         eMail: _emailController.text.trim(),
         city: _cityController.text.trim(),
         imageUrl: finalImageUrl,
-        fcmToken: currentUser?.fcmToken ?? "",
+        // Firestore'a gidecek taze link
         updatedAt: DateTime.now().toIso8601String(),
       );
 
-      // Firestore ve Local kaydı
+      // 3. ADIM: FIRESTORE'A KAYDET
       await ref
           .read(userProvider.notifier)
           .saveUser(userToSave, finalImageUrl, isUpdate: true);
 
+      // 4. ADIM: YEREL HAFIZAYI GÜNCELLE (Auto-Login'de Google linkine dönmemesi için)
       await LocalStorageService.saveEssentialUserData(
         uid: widget.userId,
         displayName: '${userToSave.firstName} ${userToSave.lastName}',
@@ -260,10 +270,15 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         photoUrl: finalImageUrl,
       );
 
-      // Siyah ekranı önlemek için sadece dialogu kapat
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (mounted) {
+        setState(() {
+          _profileImageUrl = finalImageUrl;
+          _selectedImageFile = null;
+        });
+        _showSuccessDialog();
+      }
     } catch (e) {
-      _showSnackBar("Güncelleme sırasında bir hata oluştu: $e", isError: true);
+      _showSnackBar("Hata: $e", isError: true);
     }
   }
 
@@ -271,22 +286,42 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         context: context,
         barrierDismissible: false,
         builder: (final dialogContext) => CustomSuccessDialog(
-          message: 'Bilgilerin güncellendi!',
+          message: 'Kimliğin başarıyla güncellendi!',
           onConfirm: () {
-            Navigator.of(dialogContext, rootNavigator: true)
-                .pop(); // Dialogu kapat
+            // ✅ Sadece Pop-up'ı kapatıyoruz (Geri dönünce siyah ekran olmaması için)
+            Navigator.of(dialogContext, rootNavigator: true).pop();
           },
         ),
       );
-
-  void _showSnackBar(final String msg, {final bool isError = false}) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(msg),
-          backgroundColor: isError ? Colors.red : Colors.green));
 
   Widget _buildShimmerLoading() => Shimmer.fromColors(
         baseColor: context.colors.surfaceVariant.withOpacity(0.4),
         highlightColor: context.colors.surfaceVariant,
         child: const Center(child: CircularProgressIndicator()),
+      );
+
+  Widget _buildSectionTitle(final String title) => Padding(
+        padding: const EdgeInsets.only(bottom: 16, top: 8),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            title.toUpperCase(),
+            style: context.textTheme.labelLarge?.copyWith(
+              color: context.colors.primary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+      );
+
+  // ⚡ DÜZELTME: Gövdesi dolduruldu
+  void _showSnackBar(final String message, {final bool isError = false}) =>
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Colors.red : Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
 }
