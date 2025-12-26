@@ -28,7 +28,7 @@ class UserProfileEditScreen extends ConsumerStatefulWidget {
 class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Kontrolcüler (Burayı elleme, aynı kalsın)
+  // 1. KONTROLCÜLER: Başlangıçta boş tanımlanır
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
@@ -49,7 +49,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     _ageController = TextEditingController();
     _cityController = TextEditingController();
 
-    // 1. ADIM: Sayfa açıldığında veriyi Firestore'dan iste
+    // Sayfa açılır açılmaz veriyi çekmeye başla
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       ref.read(userProvider.notifier).loadUserById(widget.userId);
     });
@@ -66,22 +66,23 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     super.dispose();
   }
 
-  // 2. ADIM: Gelen veriyi kutulara dolduran asıl fonksiyon
+  // 2. VERİ DOLDURMA: Veri geldiğinde kontrolcüleri günceller
   void _fillFields(final User user) {
     if (_isInitialized) return;
 
-    setState(() {
-      _firstNameController.text = user.firstName;
-      _lastNameController.text = user.lastName;
-      _phoneController.text = user.phoneNumber;
-      _emailController.text = user.eMail;
-      _ageController.text = user.age > 0 ? user.age.toString() : '';
-      _cityController.text = user.city;
-      _profileImageUrl = user.imageUrl.isNotEmpty
-          ? user.imageUrl
-          : 'https://via.placeholder.com/150';
-      _isInitialized = true;
-    });
+    _firstNameController.text = user.firstName;
+    _lastNameController.text = user.lastName;
+    _phoneController.text = user.phoneNumber;
+    _emailController.text = user.eMail;
+    _ageController.text = user.age > 0 ? user.age.toString() : '';
+    _cityController.text = user.city;
+    _profileImageUrl = user.imageUrl.isNotEmpty
+        ? user.imageUrl
+        : 'https://via.placeholder.com/150';
+
+    _isInitialized = true;
+    // UI'ın güncellenmesi için setState şart
+    if (mounted) setState(() {});
   }
 
   @override
@@ -89,7 +90,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     final themeColors = context.colors;
     final userState = ref.watch(userProvider);
 
-    // 3. ADIM: Dinleyici - Veri yüklendiği an kutuları doldurur
+    // 3. DİNLEYİCİ: Veri her değiştiğinde veya yüklendiğinde kontrol et
     ref.listen<UserState>(userProvider, (final previous, final next) {
       if (!next.isLoading && next.dataSingle != null && !_isInitialized) {
         _fillFields(next.dataSingle!);
@@ -108,8 +109,9 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                 rightIcon: Icons.auto_fix_high_rounded,
               ),
               Expanded(
-                child: userState.isLoading && !_isInitialized
-                    ? _buildShimmerLoading() // Veri gelene kadar parlayan kutular
+                // Veri yoksa veya hala yükleniyorsa Shimmer göster
+                child: (userState.isLoading && !_isInitialized)
+                    ? _buildShimmerLoading()
                     : _buildForm(context, userState.dataSingle),
               ),
             ],
@@ -119,7 +121,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
-  // Yükleme Efekti (Shimmer)
+  // Yükleme Tasarımı
   Widget _buildShimmerLoading() {
     return Shimmer.fromColors(
       baseColor: context.colors.surfaceVariant.withOpacity(0.4),
@@ -152,7 +154,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
-  // Ana Form Yapısı
+  // Form Tasarımı
   Widget _buildForm(final BuildContext context, final User? currentUser) =>
       SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -169,8 +171,6 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               _buildProfileImagePicker(),
               const SizedBox(height: 32),
               _buildSectionTitle('Öz Kimlik Bilgileri'),
-
-              // AD VE SOYAD - ZORUNLU
               Row(
                 children: [
                   Expanded(
@@ -191,37 +191,14 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-
-              // DİĞER ALANLAR - OPSİYONEL
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: CustomTextField(
-                      controller: _emailController,
-                      label: 'E-Posta Adresi',
-                      prefixIcon: const Icon(Icons.alternate_email_rounded),
-                      keyboardType: TextInputType.emailAddress,
-                      isRequired: false,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: CustomTextField(
-                      controller: _ageController,
-                      label: 'Yaş',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      isRequired: false,
-                    ),
-                  ),
-                ],
+              CustomTextField(
+                controller: _emailController,
+                label: 'E-Posta Adresi',
+                prefixIcon: const Icon(Icons.alternate_email_rounded),
+                keyboardType: TextInputType.emailAddress,
+                isRequired: false,
               ),
-
-              const SizedBox(height: 24),
-              _buildSectionTitle('İletişim Kanalları'),
-
+              const SizedBox(height: 16),
               CustomTextField(
                 controller: _phoneController,
                 label: 'Telefon Numarası',
@@ -229,15 +206,15 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                 keyboardType: TextInputType.phone,
                 isRequired: false,
               ),
+              const SizedBox(height: 16),
               CustomTextField(
                 controller: _cityController,
-                label: 'Sanatın İcra Edildiği Şehir',
+                label: 'Yaşadığın Şehir',
                 prefixIcon: const Icon(Icons.location_city_rounded),
                 isRequired: false,
               ),
-
               const SizedBox(height: 40),
-              _buildSaveButton(currentUser),
+              _buildSaveButton(),
               const SizedBox(height: 40),
             ],
           ),
@@ -245,29 +222,17 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       );
 
   Widget _buildProfileImagePicker() => Center(
-        child: Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: context.colors.primary, width: 2),
-              ),
-              child: CircleAvatar(
-                radius: 60,
-                backgroundImage: NetworkImage(_profileImageUrl),
-                backgroundColor: context.colors.surfaceVariant,
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: FloatingActionButton.small(
-                onPressed: () => _showSnackBar('Görsel seçme yakında!'),
-                child: const Icon(Icons.camera_alt_rounded),
-              ),
-            )
-          ],
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: context.colors.primary, width: 2),
+          ),
+          child: CircleAvatar(
+            radius: 60,
+            backgroundImage: NetworkImage(_profileImageUrl),
+            backgroundColor: context.colors.surfaceVariant,
+          ),
         ),
       );
 
@@ -286,7 +251,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         ),
       );
 
-  Widget _buildSaveButton(final User? currentUser) {
+  Widget _buildSaveButton() {
     final isLoading = ref.watch(userProvider).isLoading;
     return SizedBox(
       width: double.infinity,
@@ -297,13 +262,11 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
-  // 4. ADIM: Kayıt ve Yerel Senkronizasyon (Firebase + Local)
+  // 4. ADIM: Güncelleme ve Geri Dönüş
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final currentUser = ref.read(userProvider).dataSingle;
-
-    // currentUser null olsa dahi widget.userId ile yeni bir yapı oluşturuyoruz
     final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
@@ -316,18 +279,19 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
 
     try {
-      // Firebase'e kaydet (DİKKAT: isUpdate: true veriyoruz)
+      // 1. Firebase'i güncelle
       await ref
           .read(userProvider.notifier)
           .saveUser(userToSave, _profileImageUrl, isUpdate: true);
 
-      // 5. ADIM: Yerel Depolamayı Güncelle (Profil sayfasındaki ismin hemen değişmesi için)
+      // 2. Local Storage senkronize et
       await LocalStorageService.saveEssentialUserData(
         uid: widget.userId,
         displayName: '${userToSave.firstName} ${userToSave.lastName}',
         role: userToSave.role,
       );
 
+      // 3. Başarı pop-up göster
       if (mounted) _showSuccessDialog();
     } catch (e) {
       _showSnackBar('Hata oluştu: $e', isError: true);
@@ -339,11 +303,13 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (final ctx) => CustomSuccessDialog(
+      builder: (final dialogContext) => CustomSuccessDialog(
         message: 'Kimliğin başarıyla güncellendi!',
         onConfirm: () {
-          Navigator.of(context).pop(); // Dialogu kapat
-          Navigator.of(context).pop(); // Profil sayfasına dön
+          // ÖNCE Dialog'u kapat
+          Navigator.of(dialogContext).pop();
+          // SONRA Profil sayfasına dön
+          Navigator.of(context).pop();
         },
       ),
     );
@@ -353,6 +319,5 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg),
         backgroundColor: isError ? Colors.red : Colors.green,
-        behavior: SnackBarBehavior.floating,
       ));
 }

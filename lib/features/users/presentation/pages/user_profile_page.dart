@@ -54,10 +54,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       body: CustomAppBackground(
         backgroundColor: bgColor,
         ambientColor: Colors.black,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          child: SafeArea(
             child: Column(
               children: [
                 // 🎨 SANATSAL BAŞLIK - ORJİNAL BOYUT
