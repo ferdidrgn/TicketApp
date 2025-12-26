@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
-import 'package:ticketapp/core/util/role_manager.dart';
 import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
-import '../../../../shared/widgets/custom_art_words_card.dart';
 import '../../../../shared/widgets/button/custom_elevated_button.dart';
+import '../../../../shared/widgets/custom_art_words_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../domain/entities/user.dart';
@@ -80,10 +79,8 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   @override
   Widget build(final BuildContext context) {
     final themeColors = context.colors;
-    // userProvider'ı dinle (AsyncValue dönmeli)
     final userState = ref.watch(userProvider);
 
-    // Veri geldiğinde form alanlarını doldur
     ref.listen(userProvider, (final previous, final next) {
       if (next.dataSingle != null) _fillFields(next.dataSingle!);
     });
@@ -139,7 +136,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               CustomTextField(
                 controller: _cityController,
                 label: 'Yaşadığın Şehir',
-                prefixIcon: const Icon(Icons.map_rounded),
+                prefixIcon: const Icon(Icons.location_city_rounded),
               ),
               const SizedBox(height: 40),
               _buildSaveButton(currentUser),
@@ -151,32 +148,26 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   Widget _buildFieldsGrid() => Column(
         children: [
-          // Ad ve Soyad Satırı
           Row(
             children: [
               Expanded(
-                child: CustomTextField(
-                  controller: _firstNameController,
-                  label: 'Ad',
-                  isRequired: true,
-                ),
-              ),
+                  child: CustomTextField(
+                      controller: _firstNameController,
+                      label: 'Ad',
+                      isRequired: true)),
               const SizedBox(width: 12),
               Expanded(
-                child: CustomTextField(
-                  controller: _lastNameController,
-                  label: 'Soyad',
-                  isRequired: true,
-                ),
-              ),
+                  child: CustomTextField(
+                      controller: _lastNameController,
+                      label: 'Soyad',
+                      isRequired: true)),
             ],
           ),
           const SizedBox(height: 8),
-          // E-posta ve Yaş Satırı
           Row(
             children: [
               Expanded(
-                flex: 3, // E-posta alanı daha geniş olsun
+                flex: 3,
                 child: CustomTextField(
                   controller: _emailController,
                   label: 'E-Posta Adresi',
@@ -186,13 +177,11 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                flex: 1, // Yaş alanı daha dar kalsın
+                flex: 1,
                 child: CustomTextField(
                   controller: _ageController,
                   label: 'Yaş',
-                  prefixIcon: const Icon(Icons.cake_rounded),
                   keyboardType: TextInputType.number,
-                  // Sadece rakam girmesini garanti altına almak için:
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
               ),
@@ -245,13 +234,10 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   Widget _buildSaveButton(final User? currentUser) {
     final isLoading = ref.watch(userProvider).isLoading;
-
     return SizedBox(
       width: double.infinity,
       child: CustomElevatedButton(
-        text: currentUser == null
-            ? 'Sanat Yolculuğuna Başla'
-            : 'Değişiklikleri Kaydet',
+        text: 'Sanat Yolculuğuna Başla',
         // Null yerine boş fonksiyon veriyoruz
         onPressed: isLoading ? () {} : () => _updateProfile(),
       ),
@@ -260,10 +246,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
     final currentUser = ref.read(userProvider).dataSingle;
-    final now = DateTime.now().toIso8601String();
-
     final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
@@ -272,7 +255,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       age: int.tryParse(_ageController.text.trim()) ?? 0,
       city: _cityController.text.trim(),
       imageUrl: _profileImageUrl,
-      updatedAt: now,
+      updatedAt: DateTime.now().toIso8601String(),
     );
 
     try {
@@ -292,17 +275,15 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       barrierDismissible: false,
       builder: (final ctx) => CustomSuccessDialog(
         message: 'Profilin başarıyla güncellendi!',
-        onConfirm: () => Navigator.of(context).pushReplacementNamed('/home'),
+        onConfirm: () => Navigator.of(context).pop(),
       ),
     );
   }
 
   void _showSnackBar(final String msg, {final bool isError = false}) =>
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(msg),
-          backgroundColor: isError ? Colors.red : Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ));
 }
