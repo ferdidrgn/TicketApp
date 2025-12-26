@@ -1,69 +1,198 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../util/app_debug.dart';
 
+/// 🔐 Merkezi Local Storage Servisi
 class LocalStorageService {
-  static const String _userUidKey = 'user_uid';
-  static const String _userDisplayNameKey = 'user_display_name';
-  static const String _userRoleKey = 'user_role';
-  static const String _isLoggedInKey = 'is_logged_in';
-
-  // ⚠️ DÜZELTME 1: 'late' kaldırıldı, nullable yapıldı.
-  // Böylece başlatılıp başlatılmadığını kontrol edebiliriz.
   static SharedPreferences? _prefs;
 
+  // Storage Keys
+  static const String _keyUserId = 'user_id';
+  static const String _keyDisplayName = 'user_display_name';
+  static const String _keyEmail = 'user_email';
+  static const String _keyPhotoUrl = 'user_photo_url';
+  static const String _keyRole = 'user_role';
+  static const String _keyIsLoggedIn = 'is_logged_in';
+  static const String _keyIsGuest = 'is_guest';
+
+  /// Initialize SharedPreferences
   static Future<void> init() async {
-    // ⚠️ DÜZELTME 2: Eğer zaten yüklendiyse tekrar yükleme, direkt çık.
-    // Bu satır 'LateInitializationError' hatasını engeller.
-    if (_prefs != null) return;
-
-    _prefs = await SharedPreferences.getInstance();
-    print("✅ LocalStorageService initialized");
+    _prefs ??= await SharedPreferences.getInstance();
+    AppDebug.log("LocalStorage initialized", tag: "STORAGE");
   }
 
-  // ✅ SADECE GEREKLİ BİLGİLERİ KAYDET
-  static Future<void> saveEssentialUserData({
-    required final String uid,
-    required final String? displayName,
-    required final String? role,
+  /// Ensure initialization
+  static Future<void> _ensureInitialized() async {
+    if (_prefs == null) await init();
+  }
+
+  // ========================================
+  // SAVE OPERATIONS
+  // ========================================
+
+  /// 💾 Save complete user data
+  static Future<bool> saveUserData({
+    required final String userId,
+    required final String displayName,
+    required final String email,
+    required final String photoUrl,
+    required final String role,
+    required final bool isGuest,
   }) async {
-    // _prefs? kullanarak null güvenliği sağlıyoruz
-    await _prefs?.setString(_userUidKey, uid);
-
-    if (displayName != null)
-      await _prefs?.setString(_userDisplayNameKey, displayName);
-
-    if (role != null)
-      await _prefs?.setString(_userRoleKey, role);
-
-    await _prefs?.setBool(_isLoggedInKey, true);
+    await _ensureInitialized();
+    try {
+      await Future.wait([
+        _prefs!.setString(_keyUserId, userId),
+        _prefs!.setString(_keyDisplayName, displayName),
+        _prefs!.setString(_keyEmail, email),
+        _prefs!.setString(_keyPhotoUrl, photoUrl),
+        _prefs!.setString(_keyRole, role),
+        _prefs!.setBool(_keyIsLoggedIn, true),
+        _prefs!.setBool(_keyIsGuest, isGuest),
+      ]);
+      AppDebug.log("User data saved: $userId", tag: "STORAGE");
+      return true;
+    } catch (e) {
+      AppDebug.log("Save user data error: $e", tag: "STORAGE");
+      return false;
+    }
   }
 
-  // ✅ SADECE GEREKLİ BİLGİLERİ GETİR
+  /// 💾 Save essential user data (minimal)
+  static Future<bool> saveEssentialUserData({
+    required final String uid,
+    final String? displayName,
+    final String? role,
+  }) async {
+    await _ensureInitialized();
+    try {
+      await Future.wait([
+        _prefs!.setString(_keyUserId, uid),
+        if (displayName != null)
+          _prefs!.setString(_keyDisplayName, displayName),
+        if (role != null) _prefs!.setString(_keyRole, role),
+        _prefs!.setBool(_keyIsLoggedIn, true),
+      ]);
+      AppDebug.log("Essential user data saved: $uid", tag: "STORAGE");
+      return true;
+    } catch (e) {
+      AppDebug.log("Save essential data error: $e", tag: "STORAGE");
+      return false;
+    }
+  }
+
+  // ========================================
+  // GET OPERATIONS
+  // ========================================
+
+  /// 📖 Get user ID
+  static String? get userId => _prefs?.getString(_keyUserId);
+
+  /// 📖 Get display name
+  static String? get displayName => _prefs?.getString(_keyDisplayName);
+
+  /// 📖 Get email
+  static String? get email => _prefs?.getString(_keyEmail);
+
+  /// 📖 Get photo URL
+  static String? get photoUrl => _prefs?.getString(_keyPhotoUrl);
+
+  /// 📖 Get user role
+  static String? get userRole=>_prefs?.getString(_keyRole);
+
+  /// 📖 Check if logged in
+  static bool get isLoggedIn => _prefs?.getBool(_keyIsLoggedIn) ?? false;
+
+  /// 📖 Check if guest
+  static bool get isGuest => _prefs?.getBool(_keyIsGuest) ?? false;
+
+  /// 📖 Get all user data as Map
+  static Map<String, dynamic> getUserData() =>{
+      'userId': userId,
+      'displayName': displayName,
+      'email': email,
+      'photoUrl': photoUrl,
+      'role': userRole,
+      'isLoggedIn': isLoggedIn,
+      'isGuest': isGuest,
+    };
+
+  /// 📖 Get essential user data
   static Map<String, dynamic>? getEssentialUserData() {
-    final isLoggedIn = _prefs?.getBool(_isLoggedInKey) ?? false;
-    if (!isLoggedIn) return null;
+    final uid = userId;
+    if (uid == null) return null;
 
     return {
-      'uid': _prefs?.getString(_userUidKey),
-      'displayName': _prefs?.getString(_userDisplayNameKey),
-      'role': _prefs?.getString(_userRoleKey),
+      'userId': uid,
+      'displayName': displayName ?? 'User',
+      'email': email ?? '',
+      'photoURL': photoUrl ?? '',
+      'role': userRole ?? 'user',
     };
   }
 
-  // ✅ TÜM VERİLERİ TEMİZLE
-  static Future<void> clearAllUserData() async {
-    await _prefs?.remove(_userUidKey);
-    await _prefs?.remove(_userDisplayNameKey);
-    await _prefs?.remove(_userRoleKey);
-    await _prefs?.setBool(_isLoggedInKey, false);
+  // ========================================
+  // DELETE OPERATIONS
+  // ========================================
+
+  /// 🗑️ Clear all user data
+  static Future<bool> clearAllUserData() async {
+    await _ensureInitialized();
+    try {
+      await Future.wait([
+        _prefs!.remove(_keyUserId),
+        _prefs!.remove(_keyDisplayName),
+        _prefs!.remove(_keyEmail),
+        _prefs!.remove(_keyPhotoUrl),
+        _prefs!.remove(_keyRole),
+        _prefs!.remove(_keyIsLoggedIn),
+        _prefs!.remove(_keyIsGuest),
+      ]);
+      AppDebug.log("All user data cleared", tag: "STORAGE");
+      return true;
+    } catch (e) {
+      AppDebug.log("Clear user data error: $e", tag: "STORAGE");
+      return false;
+    }
   }
 
-  // ✅ GETTER'lar
-  // Eğer _prefs null ise (init çalışmadıysa) varsayılan değerler döner, çökmez.
-  static bool get isLoggedIn => _prefs?.getBool(_isLoggedInKey) ?? false;
+  /// 🗑️ Clear specific key
+  static Future<bool> clearKey(final String key) async {
+    await _ensureInitialized();
+    try {
+      await _prefs!.remove(key);
+      return true;
+    } catch (e) {
+      AppDebug.log("Clear key error: $e", tag: "STORAGE");
+      return false;
+    }
+  }
 
-  static String? get userUid => _prefs?.getString(_userUidKey);
+  /// 🗑️ Clear all storage
+  static Future<bool> clearAll() async {
+    await _ensureInitialized();
+    try {
+      await _prefs!.clear();
+      AppDebug.log("All storage cleared", tag: "STORAGE");
+      return true;
+    } catch (e) {
+      AppDebug.log("Clear all error: $e", tag: "STORAGE");
+      return false;
+    }
+  }
 
-  static String? get userDisplayName => _prefs?.getString(_userDisplayNameKey);
+  // ========================================
+  // UTILITY
+  // ========================================
 
-  static String? get userRole => _prefs?.getString(_userRoleKey);
+  /// Check if user data exists
+  static bool get hasUserData => userId != null && isLoggedIn;
+
+  /// Get login method from providers    // This should be saved during login
+  static String getLoginMethod()=> _prefs?.getString('login_method') ?? 'unknown';
+
+  /// Save login method
+  static Future<void> saveLoginMethod(final String method) async {
+    await _ensureInitialized();
+    await _prefs!.setString('login_method', method);
+  }
 }

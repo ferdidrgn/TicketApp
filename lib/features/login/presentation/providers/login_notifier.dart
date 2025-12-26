@@ -1,78 +1,94 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../../core/common/base_notifier.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/local_storage_service.dart';
+import '../../../../core/services/user_data_service.dart';
 import '../../../../core/util/app_debug.dart';
 import '../../../../core/util/role_manager.dart';
-import '../../../users/data/models/user_model.dart';
-import '../../../users/domain/entities/user.dart' as entity;
-import '../../../users/presentation/providers/user_provider.dart';
-import 'login_provider.dart';
 import 'login_state.dart';
 
+/// 🔐 Login Notifier - Complete Auth Management
+///
+/// ⚠️ ÖNEMLI: Bu notifier AutoDispose KULLANMAZ çünkü:
+/// - Auth state her zaman aktif olmalı
+/// - Uygulama boyunca erişilebilir olmalı
+/// - Sayfa değişimlerinde kaybolmamalı
 class LoginNotifier extends BaseNotifier<LoginState> {
+  // Services
+  late final AuthService _authService;
+  late final UserDataService _userDataService;
+
+  // Subscriptions
   StreamSubscription<User?>? _authStateSubscription;
   Timer? _timer;
+
+  // Flags
   bool _isManualSignOut = false;
+  bool _isInitialized = false;
 
   @override
   LoginState initialState() {
-    // Başlatmayı güvenli bir şekilde tetikle
-    Future.microtask(() => initialize());
-    return LoginState(isLoading: true);
+    _initializeServices();
+    _startAuthListener();
+    return LoginState.loading();
   }
 
   @override
   void onDispose() {
     _authStateSubscription?.cancel();
     _timer?.cancel();
-    AppDebug.log("LoginNotifier temizlendi.", tag: "AUTH");
+    AppDebug.log("LoginNotifier disposed", tag: "AUTH");
   }
 
-  // --- BAŞLATMA ---
-  Future<void> initialize() async {
+  // ========================================
+  // INITIALIZATION
+  // ========================================
+
+  void _initializeServices() {
+    _authService = AuthService();
+    _userDataService = UserDataService();
+  }
+
+  Future<void> _startAuthListener() async {
     try {
-      // 10 Saniyelik Güvenlik Kilidi (Splash'te asılı kalmayı önler)
+      await LocalStorageService.init();
+
+      // Safety timeout (10 seconds)
       Future.delayed(const Duration(seconds: 10), () {
-        if (state.isLoading) {
-          state = state.copyWith(isLoading: false);
-          AppDebug.log("Zaman aşımı: Yükleme ekranı zorla kapatıldı.",
-              tag: "AUTH");
+        if (state.isLoading && _isInitialized) {
+          state = LoginState.loggedOut();
+          AppDebug.log("Auth initialization timeout", tag: "AUTH");
         }
       });
 
-      await LocalStorageService.init();
-      await _setupAuthListener();
+      // Listen to auth state changes
+      _authStateSubscription = _authService.authStateChanges.listen(
+        _handleAuthStateChange,
+        onError: (final error) {
+          AppDebug.log("Auth state error: $error", tag: "AUTH");
+          setErrorState(error.toString());
+        },
+      );
+
+      _isInitialized = true;
     } catch (e, stack) {
       logError(e, stack);
       setErrorState(e.toString());
     }
   }
 
-  Future<void> _setupAuthListener() async {
-    await _authStateSubscription?.cancel();
+  // ========================================
+  // AUTH STATE HANDLER
+  // ========================================
 
-    _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen(
-      (final firebaseUser) async {
-        if (_isManualSignOut) {
-          AppDebug.log("Manuel çıkış algılandı, listener atlanıyor.",
-              tag: "AUTH");
-          _isManualSignOut = false;
-          return;
-        }
-        await _handleAuthStateChange(firebaseUser);
-      },
-      onError: (final error) {
-        logError(error);
-        setErrorState(error.toString());
-      },
-    );
-  }
-
-  // --- KULLANICI DURUM YÖNETİMİ ---
   Future<void> _handleAuthStateChange(final User? firebaseUser) async {
+    if (_isManualSignOut) {
+      AppDebug.log("Manual sign out detected, skipping listener", tag: "AUTH");
+      _isManualSignOut = false;
+      return;
+    }
+
     if (firebaseUser != null)
       await _handleUserLogin(firebaseUser);
     else
@@ -81,38 +97,41 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> _handleUserLogin(final User firebaseUser) async {
     try {
+      // Reload user to get latest data
       await firebaseUser.reload();
-      final refreshedUser = FirebaseAuth.instance.currentUser;
+      final refreshedUser = _authService.currentUser;
 
       if (refreshedUser == null) {
         await _handleUserLogout();
         return;
       }
 
+      // Get user role
       String userRole = LocalStorageService.userRole ?? 'user';
       if (refreshedUser.isAnonymous)
         userRole = RoleManager.getDefaultRoleForLoginMethod('anonymous');
 
-      state = state.copyWith(
-        user: refreshedUser,
-        isLoading: false,
-        isGuest: refreshedUser.isAnonymous,
-        userRole: userRole,
-        errorMessage: null,
-      );
+      // Update state
+      state = LoginState.fromUser(refreshedUser, userRole);
 
-      await LocalStorageService.saveEssentialUserData(
-        uid: refreshedUser.uid,
-        displayName: refreshedUser.displayName,
+      // Save to local storage
+      await LocalStorageService.saveUserData(
+        userId: refreshedUser.uid,
+        displayName: refreshedUser.displayName ?? 'User',
+        email: refreshedUser.email ?? '',
+        photoUrl: refreshedUser.photoURL ?? '',
         role: userRole,
+        isGuest: refreshedUser.isAnonymous,
       );
 
-      await _saveFcmToken(refreshedUser.uid);
+      // Save FCM token
+      await _authService.saveFcmToken(refreshedUser.uid);
 
+      // Sync to Firestore (if not anonymous)
       if (!refreshedUser.isAnonymous)
-        await _syncUserWithFirestore(refreshedUser, userRole);
+        await _syncUserToFirestore(refreshedUser, userRole);
 
-      AppDebug.log("Giriş başarılı: ${refreshedUser.uid}", tag: "AUTH");
+      AppDebug.log("Login successful: ${refreshedUser.uid}", tag: "AUTH");
     } catch (e, stack) {
       logError(e, stack);
       setErrorState(e.toString());
@@ -120,196 +139,262 @@ class LoginNotifier extends BaseNotifier<LoginState> {
   }
 
   Future<void> _handleUserLogout() async {
-    state = LoginState(isLoading: false);
-    AppDebug.log("Oturum kapatıldı.", tag: "AUTH");
+    state = LoginState.loggedOut();
+    AppDebug.log("User logged out", tag: "AUTH");
   }
 
-  // --- TÜM AUTH METODLARI (UI Hatalarını Çözer) ---
+  // ========================================
+  // SIGN IN METHODS
+  // ========================================
 
-  Future<void> verifyPhone(final String phoneNumber) async {
-    setLoadingState(true);
-    String phone = phoneNumber.trim();
-    if (!phone.startsWith("+")) phone = "+90$phone";
-
-    try {
-      await ref.read(verifyPhoneUseCaseProvider).call(
-            phoneNumber: phone,
-            onVerificationCompleted: (final credential) async {
-              await FirebaseAuth.instance.signInWithCredential(credential);
-            },
-            onCodeSent: (final String vId, final int? resendToken) {
-              state = state.copyWith(
-                verificationId: vId,
-                isCodeSent: true,
-                isLoading: false,
-                timerValue: 180,
-                phoneNumber: phone,
-              );
-              _startTimer();
-            },
-            onAutoRetrievalTimeout: (final String vId) {
-              state = state.copyWith(verificationId: vId);
-            },
-          );
-    } catch (e, stack) {
-      logError(e, stack);
-      setErrorState("SMS gönderilemedi.");
-    }
-  }
-
-  Future<void> verifyOtp(final String otp) async {
-    if (state.verificationId == null) return;
-    await execute<bool>(
-      () => ref.read(verifyOtpUseCaseProvider).call(state.verificationId!, otp),
-      onSuccess: (final isVerified) {
-        if (!isVerified) setErrorState("Hatalı kod.");
-      },
-    );
-  }
-
-  Future<void> signInWithGoogle() async {
-    setLoadingState(true);
-    final result = await ref.read(signInWithGoogleUseCaseProvider).call();
-    result.fold(
-      (final failure) => setErrorState(failure.message),
-      (final user) => AppDebug.log("Google Login Başarılı", tag: "AUTH"),
-    );
-  }
-
-  Future<void> signInAnonymously() async {
-    await execute(
-      () => ref.read(signInAnonymouslyUseCaseProvider).call(),
-      onSuccess: (final _) =>
-          AppDebug.log("Anonim giriş başarılı", tag: "AUTH"),
-    );
-  }
-
-  Future<void> signOut() async {
+  /// 🔐 Sign in with Google
+  Future<bool> signInWithGoogle() async {
     try {
       setLoadingState(true);
-      _isManualSignOut = true;
-      final userId = FirebaseAuth.instance.currentUser?.uid;
+      clearErrorState();
 
-      if (userId != null) await _clearFcmToken(userId);
-      await LocalStorageService.clearAllUserData();
-      _timer?.cancel();
-      await FirebaseAuth.instance.signOut();
+      final user = await _authService.signInWithGoogle();
 
-      _handleUserLogout();
-    } catch (e, stack) {
-      _isManualSignOut = false;
-      logError(e, stack);
-      setErrorState("Çıkış hatası.");
-    }
-  }
-
-  Future<void> deleteAccount() async {
-    try {
-      setLoadingState(true);
-      _isManualSignOut = true;
-      final user = FirebaseAuth.instance.currentUser;
-      final userId = user?.uid;
-
-      if (userId != null) {
-        await _clearFcmToken(userId);
-        await FirebaseFirestore.instance
-            .collection('User')
-            .doc(userId)
-            .delete();
+      if (user == null) {
+        setErrorState('Google sign in cancelled');
+        return false;
       }
 
-      await LocalStorageService.clearAllUserData();
-      _timer?.cancel();
-      await user?.delete();
-
-      state = LoginState(isLoading: false, isAccountDeleted: true);
-      AppDebug.log("Hesap silindi.", tag: "AUTH");
+      // Auth listener will handle the rest
+      return true;
     } catch (e, stack) {
-      _isManualSignOut = false;
       logError(e, stack);
-      setErrorState("Hesap silinemedi.");
+      setErrorState('Google sign in failed: ${e.toString()}');
+      return false;
     }
   }
 
-  // --- YARDIMCI METODLAR ---
+  /// 📱 Verify phone number
+  Future<void> verifyPhone(final String phoneNumber) async {
+    try {
+      setLoadingState(true);
+      clearErrorState();
 
+      String phone = phoneNumber.trim();
+      if (!phone.startsWith("+"))
+        phone = "+90$phone";
+
+      await _authService.verifyPhoneNumber(
+        phoneNumber: phone,
+        onVerificationCompleted: (final credential) async {
+          await FirebaseAuth.instance.signInWithCredential(credential);
+        },
+        onCodeSent: (final verificationId, final resendToken) {
+          state = state.copyWith(
+            verificationId: verificationId,
+            isCodeSent: true,
+            isLoading: false,
+            timerValue: 180,
+            phoneNumber: phone,
+            errorMessage: null,
+          );
+          _startTimer();
+        },
+        onVerificationFailed: (final error) {
+          setErrorState(error);
+        },
+        onAutoRetrievalTimeout: (final verificationId) {
+          state = state.copyWith(
+            verificationId: verificationId,
+            errorMessage: null,
+          );
+        },
+      );
+    } catch (e, stack) {
+      logError(e, stack);
+      setErrorState('Phone verification failed: ${e.toString()}');
+    }
+  }
+
+  /// 📱 Verify OTP code
+  Future<bool> verifyOtp(final String smsCode) async {
+    try {
+      if (state.verificationId == null) {
+        setErrorState('No verification ID');
+        return false;
+      }
+
+      setLoadingState(true);
+      clearErrorState();
+
+      final user = await _authService.signInWithPhoneCredential(
+        state.verificationId!,
+        smsCode,
+      );
+
+      if (user == null) {
+        setErrorState('Invalid verification code');
+        return false;
+      }
+
+      // Auth listener will handle the rest
+      return true;
+    } catch (e, stack) {
+      logError(e, stack);
+      setErrorState('Invalid code: ${e.toString()}');
+      return false;
+    }
+  }
+
+  /// 👤 Sign in anonymously
+  Future<bool> signInAnonymously() async {
+    try {
+      setLoadingState(true);
+      clearErrorState();
+
+      final user = await _authService.signInAnonymously();
+
+      if (user == null) {
+        setErrorState('Anonymous sign in failed');
+        return false;
+      }
+
+      // Auth listener will handle the rest
+      return true;
+    } catch (e, stack) {
+      logError(e, stack);
+      setErrorState('Anonymous sign in failed: ${e.toString()}');
+      return false;
+    }
+  }
+
+  // ========================================
+  // SIGN OUT & DELETE
+  // ========================================
+
+  /// 🚪 Sign out
+  Future<bool> signOut() async {
+    try {
+      setLoadingState(true);
+      clearErrorState();
+      _isManualSignOut = true;
+
+      final userId = _authService.currentUser?.uid;
+
+      // Clear FCM token
+      if (userId != null)
+        await _authService.clearFcmToken(userId);
+
+      // Clear local storage
+      await LocalStorageService.clearAllUserData();
+
+      // Cancel timer
+      _timer?.cancel();
+
+      // Sign out
+      await _authService.signOut();
+
+      // Update state
+      state = LoginState.loggedOut();
+
+      AppDebug.log("Sign out successful", tag: "AUTH");
+      return true;
+    } catch (e, stack) {
+      _isManualSignOut = false;
+      logError(e, stack);
+      setErrorState('Sign out failed: ${e.toString()}');
+      return false;
+    }
+  }
+
+  /// 🗑️ Delete account completely
+  Future<bool> deleteAccount() async {
+    try {
+      setLoadingState(true);
+      clearErrorState();
+      _isManualSignOut = true;
+
+      final userId = _authService.currentUser?.uid;
+
+      if (userId == null)
+        throw Exception("No user to delete");
+
+      AppDebug.log("Starting complete account deletion: $userId", tag: "AUTH");
+
+      // 1. Clear FCM token
+      await _authService.clearFcmToken(userId);
+
+      // 2. Delete user data from Firestore (including tickets)
+      await _userDataService.deleteUserCompletely(userId);
+
+      // 3. Clear local storage
+      await LocalStorageService.clearAllUserData();
+
+      // 4. Cancel timer
+      _timer?.cancel();
+
+      // 5. Delete Firebase Auth account
+      await _authService.deleteAccount();
+
+      // 6. Update state
+      state = LoginState.loggedOut().copyWith(isAccountDeleted: true);
+
+      AppDebug.log("Account deleted completely: $userId", tag: "AUTH");
+      return true;
+    } catch (e, stack) {
+      _isManualSignOut = false;
+      logError(e, stack);
+      setErrorState('Delete account failed: ${e.toString()}');
+      return false;
+    }
+  }
+
+  // ========================================
+  // HELPER METHODS
+  // ========================================
+
+  /// Sync user to Firestore
+  Future<void> _syncUserToFirestore(final User user, final String role) async {
+    try {
+      // Check if user exists
+      final exists = await _userDataService.userExists(user.uid);
+
+      await _userDataService.syncUserFromAuth(
+        userId: user.uid,
+        displayName: user.displayName ?? '',
+        email: user.email ?? '',
+        photoUrl: user.photoURL ?? '',
+        phoneNumber: user.phoneNumber ?? '',
+        role: role,
+        isPhoneActive: user.phoneNumber != null,
+      );
+
+      AppDebug.log("User synced to Firestore: ${user.uid} (new: ${!exists})",
+          tag: "AUTH");
+    } catch (e, stack) {
+      logError(e, stack);
+      // Don't throw, just log
+    }
+  }
+
+  /// Start resend timer
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
       if (state.timerValue <= 0) {
         timer.cancel();
         state = state.copyWith(canResendCode: true, timerValue: 0);
-      } else {
+      } else
         state = state.copyWith(timerValue: state.timerValue - 1);
-      }
     });
   }
 
-  Future<void> _saveFcmToken(final String userId) async {
-    try {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) {
-        await FirebaseFirestore.instance.collection('User').doc(userId).set({
-          'fcmToken': token,
-          '_updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
-    } catch (e) {
-      logError(e);
-    }
+  /// Clear error (override from BaseNotifier to return void)
+  void clearError() {
+    clearErrorState();
   }
 
-  Future<void> _clearFcmToken(final String userId) async {
-    try {
-      await FirebaseFirestore.instance.collection('User').doc(userId).update({
-        'fcmToken': FieldValue.delete(),
-      });
-    } catch (e) {
-      logError(e);
+  /// Refresh user data
+  Future<void> refreshUser() async {
+    final user = _authService.currentUser;
+    if (user != null) {
+      await _authService.reloadUser();
+      await _handleUserLogin(user);
     }
-  }
-
-  Future<void> _syncUserWithFirestore(
-      final User firebaseUser, final String role) async {
-    try {
-      final nameParts = _splitName(firebaseUser.displayName ?? '');
-      final userEntity = entity.User(
-        id: firebaseUser.uid,
-        createdAt: DateTime.now().toIso8601String(),
-        updatedAt: DateTime.now().toIso8601String(),
-        firstName: nameParts['firstName'] ?? '',
-        lastName: nameParts['lastName'] ?? '',
-        imageUrl: firebaseUser.photoURL ?? '',
-        eMail: firebaseUser.email ?? '',
-        phoneNumber: firebaseUser.phoneNumber ?? '',
-        role: role,
-        age: 0,
-        city: '',
-        isPhoneActive: firebaseUser.phoneNumber != null,
-        fcmToken: '',
-        favoriteShows: const [],
-        favoriteStages: const [],
-        favoritePlayers: const [],
-        ticketsId: const [],
-      );
-
-      await ref.read(saveUserUseCaseProvider).call(
-            UserModel.fromEntity(userEntity),
-            firebaseUser.photoURL ?? '',
-            isUpdate: false,
-          );
-    } catch (e) {
-      logError(e);
-    }
-  }
-
-  Map<String, String> _splitName(final String fullName) {
-    if (fullName.isEmpty) return {'firstName': '', 'lastName': ''};
-    final parts = fullName.trim().split(' ');
-    if (parts.length == 1) return {'firstName': parts[0], 'lastName': ''};
-    return {
-      'firstName': parts.sublist(0, parts.length - 1).join(' '),
-      'lastName': parts.last,
-    };
   }
 }

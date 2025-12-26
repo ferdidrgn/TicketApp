@@ -49,9 +49,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
   void _showSnackBar(final String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -61,16 +59,12 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
     // 🔥 Error handling
     ref.listen<LoginState>(loginProvider, (final previous, final next) {
-      if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
+      if (next.errorMessage != null && next.errorMessage!.isNotEmpty)
         _showSnackBar(next.errorMessage!);
-      }
 
       // 🔥 Başarılı login sonrası otomatik yönlendirme
-      if (next.isLoggedIn && !next.isLoading) {
-        if (context.mounted) {
-          context.go('/home');
-        }
-      }
+      if (next.isLoggedIn && !next.isLoading)
+        if (context.mounted) context.go('/home');
     });
 
     return Scaffold(
@@ -101,8 +95,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     );
   }
 
-  Widget _buildPhoneUI(final ThemeData theme) {
-    return Column(
+  Widget _buildPhoneUI(final ThemeData theme) => Column(
       key: const ValueKey('phone_ui'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -137,10 +130,8 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         _buildArtisticButton("KOD GÖNDER", _verifyPhone, theme),
       ],
     );
-  }
 
-  Widget _buildOtpUI(final ThemeData theme, final LoginState state) {
-    return Column(
+  Widget _buildOtpUI(final ThemeData theme, final LoginState state)=> Column(
       key: const ValueKey('otp_ui'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -176,15 +167,13 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         ],
       ],
     );
-  }
 
   Widget _buildTextField(
     final TextEditingController controller,
     final String hint, {
     final String? prefix,
     final TextAlign textAlign = TextAlign.start,
-  }) {
-    return Container(
+  }) => Container(
       decoration: BoxDecoration(
         color: context.colors.surface.withOpacity(0.5),
         borderRadius: BorderRadius.circular(20),
@@ -208,14 +197,12 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         ),
       ),
     );
-  }
 
   Widget _buildArtisticButton(
     final String label,
     final VoidCallback onTap,
     final ThemeData theme,
-  ) {
-    return GestureDetector(
+  ) => GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -249,4 +236,3 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       ),
     );
   }
-}

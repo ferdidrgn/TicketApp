@@ -25,28 +25,24 @@ class EventSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    if (eventState.isLoading && !eventState.hasData) {
+    if (eventState.isLoading && !eventState.hasData)
       return SizedBox(
         height: 100,
         child: Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFD4AF37),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
         ),
       );
-    }
 
     final events = eventState.dataList
             ?.where((final e) => showData.eventsId.contains(e.id))
             .toList() ??
         [];
 
-    if (events.isEmpty) {
+    if (events.isEmpty)
       return EmptyStateMessage(
         message: 'Yaklaşan etkinlik bulunmamaktadır.',
         icon: Icons.calendar_today,
       );
-    }
 
     return Column(
       children: events.asMap().entries.map((final entry) {
@@ -86,8 +82,7 @@ class AnimatedEventCard extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: Duration(
-        milliseconds: 400 + index * AppConstants.staggerAnimationDelay,
-      ),
+          milliseconds: 400 + index * AppConstants.staggerAnimationDelay),
       builder: (final context, final value, final child) => Opacity(
         opacity: value,
         child: Transform.translate(
@@ -165,12 +160,11 @@ class AnimatedEventCard extends StatelessWidget {
     final ref = ProviderScope.containerOf(context);
     final String? userId = ref.read(loginProvider).user?.uid ??
         ref.read(userProvider).dataSingle?.id ??
-        LocalStorageService.userUid;
+        LocalStorageService.userId;
 
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kullanıcı oturumu bulunamadı.")),
-      );
+          const SnackBar(content: Text("Kullanıcı oturumu bulunamadı.")));
       return;
     }
     // Navigator.push(...)
@@ -188,41 +182,39 @@ class DateBox extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      width: 85,
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFFD4AF37),
-            Color(0xFFF5E6A3),
+  Widget build(final BuildContext context) => Container(
+        width: 85,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFD4AF37),
+              Color(0xFFF5E6A3),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Text(
+              day,
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF0a0a1a),
+              ),
+            ),
+            Text(
+              month,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0a0a1a),
+              ),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Text(
-            day,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0a0a1a),
-            ),
-          ),
-          Text(
-            month,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0a0a1a),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      );
 }
 
 class EventLocationRow extends StatelessWidget {
@@ -231,37 +223,35 @@ class EventLocationRow extends StatelessWidget {
   const EventLocationRow({super.key, required this.time});
 
   @override
-  Widget build(final BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          Icons.location_on,
-          size: 16,
-          color: Color(0xFFD4AF37),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          "İstanbul",
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white.withOpacity(0.6),
+  Widget build(final BuildContext context) => Row(
+        children: [
+          Icon(
+            Icons.location_on,
+            size: 16,
+            color: Color(0xFFD4AF37),
           ),
-        ),
-        const SizedBox(width: 16),
-        Icon(
-          Icons.access_time,
-          size: 16,
-          color: Color(0xFFD4AF37),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          time,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white.withOpacity(0.6),
+          const SizedBox(width: 4),
+          Text(
+            "İstanbul",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.6),
+            ),
           ),
-        ),
-      ],
-    );
-  }
+          const SizedBox(width: 16),
+          Icon(
+            Icons.access_time,
+            size: 16,
+            color: Color(0xFFD4AF37),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.6),
+            ),
+          ),
+        ],
+      );
 }

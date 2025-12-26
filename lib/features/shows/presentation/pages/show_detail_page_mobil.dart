@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
@@ -221,7 +220,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     final loginState = ref.read(loginProvider);
     final userId = loginState.user?.uid ??
         ref.read(userProvider).dataSingle?.id ??
-        LocalStorageService.userUid;
+        LocalStorageService.userId;
 
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -268,10 +267,8 @@ class ShowEventSection extends ConsumerWidget {
             .toList() ??
         [];
 
-    if (events.isEmpty) {
-      // Veri yükleniyor veya yoksa boş dön
+    if (events.isEmpty) // Veri yükleniyor veya yoksa boş dön
       return const SizedBox.shrink();
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

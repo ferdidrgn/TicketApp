@@ -10,60 +10,67 @@ import '../../../features/onboarding/presentation/pages/onboarding_container.dar
 import '../../../features/shows/presentation/pages/show_detail_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';
 import '../../errors/not_found_page.dart';
-// app_router.dart
 
-final appRouterProvider = Provider<GoRouter>((final ref) {
+/// 🛣️ App Router with Clean Auth Logic
+final appRouterProvider = Provider<GoRouter>((ref) {
   final loginState = ref.watch(loginProvider);
   final authNotifier = ValueNotifier(loginState);
 
-  ref.listen(loginProvider, (final _, final next) {
+  ref.listen(loginProvider, (_, next) {
     authNotifier.value = next;
   });
 
   return GoRouter(
     initialLocation: '/home',
     refreshListenable: authNotifier,
-    redirect: (final context, final state) {
+    redirect: (context, state) {
       final currentPath = state.uri.path;
-      final isLoggedIn = loginState.user != null;
+      final isLoggedIn = loginState.isLoggedIn;
+      final isGuest = loginState.isGuest;
 
-      // Sayfa durumları
-      final isLoggingIn = currentPath == '/login';
-      final isPhoneLogin = currentPath == '/phone-login';
-      final isOnboarding = currentPath == '/onboarding';
-      final isProfileEdit = currentPath.startsWith('/profile-edit');
+      // Page checks
+      final isLoginPage = currentPath == '/login';
+      final isPhoneLoginPage = currentPath == '/phone-login';
+      final isOnboardingPage = currentPath == '/onboarding';
+      final isProfileEditPage = currentPath.startsWith('/profile-edit');
 
-      // Yükleniyorsa bekle
+      // Wait while loading
       if (loginState.isLoading) return null;
 
-      // 1. Giriş YAPILMAMIŞSA ve korunmayan sayfalarda değilse -> Login'e at
-      if (!isLoggedIn && !isLoggingIn && !isOnboarding && !isPhoneLogin) {
+      // Public pages (accessible without login)
+      final publicPages = ['/login', '/phone-login', '/onboarding'];
+      final isPublicPage = publicPages.contains(currentPath);
+
+      // 1. NOT LOGGED IN
+      if (!isLoggedIn) {
+        // Allow public pages
+        if (isPublicPage) return null;
+
+        // Otherwise redirect to login
         return '/login';
       }
 
-      // 2. Giriş YAPILMIŞSA
+      // 2. LOGGED IN
       if (isLoggedIn) {
-        // Eğer kullanıcı şu an telefon doğrulama ekranındaysa,
-        // işlemi kendisi bitirene kadar orada kalsın (YÖNLENDİRME YAPMA)
-        if (isPhoneLogin) return null;
+        // If on phone login page, let them finish
+        if (isPhoneLoginPage) return null;
 
-        // Login veya Onboarding ekranındaysa Home'a at
-        if (isLoggingIn || isOnboarding) {
-          // Profil düzenleme ekranına gitmeye çalışıyorsa izin ver
-          if (isProfileEdit) return null;
+        // If on login/onboarding page, redirect to home
+        if (isLoginPage || isOnboardingPage) {
+          // Unless trying to go to profile edit
+          if (isProfileEditPage) return null;
           return '/home';
         }
       }
 
       return null;
     },
-
     routes: [
-      // ✅ HOME
+      // HOME
       GoRoute(
         path: '/home',
         name: 'home',
-        pageBuilder: (final context, final state) {
+        pageBuilder: (context, state) {
           final startAnimations = state.extra is Map
               ? (state.extra! as Map)['startAnimations'] ?? false
               : false;
@@ -76,50 +83,47 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         },
       ),
 
-      // ✅ ONBOARDING
+      // ONBOARDING
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        pageBuilder: (final context, final state) =>
-            CustomTransitionPage(
-              key: state.pageKey,
-              child: const OnboardingContainer(),
-              transitionsBuilder: fadeTransition,
-              transitionDuration: const Duration(milliseconds: 600),
-            ),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const OnboardingContainer(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
       ),
 
-      // ✅ LOGIN
+      // LOGIN
       GoRoute(
         path: '/login',
         name: 'login',
-        pageBuilder: (final context, final state) =>
-            CustomTransitionPage(
-              key: state.pageKey,
-              child: const LoginScreen(),
-              transitionsBuilder: slideTransition,
-              transitionDuration: const Duration(milliseconds: 400),
-            ),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LoginScreen(),
+          transitionsBuilder: slideTransition,
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
       ),
 
-      // ✅ PHONE LOGIN
+      // PHONE LOGIN
       GoRoute(
         path: '/phone-login',
         name: 'phoneLogin',
-        pageBuilder: (final context, final state) =>
-            CustomTransitionPage(
-              key: state.pageKey,
-              child: const PhoneLogInPage(),
-              transitionsBuilder: slideTransition,
-              transitionDuration: const Duration(milliseconds: 400),
-            ),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const PhoneLogInPage(),
+          transitionsBuilder: slideTransition,
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
       ),
 
-      // ✅ PROFILE EDIT
+      // PROFILE EDIT
       GoRoute(
         path: '/profile-edit/:userId',
         name: 'profileEdit',
-        pageBuilder: (final context, final state) {
+        pageBuilder: (context, state) {
           final userId = state.pathParameters['userId']!;
           return CustomTransitionPage(
             key: state.pageKey,
@@ -130,11 +134,11 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         },
       ),
 
-      // ✅ SHOW DETAIL
+      // SHOW DETAIL
       GoRoute(
         path: '/show/:id',
         name: 'showDetail',
-        pageBuilder: (final context, final state) {
+        pageBuilder: (context, state) {
           final showId = state.pathParameters['id']!;
           return CustomTransitionPage(
             key: state.pageKey,
@@ -146,8 +150,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       ),
     ],
 
-    // 404 Hata Sayfası
-    errorBuilder: (final context, final state) =>
-        NotFoundPage(errorPath: state.uri.path),
+    // 404 Error Page
+    errorBuilder: (context, state) => NotFoundPage(errorPath: state.uri.path),
   );
 });

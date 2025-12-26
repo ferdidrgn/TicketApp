@@ -1,117 +1,189 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:ticketapp/core/common/base_state.dart';
-import '../../../../core/services/local_storage_service.dart';
+import '../../../../core/common/base_state.dart';
 import '../../../../core/util/role_manager.dart';
 
 class LoginState extends BaseState {
   final User? user;
-  final GoogleSignInAccount? googleUser;
-  final String? verificationId;
+
+  // User Info
+  final String? displayName;
+  final String? email;
+  final String? photoUrl;
   final String? phoneNumber;
+  final String userRole;
+
+  // Phone Verification
+  final String? verificationId;
   final bool isCodeSent;
+  final int timerValue;
+  final bool canResendCode;
+
+  // Flags
   final bool isGuest;
   final bool isAccountDeleted;
-  final bool isPersisted;
-  final String? userRole;
-  final int timerValue; // Kalan saniye
-  final bool canResendCode; // Yeniden kod gönderilebilir mi?
 
-  LoginState({
+  const LoginState({
     this.user,
-    this.googleUser,
-    this.verificationId,
+    super.isLoading = false,
+    super.errorMessage,
+    this.displayName,
+    this.email,
+    this.photoUrl,
     this.phoneNumber,
+    this.userRole = 'user',
+    this.verificationId,
     this.isCodeSent = false,
+    this.timerValue = 180,
+    this.canResendCode = false,
     this.isGuest = false,
     this.isAccountDeleted = false,
-    this.userRole,
-    this.isPersisted = false,
-    this.timerValue = 180, // Varsayılan 3 dakika
-    this.canResendCode = false,
-    super.isLoading = true,
-    super.errorMessage,
   });
 
-  @override
-  LoginState copyWith({
-    final User? user,
-    final GoogleSignInAccount? googleUser,
-    final String? verificationId,
-    final String? phoneNumber,
-    final bool? isCodeSent,
-    final bool? isGuest,
-    final bool? isAccountDeleted,
-    final String? userRole,
-    final bool? isPersisted,
-    final int? timerValue,
-    final bool? canResendCode,
-    final bool? isLoading,
-    final String? errorMessage,
-  }) =>
-      LoginState(
-        user: user ?? this.user,
-        googleUser: googleUser ?? this.googleUser,
-        verificationId: verificationId ?? this.verificationId,
-        phoneNumber: phoneNumber ?? this.phoneNumber,
-        isCodeSent: isCodeSent ?? this.isCodeSent,
-        isGuest: isGuest ?? this.isGuest,
-        userRole: userRole ?? this.userRole,
-        isAccountDeleted: isAccountDeleted ?? this.isAccountDeleted,
-        isPersisted: isPersisted ?? this.isPersisted,
-        timerValue: timerValue ?? this.timerValue,
-        canResendCode: canResendCode ?? this.canResendCode,
-        isLoading: isLoading ?? this.isLoading,
-        errorMessage: errorMessage ?? this.errorMessage,
-      );
+  // ========================================
+  // GETTERS
+  // ========================================
 
-  // --- GETTERLAR (Sınıf İçinde Olmalı) ---
+  /// Is user logged in
   bool get isLoggedIn => user != null;
 
+  /// Has error
   bool get hasError => errorMessage != null && errorMessage!.isNotEmpty;
 
-  // ✅ RoleManager ile rol kontrolleri
+  /// Is admin
   bool get isAdmin => RoleManager.isAdmin(userRole);
 
+  /// Is premium
   bool get isPremium => RoleManager.isPremium(userRole);
 
+  /// Is regular user
   bool get isRegularUser => RoleManager.isUser(userRole);
 
+  /// Is guest user
   bool get isGuestUser => RoleManager.isGuest(userRole);
 
+  /// Role display name
   String get roleDisplayName => RoleManager.getRoleDisplayName(userRole);
 
-  // Sayaç formatı (02:45)
+  /// Timer text (MM:SS format)
   String get timerText {
     final minutes = (timerValue / 60).floor().toString().padLeft(2, '0');
     final seconds = (timerValue % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
   }
 
-  // --- FACTORY METODU (Sınıf İçinde Olmalı) ---
-  factory LoginState.fromLocalStorage() {
-    try {
-      final isLoggedIn = LocalStorageService.isLoggedIn;
-      if (!isLoggedIn) return LoginState(isLoading: false);
+  /// User ID
+  String? get userId => user?.uid;
 
-      return LoginState(
-        isPersisted: true,
-        isGuest: false,
-        isLoading: false,
-        userRole: LocalStorageService.userRole,
-      );
-    } catch (e) {
-      return LoginState(isLoading: false);
+  /// Is phone verified
+  bool get isPhoneVerified => user?.phoneNumber != null;
+
+  /// Login method
+  String get loginMethod {
+    if (user == null) return 'none';
+    if (user!.isAnonymous) return 'anonymous';
+
+    for (var provider in user!.providerData) {
+      if (provider.providerId == 'google.com') return 'google';
+      if (provider.providerId == 'phone') return 'phone';
     }
+
+    return 'unknown';
   }
 
-  // ✅ DEBUG için toString
+  // ========================================
+  // COPY WITH
+  // ========================================
+
+  @override
+  LoginState copyWith({
+    final User? user,
+    final bool? isLoading,
+    final String? errorMessage,
+    final String? displayName,
+    final String? email,
+    final String? photoUrl,
+    final String? phoneNumber,
+    final String? userRole,
+    final String? verificationId,
+    final bool? isCodeSent,
+    final int? timerValue,
+    final bool? canResendCode,
+    final bool? isGuest,
+    final bool? isAccountDeleted,
+  }) =>
+      LoginState(
+        user: user ?? this.user,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+        displayName: displayName ?? this.displayName,
+        email: email ?? this.email,
+        photoUrl: photoUrl ?? this.photoUrl,
+        phoneNumber: phoneNumber ?? this.phoneNumber,
+        userRole: userRole ?? this.userRole,
+        verificationId: verificationId ?? this.verificationId,
+        isCodeSent: isCodeSent ?? this.isCodeSent,
+        timerValue: timerValue ?? this.timerValue,
+        canResendCode: canResendCode ?? this.canResendCode,
+        isGuest: isGuest ?? this.isGuest,
+        isAccountDeleted: isAccountDeleted ?? this.isAccountDeleted,
+      );
+
+  // ========================================
+  // FACTORY
+  // ========================================
+
+  /// Create initial loading state
+  factory LoginState.loading() => const LoginState(isLoading: true);
+
+  /// Create logged out state
+  factory LoginState.loggedOut() {
+    return const LoginState(isLoading: false);
+  }
+
+  /// Create from Firebase User
+  factory LoginState.fromUser(final User user, final String role) => LoginState(
+        user: user,
+        isLoading: false,
+        displayName: user.displayName,
+        email: user.email,
+        photoUrl: user.photoURL,
+        phoneNumber: user.phoneNumber,
+        userRole: role,
+        isGuest: user.isAnonymous,
+      );
+
+  // ========================================
+  // TO STRING
+  // ========================================
+
   @override
   String toString() => 'LoginState{'
-      'user: ${user?.uid}, '
-      'isCodeSent: $isCodeSent, '
-      'timerValue: $timerValue, '
+      'userId: ${user?.uid}, '
+      'isLoggedIn: $isLoggedIn, '
+      'isGuest: $isGuest, '
       'userRole: $userRole, '
-      'isLoading: $isLoading'
+      'isLoading: $isLoading, '
+      'hasError: $hasError'
       '}';
+
+  @override
+  bool operator ==(final Object other) {
+    if (identical(this, other)) return true;
+
+    return other is LoginState &&
+        other.user?.uid == user?.uid &&
+        other.isLoading == isLoading &&
+        other.errorMessage == errorMessage &&
+        other.userRole == userRole &&
+        other.isGuest == isGuest;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        user?.uid,
+        isLoading,
+        errorMessage,
+        userRole,
+        isGuest,
+      );
 }
