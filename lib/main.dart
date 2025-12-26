@@ -20,7 +20,6 @@ import 'core/util/platform_checker.dart';
 import 'features/login/presentation/providers/login_provider.dart';
 import 'features/splash/presentation/widgets/splash_data_guard.dart';
 
-// -----------------------------------------------------------------------------
 // 1. ARKA PLAN BİLDİRİM NÖBETÇİSİ (Background Handler)
 // -----------------------------------------------------------------------------
 @pragma('vm:entry-point')
@@ -36,24 +35,34 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
-  // 2. Firebase & Error Monitoring
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Bildirimleri kaydet
+  // 1. Kritik Olmayan Başlatmalar (Parallel)
+  _setupCrashlytics();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  _setupCrashlytics();
+  // 2. Firebase Başlatma (Güvenli Mod)
+  try {
+    await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform)
+        .timeout(const Duration(seconds: 5));
+  } catch (e) {
+    debugPrint("⚠️ Firebase Başlatılamadı (Zaman Aşımı): $e");
+  }
 
-  // 3. Native UI Configuration
-  if (!PlatformChecker.isWeb) _configureMobileSystemUI();
+  // 3. Sistem Arayüzü
+  if (!PlatformChecker.isWeb) _configureSystemUI();
 
-  // 4. Local Services (FCM burada başlıyor)
-  await _initServices();
+  // 4. Servisler (Async - Uygulama açılışını engellemez)
+  _initServices();
 
   runApp(const ProviderScope(child: MyApp()));
 }
 
-// --- Yardımcı Başlatma Metotları ---
+void _configureSystemUI() {
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent));
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+}
 
 void _setupCrashlytics() {
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
@@ -63,22 +72,14 @@ void _setupCrashlytics() {
   };
 }
 
-void _configureMobileSystemUI() {
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-  ));
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-}
-
 Future<void> _initServices() async {
   try {
-    await LocalStorageService.init();
-
-    await FCMManager.instance.init();
+    await Future.wait([
+      LocalStorageService.init(),
+      FCMManager.instance.init(),
+    ]);
   } catch (e) {
-    debugPrint('Service Initialization Error: $e');
+    debugPrint('❌ Servis Başlatma Hatası: $e');
   }
 }
 
@@ -91,10 +92,7 @@ class MyApp extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
     final router = ref.watch(appRouterProvider);
     final loginState = ref.watch(loginProvider);
-
-    // 2. Performance: Pre-calculate values
-    final bool isWeb = PlatformChecker.isWeb;
-    final bool isAuthLoading = !isWeb && loginState.isLoading;
+    final isWeb = PlatformChecker.isWeb;
 
     return MaterialApp.router(
       routerConfig: router,
@@ -104,14 +102,16 @@ class MyApp extends ConsumerWidget {
       darkTheme: isWeb ? WebTheme.darkTheme : AppTheme.darkTheme,
       themeMode: isWeb ? ThemeMode.dark : themeMode,
       builder: (final context, final child) {
-        final Widget safeChild = child ?? const SizedBox.shrink();
+        if (child == null) return const SizedBox.shrink();
 
         // 3. Platform Specific UI Wrapping
         return ConnectivityWrapper(
           child: SplashDataGuard(
-            isLoading: isAuthLoading,
-            loadingMessage: 'TiyatRol Sahnesi Hazırlanıyor...',
-            child: isWeb ? safeChild : _MobileSystemUIWrapper(child: safeChild),
+            isLoading: loginState.isLoading && !loginState.hasError,
+            loadingMessage: loginState.hasError
+                ? "⚠️ ${loginState.errorMessage}"
+                : 'TiyatRol Sahnesi Hazırlanıyor...',
+            child: isWeb ? child : _MobileSystemUIWrapper(child: child),
           ),
         );
       },
@@ -119,7 +119,6 @@ class MyApp extends ConsumerWidget {
   }
 }
 
-/// Mobil cihazlarda Sistem Barlarını yöneten Wrapper (Senin orijinal kodun)
 class _MobileSystemUIWrapper extends StatelessWidget {
   final Widget child;
 
@@ -128,7 +127,7 @@ class _MobileSystemUIWrapper extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     //Extentions ı çağırma! Çünkü app daha açılmadı.
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(

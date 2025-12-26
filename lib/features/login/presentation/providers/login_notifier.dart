@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/common/base_notifier.dart';
 import '../../../../core/services/auth_service.dart';
@@ -53,37 +52,36 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> _startAuthListener() async {
     try {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult.contains(ConnectivityResult.none)) {
-        state = LoginState.loggedOut().copyWith(
-            errorMessage: "İnternet bağlantısı bulunamadı. Lütfen kontrol edin.",
-            isLoading: false);
-        return;
-      }
-
       await LocalStorageService.init();
 
-      // Safety timeout (10 seconds)
-      Future.delayed(const Duration(seconds: 10), () {
-        if (state.isLoading && _isInitialized) {
-          state = LoginState.loggedOut();
-          AppDebug.log("Auth initialization timeout", tag: "AUTH");
+      // ⚡ 1. EMNİYET KİLİDİ: İnternet yoksa 5 saniye sonra siyah ekranı kırar.
+      Future.delayed(const Duration(seconds: 5), () {
+        if (ref.mounted && state.isLoading) {
+          state = state.copyWith(
+              isLoading: false,
+              errorMessage:
+                  "Bağlantı kurulamadı. Lütfen internetinizi kontrol edin.");
+          AppDebug.log("Bağlantı zaman aşımı - Siyah ekran kırıldı.",
+              tag: "AUTH");
         }
       });
 
-      // Listen to auth state changes
+      // 2. Mevcut kullanıcıyı manuel kontrol et (Stream beklemeden)
+      final User? initialUser = _authService.currentUser;
+      if (initialUser != null)
+        await _handleUserLogin(initialUser);
+      else
+        state = LoginState.loggedOut();
+
+      // 3. Stream dinleyicisi
       _authStateSubscription = _authService.authStateChanges.listen(
         _handleAuthStateChange,
-        onError: (final error) {
-          AppDebug.log("Auth state error: $error", tag: "AUTH");
-          setErrorState(error.toString());
-        },
+        onError: (final error) => setErrorState("Bağlantı Hatası: $error"),
       );
 
       _isInitialized = true;
-    } catch (e, stack) {
-      logError(e, stack);
-      setErrorState(e.toString());
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 

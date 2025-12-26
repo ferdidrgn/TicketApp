@@ -25,43 +25,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: authNotifier,
     redirect: (context, state) {
       final currentPath = state.uri.path;
+
+      // ⚡ DEĞİŞİKLİK: Eğer hata mesajı varsa isLoading olsa bile yönlendirmeye izin ver.
+      // Bu sayede siyah ekran yerine hata mesajı olan login sayfası gelir.
+      if (loginState.isLoading && !loginState.hasError) return null;
+
       final isLoggedIn = loginState.isLoggedIn;
-      final isGuest = loginState.isGuest;
+      final isPublicPage =
+          currentPath == '/login' || currentPath == '/phone-login';
 
-      // Page checks
-      final isLoginPage = currentPath == '/login';
-      final isPhoneLoginPage = currentPath == '/phone-login';
-      final isOnboardingPage = currentPath == '/onboarding';
-      final isProfileEditPage = currentPath.startsWith('/profile-edit');
-
-      // Wait while loading
-      if (loginState.isLoading) return null;
-
-      // Public pages (accessible without login)
-      final publicPages = ['/login', '/phone-login', '/onboarding'];
-      final isPublicPage = publicPages.contains(currentPath);
-
-      // 1. NOT LOGGED IN
-      if (!isLoggedIn) {
-        // Allow public pages
-        if (isPublicPage) return null;
-
-        // Otherwise redirect to login
-        return '/login';
-      }
-
-      // 2. LOGGED IN
-      if (isLoggedIn) {
-        // If on phone login page, let them finish
-        if (isPhoneLoginPage) return null;
-
-        // If on login/onboarding page, redirect to home
-        if (isLoginPage || isOnboardingPage) {
-          // Unless trying to go to profile edit
-          if (isProfileEditPage) return null;
-          return '/home';
-        }
-      }
+      if (!isLoggedIn && !isPublicPage) return '/login';
+      if (isLoggedIn && isPublicPage) return '/home';
 
       return null;
     },
