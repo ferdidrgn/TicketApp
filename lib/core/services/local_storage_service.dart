@@ -52,11 +52,12 @@ class LocalStorageService {
     }
   }
 
-  /// 💾 Save essential user data (minimal)
+  /// 💾 En temel kullanıcı verilerini yerel hafızaya kaydeder
   static Future<bool> saveEssentialUserData({
     required final String uid,
     final String? displayName,
     final String? role,
+    final String? photoUrl,
   }) async {
     await _ensureInitialized();
     try {
@@ -65,6 +66,8 @@ class LocalStorageService {
         if (displayName != null)
           _prefs!.setString(_keyDisplayName, displayName),
         if (role != null) _prefs!.setString(_keyRole, role),
+        if (photoUrl != null)
+          _prefs!.setString(_keyPhotoUrl, photoUrl),
         _prefs!.setBool(_keyIsLoggedIn, true),
       ]);
       return true;

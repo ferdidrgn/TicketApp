@@ -13,6 +13,7 @@ import '../../../../shared/widgets/button/custom_elevated_button.dart';
 import '../../../../shared/widgets/custom_art_words_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
+import '../../../auth/presentation/providers/storage_service.dart';
 import '../../domain/entities/user.dart';
 import '../providers/user_provider.dart';
 import '../providers/user_state.dart';
@@ -32,6 +33,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   final ImagePicker _picker = ImagePicker();
   File? _selectedImageFile;
 
+  final StorageService _storageService = StorageService();
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
@@ -79,7 +81,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickImage(final ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
       setState(() {
@@ -217,64 +219,77 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final currentUser = ref.read(userProvider).dataSingle;
+    // Yükleme durumunu başlat (Butonu pasife çeker)
+    // ref.read(userProvider.notifier).setLoading(true); // Gerekirse ekleyin
 
-    // ⚡ ÖNEMLİ: Eğer yeni fotoğraf seçildiyse normalde Firebase Storage'a yüklenmeli.
-    // Şimdilik sadece metin güncellemelerini garantiye alıyoruz.
-    final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      phoneNumber: _phoneController.text.trim(),
-      eMail: _emailController.text.trim(),
-      city: _cityController.text.trim(),
-      updatedAt: DateTime.now().toIso8601String(),
-    );
+    final currentUser = ref.read(userProvider).dataSingle;
+    String finalImageUrl = _profileImageUrl; // Varsayılan olarak mevcut URL
 
     try {
-      // isUpdate true vererek Firestore'u zorluyoruz
+      // ⚡ KRİTİK ADIM: Eğer yeni bir fotoğraf seçilmişse önce Storage'a yükle
+      if (_selectedImageFile != null) {
+        final uploadedUrl = await _storageService.uploadProfileImage(
+            widget.userId, _selectedImageFile!);
+
+        if (uploadedUrl != null)
+          finalImageUrl = uploadedUrl; // Yeni URL'yi kullan
+        else {
+          _showSnackBar("Fotoğraf sunucuya iletilemedi.", isError: true);
+          return; // Yükleme başarısızsa işlemi durdur
+        }
+      }
+
+      // Yeni verileri hazırla (Yeni resim URL'si dahil)
+      final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        eMail: _emailController.text.trim(),
+        city: _cityController.text.trim(),
+        imageUrl: finalImageUrl,
+        // Firestore'a gidecek nihai URL
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+
+      // 1. Firestore'u güncelle
       await ref
           .read(userProvider.notifier)
-          .saveUser(userToSave, _profileImageUrl, // Eski resim URL'sini koru
-              isUpdate: true);
+          .saveUser(userToSave, finalImageUrl, isUpdate: true);
 
-      // Local Storage'a hemen yaz ki Profil sayfasında isim değişsin
+      // 2. Local Storage güncelle
       await LocalStorageService.saveEssentialUserData(
         uid: widget.userId,
         displayName: '${userToSave.firstName} ${userToSave.lastName}',
         role: userToSave.role,
+        photoUrl: finalImageUrl, // Local'e de yeni fotoğrafı ver
       );
 
       if (mounted) _showSuccessDialog();
     } catch (e) {
-      _showSnackBar("Hata: $e", isError: true);
+      _showSnackBar("İşlem sırasında bir sorun oluştu: $e", isError: true);
     }
   }
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (final dialogContext) => CustomSuccessDialog(
-        message: 'Bilgilerin güncellendi!',
-        onConfirm: () {
-          // ✅ Siyah ekran hatasını önlemek için doğru Navigator kullanımı:
-          Navigator.of(dialogContext, rootNavigator: true)
-              .pop(); // Dialogu kapat
-        },
-      ),
-    );
-  }
+  void _showSuccessDialog() => showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (final dialogContext) => CustomSuccessDialog(
+          message: 'Bilgilerin güncellendi!',
+          onConfirm: () {
+            Navigator.of(dialogContext, rootNavigator: true)
+                .pop(); // Dialogu kapat
+          },
+        ),
+      );
 
-  void _showSnackBar(String msg, {bool isError = false}) =>
+  void _showSnackBar(final String msg, {final bool isError = false}) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(msg),
           backgroundColor: isError ? Colors.red : Colors.green));
 
-  Widget _buildShimmerLoading() {
-    return Shimmer.fromColors(
-      baseColor: context.colors.surfaceVariant.withOpacity(0.4),
-      highlightColor: context.colors.surfaceVariant,
-      child: const Center(child: CircularProgressIndicator()),
-    );
-  }
+  Widget _buildShimmerLoading() => Shimmer.fromColors(
+        baseColor: context.colors.surfaceVariant.withOpacity(0.4),
+        highlightColor: context.colors.surfaceVariant,
+        child: const Center(child: CircularProgressIndicator()),
+      );
 }
