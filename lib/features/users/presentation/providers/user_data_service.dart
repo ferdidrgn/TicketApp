@@ -33,26 +33,44 @@ class UserDataService {
   }) async {
     try {
       final userModel = UserModel.fromEntity(user);
-      final data = userModel.toFirestore();
+      final Map<String, dynamic> data = userModel.toFirestore();
 
-      // Remove null values for cleaner Firestore data
-      data.removeWhere((final key, final value) => value == null);
+      // 1. ADIM: Boş veya varsayılan Google değerlerinin mevcut veriyi ezmesini önle
+      // Eğer isUpdate true ise, sadece içeriği olan alanları gönderelim
+      if (isUpdate) {
+        data.removeWhere((final key, final value) {
+          // null olanları zaten istemiyoruz
+          if (value == null) return true;
 
-      // Add timestamps (Firestore will handle these)
-      if (isUpdate)
+          // KRİTİK: Eğer veri Google'dan geliyorsa ve bazı alanlar boşsa
+          // Firestore'daki mevcut veriyi (fcmToken, imageUrl vb.) silmemesi için temizle
+          if (value is String && value.isEmpty) return true;
+
+          return false;
+        });
+
         data['_updatedAt'] = FieldValue.serverTimestamp();
-      else {
+      } else {
+        // Yeni kayıt
         data['_createdAt'] = FieldValue.serverTimestamp();
         data['_updatedAt'] = FieldValue.serverTimestamp();
       }
 
-      await _firestore
-          .collection(_usersCollection)
-          .doc(user.id)
-          .set(data, SetOptions(merge: isUpdate));
+      // 2. ADIM: Doküman referansını al
+      final docRef = _firestore.collection(_usersCollection).doc(user.id);
+
+      if (isUpdate) {
+        // update() kullanmak set(merge:true) göre daha güvenlidir
+        // çünkü doküman yoksa hata verir, varsa sadece içindeki keyleri günceller.
+        await docRef.update(data);
+      } else
+        await docRef.set(data);
 
       return true;
-    } catch (e, stack) {
+    } catch (e) {
+      // Eğer doküman bulunamadığı için update hata verirse (ilk kez giriyorsa) set yap
+      if (isUpdate && e is FirebaseException && e.code == 'not-found')
+        return saveUser(user: user, photoUrl: photoUrl, isUpdate: false);
       return false;
     }
   }
@@ -124,7 +142,6 @@ class UserDataService {
       final data = doc.data();
       if (data == null) return null;
 
-
       // Add document ID to data if not present
       if (!data.containsKey('_id')) data['_id'] = userId;
 
@@ -190,13 +207,11 @@ class UserDataService {
   /// ⚠️ Bu işlem geri alınamaz!
   Future<bool> deleteUserCompletely(final String userId) async {
     try {
-
       // 1. Get user's ticket IDs
       final ticketIds = await getUserTicketIds(userId);
 
       // 2. Delete all user's tickets in a batch
       if (ticketIds.isNotEmpty) {
-
         final batch = _firestore.batch();
         for (final ticketId in ticketIds) {
           final ticketRef =

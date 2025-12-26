@@ -219,27 +219,24 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // Yükleme durumunu başlat (Butonu pasife çeker)
-    // ref.read(userProvider.notifier).setLoading(true); // Gerekirse ekleyin
-
-    final currentUser = ref.read(userProvider).dataSingle;
-    String finalImageUrl = _profileImageUrl; // Varsayılan olarak mevcut URL
+    String finalImageUrl = _profileImageUrl; // Başlangıçta mevcut URL
 
     try {
-      // ⚡ KRİTİK ADIM: Eğer yeni bir fotoğraf seçilmişse önce Storage'a yükle
+      // 1. ADIM: STORAGE'A YÜKLE VE YENİ LİNKİ AL
       if (_selectedImageFile != null) {
-        final uploadedUrl = await _storageService.uploadProfileImage(
-            widget.userId, _selectedImageFile!);
+        final String? newlyUploadedUrl = await _storageService
+            .uploadProfileImage(widget.userId, _selectedImageFile!);
 
-        if (uploadedUrl != null)
-          finalImageUrl = uploadedUrl; // Yeni URL'yi kullan
-        else {
-          _showSnackBar("Fotoğraf sunucuya iletilemedi.", isError: true);
-          return; // Yükleme başarısızsa işlemi durdur
+        if (newlyUploadedUrl != null) {
+          finalImageUrl = newlyUploadedUrl;
+        } else {
+          _showSnackBar("Fotoğraf sunucuya yüklenemedi.", isError: true);
+          return;
         }
       }
 
-      // Yeni verileri hazırla (Yeni resim URL'si dahil)
+      final currentUser = ref.read(userProvider).dataSingle;
+
       final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
@@ -247,26 +244,26 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         eMail: _emailController.text.trim(),
         city: _cityController.text.trim(),
         imageUrl: finalImageUrl,
-        // Firestore'a gidecek nihai URL
+        fcmToken: currentUser?.fcmToken ?? "",
         updatedAt: DateTime.now().toIso8601String(),
       );
 
-      // 1. Firestore'u güncelle
+      // Firestore ve Local kaydı
       await ref
           .read(userProvider.notifier)
           .saveUser(userToSave, finalImageUrl, isUpdate: true);
 
-      // 2. Local Storage güncelle
       await LocalStorageService.saveEssentialUserData(
         uid: widget.userId,
         displayName: '${userToSave.firstName} ${userToSave.lastName}',
         role: userToSave.role,
-        photoUrl: finalImageUrl, // Local'e de yeni fotoğrafı ver
+        photoUrl: finalImageUrl,
       );
 
-      if (mounted) _showSuccessDialog();
+      // Siyah ekranı önlemek için sadece dialogu kapat
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
     } catch (e) {
-      _showSnackBar("İşlem sırasında bir sorun oluştu: $e", isError: true);
+      _showSnackBar("Güncelleme sırasında bir hata oluştu: $e", isError: true);
     }
   }
 

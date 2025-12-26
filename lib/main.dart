@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-
 import 'core/config/firebase_options.dart';
 import 'core/config/router/app_router.dart';
 import 'core/constants/app_constants.dart';
@@ -31,11 +30,12 @@ Future<void> _firebaseMessagingBackgroundHandler(
             .currentPlatform); // Arka planda Firebase servislerini kullanabilmek için tekrar initialize
 
 Future<void> main() async {
-  // 1. Flutter Motorunu Hazırla
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
-  // 2. Firebase Başlatma (Güvenli Zaman Aşımlı)
+  // 1. Yerel hafızayı EN BAŞTA hazır et
+  await LocalStorageService.init();
+
   try {
     await Firebase.initializeApp(
             options: DefaultFirebaseOptions.currentPlatform)
@@ -44,15 +44,13 @@ Future<void> main() async {
     debugPrint("Firebase Başlatma Atlandı: $e");
   }
 
-  // 3. İzleme ve Bildirimler
   _setupCrashlytics();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // 4. Sistem Arayüz Ayarları
   if (!PlatformChecker.isWeb) _configureSystemUI();
 
-  // 5. Arka Plan Servislerini Tetikle (Uygulamayı Bekletmez)
-  _initServices();
+  // 2. Diğer servisleri başlat
+  await FCMManager.instance.init();
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -71,12 +69,6 @@ void _setupCrashlytics() {
     return true;
   };
 }
-
-// await kullanmıyoruz, uygulama açılırken bunlar arkada dolmaya başlar
-void _initServices() => Future.wait([
-      LocalStorageService.init(),
-      FCMManager.instance.init(),
-    ]);
 
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
