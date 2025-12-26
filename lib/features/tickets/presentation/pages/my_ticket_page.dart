@@ -9,7 +9,8 @@ import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
-import 'my_ticket_viewmodel.dart';
+import '../../../../shared/widgets/magic_mask_viewer.dart';
+import '../providers/my_ticket_viewmodel.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {
   final String userId;
@@ -31,11 +32,9 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController
-        .addListener(() => setState(() {})); // Animasyon senkronu için
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (mounted) _loadTicketData();
-    });
+    _tabController.addListener(() => setState(() {}));
+    WidgetsBinding.instance
+        .addPostFrameCallback((final _) => _loadTicketData());
   }
 
   @override
@@ -51,35 +50,32 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   @override
   Widget build(final BuildContext context) {
     super.build(context);
-    final themeColors = context.colors;
     final viewModel = ref.watch(ticketViewModelProvider);
 
     return Scaffold(
-      backgroundColor: themeColors.surface,
-      body: Center(
-        child: CustomAppBackground(
-          child: SafeArea(
-            child: Column(
-              children: [
-                TopNormalHeader(
-                  title: 'Sanat Ajandan',
-                  subtitle: 'Unutulmaz anların koleksiyonu...',
-                  rightIcon: Icons.theater_comedy_rounded,
+      backgroundColor: context.colors.surface,
+      body: CustomAppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              TopNormalHeader(
+                title: 'Sanat Ajandan',
+                subtitle: 'Unutulmaz anların koleksiyonu...',
+                rightIcon: Icons.theater_comedy_rounded,
+              ),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: _TabSelector(controller: _tabController),
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _loadTicketData,
+                  color: context.colors.primary,
+                  child: _buildBody(viewModel),
                 ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: _TabSelector(controller: _tabController),
-                ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _loadTicketData,
-                    color: themeColors.primary,
-                    child: _buildBody(viewModel),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -87,13 +83,13 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   }
 
   Widget _buildBody(final TicketViewModel viewModel) {
-    if (viewModel.isLoading && viewModel.isEmpty)
+    if (viewModel.isLoading && viewModel.isEmpty) {
       return ListView.builder(
         padding: const EdgeInsets.all(24),
         itemCount: 3,
         itemBuilder: (final _, final __) => const ShimmerCard(),
       );
-
+    }
     if (viewModel.isEmpty) return const _EmptyState();
 
     return TabBarView(
@@ -111,7 +107,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   }
 
   void _showTicketDetails(final DetailedTicket ticket) {
-    HapticFeedback.mediumImpact(); // Titreşim ile kalite hissi
+    HapticFeedback.mediumImpact();
     showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -120,6 +116,150 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   }
 }
 
+class _TicketCard extends StatelessWidget {
+  final DetailedTicket detailedTicket;
+  final bool isPast;
+  final VoidCallback onTap;
+
+  const _TicketCard(
+      {required this.detailedTicket, required this.onTap, this.isPast = false});
+
+  // _TicketCard içindeki build metodu en sade haline döndü:
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    return GestureDetector(
+      onTap: onTap, // Doğrudan tıklama
+      child: _buildBaseCard(context, colors), // Sadece normal kart
+    );
+  }
+
+  Widget _buildBaseCard(final BuildContext context, final ColorScheme colors) {
+    final dateInfo =
+        DateFormatter.formatForEventCard(detailedTicket.event?.date ?? '');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: colors.primary.withOpacity(0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          )
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              _ArtDateSidebar(
+                day: dateInfo['day'] ?? '00',
+                month: (dateInfo['monthName'] ?? '---').toUpperCase(),
+                isPast: isPast,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(detailedTicket.show?.name ?? 'Sanat Eseri',
+                          style: context.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color:
+                                  isPast ? colors.outline : colors.onSurface)),
+                      const SizedBox(height: 12),
+                      _ArtInfoLine(
+                          icon: Icons.castle_rounded,
+                          text: detailedTicket.stage?.name ?? 'Sahne'),
+                      const Spacer(),
+                      const Divider(height: 20, thickness: 0.5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(isPast ? "SERGİLENDİ" : "SAHNELENİYOR",
+                              style: context.textTheme.labelSmall?.copyWith(
+                                  letterSpacing: 2,
+                                  fontWeight: FontWeight.w800,
+                                  color: colors.primary)),
+                          Icon(Icons.arrow_forward_rounded,
+                              size: 18, color: colors.outline),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtDateSidebar extends StatelessWidget {
+  final String day;
+  final String month;
+  final bool isPast;
+  final bool isMagic;
+
+  const _ArtDateSidebar(
+      {required this.day,
+      required this.month,
+      required this.isPast,
+      this.isMagic = false});
+
+  @override
+  Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+    return Container(
+      width: 75,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isMagic
+              ? [
+                  themeColors.primary,
+                  themeColors.tertiary
+                ] // Sihirli katman renkleri
+              : (isPast
+                  ? [Colors.grey.shade400, Colors.grey.shade600]
+                  : [
+                      themeColors.primary,
+                      themeColors.primary.withOpacity(0.7)
+                    ]),
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          RotatedBox(
+            quarterTurns: 3,
+            child: Text(month,
+                style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4)),
+          ),
+          const SizedBox(height: 8),
+          Text(day,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+}
+
+// ... _TabSelector, _TicketList, _EmptyState ve _ArtInfoLine kodların aynı kalabilir ...
 // ============================================================
 // ARTISTIC TAB SELECTOR (YÜKSEK KONTRASTLI)
 // ============================================================
@@ -178,167 +318,6 @@ class _TabSelector extends StatelessWidget {
                 SizedBox(width: 8),
                 Text("Anılar")
               ])),
-        ],
-      ),
-    );
-  }
-}
-
-// ============================================================
-// ARTISTIC TICKET CARD (MÜZE KARTI TASARIMI)
-// ============================================================
-class _TicketCard extends StatelessWidget {
-  final DetailedTicket detailedTicket;
-  final bool isPast;
-  final VoidCallback onTap;
-
-  const _TicketCard({
-    required this.detailedTicket,
-    required this.onTap,
-    this.isPast = false,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final themeColors = context.colors;
-    final dateInfo =
-        DateFormatter.formatForEventCard(detailedTicket.event?.date ?? '');
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        decoration: BoxDecoration(
-          color: themeColors.surface,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: isPast
-                  ? Colors.transparent
-                  : themeColors.primary.withOpacity(0.06),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            )
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: IntrinsicHeight(
-            child: Row(
-              children: [
-                // Sol Taraf: Dikey Renk Çubuğu ve Tarih
-                _ArtDateSidebar(
-                  day: dateInfo['day'] ?? '00',
-                  month: (dateInfo['monthName'] ?? '---').toUpperCase(),
-                  isPast: isPast,
-                ),
-
-                // Sağ Taraf: İçerik
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                detailedTicket.show?.name ?? 'Sanat Eseri',
-                                style: context.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: isPast
-                                      ? themeColors.outline
-                                      : themeColors.onSurface,
-                                  height: 1.1,
-                                ),
-                              ),
-                            ),
-                            if (!isPast)
-                              Icon(Icons.verified_rounded,
-                                  color: themeColors.primary, size: 20),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _ArtInfoLine(
-                            icon: Icons.castle_rounded,
-                            text: detailedTicket.stage?.name ?? 'Sahne'),
-                        const SizedBox(height: 6),
-                        _ArtInfoLine(
-                          icon: Icons.confirmation_number_rounded,
-                          text:
-                              "Koltuklar: ${detailedTicket.ticket.buySeats.join(", ")}",
-                          isBold: true,
-                        ),
-                        const Spacer(),
-                        const Divider(height: 20, thickness: 0.5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(isPast ? "SERGİLENDİ" : "SAHNELENİYOR",
-                                style: context.textTheme.labelSmall?.copyWith(
-                                    letterSpacing: 2,
-                                    fontWeight: FontWeight.w800,
-                                    color: isPast
-                                        ? themeColors.outline
-                                        : themeColors.primary)),
-                            Icon(Icons.arrow_forward_rounded,
-                                size: 18, color: themeColors.outline),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ArtDateSidebar extends StatelessWidget {
-  final String day;
-  final String month;
-  final bool isPast;
-
-  const _ArtDateSidebar(
-      {required this.day, required this.month, required this.isPast});
-
-  @override
-  Widget build(final BuildContext context) {
-    final themeColors = context.colors;
-    return Container(
-      width: 75,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isPast
-              ? [Colors.grey.shade400, Colors.grey.shade600]
-              : [themeColors.primary, themeColors.primary.withOpacity(0.7)],
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          RotatedBox(
-            quarterTurns: 3,
-            child: Text(month,
-                style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 4)),
-          ),
-          const SizedBox(height: 8),
-          Text(day,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900)),
         ],
       ),
     );

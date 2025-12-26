@@ -1,14 +1,16 @@
+import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../../core/util/date_formatter.dart';
-import 'my_ticket_viewmodel.dart';
+import '../../../../shared/widgets/magic_mask_viewer.dart';
+import '../providers/my_ticket_viewmodel.dart';
 
 class TicketDetailsModal extends StatelessWidget {
   final DetailedTicket ticket;
 
-  const TicketDetailsModal({required this.ticket});
+  const TicketDetailsModal({super.key, required this.ticket});
 
   @override
   Widget build(final BuildContext context) {
@@ -16,7 +18,7 @@ class TicketDetailsModal extends StatelessWidget {
         initialChildSize: 0.95,
         minChildSize: 0.5,
         maxChildSize: 0.98,
-        builder: (final context, final scrollController) =>
+        builder: (final _, final scrollController) =>
             _LuxuryTicketDetails(controller: scrollController, ticket: ticket));
   }
 }
@@ -31,64 +33,128 @@ class _LuxuryTicketDetails extends StatelessWidget {
   Widget build(final BuildContext context) {
     final themeColors = context.colors;
     final dateInfo = DateFormatter.formatForEventCard(ticket.event?.date ?? '');
-    final eventYear = DateFormatter.parseDateString(ticket.event?.date)?.year ??
-        DateTime.now().year;
-    final dateText = "${dateInfo['day']} ${dateInfo['monthName']} $eventYear";
-    final timeText = dateInfo['time'] ?? '--:--';
+    final dateText =
+        "${dateInfo['day']} ${dateInfo['monthName']} ${DateTime.now().year}";
 
     return Container(
       decoration: BoxDecoration(
         color: themeColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.4),
-              blurRadius: 30,
-              offset: const Offset(0, -10))
+      ),
+      child: ListView(
+        controller: controller,
+        padding: EdgeInsets.zero,
+        children: [
+          _LargeEventImage(
+              imageUrl: ticket.show?.imageUrl ?? '',
+              title: ticket.show?.name ?? 'Gösteri'),
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                _LargeQRCodeSection(ticketId: ticket.ticket.id),
+                const SizedBox(height: 32),
+                _DetailsSection(
+                    ticket: ticket,
+                    dateText: dateText,
+                    timeText: dateInfo['time'] ?? '--:--'),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
         ],
       ),
-      child: Column(
+    );
+  }
+}
+
+class _LargeQRCodeSection extends StatelessWidget {
+  final String ticketId;
+
+  const _LargeQRCodeSection({super.key, required this.ticketId});
+
+  @override
+  Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+
+    // 1. ÜST KATMAN (Sadece saf buzlu cam, üzerinde yazı yok!)
+    Widget foreground = ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          width: 140,
+          height: 140,
+          color: themeColors.primary.withOpacity(0.15),
+        ),
+      ),
+    );
+
+    // 2. ALT KATMAN (Net QR Kod)
+    Widget background = Container(
+      width: 140,
+      height: 140,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      child: QrImageView(
+        data: ticketId,
+        version: QrVersions.auto,
+        size: 116,
+        eyeStyle:
+            QrEyeStyle(eyeShape: QrEyeShape.square, color: themeColors.primary),
+      ),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: themeColors.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Row(
         children: [
-          // Drag handle
-          Container(
-              margin: const EdgeInsets.only(top: 16, bottom: 8),
-              width: 60,
-              height: 5,
-              decoration: BoxDecoration(
-                  color: themeColors.onSurface.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(3))),
-
-          Expanded(
-            child: ListView(
-              controller: controller,
-              padding: EdgeInsets.zero,
+          // SİHİRLİ QR ALANI
+          SizedBox(
+            width: 140,
+            height: 140,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                // Event Image - FULL WIDTH
-                _LargeEventImage(
-                    imageUrl: ticket.show?.imageUrl ?? '',
-                    title: ticket.show?.name ?? 'Gösteri Adı'),
-                const SizedBox(height: 32),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                MagicMaskViewer(
+                    radius: 0.28,
+                    foreground: foreground,
+                    background: background),
+                // YAZI VE İKONU BURAYA, MASKEDEN BAĞIMSIZ KOYUYORUZ
+                // Dokunma başladığında bunu gizlemek istersen bir ValueNotifier kullanabilirsin
+                // ama şu an orta kısım silineceği için bu ikonlar zaten kenara itilmiş olacak.
+                IgnorePointer(
+                  // Dokunmayı engellememesi için
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // QR Code Section
-                      _LargeQRCodeSection(ticketId: ticket.ticket.id),
-                      const SizedBox(height: 32),
-
-                      // Ticket Details
-                      _DetailsSection(
-                          ticket: ticket,
-                          dateText: dateText,
-                          timeText: timeText),
-                      const SizedBox(height: 40),
+                      Icon(Icons.qr_code_2_rounded,
+                          color: themeColors.primary.withOpacity(0.4),
+                          size: 32),
+                      const SizedBox(height: 4),
+                      Text("TARAMAK İÇİN\nKEŞFEDİN",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                              color: themeColors.primary.withOpacity(0.5))),
                     ],
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 20),
+          const Expanded(
+              child: Text(
+                  "Biletinizi okutmak için QR kodun üzerini parmağınızla temizleyin.",
+                  style: TextStyle(fontSize: 12))),
         ],
       ),
     );
@@ -204,154 +270,6 @@ class _LargeEventImage extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Modal içindeki QR kod bölümü.
-class _LargeQRCodeSection extends StatelessWidget {
-  final String ticketId;
-
-  const _LargeQRCodeSection({required this.ticketId});
-
-  @override
-  Widget build(final BuildContext context) {
-    final themeColors = context.colors;
-    final themeText = context.textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        themeColors.primary,
-                        themeColors.primaryContainer
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.qr_code_scanner_rounded,
-                    color: Colors.white, size: 24)),
-            const SizedBox(width: 12),
-            Text('Bilet QR Kodu',
-                style: context.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700, fontSize: 22)),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                themeColors.primaryContainer.withOpacity(0.8),
-                themeColors.primaryContainer.withOpacity(0.4),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-                color: themeColors.primary.withOpacity(0.3), width: 2),
-            boxShadow: [
-              BoxShadow(
-                  color: themeColors.primary.withOpacity(0.2),
-                  blurRadius: 30,
-                  offset: const Offset(0, 12),
-                  spreadRadius: -5),
-              BoxShadow(
-                  color: themeColors.shadow.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8)),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  // QR Kod
-                  Container(
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                              color: themeColors.shadow.withOpacity(0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8)),
-                        ],
-                      ),
-                      child: QrImageView(
-                        data: ticketId,
-                        version: QrVersions.auto,
-                        size: 100,
-                        eyeStyle: QrEyeStyle(
-                            eyeShape: QrEyeShape.square,
-                            color: themeColors.primary),
-                        dataModuleStyle: QrDataModuleStyle(
-                            dataModuleShape: QrDataModuleShape.square,
-                            color: themeColors.primary),
-                      )),
-                  const SizedBox(width: 20),
-
-                  // QR Kod bilgisi
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                                color: themeColors.primary.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8)),
-                            child: Text('GİRİŞ KODU',
-                                style: themeText.labelSmall?.copyWith(
-                                    color: themeColors.primary,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.2))),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Bu kodu girişte\ngösterin',
-                          style: themeText.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: themeColors.onPrimaryContainer,
-                              height: 1.3),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                                color: themeColors.surface,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color:
-                                        themeColors.outline.withOpacity(0.2))),
-                            child: Text(ticketId,
-                                style: themeText.bodySmall?.copyWith(
-                                    fontFamily: 'monospace',
-                                    color: themeColors.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

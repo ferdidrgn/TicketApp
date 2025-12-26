@@ -3,7 +3,7 @@ import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/features/stages/domain/entities/stage.dart';
 import 'package:ticketapp/features/tickets/domain/entities/ticket.dart';
 import '../../../../core/util/date_formatter.dart';
-import '../providers/ticket_state.dart';
+import 'ticket_state.dart';
 
 /// PRESENTATION LAYER - Sadece UI için optimize edilmiş
 

@@ -1,44 +1,52 @@
 import 'package:flutter/material.dart';
 
 class MagicMaskViewer extends StatefulWidget {
-  final Widget foreground; // Üstteki (normal) katman
-  final Widget background; // Alttaki (gizli/parlayan) katman
-  final double radius; // Maske büyüklüğü
+  final Widget foreground;
+  final Widget background;
+  final double radius;
+  final VoidCallback? onTap;
 
   const MagicMaskViewer({
     super.key,
     required this.foreground,
     required this.background,
-    this.radius = 0.3,
+    this.radius = 0.35,
+    this.onTap,
   });
 
   @override
-  State<MagicMaskViewer> createState() => _MagicMaskViewer();
+  State<MagicMaskViewer> createState() => _MagicMaskViewerState();
 }
 
-class _MagicMaskViewer extends State<MagicMaskViewer> {
+class _MagicMaskViewerState extends State<MagicMaskViewer> {
   final ValueNotifier<Offset?> _pointerPos = ValueNotifier(null);
+  Offset _startPos = Offset.zero;
 
   @override
   Widget build(final BuildContext context) {
     return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (final e) => _pointerPos.value = e.localPosition,
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (final e) {
+        _startPos = e.localPosition;
+        _pointerPos.value = e.localPosition;
+      },
       onPointerMove: (final e) => _pointerPos.value = e.localPosition,
-      onPointerUp: (final e) => _pointerPos.value = null,
+      onPointerUp: (final e) {
+        final distance = (e.localPosition - _startPos).distance;
+        if (distance < 10) widget.onTap?.call();
+        _pointerPos.value = null;
+      },
       onPointerCancel: (final e) => _pointerPos.value = null,
       child: Stack(
         fit: StackFit.passthrough,
         children: [
-          // Arka plan (Sadece maske gelince görünür)
           widget.background,
-          // Ön plan + Maske
           ValueListenableBuilder<Offset?>(
             valueListenable: _pointerPos,
             builder: (final context, final pos, final child) {
               if (pos == null) return widget.foreground;
               return ShaderMask(
-                blendMode: BlendMode.dstOut, // Gradientin olduğu yeri siler
+                blendMode: BlendMode.dstOut,
                 shaderCallback: (final rect) {
                   return RadialGradient(
                     center: FractionalOffset(
@@ -47,7 +55,10 @@ class _MagicMaskViewer extends State<MagicMaskViewer> {
                     ),
                     radius: widget.radius,
                     colors: const [Colors.black, Colors.transparent],
-                    stops: const [0.7, 1.0],
+                    stops: const [
+                      0.1,
+                      0.9
+                    ], // Daha keskin bir delik açar, böylece QR tertemiz görünür
                   ).createShader(rect);
                 },
                 child: widget.foreground,

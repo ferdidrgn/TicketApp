@@ -4,7 +4,7 @@ import 'package:ticketapp/features/tickets/presentation/providers/ticket_state.d
 import '../../data/repositories/ticket_repository_provider.dart';
 import '../../domain/usecases/create_ticket_use_case_impl.dart';
 import '../../domain/usecases/get_ticket_by_id_use_case.dart';
-import '../pages/my_ticket_viewmodel.dart';
+import 'my_ticket_viewmodel.dart';
 import 'ticket_notifier.dart';
 
 final ticketProvider =
