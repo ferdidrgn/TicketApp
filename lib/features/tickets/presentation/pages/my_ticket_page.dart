@@ -9,7 +9,6 @@ import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
-import '../../../../shared/widgets/magic_mask_viewer.dart';
 import '../providers/my_ticket_viewmodel.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {

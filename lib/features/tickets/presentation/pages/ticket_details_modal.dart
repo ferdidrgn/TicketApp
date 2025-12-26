@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../../core/util/date_formatter.dart';
-import '../../../../shared/widgets/magic_mask_viewer.dart';
+import '../../../../shared/widgets/magic_box.dart';
 import '../providers/my_ticket_viewmodel.dart';
 
 class TicketDetailsModal extends StatelessWidget {
@@ -122,7 +122,7 @@ class _LargeQRCodeSection extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                MagicMaskViewer(
+                MagicBox(
                     radius: 0.28,
                     foreground: foreground,
                     background: background),
