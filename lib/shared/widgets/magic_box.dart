@@ -64,9 +64,7 @@ class _MagicBoxState extends State<MagicBox> {
                 shaderCallback: (final rect) {
                   return RadialGradient(
                     center: FractionalOffset(
-                      pos.dx / rect.width,
-                      pos.dy / rect.height,
-                    ),
+                        pos.dx / rect.width, pos.dy / rect.height),
                     radius: widget.radius,
                     colors: const [Colors.black, Colors.transparent],
                     stops: const [0.7, 1.0],
@@ -83,36 +81,26 @@ class _MagicBoxState extends State<MagicBox> {
     );
   }
 
-  // Otomatik Işıltı Efekti (Favoriler veya Özel Kartlar İçin)
   Widget _buildShineEffect() {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: -2.0, end: 2.0),
       duration: const Duration(seconds: 3),
-      curve: Curves.easeInOutSine,
       builder: (final context, final value, final child) {
         return ShaderMask(
-          shaderCallback: (final rect) {
-            return LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              stops: [value - 0.2, value, value + 0.2],
-              colors: [
-                Colors.white.withOpacity(0),
-                Colors.white.withOpacity(0.4),
-                Colors.white.withOpacity(0),
-              ],
-            ).createShader(rect);
-          },
+          shaderCallback: (final rect) => LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            stops: [value - 0.2, value, value + 0.2],
+            colors: [
+              Colors.white.withOpacity(0),
+              Colors.white.withOpacity(0.4),
+              Colors.white.withOpacity(0)
+            ],
+          ).createShader(rect),
           child: widget.background,
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    _pointerPos.dispose();
-    super.dispose();
   }
 }
 
