@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/common/base_notifier.dart';
 import '../../../../core/services/auth_service.dart';
@@ -52,6 +53,14 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> _startAuthListener() async {
     try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        state = LoginState.loggedOut().copyWith(
+            errorMessage: "İnternet bağlantısı bulunamadı. Lütfen kontrol edin.",
+            isLoading: false);
+        return;
+      }
+
       await LocalStorageService.init();
 
       // Safety timeout (10 seconds)
@@ -176,8 +185,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       clearErrorState();
 
       String phone = phoneNumber.trim();
-      if (!phone.startsWith("+"))
-        phone = "+90$phone";
+      if (!phone.startsWith("+")) phone = "+90$phone";
 
       await _authService.verifyPhoneNumber(
         phoneNumber: phone,
@@ -277,8 +285,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       final userId = _authService.currentUser?.uid;
 
       // Clear FCM token
-      if (userId != null)
-        await _authService.clearFcmToken(userId);
+      if (userId != null) await _authService.clearFcmToken(userId);
 
       // Clear local storage
       await LocalStorageService.clearAllUserData();
@@ -311,8 +318,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
       final userId = _authService.currentUser?.uid;
 
-      if (userId == null)
-        throw Exception("No user to delete");
+      if (userId == null) throw Exception("No user to delete");
 
       AppDebug.log("Starting complete account deletion: $userId", tag: "AUTH");
 
