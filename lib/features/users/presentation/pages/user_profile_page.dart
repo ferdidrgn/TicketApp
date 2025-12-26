@@ -20,30 +20,38 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage>
     with
-        TickerProviderStateMixin, // Animasyonlar için şart
+        TickerProviderStateMixin,
         ProfileSnackBarHandler,
         ProfileSignOutHandler,
         ProfileDeleteAccountHandler,
         ProfilePhoneLinkHandler,
         ProfileGoogleLinkHandler {
-  late AnimationController _badgeRotateController;
-  late Animation<double> _badgeRotation;
+  late AnimationController _sparkleController;
+  late AnimationController _breathController;
+  late Animation<double> _breathAnimation;
 
   @override
   void initState() {
     super.initState();
-    _badgeRotateController = AnimationController(
-      duration: const Duration(seconds: 20),
+    _sparkleController = AnimationController(
+      duration: const Duration(seconds: 4),
       vsync: this,
     )..repeat();
-    _badgeRotation = Tween<double>(begin: 0, end: 2 * pi).animate(
-      CurvedAnimation(parent: _badgeRotateController, curve: Curves.linear),
+
+    _breathController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _breathAnimation = Tween<double>(begin: 0.98, end: 1.02).animate(
+      CurvedAnimation(parent: _breathController, curve: Curves.easeInOutSine),
     );
   }
 
   @override
   void dispose() {
-    _badgeRotateController.dispose();
+    _sparkleController.dispose();
+    _breathController.dispose();
     super.dispose();
   }
 
@@ -53,376 +61,610 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final theme = context.theme;
     final bool isUserLoggedIn = loginState.isLoggedIn && !loginState.isGuest;
 
-    // Logic Dinleyicisi
     ref.listen<LoginState>(loginProvider, (final previous, final next) {
       if (previous?.isLoggedIn == true && !next.isLoggedIn)
         context.go('/login');
       if (next.isAccountDeleted) context.go('/login');
     });
 
-    if (loginState.isLoading)
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final Color bgColor = theme.colorScheme.surface;
+    final Color lightShadow = theme.brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.white;
+    final Color darkShadow = theme.brightness == Brightness.dark
+        ? Colors.black.withOpacity(0.5)
+        : Colors.grey.withOpacity(0.2);
 
     return Scaffold(
-      backgroundColor: context.colors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            _buildBackgroundBlur(context.colors),
-            SingleChildScrollView(
+      backgroundColor: bgColor,
+      body: Stack(
+        children: [
+          _buildMagicDust(),
+          SafeArea(
+            child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildArtisticHeader(theme, !isUserLoggedIn),
+                  // Başlık - Optimize Edilmiş
+                  _buildArtisticHeader(theme, isUserLoggedIn),
                   const SizedBox(height: 30),
 
-                  // Animasyonlu Profil Kartı Geçişi
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    child: isUserLoggedIn
-                        ? _buildUserProfileCard(loginState, theme)
-                        : _buildAuthInvitationCard(theme),
+                  // Profil Kartı - Boyutları Ayarlanmış
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.88,
+                    child: _buildExpandedCuratorCard(loginState, theme, bgColor,
+                        lightShadow, darkShadow, isUserLoggedIn),
                   ),
 
                   const SizedBox(height: 32),
-                  ThemeSelectorCard(),
+
+                  // Ruh Hali Bölümü
+                  _buildSectionHeader(
+                      theme, "RUH HALİNİ YANSIT", "Görünümünü özelleştir"),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.88,
+                    child: ThemeSelectorCard(),
+                  ),
 
                   const SizedBox(height: 32),
-                  _buildSectionTitle(
-                      theme, isUserLoggedIn ? 'DENEYİM' : 'KEŞFET'),
-                  _buildFunctionalSection(loginState, theme, !isUserLoggedIn),
+
+                  // Yolculuk Kayıtları - Grid Boyutları Ayarlanmış
+                  _buildSectionHeader(
+                      theme, "YOLCULUK KAYITLARI", "Koleksiyonunun izleri"),
+                  const SizedBox(height: 16),
+                  _buildMagicActionGrid(loginState, theme, !isUserLoggedIn,
+                      bgColor, lightShadow, darkShadow),
 
                   const SizedBox(height: 32),
-                  _buildSectionTitle(theme, 'GÜVENLİK VE GİZLİLİK'),
-                  _buildSecuritySection(loginState, theme),
+
+                  // Gizem ve Güvenlik - Daha Az Yükseklik
+                  _buildSectionHeader(
+                      theme, "GİZEM VE GÜVENLİK", "Sessiz kararların"),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.88,
+                    child: _buildSecuritySection(
+                        loginState, theme, bgColor, lightShadow, darkShadow),
+                  ),
 
                   const SizedBox(height: 40),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // --- ESKİ ŞIK TASARIM WIDGETLARI ---
-
-  Widget _buildBackgroundBlur(final ColorScheme colors) => Positioned(
-        top: -100,
-        left: -100,
-        child: Container(
-          width: 300,
-          height: 300,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: colors.primary.withOpacity(0.12),
-          ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-            child: Container(color: Colors.transparent),
+  // --- OPTİMİZE BAŞLIK ---
+  Widget _buildArtisticHeader(ThemeData theme, bool isLoggedIn) {
+    return Column(
+      children: [
+        AnimatedBuilder(
+          animation: _breathAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _breathAnimation.value,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.primary.withOpacity(0.08),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 28,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'BAKMANIN DEĞİL, GÖRMENİN HİKAYESİ',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.labelMedium?.copyWith(
+            letterSpacing: 3,
+            fontWeight: FontWeight.w300,
+            color: theme.colorScheme.primary,
+            fontSize: 11,
           ),
         ),
-      );
+        const SizedBox(height: 4),
+        Text(
+          isLoggedIn
+              ? 'Estetik Hafıza • Senin Başyapıtın'
+              : 'Ziyaretçi Ruhu • Keşif Modu',
+          style: TextStyle(
+            fontSize: 9,
+            color: Colors.grey.withOpacity(0.6),
+            letterSpacing: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
 
-  Widget _buildArtisticHeader(final ThemeData theme, final bool isGuest) =>
-      Column(
+  // --- GENİŞLETİLMİŞ KÜRATÖR KARTI (OPTİMİZE) ---
+  Widget _buildExpandedCuratorCard(LoginState state, ThemeData theme, Color bg,
+      Color light, Color dark, bool isLoggedIn) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: _neuBox(bg, light, dark, borderRadius: 28),
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: theme.colorScheme.primary.withOpacity(0.08),
-            ),
-            child: Icon(Icons.auto_awesome_rounded,
-                size: 28, color: theme.colorScheme.primary),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // Işık halkası
+              Container(
+                width: 124,
+                height: 124,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      theme.colorScheme.primary.withOpacity(0.15),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.1, 1.0],
+                  ),
+                ),
+              ),
+
+              // Avatar
+              Container(
+                width: 100,
+                height: 100,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.secondary,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: isLoggedIn
+                      ? OptimizedCachedImage(
+                          imageUrl: state.photoUrl ??
+                              'https://via.placeholder.com/150',
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: bg,
+                          child: Icon(
+                            Icons.fingerprint,
+                            size: 40,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Text(
-            'ESTETİK HAFIZA • İSİMSİZ BAŞYAPIT',
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w300,
-              letterSpacing: 4,
-              color: theme.colorScheme.primary.withOpacity(0.7),
-              fontSize: 10,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            isGuest
-                ? 'Kendi Başyapıtını\nKeşfetmeye Başla'
-                : 'Bakmanın Değil,\nGörmenin Hikayesi',
+            isLoggedIn
+                ? (state.displayName ?? 'İSİMSİZ SANATÇI').toUpperCase()
+                : "MİSAFİR RUH",
             textAlign: TextAlign.center,
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 32,
-              height: 1.1,
-              fontFamily: 'PlayfairDisplay',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              fontSize: 20,
             ),
           ),
-        ],
-      );
-
-  Widget _buildUserProfileCard(final LoginState state, final ThemeData theme) =>
-      Container(
-        decoration: _artisticContainerDecoration(theme),
-        child: Padding(
-          padding: const EdgeInsets.all(30),
-          child: Column(
-            children: [
-              // Login Method Badge
-              Align(
-                alignment: Alignment.topRight,
-                child: _buildLoginMethodBadge(state, theme),
-              ),
-              // Avatar with Rotating Border
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  AnimatedBuilder(
-                    animation: _badgeRotation,
-                    builder: (final context, final child) => Transform.rotate(
-                      angle: _badgeRotation.value,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: theme.colorScheme.primary.withOpacity(0.2),
-                              width: 1.5),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: const BoxDecoration(shape: BoxShape.circle),
-                    child: ClipOval(
-                      child: OptimizedCachedImage(
-                        imageUrl:
-                            state.photoUrl ?? 'https://via.placeholder.com/150',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                (state.displayName ?? 'Sanatsever').toUpperCase(),
-                style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900, fontFamily: 'PlayfairDisplay'),
-              ),
-              Text(state.email ?? '',
-                  style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5))),
-              const SizedBox(height: 30),
-              // Stats Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatItem(
-                      '0',
-                      'Bilet',
-                      Icons.confirmation_number_outlined,
-                      theme.colorScheme.primary),
-                  _buildStatItem(
-                      '0',
-                      'Koleksiyon',
-                      Icons.auto_awesome_motion_rounded,
-                      theme.colorScheme.secondary),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-
-  Widget _buildAuthInvitationCard(final ThemeData theme) => Container(
-        padding: const EdgeInsets.all(28),
-        decoration: _artisticContainerDecoration(theme),
-        child: Column(
-          children: [
-            Icon(Icons.auto_awesome_mosaic_rounded,
-                size: 48, color: theme.colorScheme.primary),
-            const SizedBox(height: 20),
-            const Text('Koleksiyonun Henüz Başlamadı',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => context.push('/login'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                minimumSize: const Size(double.infinity, 54),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-              ),
-              child: const Text('Serüvene Başla'),
+          const SizedBox(height: 4),
+          Text(
+            isLoggedIn
+                ? (state.email ?? "küratör@sanat.com")
+                : "Keşif Modu Aktif",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
             ),
-          ],
-        ),
-      );
-
-  Widget _buildFunctionalSection(final LoginState loginState,
-          final ThemeData theme, final bool isGuest) =>
-      Container(
-        decoration: _artisticContainerDecoration(theme),
-        child: Column(
-          children: [
-            if (!isGuest) ...[
-              _buildListTile(
-                  theme,
-                  Icons.edit_outlined,
-                  'Profil Düzenle',
-                  'Bilgilerini güncelle',
-                  Colors.blue,
-                  () => context.push('/profile-edit/${loginState.userId}')),
-              _buildListTile(
-                  theme,
-                  Icons.confirmation_number,
-                  'Biletlerim',
-                  'Etkinlik biletlerin',
-                  Colors.green,
-                  () => context.push('/my-tickets/${loginState.userId}')),
-              _buildListTile(theme, Icons.favorite, 'Favoriler',
-                  'Kaydettiğin eserler', Colors.pink, () {}),
-            ],
-            _buildListTile(
-                theme,
-                Icons.settings,
-                'Ayarlar',
-                'Uygulama tercihleri',
-                Colors.orange,
-                () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (final _) => const AppSettingsPage()))),
-          ],
-        ),
-      );
-
-  Widget _buildSecuritySection(final LoginState state, final ThemeData theme) =>
-      Container(
-        decoration: _artisticContainerDecoration(theme),
-        child: Column(
-          children: [
-            if (state.isGuest) ...[
-              _buildListTile(
-                  theme,
-                  Icons.g_mobiledata_rounded,
-                  'Google ile Bağla',
-                  'Verilerini kalıcı hale getir',
-                  Colors.blue,
-                  () => handleGoogleLink(context, ref)),
-              _buildListTile(
-                  theme,
-                  Icons.phone_iphone_rounded,
-                  'Telefon ile Bağla',
-                  'Numaranı ekle',
-                  Colors.green,
-                  () => showPhoneLinkDialog(context, ref)),
-            ],
-            _buildListTile(
-                theme,
-                Icons.logout_rounded,
-                'Çıkış Yap',
-                'Oturumu sonlandır',
-                Colors.orange,
-                () => showSignOutDialog(context, ref)),
-            _buildListTile(
-                theme,
-                Icons.delete_forever_rounded,
-                'Hesabı Sil',
-                'Tüm verileri kalıcı sil',
-                Colors.red,
-                () =>
-                    showDeleteAccountDialog(context, ref, state.userId ?? '')),
-          ],
-        ),
-      );
-
-  // --- HELPERS (Eski Tasarım Detayları) ---
-
-  BoxDecoration _artisticContainerDecoration(final ThemeData theme) =>
-      BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
-      );
-
-  Widget _buildSectionTitle(final ThemeData theme, final String title) =>
-      Padding(
-        padding: const EdgeInsets.only(left: 8, bottom: 12),
-        child: Text(title,
-            style: theme.textTheme.labelSmall?.copyWith(
-                letterSpacing: 2,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey)),
-      );
-
-  Widget _buildListTile(
-          final ThemeData theme,
-          final IconData icon,
-          final String title,
-          final String sub,
-          final Color color,
-          final VoidCallback onTap) =>
-      ListTile(
-        onTap: onTap,
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(sub, style: const TextStyle(fontSize: 12)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 12),
-      );
-
-  Widget _buildStatItem(
-          final String v, final String l, final IconData i, final Color c) =>
-      Column(
-        children: [
-          Icon(i, color: c),
-          Text(v,
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              isLoggedIn ? "Kıdemli Küratör" : "Keşfedilmeyi Bekleyen Ruh",
               style: TextStyle(
-                  color: c, fontWeight: FontWeight.bold, fontSize: 18)),
-          Text(l, style: const TextStyle(fontSize: 12)),
-        ],
-      );
+                color: theme.colorScheme.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
 
-  Widget _buildLoginMethodBadge(final LoginState state, final ThemeData theme) {
-    final method = state.loginMethod;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_getLoginMethodIcon(method),
-              size: 12, color: theme.colorScheme.primary),
-          const SizedBox(width: 4),
-          Text(method.toUpperCase(),
-              style:
-                  const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+          // İstatistikler - Daha Kompakt
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: bg.withOpacity(0.5),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMiniStat(
+                    "Bilet", "12", Icons.confirmation_number_outlined),
+                _buildMiniStat(
+                    "Anı", "42", Icons.collections_bookmark_outlined),
+                _buildMiniStat("Puan", "8.9", Icons.auto_fix_high),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  IconData _getLoginMethodIcon(final String method) {
-    if (method == 'google') return Icons.g_mobiledata_rounded;
-    if (method == 'phone') return Icons.phone_android;
-    return Icons.person_outline;
+  // --- SİHİRLİ IZGARA (GRID) - OPTİMİZE ---
+  Widget _buildMagicActionGrid(LoginState state, ThemeData theme, bool isGuest,
+      Color bg, Color light, Color dark) {
+    final double gridWidth = MediaQuery.of(context).size.width * 0.9;
+
+    return SizedBox(
+      width: gridWidth,
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.3,
+        // Daha düşük oran
+        children: [
+          _magicTile("Atölyem", Icons.brush_outlined, theme, bg, light, dark,
+              () => context.push('/profile-edit/${state.userId}')),
+          _magicTile("Giriş Kartları", Icons.vpn_key_outlined, theme, bg, light,
+              dark, () => context.push('/my-tickets/${state.userId}')),
+          _magicTile("Koleksiyon", Icons.auto_awesome_mosaic_outlined, theme,
+              bg, light, dark, () {}),
+          _magicTile(
+              "Ayarlar",
+              Icons.settings_input_component_outlined,
+              theme,
+              bg,
+              light,
+              dark,
+              () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (final _) => const AppSettingsPage()))),
+        ],
+      ),
+    );
   }
+
+  // --- GÜVENLİK BÖLÜMÜ - OPTİMİZE ---
+  Widget _buildSecuritySection(
+      LoginState state, ThemeData theme, Color bg, Color light, Color dark) {
+    return Column(
+      children: [
+        if (state.isGuest) ...[
+          _neuTile(
+            theme,
+            "Görünmezlik Modu (Google)",
+            Icons.account_circle_outlined,
+            bg,
+            light,
+            dark,
+            () => handleGoogleLink(context, ref),
+            subtitle: "Kalıcı bağlantı kur",
+          ),
+          const SizedBox(height: 12),
+        ],
+        _neuTile(
+          theme,
+          "Veda Et (Çıkış)",
+          Icons.logout_rounded,
+          bg,
+          light,
+          dark,
+          () => showSignOutDialog(context, ref),
+          subtitle: "Oturumu kapat",
+        ),
+        const SizedBox(height: 12),
+        _neuTile(
+          theme,
+          "Hafızayı Sil (Hesabı Sil)",
+          Icons.no_accounts_outlined,
+          bg,
+          light,
+          dark,
+          () => showDeleteAccountDialog(context, ref, state.userId ?? ''),
+          subtitle: "Tüm izleri temizle",
+          isError: true,
+        ),
+      ],
+    );
+  }
+
+  // --- YARDIMCI METODLAR ---
+
+  BoxDecoration _neuBox(Color bg, Color light, Color dark,
+      {double borderRadius = 15, bool isPressed = false}) {
+    return BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(borderRadius),
+      boxShadow: isPressed
+          ? [
+              BoxShadow(
+                  color: dark,
+                  offset: const Offset(3, 3),
+                  blurRadius: 5,
+                  spreadRadius: -1),
+              BoxShadow(
+                  color: light,
+                  offset: const Offset(-3, -3),
+                  blurRadius: 5,
+                  spreadRadius: -1),
+            ]
+          : [
+              BoxShadow(
+                color: dark,
+                offset: const Offset(8, 8),
+                blurRadius: 16,
+                spreadRadius: -2, // Yayılmayı azalt
+              ),
+              BoxShadow(
+                color: light,
+                offset: const Offset(-8, -8),
+                blurRadius: 16,
+                spreadRadius: -2,
+              ),
+            ],
+    );
+  }
+
+  Widget _magicTile(String title, IconData icon, ThemeData theme, Color bg,
+      Color light, Color dark, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: _neuBox(bg, light, dark, borderRadius: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.primary.withOpacity(0.1),
+              ),
+              child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                ),
+                maxLines: 2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _neuTile(
+    ThemeData theme,
+    String title,
+    IconData icon,
+    Color bg,
+    Color light,
+    Color dark,
+    VoidCallback onTap, {
+    String subtitle = "",
+    bool isError = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: _neuBox(bg, light, dark, borderRadius: 18),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isError
+                    ? Colors.red.withOpacity(0.1)
+                    : theme.colorScheme.primary.withOpacity(0.1),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: isError ? Colors.red : theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isError ? Colors.red : null,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: isError
+                  ? Colors.red.withOpacity(0.6)
+                  : theme.colorScheme.onSurface.withOpacity(0.3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.grey.withOpacity(0.1),
+          ),
+          child: Icon(icon, size: 16, color: Colors.grey.withOpacity(0.7)),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMagicDust() {
+    return AnimatedBuilder(
+      animation: _sparkleController,
+      builder: (context, child) {
+        return IgnorePointer(
+          child: Opacity(
+            opacity: 0.3,
+            child: CustomPaint(
+              painter: _SparklePainter(_sparkleController.value),
+              size: MediaQuery.of(context).size,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionHeader(ThemeData theme, String title,
+      [String subtitle = ""]) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.88,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              letterSpacing: 2,
+              fontSize: 11,
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (subtitle.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey.withOpacity(0.6),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SparklePainter extends CustomPainter {
+  final double progress;
+
+  _SparklePainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.08)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+
+    final random = Random(42);
+    for (int i = 0; i < 15; i++) {
+      // Daha az parçacık
+      final x = random.nextDouble() * size.width;
+      final y = (random.nextDouble() * size.height * 0.7) +
+          (progress * 50); // Daha az hareket
+      canvas.drawCircle(Offset(x, y), random.nextDouble() * 1.5, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
