@@ -28,6 +28,7 @@ class UserProfileEditScreen extends ConsumerStatefulWidget {
 class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  // Kontrolcüler (Burayı elleme, aynı kalsın)
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
@@ -48,7 +49,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     _ageController = TextEditingController();
     _cityController = TextEditingController();
 
-    // 1. ADIM: Veriyi Firestore'dan çek
+    // 1. ADIM: Sayfa açıldığında veriyi Firestore'dan iste
     WidgetsBinding.instance.addPostFrameCallback((final _) {
       ref.read(userProvider.notifier).loadUserById(widget.userId);
     });
@@ -65,19 +66,22 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     super.dispose();
   }
 
-  // 2. ADIM: Gelen veriyi kontrolcülere yansıt
+  // 2. ADIM: Gelen veriyi kutulara dolduran asıl fonksiyon
   void _fillFields(final User user) {
     if (_isInitialized) return;
-    _firstNameController.text = user.firstName;
-    _lastNameController.text = user.lastName;
-    _phoneController.text = user.phoneNumber;
-    _emailController.text = user.eMail;
-    _ageController.text = user.age > 0 ? user.age.toString() : '';
-    _cityController.text = user.city;
-    _profileImageUrl = user.imageUrl.isNotEmpty
-        ? user.imageUrl
-        : 'https://via.placeholder.com/150';
-    _isInitialized = true;
+
+    setState(() {
+      _firstNameController.text = user.firstName;
+      _lastNameController.text = user.lastName;
+      _phoneController.text = user.phoneNumber;
+      _emailController.text = user.eMail;
+      _ageController.text = user.age > 0 ? user.age.toString() : '';
+      _cityController.text = user.city;
+      _profileImageUrl = user.imageUrl.isNotEmpty
+          ? user.imageUrl
+          : 'https://via.placeholder.com/150';
+      _isInitialized = true;
+    });
   }
 
   @override
@@ -85,10 +89,11 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     final themeColors = context.colors;
     final userState = ref.watch(userProvider);
 
-    // Veri geldiğinde form alanlarını doldur
+    // 3. ADIM: Dinleyici - Veri yüklendiği an kutuları doldurur
     ref.listen<UserState>(userProvider, (final previous, final next) {
-      if (next.dataSingle != null && !_isInitialized)
+      if (!next.isLoading && next.dataSingle != null && !_isInitialized) {
         _fillFields(next.dataSingle!);
+      }
     });
 
     return Scaffold(
@@ -104,7 +109,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               ),
               Expanded(
                 child: userState.isLoading && !_isInitialized
-                    ? _buildShimmerLoading() // Sanatsal Shimmer
+                    ? _buildShimmerLoading() // Veri gelene kadar parlayan kutular
                     : _buildForm(context, userState.dataSingle),
               ),
             ],
@@ -114,7 +119,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
-  // 3. ADIM: Sanatsal Yükleme Efekti
+  // Yükleme Efekti (Shimmer)
   Widget _buildShimmerLoading() {
     return Shimmer.fromColors(
       baseColor: context.colors.surfaceVariant.withOpacity(0.4),
@@ -147,6 +152,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
+  // Ana Form Yapısı
   Widget _buildForm(final BuildContext context, final User? currentUser) =>
       SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -163,70 +169,79 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               _buildProfileImagePicker(),
               const SizedBox(height: 32),
               _buildSectionTitle('Öz Kimlik Bilgileri'),
-              _buildFieldsGrid(),
+
+              // AD VE SOYAD - ZORUNLU
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomTextField(
+                      controller: _firstNameController,
+                      label: 'Ad',
+                      isRequired: true,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: CustomTextField(
+                      controller: _lastNameController,
+                      label: 'Soyad',
+                      isRequired: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // DİĞER ALANLAR - OPSİYONEL
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: CustomTextField(
+                      controller: _emailController,
+                      label: 'E-Posta Adresi',
+                      prefixIcon: const Icon(Icons.alternate_email_rounded),
+                      keyboardType: TextInputType.emailAddress,
+                      isRequired: false,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
+                    child: CustomTextField(
+                      controller: _ageController,
+                      label: 'Yaş',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      isRequired: false,
+                    ),
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 24),
               _buildSectionTitle('İletişim Kanalları'),
+
               CustomTextField(
                 controller: _phoneController,
                 label: 'Telefon Numarası',
                 prefixIcon: const Icon(Icons.phone_iphone_rounded),
                 keyboardType: TextInputType.phone,
+                isRequired: false,
               ),
               CustomTextField(
                 controller: _cityController,
                 label: 'Sanatın İcra Edildiği Şehir',
                 prefixIcon: const Icon(Icons.location_city_rounded),
+                isRequired: false,
               ),
+
               const SizedBox(height: 40),
               _buildSaveButton(currentUser),
               const SizedBox(height: 40),
             ],
           ),
         ),
-      );
-
-  Widget _buildFieldsGrid() => Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                  child: CustomTextField(
-                      controller: _firstNameController,
-                      label: 'Ad',
-                      isRequired: true)),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: CustomTextField(
-                      controller: _lastNameController,
-                      label: 'Soyad',
-                      isRequired: true)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: CustomTextField(
-                  controller: _emailController,
-                  label: 'E-Posta Adresi',
-                  prefixIcon: const Icon(Icons.alternate_email_rounded),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: CustomTextField(
-                  controller: _ageController,
-                  label: 'Yaş',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-            ],
-          ),
-        ],
       );
 
   Widget _buildProfileImagePicker() => Center(
@@ -282,11 +297,13 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
-  // 4. ADIM: Kayıt ve Yerel Senkronizasyon
+  // 4. ADIM: Kayıt ve Yerel Senkronizasyon (Firebase + Local)
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final currentUser = ref.read(userProvider).dataSingle;
+
+    // currentUser null olsa dahi widget.userId ile yeni bir yapı oluşturuyoruz
     final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
@@ -299,17 +316,16 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
 
     try {
-      // Firebase'e kaydet (Provider zaten handle ediyor)
-      await ref.read(userProvider.notifier).saveUser(
-          userToSave, _profileImageUrl,
-          isUpdate: currentUser != null);
+      // Firebase'e kaydet (DİKKAT: isUpdate: true veriyoruz)
+      await ref
+          .read(userProvider.notifier)
+          .saveUser(userToSave, _profileImageUrl, isUpdate: true);
 
-      // 5. ADIM: Yerel Depolamayı (Local Storage) Güncelle
-      // Sadece en gerekli verileri senkronize ediyoruz (UserRole, DisplayName vb.)
+      // 5. ADIM: Yerel Depolamayı Güncelle (Profil sayfasındaki ismin hemen değişmesi için)
       await LocalStorageService.saveEssentialUserData(
         uid: widget.userId,
         displayName: '${userToSave.firstName} ${userToSave.lastName}',
-        role: userToSave.role, // Firestore'dan gelen güncel rol
+        role: userToSave.role,
       );
 
       if (mounted) _showSuccessDialog();
@@ -327,7 +343,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         message: 'Kimliğin başarıyla güncellendi!',
         onConfirm: () {
           Navigator.of(context).pop(); // Dialogu kapat
-          Navigator.of(context).pop(); // Profil sayfasına geri dön
+          Navigator.of(context).pop(); // Profil sayfasına dön
         },
       ),
     );
