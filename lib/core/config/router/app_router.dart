@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/router/page_transitions.dart';
+import 'package:ticketapp/features/favorite/presentation/pages/favorite_screen.dart';
+import 'package:ticketapp/features/tickets/presentation/pages/my_ticket_page.dart';
 import '../../../features/home/presentation/pages/wrapper/app_home_page.dart';
 import '../../../features/login/presentation/pages/login_screen.dart';
 import '../../../features/login/presentation/pages/phone_login_page.dart';
@@ -121,6 +123,34 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
             transitionDuration: const Duration(milliseconds: 500),
           );
         },
+      ),
+
+      // MY TICKETS
+      GoRoute(
+        path: '/my-tickets/:userId',
+        name: 'myTickets',
+        pageBuilder: (final context, final state) {
+          final userId = state.pathParameters['userId']!;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: MyTicketPage(userId: userId),
+            // Kendi sayfa isminle kontrol et
+            transitionsBuilder: slideTransition,
+            transitionDuration: const Duration(milliseconds: 400),
+          );
+        },
+      ),
+
+      // FAVORITES
+      GoRoute(
+        path: '/favorites',
+        name: 'favorites',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const FavoritesPage(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
       ),
     ],
 
