@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
@@ -11,6 +13,7 @@ import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../domain/entities/user.dart';
 import '../providers/user_provider.dart';
+import '../providers/user_state.dart';
 
 class UserProfileEditScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -25,7 +28,6 @@ class UserProfileEditScreen extends ConsumerStatefulWidget {
 class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Kontrolcüler
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
@@ -46,9 +48,10 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     _ageController = TextEditingController();
     _cityController = TextEditingController();
 
-    // Veriyi çek
-    WidgetsBinding.instance.addPostFrameCallback((final _) =>
-        ref.read(userProvider.notifier).loadUserById(widget.userId));
+    // 1. ADIM: Veriyi Firestore'dan çek
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      ref.read(userProvider.notifier).loadUserById(widget.userId);
+    });
   }
 
   @override
@@ -62,6 +65,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     super.dispose();
   }
 
+  // 2. ADIM: Gelen veriyi kontrolcülere yansıt
   void _fillFields(final User user) {
     if (_isInitialized) return;
     _firstNameController.text = user.firstName;
@@ -81,8 +85,10 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     final themeColors = context.colors;
     final userState = ref.watch(userProvider);
 
-    ref.listen(userProvider, (final previous, final next) {
-      if (next.dataSingle != null) _fillFields(next.dataSingle!);
+    // Veri geldiğinde form alanlarını doldur
+    ref.listen<UserState>(userProvider, (final previous, final next) {
+      if (next.dataSingle != null && !_isInitialized)
+        _fillFields(next.dataSingle!);
     });
 
     return Scaffold(
@@ -92,17 +98,50 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
           child: Column(
             children: [
               TopNormalHeader(
-                title: 'Profilini Düzenle',
-                subtitle: 'Sanatçı kimliğini güncelle...',
-                rightIcon: Icons.edit_note_rounded,
+                title: 'Kimliğini Biçimlendir',
+                subtitle: 'Sanatçı profilini dünyaya tanıt...',
+                rightIcon: Icons.auto_fix_high_rounded,
               ),
               Expanded(
                 child: userState.isLoading && !_isInitialized
-                    ? const Center(child: CircularProgressIndicator())
+                    ? _buildShimmerLoading() // Sanatsal Shimmer
                     : _buildForm(context, userState.dataSingle),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // 3. ADIM: Sanatsal Yükleme Efekti
+  Widget _buildShimmerLoading() {
+    return Shimmer.fromColors(
+      baseColor: context.colors.surfaceVariant.withOpacity(0.4),
+      highlightColor: context.colors.surfaceVariant,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 32),
+            Container(
+                width: 120,
+                height: 120,
+                decoration: const BoxDecoration(
+                    color: Colors.white, shape: BoxShape.circle)),
+            const SizedBox(height: 40),
+            ...List.generate(
+                4,
+                (index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Container(
+                          width: double.infinity,
+                          height: 60,
+                          decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16))),
+                    )),
+          ],
         ),
       ),
     );
@@ -117,16 +156,16 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
           child: Column(
             children: [
               const CustomArtWordsCard(
-                word: 'Her sanatçı başlangıçta bir amatördür.',
-                author: 'Ralph Waldo Emerson',
+                word: 'Gelecek, güzelliğe inananlarındır.',
+                author: 'Eleanor Roosevelt',
               ),
               const SizedBox(height: 32),
               _buildProfileImagePicker(),
               const SizedBox(height: 32),
-              _buildSectionTitle('Temel Bilgiler'),
+              _buildSectionTitle('Öz Kimlik Bilgileri'),
               _buildFieldsGrid(),
               const SizedBox(height: 24),
-              _buildSectionTitle('İletişim & Konum'),
+              _buildSectionTitle('İletişim Kanalları'),
               CustomTextField(
                 controller: _phoneController,
                 label: 'Telefon Numarası',
@@ -135,7 +174,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               ),
               CustomTextField(
                 controller: _cityController,
-                label: 'Yaşadığın Şehir',
+                label: 'Sanatın İcra Edildiği Şehir',
                 prefixIcon: const Icon(Icons.location_city_rounded),
               ),
               const SizedBox(height: 40),
@@ -237,15 +276,16 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     return SizedBox(
       width: double.infinity,
       child: CustomElevatedButton(
-        text: 'Sanat Yolculuğuna Başla',
-        // Null yerine boş fonksiyon veriyoruz
+        text: 'Sanat Yolculuğunu Güncelle',
         onPressed: isLoading ? () {} : () => _updateProfile(),
       ),
     );
   }
 
+  // 4. ADIM: Kayıt ve Yerel Senkronizasyon
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+
     final currentUser = ref.read(userProvider).dataSingle;
     final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
       firstName: _firstNameController.text.trim(),
@@ -259,9 +299,19 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
 
     try {
+      // Firebase'e kaydet (Provider zaten handle ediyor)
       await ref.read(userProvider.notifier).saveUser(
           userToSave, _profileImageUrl,
           isUpdate: currentUser != null);
+
+      // 5. ADIM: Yerel Depolamayı (Local Storage) Güncelle
+      // Sadece en gerekli verileri senkronize ediyoruz (UserRole, DisplayName vb.)
+      await LocalStorageService.saveEssentialUserData(
+        uid: widget.userId,
+        displayName: '${userToSave.firstName} ${userToSave.lastName}',
+        role: userToSave.role, // Firestore'dan gelen güncel rol
+      );
+
       if (mounted) _showSuccessDialog();
     } catch (e) {
       _showSnackBar('Hata oluştu: $e', isError: true);
@@ -274,8 +324,11 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       context: context,
       barrierDismissible: false,
       builder: (final ctx) => CustomSuccessDialog(
-        message: 'Profilin başarıyla güncellendi!',
-        onConfirm: () => Navigator.of(context).pop(),
+        message: 'Kimliğin başarıyla güncellendi!',
+        onConfirm: () {
+          Navigator.of(context).pop(); // Dialogu kapat
+          Navigator.of(context).pop(); // Profil sayfasına geri dön
+        },
       ),
     );
   }
