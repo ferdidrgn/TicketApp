@@ -16,14 +16,15 @@ class UserNotifier extends BaseNotifier<UserState> {
   // USER OPERATIONS
   // ========================================
 
-  /// 📖 Load user by ID
-  Future<void> loadUserById(final String userId) async => execute(
-        () => ref.read(getUserByIdUseCaseProvider).call(userId),
-        onSuccess: (final user) {
-          state = state.copyWith(dataSingle: user, errorMessage: null);
-        },
-        customErrorMessage: 'Kullanıcı bilgileri yüklenemedi',
-      );
+  Future<void> loadUserById(final String userId) async {
+    return execute(
+      () => ref.read(getUserByIdUseCaseProvider).call(userId),
+      onSuccess: (user) {
+        state = state.copyWith(dataSingle: user, errorMessage: null);
+      },
+      customErrorMessage: 'Kullanıcı bilgileri yüklenemedi',
+    );
+  }
 
   /// 💾 Save user
   Future<void> saveUser(

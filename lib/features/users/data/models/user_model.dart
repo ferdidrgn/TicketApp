@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/user.dart';
 
 class UserModel {
@@ -42,8 +43,12 @@ class UserModel {
   factory UserModel.fromFirestore(final Map<String, dynamic>? data) {
     if (data == null) return const UserModel();
     return UserModel(
-      createdAt: data['_createdAt'] as String?,
-      updatedAt: data['_updatedAt'] as String?,
+      createdAt: data['_createdAt'] is Timestamp
+          ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
+          : data['_createdAt']?.toString() ?? '',
+      updatedAt: data['_updatedAt'] is Timestamp
+          ? (data['_updatedAt'] as Timestamp).toDate().toIso8601String()
+          : data['_updatedAt']?.toString() ?? '',
       id: data['_id'] as String?,
       firstName: data['firstName'] as String?,
       lastName: data['lastName'] as String?,

@@ -1,15 +1,13 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/common/base_notifier.dart';
-import '../../../auth/presentation/providers/auth_service.dart';
 import '../../../../core/services/local_storage_service.dart';
-import '../../../users/presentation/providers/user_data_service.dart';
-import '../../../../core/util/app_debug.dart';
 import '../../../../core/util/role_manager.dart';
+import '../../../auth/presentation/providers/auth_service.dart';
+import '../../../users/presentation/providers/user_data_service.dart';
 import 'login_state.dart';
 
 /// 🔐 Login Notifier - Complete Auth Management
-///
 /// ⚠️ ÖNEMLI: Bu notifier AutoDispose KULLANMAZ çünkü:
 /// - Auth state her zaman aktif olmalı
 /// - Uygulama boyunca erişilebilir olmalı
@@ -38,7 +36,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
   void onDispose() {
     _authStateSubscription?.cancel();
     _timer?.cancel();
-    AppDebug.log("LoginNotifier disposed", tag: "AUTH");
   }
 
   // ========================================
@@ -61,8 +58,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
               isLoading: false,
               errorMessage:
                   "Bağlantı kurulamadı. Lütfen internetinizi kontrol edin.");
-          AppDebug.log("Bağlantı zaman aşımı - Siyah ekran kırıldı.",
-              tag: "AUTH");
         }
       });
 
@@ -91,7 +86,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> _handleAuthStateChange(final User? firebaseUser) async {
     if (_isManualSignOut) {
-      AppDebug.log("Manual sign out detected, skipping listener", tag: "AUTH");
       _isManualSignOut = false;
       return;
     }
@@ -137,8 +131,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       // Sync to Firestore (if not anonymous)
       if (!refreshedUser.isAnonymous)
         await _syncUserToFirestore(refreshedUser, userRole);
-
-      AppDebug.log("Login successful: ${refreshedUser.uid}", tag: "AUTH");
     } catch (e, stack) {
       logError(e, stack);
       setErrorState(e.toString());
@@ -147,7 +139,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> _handleUserLogout() async {
     state = LoginState.loggedOut();
-    AppDebug.log("User logged out", tag: "AUTH");
   }
 
   // ========================================
@@ -297,7 +288,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       // Update state
       state = LoginState.loggedOut();
 
-      AppDebug.log("Sign out successful", tag: "AUTH");
       return true;
     } catch (e, stack) {
       _isManualSignOut = false;
@@ -318,8 +308,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
       if (userId == null) throw Exception("No user to delete");
 
-      AppDebug.log("Starting complete account deletion: $userId", tag: "AUTH");
-
       // 1. Clear FCM token
       await _authService.clearFcmToken(userId);
 
@@ -337,8 +325,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
       // 6. Update state
       state = LoginState.loggedOut().copyWith(isAccountDeleted: true);
-
-      AppDebug.log("Account deleted completely: $userId", tag: "AUTH");
       return true;
     } catch (e, stack) {
       _isManualSignOut = false;
@@ -367,9 +353,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         role: role,
         isPhoneActive: user.phoneNumber != null,
       );
-
-      AppDebug.log("User synced to Firestore: ${user.uid} (new: ${!exists})",
-          tag: "AUTH");
     } catch (e, stack) {
       logError(e, stack);
       // Don't throw, just log
@@ -389,9 +372,7 @@ class LoginNotifier extends BaseNotifier<LoginState> {
   }
 
   /// Clear error (override from BaseNotifier to return void)
-  void clearError() {
-    clearErrorState();
-  }
+  void clearError() => clearErrorState();
 
   /// Refresh user data
   Future<void> refreshUser() async {

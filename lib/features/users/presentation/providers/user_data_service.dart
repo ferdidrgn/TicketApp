@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/user_model.dart';
 import '../../domain/entities/user.dart' as entity;
-import '../../../../core/util/app_debug.dart';
 
 /// 👤 Firestore User Data Service
 ///
@@ -33,9 +32,6 @@ class UserDataService {
     final bool isUpdate = false,
   }) async {
     try {
-      AppDebug.log("Saving user: ${user.id} (update: $isUpdate)",
-          tag: "USER_SERVICE");
-
       final userModel = UserModel.fromEntity(user);
       final data = userModel.toFirestore();
 
@@ -55,10 +51,8 @@ class UserDataService {
           .doc(user.id)
           .set(data, SetOptions(merge: isUpdate));
 
-      AppDebug.log("User saved successfully: ${user.id}", tag: "USER_SERVICE");
       return true;
     } catch (e, stack) {
-      AppDebug.log("Save user error: $e\n$stack", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -77,8 +71,6 @@ class UserDataService {
     required final bool isPhoneActive,
   }) async {
     try {
-      AppDebug.log("Syncing user from Auth: $userId", tag: "USER_SERVICE");
-
       // Check if user already exists
       final exists = await userExists(userId);
 
@@ -110,7 +102,6 @@ class UserDataService {
         isUpdate: exists, // Update if exists, create if not
       );
     } catch (e, stack) {
-      AppDebug.log("Sync user error: $e\n$stack", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -125,31 +116,22 @@ class UserDataService {
   /// @return User entity or null if not found
   Future<entity.User?> getUserById(final String userId) async {
     try {
-      AppDebug.log("Fetching user: $userId", tag: "USER_SERVICE");
-
       final doc =
           await _firestore.collection(_usersCollection).doc(userId).get();
 
-      if (!doc.exists) {
-        AppDebug.log("User not found: $userId", tag: "USER_SERVICE");
-        return null;
-      }
+      if (!doc.exists) return null;
 
       final data = doc.data();
-      if (data == null) {
-        AppDebug.log("User data is null: $userId", tag: "USER_SERVICE");
-        return null;
-      }
+      if (data == null) return null;
+
 
       // Add document ID to data if not present
       if (!data.containsKey('_id')) data['_id'] = userId;
 
       final userModel = UserModel.fromFirestore(data);
-      AppDebug.log("User fetched successfully: $userId", tag: "USER_SERVICE");
 
       return userModel.toEntity();
     } catch (e, stack) {
-      AppDebug.log("Get user error: $e\n$stack", tag: "USER_SERVICE");
       return null;
     }
   }
@@ -164,7 +146,6 @@ class UserDataService {
           await _firestore.collection(_usersCollection).doc(userId).get();
       return doc.exists;
     } catch (e) {
-      AppDebug.log("User exists check error: $e", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -192,8 +173,6 @@ class UserDataService {
           .where((final id) => id.isNotEmpty)
           .toList();
     } catch (e, stack) {
-      AppDebug.log("Get user ticket IDs error: $e\n$stack",
-          tag: "USER_SERVICE");
       return [];
     }
   }
@@ -211,16 +190,12 @@ class UserDataService {
   /// ⚠️ Bu işlem geri alınamaz!
   Future<bool> deleteUserCompletely(final String userId) async {
     try {
-      AppDebug.log("Starting complete user deletion: $userId",
-          tag: "USER_SERVICE");
 
       // 1. Get user's ticket IDs
       final ticketIds = await getUserTicketIds(userId);
 
       // 2. Delete all user's tickets in a batch
       if (ticketIds.isNotEmpty) {
-        AppDebug.log("Deleting ${ticketIds.length} tickets",
-            tag: "USER_SERVICE");
 
         final batch = _firestore.batch();
         for (final ticketId in ticketIds) {
@@ -230,20 +205,12 @@ class UserDataService {
         }
 
         await batch.commit();
-        AppDebug.log("Tickets deleted successfully", tag: "USER_SERVICE");
-      } else
-        AppDebug.log("No tickets to delete", tag: "USER_SERVICE");
+      }
 
       // 3. Delete user document
       await _firestore.collection(_usersCollection).doc(userId).delete();
-      AppDebug.log("User document deleted: $userId", tag: "USER_SERVICE");
-
-      AppDebug.log("Complete user deletion successful: $userId",
-          tag: "USER_SERVICE");
       return true;
     } catch (e, stack) {
-      AppDebug.log("Delete user completely error: $e\n$stack",
-          tag: "USER_SERVICE");
       return false;
     }
   }
@@ -254,16 +221,9 @@ class UserDataService {
   /// Genellikle kullanılmaz, deleteUserCompletely() tercih edilir.
   Future<bool> deleteUserDocument(final String userId) async {
     try {
-      AppDebug.log("Deleting user document: $userId", tag: "USER_SERVICE");
-
       await _firestore.collection(_usersCollection).doc(userId).delete();
-
-      AppDebug.log("User document deleted successfully: $userId",
-          tag: "USER_SERVICE");
       return true;
     } catch (e, stack) {
-      AppDebug.log("Delete user document error: $e\n$stack",
-          tag: "USER_SERVICE");
       return false;
     }
   }
@@ -285,10 +245,8 @@ class UserDataService {
 
       await _firestore.collection(_usersCollection).doc(userId).update(fields);
 
-      AppDebug.log("User fields updated: $userId", tag: "USER_SERVICE");
       return true;
     } catch (e, stack) {
-      AppDebug.log("Update user fields error: $e\n$stack", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -302,11 +260,8 @@ class UserDataService {
         '_updatedAt': FieldValue.serverTimestamp(),
       });
 
-      AppDebug.log("Ticket added to user: $userId -> $ticketId",
-          tag: "USER_SERVICE");
       return true;
     } catch (e, stack) {
-      AppDebug.log("Add ticket to user error: $e\n$stack", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -320,12 +275,8 @@ class UserDataService {
         '_updatedAt': FieldValue.serverTimestamp(),
       });
 
-      AppDebug.log("Ticket removed from user: $userId -> $ticketId",
-          tag: "USER_SERVICE");
       return true;
     } catch (e, stack) {
-      AppDebug.log("Remove ticket from user error: $e\n$stack",
-          tag: "USER_SERVICE");
       return false;
     }
   }
@@ -339,7 +290,6 @@ class UserDataService {
       });
       return true;
     } catch (e) {
-      AppDebug.log("Add favorite show error: $e", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -354,7 +304,6 @@ class UserDataService {
       });
       return true;
     } catch (e) {
-      AppDebug.log("Remove favorite show error: $e", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -369,7 +318,6 @@ class UserDataService {
       });
       return true;
     } catch (e) {
-      AppDebug.log("Add favorite stage error: $e", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -384,7 +332,6 @@ class UserDataService {
       });
       return true;
     } catch (e) {
-      AppDebug.log("Remove favorite stage error: $e", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -399,7 +346,6 @@ class UserDataService {
       });
       return true;
     } catch (e) {
-      AppDebug.log("Add favorite player error: $e", tag: "USER_SERVICE");
       return false;
     }
   }
@@ -414,7 +360,6 @@ class UserDataService {
       });
       return true;
     } catch (e) {
-      AppDebug.log("Remove favorite player error: $e", tag: "USER_SERVICE");
       return false;
     }
   }

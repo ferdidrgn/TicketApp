@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 
 abstract class UserRemoteDataSource {
@@ -40,13 +41,24 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
 
   @override
   Future<UserModel?> getUserById(final String userId) async {
-    if (userId.isEmpty) throw Exception('User ID cannot be empty');
+    if (userId.isEmpty) return null;
 
     try {
       final doc = await _firestore.collection(_collection).doc(userId).get();
-      return doc.exists ? UserModel.fromFirestore(doc.data()) : null;
-    } catch (e, s) {
-      throw Exception('Failed to fetch users → $e\n$s');
+
+      if (!doc.exists) return null;
+
+      final data = doc.data();
+      if (data == null) return null;
+
+      // Modelin içindeki id alanını doldurmak için ID'yi manuel ekliyoruz
+      data['_id'] = doc.id;
+
+      // Veriyi modele çeviriyoruz
+      return UserModel.fromFirestore(data);
+    } catch (e, stack) {
+      debugPrint("🔥 Firestore Hatası: $e\n$stack");
+      return null;
     }
   }
 

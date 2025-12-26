@@ -1,5 +1,4 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import '../util/app_debug.dart';
 
 /// 🔐 Merkezi Local Storage Servisi
 class LocalStorageService {
@@ -15,10 +14,8 @@ class LocalStorageService {
   static const String _keyIsGuest = 'is_guest';
 
   /// Initialize SharedPreferences
-  static Future<void> init() async {
-    _prefs ??= await SharedPreferences.getInstance();
-    AppDebug.log("LocalStorage initialized", tag: "STORAGE");
-  }
+  static Future<void> init() async =>
+      _prefs ??= await SharedPreferences.getInstance();
 
   /// Ensure initialization
   static Future<void> _ensureInitialized() async {
@@ -49,10 +46,8 @@ class LocalStorageService {
         _prefs!.setBool(_keyIsLoggedIn, true),
         _prefs!.setBool(_keyIsGuest, isGuest),
       ]);
-      AppDebug.log("User data saved: $userId", tag: "STORAGE");
       return true;
     } catch (e) {
-      AppDebug.log("Save user data error: $e", tag: "STORAGE");
       return false;
     }
   }
@@ -72,10 +67,8 @@ class LocalStorageService {
         if (role != null) _prefs!.setString(_keyRole, role),
         _prefs!.setBool(_keyIsLoggedIn, true),
       ]);
-      AppDebug.log("Essential user data saved: $uid", tag: "STORAGE");
       return true;
     } catch (e) {
-      AppDebug.log("Save essential data error: $e", tag: "STORAGE");
       return false;
     }
   }
@@ -97,7 +90,7 @@ class LocalStorageService {
   static String? get photoUrl => _prefs?.getString(_keyPhotoUrl);
 
   /// 📖 Get user role
-  static String? get userRole=>_prefs?.getString(_keyRole);
+  static String? get userRole => _prefs?.getString(_keyRole);
 
   /// 📖 Check if logged in
   static bool get isLoggedIn => _prefs?.getBool(_keyIsLoggedIn) ?? false;
@@ -106,15 +99,15 @@ class LocalStorageService {
   static bool get isGuest => _prefs?.getBool(_keyIsGuest) ?? false;
 
   /// 📖 Get all user data as Map
-  static Map<String, dynamic> getUserData() =>{
-      'userId': userId,
-      'displayName': displayName,
-      'email': email,
-      'photoUrl': photoUrl,
-      'role': userRole,
-      'isLoggedIn': isLoggedIn,
-      'isGuest': isGuest,
-    };
+  static Map<String, dynamic> getUserData() => {
+        'userId': userId,
+        'displayName': displayName,
+        'email': email,
+        'photoUrl': photoUrl,
+        'role': userRole,
+        'isLoggedIn': isLoggedIn,
+        'isGuest': isGuest,
+      };
 
   /// 📖 Get essential user data
   static Map<String, dynamic>? getEssentialUserData() {
@@ -147,10 +140,8 @@ class LocalStorageService {
         _prefs!.remove(_keyIsLoggedIn),
         _prefs!.remove(_keyIsGuest),
       ]);
-      AppDebug.log("All user data cleared", tag: "STORAGE");
       return true;
     } catch (e) {
-      AppDebug.log("Clear user data error: $e", tag: "STORAGE");
       return false;
     }
   }
@@ -162,7 +153,6 @@ class LocalStorageService {
       await _prefs!.remove(key);
       return true;
     } catch (e) {
-      AppDebug.log("Clear key error: $e", tag: "STORAGE");
       return false;
     }
   }
@@ -172,10 +162,8 @@ class LocalStorageService {
     await _ensureInitialized();
     try {
       await _prefs!.clear();
-      AppDebug.log("All storage cleared", tag: "STORAGE");
       return true;
     } catch (e) {
-      AppDebug.log("Clear all error: $e", tag: "STORAGE");
       return false;
     }
   }
@@ -188,7 +176,8 @@ class LocalStorageService {
   static bool get hasUserData => userId != null && isLoggedIn;
 
   /// Get login method from providers    // This should be saved during login
-  static String getLoginMethod()=> _prefs?.getString('login_method') ?? 'unknown';
+  static String getLoginMethod() =>
+      _prefs?.getString('login_method') ?? 'unknown';
 
   /// Save login method
   static Future<void> saveLoginMethod(final String method) async {

@@ -1,13 +1,11 @@
-import '../../../../core/common/base_loadable_state.dart';
+import 'package:ticketapp/core/common/base_state.dart';
 import '../../domain/entities/user.dart';
 
-class UserState extends LoadableState<User, List<User>> {
-  const UserState({
-    super.dataList,
-    super.dataSingle,
-    super.isLoading = false,
-    super.errorMessage,
-  });
+class UserState extends BaseState {
+  final User? dataSingle;
+
+  const UserState(
+      {this.dataSingle, super.isLoading = false, super.errorMessage});
 
   @override
   UserState copyWith({
@@ -18,30 +16,20 @@ class UserState extends LoadableState<User, List<User>> {
   }) =>
       UserState(
         dataSingle: dataSingle ?? this.dataSingle,
-        dataList: dataList ?? this.dataList,
         isLoading: isLoading ?? this.isLoading,
-        errorMessage: errorMessage,
+        errorMessage: errorMessage ?? this.errorMessage,
       );
 
-
   String get userFullName {
-    if (dataSingle == null) return 'Kullanıcı';
+    final user = dataSingle;
+    if (user == null) return 'Kullanıcı';
 
-    final firstName = dataSingle!.firstName;
-    final lastName = dataSingle!.lastName;
-
-    // ✅ İkisi de doluysa boşlukla birleştir
-    if (firstName.isNotEmpty && lastName.isNotEmpty)
-      return '$firstName $lastName';
-
-    // ✅ Sadece isim varsa
-    else if (firstName.isNotEmpty)
-      return firstName;
-
-    // ✅ Sadece soyisim varsa
-    else if (lastName.isNotEmpty)
-      return lastName;
-    // ✅ Hiçbiri yoksa
+    if (user.firstName.isNotEmpty && user.lastName.isNotEmpty)
+      return '${user.firstName} ${user.lastName}';
+    else if (user.firstName.isNotEmpty)
+      return user.firstName;
+    else if (user.lastName.isNotEmpty)
+      return user.lastName;
     else
       return 'Kullanıcı';
   }

@@ -4,9 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../errors/failures.dart';
 import 'base_state.dart';
 
-/// 🎯 Base Notifier - Normal Version
 /// Sayfa kapansa bile state tutulur (cache gibi)
-///
 /// Riverpod 3+ Notifier sınıfını kullanır
 abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
   @override
