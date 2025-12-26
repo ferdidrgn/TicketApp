@@ -28,9 +28,9 @@ class UserDataService {
   /// @param isUpdate - If true, merges with existing data. If false, creates new
   /// @return bool - Success status
   Future<bool> saveUser({
-    required entity.User user,
-    String? photoUrl,
-    bool isUpdate = false,
+    required final entity.User user,
+    final String? photoUrl,
+    final bool isUpdate = false,
   }) async {
     try {
       AppDebug.log("Saving user: ${user.id} (update: $isUpdate)",
@@ -40,12 +40,12 @@ class UserDataService {
       final data = userModel.toFirestore();
 
       // Remove null values for cleaner Firestore data
-      data.removeWhere((key, value) => value == null);
+      data.removeWhere((final key, final value) => value == null);
 
       // Add timestamps (Firestore will handle these)
-      if (isUpdate) {
+      if (isUpdate)
         data['_updatedAt'] = FieldValue.serverTimestamp();
-      } else {
+      else {
         data['_createdAt'] = FieldValue.serverTimestamp();
         data['_updatedAt'] = FieldValue.serverTimestamp();
       }
@@ -68,13 +68,13 @@ class UserDataService {
   /// Firebase Auth'tan gelen bilgileri Firestore'a senkronize eder.
   /// Yeni kullanıcı oluşturur veya mevcut kullanıcıyı günceller.
   Future<bool> syncUserFromAuth({
-    required String userId,
-    required String displayName,
-    required String email,
-    required String photoUrl,
-    required String phoneNumber,
-    required String role,
-    required bool isPhoneActive,
+    required final String userId,
+    required final String displayName,
+    required final String email,
+    required final String photoUrl,
+    required final String phoneNumber,
+    required final String role,
+    required final bool isPhoneActive,
   }) async {
     try {
       AppDebug.log("Syncing user from Auth: $userId", tag: "USER_SERVICE");
@@ -123,7 +123,7 @@ class UserDataService {
   ///
   /// @param userId - User ID to fetch
   /// @return User entity or null if not found
-  Future<entity.User?> getUserById(String userId) async {
+  Future<entity.User?> getUserById(final String userId) async {
     try {
       AppDebug.log("Fetching user: $userId", tag: "USER_SERVICE");
 
@@ -142,9 +142,7 @@ class UserDataService {
       }
 
       // Add document ID to data if not present
-      if (!data.containsKey('_id')) {
-        data['_id'] = userId;
-      }
+      if (!data.containsKey('_id')) data['_id'] = userId;
 
       final userModel = UserModel.fromFirestore(data);
       AppDebug.log("User fetched successfully: $userId", tag: "USER_SERVICE");
@@ -160,7 +158,7 @@ class UserDataService {
   ///
   /// @param userId - User ID to check
   /// @return bool - True if exists, false otherwise
-  Future<bool> userExists(String userId) async {
+  Future<bool> userExists(final String userId) async {
     try {
       final doc =
           await _firestore.collection(_usersCollection).doc(userId).get();
@@ -175,7 +173,7 @@ class UserDataService {
   ///
   /// @param userId - User ID
   /// @return List of ticket IDs
-  Future<List<String>> getUserTicketIds(String userId) async {
+  Future<List<String>> getUserTicketIds(final String userId) async {
     try {
       final userDoc =
           await _firestore.collection(_usersCollection).doc(userId).get();
@@ -191,7 +189,7 @@ class UserDataService {
 
       return ticketsIdData
           .whereType<String>() // Filter only String types
-          .where((id) => id.isNotEmpty)
+          .where((final id) => id.isNotEmpty)
           .toList();
     } catch (e, stack) {
       AppDebug.log("Get user ticket IDs error: $e\n$stack",
@@ -211,7 +209,7 @@ class UserDataService {
   /// 2. User document'ını
   ///
   /// ⚠️ Bu işlem geri alınamaz!
-  Future<bool> deleteUserCompletely(String userId) async {
+  Future<bool> deleteUserCompletely(final String userId) async {
     try {
       AppDebug.log("Starting complete user deletion: $userId",
           tag: "USER_SERVICE");
@@ -233,9 +231,8 @@ class UserDataService {
 
         await batch.commit();
         AppDebug.log("Tickets deleted successfully", tag: "USER_SERVICE");
-      } else {
+      } else
         AppDebug.log("No tickets to delete", tag: "USER_SERVICE");
-      }
 
       // 3. Delete user document
       await _firestore.collection(_usersCollection).doc(userId).delete();
@@ -255,7 +252,7 @@ class UserDataService {
   ///
   /// Sadece User document'ını siler, ticket'ları silmez.
   /// Genellikle kullanılmaz, deleteUserCompletely() tercih edilir.
-  Future<bool> deleteUserDocument(String userId) async {
+  Future<bool> deleteUserDocument(final String userId) async {
     try {
       AppDebug.log("Deleting user document: $userId", tag: "USER_SERVICE");
 
@@ -281,7 +278,7 @@ class UserDataService {
   /// @param fields - Map of fields to update
   /// @return bool - Success status
   Future<bool> updateUserFields(
-      String userId, Map<String, dynamic> fields) async {
+      final String userId, final Map<String, dynamic> fields) async {
     try {
       // Add update timestamp
       fields['_updatedAt'] = FieldValue.serverTimestamp();
@@ -297,7 +294,8 @@ class UserDataService {
   }
 
   /// 📋 Add ticket ID to user
-  Future<bool> addTicketToUser(String userId, String ticketId) async {
+  Future<bool> addTicketToUser(
+      final String userId, final String ticketId) async {
     try {
       await _firestore.collection(_usersCollection).doc(userId).update({
         'ticketsId': FieldValue.arrayUnion([ticketId]),
@@ -314,7 +312,8 @@ class UserDataService {
   }
 
   /// 🗑️ Remove ticket ID from user
-  Future<bool> removeTicketFromUser(String userId, String ticketId) async {
+  Future<bool> removeTicketFromUser(
+      final String userId, final String ticketId) async {
     try {
       await _firestore.collection(_usersCollection).doc(userId).update({
         'ticketsId': FieldValue.arrayRemove([ticketId]),
@@ -332,7 +331,7 @@ class UserDataService {
   }
 
   /// ❤️ Add favorite show
-  Future<bool> addFavoriteShow(String userId, String showId) async {
+  Future<bool> addFavoriteShow(final String userId, final String showId) async {
     try {
       await _firestore.collection(_usersCollection).doc(userId).update({
         'favoriteShows': FieldValue.arrayUnion([showId]),
@@ -346,7 +345,8 @@ class UserDataService {
   }
 
   /// 💔 Remove favorite show
-  Future<bool> removeFavoriteShow(String userId, String showId) async {
+  Future<bool> removeFavoriteShow(
+      final String userId, final String showId) async {
     try {
       await _firestore.collection(_usersCollection).doc(userId).update({
         'favoriteShows': FieldValue.arrayRemove([showId]),
@@ -360,7 +360,8 @@ class UserDataService {
   }
 
   /// ❤️ Add favorite stage
-  Future<bool> addFavoriteStage(String userId, String stageId) async {
+  Future<bool> addFavoriteStage(
+      final String userId, final String stageId) async {
     try {
       await _firestore.collection(_usersCollection).doc(userId).update({
         'favoriteStages': FieldValue.arrayUnion([stageId]),
@@ -374,7 +375,8 @@ class UserDataService {
   }
 
   /// 💔 Remove favorite stage
-  Future<bool> removeFavoriteStage(String userId, String stageId) async {
+  Future<bool> removeFavoriteStage(
+      final String userId, final String stageId) async {
     try {
       await _firestore.collection(_usersCollection).doc(userId).update({
         'favoriteStages': FieldValue.arrayRemove([stageId]),
@@ -388,7 +390,8 @@ class UserDataService {
   }
 
   /// ❤️ Add favorite player
-  Future<bool> addFavoritePlayer(String userId, String playerId) async {
+  Future<bool> addFavoritePlayer(
+      final String userId, final String playerId) async {
     try {
       await _firestore.collection(_usersCollection).doc(userId).update({
         'favoritePlayers': FieldValue.arrayUnion([playerId]),
@@ -402,7 +405,8 @@ class UserDataService {
   }
 
   /// 💔 Remove favorite player
-  Future<bool> removeFavoritePlayer(String userId, String playerId) async {
+  Future<bool> removeFavoritePlayer(
+      final String userId, final String playerId) async {
     try {
       await _firestore.collection(_usersCollection).doc(userId).update({
         'favoritePlayers': FieldValue.arrayRemove([playerId]),
@@ -420,13 +424,11 @@ class UserDataService {
   // ========================================
 
   /// Split full name into first and last name
-  Map<String, String> _splitName(String fullName) {
+  Map<String, String> _splitName(final String fullName) {
     if (fullName.isEmpty) return {'firstName': '', 'lastName': ''};
 
     final parts = fullName.trim().split(' ');
-    if (parts.length == 1) {
-      return {'firstName': parts[0], 'lastName': ''};
-    }
+    if (parts.length == 1) return {'firstName': parts[0], 'lastName': ''};
 
     return {
       'firstName': parts.sublist(0, parts.length - 1).join(' '),
@@ -435,7 +437,6 @@ class UserDataService {
   }
 
   /// Get collection reference (for advanced queries)
-  CollectionReference<Map<String, dynamic>> get usersCollection {
-    return _firestore.collection(_usersCollection);
-  }
+  CollectionReference<Map<String, dynamic>> get usersCollection =>
+      _firestore.collection(_usersCollection);
 }
