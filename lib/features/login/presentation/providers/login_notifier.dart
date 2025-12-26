@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/common/base_notifier.dart';
-import '../../../../core/services/auth_service.dart';
+import '../../../auth/presentation/providers/auth_service.dart';
 import '../../../../core/services/local_storage_service.dart';
-import '../../../../core/services/user_data_service.dart';
+import '../../../users/presentation/providers/user_data_service.dart';
 import '../../../../core/util/app_debug.dart';
 import '../../../../core/util/role_manager.dart';
 import 'login_state.dart';

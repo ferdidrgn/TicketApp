@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../shared/widgets/custom_pop_up.dart';
-import '../../features/login/presentation/providers/login_provider.dart';
+import '../../../../../../shared/widgets/custom_pop_up.dart';
+import '../../../login/presentation/providers/login_provider.dart';
 
 /// =======================================
 /// 🔔 ORTAK DIALOG HANDLER (ARTISTIC)

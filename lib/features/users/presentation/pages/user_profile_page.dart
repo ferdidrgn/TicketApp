@@ -5,7 +5,7 @@ import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/appTools/presentation/pages/help_support_page.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
-import '../../../../core/services/sign_out_delete.dart';
+import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
 import '../../../login/presentation/providers/login_provider.dart';
 import '../../../login/presentation/providers/login_state.dart';

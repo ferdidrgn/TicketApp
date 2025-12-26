@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../features/users/data/models/user_model.dart';
-import '../../features/users/domain/entities/user.dart' as entity;
-import '../util/app_debug.dart';
+import '../../data/models/user_model.dart';
+import '../../domain/entities/user.dart' as entity;
+import '../../../../core/util/app_debug.dart';
 
 /// 👤 Firestore User Data Service
 ///
