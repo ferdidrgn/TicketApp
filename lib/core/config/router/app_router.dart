@@ -12,18 +12,18 @@ import '../../../features/users/presentation/pages/user_profile_edit.dart';
 import '../../errors/not_found_page.dart';
 
 /// 🛣️ App Router with Clean Auth Logic
-final appRouterProvider = Provider<GoRouter>((ref) {
+final appRouterProvider = Provider<GoRouter>((final ref) {
   final loginState = ref.watch(loginProvider);
   final authNotifier = ValueNotifier(loginState);
 
-  ref.listen(loginProvider, (_, next) {
+  ref.listen(loginProvider, (final _, final next) {
     authNotifier.value = next;
   });
 
   return GoRouter(
     initialLocation: '/home',
     refreshListenable: authNotifier,
-    redirect: (context, state) {
+    redirect: (final context, final state) {
       final currentPath = state.uri.path;
 
       // ⚡ DEĞİŞİKLİK: Eğer hata mesajı varsa isLoading olsa bile yönlendirmeye izin ver.
@@ -44,7 +44,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         name: 'home',
-        pageBuilder: (context, state) {
+        pageBuilder: (final context, final state) {
           final startAnimations = state.extra is Map
               ? (state.extra! as Map)['startAnimations'] ?? false
               : false;
@@ -61,7 +61,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OnboardingContainer(),
           transitionsBuilder: fadeTransition,
@@ -73,7 +73,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         name: 'login',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const LoginScreen(),
           transitionsBuilder: slideTransition,
@@ -85,7 +85,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/phone-login',
         name: 'phoneLogin',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const PhoneLogInPage(),
           transitionsBuilder: slideTransition,
@@ -97,7 +97,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile-edit/:userId',
         name: 'profileEdit',
-        pageBuilder: (context, state) {
+        pageBuilder: (final context, final state) {
           final userId = state.pathParameters['userId']!;
           return CustomTransitionPage(
             key: state.pageKey,
@@ -112,7 +112,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/show/:id',
         name: 'showDetail',
-        pageBuilder: (context, state) {
+        pageBuilder: (final context, final state) {
           final showId = state.pathParameters['id']!;
           return CustomTransitionPage(
             key: state.pageKey,
@@ -125,6 +125,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
 
     // 404 Error Page
-    errorBuilder: (context, state) => NotFoundPage(errorPath: state.uri.path),
+    errorBuilder: (final context, final state) =>
+        NotFoundPage(errorPath: state.uri.path),
   );
 });

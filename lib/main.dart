@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+
 import 'core/config/firebase_options.dart';
 import 'core/config/router/app_router.dart';
 import 'core/constants/app_constants.dart';
@@ -24,34 +25,33 @@ import 'features/splash/presentation/widgets/splash_data_guard.dart';
 // -----------------------------------------------------------------------------
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(
-    final RemoteMessage message) async {
-  // Arka planda Firebase servislerini kullanabilmek için tekrar initialize
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  debugPrint("Nöbetçi: Arka planda bildirim yakalandı: ${message.messageId}");
-}
+        final RemoteMessage message) async =>
+    Firebase.initializeApp(
+        options: DefaultFirebaseOptions
+            .currentPlatform); // Arka planda Firebase servislerini kullanabilmek için tekrar initialize
 
 Future<void> main() async {
-  // 1. Flutter Engine & Web Strategy
+  // 1. Flutter Motorunu Hazırla
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
-  // 1. Kritik Olmayan Başlatmalar (Parallel)
-  _setupCrashlytics();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  // 2. Firebase Başlatma (Güvenli Mod)
+  // 2. Firebase Başlatma (Güvenli Zaman Aşımlı)
   try {
     await Firebase.initializeApp(
             options: DefaultFirebaseOptions.currentPlatform)
         .timeout(const Duration(seconds: 5));
   } catch (e) {
-    debugPrint("⚠️ Firebase Başlatılamadı (Zaman Aşımı): $e");
+    debugPrint("Firebase Başlatma Atlandı: $e");
   }
 
-  // 3. Sistem Arayüzü
+  // 3. İzleme ve Bildirimler
+  _setupCrashlytics();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // 4. Sistem Arayüz Ayarları
   if (!PlatformChecker.isWeb) _configureSystemUI();
 
-  // 4. Servisler (Async - Uygulama açılışını engellemez)
+  // 5. Arka Plan Servislerini Tetikle (Uygulamayı Bekletmez)
   _initServices();
 
   runApp(const ProviderScope(child: MyApp()));
@@ -72,16 +72,11 @@ void _setupCrashlytics() {
   };
 }
 
-Future<void> _initServices() async {
-  try {
-    await Future.wait([
+// await kullanmıyoruz, uygulama açılırken bunlar arkada dolmaya başlar
+void _initServices() => Future.wait([
       LocalStorageService.init(),
       FCMManager.instance.init(),
     ]);
-  } catch (e) {
-    debugPrint('❌ Servis Başlatma Hatası: $e');
-  }
-}
 
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
@@ -107,9 +102,11 @@ class MyApp extends ConsumerWidget {
         // 3. Platform Specific UI Wrapping
         return ConnectivityWrapper(
           child: SplashDataGuard(
-            isLoading: loginState.isLoading && !loginState.hasError,
+            // Eğer internet yoksa (hasError), isLoading true olsa bile
+            // SplashDataGuard içindeki hata ekranını tetiklemek için bu mantığı kurduk
+            isLoading: loginState.isLoading,
             loadingMessage: loginState.hasError
-                ? "⚠️ ${loginState.errorMessage}"
+                ? loginState.errorMessage!
                 : 'TiyatRol Sahnesi Hazırlanıyor...',
             child: isWeb ? child : _MobileSystemUIWrapper(child: child),
           ),
