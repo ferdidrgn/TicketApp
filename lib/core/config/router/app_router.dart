@@ -28,8 +28,12 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
     redirect: (final context, final state) {
       final currentPath = state.uri.path;
 
-      // ⚡ DEĞİŞİKLİK: Eğer hata mesajı varsa isLoading olsa bile yönlendirmeye izin ver.
-      // Bu sayede siyah ekran yerine hata mesajı olan login sayfası gelir.
+      // ⚡ SMS kodu gönderildiyse, kullanıcı login olmuş görünse bile
+      // (Instant Verification olsa bile) OTP ekranında kalmasını zorla.
+      if (loginState.isCodeSent && currentPath == '/phone-login') {
+        return null;
+      }
+
       if (loginState.isLoading && !loginState.hasError) return null;
 
       final isLoggedIn = loginState.isLoggedIn;
@@ -37,7 +41,11 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           currentPath == '/login' || currentPath == '/phone-login';
 
       if (!isLoggedIn && !isPublicPage) return '/login';
-      if (isLoggedIn && isPublicPage) return '/home';
+
+      // Sadece kod gönderilmemişse ve gerçekten giriş yapılmışsa home'a git
+      if (isLoggedIn && isPublicPage && !loginState.isCodeSent) {
+        return '/home';
+      }
 
       return null;
     },

@@ -19,10 +19,9 @@ Widget slideTransition(
   final Widget child,
 ) =>
     SlideTransition(
-      position: Tween<Offset>(
-        begin: const Offset(1.0, 0.0),
-        end: Offset.zero,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+      position: Tween<Offset>(begin: const Offset(1.0, 0.0), end: Offset.zero)
+          .animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
       child: child,
     );
 

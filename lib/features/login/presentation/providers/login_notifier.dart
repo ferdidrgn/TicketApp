@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../../core/common/base_notifier.dart';
 import '../../../../core/services/local_storage_service.dart';
 import '../../../../core/util/role_manager.dart';
@@ -98,8 +99,15 @@ class LoginNotifier extends BaseNotifier<LoginState> {
   }
 
   Future<void> _handleUserLogin(final User firebaseUser) async {
+    // ⚡ KRİTİK KİLİT: Eğer kullanıcı telefonla bağlanıyorsa
+    // ve biz henüz OTP (SMS) doğrulama aşamasındaysak (isCodeSent true ise),
+    // otomatik login işlemini burada DURDUR.
+    if (firebaseUser.phoneNumber != null && state.isCodeSent) {
+      debugPrint("Otomatik login engellendi, SMS onayı bekleniyor...");
+      return;
+    }
+
     try {
-      // Reload user to get latest data
       await firebaseUser.reload();
       final refreshedUser = _authService.currentUser;
 
@@ -108,15 +116,11 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         return;
       }
 
-      // Get user role
       String userRole = LocalStorageService.userRole ?? 'user';
-      if (refreshedUser.isAnonymous)
-        userRole = RoleManager.getDefaultRoleForLoginMethod('anonymous');
 
-      // Update state
+      // State'i sadece her şey tamamsa güncelle
       state = LoginState.fromUser(refreshedUser, userRole);
 
-      // Save to local storage
       await LocalStorageService.saveUserData(
         userId: refreshedUser.uid,
         displayName: refreshedUser.displayName ?? 'User',
@@ -126,12 +130,11 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         isGuest: refreshedUser.isAnonymous,
       );
 
-      // Save FCM token
       await _authService.saveFcmToken(refreshedUser.uid);
 
-      // Sync to Firestore (if not anonymous)
-      if (!refreshedUser.isAnonymous)
+      if (!refreshedUser.isAnonymous) {
         await _syncUserToFirestore(refreshedUser, userRole);
+      }
     } catch (e, stack) {
       logError(e, stack);
       setErrorState(e.toString());
@@ -166,44 +169,52 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     }
   }
 
-  /// 📱 Verify phone number
+  // login_notifier.dart
   Future<void> verifyPhone(final String phoneNumber) async {
     try {
       setLoadingState(true);
       clearErrorState();
 
       String phone = phoneNumber.trim();
-      if (!phone.startsWith("+")) phone = "+90$phone";
+      // ⚡ İyileştirme: Numara formatını daha esnek yapın
+      if (!phone.startsWith("+")) {
+        if (phone.startsWith("0")) phone = phone.substring(1);
+        phone = "+90$phone";
+      }
 
       await _authService.verifyPhoneNumber(
         phoneNumber: phone,
         onVerificationCompleted: (final credential) async {
-          await FirebaseAuth.instance.signInWithCredential(credential);
+          // Otomatik doğrulama başarılı olursa burada login olur
+          final user =
+              await FirebaseAuth.instance.signInWithCredential(credential);
+          if (user.user != null) {
+            await _handleUserLogin(user.user!);
+          }
         },
         onCodeSent: (final verificationId, final resendToken) {
+          // ⚡ BURASI KRİTİK: isCodeSent true olduğunda redirect bizi atmamalı
           state = state.copyWith(
             verificationId: verificationId,
             isCodeSent: true,
             isLoading: false,
-            timerValue: 180,
+            // Loading biter, isCodeSent başlar
+            timerValue: 60,
+            // Genelde 60 saniye idealdir
             phoneNumber: phone,
-            errorMessage: null,
           );
           _startTimer();
         },
         onVerificationFailed: (final error) {
-          setErrorState(error);
+          state = state.copyWith(isLoading: false, errorMessage: error);
         },
         onAutoRetrievalTimeout: (final verificationId) {
-          state = state.copyWith(
-            verificationId: verificationId,
-            errorMessage: null,
-          );
+          state = state.copyWith(verificationId: verificationId);
         },
       );
     } catch (e, stack) {
       logError(e, stack);
-      setErrorState('Phone verification failed: ${e.toString()}');
+      setErrorState('Hata: ${e.toString()}');
     }
   }
 

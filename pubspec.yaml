@@ -64,6 +64,7 @@ dependencies:
   cloud_firestore:   # Firebase'in NoSQL veritabanı.
   firebase_storage:   # Firebase dosya depolama hizmeti.
   firebase_auth:  # Firebase kimlik doğrulama.
+  firebase_app_check:
 
   # Google
   google_sign_in: ^5.0.0  # Google ile giriş yapma.
