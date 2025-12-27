@@ -1,25 +1,40 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/features/auth/presentation/providers/storage_provider.dart';
+
+// Servis sağlayıcı
+final storageServiceProvider =
+    Provider<StorageService>((final ref) => StorageService(ref));
 
 class StorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final Ref _ref;
 
-  /// Dosyayı yükler ve indirme URL'sini döner
+  StorageService(this._ref);
+
+  // FirebaseStorage'ı provider'dan çekiyoruz
+  FirebaseStorage get _storage => _ref.read(storageProvider);
+
   Future<String?> uploadProfileImage(
       final String userId, final File file) async {
     try {
-      // Kayıt yolu: ppics/userId.jpg
       final ref = _storage.ref().child('ppics').child('$userId.jpg');
-
-      // Yükleme işlemi
       final uploadTask = await ref.putFile(file);
-
-      // URL'yi al
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
-
-      return downloadUrl;
+      return await uploadTask.ref.getDownloadURL();
+    } on FirebaseException catch (e) {
+      throw 'Görsel yüklenemedi: ${e.message}';
     } catch (e) {
-      return null;
+      throw 'Beklenmedik bir hata: $e';
+    }
+  }
+
+  Future<void> deleteProfileImage(final String userId) async {
+    try {
+      final ref = _storage.ref().child('ppics').child('$userId.jpg');
+      await ref.delete();
+    } on FirebaseException catch (e) {
+      if (e.code != 'object-not-found')
+        throw 'Eski görsel silinemedi: ${e.message}';
     }
   }
 }

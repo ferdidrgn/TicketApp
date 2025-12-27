@@ -16,6 +16,7 @@ import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../auth/presentation/providers/storage_service.dart';
 import '../../../login/presentation/providers/login_provider.dart';
 import '../../domain/entities/user.dart';
+import '../../domain/entities/user.dart' as entity;
 import '../providers/user_provider.dart';
 import '../providers/user_state.dart';
 
@@ -32,7 +33,6 @@ class UserProfileEditScreen extends ConsumerStatefulWidget {
 class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
-  final StorageService _storageService = StorageService();
   File? _selectedImageFile; // Galeriden seçilen dosya
 
   late final TextEditingController _firstNameController;
@@ -230,57 +230,61 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final currentUser = ref.read(userProvider).dataSingle;
+    // ⚡ Riverpod üzerinden servisimizi alıyoruz
+    final storageService = ref.read(storageServiceProvider);
+    final userNotifier = ref.read(userProvider.notifier);
+
     String finalImageUrl = _profileImageUrl;
 
     try {
-      // 1. ADIM: EĞER YENİ FOTOĞRAF VARSA STORAGE'A YÜKLE
+      // 1. ADIM: EĞER YENİ FOTOĞRAF SEÇİLDİYSE
       if (_selectedImageFile != null) {
-        final uploadedUrl = await _storageService.uploadProfileImage(
+        // a) Eski fotoğrafı temizle (Varsayılan placeholder değilse)
+        if (_profileImageUrl.isNotEmpty &&
+            !_profileImageUrl.contains('placeholder')) {
+          await storageService.deleteProfileImage(widget.userId);
+        }
+
+        // b) Yeni fotoğrafı yükle
+        final uploadedUrl = await storageService.uploadProfileImage(
             widget.userId, _selectedImageFile!);
-        if (uploadedUrl != null)
-          finalImageUrl = uploadedUrl; // Firebase'den gelen yeni URL (Tokenlı)
-        else {
-          _showSnackBar("Fotoğraf yüklenemedi.", isError: true);
-          return;
+
+        if (uploadedUrl != null) {
+          finalImageUrl = uploadedUrl;
+        } else {
+          throw "Fotoğraf sunucuya yüklenemedi.";
         }
       }
 
-      // 2. ADIM: VERİ NESNESİNİ GÜNCEL LİNKLE OLUŞTUR
-      final userToSave = (currentUser ?? User.empty(widget.userId)).copyWith(
+      // 2. ADIM: FIRESTORE GÜNCELLEME
+      final currentUser = ref.read(userProvider).dataSingle;
+      final userToSave =
+          (currentUser ?? entity.User.empty(widget.userId)).copyWith(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
-        eMail: _emailController.text.trim(),
-        city: _cityController.text.trim(),
         imageUrl: finalImageUrl,
-        // Firestore'a gidecek taze link
         updatedAt: DateTime.now().toIso8601String(),
       );
 
-      // 3. ADIM: FIRESTORE'A KAYDET
-      await ref
-          .read(userProvider.notifier)
-          .saveUser(userToSave, finalImageUrl, isUpdate: true);
+      await userNotifier.saveUser(userToSave, finalImageUrl, isUpdate: true);
 
-      // 4. ADIM: YEREL HAFIZAYI GÜNCELLE (Auto-Login'de Google linkine dönmemesi için)
+      // 3. ADIM: LOKAL VE AUTH STATE SENKRONİZASYONU
       await LocalStorageService.saveEssentialUserData(
         uid: widget.userId,
         displayName: '${userToSave.firstName} ${userToSave.lastName}',
-        role: userToSave.role,
         photoUrl: finalImageUrl,
       );
+
+      // LoginProvider state'ini tazele
       ref.read(loginProvider.notifier).refreshUserState(userToSave);
 
       if (mounted) {
-        setState(() {
-          _profileImageUrl = finalImageUrl;
-          _selectedImageFile = null;
-        });
         _showSuccessDialog();
       }
     } catch (e) {
-      _showSnackBar("Hata: $e", isError: true);
+      _showSnackBar(e.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _selectedImageFile = null);
     }
   }
 

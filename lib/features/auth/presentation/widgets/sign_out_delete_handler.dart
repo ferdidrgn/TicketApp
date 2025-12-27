@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../shared/widgets/custom_pop_up.dart';
 import '../../../login/presentation/providers/login_provider.dart';
+import '../providers/storage_service.dart';
 
 /// =======================================
 /// 🔔 ORTAK DIALOG HANDLER (ARTISTIC)
@@ -63,18 +64,31 @@ mixin ProfileDeleteAccountHandler on ProfileSnackBarHandler {
     }
 
     final confirmed = await _showArtConfirm(context, 'Hesabı Sil',
-        'Tüm verileriniz kalıcı olarak silinecek. Emin misiniz?',
+        'Tüm verileriniz ve profil fotoğrafınız kalıcı olarak silinecek. Emin misiniz?',
         isDanger: true);
 
     if (confirmed == true && context.mounted) {
-      showLoading(context, "Hesabınız siliniyor...");
-      final success = await ref.read(loginProvider.notifier).deleteAccount();
-      if (context.mounted) Navigator.pop(context);
+      showLoading(context, "Koleksiyonunuz yok ediliyor...");
 
-      if (success)
-        showSuccessDialog(context, 'Hesabınız ve verileriniz silindi.');
-      else
-        showErrorDialog(context, 'Hesap silme işlemi başarısız oldu.');
+      // 1. ADIM: Önce Storage'daki görseli sil
+      // Not: Auth silindikten sonra yetki hatası almamak için bu işlem en başta yapılır.
+      try {
+        await ref.read(storageServiceProvider).deleteProfileImage(userId);
+      } catch (e) {
+        debugPrint("Storage silme atlandı (Dosya yok veya hata): $e");
+      }
+
+      // 2. ADIM: Auth ve Firestore silme işlemini tetikle
+      final success = await ref.read(loginProvider.notifier).deleteAccount();
+
+      if (context.mounted) Navigator.pop(context); // Loading'i kapat
+
+      if (success) {
+        showSuccessDialog(context, 'Hesabınız ve eserleriniz silindi.');
+      } else {
+        showErrorDialog(context,
+            'Hesap silme işlemi başarısız oldu. Güvenlik nedeniyle yeniden giriş yapmanız gerekebilir.');
+      }
     }
   }
 }

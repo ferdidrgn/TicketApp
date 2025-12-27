@@ -5,7 +5,7 @@ import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../features/discovery/presentation/pages/discovery_page.dart';
 import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
 import '../../../features/home/presentation/pages/home_page_mobile.dart';
-import '../../../features/users/presentation/pages/user_profile_page.dart';
+import '../../../features/users/presentation/pages/profile_page.dart';
 
 class BottomNavBar extends StatefulWidget {
   const BottomNavBar({super.key});
