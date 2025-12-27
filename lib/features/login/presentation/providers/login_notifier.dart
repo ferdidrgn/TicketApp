@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart'; // EKLENDİ
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import '../../../../core/common/base_notifier.dart';
@@ -139,6 +138,55 @@ class LoginNotifier extends BaseNotifier<LoginState> {
     } catch (e, stack) {
       logError(e, stack);
       setErrorState('Google sign in failed: ${e.toString()}');
+      return false;
+    }
+  }
+
+  /// 👤 Anonim Giriş ve Veri Kaydı
+  Future<bool> signInAnonymously() async {
+    try {
+      setLoadingState(true);
+      clearErrorState();
+
+      final user = await _authService.signInAnonymously();
+
+      if (user == null) {
+        setErrorState('Anonim giriş başarısız oldu.');
+        return false;
+      }
+
+      // ⚡ Anonim kullanıcı için zorunlu kayıt işlemleri
+      final String role = 'guest'; // Varsayılan rol
+
+      // 1. FCM Token kaydet
+      await _authService.saveFcmToken(user.uid);
+
+      // 2. Firestore üzerinde "Ziyaretçi" dökümanı oluştur
+      await _userDataService.syncUserFromAuth(
+        userId: user.uid,
+        displayName: 'Ziyaretçi',
+        email: '',
+        photoUrl: '',
+        phoneNumber: '',
+        role: role,
+        isPhoneActive: false,
+      );
+
+      // 3. Local Storage güncelle
+      await LocalStorageService.saveUserData(
+        userId: user.uid,
+        displayName: 'Ziyaretçi',
+        email: '',
+        photoUrl: '',
+        role: role,
+        isGuest: true,
+      );
+
+      // Auth listener state'i güncelleyecektir.
+      return true;
+    } catch (e, stack) {
+      logError(e, stack);
+      setErrorState('Anonim hata: ${e.toString()}');
       return false;
     }
   }
