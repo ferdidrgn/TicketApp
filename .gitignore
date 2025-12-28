@@ -131,3 +131,4 @@ fastlane/screenshots
 fastlane/test_output
 node_modules/
 .pnpm-store/
+lib/features/seat/presentation/pages/seat_info.dart
