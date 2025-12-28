@@ -65,14 +65,14 @@ class _MobileSystemUIWrapper extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         // Status Bar İkon Renkleri
+        statusBarColor: Colors.transparent,
+        // M3 standardı şeffaf status bar
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-        // iOS için
-        // Alt Navigasyon Bar İkon Renkleri
+        systemNavigationBarColor: Colors.transparent,
+        // Tam şeffaf navigasyon
         systemNavigationBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: Colors.transparent,
-        // EdgeToEdge sayesinde
         systemNavigationBarDividerColor: Colors.transparent,
       ),
       child: child,
