@@ -10,6 +10,7 @@ import '../../../events/presentation/providers/event_provider.dart';
 import '../../../events/presentation/providers/event_state.dart';
 import '../../../login/presentation/providers/login_provider.dart';
 import '../../../tickets/presentation/providers/ticket_provider.dart';
+import '../../../users/presentation/providers/user_provider.dart';
 
 class SeatSelectionScreen extends ConsumerStatefulWidget {
   final String showId;
@@ -343,24 +344,57 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       );
 
   Widget _buildFab(final EventState state, final bool isLoggedIn) {
-    if (!isLoggedIn || !state.hasSelectedSeats) return const SizedBox.shrink();
+    // 1. Riverpod üzerinden kullanıcı verisini anlık takip et
+    final userState = ref.watch(userProvider);
+
+    // 🛡️ KRİTİK KONTROL: Kullanıcı verisi yoksa veya hala yükleniyorsa buton KİLİTLİ kalsın
+    final bool isUserValid = isLoggedIn && userState.dataSingle != null;
+    final bool canProcess =
+        isUserValid && !state.isLoading && state.hasSelectedSeats;
+
+    // Eğer giriş yapılmamışsa login'e yönlendiren buton
+    if (!isLoggedIn)
+      return FloatingActionButton.extended(
+        onPressed: () => context.push('/login'),
+        label: const Text('Giriş Yap ve Devam Et'),
+        icon: const Icon(Icons.login),
+      );
+
+    // Eğer koltuk seçilmemişse butonu hiç gösterme
+    if (!state.hasSelectedSeats) return const SizedBox.shrink();
+
     return FloatingActionButton.extended(
-      onPressed: state.isLoading ? null : () => _handlePayment(state),
-      label: Text(state.isLoading ? 'İşleniyor...' : 'ÖDEMEYE GEÇ'),
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
-      icon: const Icon(Icons.arrow_forward_ios, size: 16),
+      // ✅ canProcess false ise buton grileşir ve TIKLANAMAZ hale gelir (Backend'i korur)
+      onPressed: canProcess ? () => _showPaymentMethods(state) : null,
+
+      label: Text(state.isLoading
+          ? 'İşleniyor...'
+          : (!isUserValid ? 'Kullanıcı Doğrulanıyor...' : 'ÖDEMEYE GEÇ')),
+
+      // Tasarımı kilitli duruma göre ayarla
+      backgroundColor: canProcess ? Colors.white : Colors.grey.shade800,
+      foregroundColor: canProcess ? Colors.black : Colors.white24,
+
+      icon: state.isLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : Icon(isUserValid ? Icons.arrow_forward_ios : Icons.person_off,
+              size: 16),
     );
   }
 
-  // --- MANTIKSAL METODLAR ---
-
-  void _handlePayment(final EventState state) {
-    // Senin mevcut _showPaymentMethods mantığını buraya ekle
-    _showPaymentMethods(state);
-  }
-
   Future<void> _showPaymentMethods(final EventState s) async {
+    final user = ref.read(userProvider).dataSingle;
+
+    // 🛑 Backend'e gitmeden önceki son kapı:
+    if (user == null || user.id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Kritik hata: Kullanıcı verisi bulunamadı!")));
+      return;
+    }
+
     final method = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.black,

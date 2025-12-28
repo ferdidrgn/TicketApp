@@ -157,29 +157,7 @@ class AnimatedEventCard extends StatelessWidget {
     );
   }
 
-  void _navigateToSeatSelection(final BuildContext context) {
-    final ref = ProviderScope.containerOf(context);
-    final String? userId = ref.read(loginProvider).user?.uid ??
-        ref.read(userProvider).dataSingle?.id;
-
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Kullanıcı oturumu bulunamadı.")));
-      return;
-    }
-    // 4. Navigasyon (Artık userId kesinlikle bir String)
-    if (context.mounted)
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (final _) => SeatSelectionScreen(
-            showId: showId,
-            eventId: eventId,
-            customerId: userId,
-          ),
-        ),
-      );
-  }
+  void _navigateToSeatSelection(final BuildContext context) {}
 }
 
 class DateBox extends StatelessWidget {
