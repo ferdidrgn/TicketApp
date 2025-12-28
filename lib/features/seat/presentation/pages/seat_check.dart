@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_provider.dart';
+import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
+import 'package:ticketapp/shared/widgets/admin_guard.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
+import 'package:ticketapp/shared/widgets/card/shimmer_card.dart';
 
 class CuratorSeatingAuditPage extends ConsumerStatefulWidget {
-  final String eventId;
-  final String showId;
+  final String? eventId;
+  final String? showId;
 
   const CuratorSeatingAuditPage({
     super.key,
-    required this.eventId,
-    required this.showId,
+    this.eventId,
+    this.showId,
   });
 
   @override
@@ -22,19 +25,31 @@ class CuratorSeatingAuditPage extends ConsumerStatefulWidget {
 
 class _CuratorSeatingAuditPageState
     extends ConsumerState<CuratorSeatingAuditPage> {
+  String? _currentEventId;
+  String? _currentShowId;
   String? _focusedSeatId;
 
   @override
   void initState() {
     super.initState();
+    _currentEventId = widget.eventId;
+    _currentShowId = widget.showId;
+
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      // Admin görünümü için event verilerini başlat
+      if (_currentEventId == null)
+        _showShowSelectionSheet();
+      else
+        _initializeAudit();
+    });
+  }
+
+  void _initializeAudit() {
+    if (_currentEventId != null && _currentShowId != null)
       ref.read(eventProvider.notifier).initializeWithParams(
-            eventId: widget.eventId,
-            showId: widget.showId,
+            eventId: _currentEventId!,
+            showId: _currentShowId!,
             customerId: "ADMIN_OPERATOR",
           );
-    });
   }
 
   @override
@@ -42,57 +57,83 @@ class _CuratorSeatingAuditPageState
     final eventState = ref.watch(eventProvider);
     final theme = context.theme;
 
-    return Scaffold(
-      body: CustomAppBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildAuditHeader(theme, eventState),
-              _buildOccupancyBar(eventState),
-              const SizedBox(height: 10),
+    if (_currentEventId == null)
+      return AdminGuard(
+        child: Scaffold(
+          body: CustomAppBackground(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.theater_comedy,
+                      size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text("Lütfen bir seans seçiniz..."),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _showShowSelectionSheet,
+                    child: const Text("ESER SEÇ"),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 
-              // 🚀 KOLTUK PLANI - SCROLLABLE ALAN
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildStageVisual(theme),
-                      Expanded(
-                        child: InteractiveViewer(
-                          // Hem zoom hem scroll desteği
-                          boundaryMargin: const EdgeInsets.all(20),
-                          minScale: 0.5,
-                          maxScale: 2.0,
-                          child: Center(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.vertical,
-                              padding: const EdgeInsets.symmetric(vertical: 20),
+    return AdminGuard(
+      child: Scaffold(
+        body: CustomAppBackground(
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildAuditHeader(theme, eventState),
+                _buildOccupancyBar(eventState),
+                const SizedBox(height: 10),
+
+                // 🚀 KOLTUK PLANI ALANI
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildStageVisual(theme),
+                        Expanded(
+                          child: InteractiveViewer(
+                            boundaryMargin: const EdgeInsets.all(20),
+                            minScale: 0.5,
+                            maxScale: 2.0,
+                            child: Center(
                               child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: _buildInteractiveGrid(eventState),
+                                scrollDirection: Axis.vertical,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 20),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: _buildInteractiveGrid(eventState),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              // 👤 DETAY PANELİ
-              if (_focusedSeatId != null)
-                _buildOccupantDetailCard(eventState, theme)
-              else
-                _buildAuditLegend(),
+                // 👤 ALT PANEL: DETAYLAR VEYA GÖSTERGE
+                if (_focusedSeatId != null)
+                  _buildOccupantDetailCard(eventState, theme)
+                else
+                  _buildAuditLegend(),
 
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -109,19 +150,30 @@ class _CuratorSeatingAuditPageState
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context)),
             const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("OPERASYON PANELİ",
-                    style: TextStyle(
-                        fontWeight: FontWeight.w900, letterSpacing: 2)),
-                Text(state.isLoading ? "Yükleniyor..." : "Canlı Denetim",
-                    style: TextStyle(
-                        color: state.isLoading ? Colors.orange : Colors.green,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
-              ],
+            Expanded(
+              child: GestureDetector(
+                onTap: _showShowSelectionSheet,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("OPERASYON PANELİ",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900, letterSpacing: 2)),
+                    Text(
+                        state.isLoading
+                            ? "Yükleniyor..."
+                            : "Seans: ${state.eventDate['date'] ?? 'Canlı'}",
+                        style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
             ),
+            IconButton(
+                icon: const Icon(Icons.swap_horizontal_circle_outlined),
+                onPressed: _showShowSelectionSheet),
           ],
         ),
       );
@@ -196,7 +248,7 @@ class _CuratorSeatingAuditPageState
     final bool isSold = seatData?['status'] == 'sold';
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
       decoration: _neuBox(theme),
       child: Column(
@@ -208,12 +260,22 @@ class _CuratorSeatingAuditPageState
               Text("Koltuk $_focusedSeatId",
                   style: const TextStyle(
                       fontWeight: FontWeight.w900, fontSize: 20)),
-              _statusChip(isSold),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                    color: isSold ? Colors.red : Colors.green,
+                    borderRadius: BorderRadius.circular(6)),
+                child: Text(isSold ? "SATILDI" : "MÜSAİT",
+                    style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold)),
+              ),
             ],
           ),
           const Divider(height: 30),
           if (isSold && uid != null)
-            _UserDetailFetcher(uid: uid) // 🚀 Gerçek isim çeken parça
+            _UserDetailFetcher(uid: uid, key: ValueKey(uid))
           else
             const Text("Bu koltuk şu an müsait.",
                 style:
@@ -222,18 +284,6 @@ class _CuratorSeatingAuditPageState
       ),
     );
   }
-
-  Widget _statusChip(final bool sold) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-            color: sold ? Colors.red : Colors.green,
-            borderRadius: BorderRadius.circular(6)),
-        child: Text(sold ? "SATILDI" : "MÜSAİT",
-            style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white)),
-      );
 
   Widget _buildStageVisual(final ThemeData theme) => Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -289,10 +339,107 @@ class _CuratorSeatingAuditPageState
               blurRadius: 16),
         ],
       );
+
+  // --- MODALLAR ---
+
+  void _showShowSelectionSheet() => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (final context) => Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: BoxDecoration(
+              color: context.theme.colorScheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(32))),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: Colors.grey,
+                      borderRadius: BorderRadius.circular(2))),
+              const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Text("DENETLENECEK ESERİ SEÇİN",
+                      style: TextStyle(
+                          fontWeight: FontWeight.w900, letterSpacing: 2))),
+              Expanded(
+                child: Consumer(builder: (final context, final ref, final _) {
+                  final shows = ref.watch(showProvider).dataList;
+                  return ListView.builder(
+                    itemCount: shows?.length ?? 0,
+                    itemBuilder: (final context, final index) {
+                      final show = shows![index];
+                      return ListTile(
+                        leading: const Icon(Icons.theater_comedy),
+                        title: Text(show.name,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                        onTap: () => _showEventSelectionSheet(show.id),
+                      );
+                    },
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  void _showEventSelectionSheet(final String showId) => showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (final context) => Container(
+          decoration: BoxDecoration(
+              color: context.theme.colorScheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(32))),
+          child: Consumer(builder: (final context, final ref, final _) {
+            final events = ref
+                .watch(eventProvider)
+                .dataList
+                ?.where((final e) => e.showId == showId)
+                .toList();
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Text("AKTİF SEANS SEÇİMİ",
+                        style: TextStyle(fontWeight: FontWeight.w900))),
+                if (events == null || events.isEmpty)
+                  const Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Text("Aktif seans bulunamadı."))
+                else
+                  ...events
+                      .map((final e) => ListTile(
+                            leading: const Icon(Icons.event_seat),
+                            title: Text(e.date ?? "Tarih Belirtilmemiş"),
+                            onTap: () {
+                              setState(() {
+                                _currentEventId = e.id;
+                                _currentShowId = showId;
+                                _focusedSeatId = null;
+                              });
+                              Navigator.pop(context);
+                              Navigator.pop(context);
+                              _initializeAudit();
+                            },
+                          ))
+                      .toList(),
+                const SizedBox(height: 32),
+              ],
+            );
+          }),
+        ),
+      );
 }
 
-// 🔥 GERÇEK VERİ ÇEKEN VE HATALARI YÖNETEN WIDGET
-// 🔥 REFRESH HATASI DÜZELTİLMİŞ WIDGET
+// 🔥 GERÇEK VERİ ÇEKEN WIDGET (REFACTOR EDİLDİ)
 class _UserDetailFetcher extends ConsumerStatefulWidget {
   final String uid;
 
@@ -303,106 +450,44 @@ class _UserDetailFetcher extends ConsumerStatefulWidget {
 }
 
 class _UserDetailFetcherState extends ConsumerState<_UserDetailFetcher> {
-  // Future nesnesini burada tanımlıyoruz ki her build'da yenilenmesin
   late Future<dynamic> _userFuture;
 
   @override
   void initState() {
     super.initState();
-    // İşlemi sadece widget ilk oluştuğunda (veya UID değiştiğinde) başlatıyoruz
-    _initFuture();
-  }
-
-  @override
-  void didUpdateWidget(final _UserDetailFetcher oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Eğer farklı bir koltuğa tıklandıysa ve UID değiştiyse future'ı yenile
-    if (oldWidget.uid != widget.uid) {
-      _initFuture();
-    }
-  }
-
-  void _initFuture() {
     _userFuture = ref.read(getUserByIdUseCaseProvider).call(widget.uid);
   }
 
   @override
-  Widget build(final BuildContext context) {
-    return FutureBuilder<dynamic>(
-      future: _userFuture, // 🚀 Sabitlenmiş future kullanılıyor
-      builder: (final context, final snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: CircularProgressIndicator(),
+  Widget build(final BuildContext context) => FutureBuilder<dynamic>(
+        future: _userFuture,
+        builder: (final context, final snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return const ShimmerLoading();
+          final result = snapshot.data;
+          if (result == null) return const Text("Veri alınamadı");
+
+          return result.fold(
+            (final failure) => Text("Hata: ${failure.message}"),
+            (final user) => Column(
+              children: [
+                CircleAvatar(
+                    radius: 30,
+                    backgroundImage: user.imageUrl.isNotEmpty
+                        ? NetworkImage(user.imageUrl)
+                        : null,
+                    child: user.imageUrl.isEmpty
+                        ? const Icon(Icons.person)
+                        : null),
+                const SizedBox(height: 8),
+                Text("${user.firstName} ${user.lastName}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 18)),
+                Text(user.phoneNumber,
+                    style: const TextStyle(color: Colors.blue, fontSize: 13)),
+              ],
             ),
           );
-        }
-
-        final result = snapshot.data;
-        if (result == null) return const Text("Veri yok");
-
-        return result.fold(
-          (final failure) => _buildError(failure.message),
-          (final user) => _buildUserInfo(user),
-        );
-      },
-    );
-  }
-
-  // --- UI PARÇALARI ---
-
-  Widget _buildUserInfo(final dynamic user) {
-    final fullName = "${user.firstName} ${user.lastName}";
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 35,
-          backgroundColor: context.theme.colorScheme.primary.withOpacity(0.2),
-          backgroundImage: user.imageUrl.isNotEmpty == true
-              ? NetworkImage(user.imageUrl)
-              : null,
-          child:
-              user.imageUrl.isEmpty ? const Icon(Icons.person, size: 30) : null,
-        ),
-        const SizedBox(height: 12),
-        Text(fullName,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text("E-posta: ${user.eMail}",
-            style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 16),
-        _buildPhoneBadge(user.phoneNumber),
-      ],
-    );
-  }
-
-  Widget _buildPhoneBadge(final String phone) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.phone_android_rounded, size: 16, color: Colors.blue),
-          const SizedBox(width: 10),
-          Text(phone.isNotEmpty ? phone : "Telefon Yok",
-              style:
-                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildError(final String message) => Column(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.orange, size: 30),
-          Text("Hata: $message", style: const TextStyle(fontSize: 12)),
-        ],
+        },
       );
 }
