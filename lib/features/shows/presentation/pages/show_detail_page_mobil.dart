@@ -173,18 +173,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   }
 
   Future<void> _handleTicketPurchase(final String eventId) async {
-    String? userId = ref.read(loginProvider).userId;
-
-    // 3. Eğer Provider'da yoksa, şifreli depolamadan (Secure Storage) çekiyoruz
-    if (userId == null || userId.isEmpty)
-      userId = await LocalStorageService.userId;
-
-    if (userId == null || userId.isEmpty) {
-      if (context.mounted)
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Bilet almak için lütfen giriş yapın.")));
-      return;
-    }
+    final String? userId = ref.read(loginProvider).userId;
 
     // 5. Veri geldiğinde ve sayfa hala ekrandaysa (mounted) yönlendirme yapıyoruz
     if (context.mounted)
@@ -194,7 +183,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           builder: (final _) => SeatSelectionScreen(
             showId: widget.showId,
             eventId: eventId,
-            customerId: userId!,
+            customerId: userId ?? "",
           ),
         ),
       );
