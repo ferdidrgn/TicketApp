@@ -43,135 +43,133 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       body: CustomAppBackground(
         backgroundColor: bgColor,
         ambientColor: Colors.black,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-            child: Column(
-              children: [
-                // 1. GÖRKEMLİ ÜST KISIM
-                _buildArtisticHeader(theme, !isUserLoggedIn),
-                const SizedBox(height: 32),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          child: Column(
+            children: [
+              // 1. GÖRKEMLİ ÜST KISIM
+              _buildArtisticHeader(theme, !isUserLoggedIn),
+              const SizedBox(height: 32),
 
-                // 2. KİMLİK PORTRESİ VEYA SESSİZ SAHNE DAVETİ
-                if (isUserLoggedIn)
-                  _buildNeumorphicPortrait(loginState, userDetail, theme, bgColor,
-                      lightShadow, darkShadow)
-                else
-                  _buildSilentStageInvitation(
-                      theme, bgColor, lightShadow, darkShadow),
+              // 2. KİMLİK PORTRESİ VEYA SESSİZ SAHNE DAVETİ
+              if (isUserLoggedIn)
+                _buildNeumorphicPortrait(loginState, userDetail, theme, bgColor,
+                    lightShadow, darkShadow)
+              else
+                _buildSilentStageInvitation(
+                    theme, bgColor, lightShadow, darkShadow),
 
+              const SizedBox(height: 40),
+
+              // 3. IŞIK VE RENK AYARLARI
+              _buildSectionLabel(theme, "ATMOSFERİN IŞIĞI"),
+              const ThemeSelectorCard(),
+
+              const SizedBox(height: 40),
+
+              // 4. DENEYİM ARŞİVİ
+              _buildSectionLabel(theme, "RUHUN İZLERİ"),
+              _buildSculptedTile(
+                  theme,
+                  Icons.auto_stories_rounded,
+                  'Tanıklık Günlüğü',
+                  'Sahne tozunu yuttuğun tüm anların dökümü',
+                  !isUserLoggedIn,
+                  const Color(0xFF5D3FD3),
+                  bgColor,
+                  lightShadow,
+                  darkShadow,
+                  onTap: () =>
+                      context.push('/my-tickets/${loginState.userId}')),
+              const SizedBox(height: 16),
+              _buildSculptedTile(
+                  theme,
+                  Icons.auto_awesome_mosaic_rounded,
+                  'İlham Galerisi',
+                  'Zihninde yankılanan seçilmiş eserler',
+                  !isUserLoggedIn,
+                  const Color(0xFFFF007F),
+                  bgColor,
+                  lightShadow,
+                  darkShadow,
+                  onTap: () => context.push('/favorites')),
+
+              const SizedBox(height: 40),
+
+              // 5. YARATICI ARAÇLAR
+              _buildSectionLabel(theme, "KİMLİK ATÖLYESİ"),
+              _buildSculptedTile(
+                  theme,
+                  Icons.brush_rounded,
+                  'Fırça İzlerim',
+                  'Kendi portreni ve sanatsal kimliğini yorumla',
+                  !isUserLoggedIn,
+                  theme.colorScheme.primary,
+                  bgColor,
+                  lightShadow,
+                  darkShadow,
+                  onTap: () =>
+                      context.push('/profile-edit/${loginState.userId}')),
+              const SizedBox(height: 16),
+              _buildSculptedTile(
+                  theme,
+                  Icons.map_rounded,
+                  'Serüven Rehberi',
+                  'Atölye kullanımı hakkında küratöre danış',
+                  false,
+                  const Color(0xFF00A36C),
+                  bgColor,
+                  lightShadow,
+                  darkShadow,
+                  onTap: () => context.push('/help-support')),
+              const SizedBox(height: 16),
+              _buildSculptedTile(
+                  theme,
+                  Icons.gavel_rounded,
+                  'Atölye Yasaları',
+                  'Sanatsever topluluğunun etik ve yasal kuralları',
+                  false,
+                  Colors.blueGrey,
+                  bgColor,
+                  lightShadow,
+                  darkShadow,
+                  onTap: () => context.push('/legal')),
+
+              // 6. SİSTEMSEL KARARLAR
+              if (isUserLoggedIn) ...[
                 const SizedBox(height: 40),
-
-                // 3. IŞIK VE RENK AYARLARI
-                _buildSectionLabel(theme, "ATMOSFERİN IŞIĞI"),
-                const ThemeSelectorCard(),
-
-                const SizedBox(height: 40),
-
-                // 4. DENEYİM ARŞİVİ
-                _buildSectionLabel(theme, "RUHUN İZLERİ"),
+                _buildSectionLabel(theme, "SON DOKUNUŞLAR"),
                 _buildSculptedTile(
                     theme,
-                    Icons.auto_stories_rounded,
-                    'Tanıklık Günlüğü',
-                    'Sahne tozunu yuttuğun tüm anların dökümü',
-                    !isUserLoggedIn,
-                    const Color(0xFF5D3FD3),
-                    bgColor,
-                    lightShadow,
-                    darkShadow,
-                    onTap: () =>
-                        context.push('/my-tickets/${loginState.userId}')),
-                const SizedBox(height: 16),
-                _buildSculptedTile(
-                    theme,
-                    Icons.auto_awesome_mosaic_rounded,
-                    'İlham Galerisi',
-                    'Zihninde yankılanan seçilmiş eserler',
-                    !isUserLoggedIn,
-                    const Color(0xFFFF007F),
-                    bgColor,
-                    lightShadow,
-                    darkShadow,
-                    onTap: () => context.push('/favorites')),
-
-                const SizedBox(height: 40),
-
-                // 5. YARATICI ARAÇLAR
-                _buildSectionLabel(theme, "KİMLİK ATÖLYESİ"),
-                _buildSculptedTile(
-                    theme,
-                    Icons.brush_rounded,
-                    'Fırça İzlerim',
-                    'Kendi portreni ve sanatsal kimliğini yorumla',
-                    !isUserLoggedIn,
-                    theme.colorScheme.primary,
-                    bgColor,
-                    lightShadow,
-                    darkShadow,
-                    onTap: () =>
-                        context.push('/profile-edit/${loginState.userId}')),
-                const SizedBox(height: 16),
-                _buildSculptedTile(
-                    theme,
-                    Icons.map_rounded,
-                    'Serüven Rehberi',
-                    'Atölye kullanımı hakkında küratöre danış',
+                    Icons.logout_rounded,
+                    'Atölyeyi Kapat',
+                    'Serüveni şimdilik mühürle ve ayrıl',
                     false,
-                    const Color(0xFF00A36C),
+                    Colors.orange,
                     bgColor,
                     lightShadow,
                     darkShadow,
-                    onTap: () => context.push('/help-support')),
+                    onTap: () => showSignOutDialog(context, ref)),
                 const SizedBox(height: 16),
                 _buildSculptedTile(
                     theme,
-                    Icons.gavel_rounded,
-                    'Atölye Yasaları',
-                    'Sanatsever topluluğunun etik ve yasal kuralları',
+                    Icons.delete_forever_rounded,
+                    'Koleksiyonu Yak',
+                    'Tüm izlerini ve hatıralarını kalıcı olarak sil',
                     false,
-                    Colors.blueGrey,
+                    Colors.red,
                     bgColor,
                     lightShadow,
                     darkShadow,
-                    onTap: () => context.push('/legal')),
-
-                // 6. SİSTEMSEL KARARLAR
-                if (isUserLoggedIn) ...[
-                  const SizedBox(height: 40),
-                  _buildSectionLabel(theme, "SON DOKUNUŞLAR"),
-                  _buildSculptedTile(
-                      theme,
-                      Icons.logout_rounded,
-                      'Atölyeyi Kapat',
-                      'Serüveni şimdilik mühürle ve ayrıl',
-                      false,
-                      Colors.orange,
-                      bgColor,
-                      lightShadow,
-                      darkShadow,
-                      onTap: () => showSignOutDialog(context, ref)),
-                  const SizedBox(height: 16),
-                  _buildSculptedTile(
-                      theme,
-                      Icons.delete_forever_rounded,
-                      'Koleksiyonu Yak',
-                      'Tüm izlerini ve hatıralarını kalıcı olarak sil',
-                      false,
-                      Colors.red,
-                      bgColor,
-                      lightShadow,
-                      darkShadow,
-                      onTap: () => showDeleteAccountDialog(
-                          context, ref, loginState.userId!)),
-                ],
-
-                // 7. RUH ÖĞRETİSİ
-                _buildSoulReflection(theme),
-                const SizedBox(height: 80),
+                    onTap: () => showDeleteAccountDialog(
+                        context, ref, loginState.userId!)),
               ],
-            ),
+
+              // 7. RUH ÖĞRETİSİ
+              _buildSoulReflection(theme),
+              const SizedBox(height: 80),
+            ],
           ),
         ),
       ),

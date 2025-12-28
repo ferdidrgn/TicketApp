@@ -39,7 +39,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   @override
   Widget build(final BuildContext context) {
-    final bool isDark = context.isDarkMode;
     // Temadaki navigasyon barı rengini alıyoruz
     final navTheme = context.theme.bottomNavigationBarTheme;
     final Color barColor =
@@ -47,13 +46,12 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        // Alt barı tamamen şeffaf yapıyoruz
-        systemNavigationBarColor: barColor,
-        systemNavigationBarDividerColor: Colors.transparent,
-        // Alt bar üzerindeki tuşların rengini ayarlıyoruz
-        systemNavigationBarIconBrightness:
-            isDark ? Brightness.light : Brightness.dark,
-      ),
+          // Alt barı tamamen şeffaf yapıyoruz
+          systemNavigationBarColor: barColor,
+          systemNavigationBarDividerColor: Colors.transparent,
+          // Alt bar üzerindeki tuşların rengini ayarlıyoruz
+          systemNavigationBarIconBrightness:
+              context.isDarkMode ? Brightness.light : Brightness.dark),
       child: Scaffold(
         extendBody: true,
         extendBodyBehindAppBar: true,

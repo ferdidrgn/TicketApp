@@ -202,8 +202,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             // Bottom extras
             QuickActionsGrid(
-              onNotificationsTap: () =>
-                  _navigateTo(const AppSettingsPage()),
+              onNotificationsTap: () => _navigateTo(const AppSettingsPage()),
               onFavoritesTap: () => _navigateTo(FavoritesPage()),
               onTicketsTap: () =>
                   _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
