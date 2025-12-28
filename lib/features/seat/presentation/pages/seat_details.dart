@@ -1,8 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../events/presentation/providers/event_notifier.dart';
@@ -17,12 +15,11 @@ class SeatSelectionScreen extends ConsumerStatefulWidget {
   final String eventId;
   final String customerId;
 
-  const SeatSelectionScreen({
-    super.key,
-    required this.showId,
-    required this.eventId,
-    required this.customerId,
-  });
+  const SeatSelectionScreen(
+      {super.key,
+      required this.showId,
+      required this.eventId,
+      required this.customerId});
 
   @override
   ConsumerState<SeatSelectionScreen> createState() =>
@@ -34,17 +31,14 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (mounted) {
-        ref.initializeEventNotifier(
+      ref.initializeEventNotifier(
           eventId: widget.eventId,
           showId: widget.showId,
-          customerId: widget.customerId,
-        );
-        if (widget.customerId.isNotEmpty)
-          ref
-              .read(ticketProvider.notifier)
-              .loadTicketsAndDetailsByCustomerId(widget.customerId);
-      }
+          customerId: widget.customerId);
+      if (widget.customerId.isNotEmpty)
+        ref
+            .read(ticketProvider.notifier)
+            .loadTicketsAndDetailsByCustomerId(widget.customerId);
     });
   }
 
@@ -52,113 +46,23 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   Widget build(final BuildContext context) {
     final state = ref.watch(eventProvider);
     final loginState = ref.watch(loginProvider);
-    final theme = context.theme;
 
-    // 🔔 MODERN STATE TAKİBİ
-    ref.listen<EventState>(eventProvider, (final previous, final next) {
-      if (next.isLoading && !previous!.isLoading)
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (final context) => const CustomLoadingDialog(
-              message: "Biletleriniz Hazırlanıyor..."),
-        );
-      else if (!next.isLoading && previous!.isLoading)
-        Navigator.of(context).pop(); // Loading dialog'unu kapat
-
-      // 2. HATA KONTROLÜ
-      if (next.errorMessage != null &&
-          previous?.errorMessage != next.errorMessage)
-        showDialog(
-          context: context,
-          builder: (final context) => CustomErrorDialog(
-            message: next.errorMessage!,
-            onConfirm: () {
-              // İstersen burada hatayı resetleyen bir notifier metodu çağırabilirsin
-            },
-          ),
-        );
-
-      // 3. BAŞARI KONTROLÜ
-      if (next.paymentSuccessful && (previous?.paymentSuccessful == false)) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (final dialogContext) => CustomActionDialog(
-            title: "İŞLEM TAMAM!",
-            message:
-                "Biletleriniz başarıyla oluşturuldu. Keyifli seyirler dileriz!",
-            positiveText: "BİLETLERİM",
-            negativeText: "ANASAYFA",
-            onPositiveAction: () {
-              // Pozitif: Biletlerim Sayfası
-              context.go('/my-tickets/${loginState.userId}');
-            },
-            onNegativeAction: () {
-              // Negatif: Anasayfa
-              context.go('/home');
-            },
-          ),
-        );
-        ref.read(eventProvider.notifier).resetPaymentSuccess();
-      }
-    });
+    // 🔔 State Dinleyicileri (Loading, Error, Success)
+    _setupListeners();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Koltuk Seçimi',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        actions: [
-          _buildTimerChip(state.formattedTime),
-        ],
-      ),
-      floatingActionButton: _buildFab(state, loginState.isLoggedIn),
+      appBar: _buildAppBar(state.formattedTime),
+      floatingActionButton: _SeatFab(state: state, eventId: widget.eventId),
       body: CustomAppBackground(
         child: SafeArea(
           child: Column(
             children: [
-              // 🖼️ Üst Kısım: Sahne Görseli ve Bilgi
-              _buildTopSection(),
-              _buildSeatLegend(),
-
-              // 🚀 Orta Kısım: Koltuk Planı (Scroll Edilebilir Alan)
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text("SAHNE",
-                          style: TextStyle(
-                              fontSize: 10,
-                              letterSpacing: 8,
-                              color: Colors.white54,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 20),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: _buildSeatGrid(state),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // 💳 Alt Kısım: Seçilen Koltuklar ve Fiyat Kartı
-              _buildBottomInfoCard(state, theme),
-              const SizedBox(height: 80), // FAB için boşluk
+              _buildTopVisual(),
+              const _SeatLegend(),
+              Expanded(child: _SeatLayoutContainer(state: state)),
+              _BottomPriceCard(state: state),
+              const SizedBox(height: 80),
             ],
           ),
         ),
@@ -166,81 +70,148 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-  // --- UI BİLEŞENLERİ ---
+  void _setupListeners() {
+    ref.listen<EventState>(eventProvider, (final prev, final next) {
+      if (next.isLoading && !prev!.isLoading)
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (final _) => const CustomLoadingDialog(
+                message: "Biletleriniz Hazırlanıyor..."));
+      else if (!next.isLoading && prev!.isLoading) Navigator.of(context).pop();
 
-  Widget _buildTopSection() => Column(
-        children: [
-          Container(
-            height: 100,
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Image.asset('assets/images/stage_diagram.jpg',
-                fit: BoxFit.contain),
+      if (next.errorMessage != null &&
+          prev?.errorMessage != next.errorMessage) {
+        showDialog(
+            context: context,
+            builder: (final _) =>
+                CustomErrorDialog(message: next.errorMessage!));
+      }
+
+      if (next.paymentSuccessful && !prev!.paymentSuccessful) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (final ctx) => CustomActionDialog(
+            title: "İŞLEM TAMAM!",
+            message: "Biletleriniz başarıyla oluşturuldu.",
+            positiveText: "BİLETLERİM",
+            negativeText: "ANASAYFA",
+            onPositiveAction: () =>
+                context.go('/my-tickets/${widget.customerId}'),
+            onNegativeAction: () => context.go('/home'),
           ),
+        );
+        ref.read(eventProvider.notifier).resetPaymentSuccess();
+      }
+    });
+  }
+
+  PreferredSizeWidget _buildAppBar(final String time) => AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Koltuk Seçimi',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+                color: Colors.white12, borderRadius: BorderRadius.circular(20)),
+            child: Center(
+                child: Text(time,
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold))),
+          )
         ],
       );
 
-  Widget _buildTimerChip(final String time) => Container(
-        margin: const EdgeInsets.only(right: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.white12,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white24),
-        ),
-        child: Text(time,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+  Widget _buildTopVisual() => Container(
+        height: 100,
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child:
+            Image.asset('assets/images/stage_diagram.jpg', fit: BoxFit.contain),
       );
+}
 
-  Widget _buildSeatLegend() => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _legendItem(Colors.green, "Boş"),
-            _legendItem(Colors.blue, "Sizin"),
-            _legendItem(Colors.purple, "Dolu"),
-          ],
-        ),
-      );
+// ============================================================
+// 🚀 ÖZEL BİLEŞENLER (MODÜLER YAPI)
+// ============================================================
 
-  Widget _legendItem(final Color c, final String l) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children: [
-            Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Text(l,
-                style: const TextStyle(fontSize: 12, color: Colors.white70)),
-          ],
-        ),
-      );
+class _SeatLayoutContainer extends StatelessWidget {
+  final EventState state;
 
-  Widget _buildSeatGrid(final EventState state) => Column(
-        children: state.seatLayout.entries.map((final entry) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
+  const _SeatLayoutContainer({required this.state});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: Colors.white10)),
+      child: Column(
+        children: [
+          const Text("SAHNE",
+              style: TextStyle(
+                  fontSize: 10,
+                  letterSpacing: 8,
+                  color: Colors.white54,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          Expanded(
+            child: SingleChildScrollView(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: _SeatGrid(state: state),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SeatGrid extends ConsumerWidget {
+  final EventState state;
+
+  const _SeatGrid({required this.state});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    return Column(
+      children: state.seatLayout.entries.map((final entry) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
                   width: 30,
                   child: Text(entry.key,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.white38)),
-                ),
-                ...entry.value
-                    .map((final seatId) => _buildSeatItem(seatId, state)),
-              ],
-            ),
-          );
-        }).toList(),
-      );
+                          fontWeight: FontWeight.bold, color: Colors.white38))),
+              ...entry.value.map(
+                  (final seatId) => _SeatItem(seatId: seatId, state: state)),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
 
-  Widget _buildSeatItem(final String seatId, final EventState state) {
+class _SeatItem extends ConsumerWidget {
+  final String seatId;
+  final EventState state;
+
+  const _SeatItem({required this.seatId, required this.state});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final seatInfo = state.seatStatus[seatId];
     final status = seatInfo?['status'] ?? 'available';
     final isMyRes = (seatInfo?['customerId'] == state.customerId);
@@ -267,8 +238,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           boxShadow: isMyRes
               ? [BoxShadow(color: Colors.blue.withOpacity(0.5), blurRadius: 8)]
               : null,
-          border: Border.all(
-              color: isMyRes ? Colors.white : Colors.white10, width: 1),
+          border: Border.all(color: isMyRes ? Colors.white : Colors.white10),
         ),
         child: Center(
           child: isProcessing
@@ -286,116 +256,131 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
       ),
     );
   }
+}
 
-  Widget _buildBottomInfoCard(final EventState state, final ThemeData theme) =>
-      Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
+class _BottomPriceCard extends StatelessWidget {
+  final EventState state;
+
+  const _BottomPriceCard({required this.state});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.6),
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text("SEÇİLEN KOLTUKLAR",
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white54,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(
+          border: Border.all(color: Colors.white10)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("SEÇİLEN KOLTUKLAR",
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white54,
+                        fontWeight: FontWeight.bold)),
+                Text(
                     state.selectedSeats.isEmpty
-                        ? "Henüz seçim yok"
+                        ? "Seçim yok"
                         : state.selectedSeats.join(", "),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         color: Colors.white),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("TOPLAM",
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.white54,
-                        fontWeight: FontWeight.bold)),
-                Text("${state.totalPrice.toStringAsFixed(2)} TL",
-                    style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.greenAccent)),
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
-          ],
-        ),
-      );
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("TOPLAM",
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white54,
+                      fontWeight: FontWeight.bold)),
+              Text("${state.totalPrice.toStringAsFixed(2)} TL",
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.greenAccent)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-  Widget _buildFab(final EventState state, final bool isLoggedIn) {
-    // 1. Riverpod üzerinden kullanıcı verisini anlık takip et
-    final userState = ref.watch(userProvider);
+// ============================================================
+// 🔐 GÜVENLİK VE LİMİT KONTROLLÜ FAB
+// ============================================================
 
-    // 🛡️ KRİTİK KONTROL: Kullanıcı verisi yoksa veya hala yükleniyorsa buton KİLİTLİ kalsın
-    final bool isUserValid = isLoggedIn && userState.dataSingle != null;
-    final bool canProcess =
-        isUserValid && !state.isLoading && state.hasSelectedSeats;
+class _SeatFab extends ConsumerWidget {
+  final EventState state;
+  final String eventId;
 
-    // Eğer giriş yapılmamışsa login'e yönlendiren buton
-    if (!isLoggedIn)
+  const _SeatFab({required this.state, required this.eventId});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final loginState = ref.watch(loginProvider);
+    final user = ref.watch(userProvider).dataSingle;
+    final tickets = ref.watch(ticketProvider).dataList ?? [];
+
+    // 1. Daha önce alınan biletleri say
+    final existingTicketsCount =
+        tickets.where((final t) => t.eventId == eventId).length;
+    final selectedCount = state.selectedSeats.length;
+
+    // 2. Limit Kontrolü (Toplam 3'ü geçemez)
+    final bool isOverLimit = (existingTicketsCount + selectedCount) > 3;
+
+    // 3. Genel Geçerlilik (Kullanıcı doğrulanmış mı?)
+    final bool isUserValid = loginState.isLoggedIn && user != null;
+    final bool canProcess = isUserValid &&
+        !state.isLoading &&
+        state.hasSelectedSeats &&
+        !isOverLimit;
+
+    if (!loginState.isLoggedIn) {
       return FloatingActionButton.extended(
-        onPressed: () => context.push('/login'),
-        label: const Text('Giriş Yap ve Devam Et'),
-        icon: const Icon(Icons.login),
-      );
+          onPressed: () => context.push('/login'),
+          label: const Text('Giriş Yap'),
+          icon: const Icon(Icons.login));
+    }
 
-    // Eğer koltuk seçilmemişse butonu hiç gösterme
     if (!state.hasSelectedSeats) return const SizedBox.shrink();
 
     return FloatingActionButton.extended(
-      // ✅ canProcess false ise buton grileşir ve TIKLANAMAZ hale gelir (Backend'i korur)
-      onPressed: canProcess ? () => _showPaymentMethods(state) : null,
-
+      onPressed: canProcess ? () => _handlePayment(context, ref, state) : null,
+      backgroundColor: isOverLimit
+          ? Colors.red.shade900
+          : (canProcess ? Colors.white : Colors.grey.shade800),
+      foregroundColor: canProcess ? Colors.black : Colors.white24,
       label: Text(state.isLoading
           ? 'İşleniyor...'
-          : (!isUserValid ? 'Kullanıcı Doğrulanıyor...' : 'ÖDEMEYE GEÇ')),
-
-      // Tasarımı kilitli duruma göre ayarla
-      backgroundColor: canProcess ? Colors.white : Colors.grey.shade800,
-      foregroundColor: canProcess ? Colors.black : Colors.white24,
-
-      icon: state.isLoading
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2))
-          : Icon(isUserValid ? Icons.arrow_forward_ios : Icons.person_off,
-              size: 16),
+          : (isOverLimit
+              ? 'Limit Aşıldı (Max 3)'
+              : (isUserValid ? 'ÖDEMEYE GEÇ' : 'Doğrulanıyor...'))),
+      icon: Icon(
+          isOverLimit
+              ? Icons.warning
+              : (isUserValid ? Icons.arrow_forward_ios : Icons.person_off),
+          size: 16),
     );
   }
 
-  Future<void> _showPaymentMethods(final EventState s) async {
-    final user = ref.read(userProvider).dataSingle;
-
-    // 🛑 Backend'e gitmeden önceki son kapı:
-    if (user == null || user.id.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Kritik hata: Kullanıcı verisi bulunamadı!")));
-      return;
-    }
-
-    final method = await showModalBottomSheet<String>(
+  void _handlePayment(
+      final BuildContext context, final WidgetRef ref, final EventState s) {
+    showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
       shape: const RoundedRectangleBorder(
@@ -413,18 +398,48 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                 leading: const Icon(Icons.credit_card, color: Colors.white),
                 title: const Text("Kredi Kartı",
                     style: TextStyle(color: Colors.white)),
-                onTap: () => Navigator.pop(ctx, "card")),
+                onTap: () => _process(ctx, ref, s, "card")),
             ListTile(
                 leading: const Icon(Icons.account_balance, color: Colors.white),
                 title: const Text("EFT/Havale",
                     style: TextStyle(color: Colors.white)),
-                onTap: () => Navigator.pop(ctx, "iban")),
+                onTap: () => _process(ctx, ref, s, "iban")),
             const SizedBox(height: 20),
           ],
         ),
       ),
     );
-    if (method != null)
-      ref.read(eventProvider.notifier).processPayment(method, s);
   }
+
+  void _process(final BuildContext ctx, final WidgetRef ref, final EventState s,
+      final String method) {
+    Navigator.pop(ctx);
+    ref.read(eventProvider.notifier).processPayment(method, s);
+  }
+}
+
+class _SeatLegend extends StatelessWidget {
+  const _SeatLegend();
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          _item(Colors.green, "Boş"),
+          _item(Colors.blue, "Sizin"),
+          _item(Colors.purple, "Dolu"),
+        ]),
+      );
+
+  Widget _item(final Color c, final String l) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(children: [
+          Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          Text(l, style: const TextStyle(fontSize: 12, color: Colors.white70))
+        ]),
+      );
 }
