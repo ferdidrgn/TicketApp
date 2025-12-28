@@ -40,7 +40,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   @override
   Widget build(final BuildContext context) {
     // Temadaki navigasyon barı rengini alıyoruz
-    final navTheme = Theme.of(context).bottomNavigationBarTheme;
+    final navTheme = context.theme.bottomNavigationBarTheme;
     final Color barColor =
         navTheme.selectedItemColor ?? context.theme.primaryColor;
 
@@ -55,7 +55,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
         extendBody: true,
         body: IndexedStack(index: _selectedIndex, children: _pages),
         bottomNavigationBar: SafeArea(
-          top: false, // Üstten boşluk bırakma
           child: CurvedNavigationBar(
             backgroundColor: Colors.transparent,
             color: navTheme.selectedItemColor ?? context.theme.primaryColor,
