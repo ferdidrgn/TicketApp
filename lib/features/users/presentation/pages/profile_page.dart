@@ -48,7 +48,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ambientColor: Colors.black,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          padding: const EdgeInsets.all(25),
           child: SafeArea(
             child: Column(
               children: [
@@ -79,7 +79,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   bg: bgColor,
                   l: lightShadow,
                   d: darkShadow,
-                  onTap: () =>Navig
+                  onTap: () => context.push('/settings'),
                 ),
 
                 const SizedBox(height: 40),
@@ -155,7 +155,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   bg: bgColor,
                   l: lightShadow,
                   d: darkShadow,
-                  onTap: () => context.push('/terms'), // Kullanım Şartları
+                  onTap: () => context.push('/contracts'), // Kullanım Şartları
                 ),
                 const SizedBox(height: 16),
 

@@ -85,7 +85,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           : const Color(0xFFFAFAFA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        elevation: 0,
+        elevation: 5,
         toolbarHeight: _showSearchInAppBar ? 70 : 0,
         flexibleSpace: SafeArea(
           child: AnimatedContainer(
@@ -109,10 +109,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       // Direkt burada tıklama olayı
                       borderRadius: BorderRadius.circular(24),
                       // ArtisticSearchBar'ın border radius'u ile aynı
-                      child: CustomSearchbar(
-                        onTap: _openSearch, // Yine içeride de olabilir
-                        isCompact: true,
-                      ),
+                      child:
+                          CustomSearchbar(onTap: _openSearch, isCompact: true),
                     ),
                   ),
                 ),
@@ -122,104 +120,108 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       ),
       body: CustomAppBackground(
-        child: ListView(
+        child: SingleChildScrollView(
           controller: _scrollController,
-          padding: const EdgeInsets.only(top: 20, bottom: 100),
-          // Top padding'i azalt
+          padding: const EdgeInsets.symmetric(vertical: 50),
           physics: const BouncingScrollPhysics(),
-          children: [
-            // Hero text
-            const HeroSection(),
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const HeroSection(), // Hero text
 
-            // Artistic Search Bar (ana sayfa) - Normal boyutta
-            CustomSearchbar(onTap: _openSearch),
+                // Artistic Search Bar (ana sayfa) - Normal boyutta
+                CustomSearchbar(onTap: _openSearch),
 
-            const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-            // Stories (Campaigns)
-            SectionHeader(
-              title: "Öne Çıkanlar",
-              subtitle: "Vitrin",
-              onTap: () => _navigateToPage(const CampaignShowcasePage()),
+                // Stories (Campaigns)
+                SectionHeader(
+                  title: "Öne Çıkanlar",
+                  subtitle: "Vitrin",
+                  onTap: () => _navigateToPage(const CampaignShowcasePage()),
+                ),
+                StoryCircles(
+                  state: campaignState,
+                  onStoryTap: (final index) => _navigateToPage(
+                      CampaignShowcasePage(initialIndex: index)),
+                ),
+                const DividerWithAccent(),
+                const SizedBox(height: 30),
+
+                // Categories
+                SectionHeader(
+                  title: "Kategoriler",
+                  subtitle: "Sanatın Renkleri",
+                  onTap: () {}, // TODO: Kategori sayfası
+                ),
+                const CategoryGrid(),
+                const DividerWithAccent(),
+                const SizedBox(height: 30),
+
+                // Discover Shows
+                SectionHeader(
+                  title: "Keşfet",
+                  subtitle: "Sana Özel Seçkiler",
+                  onTap: () {}, // TODO: Kategori sayfası
+                ),
+                ShowCollage(
+                  state: showState,
+                  onShowTap: (final showId) => _navigateToPage(
+                    ShowDetailPage(showId: showId),
+                  ),
+                ),
+                const DividerWithAccent(),
+                const SizedBox(height: 30),
+
+                // Venues
+                SectionHeader(
+                  title: "Mekanlar",
+                  subtitle: "Şehrin Sahneleri",
+                  onTap: () {}, // TODO: Mekanlar sayfası
+                ),
+                StageCarousel(
+                  state: stageState,
+                  onStageTap: (final stageId) => _navigateToPage(
+                    StageDetailPage(stageId: stageId),
+                  ),
+                ),
+                const DividerWithAccent(),
+                const SizedBox(height: 30),
+
+                // Special offer
+                const TicketStubCard(
+                  title: "Romeo & Juliet",
+                  subtitle: "%20 İndirim Fırsatı",
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
+                ),
+                const SizedBox(height: 30),
+
+                // Bottom extras
+                QuickActionsGrid(
+                  onNotificationsTap: () =>
+                      _navigateTo(const AppSettingsPage()),
+                  onFavoritesTap: () => _navigateTo(FavoritesPage()),
+                  onTicketsTap: () =>
+                      _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
+                  onCalendarTap: () {
+                    // TODO: Etkinlik takvimi
+                  },
+                ),
+                const SizedBox(height: 30),
+
+                const TrendingNowSection(),
+                const SizedBox(height: 30),
+
+                const NewsletterSubscribe(),
+                const SizedBox(height: 40),
+
+                const BottomQuote(),
+                const SizedBox(height: 20),
+              ],
             ),
-            StoryCircles(
-              state: campaignState,
-              onStoryTap: (final index) =>
-                  _navigateToPage(CampaignShowcasePage(initialIndex: index)),
-            ),
-            const DividerWithAccent(),
-            const SizedBox(height: 30),
-
-            // Categories
-            SectionHeader(
-              title: "Kategoriler",
-              subtitle: "Sanatın Renkleri",
-              onTap: () {}, // TODO: Kategori sayfası
-            ),
-            const CategoryGrid(),
-            const DividerWithAccent(),
-            const SizedBox(height: 30),
-
-            // Discover Shows
-            SectionHeader(
-              title: "Keşfet",
-              subtitle: "Sana Özel Seçkiler",
-              onTap: () {}, // TODO: Kategori sayfası
-            ),
-            ShowCollage(
-              state: showState,
-              onShowTap: (final showId) => _navigateToPage(
-                ShowDetailPage(showId: showId),
-              ),
-            ),
-            const DividerWithAccent(),
-            const SizedBox(height: 30),
-
-            // Venues
-            SectionHeader(
-              title: "Mekanlar",
-              subtitle: "Şehrin Sahneleri",
-              onTap: () {}, // TODO: Mekanlar sayfası
-            ),
-            StageCarousel(
-              state: stageState,
-              onStageTap: (final stageId) => _navigateToPage(
-                StageDetailPage(stageId: stageId),
-              ),
-            ),
-            const DividerWithAccent(),
-            const SizedBox(height: 30),
-
-            // Special offer
-            const TicketStubCard(
-              title: "Romeo & Juliet",
-              subtitle: "%20 İndirim Fırsatı",
-              imageUrl:
-                  'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
-            ),
-            const SizedBox(height: 30),
-
-            // Bottom extras
-            QuickActionsGrid(
-              onNotificationsTap: () => _navigateTo(const AppSettingsPage()),
-              onFavoritesTap: () => _navigateTo(FavoritesPage()),
-              onTicketsTap: () =>
-                  _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
-              onCalendarTap: () {
-                // TODO: Etkinlik takvimi
-              },
-            ),
-            const SizedBox(height: 30),
-
-            const TrendingNowSection(),
-            const SizedBox(height: 30),
-
-            const NewsletterSubscribe(),
-            const SizedBox(height: 40),
-
-            const BottomQuote(),
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
     );
