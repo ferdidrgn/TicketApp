@@ -4,8 +4,6 @@ import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import 'package:ticketapp/shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
-import '../../../shows/domain/entities/show.dart';
-import '../../../shows/presentation/providers/show_provider.dart';
 
 class DiscoveryPage extends ConsumerStatefulWidget {
   final String? selectedCategory;
@@ -17,53 +15,70 @@ class DiscoveryPage extends ConsumerStatefulWidget {
 }
 
 class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
-  List<String> selectedCategories = [];
-  double minPrice = 0;
-  double maxPrice = 5200;
-  DateTime? startDate;
-  DateTime? endDate;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (widget.selectedCategory != null &&
-        widget.selectedCategory != 'Tümünü Keşfet' &&
-        widget.selectedCategory != 'Trendler')
-      selectedCategories.add(widget.selectedCategory!);
-
-    _fetchData();
-  }
-
-  void _fetchData() {
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      final shows = ref.read(showProvider).dataList;
-      if (shows == null || shows.isEmpty)
-        ref.read(showProvider.notifier).searchShows(selectedCategories, null);
-    });
-  }
+  // Statik veriler - Henüz Firebase'de veri olmadığı için burası şık durmalı
+  final List<Map<String, dynamic>> trendingShows = [
+    {
+      'name': 'Gözlerimi Kaparım Vazifemi Yaparım',
+      'category': 'Tiyatro',
+      'image':
+          'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
+      'tag': 'YENİ',
+    },
+    {
+      'name': 'Kadınlık Bizde Kalsın',
+      'category': 'Müzikal',
+      'image':
+          'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
+      'tag': 'TREND',
+    },
+  ];
 
   @override
   Widget build(final BuildContext context) {
-    final showState = ref.watch(showProvider);
+    final theme = context.theme;
 
     return Scaffold(
       body: CustomAppBackground(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              const SizedBox(height: 10),
-              if (showState.isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (showState.hasError)
-                Center(child: Text(showState.errorMessage ?? 'Bir hata oluştu'))
-              else if (showState.dataList?.isEmpty ?? true)
-                Text('Bu kategori için etkinlik bulunamadı.',
-                    style: context.textTheme.bodyMedium)
-              else
-                Expanded(child: _buildEventList(showState.dataList!)),
+              _buildDiscoveryHeader(theme),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. ÖNE ÇIKAN BAŞYAPITLAR (Yatay Kaydırma)
+                      const SectionHeader(
+                          title: 'Haftanın Başyapıtları', subtitle: 'Seçkiler'),
+                      const SizedBox(height: 12),
+                      _buildTrendingSlider(theme),
+
+                      const SizedBox(height: 32),
+
+                      // 2. KEŞİF LİSTESİ
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const SectionHeader(title: 'Tümünü Keşfet'),
+                          TextButton(
+                            onPressed: () {},
+                            child: Text('Filtrele',
+                                style: TextStyle(
+                                    color: theme.colorScheme.primary)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildStaticEventList(),
+                      const SizedBox(height: 100), // Bottom nav için boşluk
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -71,303 +86,109 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     );
   }
 
-  Widget _buildHeader() => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const SectionHeader(title: 'Keşfet'),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilterPopup(context),
-          ),
-        ],
-      );
-
-  Widget _buildEventList(final List<Show> shows) => ListView.builder(
-        itemCount: shows.length,
-        itemBuilder: (final context, final index) {
-          final show = shows[index];
-          return EventsCard(
-            imageUrl: show.imageUrl,
-            showName: show.name,
-            category: show.category,
-            date: "15.06.2023",
-            stage: "Sahne 1",
-            price: 150.0,
-          );
-        },
-      );
-
-  void _showFilterPopup(final BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (final context) => StatefulBuilder(
-        builder: (final context, final setModalState) => FilterBottomSheet(
-          selectedCategories: selectedCategories,
-          minPrice: minPrice,
-          maxPrice: maxPrice,
-          startDate: startDate,
-          endDate: endDate,
-          setModalState: setModalState,
-          onApplyFilters: (final filters) {
-            setState(() {
-              selectedCategories = filters.selectedCategories;
-              minPrice = filters.minPrice;
-              maxPrice = filters.maxPrice;
-              startDate = filters.startDate;
-              endDate = filters.endDate;
-            });
-            Navigator.pop(context);
-            _fetchData();
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class FilterBottomSheet extends StatefulWidget {
-  final List<String> selectedCategories;
-  final double minPrice;
-  final double maxPrice;
-  final DateTime? startDate;
-  final DateTime? endDate;
-  final void Function(void Function()) setModalState;
-  final Function(FilterData) onApplyFilters;
-
-  const FilterBottomSheet({
-    super.key,
-    required this.selectedCategories,
-    required this.minPrice,
-    required this.maxPrice,
-    this.startDate,
-    this.endDate,
-    required this.setModalState,
-    required this.onApplyFilters,
-  });
-
-  @override
-  State<FilterBottomSheet> createState() => _FilterBottomSheetState();
-}
-
-class _FilterBottomSheetState extends State<FilterBottomSheet> {
-  late List<String> selectedCategories;
-  late double minPrice;
-  late double maxPrice;
-  late DateTime? startDate;
-  late DateTime? endDate;
-
-  @override
-  void initState() {
-    super.initState();
-    selectedCategories = List.from(widget.selectedCategories);
-    minPrice = widget.minPrice;
-    maxPrice = widget.maxPrice;
-    startDate = widget.startDate;
-    endDate = widget.endDate;
-  }
-
-  Widget _buildCategoryFilter(final StateSetter setModalState) {
-    final categories = [
-      'Tiyatro',
-      'Konser',
-      'Festival',
-      'Sinema',
-      'Çocuk',
-      'Spor',
-      'Etkinlik',
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Kategori Seçin'),
-        SizedBox(
-          height: 50,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length,
-            itemBuilder: (final context, final index) {
-              final category = categories[index];
-              final isSelected = selectedCategories.contains(category);
-
-              return GestureDetector(
-                onTap: () {
-                  setModalState(() {
-                    isSelected
-                        ? selectedCategories.remove(category)
-                        : selectedCategories.add(category);
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  margin: const EdgeInsets.only(right: 5, top: 5),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.error
-                        : Theme.of(context).focusColor,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Center(child: Text(category)),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 15),
-        Text('Seçilen Kategoriler: ${selectedCategories.join(', ')}'),
-      ],
-    );
-  }
-
-  Widget _buildPriceRangeFilter(final StateSetter setModalState) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Fiyat Aralığı'),
-          RangeSlider(
-            values: RangeValues(minPrice, maxPrice),
-            min: 0,
-            max: 5200,
-            divisions: 10,
-            activeColor: Theme.of(context).colorScheme.error,
-            inactiveColor: Theme.of(context).focusColor,
-            onChanged: (final values) {
-              setModalState(() {
-                minPrice = values.start;
-                maxPrice = values.end;
-              });
-            },
-          ),
-          Text(
-              '₺${minPrice.toStringAsFixed(2)} - ₺${maxPrice.toStringAsFixed(2)}'),
-        ],
-      );
-
-  Widget _buildDateRangePicker(final StateSetter setModalState) {
-    final theme = context.theme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Tarih Aralığı Seçin'),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ElevatedButton(
-              onPressed: () async {
-                final newStartDate = await showDatePicker(
-                  context: context,
-                  initialDate: startDate ?? DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                  builder: (final context, final child) => Theme(
-                    data: theme.copyWith(
-                      colorScheme: ColorScheme.light(
-                        primary: theme.colorScheme.error,
-                        onPrimary: theme.colorScheme.onPrimary,
-                        surface: theme.colorScheme.secondary,
-                        onSurface: theme.colorScheme.onSurface,
-                      ),
-                      textButtonTheme: TextButtonThemeData(
-                        style: TextButton.styleFrom(
-                            foregroundColor: theme.colorScheme.onSurface),
-                      ),
-                    ),
-                    child: child!,
-                  ),
-                );
-                setModalState(() => startDate = newStartDate);
-              },
-              child: Text(
-                'Başlangıç: ${startDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}',
-                style: TextStyle(color: theme.colorScheme.onSurface),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newEndDate = await showDatePicker(
-                  context: context,
-                  initialDate: endDate ?? DateTime.now(),
-                  firstDate: startDate ?? DateTime(2020),
-                  lastDate: DateTime(2100),
-                  builder: (final context, final child) => Theme(
-                    data: theme.copyWith(
-                      colorScheme: ColorScheme.light(
-                        primary: theme.colorScheme.error,
-                        onPrimary: theme.colorScheme.onPrimary,
-                        surface: theme.colorScheme.secondary,
-                        onSurface: theme.colorScheme.onSurface,
-                      ),
-                      textButtonTheme: TextButtonThemeData(
-                        style: TextButton.styleFrom(
-                            foregroundColor: theme.colorScheme.onSurface),
-                      ),
-                    ),
-                    child: child!,
-                  ),
-                );
-                setModalState(() => endDate = newEndDate);
-              },
-              child: Text(
-                'Bitiş: ${endDate?.toLocal().toString().split(' ')[0] ?? 'Seçin'}',
-                style: TextStyle(color: theme.colorScheme.onSurface),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.all(15),
+  Widget _buildDiscoveryHeader(ThemeData theme) => Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader(
-                title: "Filitrele", fontWeight: FontWeight.bold),
-            const SizedBox(height: 20),
-            _buildCategoryFilter(widget.setModalState),
-            const SizedBox(height: 20),
-            _buildPriceRangeFilter(widget.setModalState),
-            const SizedBox(height: 20),
-            _buildDateRangePicker(widget.setModalState),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                widget.onApplyFilters(
-                  FilterData(
-                    selectedCategories: selectedCategories,
-                    minPrice: minPrice,
-                    maxPrice: maxPrice,
-                    startDate: startDate,
-                    endDate: endDate,
-                  ),
-                );
-              },
-              child: SectionHeader(
-                  title: 'Uygula',
-                  fontSize: 20,
-                  textColor: Theme.of(context).colorScheme.error,
-                  fontWeight: FontWeight.bold,
-                  alignment: Alignment.center),
-            ),
+            Text('İlhamını Bul',
+                style: theme.textTheme.headlineLarge
+                    ?.copyWith(fontWeight: FontWeight.w900)),
+            Text('Küratörlerin hazırladığı özel seçkiler',
+                style:
+                    theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)),
           ],
         ),
       );
-}
 
-class FilterData {
-  final List<String> selectedCategories;
-  final double minPrice;
-  final double maxPrice;
-  final DateTime? startDate;
-  final DateTime? endDate;
+  Widget _buildTrendingSlider(ThemeData theme) => SizedBox(
+        height: 220,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: trendingShows.length,
+          itemBuilder: (context, index) {
+            final show = trendingShows[index];
+            return Container(
+              width: 300,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                image: DecorationImage(
+                  image: NetworkImage(show['image']),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(
+                      Colors.black.withOpacity(0.3), BlendMode.darken),
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(show['tag'],
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(show['category'].toUpperCase(),
+                            style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2)),
+                        Text(show['name'],
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
 
-  FilterData({
-    required this.selectedCategories,
-    required this.minPrice,
-    required this.maxPrice,
-    this.startDate,
-    this.endDate,
-  });
+  Widget _buildStaticEventList() => Column(
+        children: const [
+          EventsCard(
+            imageUrl:
+                'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
+            showName: 'Hamlet - Bir Kimlik Meselesi',
+            category: 'Dram',
+            date: '15 Haziran 2024',
+            stage: 'Zorlu PSM',
+            price: 240,
+          ),
+          SizedBox(height: 16),
+          EventsCard(
+            imageUrl:
+                'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
+            showName: 'Cimri - Şehir Tiyatroları',
+            category: 'Komedi',
+            date: '18 Haziran 2024',
+            stage: 'Kadıköy Sahnesi',
+            price: 150,
+          ),
+        ],
+      );
 }

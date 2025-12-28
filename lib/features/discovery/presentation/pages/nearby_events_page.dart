@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
@@ -11,114 +12,180 @@ class NearbyEventsPage extends StatefulWidget {
 }
 
 class _NearbyEventsPageState extends State<NearbyEventsPage> {
-  final categories = ['Müzikal', 'Tiyatro', 'Sinema', 'Dans', 'Opera', 'Bale'];
-  final selectedCategories = <String>[];
-  RangeValues priceRange = const RangeValues(0, 1000);
+  // Statik verilerimiz - Şık bir görüntü için özenle seçilmiş
+  final List<Map<String, dynamic>> staticEvents = [
+    {
+      'name': 'Cimri - Moliere',
+      'category': 'Klasik Tiyatro',
+      'date': '24 Aralık, 20:30',
+      'stage': 'Harbiye Muhsin Ertuğrul',
+      'price': 180.0,
+      'image':
+          'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
+      'isTrend': true,
+    },
+    {
+      'name': 'Hamlet - Versus',
+      'category': 'Dram',
+      'date': '28 Aralık, 20:00',
+      'stage': 'Zorlu PSM - Turkcell Sahnesi',
+      'price': 250.0,
+      'image':
+          'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
+      'isTrend': false,
+    },
+    {
+      'name': 'Don Kişot’um Ben',
+      'category': 'Komedi',
+      'date': '30 Aralık, 20:30',
+      'stage': 'Baba Sahne',
+      'price': 200.0,
+      'image':
+          'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
+      'isTrend': true,
+    },
+  ];
 
-  void _showFilterDialog() => showDialog(
-        context: context,
-        builder: (final _) => AlertDialog(
-          title: Text('Filtreler',
-              style: Theme.of(context).textTheme.headlineMedium),
-          content: SingleChildScrollView(
-            child: Column(
+  @override
+  Widget build(final BuildContext context) {
+    final theme = context.theme;
+
+    return Scaffold(
+      body: CustomAppBackground(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildModernHeader(theme),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _buildDiscoveryBanner(theme),
+                    const SizedBox(height: 24),
+                    const SectionHeader(
+                      title: 'Sizin İçin Seçtiklerimiz',
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 16),
+                    // Statik listeyi şık kartlar olarak döner
+                    ...staticEvents.map((final event) => Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: _buildStaticArtCard(event, theme),
+                        )),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernHeader(final ThemeData theme) => Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Kategoriler:',
-                    style: Theme.of(context).textTheme.bodyMedium),
-                ...categories.map(
-                  (final cat) => CheckboxListTile(
-                    title: Text(cat,
-                        style: Theme.of(context).textTheme.bodyMedium),
-                    value: selectedCategories.contains(cat),
-                    onChanged: (final checked) => setState(() {
-                      if (checked == true)
-                        selectedCategories.add(cat);
-                      else
-                        selectedCategories.remove(cat);
-                    }),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text('Fiyat Aralığı:',
-                    style: Theme.of(context).textTheme.bodyMedium),
-                RangeSlider(
-                  values: priceRange,
-                  min: 0,
-                  max: 1000,
-                  divisions: 10,
-                  labels: RangeLabels(
-                    '${priceRange.start.round()}₺',
-                    '${priceRange.end.round()}₺',
-                  ),
-                  onChanged: (final v) => setState(() => priceRange = v),
-                ),
+                Text('Yakınlarda Neler Var?',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    )),
+                Text('Konumunuza en yakın sahneler',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    )),
               ],
             ),
+            _buildCircularAction(Icons.filter_list, theme),
+          ],
+        ),
+      );
+
+  Widget _buildCircularAction(final IconData icon, final ThemeData theme) =>
+      Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface.withOpacity(0.1),
+          shape: BoxShape.circle,
+          border:
+              Border.all(color: theme.colorScheme.onSurface.withOpacity(0.1)),
+        ),
+        child: IconButton(
+          icon: Icon(icon, color: theme.colorScheme.onSurface),
+          onPressed: () {}, // Statik olduğu için boş
+        ),
+      );
+
+  Widget _buildDiscoveryBanner(final ThemeData theme) => Container(
+        height: 160,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary.withOpacity(0.8),
+              theme.colorScheme.error.withOpacity(0.6),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child:
-                  Text('Uygula', style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Icon(Icons.theater_comedy,
+                  size: 150, color: Colors.white.withOpacity(0.1)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Şehrin Ritmini Yakala',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('Bu hafta sonu 12 yeni oyun sahnede.',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.8), fontSize: 14)),
+                ],
+              ),
             ),
           ],
         ),
       );
 
-  @override
-  Widget build(final BuildContext context) => Scaffold(
-        body: CustomAppBackground(
-          child: Padding(
-            padding: const EdgeInsets.all(15),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const SectionHeader(title: 'Yakınınızdaki Etkinlikler'),
-                IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: _showFilterDialog),
-              ]),
-              Expanded(
-                child: ListView(
-                  children: const [
-                    EventsCard(
-                      imageUrl:
-                          'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
-                      showName: 'Cimri',
-                      category: 'Müzikal',
-                      date: '12 Eylül 2024',
-                      stage: 'Harbiye',
-                      price: 150,
-                    ),
-                    SizedBox(height: 16),
-                    EventsCard(
-                      imageUrl:
-                          'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
-                      showName: 'Hamlet',
-                      category: 'Tiyatro',
-                      date: '15 Eylül 2024',
-                      stage: 'Zoru',
-                      price: 100,
-                    ),
-                    SizedBox(height: 16),
-                    EventsCard(
-                      imageUrl:
-                          'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
-                      showName: 'Gözlerimi Kaparım Vazifemi Yaparım',
-                      category: 'Sinema',
-                      date: '20 Eylül 2024',
-                      stage: 'Göztepe',
-                      price: 80,
-                    ),
-                    SizedBox(height: 50),
-                  ],
-                ),
-              ),
-            ]),
+  Widget _buildStaticArtCard(
+      final Map<String, dynamic> event, final ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
-        ),
-      );
+        ],
+      ),
+      child: EventsCard(
+        imageUrl: event['image'],
+        showName: event['name'],
+        category: event['category'],
+        date: event['date'],
+        stage: event['stage'],
+        price: event['price'],
+      ),
+    );
+  }
 }
