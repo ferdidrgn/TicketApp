@@ -37,58 +37,92 @@ Widget scaleTransition(
         scale: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
         child: FadeTransition(opacity: animation, child: child));
 
-/// 🎭 **Perde Açılış Geçişi (Curtain Reveal)**
-/// Ekranın tam ortasından dikey bir yarık açılıyormuş gibi hissettirir.
-/// Tiyatro sahnelerindeki ana perdenin açılışını simüle ederek izleyiciyi içeri davet eder.
+/// 🎭 **Gelişmiş Perde Açılış Geçişi**
+/// Yavaşlatıldığında gerçek bir sahne başlangıcı hissi verir.
 Widget curtainTransition(
   final BuildContext context,
   final Animation<double> animation,
   final Animation<double> secondaryAnimation,
   final Widget child,
-) =>
-    AnimatedBuilder(
-      animation: animation,
-      builder: (final context, final child) => ClipRect(
-        child: Align(
-          alignment: Alignment.center,
-          // Yatayda 0'dan 1'e genişleyerek açılma efekti
-          widthFactor: animation.value,
-          child: FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeIn),
-            child: child,
-          ),
+) {
+  // Animasyonun hızını daha dramatik hale getiren eğri
+  final dramaticCurve = CurvedAnimation(
+    parent: animation,
+    curve: Curves.easeInOutQuart, // Başta ve sonda yavaş, ortada akıcı
+  );
+
+  return AnimatedBuilder(
+    animation: dramaticCurve,
+    builder: (final context, final child) => ClipRect(
+      child: Align(
+        alignment: Alignment.center,
+        widthFactor: dramaticCurve.value,
+        child: FadeTransition(
+          opacity: dramaticCurve,
+          child: child,
         ),
       ),
-      child: child,
-    );
+    ),
+    child: child,
+  );
+}
 
-/// 👁️ **Odaklanma ve Derinlik Geçişi (Focal Blur)**
-/// Sayfa uzaklardan bulanık bir şekilde gelirken yavaşça netleşir ve zoom yapar.
-/// Mistik, rüya gibi bir atmosfer yaratır; sanki bir sanat eserine odaklanıyormuşsunuz hissi verir.
+/// 👁️ **Derin Odaklanma (Slow Focal Blur)**
+/// Yavaş gelmediğinde sadece bir "titreme" gibi görünür.
+/// 800ms ile rüya gibi bir netleşme sağlar.
 Widget focalTransition(
   final BuildContext context,
   final Animation<double> animation,
   final Animation<double> secondaryAnimation,
   final Widget child,
-) =>
-    AnimatedBuilder(
-      animation: animation,
-      builder: (final context, final child) {
-        // Bulanıklıktan netliğe geçiş (Sigma 10'dan 0'a)
-        final blurValue = (1 - animation.value) * 10;
-        return ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: blurValue, sigmaY: blurValue),
-          child: Transform.scale(
-            // Hafif bir zoom-in hareketi (0.85'ten 1.0'a)
-            scale: 0.85 + (animation.value * 0.15),
-            child: FadeTransition(
-              opacity: animation,
-              child: child,
-            ),
+) {
+  final slowCurve =
+      CurvedAnimation(parent: animation, curve: Curves.easeOutQuart);
+
+  return AnimatedBuilder(
+    animation: slowCurve,
+    builder: (final context, final child) {
+      // Sigma değerini 15'e çıkararak bulanıklığı artırdık
+      final blurValue = (1 - slowCurve.value) * 15;
+      return ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: blurValue, sigmaY: blurValue),
+        child: Transform.scale(
+          scale: 0.8 + (slowCurve.value * 0.2), // Daha geniş bir zoom aralığı
+          child: FadeTransition(
+            opacity: slowCurve,
+            child: child,
           ),
-        );
-      },
-      child: child,
+        ),
+      );
+    },
+    child: child,
+  );
+}
+
+/// 🎞️ **Gelişmiş Sinematik Kararma**
+/// Sahne geçişlerindeki o karanlık boşluğu hissetmek için idealdir.
+Widget cinematicFadeTransition(
+  final BuildContext context,
+  final Animation<double> animation,
+  final Animation<double> secondaryAnimation,
+  final Widget child,
+) =>
+    Stack(
+      children: [
+        child,
+        IgnorePointer(
+          child: FadeTransition(
+            opacity: Tween<double>(begin: 1.0, end: 0.0).animate(
+              CurvedAnimation(
+                parent: animation,
+                // İlk %60'lık kısımda karanlık kalmasını sağlar
+                curve: const Interval(0.4, 1.0, curve: Curves.easeInOut),
+              ),
+            ),
+            child: Container(color: Colors.black),
+          ),
+        ),
+      ],
     );
 
 /// 🌀 **Mistik Sarmal Geçiş (Spiral Ink)**
@@ -190,32 +224,6 @@ Widget shadowGateTransition(
                 ),
               ),
             ),
-          ),
-        ),
-      ],
-    );
-
-/// 🎞️ **Sinematik Kararma (Cinematic Fade)**
-/// Ekran tamamen siyah bir kareden aydınlanarak açılır.
-/// İzleyiciyi bir sonraki "perdeye" hazırlayan profesyonel bir sahne geçişi hissiyatı verir.
-Widget cinematicFadeTransition(
-  final BuildContext context,
-  final Animation<double> animation,
-  final Animation<double> secondaryAnimation,
-  final Widget child,
-) =>
-    Stack(
-      children: [
-        child,
-        IgnorePointer(
-          child: FadeTransition(
-            opacity: Tween<double>(begin: 1.0, end: 0.0).animate(
-              CurvedAnimation(
-                parent: animation,
-                curve: const Interval(0.0, 0.8, curve: Curves.easeIn),
-              ),
-            ),
-            child: Container(color: Colors.black),
           ),
         ),
       ],
