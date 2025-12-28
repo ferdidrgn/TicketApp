@@ -48,22 +48,43 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ambientColor: Colors.black,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
           child: SafeArea(
             child: Column(
               children: [
                 _buildArtisticHeader(theme, !isUserLoggedIn),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
+
+                // 1. KİMLİK PORTRESİ VEYA SESSİZ SAHNE DAVETİ
                 if (isUserLoggedIn)
                   _buildNeumorphicPortrait(loginState, userDetail, theme,
                       bgColor, lightShadow, darkShadow)
                 else
                   _buildSilentStageInvitation(
                       theme, bgColor, lightShadow, darkShadow),
+
                 const SizedBox(height: 40),
-                _buildSectionLabel(theme, "ATMOSFERİN IŞIĞI"),
-                const ThemeSelectorCard(),
+
+                // 2. ATMOSFER VE AYARLAR
+                _buildSectionLabel(theme, "ATMOSFER VE TEKNİK"),
+                const ThemeSelectorCard(), // Tema seçici
+                const SizedBox(height: 16),
+                _buildSculptedTile(
+                  theme: theme,
+                  icon: Icons.settings_suggest_rounded,
+                  title: 'Atölye Ayarları',
+                  subtitle: 'Bildirimler, dil ve teknik tercihler',
+                  isLocked: false,
+                  color: Colors.blueGrey,
+                  bg: bgColor,
+                  l: lightShadow,
+                  d: darkShadow,
+                  onTap: () =>Navig
+                ),
+
                 const SizedBox(height: 40),
+
+                // 3. RUHUN İZLERİ (Deneyimler)
                 _buildSectionLabel(theme, "RUHUN İZLERİ"),
                 _buildSculptedTile(
                     theme: theme,
@@ -72,13 +93,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     subtitle: 'Sahne tozunu yuttuğun tüm anların dökümü',
                     isLocked: !isUserLoggedIn,
                     color: const Color(0xFF6366F1),
-                    // Daha canlı Indigo
                     bg: bgColor,
                     l: lightShadow,
                     d: darkShadow,
                     onTap: () =>
                         context.push('/my-tickets/${loginState.userId}')),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 _buildSculptedTile(
                     theme: theme,
                     icon: Icons.auto_awesome_mosaic_rounded,
@@ -86,12 +106,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     subtitle: 'Zihninde yankılanan seçilmiş eserler',
                     isLocked: !isUserLoggedIn,
                     color: const Color(0xFFEC4899),
-                    // Daha canlı Pink
                     bg: bgColor,
                     l: lightShadow,
                     d: darkShadow,
                     onTap: () => context.push('/favorites')),
+
                 const SizedBox(height: 40),
+
+                // 4. KİMLİK ATÖLYESİ (Profil ve Destek)
                 _buildSectionLabel(theme, "KİMLİK ATÖLYESİ"),
                 _buildSculptedTile(
                     theme: theme,
@@ -105,19 +127,39 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     d: darkShadow,
                     onTap: () =>
                         context.push('/profile-edit/${loginState.userId}')),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 _buildSculptedTile(
                     theme: theme,
                     icon: Icons.map_rounded,
                     title: 'Serüven Rehberi',
-                    subtitle: 'Atölye kullanımı hakkında küratöre danış',
+                    subtitle: 'Soruların için küratörle temas kur',
                     isLocked: false,
                     color: const Color(0xFF10B981),
-                    // Daha canlı Emerald
                     bg: bgColor,
                     l: lightShadow,
                     d: darkShadow,
                     onTap: () => context.push('/help-support')),
+
+                const SizedBox(height: 40),
+
+                // 5. ATÖLYE YASALARI (Terms & Conditions)
+                _buildSectionLabel(theme, "YASAL YÜKÜMLÜLÜKLER"),
+                _buildSculptedTile(
+                  theme: theme,
+                  icon: Icons.gavel_rounded,
+                  title: 'Atölye Sözleşmesi',
+                  subtitle:
+                      'Kullanım şartları, Üyelik koşulları, Kişisel verilerin korunması ve KVKK rehberi',
+                  isLocked: false,
+                  color: Colors.brown.shade400,
+                  bg: bgColor,
+                  l: lightShadow,
+                  d: darkShadow,
+                  onTap: () => context.push('/terms'), // Kullanım Şartları
+                ),
+                const SizedBox(height: 16),
+
+                // 6. SİSTEMSEL KARARLAR
                 if (isUserLoggedIn) ...[
                   const SizedBox(height: 40),
                   _buildSectionLabel(theme, "SON DOKUNUŞLAR"),
@@ -127,12 +169,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       title: 'Atölyeyi Kapat',
                       subtitle: 'Serüveni şimdilik mühürle ve ayrıl',
                       isLocked: false,
-                      color: Colors.orange.shade700,
+                      color: Colors.orange.shade800,
                       bg: bgColor,
                       l: lightShadow,
                       d: darkShadow,
                       onTap: () => showSignOutDialog(context, ref)),
+                  const SizedBox(height: 16),
+                  _buildSculptedTile(
+                      theme: theme,
+                      icon: Icons.delete_forever_rounded,
+                      title: 'Koleksiyonu Yak',
+                      subtitle:
+                          'Tüm izlerini ve hatıralarını kalıcı olarak sil',
+                      isLocked: false,
+                      color: Colors.red.shade900,
+                      bg: bgColor,
+                      l: lightShadow,
+                      d: darkShadow,
+                      onTap: () => showDeleteAccountDialog(
+                          context, ref, loginState.userId!)),
                 ],
+
                 _buildSoulReflection(theme),
                 const SizedBox(height: 100),
               ],
@@ -143,7 +200,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // --- GELİŞTİRİLMİŞ TILE (Yazılar kalınlaştırıldı ve kontrast artırıldı) ---
+// --- GELİŞTİRİLMİŞ TILE (Yazılar kalınlaştırıldı ve kontrast artırıldı) ---
   Widget _buildSculptedTile({
     required ThemeData theme,
     required IconData icon,
@@ -210,7 +267,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  // --- GELİŞTİRİLMİŞ PORTRE (Okunabilirlik Odaklı) ---
+// --- GELİŞTİRİLMİŞ PORTRE (Okunabilirlik Odaklı) ---
   Widget _buildNeumorphicPortrait(LoginState state, entity.User? user,
           ThemeData theme, Color bg, Color l, Color d) =>
       Container(
@@ -295,7 +352,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       ));
 
-  // --- DAHA KESKİN GÖLGELİ NEUBOX ---
+// --- DAHA KESKİN GÖLGELİ NEUBOX ---
   BoxDecoration _neuBox(final Color bg, final Color l, final Color d,
           {final double borderRadius = 15, final bool invert = false}) =>
       BoxDecoration(

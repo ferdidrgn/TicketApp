@@ -2,13 +2,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/router/page_transitions.dart';
+import 'package:ticketapp/features/appTools/presentation/pages/help_support_page.dart';
 import 'package:ticketapp/features/favorite/presentation/pages/favorite_screen.dart';
 import 'package:ticketapp/features/tickets/presentation/pages/my_ticket_page.dart';
+import '../../../features/appTools/presentation/pages/contracts.dart';
 import '../../../features/home/presentation/pages/wrapper/app_home_page.dart';
 import '../../../features/login/presentation/pages/login_screen.dart';
 import '../../../features/login/presentation/pages/phone_login_page.dart';
 import '../../../features/login/presentation/providers/login_provider.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
+import '../../../features/settings/presentation/pages/app_settings.dart';
 import '../../../features/shows/presentation/pages/show_detail_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';
 import '../../errors/not_found_page.dart';
@@ -147,6 +150,46 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
             child: const OnboardingContainer(),
             transitionsBuilder: fadeTransition,
             transitionDuration: const Duration(milliseconds: 600),
+          ),
+        ),
+
+        // SETTINGS
+        GoRoute(
+          path: '/settings',
+          name: 'settings',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const AppSettingsPage(),
+            // Senin ayarlar sayfanın class adı
+            transitionsBuilder: focalTransition,
+            // Odaklanma efekti (gizemli)
+            transitionDuration: const Duration(milliseconds: 700),
+          ),
+        ),
+
+        // 📜 YASAL SÖZLEŞMELER
+        GoRoute(
+          path: '/contracts',
+          name: 'contracts',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: ContractsPage(),
+            transitionsBuilder: shadowGateTransition,
+            // Kapıdan geçiş efekti
+            transitionDuration: const Duration(milliseconds: 750),
+          ),
+        ),
+
+        // 📜 Help
+        GoRoute(
+          path: '/help-support',
+          name: 'helpSupport',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: HelpSupportPage(),
+            transitionsBuilder: shadowGateTransition,
+            // Kapıdan geçiş efekti
+            transitionDuration: const Duration(milliseconds: 750),
           ),
         ),
       ],
