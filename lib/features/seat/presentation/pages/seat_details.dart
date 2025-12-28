@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
-
+import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../events/presentation/providers/event_notifier.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../events/presentation/providers/event_state.dart';
@@ -32,27 +32,70 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (mounted) {
         ref.initializeEventNotifier(
           eventId: widget.eventId,
           showId: widget.showId,
           customerId: widget.customerId,
         );
-        if (widget.customerId.isNotEmpty) {
+        if (widget.customerId.isNotEmpty)
           ref
               .read(ticketProvider.notifier)
               .loadTicketsAndDetailsByCustomerId(widget.customerId);
-        }
       }
     });
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final state = ref.watch(eventProvider);
     final loginState = ref.watch(loginProvider);
     final theme = context.theme;
+
+    // 🔔 MODERN STATE TAKİBİ
+    ref.listen<EventState>(eventProvider, (final previous, final next) {
+      if (next.isLoading && !previous!.isLoading)
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (final context) => const CustomLoadingDialog(
+              message: "Biletleriniz Hazırlanıyor..."),
+        );
+      else if (!next.isLoading && previous!.isLoading)
+        Navigator.of(context).pop(); // Loading dialog'unu kapat
+
+      // 2. HATA KONTROLÜ
+      if (next.errorMessage != null &&
+          previous?.errorMessage != next.errorMessage)
+        showDialog(
+          context: context,
+          builder: (final context) => CustomErrorDialog(
+            message: next.errorMessage!,
+            onConfirm: () {
+              // İstersen burada hatayı resetleyen bir notifier metodu çağırabilirsin
+            },
+          ),
+        );
+
+      // 3. BAŞARI KONTROLÜ
+      if (next.paymentSuccessful && (previous?.paymentSuccessful == false)) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (final context) => CustomSuccessDialog(
+            message:
+                "Koltuklarınız başarıyla rezerve edildi. Keyifli seyirler!",
+            onConfirm: () {
+              // Dialog kapandıktan sonra yönlendir (Geri dönemesinler diye .go)
+              context.go('/my-tickets/${loginState.userId}');
+            },
+          ),
+        );
+        // Notifier içinde paymentSuccessful'u false çekmeyi unutma
+        ref.read(eventProvider.notifier).resetPaymentSuccess();
+      }
+    });
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -129,7 +172,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
         ],
       );
 
-  Widget _buildTimerChip(String time) => Container(
+  Widget _buildTimerChip(final String time) => Container(
         margin: const EdgeInsets.only(right: 16),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
@@ -154,7 +197,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
         ),
       );
 
-  Widget _legendItem(Color c, String l) => Padding(
+  Widget _legendItem(final Color c, final String l) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           children: [
@@ -169,8 +212,8 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
         ),
       );
 
-  Widget _buildSeatGrid(EventState state) => Column(
-        children: state.seatLayout.entries.map((entry) {
+  Widget _buildSeatGrid(final EventState state) => Column(
+        children: state.seatLayout.entries.map((final entry) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
@@ -182,14 +225,15 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, color: Colors.white38)),
                 ),
-                ...entry.value.map((seatId) => _buildSeatItem(seatId, state)),
+                ...entry.value
+                    .map((final seatId) => _buildSeatItem(seatId, state)),
               ],
             ),
           );
         }).toList(),
       );
 
-  Widget _buildSeatItem(String seatId, EventState state) {
+  Widget _buildSeatItem(final String seatId, final EventState state) {
     final seatInfo = state.seatStatus[seatId];
     final status = seatInfo?['status'] ?? 'available';
     final isMyRes = (seatInfo?['customerId'] == state.customerId);
@@ -236,7 +280,8 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     );
   }
 
-  Widget _buildBottomInfoCard(EventState state, ThemeData theme) => Container(
+  Widget _buildBottomInfoCard(final EventState state, final ThemeData theme) =>
+      Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
@@ -291,7 +336,7 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
         ),
       );
 
-  Widget _buildFab(EventState state, bool isLoggedIn) {
+  Widget _buildFab(final EventState state, final bool isLoggedIn) {
     if (!isLoggedIn || !state.hasSelectedSeats) return const SizedBox.shrink();
     return FloatingActionButton.extended(
       onPressed: state.isLoading ? null : () => _handlePayment(state),
@@ -304,18 +349,18 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
 
   // --- MANTIKSAL METODLAR ---
 
-  void _handlePayment(EventState state) {
+  void _handlePayment(final EventState state) {
     // Senin mevcut _showPaymentMethods mantığını buraya ekle
     _showPaymentMethods(state);
   }
 
-  Future<void> _showPaymentMethods(EventState s) async {
+  Future<void> _showPaymentMethods(final EventState s) async {
     final method = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.black,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-      builder: (ctx) => SafeArea(
+      builder: (final ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
