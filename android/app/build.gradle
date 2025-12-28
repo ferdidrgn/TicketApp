@@ -3,11 +3,12 @@ plugins {
     id "kotlin-android"
     id 'com.google.gms.google-services'
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id 'com.google.firebase.crashlytics'
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-def flutterVersionCode = 10
-def flutterVersionName = "1.10"
+def flutterVersionCode = 11
+def flutterVersionName = "1.11"
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -44,16 +45,21 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             debuggable false
+            // Crashlytics'in hata raporlarını okunabilir kılması için mapping dosyasını ister
+            firebaseCrashlytics {
+                mappingFileUploadEnabled true
+                nativeSymbolUploadEnabled true
+            }
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = '11'
+        jvmTarget = '17'
     }
 }
 
@@ -62,9 +68,18 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20"
     implementation 'com.android.support:multidex:1.0.3'
-    implementation "androidx.core:core-ktx:1.12.0"
-    implementation "androidx.appcompat:appcompat:1.6.1"
+
+    // 🚀 Flutter'ın native tarafta Material 3 ve AppCompat kullanabilmesi için bunlar kalmalı
+    implementation "androidx.appcompat:appcompat:1.7.0" // Versiyon güncellendi
     implementation "com.google.android.material:material:1.12.0"
+    implementation "androidx.core:core-ktx:1.13.1"
+
+    // Firebase Bill of Materials (BoM) - Versiyon karmaşasını önler
+    implementation platform('com.google.firebase:firebase-bom:33.1.2')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
+
+    // Kotlin stdlib artık çoğu zaman otomatik eklenir, manuel yazmaya gerek yok.
+     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20"
 }
