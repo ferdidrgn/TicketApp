@@ -8,7 +8,6 @@ import 'package:ticketapp/features/events/presentation/providers/event_provider.
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_provider.dart';
-import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
 import 'package:ticketapp/shared/widgets/galerry_section.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/button/glass_back_button.dart';
@@ -41,73 +40,59 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   @override
   void initState() {
     super.initState();
-    // Sayfa açıldığında veri çekme işlemini başlat
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _loadAllDataSequentially();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((final _) => _initData());
   }
 
-  /// Verileri sırasıyla ve birbirini bekleyerek yükleyen fonksiyon
-  Future<void> _loadAllDataSequentially() async {
+  Future<void> _initData() async {
     try {
       final showId = widget.showId;
-
-      final showNotifier = ref.read(showProvider.notifier);
-      final eventNotifier = ref.read(eventProvider.notifier);
-      final stageNotifier = ref.read(stageProvider.notifier);
-      final playerNotifier = ref.read(playerProvider.notifier);
-
-      var showData = ref.read(showProvider).getShowById(showId);
-      if (showData == null) {
-        await showNotifier.loadShowsByIds([showId]);
-        // Yükleme bittikten sonra tekrar provider'dan oku
-        showData = ref.read(showProvider).getShowById(showId);
+      // 1. Önce Show verisini yükle veya bul
+      var show = ref.read(showProvider).getShowById(showId);
+      if (show == null) {
+        await ref.read(showProvider.notifier).loadShowsByIds([showId]);
+        show = ref.read(showProvider).getShowById(showId);
       }
 
-      // Eğer hala null ise yapacak bir şey yok, çık.
-      if (showData == null) {
-        debugPrint("❌ Show verisi bulunamadı.");
-        if (mounted) setState(() => _isLoading = false);
-        return;
-      }
+      if (show == null || !mounted) return;
 
-      // ADIM 2: EVENTLERİ (ETKİNLİKLERİ) GETİR
-      // Listeyi temizle ve boşlukları at
-      final eventIds = showData.eventsId
-          .where((final id) => id.toString().trim().isNotEmpty)
-          .toList();
-
-      if (eventIds.isNotEmpty) {
-        await eventNotifier.loadEventsByIds(eventIds);
-
-        // ADIM 3: SAHNELERİ (STAGES) GETİR
-        // Provider'daki güncel event listesinden StageID'leri topla
-        final allEvents = ref.read(eventProvider).dataList ?? [];
-        final relevantEvents =
-            allEvents.where((final e) => eventIds.contains(e.id)).toList();
-
-        final stageIds = relevantEvents
-            .map((final e) => e.stageId)
-            .where((final id) => id.isNotEmpty && id != '0')
-            .toSet() // Tekrarlayanları sil
-            .toList();
-
-        if (stageIds.isNotEmpty) await stageNotifier.loadStagesByIds(stageIds);
-      }
-
-      // ADIM 4: OYUNCULARI (PLAYERS) GETİR
-      final allPlayerIds = {
-        ...showData.nowPlayersId,
-        ...showData.oldPlayersId,
-      }.where((final id) => id.toString().trim().isNotEmpty).toList();
-
-      if (allPlayerIds.isNotEmpty)
-        await playerNotifier.getPlayersByIds(allPlayerIds);
+      // 2. Diğer tüm verileri paralel yükleyerek hızı artır
+      await Future.wait([
+        _loadEventsAndStages(show),
+        _loadCast(show),
+      ]);
     } catch (e) {
-      throw ("❌ HATA OLUŞTU (_loadAllDataSequentially): $e");
+      debugPrint("❌ Veri yükleme hatası: $e");
     } finally {
-      // Her durumda loading'i kapat
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadEventsAndStages(final Show show) async {
+    final eventIds = show.eventsId.where((final id) => id.isNotEmpty).toList();
+    if (eventIds.isEmpty) return;
+
+    await ref.read(eventProvider.notifier).loadEventsByIds(eventIds);
+
+    final stages = ref
+        .read(eventProvider)
+        .dataList
+        ?.where((final e) => eventIds.contains(e.id))
+        .map((final e) => e.stageId)
+        .where((final id) => id.isNotEmpty && id != '0')
+        .toSet()
+        .toList();
+
+    if (stages != null && stages.isNotEmpty) {
+      await ref.read(stageProvider.notifier).loadStagesByIds(stages);
+    }
+  }
+
+  Future<void> _loadCast(final Show show) async {
+    final allPlayerIds = {...show.nowPlayersId, ...show.oldPlayersId}
+        .where((final id) => id.isNotEmpty)
+        .toList();
+    if (allPlayerIds.isNotEmpty) {
+      await ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds);
     }
   }
 
@@ -120,118 +105,81 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   @override
   Widget build(final BuildContext context) {
     final showData = ref.watch(showProvider).getShowById(widget.showId);
-
-    final backgroundColor =
+    final bgColor =
         context.isDarkMode ? AppDarkColors.primary : AppLightColors.background;
 
-    // Yükleniyor durumu
-    if (_isLoading && showData == null)
+    if (_isLoading && showData == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
-    // Veri yok durumu
-    if (showData == null)
+    if (showData == null) {
       return Scaffold(
-        appBar: AppBar(
-            leading: const BackButton(), backgroundColor: Colors.transparent),
-        body: const Center(child: Text("Gösteri bilgileri alınamadı.")),
+        appBar: AppBar(leading: const BackButton()),
+        body: const Center(child: Text("İçerik Bulunamazı")),
       );
+    }
 
     return Scaffold(
       body: Stack(
         children: [
-          // 1. ARKA PLAN RESMİ (PARALLAX HEADER)
           ShowParallaxHeader(
               imageUrl: showData.imageUrl, scrollController: _scrollController),
-
-          // 2. KAYDIRILABİLİR İÇERİK
-          CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Header Resminin arkasında kalacak boşluk
-              SliverToBoxAdapter(
-                  child: SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.45)),
-
-              // Ana İçerik Bloğu (Beyaz/Siyah Kısım)
-              SliverToBoxAdapter(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: backgroundColor,
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(30)),
-                  ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 24),
-
-                      // Başlık ve Açıklama
-                      ShowInfoSection(
-                          title: showData.name,
-                          description: showData.description),
-
-                      // --- ETKİNLİK LİSTESİ ---
-                      ShowEventSection(
-                        showData: showData,
-                        onBuyTicket: _handleTicketPurchase,
-                      ),
-
-                      // --- GÜNCEL OYUNCULAR ---
-                      ShowCastSection(
-                        title: "OYUNCU KADROSU",
-                        playerIds: showData.nowPlayersId,
-                      ),
-
-                      // --- ESKİ OYUNCULAR ---
-                      if (showData.oldPlayersId.isNotEmpty)
-                        ShowCastSection(
-                          title: "ESKİ KADRO",
-                          playerIds: showData.oldPlayersId,
-                          isGrayscale: true,
-                        ),
-
-                      // --- GALERİ ---
-
-                      SectionHeader(title: "OYUNDAN KARELER", fontSize: 20),
-                      if (showData.photosShowId.isNotEmpty)
-                        GallerySection(photos: showData.photosShowId),
-
-                      // Alt boşluk (Bottom padding)
-                      const SizedBox(height: 120),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // 3. GERİ BUTONU (SOL ÜST)
-          const Positioned(
-            top: 50, // SafeArea
-            left: 16,
-            child: GlassBackButton(),
-          ),
+          _buildContent(showData, bgColor),
+          const Positioned(top: 50, left: 16, child: GlassBackButton()),
         ],
       ),
     );
   }
 
-  void _handleTicketPurchase(final String eventId) {
-    final loginState = ref.read(loginProvider);
-    final userId = loginState.user?.uid ??
-        ref.read(userProvider).dataSingle?.id ??
-        LocalStorageService.userId;
+  Widget _buildContent(final Show showData, final Color bgColor) {
+    return CustomScrollView(
+      controller: _scrollController,
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+            child: SizedBox(height: MediaQuery.of(context).size.height * 0.45)),
+        SliverToBoxAdapter(
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(30)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                ShowInfoSection(
+                    title: showData.name, description: showData.description),
+                ShowEventSection(
+                    showData: showData, onBuyTicket: _handleTicketPurchase),
+                ShowCastSection(
+                    title: "OYUNCU KADROSU", playerIds: showData.nowPlayersId),
+                if (showData.oldPlayersId.isNotEmpty)
+                  ShowCastSection(
+                      title: "ESKİ KADRO",
+                      playerIds: showData.oldPlayersId,
+                      isGrayscale: true),
+                if (showData.photosShowId.isNotEmpty) ...[
+                  SectionHeader(title: "OYUNDAN KARELER", fontSize: 20),
+                  GallerySection(photos: showData.photosShowId),
+                ],
+                const SizedBox(height: 120),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Lütfen önce giriş yapınız.")));
-      return;
-    }
+  void _handleTicketPurchase(final String eventId) {
+    final userId =
+        ref.read(loginProvider).userId ?? LocalStorageService.userId ?? "";
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (final context) => SeatSelectionScreen(
+        builder: (final _) => SeatSelectionScreen(
           showId: widget.showId,
           eventId: eventId,
           customerId: userId,
@@ -240,7 +188,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 }
-
 // YARDIMCI WIDGETLAR (Hepsi tek dosyada)
 // ==============================================================================
 
@@ -249,26 +196,20 @@ class ShowEventSection extends ConsumerWidget {
   final Show showData;
   final Function(String eventId) onBuyTicket;
 
-  const ShowEventSection({
-    super.key,
-    required this.showData,
-    required this.onBuyTicket,
-  });
+  const ShowEventSection(
+      {super.key, required this.showData, required this.onBuyTicket});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    // Sadece gerekli state'leri dinle
     final eventState = ref.watch(eventProvider);
     final stageState = ref.watch(stageProvider);
 
-    // Bu gösteriye ait eventleri filtrele
     final events = eventState.dataList
             ?.where((final e) => showData.eventsId.contains(e.id))
             .toList() ??
         [];
 
-    if (events.isEmpty) // Veri yükleniyor veya yoksa boş dön
-      return const SizedBox.shrink();
+    if (events.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,16 +217,15 @@ class ShowEventSection extends ConsumerWidget {
         SectionHeader(title: "ETKİNLİK TAKVİMİ", fontSize: 20),
         SizedBox(
           height: 260,
-          child: ListView.builder(
+          child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 15),
             itemCount: events.length,
+            separatorBuilder: (final _, final __) => const SizedBox(width: 0),
             itemBuilder: (final context, final index) {
               final event = events[index];
               final stage = stageState.getStageById(event.stageId);
-              final dateInfo =
-                  DateFormatter.formatForEventCard(event.date.toString());
+              final dateInfo = DateFormatter.formatForEventCard(event.date);
 
               return EventsCard(
                 width: 280,
@@ -294,7 +234,7 @@ class ShowEventSection extends ConsumerWidget {
                 category: "TİYATRO",
                 date:
                     "${dateInfo['day']} ${dateInfo['monthName']} • ${dateInfo['time']}",
-                stage: stage?.name ?? "Sahne Bilgisi Yükleniyor...",
+                stage: stage?.name ?? "Yükleniyor...",
                 price: double.tryParse(event.price.toString()) ?? 0.0,
                 onTap: () => onBuyTicket(event.id),
               );
