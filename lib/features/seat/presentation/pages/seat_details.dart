@@ -83,16 +83,22 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (final context) => CustomSuccessDialog(
+          builder: (final dialogContext) => CustomActionDialog(
+            title: "İŞLEM TAMAM!",
             message:
-                "Koltuklarınız başarıyla rezerve edildi. Keyifli seyirler!",
-            onConfirm: () {
-              // Dialog kapandıktan sonra yönlendir (Geri dönemesinler diye .go)
+                "Biletleriniz başarıyla oluşturuldu. Keyifli seyirler dileriz!",
+            positiveText: "BİLETLERİM",
+            negativeText: "ANASAYFA",
+            onPositiveAction: () {
+              // Pozitif: Biletlerim Sayfası
               context.go('/my-tickets/${loginState.userId}');
+            },
+            onNegativeAction: () {
+              // Negatif: Anasayfa
+              context.go('/home');
             },
           ),
         );
-        // Notifier içinde paymentSuccessful'u false çekmeyi unutma
         ref.read(eventProvider.notifier).resetPaymentSuccess();
       }
     });

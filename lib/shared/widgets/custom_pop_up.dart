@@ -255,3 +255,151 @@ class _CustomErrorDialogState extends State<CustomErrorDialog>
         ),
       );
 }
+
+// ============================================================
+// 3. CUSTOM ACTION DIALOG (2 butonlu)
+// ============================================================
+
+class CustomActionDialog extends StatefulWidget {
+  final String title;
+  final String message;
+  final IconData icon;
+  final Color iconColor;
+  final String positiveText;
+  final String negativeText;
+  final VoidCallback onPositiveAction;
+  final VoidCallback onNegativeAction;
+
+  const CustomActionDialog({
+    super.key,
+    required this.title,
+    required this.message,
+    this.icon = Icons.check_circle_rounded,
+    this.iconColor = Colors.green,
+    required this.positiveText,
+    required this.negativeText,
+    required this.onPositiveAction,
+    required this.onNegativeAction,
+  });
+
+  @override
+  State<CustomActionDialog> createState() => _CustomActionDialogState();
+}
+
+class _CustomActionDialogState extends State<CustomActionDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 450),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => ScaleTransition(
+        scale: _scaleAnimation,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                )
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.icon, color: widget.iconColor, size: 70),
+                const SizedBox(height: 16),
+                Text(
+                  widget.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  widget.message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    // ❌ NEGATİF AKSİYON (Anasayfa vb.)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          widget.onNegativeAction();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          widget.negativeText,
+                          style: const TextStyle(
+                              color: Colors.grey, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // ✅ POZİTİF AKSİYON (Biletlerim vb.)
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          Navigator.pop(context);
+                          widget.onPositiveAction();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: widget.iconColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          widget.positiveText,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
