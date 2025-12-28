@@ -83,17 +83,15 @@ class LoginNotifier extends BaseNotifier<LoginState> {
   }
 
   Future<void> _handleUserLogin(final User firebaseUser) async {
-    if (firebaseUser.phoneNumber != null && state.isCodeSent) {
-      debugPrint("Otomatik login engellendi, SMS onayı bekleniyor...");
-      return;
-    }
-
     try {
       await firebaseUser.reload();
       final refreshedUser = _authService.currentUser;
+      if (refreshedUser == null) return;
 
-      if (refreshedUser == null) {
-        await _handleUserLogout();
+      // Anonim giriş engeli: Eğer gelen kullanıcı anonimse direkt çıkış yap
+      if (refreshedUser.isAnonymous) {
+        await _authService.signOut();
+        state = LoginState.loggedOut();
         return;
       }
 
@@ -102,19 +100,12 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
       await LocalStorageService.saveUserData(
         userId: refreshedUser.uid,
-        displayName: refreshedUser.displayName ?? 'User',
+        displayName: refreshedUser.displayName ?? 'Kullanıcı',
         email: refreshedUser.email ?? '',
         photoUrl: refreshedUser.photoURL ?? '',
         role: userRole,
-        isGuest: refreshedUser.isAnonymous,
       );
-
-      await _authService.saveFcmToken(refreshedUser.uid);
-
-      if (!refreshedUser.isAnonymous)
-        await _syncUserToFirestore(refreshedUser, userRole);
-    } catch (e, stack) {
-      logError(e, stack);
+    } catch (e) {
       setErrorState(e.toString());
     }
   }
@@ -179,7 +170,6 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         email: '',
         photoUrl: '',
         role: role,
-        isGuest: true,
       );
 
       // Auth listener state'i güncelleyecektir.

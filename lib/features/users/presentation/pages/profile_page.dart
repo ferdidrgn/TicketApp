@@ -184,68 +184,168 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       );
 
   Widget _buildGalleryInvitation(final ThemeData theme, final Color bg,
-          final Color light, final Color dark) =>
-      Container(
-        padding: const EdgeInsets.all(24),
-        decoration: _neuBox(bg, light, dark, borderRadius: 28),
-        child: Column(children: [
-          Icon(Icons.museum_outlined,
-              size: 48, color: theme.colorScheme.primary),
-          const SizedBox(height: 20),
-          ElevatedButton(
-              onPressed: () => context.push('/login'),
-              child: const Text('GALERİYE KATIL')),
-        ]),
-      );
-
-  Widget _buildArtisticActionList(
-          final LoginState state,
-          final ThemeData theme,
-          final bool isGuest,
-          final Color bg,
-          final Color light,
-          final Color dark) =>
-      Column(
+      final Color light, final Color dark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: _neuBox(bg, light, dark, borderRadius: 28),
+      child: Column(
         children: [
-          if (!isGuest) ...[
-            _buildArtisticTile(
-                theme,
-                Icons.edit_outlined,
-                'Portremi Düzenle',
-                'Profilini güncelle',
-                const Color(0xFF9C27B0),
-                bg,
-                light,
-                dark,
-                () => context.push('/profile-edit/${state.userId}')),
-            const SizedBox(height: 12),
-            _buildArtisticTile(
-                theme,
-                Icons.confirmation_number_outlined,
-                'Bilet Koleksiyonum',
-                'Biletlerini gör',
-                const Color(0xFF4CAF50),
-                bg,
-                light,
-                dark,
-                () {}),
-          ],
+          // Sanatsal İkon Grubu
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.primary.withOpacity(0.05),
+                ),
+              ),
+              Icon(Icons.auto_awesome,
+                  size: 40, color: theme.colorScheme.primary.withOpacity(0.5)),
+              const Positioned(
+                right: 10,
+                top: 10,
+                child: Icon(Icons.lock_outline, size: 20, color: Colors.grey),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            "ANILARINI ÖLÜMSÜZLEŞTİR",
+            style: theme.textTheme.labelMedium?.copyWith(letterSpacing: 2),
+          ),
           const SizedBox(height: 12),
-          _buildArtisticTile(
-              theme,
-              Icons.help_outline_outlined,
-              'Yardım & Destek',
-              'Sorularınız için',
-              const Color(0xFFFF9800),
-              bg,
-              light,
-              dark,
-              () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (final _) => const HelpSupportPage()))),
+          Text(
+            "Biletlerini saklamak, favori etkinliklerini takip etmek ve sana özel bir sanat günlüğü oluşturmak için giriş yap.",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: Colors.grey, height: 1.5),
+          ),
+          const SizedBox(height: 32),
+
+          // Hızlı Giriş Butonları
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: () => context.push('/login'),
+                  child: const Text('GİRİŞ YAP'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => context.push('/phone-login'),
+            child: Text('Telefon ile devam et',
+                style: TextStyle(color: theme.colorScheme.primary)),
+          ),
         ],
-      );
+      ),
+    );
+  }
+
+  Widget _buildArtisticActionList(final LoginState state, final ThemeData theme,
+      final bool isGuest, final Color bg, final Color light, final Color dark) {
+    return Column(
+      children: [
+        // Her zaman açık olan: Yardım & Destek
+        _buildArtisticTile(
+            theme,
+            Icons.help_outline_outlined,
+            'Yardım & Destek',
+            'Sorularınız için bizimle iletişime geçin',
+            const Color(0xFFFF9800),
+            bg,
+            light,
+            dark,
+            () => context.push('/help-support')),
+
+        const SizedBox(height: 12),
+
+        // Kilitli Özellik: Bilet Koleksiyonu
+        _buildLockedTile(
+            theme,
+            Icons.confirmation_number_outlined,
+            'Bilet Koleksiyonum',
+            'Tüm biletlerin burada sergilenir',
+            isGuest,
+            bg,
+            light,
+            dark),
+
+        const SizedBox(height: 12),
+
+        // Kilitli Özellik: Favoriler
+        _buildLockedTile(
+            theme,
+            Icons.favorite_border_rounded,
+            'Beğendiğim Eserler',
+            'İlham aldığın etkinlikler',
+            isGuest,
+            bg,
+            light,
+            dark),
+      ],
+    );
+  }
+
+// Kilitli Liste Elemanı Tasarımı
+  Widget _buildLockedTile(
+      final ThemeData theme,
+      final IconData icon,
+      final String title,
+      final String subtitle,
+      final bool isLocked,
+      final Color bg,
+      final Color light,
+      final Color dark) {
+    return Opacity(
+      opacity: isLocked ? 0.5 : 1.0,
+      child: GestureDetector(
+        onTap: isLocked ? () => context.push('/login') : null,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: _neuBox(bg, light, dark, borderRadius: 18),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.grey.withOpacity(0.1),
+                child: Icon(icon, color: Colors.grey, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(subtitle,
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              if (isLocked)
+                const Icon(Icons.lock_outline_rounded,
+                    size: 16, color: Colors.grey)
+              else
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    size: 14, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildStudioDecisionsList(
           final LoginState state,

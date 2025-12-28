@@ -27,23 +27,18 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
     refreshListenable: authNotifier,
     redirect: (final context, final state) {
       final currentPath = state.uri.path;
-
-      // ⚡ SMS kodu gönderildiyse, kullanıcı login olmuş görünse bile
-      // (Instant Verification olsa bile) OTP ekranında kalmasını zorla.
-      if (loginState.isCodeSent && currentPath == '/phone-login') {
-        return null;
-      }
-
-      if (loginState.isLoading && !loginState.hasError) return null;
-
       final isLoggedIn = loginState.isLoggedIn;
-      final isPublicPage =
-          currentPath == '/login' || currentPath == '/phone-login';
 
-      if (!isLoggedIn && !isPublicPage) return '/login';
+      // Korumalı sayfalar (Sadece giriş yapanlar girebilir)
+      final isProtectedPage = currentPath.startsWith('/profile-edit') ||
+          currentPath.startsWith('/my-tickets') ||
+          currentPath == '/favorites';
 
-      // Sadece kod gönderilmemişse ve gerçekten giriş yapılmışsa home'a git
-      if (isLoggedIn && isPublicPage && !loginState.isCodeSent) {
+      if (!isLoggedIn && isProtectedPage) return '/login';
+
+      // Login olan kişi login sayfasına tekrar gidemez
+      if (isLoggedIn &&
+          (currentPath == '/login' || currentPath == '/phone-login')) {
         return '/home';
       }
 

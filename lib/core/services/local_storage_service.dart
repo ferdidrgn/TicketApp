@@ -33,7 +33,6 @@ class LocalStorageService {
     required final String email,
     required final String photoUrl,
     required final String role,
-    required final bool isGuest,
   }) async {
     await _ensureInitialized();
     try {
@@ -44,7 +43,6 @@ class LocalStorageService {
         _prefs!.setString(_keyPhotoUrl, photoUrl),
         _prefs!.setString(_keyRole, role),
         _prefs!.setBool(_keyIsLoggedIn, true),
-        _prefs!.setBool(_keyIsGuest, isGuest),
       ]);
       return true;
     } catch (e) {
