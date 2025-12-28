@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../shared/widgets/button/custom_elevated_button.dart';
 import '../providers/login_provider.dart';
 import '../providers/login_state.dart';
 
@@ -12,17 +11,15 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     final loginState = ref.watch(loginProvider);
+    final theme = Theme.of(context);
 
-    // State dinleyici: Hata mesajları ve yönlendirme
     ref.listen<LoginState>(loginProvider, (final previous, final next) {
       if (next.hasError) {
         _showSnackBar(context, next.errorMessage!, isError: true);
         Future.microtask(() => ref.read(loginProvider.notifier).clearError());
       }
-
-      // Başarılı Google girişi sonrası profil tamamlamaya yönlendir
       if (next.isLoggedIn && next.loginMethod == 'google') {
-        if (context.mounted) context.go('/profile-edit/${next.userId}');
+        if (context.mounted) context.go('/home');
       }
     });
 
@@ -30,161 +27,172 @@ class LoginScreen extends ConsumerWidget {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Arka Plan Resmi
-          _buildBackgroundImage(),
+          // 1. Arka Plan Resmi (Opacity artırıldı, resim daha net)
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/book_logo.jpg',
+              fit: BoxFit.cover,
+              opacity: const AlwaysStoppedAnimation(0.8), // %80 görünürlük
+            ),
+          ),
 
-          // 2. Karartma Katmanı
-          Container(
-              decoration: BoxDecoration(color: Colors.black.withOpacity(0.4))),
-
-          // 3. Login İçeriği
-          _buildArtisticLoginForm(context, ref, loginState.isLoading),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBackgroundImage() {
-    return Positioned.fill(
-      child: Image.asset(
-        'assets/images/book_logo.jpg',
-        fit: BoxFit.cover,
-        errorBuilder: (final ctx, final err, final stack) =>
-            Container(color: Colors.grey[900]),
-      ),
-    );
-  }
-
-  Widget _buildArtisticLoginForm(
-      final BuildContext context, final WidgetRef ref, final bool isLoading) {
-    return SafeArea(
-      child: Center(
-        child: TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 800),
-          tween: Tween(begin: 0.0, end: 1.0),
-          builder: (final context, final value, final child) {
-            return Opacity(
-              opacity: value,
-              child: Transform.translate(
-                offset: Offset(0, 20 * (1 - value)),
-                child: child,
+          // 2. Hafif Gradyan Karartma (Sadece yazılar okunsun diye, resmi tamamen kapatmaz)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.2),
+                    Colors.black.withOpacity(0.6),
+                  ],
+                ),
               ),
-            );
-          },
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(32),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Başlık Bölümü
-                      const Icon(Icons.palette_outlined,
-                          size: 48, color: Colors.white70),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Sanat Yolculuğu\nBurada Başlar',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Deneyiminizi kişiselleştirmek için\ngiriş yapın.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
+            ),
+          ),
 
-                      // Giriş Butonları
-                      if (isLoading)
-                        const CircularProgressIndicator(color: Colors.white)
-                      else ...[
-                        _buildSocialButton(
-                          text: 'Google ile Bağlan',
-                          icon: Icons.g_mobiledata,
-                          onPressed: () => _handleGoogleSignIn(context, ref),
-                          color: Colors.white,
-                          textColor: Colors.black87,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSocialButton(
-                          text: 'Telefon ile Devam Et',
-                          icon: Icons.phone_iphone_rounded,
-                          onPressed: () => context.push('/phone-login'),
-                          color: Colors.white.withOpacity(0.15),
-                          textColor: Colors.white,
-                          isBordered: true,
-                        ),
-                      ],
-
-                      const SizedBox(height: 32),
-                      // Alt Bilgi
-                      Text(
-                        'Devam ederek kullanım koşullarını\nkabul etmiş sayılırsınız.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white30, fontSize: 10),
+          // 3. Login Formu (Blur azaltıldı: sigma 15 -> 5)
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    // Blur azaltıldı, arkası daha net
+                    child: Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        // Daha şeffaf siyah
+                        borderRadius: BorderRadius.circular(32),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.15)),
                       ),
-                    ],
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Parlayan Hero Icon
+                          _buildHeroIcon(theme),
+                          const SizedBox(height: 32),
+
+                          const Text(
+                            'SANATIN DÜNYASI',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 3,
+                              shadows: [
+                                Shadow(color: Colors.black, blurRadius: 10)
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 48),
+
+                          if (loginState.isLoading)
+                            const CircularProgressIndicator(color: Colors.white)
+                          else ...[
+                            // GOOGLE GRADIENT
+                            _buildGradientButton(
+                              text: 'GOOGLE İLE BAĞLAN',
+                              icon: Icons.g_mobiledata_rounded,
+                              colors: [
+                                const Color(0xFF4285F4),
+                                const Color(0xFF34A853)
+                              ],
+                              onTap: () => _handleGoogleSignIn(context, ref),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // PHONE GRADIENT
+                            _buildGradientButton(
+                              text: 'TELEFON İLE DEVAM ET',
+                              icon: Icons.phone_iphone_rounded,
+                              colors: [
+                                theme.colorScheme.primary,
+                                theme.colorScheme.secondary
+                              ],
+                              onTap: () => context.push('/phone-login'),
+                            ),
+                          ],
+
+                          const SizedBox(height: 40),
+                          const Text(
+                            '• KOLEKSİYONA HOŞ GELDİNİZ •',
+                            style: TextStyle(
+                                color: Colors.white70,
+                                letterSpacing: 2,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildSocialButton({
+  Widget _buildHeroIcon(final ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withOpacity(0.2),
+          // İkonun arkasını hafif karart ki belirgin olsun
+          border: Border.all(
+              color: theme.colorScheme.primary.withOpacity(0.5), width: 2),
+          boxShadow: [
+            BoxShadow(
+                color: theme.colorScheme.primary.withOpacity(0.2),
+                blurRadius: 20,
+                spreadRadius: 5)
+          ]),
+      child: const Icon(Icons.auto_awesome, size: 40, color: Colors.white),
+    );
+  }
+
+  Widget _buildGradientButton({
     required final String text,
     required final IconData icon,
-    required final VoidCallback onPressed,
-    required final Color color,
-    required final Color textColor,
-    final bool isBordered = false,
+    required final List<Color> colors,
+    required final VoidCallback onTap,
   }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: textColor,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: isBordered
-                ? BorderSide(color: Colors.white.withOpacity(0.3))
-                : BorderSide.none,
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: colors),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: colors.first.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 24),
+            Icon(icon, color: Colors.white, size: 28),
             const SizedBox(width: 12),
             Text(
               text,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2),
             ),
           ],
         ),
@@ -192,26 +200,18 @@ class LoginScreen extends ConsumerWidget {
     );
   }
 
+  // --- Atladığın metodlar varsa buraya ekleyebilirsin ---
   Future<void> _handleGoogleSignIn(
       final BuildContext context, final WidgetRef ref) async {
     final success = await ref.read(loginProvider.notifier).signInWithGoogle();
-    if (!success && context.mounted) {
-      _showSnackBar(context, 'Google girişi başarısız oldu.', isError: true);
-    }
+    if (!success && context.mounted)
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Giriş başarısız.')));
   }
 
-  void _showSnackBar(final BuildContext context, final String message,
-      {final bool isError = false}) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content:
-            Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: isError ? Colors.redAccent : Colors.greenAccent[700],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
+  void _showSnackBar(final BuildContext context, final String msg,
+          {final bool isError = false}) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          backgroundColor: isError ? Colors.red : Colors.green));
 }
