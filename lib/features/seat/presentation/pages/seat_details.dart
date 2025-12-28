@@ -413,8 +413,28 @@ class _SeatFab extends ConsumerWidget {
 
   void _process(final BuildContext ctx, final WidgetRef ref, final EventState s,
       final String method) {
+    // Önce BottomSheet'i kapat
     Navigator.pop(ctx);
-    ref.read(eventProvider.notifier).processPayment(method, s);
+
+    // 🛡️ SON ONAY DİALOGU
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (final dialogContext) => CustomActionDialog(
+        title: "SON ONAY",
+        message:
+            "${s.selectedSeats.length} koltuk için ${s.totalPrice.toStringAsFixed(2)} TL ödeme yapılacaktır. Onaylıyor musunuz?",
+        positiveText: "EVET, SATIN AL",
+        negativeText: "VAZGEÇ",
+        icon: Icons.shopping_cart_checkout_rounded,
+        iconColor: Colors.blueAccent,
+        onPositiveAction: () =>
+            ref.read(eventProvider.notifier).processPayment(method, s),
+        onNegativeAction: () {
+          // Kullanıcı vazgeçti, bir şey yapmaya gerek yok (Dialog zaten kapandı)
+        },
+      ),
+    );
   }
 }
 
