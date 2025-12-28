@@ -3,13 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
-import '../../../../core/config/router/page_transitions.dart';
-import '../../../../core/enum/enums.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
-import '../../../login/presentation/providers/login_provider.dart';
 import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
+import '../../../login/presentation/providers/login_provider.dart';
 import '../../../login/presentation/providers/login_state.dart';
-import '../../../seat/presentation/pages/seat_check.dart';
 import '../../domain/entities/user.dart' as entity;
 import '../providers/user_provider.dart';
 
