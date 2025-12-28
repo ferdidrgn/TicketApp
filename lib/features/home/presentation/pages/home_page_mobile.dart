@@ -86,12 +86,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: _showSearchInAppBar ? 70 : 0,
-        flexibleSpace: AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOutCubic,
-          height: _showSearchInAppBar ? 60 : 0,
-          child: SafeArea(
-            bottom: false,
+        flexibleSpace: SafeArea(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOutCubic,
+            height: _showSearchInAppBar ? 60 : 0,
             child: Padding(
               padding: EdgeInsets.only(
                   top: _showSearchInAppBar ? 8 : 0, left: 20, right: 20),
@@ -123,110 +122,105 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
       body: CustomAppBackground(
-        child: Stack(
+        child: ListView(
+          controller: _scrollController,
+          padding: const EdgeInsets.only(top: 20, bottom: 100),
+          // Top padding'i azalt
+          physics: const BouncingScrollPhysics(),
           children: [
-            // Main content - Üstten padding'i kaldırıyoruz
-            ListView(
-              controller: _scrollController,
-              padding: const EdgeInsets.only(top: 20, bottom: 100),
-              // Top padding'i azalt
-              physics: const BouncingScrollPhysics(),
-              children: [
-                // Hero text
-                const HeroSection(),
+            // Hero text
+            const HeroSection(),
 
-                // Artistic Search Bar (ana sayfa) - Normal boyutta
-                CustomSearchbar(onTap: _openSearch),
+            // Artistic Search Bar (ana sayfa) - Normal boyutta
+            CustomSearchbar(onTap: _openSearch),
 
-                const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-                // Stories (Campaigns)
-                SectionHeader(
-                  title: "Öne Çıkanlar",
-                  subtitle: "Vitrin",
-                  onTap: () => _navigateToPage(const CampaignShowcasePage()),
-                ),
-                StoryCircles(
-                  state: campaignState,
-                  onStoryTap: (final index) => _navigateToPage(
-                    CampaignShowcasePage(initialIndex: index),
-                  ),
-                ),
-                const DividerWithAccent(),
-                const SizedBox(height: 30),
-
-                // Categories
-                SectionHeader(
-                  title: "Kategoriler",
-                  subtitle: "Sanatın Renkleri",
-                  onTap: () {}, // TODO: Kategori sayfası
-                ),
-                const CategoryGrid(),
-                const DividerWithAccent(),
-                const SizedBox(height: 30),
-
-                // Discover Shows
-                SectionHeader(
-                  title: "Keşfet",
-                  subtitle: "Sana Özel Seçkiler",
-                  onTap: () {}, // TODO: Kategori sayfası
-                ),
-                ShowCollage(
-                  state: showState,
-                  onShowTap: (final showId) => _navigateToPage(
-                    ShowDetailPage(showId: showId),
-                  ),
-                ),
-                const DividerWithAccent(),
-                const SizedBox(height: 30),
-
-                // Venues
-                SectionHeader(
-                  title: "Mekanlar",
-                  subtitle: "Şehrin Sahneleri",
-                  onTap: () {}, // TODO: Mekanlar sayfası
-                ),
-                StageCarousel(
-                  state: stageState,
-                  onStageTap: (final stageId) => _navigateToPage(
-                    StageDetailPage(stageId: stageId),
-                  ),
-                ),
-                const DividerWithAccent(),
-                const SizedBox(height: 30),
-
-                // Special offer
-                const TicketStubCard(
-                  title: "Romeo & Juliet",
-                  subtitle: "%20 İndirim Fırsatı",
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
-                ),
-                const SizedBox(height: 30),
-
-                // Bottom extras
-                QuickActionsGrid(
-                  onNotificationsTap: () =>
-                      _navigateTo(const AppSettingsPage()),
-                  onFavoritesTap: () => _navigateTo(FavoritesPage()),
-                  onTicketsTap: () =>
-                      _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
-                  onCalendarTap: () {
-                    // TODO: Etkinlik takvimi
-                  },
-                ),
-                const SizedBox(height: 30),
-
-                const TrendingNowSection(),
-                const SizedBox(height: 30),
-
-                const NewsletterSubscribe(),
-                const SizedBox(height: 40),
-
-                const BottomQuote(),
-                const SizedBox(height: 20),
-              ],
+            // Stories (Campaigns)
+            SectionHeader(
+              title: "Öne Çıkanlar",
+              subtitle: "Vitrin",
+              onTap: () => _navigateToPage(const CampaignShowcasePage()),
             ),
+            StoryCircles(
+              state: campaignState,
+              onStoryTap: (final index) => _navigateToPage(
+                CampaignShowcasePage(initialIndex: index),
+              ),
+            ),
+            const DividerWithAccent(),
+            const SizedBox(height: 30),
+
+            // Categories
+            SectionHeader(
+              title: "Kategoriler",
+              subtitle: "Sanatın Renkleri",
+              onTap: () {}, // TODO: Kategori sayfası
+            ),
+            const CategoryGrid(),
+            const DividerWithAccent(),
+            const SizedBox(height: 30),
+
+            // Discover Shows
+            SectionHeader(
+              title: "Keşfet",
+              subtitle: "Sana Özel Seçkiler",
+              onTap: () {}, // TODO: Kategori sayfası
+            ),
+            ShowCollage(
+              state: showState,
+              onShowTap: (final showId) => _navigateToPage(
+                ShowDetailPage(showId: showId),
+              ),
+            ),
+            const DividerWithAccent(),
+            const SizedBox(height: 30),
+
+            // Venues
+            SectionHeader(
+              title: "Mekanlar",
+              subtitle: "Şehrin Sahneleri",
+              onTap: () {}, // TODO: Mekanlar sayfası
+            ),
+            StageCarousel(
+              state: stageState,
+              onStageTap: (final stageId) => _navigateToPage(
+                StageDetailPage(stageId: stageId),
+              ),
+            ),
+            const DividerWithAccent(),
+            const SizedBox(height: 30),
+
+            // Special offer
+            const TicketStubCard(
+              title: "Romeo & Juliet",
+              subtitle: "%20 İndirim Fırsatı",
+              imageUrl:
+                  'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
+            ),
+            const SizedBox(height: 30),
+
+            // Bottom extras
+            QuickActionsGrid(
+              onNotificationsTap: () =>
+                  _navigateTo(const AppSettingsPage()),
+              onFavoritesTap: () => _navigateTo(FavoritesPage()),
+              onTicketsTap: () =>
+                  _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
+              onCalendarTap: () {
+                // TODO: Etkinlik takvimi
+              },
+            ),
+            const SizedBox(height: 30),
+
+            const TrendingNowSection(),
+            const SizedBox(height: 30),
+
+            const NewsletterSubscribe(),
+            const SizedBox(height: 40),
+
+            const BottomQuote(),
+            const SizedBox(height: 20),
           ],
         ),
       ),

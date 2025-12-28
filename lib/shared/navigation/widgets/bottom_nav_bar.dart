@@ -57,15 +57,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
       child: Scaffold(
         extendBody: true,
         extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          title: Text(
-            'TiyatRol ',
-            style: context.textTheme.headlineLarge
-                ?.copyWith(fontSize: 30, color: Colors.white),
-          ),
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-        ),
         body: IndexedStack(index: _selectedIndex, children: _pages),
         bottomNavigationBar: SafeArea(
           top: false, // Üstten boşluk bırakma
