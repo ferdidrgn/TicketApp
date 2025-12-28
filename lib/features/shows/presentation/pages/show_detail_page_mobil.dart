@@ -8,7 +8,7 @@ import 'package:ticketapp/features/events/presentation/providers/event_provider.
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_provider.dart';
-import 'package:ticketapp/shared/widgets/galerry_section.dart';
+import 'package:ticketapp/shared/widgets/gallery_section.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/button/glass_back_button.dart';
 import '../../../../shared/widgets/section_header.dart';
@@ -172,20 +172,32 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  void _handleTicketPurchase(final String eventId) {
-    final userId =
-        ref.read(loginProvider).userId ?? LocalStorageService.userId ?? "";
+  Future<void> _handleTicketPurchase(final String eventId) async {
+    String? userId = ref.read(loginProvider).userId;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (final _) => SeatSelectionScreen(
-          showId: widget.showId,
-          eventId: eventId,
-          customerId: userId,
+    // 3. Eğer Provider'da yoksa, şifreli depolamadan (Secure Storage) çekiyoruz
+    if (userId == null || userId.isEmpty)
+      userId = await LocalStorageService.userId;
+
+    if (userId == null || userId.isEmpty) {
+      if (context.mounted)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Bilet almak için lütfen giriş yapın.")));
+      return;
+    }
+
+    // 5. Veri geldiğinde ve sayfa hala ekrandaysa (mounted) yönlendirme yapıyoruz
+    if (context.mounted)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (final _) => SeatSelectionScreen(
+            showId: widget.showId,
+            eventId: eventId,
+            customerId: userId!,
+          ),
         ),
-      ),
-    );
+      );
   }
 }
 // YARDIMCI WIDGETLAR (Hepsi tek dosyada)

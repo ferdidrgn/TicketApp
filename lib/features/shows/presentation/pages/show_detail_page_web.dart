@@ -7,7 +7,7 @@ import 'package:ticketapp/core/constants/app_constants.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/util/responsive_utils.dart';
 import '../../../../shared/widgets/error_stage_widget_web.dart';
-import '../../../../shared/widgets/galerry_section.dart';
+import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../events/presentation/providers/event_state.dart';

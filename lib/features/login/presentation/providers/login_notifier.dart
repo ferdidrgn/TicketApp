@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import '../../../../core/common/base_notifier.dart';
+import '../../../../core/enum/enums.dart';
 import '../../../../core/services/local_storage_service.dart';
 import '../../../auth/presentation/providers/auth_service.dart';
 import '../../../users/domain/entities/user.dart' as entity;
@@ -41,28 +41,16 @@ class LoginNotifier extends BaseNotifier<LoginState> {
 
   Future<void> _startAuthListener() async {
     try {
-      await LocalStorageService.init();
-
-      Future.delayed(const Duration(seconds: 5), () {
-        if (ref.mounted && state.isLoading) {
-          state = state.copyWith(
-              isLoading: false,
-              errorMessage:
-                  "Bağlantı kurulamadı. Lütfen internetinizi kontrol edin.");
-        }
-      });
-
-      final User? initialUser = _authService.currentUser;
-      if (initialUser != null) {
-        await _handleUserLogin(initialUser);
-      } else {
-        state = LoginState.loggedOut();
-      }
-
       _authStateSubscription = _authService.authStateChanges.listen(
         _handleAuthStateChange,
         onError: (final error) => setErrorState("Bağlantı Hatası: $error"),
       );
+
+      final User? initialUser = _authService.currentUser;
+      if (initialUser != null)
+        await _handleUserLogin(initialUser);
+      else
+        state = LoginState.loggedOut();
 
       _isInitialized = true;
     } catch (e) {
@@ -75,11 +63,10 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       _isManualSignOut = false;
       return;
     }
-    if (firebaseUser != null) {
+    if (firebaseUser != null)
       await _handleUserLogin(firebaseUser);
-    } else {
+    else
       await _handleUserLogout();
-    }
   }
 
   Future<void> _handleUserLogin(final User firebaseUser) async {
@@ -95,8 +82,10 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         return;
       }
 
-      String userRole = LocalStorageService.userRole ?? 'user';
-      state = LoginState.fromUser(refreshedUser, userRole);
+      final UserRole userRole = await LocalStorageService.userRole;
+
+      // state.copyWith veya LoginState.fromUser metodunuzun UserRole kabul ettiğinden emin olun
+      state = LoginState.fromUser(refreshedUser, userRole.name);
 
       await LocalStorageService.saveUserData(
         userId: refreshedUser.uid,
@@ -140,14 +129,12 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       clearErrorState();
 
       final user = await _authService.signInAnonymously();
-
       if (user == null) {
-        setErrorState('Anonim giriş başarısız oldu.');
+        setErrorState('Anonim giriş başarısız.');
         return false;
       }
 
-      // ⚡ Anonim kullanıcı için zorunlu kayıt işlemleri
-      final String role = 'guest'; // Varsayılan rol
+      const UserRole role = UserRole.guest;
 
       // 1. FCM Token kaydet
       await _authService.saveFcmToken(user.uid);
@@ -159,11 +146,10 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         email: '',
         photoUrl: '',
         phoneNumber: '',
-        role: role,
+        role: role.name,
         isPhoneActive: false,
       );
 
-      // 3. Local Storage güncelle
       await LocalStorageService.saveUserData(
         userId: user.uid,
         displayName: 'Ziyaretçi',
@@ -172,11 +158,9 @@ class LoginNotifier extends BaseNotifier<LoginState> {
         role: role,
       );
 
-      // Auth listener state'i güncelleyecektir.
       return true;
-    } catch (e, stack) {
-      logError(e, stack);
-      setErrorState('Anonim hata: ${e.toString()}');
+    } catch (e) {
+      setErrorState(e.toString());
       return false;
     }
   }
@@ -254,7 +238,9 @@ class LoginNotifier extends BaseNotifier<LoginState> {
       _isManualSignOut = true;
       final userId = _authService.currentUser?.uid;
       if (userId != null) await _authService.clearFcmToken(userId);
+
       await LocalStorageService.clearAllUserData();
+
       _timer?.cancel();
       await _authService.signOut();
       state = LoginState.loggedOut();

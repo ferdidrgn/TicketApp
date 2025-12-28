@@ -1,8 +1,9 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../enum/enums.dart';
 
-/// 🔐 Merkezi Local Storage Servisi
 class LocalStorageService {
-  static SharedPreferences? _prefs;
+  // 🔐 Secure Storage instance'ı oluşturulur
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   // Storage Keys
   static const String _keyUserId = 'user_id';
@@ -13,36 +14,25 @@ class LocalStorageService {
   static const String _keyIsLoggedIn = 'is_logged_in';
   static const String _keyIsGuest = 'is_guest';
 
-  /// Initialize SharedPreferences
-  static Future<void> init() async =>
-      _prefs ??= await SharedPreferences.getInstance();
-
-  /// Ensure initialization
-  static Future<void> _ensureInitialized() async {
-    if (_prefs == null) await init();
-  }
-
   // ========================================
-  // SAVE OPERATIONS
+  // SAVE OPERATIONS (Şifreli Kayıt)
   // ========================================
 
-  /// 💾 Save complete user data
   static Future<bool> saveUserData({
     required final String userId,
     required final String displayName,
     required final String email,
     required final String photoUrl,
-    required final String role,
+    required final UserRole role,
   }) async {
-    await _ensureInitialized();
     try {
       await Future.wait([
-        _prefs!.setString(_keyUserId, userId),
-        _prefs!.setString(_keyDisplayName, displayName),
-        _prefs!.setString(_keyEmail, email),
-        _prefs!.setString(_keyPhotoUrl, photoUrl),
-        _prefs!.setString(_keyRole, role),
-        _prefs!.setBool(_keyIsLoggedIn, true),
+        _storage.write(key: _keyUserId, value: userId),
+        _storage.write(key: _keyDisplayName, value: displayName),
+        _storage.write(key: _keyEmail, value: email),
+        _storage.write(key: _keyPhotoUrl, value: photoUrl),
+        _storage.write(key: _keyRole, value: role.name),
+        _storage.write(key: _keyIsLoggedIn, value: 'true'),
       ]);
       return true;
     } catch (e) {
@@ -50,24 +40,20 @@ class LocalStorageService {
     }
   }
 
-  /// 💾 En temel kullanıcı verilerini yerel hafızaya kaydeder
   static Future<bool> saveEssentialUserData({
     required final String uid,
     final String? displayName,
-    final String? role,
+    final UserRole? role,
     final String? photoUrl,
   }) async {
-    await _ensureInitialized();
     try {
-      await Future.wait([
-        _prefs!.setString(_keyUserId, uid),
-        if (displayName != null)
-          _prefs!.setString(_keyDisplayName, displayName),
-        if (role != null) _prefs!.setString(_keyRole, role),
-        if (photoUrl != null)
-          _prefs!.setString(_keyPhotoUrl, photoUrl),
-        _prefs!.setBool(_keyIsLoggedIn, true),
-      ]);
+      await _storage.write(key: _keyUserId, value: uid);
+      if (displayName != null)
+        await _storage.write(key: _keyDisplayName, value: displayName);
+      if (role != null) await _storage.write(key: _keyRole, value: role.name);
+      if (photoUrl != null)
+        await _storage.write(key: _keyPhotoUrl, value: photoUrl);
+      await _storage.write(key: _keyIsLoggedIn, value: 'true');
       return true;
     } catch (e) {
       return false;
@@ -75,114 +61,88 @@ class LocalStorageService {
   }
 
   // ========================================
-  // GET OPERATIONS
+  // GET OPERATIONS (Secure Storage Asenkrondur)
   // ========================================
 
-  /// 📖 Get user ID
-  static String? get userId => _prefs?.getString(_keyUserId);
+  /// Genel okuma metodu (Theme vb. için)
+  static Future<String?> readSecureData(final String key) async =>
+      await _storage.read(key: key);
 
-  /// 📖 Get display name
-  static String? get displayName => _prefs?.getString(_keyDisplayName);
+  /// Genel yazma metodu
+  static Future<void> writeSecureData(
+          final String key, final String value) async =>
+      await _storage.write(key: key, value: value);
 
-  /// 📖 Get email
-  static String? get email => _prefs?.getString(_keyEmail);
+  static Future<String?> get userId async =>
+      await _storage.read(key: _keyUserId);
 
-  /// 📖 Get photo URL
-  static String? get photoUrl => _prefs?.getString(_keyPhotoUrl);
+  static Future<String?> get displayName async =>
+      await _storage.read(key: _keyDisplayName);
 
-  /// 📖 Get user role
-  static String? get userRole => _prefs?.getString(_keyRole);
+  static Future<String?> get email async => await _storage.read(key: _keyEmail);
 
-  /// 📖 Check if logged in
-  static bool get isLoggedIn => _prefs?.getBool(_keyIsLoggedIn) ?? false;
+  static Future<String?> get photoUrl async =>
+      await _storage.read(key: _keyPhotoUrl);
 
-  /// 📖 Check if guest
-  static bool get isGuest => _prefs?.getBool(_keyIsGuest) ?? false;
-
-  /// 📖 Get all user data as Map
-  static Map<String, dynamic> getUserData() => {
-        'userId': userId,
-        'displayName': displayName,
-        'email': email,
-        'photoUrl': photoUrl,
-        'role': userRole,
-        'isLoggedIn': isLoggedIn,
-        'isGuest': isGuest,
-      };
-
-  /// 📖 Get essential user data
-  static Map<String, dynamic>? getEssentialUserData() {
-    final uid = userId;
-    if (uid == null) return null;
-
-    return {
-      'userId': uid,
-      'displayName': displayName ?? 'User',
-      'email': email ?? '',
-      'photoURL': photoUrl ?? '',
-      'role': userRole ?? 'user',
-    };
+  /// 📖 Rolü Enum olarak güvenli bir şekilde döner
+  static Future<UserRole> get userRole async {
+    final roleStr = await _storage.read(key: _keyRole);
+    return UserRole.fromString(roleStr);
   }
+
+  static Future<bool> get isLoggedIn async {
+    final val = await _storage.read(key: _keyIsLoggedIn);
+    return val == 'true';
+  }
+
+  static Future<bool> get isGuest async {
+    final val = await _storage.read(key: _keyIsGuest);
+    return val == 'true';
+  }
+
+  static Future<Map<String, dynamic>> getUserData() async => {
+        'userId': await userId,
+        'displayName': await displayName,
+        'email': await email,
+        'photoUrl': await photoUrl,
+        'role': (await userRole).name,
+        'isLoggedIn': await isLoggedIn,
+        'isGuest': await isGuest,
+      };
 
   // ========================================
   // DELETE OPERATIONS
   // ========================================
 
-  /// 🗑️ Clear all user data
-  static Future<bool> clearAllUserData() async {
-    await _ensureInitialized();
-    try {
-      await Future.wait([
-        _prefs!.remove(_keyUserId),
-        _prefs!.remove(_keyDisplayName),
-        _prefs!.remove(_keyEmail),
-        _prefs!.remove(_keyPhotoUrl),
-        _prefs!.remove(_keyRole),
-        _prefs!.remove(_keyIsLoggedIn),
-        _prefs!.remove(_keyIsGuest),
-      ]);
-      return true;
-    } catch (e) {
-      return false;
-    }
+  static Future<void> clearAllUserData() async {
+    await _storage.delete(key: _keyUserId);
+    await _storage.delete(key: _keyDisplayName);
+    await _storage.delete(key: _keyEmail);
+    await _storage.delete(key: _keyPhotoUrl);
+    await _storage.delete(key: _keyRole);
+    await _storage.delete(key: _keyIsLoggedIn);
+    await _storage.delete(key: _keyIsGuest);
   }
 
-  /// 🗑️ Clear specific key
-  static Future<bool> clearKey(final String key) async {
-    await _ensureInitialized();
-    try {
-      await _prefs!.remove(key);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  static Future<void> clearKey(final String key) async =>
+      await _storage.delete(key: key);
 
-  /// 🗑️ Clear all storage
-  static Future<bool> clearAll() async {
-    await _ensureInitialized();
-    try {
-      await _prefs!.clear();
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  static Future<void> clearAll() async => await _storage.deleteAll();
 
   // ========================================
   // UTILITY
   // ========================================
 
-  /// Check if user data exists
-  static bool get hasUserData => userId != null && isLoggedIn;
-
-  /// Get login method from providers    // This should be saved during login
-  static String getLoginMethod() =>
-      _prefs?.getString('login_method') ?? 'unknown';
-
-  /// Save login method
-  static Future<void> saveLoginMethod(final String method) async {
-    await _ensureInitialized();
-    await _prefs!.setString('login_method', method);
+  static Future<bool> get hasUserData async {
+    final uid = await userId;
+    final loggedIn = await isLoggedIn;
+    return uid != null && loggedIn;
   }
+
+  static Future<void> saveLoginMethod(final String method) async {
+    await _storage.write(key: 'login_method', value: method);
+  }
+
+  static Future<String> getLoginMethod() async =>
+      await _storage.read(key: 'login_method') ?? 'unknown';
 }

@@ -19,13 +19,16 @@ Future<void> firebaseMessagingBackgroundHandler(
 
 abstract final class AppInitializer {
   static Future<void> init() async {
+    // 1. Flutter bindings başlatılması (En önce bu gelmeli)
     WidgetsFlutterBinding.ensureInitialized();
 
     // 🌐 Web URL stratejisi (# işaretini kaldırır)
     if (PlatformChecker.isWeb) usePathUrlStrategy();
 
-    // 💾 Yerel Veri Depolama
-    await LocalStorageService.init();
+    // 💾 Yerel Veri Depolama (Secure Storage'ın init()'e ihtiyacı yoktur)
+    // Eğer SharedPreferences kullanmaya devam edecekseniz init kalsın,
+    // ama Secure Storage'da bu satırı siliyoruz veya sadece log basıyoruz.
+    debugPrint('🔐 Güvenli depolama hazır.');
 
     // 🔥 Firebase Temel Kurulum
     await _initFirebase();
@@ -55,9 +58,12 @@ abstract final class AppInitializer {
   }
 
   static void _setupCrashlytics() {
-    if (kIsWeb) return; // Crashlytics web'de tam desteklenmez
+    if (kIsWeb) return;
 
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+
     PlatformDispatcher.instance.onError = (final error, final stack) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       return true;
@@ -68,6 +74,7 @@ abstract final class AppInitializer {
     if (!PlatformChecker.isWeb) {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
         systemNavigationBarColor: Colors.transparent,
       ));
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

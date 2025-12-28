@@ -54,7 +54,7 @@ dependencies:
   audioplayers: ^6.0.0   #Ses Oynatıcısı
 
   # Yerel Depolama
-  shared_preferences:  # Kalıcı veri depolamak için.
+  flutter_secure_storage: ^9.2.2  # Kalıcı veri depolamak için.
 
   # Servis Lokasyonu
   connectivity_plus: ^6.0.3
