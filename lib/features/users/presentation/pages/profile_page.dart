@@ -166,12 +166,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   // --- MODÜLER YARDIMCI METOTLAR (Parametresiz ve Optimize) ---
 
   Widget _buildSculptedTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    bool isLocked = false,
-    required Color color,
-    required VoidCallback onTap,
+    required final IconData icon,
+    required final String title,
+    required final String subtitle,
+    final bool isLocked = false,
+    required final Color color,
+    required final VoidCallback onTap,
   }) =>
       Opacity(
         opacity: isLocked ? 0.5 : 1.0,
@@ -220,7 +220,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  Widget _buildNeumorphicPortrait(LoginState state, entity.User? user) =>
+  Widget _buildNeumorphicPortrait(final LoginState state, final entity.User? user) =>
       Container(
         padding: const EdgeInsets.all(32),
         decoration: _neuBox(borderRadius: 32),
@@ -262,7 +262,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  Widget _buildStat(String label, String value) => Column(children: [
+  Widget _buildStat(final String label, final String value) => Column(children: [
         Text(value,
             style: TextStyle(
                 fontWeight: FontWeight.w900,
@@ -276,7 +276,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 letterSpacing: 1.5)),
       ]);
 
-  Widget _buildSectionLabel(String text) => Align(
+  Widget _buildSectionLabel(final String text) => Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 16, top: 8),
@@ -288,7 +288,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 letterSpacing: 3)),
       ));
 
-  BoxDecoration _neuBox({double borderRadius = 15, bool invert = false}) =>
+  BoxDecoration _neuBox({final double borderRadius = 15, final bool invert = false}) =>
       BoxDecoration(
         color: _bgColor,
         borderRadius: BorderRadius.circular(borderRadius),
@@ -355,7 +355,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  Widget _buildArtisticHeader(bool isGuest) => Column(
+  Widget _buildArtisticHeader(final bool isGuest) => Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
