@@ -13,7 +13,7 @@ import '../../../features/shows/presentation/pages/show_detail_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';
 import '../../errors/not_found_page.dart';
 
-/// 🛣️ App Router with Clean Auth Logic
+/// 🛣️ TiyatRol Büyülü Router Yapılandırması
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final loginState = ref.watch(loginProvider);
   final authNotifier = ValueNotifier(loginState);
@@ -23,142 +23,135 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
   });
 
   return GoRouter(
-    initialLocation: '/home',
-    refreshListenable: authNotifier,
-    redirect: (final context, final state) {
-      final currentPath = state.uri.path;
-      final isLoggedIn = loginState.isLoggedIn;
+      initialLocation: '/home',
+      refreshListenable: authNotifier,
+      redirect: (final context, final state) {
+        final currentPath = state.uri.path;
+        final isLoggedIn = loginState.isLoggedIn;
 
-      // Korumalı sayfalar (Sadece giriş yapanlar girebilir)
-      final isProtectedPage = currentPath.startsWith('/profile-edit') ||
-          currentPath.startsWith('/my-tickets') ||
-          currentPath == '/favorites';
+        // Korumalı sayfalar (Sadece giriş yapanlar girebilir)
+        final isProtectedPage = currentPath.startsWith('/profile-edit') ||
+            currentPath.startsWith('/my-tickets') ||
+            currentPath == '/favorites';
 
-      if (!isLoggedIn && isProtectedPage) return '/login';
+        if (!isLoggedIn && isProtectedPage) return '/login';
 
-      // Login olan kişi login sayfasına tekrar gidemez
-      if (isLoggedIn &&
-          (currentPath == '/login' || currentPath == '/phone-login')) {
-        return '/home';
-      }
+        // Login olan kişi login sayfasına tekrar gidemez
+        if (isLoggedIn &&
+            (currentPath == '/login' || currentPath == '/phone-login'))
+          return '/home';
 
-      return null;
-    },
-    routes: [
-      // HOME
-      GoRoute(
-        path: '/home',
-        name: 'home',
-        pageBuilder: (final context, final state) {
-          final startAnimations = state.extra is Map
-              ? (state.extra! as Map)['startAnimations'] ?? false
-              : false;
-          return CustomTransitionPage(
+        return null;
+      },
+      routes: [
+        // HOME
+        GoRoute(
+          path: '/home',
+          name: 'home',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
             key: state.pageKey,
-            child: AppHomePage(startAnimations: startAnimations),
+            child: const AppHomePage(),
+            transitionsBuilder: curtainTransition, // Perde efekti
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        ),
+
+        // 👁️ GÖSTERİ DETAY: Bir esere odaklanma hissi (Focal Blur)
+        GoRoute(
+          path: '/show/:id',
+          name: 'showDetail',
+          pageBuilder: (final context, final state) {
+            final showId = state.pathParameters['id']!;
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: ShowDetailPage(showId: showId),
+              transitionsBuilder: focalTransition, // Odaklanma efekti
+              transitionDuration: const Duration(milliseconds: 900),
+            );
+          },
+        ),
+
+        // ✨ GİRİŞ EKRANI: Gizemli bir parlayış (Shimmer)
+        GoRoute(
+          path: '/login',
+          name: 'login',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const LoginScreen(),
+            transitionsBuilder: shimmerSlideTransition,
+            transitionDuration: const Duration(milliseconds: 700),
+          ),
+        ),
+
+        // 🚪 TELEFON GİRİŞ: Kapıdan geçiş hissi (Shadow Gate)
+        GoRoute(
+          path: '/phone-login',
+          name: 'phoneLogin',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const PhoneLogInPage(),
+            transitionsBuilder: shadowGateTransition, // Kapı efekti
+            transitionDuration: const Duration(milliseconds: 750),
+          ),
+        ),
+
+        // PROFILE EDIT
+        GoRoute(
+          path: '/profile-edit/:userId',
+          name: 'profileEdit',
+          pageBuilder: (final context, final state) {
+            final userId = state.pathParameters['userId']!;
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: UserProfileEditScreen(userId: userId),
+              transitionsBuilder: fadeTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            );
+          },
+        ),
+
+        // 📜 BİLETLERİM: Parşömen kayması
+        GoRoute(
+          path: '/my-tickets/:userId',
+          name: 'myTickets',
+          pageBuilder: (final context, final state) {
+            final userId = state.pathParameters['userId']!;
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: MyTicketPage(userId: userId),
+              transitionsBuilder: scrollSlideTransition, // Parşömen efekti
+              transitionDuration: const Duration(milliseconds: 700),
+            );
+          },
+        ),
+
+        // ❤️ FAVORİLER: Sinematik kararma
+        GoRoute(
+          path: '/favorites',
+          name: 'favorites',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const FavoritesPage(),
+            transitionsBuilder: cinematicFadeTransition,
+            // Perde arası kararma
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        ),
+
+        // Diğer sayfalar için varsayılan yumuşak geçiş
+        GoRoute(
+          path: '/onboarding',
+          name: 'onboarding',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const OnboardingContainer(),
             transitionsBuilder: fadeTransition,
-            transitionDuration: const Duration(milliseconds: 500),
-          );
-        },
-      ),
-
-      // ONBOARDING
-      GoRoute(
-        path: '/onboarding',
-        name: 'onboarding',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const OnboardingContainer(),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 600),
+            transitionDuration: const Duration(milliseconds: 600),
+          ),
         ),
-      ),
+      ],
 
-      // LOGIN
-      GoRoute(
-        path: '/login',
-        name: 'login',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const LoginScreen(),
-          transitionsBuilder: slideTransition,
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
-      ),
-
-      // PHONE LOGIN
-      GoRoute(
-        path: '/phone-login',
-        name: 'phoneLogin',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const PhoneLogInPage(),
-          transitionsBuilder: slideTransition,
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
-      ),
-
-      // PROFILE EDIT
-      GoRoute(
-        path: '/profile-edit/:userId',
-        name: 'profileEdit',
-        pageBuilder: (final context, final state) {
-          final userId = state.pathParameters['userId']!;
-          return CustomTransitionPage(
-            key: state.pageKey,
-            child: UserProfileEditScreen(userId: userId),
-            transitionsBuilder: fadeTransition,
-            transitionDuration: const Duration(milliseconds: 500),
-          );
-        },
-      ),
-
-      // SHOW DETAIL
-      GoRoute(
-        path: '/show/:id',
-        name: 'showDetail',
-        pageBuilder: (final context, final state) {
-          final showId = state.pathParameters['id']!;
-          return CustomTransitionPage(
-            key: state.pageKey,
-            child: ShowDetailPage(showId: showId),
-            transitionsBuilder: scaleTransition,
-            transitionDuration: const Duration(milliseconds: 500),
-          );
-        },
-      ),
-
-      // MY TICKETS
-      GoRoute(
-        path: '/my-tickets/:userId',
-        name: 'myTickets',
-        pageBuilder: (final context, final state) {
-          final userId = state.pathParameters['userId']!;
-          return CustomTransitionPage(
-            key: state.pageKey,
-            child: MyTicketPage(userId: userId),
-            // Kendi sayfa isminle kontrol et
-            transitionsBuilder: slideTransition,
-            transitionDuration: const Duration(milliseconds: 400),
-          );
-        },
-      ),
-
-      // FAVORITES
-      GoRoute(
-        path: '/favorites',
-        name: 'favorites',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const FavoritesPage(),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
-      ),
-    ],
-
-    // 404 Error Page
-    errorBuilder: (final context, final state) =>
-        NotFoundPage(errorPath: state.uri.path),
-  );
+      // 404 Error Page
+      errorBuilder: (final context, final state) =>
+          NotFoundPage(errorPath: state.uri.path));
 });
