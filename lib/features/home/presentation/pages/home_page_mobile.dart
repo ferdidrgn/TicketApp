@@ -78,10 +78,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     final loginState = ref.watch(loginProvider);
 
     return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       backgroundColor: context.isDarkMode
           ? const Color(0xFF0F0F0F)
           : const Color(0xFFFAFAFA),
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -120,7 +121,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
       ),
-      floatingActionButton: CustomFloatingActionButton(onPressed: _loadAllData),
       body: CustomAppBackground(
         child: ListView(
           controller: _scrollController,
@@ -144,9 +144,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             StoryCircles(
               state: campaignState,
-              onStoryTap: (final index) => _navigateToPage(
-                CampaignShowcasePage(initialIndex: index),
-              ),
+              onStoryTap: (final index) =>
+                  _navigateToPage(CampaignShowcasePage(initialIndex: index)),
             ),
             const DividerWithAccent(),
             const SizedBox(height: 30),
