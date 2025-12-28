@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
-import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
 import '../../../login/presentation/providers/login_provider.dart';
+import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
 import '../../../login/presentation/providers/login_state.dart';
 import '../../domain/entities/user.dart' as entity;
 import '../providers/user_provider.dart';
@@ -25,26 +25,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ProfileDeleteAccountHandler,
         ProfilePhoneLinkHandler,
         ProfileGoogleLinkHandler {
+  // Gölgeler ve renkler için getter'lar tanımlayarak metot parametrelerini azalttık
+  Color get _lightShadow =>
+      context.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.white;
+
+  Color get _darkShadow => context.isDarkMode
+      ? Colors.black.withOpacity(0.5)
+      : Colors.grey.withOpacity(0.4);
+
+  Color get _bgColor => context.theme.colorScheme.surface;
+
   @override
   Widget build(final BuildContext context) {
     final loginState = ref.watch(loginProvider);
     final userDetail = ref.watch(userProvider).dataSingle;
-    final theme = context.theme;
     final bool isUserLoggedIn = loginState.isLoggedIn;
 
-    // Arka planı daha dolgun, gölgeleri daha belirgin yapıyoruz
-    final Color bgColor = theme.colorScheme.surface;
-    final Color lightShadow = context.isDarkMode
-        ? Colors.white.withOpacity(0.1) // Karanlık modda biraz daha parlak ışık
-        : Colors.white;
-    final Color darkShadow = context.isDarkMode
-        ? Colors.black.withOpacity(0.5) // Daha derin siyah gölge
-        : Colors.grey.withOpacity(0.4);
-
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: _bgColor,
       body: CustomAppBackground(
-        backgroundColor: bgColor,
+        backgroundColor: _bgColor,
         ambientColor: Colors.black,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -52,145 +52,108 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           child: SafeArea(
             child: Column(
               children: [
-                _buildArtisticHeader(theme, !isUserLoggedIn),
+                _buildArtisticHeader(!isUserLoggedIn),
                 const SizedBox(height: 32),
 
                 // 1. KİMLİK PORTRESİ VEYA SESSİZ SAHNE DAVETİ
                 if (isUserLoggedIn)
-                  _buildNeumorphicPortrait(loginState, userDetail, theme,
-                      bgColor, lightShadow, darkShadow)
+                  _buildNeumorphicPortrait(loginState, userDetail)
                 else
-                  _buildSilentStageInvitation(
-                      theme, bgColor, lightShadow, darkShadow),
+                  _buildSilentStageInvitation(),
 
                 const SizedBox(height: 40),
 
                 // 2. ATMOSFER VE AYARLAR
-                _buildSectionLabel(theme, "ATMOSFER VE TEKNİK"),
-                const ThemeSelectorCard(), // Tema seçici
+                _buildSectionLabel("ATMOSFER VE TEKNİK"),
+                const ThemeSelectorCard(),
                 const SizedBox(height: 16),
                 _buildSculptedTile(
-                  theme: theme,
                   icon: Icons.settings_suggest_rounded,
                   title: 'Atölye Ayarları',
                   subtitle: 'Bildirimler, dil ve teknik tercihler',
-                  isLocked: false,
                   color: Colors.blueGrey,
-                  bg: bgColor,
-                  l: lightShadow,
-                  d: darkShadow,
                   onTap: () => context.push('/settings'),
                 ),
 
                 const SizedBox(height: 40),
 
-                // 3. RUHUN İZLERİ (Deneyimler)
-                _buildSectionLabel(theme, "RUHUN İZLERİ"),
+                // 3. RUHUN İZLERİ
+                _buildSectionLabel("RUHUN İZLERİ"),
                 _buildSculptedTile(
-                    theme: theme,
-                    icon: Icons.auto_stories_rounded,
-                    title: 'Tanıklık Günlüğü',
-                    subtitle: 'Sahne tozunu yuttuğun tüm anların dökümü',
-                    isLocked: !isUserLoggedIn,
-                    color: const Color(0xFF6366F1),
-                    bg: bgColor,
-                    l: lightShadow,
-                    d: darkShadow,
-                    onTap: () =>
-                        context.push('/my-tickets/${loginState.userId}')),
-                const SizedBox(height: 16),
-                _buildSculptedTile(
-                    theme: theme,
-                    icon: Icons.auto_awesome_mosaic_rounded,
-                    title: 'İlham Galerisi',
-                    subtitle: 'Zihninde yankılanan seçilmiş eserler',
-                    isLocked: !isUserLoggedIn,
-                    color: const Color(0xFFEC4899),
-                    bg: bgColor,
-                    l: lightShadow,
-                    d: darkShadow,
-                    onTap: () => context.push('/favorites')),
-
-                const SizedBox(height: 40),
-
-                // 4. KİMLİK ATÖLYESİ (Profil ve Destek)
-                _buildSectionLabel(theme, "KİMLİK ATÖLYESİ"),
-                _buildSculptedTile(
-                    theme: theme,
-                    icon: Icons.brush_rounded,
-                    title: 'Fırça İzlerim',
-                    subtitle: 'Kendi portreni ve sanatsal kimliğini yorumla',
-                    isLocked: !isUserLoggedIn,
-                    color: theme.colorScheme.primary,
-                    bg: bgColor,
-                    l: lightShadow,
-                    d: darkShadow,
-                    onTap: () =>
-                        context.push('/profile-edit/${loginState.userId}')),
-                const SizedBox(height: 16),
-                _buildSculptedTile(
-                    theme: theme,
-                    icon: Icons.map_rounded,
-                    title: 'Serüven Rehberi',
-                    subtitle: 'Soruların için küratörle temas kur',
-                    isLocked: false,
-                    color: const Color(0xFF10B981),
-                    bg: bgColor,
-                    l: lightShadow,
-                    d: darkShadow,
-                    onTap: () => context.push('/help-support')),
-
-                const SizedBox(height: 40),
-
-                // 5. ATÖLYE YASALARI (Terms & Conditions)
-                _buildSectionLabel(theme, "YASAL YÜKÜMLÜLÜKLER"),
-                _buildSculptedTile(
-                  theme: theme,
-                  icon: Icons.gavel_rounded,
-                  title: 'Atölye Sözleşmesi',
-                  subtitle:
-                      'Kullanım şartları, Üyelik koşulları, Kişisel verilerin korunması ve KVKK rehberi',
-                  isLocked: false,
-                  color: Colors.brown.shade400,
-                  bg: bgColor,
-                  l: lightShadow,
-                  d: darkShadow,
-                  onTap: () => context.push('/contracts'), // Kullanım Şartları
+                  icon: Icons.auto_stories_rounded,
+                  title: 'Tanıklık Günlüğü',
+                  subtitle: 'Sahne tozunu yuttuğun tüm anların dökümü',
+                  isLocked: !isUserLoggedIn,
+                  color: const Color(0xFF6366F1),
+                  onTap: () => context.push('/my-tickets/${loginState.userId}'),
                 ),
                 const SizedBox(height: 16),
+                _buildSculptedTile(
+                  icon: Icons.auto_awesome_mosaic_rounded,
+                  title: 'İlham Galerisi',
+                  subtitle: 'Zihninde yankılanan seçilmiş eserler',
+                  isLocked: !isUserLoggedIn,
+                  color: const Color(0xFFEC4899),
+                  onTap: () => context.push('/favorites'),
+                ),
+
+                const SizedBox(height: 40),
+
+                // 4. KİMLİK ATÖLYESİ
+                _buildSectionLabel("KİMLİK ATÖLYESİ"),
+                _buildSculptedTile(
+                  icon: Icons.brush_rounded,
+                  title: 'Fırça İzlerim',
+                  subtitle: 'Kendi portreni ve sanatsal kimliğini yorumla',
+                  isLocked: !isUserLoggedIn,
+                  color: context.theme.colorScheme.primary,
+                  onTap: () =>
+                      context.push('/profile-edit/${loginState.userId}'),
+                ),
+                const SizedBox(height: 16),
+                _buildSculptedTile(
+                  icon: Icons.map_rounded,
+                  title: 'Serüven Rehberi',
+                  subtitle: 'Soruların için küratörle temas kur',
+                  color: const Color(0xFF10B981),
+                  onTap: () => context.push('/help-support'),
+                ),
+
+                const SizedBox(height: 40),
+
+                // 5. ATÖLYE YASALARI
+                _buildSectionLabel("YASAL YÜKÜMLÜLÜKLER"),
+                _buildSculptedTile(
+                  icon: Icons.gavel_rounded,
+                  title: 'Atölye Sözleşmesi',
+                  subtitle: 'Kullanım şartları ve KVKK rehberi',
+                  color: Colors.brown.shade400,
+                  onTap: () => context.push('/contracts'),
+                ),
 
                 // 6. SİSTEMSEL KARARLAR
                 if (isUserLoggedIn) ...[
                   const SizedBox(height: 40),
-                  _buildSectionLabel(theme, "SON DOKUNUŞLAR"),
+                  _buildSectionLabel("SON DOKUNUŞLAR"),
                   _buildSculptedTile(
-                      theme: theme,
-                      icon: Icons.logout_rounded,
-                      title: 'Atölyeyi Kapat',
-                      subtitle: 'Serüveni şimdilik mühürle ve ayrıl',
-                      isLocked: false,
-                      color: Colors.orange.shade800,
-                      bg: bgColor,
-                      l: lightShadow,
-                      d: darkShadow,
-                      onTap: () => showSignOutDialog(context, ref)),
+                    icon: Icons.logout_rounded,
+                    title: 'Atölyeyi Kapat',
+                    subtitle: 'Serüveni şimdilik mühürle ve ayrıl',
+                    color: Colors.orange.shade800,
+                    onTap: () => showSignOutDialog(context, ref),
+                  ),
                   const SizedBox(height: 16),
                   _buildSculptedTile(
-                      theme: theme,
-                      icon: Icons.delete_forever_rounded,
-                      title: 'Koleksiyonu Yak',
-                      subtitle:
-                          'Tüm izlerini ve hatıralarını kalıcı olarak sil',
-                      isLocked: false,
-                      color: Colors.red.shade900,
-                      bg: bgColor,
-                      l: lightShadow,
-                      d: darkShadow,
-                      onTap: () => showDeleteAccountDialog(
-                          context, ref, loginState.userId!)),
+                    icon: Icons.delete_forever_rounded,
+                    title: 'Koleksiyonu Yak',
+                    subtitle: 'Tüm izlerini ve hatıralarını kalıcı olarak sil',
+                    color: Colors.red.shade900,
+                    onTap: () => showDeleteAccountDialog(
+                        context, ref, loginState.userId!),
+                  ),
                 ],
 
-                _buildSoulReflection(theme),
+                _buildSoulReflection(),
                 const SizedBox(height: 100),
               ],
             ),
@@ -200,18 +163,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-// --- GELİŞTİRİLMİŞ TILE (Yazılar kalınlaştırıldı ve kontrast artırıldı) ---
+  // --- MODÜLER YARDIMCI METOTLAR (Parametresiz ve Optimize) ---
+
   Widget _buildSculptedTile({
-    required ThemeData theme,
     required IconData icon,
     required String title,
     required String subtitle,
-    required bool isLocked,
+    bool isLocked = false,
     required Color color,
-    required Color bg,
-    required Color l,
-    required Color d,
-    VoidCallback? onTap,
+    required VoidCallback onTap,
   }) =>
       Opacity(
         opacity: isLocked ? 0.5 : 1.0,
@@ -219,12 +179,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           onTap: isLocked ? () => context.push('/login') : onTap,
           child: Container(
             padding: const EdgeInsets.all(20),
-            decoration: _neuBox(bg, l, d, borderRadius: 24),
+            decoration: _neuBox(borderRadius: 24),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: _neuBox(bg, l, d, borderRadius: 16, invert: true),
+                  decoration: _neuBox(borderRadius: 16, invert: true),
                   child: Icon(icon, color: color, size: 26),
                 ),
                 const SizedBox(width: 20),
@@ -232,169 +192,141 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800, // Daha kalın font
-                          fontSize: 16,
-                          color: theme.colorScheme.onSurface, // Tam kontrast
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                      Text(title,
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              color: context.theme.colorScheme.onSurface,
+                              letterSpacing: 0.5)),
                       const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                          // Okunabilir gri
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text(subtitle,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: context.theme.colorScheme.onSurface
+                                  .withOpacity(0.7),
+                              fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
                 Icon(
-                  isLocked
-                      ? Icons.lock_person_rounded
-                      : Icons.chevron_right_rounded,
-                  size: 24,
-                  color: color.withOpacity(0.8),
-                ),
+                    isLocked
+                        ? Icons.lock_person_rounded
+                        : Icons.chevron_right_rounded,
+                    size: 24,
+                    color: color.withOpacity(0.8)),
               ],
             ),
           ),
         ),
       );
 
-// --- GELİŞTİRİLMİŞ PORTRE (Okunabilirlik Odaklı) ---
-  Widget _buildNeumorphicPortrait(LoginState state, entity.User? user,
-          ThemeData theme, Color bg, Color l, Color d) =>
+  Widget _buildNeumorphicPortrait(LoginState state, entity.User? user) =>
       Container(
         padding: const EdgeInsets.all(32),
-        decoration: _neuBox(bg, l, d, borderRadius: 32),
+        decoration: _neuBox(borderRadius: 32),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: _neuBox(bg, l, d, borderRadius: 100, invert: true),
+              decoration: _neuBox(borderRadius: 100, invert: true),
               child: CircleAvatar(
                 radius: 55,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                backgroundColor:
+                    context.theme.colorScheme.primary.withOpacity(0.1),
                 backgroundImage: NetworkImage(state.photoUrl ?? ''),
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              (state.displayName ?? 'İSİMSİZ ŞAHİT').toUpperCase(),
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 22,
-                color: theme.colorScheme.onSurface,
-                letterSpacing: 2,
-              ),
-            ),
+            Text((state.displayName ?? 'İSİMSİZ ŞAHİT').toUpperCase(),
+                style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: context.theme.colorScheme.onSurface,
+                    letterSpacing: 2)),
             const SizedBox(height: 6),
-            Text(
-              user?.city ?? "Bilinmeyen Şehir",
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
+            Text(user?.city ?? "Bilinmeyen Şehir",
+                style: TextStyle(
+                    color: context.theme.colorScheme.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13)),
             const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat(theme, 'HAFIZA', '${user?.ticketsId.length ?? 0}'),
-                _buildStat(theme, 'ŞAHİTLİK', '12'),
-                _buildStat(theme, 'DİKKAT', '8.9'),
+                _buildStat('HAFIZA', '${user?.ticketsId.length ?? 0}'),
+                _buildStat('ŞAHİTLİK', '12'),
+                _buildStat('DİKKAT', '8.9'),
               ],
             ),
           ],
         ),
       );
 
-  Widget _buildStat(ThemeData theme, String label, String value) =>
-      Column(children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 22,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: theme.colorScheme.primary.withOpacity(0.8),
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-          ),
-        ),
+  Widget _buildStat(String label, String value) => Column(children: [
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+                color: context.theme.colorScheme.onSurface)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 10,
+                color: context.theme.colorScheme.primary.withOpacity(0.8),
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5)),
       ]);
 
-  Widget _buildSectionLabel(ThemeData theme, String text) => Align(
+  Widget _buildSectionLabel(String text) => Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 16, top: 8),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w900,
-            fontSize: 12, // Biraz büyütüldü
-            letterSpacing: 3,
-          ),
-        ),
+        child: Text(text,
+            style: TextStyle(
+                color: context.theme.colorScheme.primary,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                letterSpacing: 3)),
       ));
 
-// --- DAHA KESKİN GÖLGELİ NEUBOX ---
-  BoxDecoration _neuBox(final Color bg, final Color l, final Color d,
-          {final double borderRadius = 15, final bool invert = false}) =>
+  BoxDecoration _neuBox({double borderRadius = 15, bool invert = false}) =>
       BoxDecoration(
-        color: bg,
+        color: _bgColor,
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: invert
             ? [
                 BoxShadow(
-                    color: d,
+                    color: _darkShadow,
                     offset: const Offset(3, 3),
                     blurRadius: 6,
                     spreadRadius: 1),
                 BoxShadow(
-                    color: l,
+                    color: _lightShadow,
                     offset: const Offset(-3, -3),
                     blurRadius: 6,
                     spreadRadius: 1),
               ]
             : [
                 BoxShadow(
-                    color: d,
-                    offset: const Offset(10, 10), // Gölge mesafesi artırıldı
+                    color: _darkShadow,
+                    offset: const Offset(10, 10),
                     blurRadius: 20,
                     spreadRadius: 2),
                 BoxShadow(
-                    color: l,
+                    color: _lightShadow,
                     offset: const Offset(-10, -10),
                     blurRadius: 20,
                     spreadRadius: 2),
               ],
       );
 
-// --- 🪄 SESSİZ SAHNE DAVETİYESİ (YENİ METAFOR) ---
-  Widget _buildSilentStageInvitation(final ThemeData theme, final Color bg,
-          final Color l, final Color d) =>
-      Container(
+  Widget _buildSilentStageInvitation() => Container(
         padding: const EdgeInsets.all(40),
-        decoration: _neuBox(bg, l, d, borderRadius: 32),
+        decoration: _neuBox(borderRadius: 32),
         child: Column(
           children: [
             Icon(Icons.theater_comedy_rounded,
-                size: 56, color: theme.colorScheme.primary.withOpacity(0.4)),
+                size: 56,
+                color: context.theme.colorScheme.primary.withOpacity(0.4)),
             const SizedBox(height: 24),
             const Text("SAHNE ŞİMDİLİK SESSİZ",
                 style: TextStyle(
@@ -423,54 +355,51 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  Widget _buildArtisticHeader(final ThemeData theme, final bool isGuest) =>
-      Column(
+  Widget _buildArtisticHeader(bool isGuest) => Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: _neuBox(theme.colorScheme.surface,
-                Colors.white.withOpacity(0.05), Colors.black.withOpacity(0.2),
-                borderRadius: 100),
+            decoration: _neuBox(borderRadius: 100),
             child: Icon(Icons.auto_awesome,
-                size: 32, color: theme.colorScheme.primary),
+                size: 32, color: context.theme.colorScheme.primary),
           ),
           const SizedBox(height: 24),
           Text('DENEYİM KÜRATÖRÜ',
-              style: theme.textTheme.labelMedium?.copyWith(
+              style: context.theme.textTheme.labelMedium?.copyWith(
                   letterSpacing: 5, fontSize: 10, color: Colors.grey)),
           const SizedBox(height: 12),
           Text(
-            isGuest ? 'Kendi Hikayeni\nKaleme Al' : 'Tanıklığın\nKarakterindir',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.w900, fontSize: 26, letterSpacing: -0.5),
-          ),
+              isGuest
+                  ? 'Kendi Hikayeni\nKaleme Al'
+                  : 'Tanıklığın\nKarakterindir',
+              textAlign: TextAlign.center,
+              style: context.theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 26,
+                  letterSpacing: -0.5)),
         ],
       );
 
-  Widget _buildSoulReflection(final ThemeData theme) => Padding(
+  Widget _buildSoulReflection() => Padding(
         padding: const EdgeInsets.only(top: 60),
         child: Column(
           children: [
-            const Text(
-              "UNUTMA; GERÇEK SANAT ESERİ,\nİNSANIN KENDİ HAYATIDIR.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  letterSpacing: 2,
-                  height: 1.5),
-            ),
+            const Text("UNUTMA; GERÇEK SANAT ESERİ,\nİNSANIN KENDİ HAYATIDIR.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    letterSpacing: 2,
+                    height: 1.5)),
             const SizedBox(height: 12),
             Text(
-              "Tanık olduğun her sahne, ruhundaki o büyük yapbozun bir parçasıdır.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey.shade600,
-                  fontSize: 12,
-                  height: 1.5),
-            ),
+                "Tanık olduğun her sahne, ruhundaki o büyük yapbozun bir parçasıdır.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                    height: 1.5)),
           ],
         ),
       );
