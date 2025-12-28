@@ -8,7 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import '../services/app_check_service.dart';
 import '../services/fcm_manager_service.dart';
-import '../services/local_storage_service.dart';
 import '../util/platform_checker.dart';
 import 'firebase_options.dart';
 
