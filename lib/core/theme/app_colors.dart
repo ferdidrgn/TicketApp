@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 /// WEB UYGULAMASI RENKLERİ
 class WebColors {
@@ -81,6 +82,9 @@ class AppLightColors {
   static const Color textPrimary = Color(0xFF000000);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textDisabled = Color(0xFF94A3B8);
+
+  static const Color border = Color(0xFFE2E8F0);
+  static const Color divider = Color(0xFFF1F5F9);
 }
 
 /// MOBIL UYGULAMA - KARANLIK TEMA RENKLERİ
@@ -104,3 +108,12 @@ class AppDarkColors {
   static const Color textSecondary = Color(0xFFB0B0B0);
   static const Color textDisabled = Color(0xFF666666);
 }
+
+List<Color> gradientColors(final BuildContext context, final isTrue) => isTrue
+    ? (context.theme.brightness == Brightness.light
+        ? [Colors.red.shade300, Colors.red.shade900]
+        : [Colors.pink[500]!, Colors.purple[600]!])
+    : [Colors.grey[500]!, Colors.grey[800]!];
+
+List<Color> gradientOpacityColors() =>
+    [Colors.transparent, Colors.black.withOpacity(0.3)];

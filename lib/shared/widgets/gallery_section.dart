@@ -26,9 +26,7 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
   Widget build(final BuildContext context) {
     if (widget.photos.isEmpty)
       return const EmptyStateMessage(
-        message: 'Galeri boş.',
-        icon: Icons.photo_library,
-      );
+          message: 'Galeri boş.', icon: Icons.photo_library);
 
     final isMobile = context.isMobile;
     final isTablet = context.isTablet;
@@ -89,10 +87,8 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
         (photos.length / AppConstants.galleryItemsPerPage).ceil();
 
     final start = _currentPage * AppConstants.galleryItemsPerPage;
-    final end = math.min(
-      start + AppConstants.galleryItemsPerPage,
-      photos.length,
-    );
+    final end =
+        math.min(start + AppConstants.galleryItemsPerPage, photos.length);
 
     return Column(
       children: [
@@ -152,31 +148,30 @@ class _GalleryItem extends ConsumerWidget {
   });
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    return GestureDetector(
-      onTap: () {
-        ref.read(galleryProvider.notifier).setCurrentIndex(index);
+  Widget build(final BuildContext context, final WidgetRef ref) =>
+      GestureDetector(
+        onTap: () {
+          ref.read(galleryProvider.notifier).setCurrentIndex(index);
 
-        showDialog(
-          context: context,
-          barrierColor: Colors.black.withOpacity(0.95),
-          builder: (final _) => GalleryViewerDialog(
-            images: allPhotos,
-            isMobile: isMobile,
+          showDialog(
+            context: context,
+            barrierColor: Colors.black.withOpacity(0.95),
+            builder: (final _) => GalleryViewerDialog(
+              images: allPhotos,
+              isMobile: isMobile,
+            ),
+          ).then((final _) {
+            ref.read(galleryProvider.notifier).reset();
+          });
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: OptimizedCachedImage(
+            imageUrl: url,
+            fit: BoxFit.cover,
           ),
-        ).then((final _) {
-          ref.read(galleryProvider.notifier).reset();
-        });
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: OptimizedCachedImage(
-          imageUrl: url,
-          fit: BoxFit.cover,
         ),
-      ),
-    );
-  }
+      );
 }
 
 /// ------------------------------------------------------------
@@ -213,9 +208,8 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
     super.dispose();
   }
 
-  void _onPageChanged(final int index) {
-    ref.read(galleryProvider.notifier).setCurrentIndex(index);
-  }
+  void _onPageChanged(final int index) =>
+      ref.read(galleryProvider.notifier).setCurrentIndex(index);
 
   @override
   Widget build(final BuildContext context) {
@@ -473,20 +467,18 @@ class _NavBtn extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6),
-          shape: BoxShape.circle,
+  Widget build(final BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.6),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white),
         ),
-        child: Icon(icon, color: Colors.white),
-      ),
-    );
-  }
+      );
 }
 
 class GalleryPaginationControls extends StatelessWidget {
@@ -502,37 +494,35 @@ class GalleryPaginationControls extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Color(0xFF1a1a2e).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _PageButton(
-            icon: Icons.arrow_back_ios_rounded,
-            enabled: currentPage > 0,
-            onTap: () => onPageChanged(currentPage - 1),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            '${currentPage + 1} / $totalPages',
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(width: 16),
-          _PageButton(
-            icon: Icons.arrow_forward_ios_rounded,
-            enabled: currentPage < totalPages - 1,
-            onTap: () => onPageChanged(currentPage + 1),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(final BuildContext context) => Container(
+        margin: const EdgeInsets.only(top: 20),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1a1a2e).withOpacity(0.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _PageButton(
+              icon: Icons.arrow_back_ios_rounded,
+              enabled: currentPage > 0,
+              onTap: () => onPageChanged(currentPage - 1),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              '${currentPage + 1} / $totalPages',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(width: 16),
+            _PageButton(
+              icon: Icons.arrow_forward_ios_rounded,
+              enabled: currentPage < totalPages - 1,
+              onTap: () => onPageChanged(currentPage + 1),
+            ),
+          ],
+        ),
+      );
 }
 
 class _PageButton extends StatelessWidget {
@@ -547,27 +537,27 @@ class _PageButton extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return MouseRegion(
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: enabled ? Color(0xFFD4AF37) : Colors.grey.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            icon,
-            color: enabled ? Color(0xFF0a0a1a) : Colors.white38,
-            size: 16,
+  Widget build(final BuildContext context) => MouseRegion(
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        child: GestureDetector(
+          onTap: enabled ? onTap : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: enabled
+                  ? const Color(0xFFD4AF37)
+                  : Colors.grey.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: enabled ? const Color(0xFF0a0a1a) : Colors.white38,
+              size: 16,
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class GalleryNavButton extends StatelessWidget {
@@ -581,32 +571,30 @@ class GalleryNavButton extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: Color(0xFF1a1a2e).withOpacity(0.8),
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Color(0xFFD4AF37)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.5),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Icon(
-            icon,
-            color: Color(0xFFD4AF37),
-            size: 24,
+  Widget build(final BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1a1a2e).withOpacity(0.8),
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: const Color(0xFFD4AF37)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFFD4AF37),
+              size: 24,
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }

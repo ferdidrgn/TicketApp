@@ -28,13 +28,11 @@ class OptimizedCachedImage extends StatelessWidget {
     required final BuildContext context,
     final double? width,
     final double? height,
-  }) {
-    return CachedNetworkImageProvider(
+  }) => CachedNetworkImageProvider(
       imageUrl,
       maxWidth: _calculateCacheSize(context, width),
       maxHeight: _calculateCacheSize(context, height),
     );
-  }
 
   @override
   Widget build(final BuildContext context) {
