@@ -1,41 +1,6 @@
 {
   "hosting": [
     {
-      "target": "ekip",
-      "public": "build/web",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "rewrites": [
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
-      ],
-      "headers": [
-        {
-          "source": "**/index.html",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache, no-store, must-revalidate"
-            }
-          ]
-        },
-        {
-          "source": "**/*.@(js|css|html)",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "max-age=0, no-cache"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "target": "ana",
       "public": "build/web",
       "ignore": [
@@ -43,13 +8,16 @@
         "**/.*",
         "**/node_modules/**"
       ],
-      "rewrites": [
+      "headers": [
         {
           "source": "**",
-          "destination": "/index.html"
-        }
-      ],
-      "headers": [
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "index, follow"
+            }
+          ]
+        },
         {
           "source": "**/index.html",
           "headers": [
@@ -60,13 +28,63 @@
           ]
         },
         {
-          "source": "**/*.@(js|css|html)",
+          "source": "**/*.@(js|css|png|jpg|jpeg|svg|webp)",
           "headers": [
             {
               "key": "Cache-Control",
-              "value": "max-age=0, no-cache"
+              "value": "public, max-age=31536000, immutable"
             }
           ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "ekip",
+      "public": "build/web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "index, follow"
+            }
+          ]
+        },
+        {
+          "source": "**/index.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(js|css|png|jpg|jpeg|svg|webp)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
         }
       ]
     }

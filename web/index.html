@@ -1,34 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
+    <!-- Flutter Base -->
     <base href="$FLUTTER_BASE_HREF">
-    <meta charset="UTF-8">
-    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-    <meta name="description" content="TiyatRol - Tiyatro Bilet Satış Uygulaması">
 
-    <!-- iOS meta tags & icons -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+
+    <!-- ================= SEO ================= -->
+    <title>TiyatRol - Ekip Bilgisi ve Oyunlar</title>
+
+    <meta name="description"
+          content="TiyatRol Ekibi'nin tiyatro oyunları, biyografisi, görselleri, sahneleri, deneyimleri... Kısacası birçok içeriğe yer veriyoruz.">
+
+    <meta name="application-name" content="TiyatRol">
+
+    <link rel="canonical" href="https://tiyatrol.web.app/"/>
+
+    <!-- ================= OPEN GRAPH ================= -->
+    <meta property="og:site_name" content="TiyatRol">
+    <meta property="og:title" content="TiyatRol Ekibi ve Oyunları">
+    <meta property="og:description"
+          content="TiyatRol Ekibi'nin tiyatro oyunları, biyografisi, görselleri, sahneleri, deneyimleri... Kısacası birçok içeriğe yer veriyoruz.">
+    <meta property="og:url" content="https://tiyatrol.web.app">
+    <meta property="og:type" content="website">
+
+    <!-- ================= STRUCTURED DATA (SITE NAME + NICKNAME) ================= -->
+
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "TiyatRol",
+            "alternateName": [
+                "TiyatRol",
+                "TiyatRol"
+            ],
+            "url": "https://tiyatrol.web.app"
+        }
+    </script>
+
+    <!-- ================= ADSENSE ================= -->
+    <script async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5779807348211992"
+            crossorigin="anonymous">
+    </script>
+
+    <!-- ================= CACHE CONTROL ================= -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- ================= PWA / iOS ================= -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="ticketapp">
+    <meta name="apple-mobile-web-app-title" content="Tiyatrol">
+    <link rel="apple-touch-icon" href="tiyatrol_logo.png">
 
-    <!-- 🎯 MOBİL WEB: Viewport ayarları -->
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- ================= FAVICON ================= -->
+    <link rel="icon" type="image/png" href="tiyatrol_logo.png">
 
-    <!-- 🎯 MOBİL WEB: Video autoplay izni -->
-    <meta name="mobile-web-app-capable" content="yes">
-
-    <title>TiyatRol</title>
+    <!-- ================= MANIFEST ================= -->
     <link rel="manifest" href="manifest.json">
 </head>
+
 <body>
 
-<!-- 🎯 KRİTİK: HTML Renderer ayarı (Mobil video için) -->
-<script>
-    // HTML renderer zorla (mobil video oynatma için gerekli)
-    window.flutterWebRenderer = "html";
-</script>
+<!-- ================= BOTLAR İÇİN STATİK SEO İÇERİK ================= -->
+<noscript>
+    <header>
+        <h1>TiyatRol – TiyatRol Ekibi ve Oyunları</h1>
+        <p>TiyatRol Ekibi'nin tiyatro oyunları, biyografisi, görselleri, sahneleri, deneyimleri...</p>
+    </header>
 
-<script src="main.dart.js" type="application/javascript"></script>
+    <section>
+        <h2>Hizmetlerimiz</h2>
+        <ul>
+            <li>TiyatRol ekibi bilet alım satımı</li>
+            <li>Tiyatro bilet satışları</li>
+            <li>TiyatRol Ekibi</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Kurumsal</h2>
+        <p>
+            TiyatRol Ekibi'nin tiyatro oyunları, biyografisi, görselleri, sahneleri, deneyimleri...
+        </p>
+    </section>
+
+    <footer>
+        <p>© 2025 TiyatRol</p>
+    </footer>
+</noscript>
+
+<!-- ================= FLUTTER ================= -->
+<script src="flutter_bootstrap.js" async></script>
+
 </body>
 </html>
