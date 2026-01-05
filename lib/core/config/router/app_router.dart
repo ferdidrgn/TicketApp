@@ -11,6 +11,7 @@ import '../../../features/login/presentation/pages/login_screen.dart';
 import '../../../features/login/presentation/pages/phone_login_page.dart';
 import '../../../features/login/presentation/providers/login_provider.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
+import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
 import '../../../features/shows/presentation/pages/show_detail_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';
@@ -150,6 +151,20 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
             child: const OnboardingContainer(),
             transitionsBuilder: fadeTransition,
             transitionDuration: const Duration(milliseconds: 600),
+          ),
+        ),
+
+        // 🔍 SEARCH
+        GoRoute(
+          path: '/search',
+          name: '/search',
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const SearchPage(),
+            // Senin ayarlar sayfanın class adı
+            transitionsBuilder: focalTransition,
+            // Odaklanma efekti (gizemli)
+            transitionDuration: const Duration(milliseconds: 700),
           ),
         ),
 
