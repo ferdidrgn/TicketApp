@@ -7,48 +7,52 @@ import 'package:ticketapp/features/discovery/presentation/pages/nearby_events_pa
 import 'package:ticketapp/features/home/presentation/pages/home_page_mobile.dart';
 import 'package:ticketapp/features/users/presentation/pages/profile_page.dart';
 
-class BottomNavBar extends StatefulWidget {
-  const BottomNavBar({super.key});
+/// 🔑 DIŞARIDAN ERİŞİM İÇİN GLOBAL KEY
+final GlobalKey<MobileBottomNavBarState> bottomNavBarKey =
+    GlobalKey<MobileBottomNavBarState>();
+
+class MobileBottomNavBar extends StatefulWidget {
+  const MobileBottomNavBar({super.key});
 
   @override
-  BottomNavBarState createState() => BottomNavBarState();
+  MobileBottomNavBarState createState() => MobileBottomNavBarState();
 }
 
-/// 🔥 STATE ARTIK PUBLIC
-class BottomNavBarState extends State<BottomNavBar> {
+class MobileBottomNavBarState extends State<MobileBottomNavBar> {
   int _selectedIndex = 0;
-  String? selectedCategoryTitle;
+  String? _selectedCategory;
 
-  @override
-  void initState() {
-    super.initState();
-    debugPrint('✅ BottomNavBarState INIT');
-  }
+  final GlobalKey<CurvedNavigationBarState> _navKey =
+      GlobalKey<CurvedNavigationBarState>();
 
-  /// 🔑 DIŞARIDAN ÇAĞRILAN METOT
-  void changeTabWithCategory(int index, String? category) {
+  void changeTabWithCategory(final int index, final String? category) {
     debugPrint('➡️ changeTabWithCategory: $index | $category');
+
     setState(() {
       _selectedIndex = index;
-      selectedCategoryTitle = category;
+      _selectedCategory = category;
     });
+
+    // CurvedNavigationBar senkronu
+    _navKey.currentState?.setPage(index);
   }
 
-  void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-  }
+  void _onItemTapped(final int index) => setState(() {
+        _selectedIndex = index;
+        _selectedCategory = null; // manuel geçişte reset
+      });
 
   List<Widget> get _pages => [
         const HomePage(),
-        DiscoveryPage(selectedCategory: selectedCategoryTitle),
+        DiscoveryPage(selectedCategory: _selectedCategory),
         const NearbyEventsPage(),
         const ProfilePage(),
       ];
 
   @override
-  Widget build(BuildContext context) {
-    final navTheme = context.theme.bottomNavigationBarTheme;
-    final barColor = navTheme.selectedItemColor ?? context.theme.primaryColor;
+  Widget build(final BuildContext context) {
+    final barColor = context.theme.bottomNavigationBarTheme.selectedItemColor ??
+        context.theme.colorScheme.primary;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -64,11 +68,12 @@ class BottomNavBarState extends State<BottomNavBar> {
         ),
         bottomNavigationBar: SafeArea(
           child: CurvedNavigationBar(
+            key: _navKey,
+            index: _selectedIndex,
+            height: 60,
             backgroundColor: Colors.transparent,
             color: barColor,
             buttonBackgroundColor: barColor,
-            height: 60,
-            index: _selectedIndex,
             items: const [
               Icon(Icons.home, size: 30, color: Colors.white),
               Icon(Icons.event_seat_sharp, size: 30, color: Colors.white),

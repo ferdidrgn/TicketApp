@@ -30,6 +30,37 @@ class WebBarState extends State<WebBar> {
   final ValueNotifier<String> _activeSection = ValueNotifier<String>('home');
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_detectActiveSection);
+  }
+
+  void _detectActiveSection() {
+    final sections = {
+      'shows': _showsKey,
+      'artistic': _artisticKey,
+      'about': _aboutKey,
+      'team': _teamKey,
+      'contact': _contactKey,
+    };
+
+    for (final entry in sections.entries) {
+      final context = entry.value.currentContext;
+      if (context == null) continue;
+
+      final box = context.findRenderObject() as RenderBox;
+      final offset = box.localToGlobal(Offset.zero).dy;
+
+      if (offset < 150 && offset > -300) {
+        _activeSection.value = entry.key;
+        return;
+      }
+    }
+
+    _activeSection.value = 'home';
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _activeSection.dispose();
@@ -150,10 +181,11 @@ class _WebNavBarState extends State<WebNavBar>
   @override
   Widget build(final BuildContext context) => AnimatedBuilder(
         animation: _controller,
-        builder: (final _, final __) => Container(
+        builder: (final _, final __) => DecoratedBox(
           height: context.responsive(mobile: 70, desktop: 80),
           decoration: _navDecoration,
-          child: (context.screenWidth < 1100)
+          child: SizedBox(
+              height: context.responsive(mobile: 70, desktop: 80)
               ? _mobileNav(context)
               : _desktopNav(context),
         ),

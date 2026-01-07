@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/shared/navigation/widgets/bottom_nav_bar.dart';
+import 'package:ticketapp/shared/navigation/widgets/mobile_bottom_nav_bar.dart';
 import '../../../../../shared/navigation/providers/navigation_keys.dart';
 
 // Mobil için kullanılacak ana widget'ı döndürür
@@ -8,5 +8,5 @@ class AppHomePage extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) =>
-      BottomNavBar(key: NavigationKeys.mobileNavKey);
+      MobileBottomNavBar(key: NavigationKeys.mobileNavKey);
 }
