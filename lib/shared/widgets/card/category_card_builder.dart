@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../navigation/widgets/bottom_nav_bar.dart';
+import '../../providers/navigation_service.dart';
 
 class CategoryCardBuilder extends StatelessWidget {
   final List<Map<String, Object>>? categories;
@@ -40,32 +42,31 @@ class CategoryCardBuilder extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryCard(final String title, final IconData icon, final BuildContext context) {
-    return InkWell(
-        onTap: () {
-          // Tıklanan kategori ile BottomNavBar'daki Discover sekmesine geçiş yapıyoruz
-          BottomNavBar.of(context)?.changeTabWithCategory(1, title); // "Discover" sekmesine geçiyoruz
-        },
-        child: Container(
-            width: 150,
-            margin: const EdgeInsets.only(right: 16),
-            child: Card(
-                elevation: 8,
-                child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(icon,
-                              size: 50,
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : Colors.red),
-                          const SizedBox(height: 10),
-                          Text(title,
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.normal))
-                        ])))));
-  }
+  Widget _buildCategoryCard(final String title, final IconData icon,
+          final BuildContext context) =>
+      InkWell(
+          onTap: () {
+            NavigationService.changeMobileTab(1, category: title);
+          },
+          child: Container(
+              width: 150,
+              margin: const EdgeInsets.only(right: 16),
+              child: Card(
+                  elevation: 8,
+                  child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(icon,
+                                size: 50,
+                                color: context.isDarkMode
+                                    ? Colors.white
+                                    : Colors.red),
+                            const SizedBox(height: 10),
+                            Text(title,
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.normal))
+                          ])))));
 }

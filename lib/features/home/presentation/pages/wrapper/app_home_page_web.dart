@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../shared/navigation/layouts/main_scaffold_web.dart';
+import 'package:ticketapp/shared/navigation/widgets/web_nav_bar.dart';
+import '../../../../../shared/providers/navigation_keys.dart';
 import '../../providers/home_asset_video_provider.dart';
 
 // ✅ StatefulWidget -> ConsumerStatefulWidget dönüşümü
@@ -40,9 +41,13 @@ class _AppHomePageState extends ConsumerState<AppHomePage> {
     }
 
     // 🚀 ARTIK SENKRONİZE:
-    // MainScaffold (ve içindeki HomePage), veriler yüklenip Splash
+    // WebBar (ve içindeki HomePage), veriler yüklenip Splash
     // kalkana kadar "false" sinyali alacak.
     // Splash kalktığı an "true" sinyali gidecek ve animasyonlar GÖZÜNÜN ÖNÜNDE başlayacak.
-    return Scaffold(body: MainScaffold(startAnimations: _animationsStarted));
+    return Scaffold(
+      body: WebBar(
+          key: NavigationKeys.webBarKey,
+          startAnimations: _animationsStarted),
+    );
   }
 }

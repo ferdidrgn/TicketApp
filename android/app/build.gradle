@@ -7,9 +7,6 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-def flutterVersionCode = 11
-def flutterVersionName = "1.11"
-
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
@@ -19,13 +16,14 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.ferdidrgn.ticketapp"
     compileSdk = 36 // flutter.compileSdkVersion yerine direkt sayı
+    ndkVersion = flutter.ndkVersion
 
     defaultConfig {
         applicationId = "com.ferdidrgn.ticketapp"
-        minSdkVersion = flutter.minSdkVersion // flutter.minSdkVersion yerine
+        minSdk = flutter.minSdkVersion
         targetSdk = 36 // flutter.targetSdkVersion yerine
-        versionCode = flutterVersionCode
-        versionName = flutterVersionName
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
         multiDexEnabled true
     }
 
@@ -81,5 +79,5 @@ dependencies {
     implementation 'com.google.firebase:firebase-crashlytics'
 
     // Kotlin stdlib artık çoğu zaman otomatik eklenir, manuel yazmaya gerek yok.
-     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20"
 }
