@@ -26,9 +26,7 @@ import 'page_transitions.dart';
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final loginState = ref.watch(loginProvider);
   final authNotifier = ValueNotifier(loginState);
-
   ref.listen(loginProvider, (final _, final next) => authNotifier.value = next);
-
   final isWeb = kIsWeb;
 
   return GoRouter(
@@ -39,9 +37,12 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       final loggedIn = loginState.isLoggedIn;
       final path = state.uri.path;
 
-      final protectedRoutes = ['/profile', '/favorites', '/my-tickets'];
+      // Profil sayfasının kendisinde "Giriş Yap" butonu gösterebilirsin.
+      final protectedRoutes = ['/favorites', '/my-tickets'];
 
       if (!loggedIn && protectedRoutes.any(path.startsWith)) return '/login';
+
+      // Login olmuş kullanıcı tekrar login sayfasına girmesin
       if (loggedIn && (path == '/login' || path == '/phone-login'))
         return '/home';
 
