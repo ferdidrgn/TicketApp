@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_provider.dart';
@@ -98,6 +97,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   @override
   void dispose() {
+    // SAYFADAN ÇIKARKEN LİSTEYİ SIFIRLA:
+    // Detay sayfası global listeyi filtrelediği için, çıkışta tüm oyuncuları tekrar geri yüklüyoruz.
+    ref.read(playerProvider.notifier).getPlayers(false);
+
     _scrollController.dispose();
     super.dispose();
   }
@@ -108,16 +111,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     final bgColor =
         context.isDarkMode ? AppDarkColors.primary : AppLightColors.background;
 
-    if (_isLoading && showData == null) {
+    if (_isLoading && showData == null)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
 
-    if (showData == null) {
+    if (showData == null)
       return Scaffold(
-        appBar: AppBar(leading: const BackButton()),
-        body: const Center(child: Text("İçerik Bulunamazı")),
-      );
-    }
+          appBar: AppBar(leading: const BackButton()),
+          body: const Center(child: Text("İçerik Bulunamadı")));
 
     return Scaffold(
       body: Stack(
