@@ -42,11 +42,15 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       if (!loggedIn && protectedRoutes.any(path.startsWith)) return '/login';
 
-      // Login olmuş kullanıcı tekrar login sayfasına girmesin
+      // Kullanıcı login değilse ve korumalı sayfaya girmeye çalışıyorsa
+      if (!loggedIn && protectedRoutes.any((r) => path.startsWith(r)))
+        return '/login'; // 404 yerine login sayfasına yönlendir
+
+      // Login olmuş kişi login sayfasına tekrar gidemesin
       if (loggedIn && (path == '/login' || path == '/phone-login'))
         return '/home';
 
-      return null;
+      return null; // yönlendirme yok
     },
     routes: [
       /// 🌍 WEB
