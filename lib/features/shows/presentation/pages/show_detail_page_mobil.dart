@@ -93,17 +93,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       await ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds);
     }
   }
-
-  @override
-  void dispose() {
-    // SAYFADAN ÇIKARKEN LİSTEYİ SIFIRLA:
-    // Detay sayfası global listeyi filtrelediği için, çıkışta tüm oyuncuları tekrar geri yüklüyoruz.
-    ref.read(playerProvider.notifier).getPlayers(false);
-
-    _scrollController.dispose();
-    super.dispose();
-  }
-
+  
   @override
   Widget build(final BuildContext context) {
     final showData = ref.watch(showProvider).getShowById(widget.showId);

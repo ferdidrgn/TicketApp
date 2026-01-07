@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod eklendi
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
 import '../../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../domain/entities/show.dart';
@@ -7,7 +9,7 @@ import '../../../domain/entities/show.dart';
 class ShowMosaicGallery extends StatelessWidget {
   final List<Show> shows;
   final bool isLoading;
-  final Axis direction; // Dikey mi Yatay mı?
+  final Axis direction;
   final ScrollPhysics? physics;
   final EdgeInsetsGeometry? padding;
 
@@ -116,15 +118,30 @@ class ShowMosaicGallery extends StatelessWidget {
   }
 }
 
-// YARDIMCI GÖRSELLER
-class _MosaicCard extends StatelessWidget {
+// =========================================================
+// GÜNCELLENEN KISIM: _MosaicCard ARTIK ConsumerWidget
+// =========================================================
+class _MosaicCard extends ConsumerWidget {
   final Show show;
 
   const _MosaicCard({required this.show});
 
   @override
-  Widget build(final BuildContext context) => GestureDetector(
-        onTap: () => context.push('/show/${show.id}'),
+  Widget build(final BuildContext context, final WidgetRef ref) =>
+      GestureDetector(
+        onTap: () async {
+          // 1. Sayfaya git ve kullanıcının geri dönmesini bekle
+          await context.push('/show/${show.id}');
+
+          // 2. Kullanıcı geri döndü. Eğer context hala canlıysa listeyi yenile.
+          if (context.mounted) {
+            // Mevcut (filtrelenmiş 4 kişilik) listeyi temizle
+            ref.invalidate(playerProvider);
+
+            // Tüm oyuncuları sunucudan/cache'den tekrar yükle
+            ref.read(playerProvider.notifier).getPlayers(true);
+          }
+        },
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -193,6 +210,7 @@ class _MosaicCard extends StatelessWidget {
       );
 }
 
+// DİĞER YARDIMCI GÖRSELLER AYNI
 class _BigItem extends StatelessWidget {
   final Show show;
   final double offset;
