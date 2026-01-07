@@ -1,53 +1,34 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
-import 'package:ticketapp/features/discovery/presentation/pages/discovery_page.dart';
-import 'package:ticketapp/features/discovery/presentation/pages/nearby_events_page.dart';
-import 'package:ticketapp/features/home/presentation/pages/home_page_mobile.dart';
-import 'package:ticketapp/features/users/presentation/pages/profile_page.dart';
-
-/// 🔑 DIŞARIDAN ERİŞİM İÇİN GLOBAL KEY
-final GlobalKey<MobileBottomNavBarState> bottomNavBarKey =
-    GlobalKey<MobileBottomNavBarState>();
 
 class MobileBottomNavBar extends StatefulWidget {
-  const MobileBottomNavBar({super.key});
+  final StatefulNavigationShell navigationShell;
+
+  const MobileBottomNavBar({super.key, required this.navigationShell});
 
   @override
-  MobileBottomNavBarState createState() => MobileBottomNavBarState();
+  State<MobileBottomNavBar> createState() => _MobileBottomNavBarState();
 }
 
-class MobileBottomNavBarState extends State<MobileBottomNavBar> {
-  int _selectedIndex = 0;
-  String? _selectedCategory;
-
+class _MobileBottomNavBarState extends State<MobileBottomNavBar> {
   final GlobalKey<CurvedNavigationBarState> _navKey =
       GlobalKey<CurvedNavigationBarState>();
 
-  void changeTabWithCategory(final int index, final String? category) {
-    debugPrint('➡️ changeTabWithCategory: $index | $category');
+  void _onItemTapped(final int index) {
+    widget.navigationShell.goBranch(index,
+        initialLocation: index == widget.navigationShell.currentIndex);
 
-    setState(() {
-      _selectedIndex = index;
-      _selectedCategory = category;
-    });
-
-    // CurvedNavigationBar senkronu
     _navKey.currentState?.setPage(index);
   }
 
-  void _onItemTapped(final int index) => setState(() {
-        _selectedIndex = index;
-        _selectedCategory = null; // manuel geçişte reset
-      });
-
-  List<Widget> get _pages => [
-        const HomePage(),
-        DiscoveryPage(selectedCategory: _selectedCategory),
-        const NearbyEventsPage(),
-        const ProfilePage(),
-      ];
+  /// 🔑 DIŞARIDAN category ile Discover’a geçiş
+  void goToDiscoverWithCategory(final String category) {
+    widget.navigationShell.goBranch(1);
+    _navKey.currentState?.setPage(1);
+  }
 
   @override
   Widget build(final BuildContext context) {
@@ -62,14 +43,18 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
       ),
       child: Scaffold(
         extendBody: true,
-        body: IndexedStack(
+
+        // ❗️ IndexedStack YOK
+        /*body: IndexedStack(
           index: _selectedIndex,
           children: _pages,
-        ),
+        ),*/
+        body: widget.navigationShell,
+
         bottomNavigationBar: SafeArea(
           child: CurvedNavigationBar(
             key: _navKey,
-            index: _selectedIndex,
+            index: widget.navigationShell.currentIndex,
             height: 60,
             backgroundColor: Colors.transparent,
             color: barColor,

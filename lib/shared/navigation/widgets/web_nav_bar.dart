@@ -181,14 +181,16 @@ class _WebNavBarState extends State<WebNavBar>
   @override
   Widget build(final BuildContext context) => AnimatedBuilder(
         animation: _controller,
-        builder: (final _, final __) => DecoratedBox(
-          height: context.responsive(mobile: 70, desktop: 80),
-          decoration: _navDecoration,
-          child: SizedBox(
-              height: context.responsive(mobile: 70, desktop: 80)
-              ? _mobileNav(context)
-              : _desktopNav(context),
-        ),
+        builder: (final _, final __) {
+          return SizedBox(
+            height: context.responsive(mobile: 70.0, desktop: 80.0),
+            child: DecoratedBox(
+              decoration: _navDecoration,
+              child:
+                  context.isMobile ? _mobileNav(context) : _desktopNav(context),
+            ),
+          );
+        },
       );
 
   // ------------------------
