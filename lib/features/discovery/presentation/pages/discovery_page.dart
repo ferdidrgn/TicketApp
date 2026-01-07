@@ -86,28 +86,33 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     );
   }
 
-  Widget _buildDiscoveryHeader(ThemeData theme) => Padding(
+  Widget _buildDiscoveryHeader(final ThemeData theme) => Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('İlhamını Bul',
-                style: theme.textTheme.headlineLarge
-                    ?.copyWith(fontWeight: FontWeight.w900)),
-            Text('Küratörlerin hazırladığı özel seçkiler',
-                style:
-                    theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)),
+            Text(
+              widget.selectedCategory ?? 'İlhamını Bul',
+              style: theme.textTheme.headlineLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            Text(
+              widget.selectedCategory != null
+                  ? '${widget.selectedCategory} kategorisindeki etkinlikler'
+                  : 'Küratörlerin hazırladığı özel seçkiler',
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+            ),
           ],
         ),
       );
 
-  Widget _buildTrendingSlider(ThemeData theme) => SizedBox(
+  Widget _buildTrendingSlider(final ThemeData theme) => SizedBox(
         height: 220,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: trendingShows.length,
-          itemBuilder: (context, index) {
+          itemBuilder: (final context, final index) {
             final show = trendingShows[index];
             return Container(
               width: 300,

@@ -80,13 +80,18 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
               ],
             ),
 
-            // DISCOVER
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/discover',
-                  pageBuilder: (final _, final __) =>
-                      const NoTransitionPage(child: DiscoveryPage()),
+                  pageBuilder: (final context, final state) {
+                    final selectedCategory =
+                        state.uri.queryParameters['category'];
+
+                    return NoTransitionPage(
+                      child: DiscoveryPage(selectedCategory: selectedCategory),
+                    );
+                  },
                 ),
               ],
             ),

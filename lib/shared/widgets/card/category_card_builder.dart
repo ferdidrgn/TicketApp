@@ -45,7 +45,7 @@ class CategoryCardBuilder extends StatelessWidget {
           final BuildContext context) =>
       InkWell(
           onTap: () {
-            NavigationService.changeMobileTab(1, category: title);
+            NavigationService.goToDiscoverWithCategory(context, title);
           },
           child: Container(
               width: 150,
