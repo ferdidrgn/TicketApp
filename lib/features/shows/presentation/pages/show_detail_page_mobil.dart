@@ -93,7 +93,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       await ref.read(playerProvider.notifier).getPlayersByIds(allPlayerIds);
     }
   }
-  
+
   @override
   Widget build(final BuildContext context) {
     final showData = ref.watch(showProvider).getShowById(widget.showId);
