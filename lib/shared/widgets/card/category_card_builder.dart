@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
-import '../../navigation/widgets/bottom_nav_bar.dart';
-import '../../providers/navigation_service.dart';
+import '../../navigation/providers/navigation_service.dart';
 
 class CategoryCardBuilder extends StatelessWidget {
   final List<Map<String, Object>>? categories;

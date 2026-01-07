@@ -15,7 +15,7 @@ import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
 import '../../../features/shows/presentation/pages/show_detail_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';
-import '../../../shared/providers/navigation_keys.dart';
+import '../../../shared/navigation/providers/navigation_keys.dart';
 import '../../errors/not_found_page.dart';
 
 /// 🛣️ TiyatRol Büyülü Router Yapılandırması

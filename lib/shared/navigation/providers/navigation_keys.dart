@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
-import '../navigation/widgets/bottom_nav_bar.dart';
-import '../navigation/widgets/web_nav_bar.dart';
+import '../widgets/bottom_nav_bar.dart';
+import '../widgets/web_nav_bar.dart';
 
 abstract final class NavigationKeys {
   static final GlobalKey<NavigatorState> rootNavigator =

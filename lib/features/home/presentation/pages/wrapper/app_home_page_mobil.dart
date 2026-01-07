@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/navigation/widgets/bottom_nav_bar.dart';
-import '../../../../../shared/providers/navigation_keys.dart';
+import '../../../../../shared/navigation/providers/navigation_keys.dart';
 
 // Mobil için kullanılacak ana widget'ı döndürür
 class AppHomePage extends StatelessWidget {

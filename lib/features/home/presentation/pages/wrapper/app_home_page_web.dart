@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/shared/navigation/widgets/web_nav_bar.dart';
-import '../../../../../shared/providers/navigation_keys.dart';
+import '../../../../../shared/navigation/providers/navigation_keys.dart';
 import '../../providers/home_asset_video_provider.dart';
 
 // ✅ StatefulWidget -> ConsumerStatefulWidget dönüşümü
