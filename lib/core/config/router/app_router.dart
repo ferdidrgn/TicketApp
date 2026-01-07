@@ -43,7 +43,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       if (!loggedIn && protectedRoutes.any(path.startsWith)) return '/login';
 
       // Kullanıcı login değilse ve korumalı sayfaya girmeye çalışıyorsa
-      if (!loggedIn && protectedRoutes.any((r) => path.startsWith(r)))
+      if (!loggedIn && protectedRoutes.any((final r) => path.startsWith(r)))
         return '/login'; // 404 yerine login sayfasına yönlendir
 
       // Login olmuş kişi login sayfasına tekrar gidemesin
