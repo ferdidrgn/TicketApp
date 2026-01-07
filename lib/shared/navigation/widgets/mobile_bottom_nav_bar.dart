@@ -10,10 +10,10 @@ class MobileBottomNavBar extends StatefulWidget {
   const MobileBottomNavBar({super.key, required this.navigationShell});
 
   @override
-  State<MobileBottomNavBar> createState() => _MobileBottomNavBarState();
+  State<MobileBottomNavBar> createState() => MobileBottomNavBarState();
 }
 
-class _MobileBottomNavBarState extends State<MobileBottomNavBar> {
+class MobileBottomNavBarState extends State<MobileBottomNavBar> {
   final GlobalKey<CurvedNavigationBarState> _navKey =
       GlobalKey<CurvedNavigationBarState>();
 

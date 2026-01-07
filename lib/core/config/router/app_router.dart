@@ -66,9 +66,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       if (!isWeb)
         StatefulShellRoute.indexedStack(
           builder: (final context, final state, final navigationShell) {
-            return MobileBottomNavBar(
-              navigationShell: navigationShell,
-            );
+            return MobileBottomNavBar(navigationShell: navigationShell);
           },
           branches: [
             // HOME
