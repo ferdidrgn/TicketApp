@@ -23,7 +23,6 @@ import '../../../shared/navigation/widgets/mobile_bottom_nav_bar.dart';
 import '../../errors/not_found_page.dart';
 import 'page_transitions.dart';
 
-/// 🛣️ TiyatRol Router (Transitionlı)
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final loginState = ref.watch(loginProvider);
   final authNotifier = ValueNotifier(loginState);
@@ -40,19 +39,16 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       final loggedIn = loginState.isLoggedIn;
       final path = state.uri.path;
 
-      final protectedRoutes = [
-        '/profile',
-        '/favorites',
-        '/my-tickets',
-      ];
+      final protectedRoutes = ['/profile', '/favorites', '/my-tickets'];
 
       if (!loggedIn && protectedRoutes.any(path.startsWith)) return '/login';
       if (loggedIn && (path == '/login' || path == '/phone-login'))
         return '/home';
+
       return null;
     },
     routes: [
-      // 🌍 WEB HOME
+      /// 🌍 WEB
       if (isWeb)
         GoRoute(
           path: '/home',
@@ -64,7 +60,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           ),
         ),
 
-      // 📱 MOBILE SHELL
+      /// 📱 MOBILE SHELL
       if (!isWeb)
         StatefulShellRoute.indexedStack(
           builder: (final context, final state, final shell) =>
@@ -130,7 +126,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                       CustomTransitionPage(
                     key: state.pageKey,
                     child: const ProfilePage(),
-                    transitionsBuilder: cinematicFadeTransition,
+                    transitionsBuilder: fadeTransition,
                     transitionDuration: const Duration(milliseconds: 500),
                   ),
                 ),
@@ -139,7 +135,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           ],
         ),
 
-      // COMMON ROUTES
+      /// COMMON ROUTES
       GoRoute(
         path: '/show/:id',
         pageBuilder: (final context, final state) => CustomTransitionPage(
