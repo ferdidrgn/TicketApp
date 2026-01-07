@@ -32,15 +32,18 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
 
   @override
   Widget build(final BuildContext context) {
-    final barColor = context.theme.bottomNavigationBarTheme.selectedItemColor ??
-        context.theme.colorScheme.primary;
+    final Color barColor =
+        context.theme.bottomNavigationBarTheme.selectedItemColor ??
+            context.colors.primary;
+    final Color primaryColor = context.primaryColor;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        systemNavigationBarColor: barColor,
-        systemNavigationBarIconBrightness:
-            context.isDarkMode ? Brightness.light : Brightness.dark,
-      ),
+          systemNavigationBarColor: barColor,
+          systemNavigationBarDividerColor: barColor,
+          // Alt bar üzerindeki tuşların rengini ayarlıyoruz
+          systemNavigationBarIconBrightness:
+              context.isDarkMode ? Brightness.light : Brightness.dark),
       child: Scaffold(
         extendBody: true,
 
@@ -52,13 +55,14 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
         body: widget.navigationShell,
 
         bottomNavigationBar: SafeArea(
+          top: false, // Üstten boşluk bırakma
           child: CurvedNavigationBar(
+            backgroundColor: Colors.transparent,
+            color: primaryColor,
+            buttonBackgroundColor: primaryColor,
+            height: 60,
             key: _navKey,
             index: widget.navigationShell.currentIndex,
-            height: 60,
-            backgroundColor: Colors.transparent,
-            color: barColor,
-            buttonBackgroundColor: barColor,
             items: const [
               Icon(Icons.home, size: 30, color: Colors.white),
               Icon(Icons.event_seat_sharp, size: 30, color: Colors.white),

@@ -21,15 +21,14 @@ import '../../../features/users/presentation/pages/user_profile_edit.dart';
 import '../../../shared/navigation/providers/navigation_keys.dart';
 import '../../../shared/navigation/widgets/mobile_bottom_nav_bar.dart';
 import '../../errors/not_found_page.dart';
+import 'page_transitions.dart';
 
-/// 🛣️ TiyatRol Büyülü Router Yapılandırması
+/// 🛣️ TiyatRol Router (Transitionlı)
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final loginState = ref.watch(loginProvider);
   final authNotifier = ValueNotifier(loginState);
 
-  ref.listen(loginProvider, (final _, final next) {
-    authNotifier.value = next;
-  });
+  ref.listen(loginProvider, (final _, final next) => authNotifier.value = next);
 
   final isWeb = kIsWeb;
 
@@ -48,38 +47,46 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       ];
 
       if (!loggedIn && protectedRoutes.any(path.startsWith)) return '/login';
-
       if (loggedIn && (path == '/login' || path == '/phone-login'))
         return '/home';
-
       return null;
     },
     routes: [
-      /// 🌍 WEB HOME
+      // 🌍 WEB HOME
       if (isWeb)
         GoRoute(
           path: '/home',
-          builder: (final _, final __) => const AppHomePage(),
+          pageBuilder: (final context, final state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const AppHomePage(),
+            transitionsBuilder: curtainTransition,
+            transitionDuration: const Duration(milliseconds: 500),
+          ),
         ),
 
-      /// 📱 MOBILE SHELL
+      // 📱 MOBILE SHELL
       if (!isWeb)
         StatefulShellRoute.indexedStack(
-          builder: (final context, final state, final navigationShell) {
-            return MobileBottomNavBar(navigationShell: navigationShell);
-          },
+          builder: (final context, final state, final shell) =>
+              MobileBottomNavBar(navigationShell: shell),
           branches: [
             // HOME
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/home',
-                  pageBuilder: (final _, final __) =>
-                      const NoTransitionPage(child: HomePage()),
+                  pageBuilder: (final context, final state) =>
+                      CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const HomePage(),
+                    transitionsBuilder: curtainTransition,
+                    transitionDuration: const Duration(milliseconds: 500),
+                  ),
                 ),
               ],
             ),
 
+            // DISCOVER
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -87,9 +94,11 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                   pageBuilder: (final context, final state) {
                     final selectedCategory =
                         state.uri.queryParameters['category'];
-
-                    return NoTransitionPage(
+                    return CustomTransitionPage(
+                      key: state.pageKey,
                       child: DiscoveryPage(selectedCategory: selectedCategory),
+                      transitionsBuilder: fadeTransition,
+                      transitionDuration: const Duration(milliseconds: 500),
                     );
                   },
                 ),
@@ -101,8 +110,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
               routes: [
                 GoRoute(
                   path: '/nearby',
-                  pageBuilder: (final _, final __) =>
-                      const NoTransitionPage(child: NearbyEventsPage()),
+                  pageBuilder: (final context, final state) =>
+                      CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const NearbyEventsPage(),
+                    transitionsBuilder: scrollSlideTransition,
+                    transitionDuration: const Duration(milliseconds: 500),
+                  ),
                 ),
               ],
             ),
@@ -112,74 +126,128 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
               routes: [
                 GoRoute(
                   path: '/profile',
-                  pageBuilder: (final _, final __) =>
-                      const NoTransitionPage(child: ProfilePage()),
+                  pageBuilder: (final context, final state) =>
+                      CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const ProfilePage(),
+                    transitionsBuilder: cinematicFadeTransition,
+                    transitionDuration: const Duration(milliseconds: 500),
+                  ),
                 ),
               ],
             ),
           ],
         ),
 
-      // -------------------------
       // COMMON ROUTES
-      // -------------------------
-
       GoRoute(
         path: '/show/:id',
-        builder: (final context, final state) =>
-            ShowDetailPage(showId: state.pathParameters['id']!),
-      ),
-
-      GoRoute(
-        path: '/login',
-        builder: (final _, final __) => const LoginScreen(),
-      ),
-
-      GoRoute(
-        path: '/phone-login',
-        builder: (final _, final __) => const PhoneLogInPage(),
-      ),
-
-      GoRoute(
-        path: '/favorites',
-        builder: (final _, final __) => const FavoritesPage(),
-      ),
-
-      GoRoute(
-        path: '/my-tickets/:userId',
-        builder: (final context, final state) =>
-            MyTicketPage(userId: state.pathParameters['userId']!),
-      ),
-
-      GoRoute(
-        path: '/profile-edit/:userId',
-        builder: (final context, final state) =>
-            UserProfileEditScreen(userId: state.pathParameters['userId']!),
-      ),
-
-      GoRoute(
-        path: '/search',
-        builder: (final _, final __) => const SearchPage(),
-      ),
-
-      GoRoute(
-        path: '/settings',
-        builder: (final _, final __) => const AppSettingsPage(),
-      ),
-
-      GoRoute(
-        path: '/contracts',
-        builder: (final _, final __) => ContractsPage(),
-      ),
-
-      GoRoute(
-        path: '/help-support',
-        builder: (final _, final __) => HelpSupportPage(),
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: ShowDetailPage(showId: state.pathParameters['id']!),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
       ),
 
       GoRoute(
         path: '/onboarding',
-        builder: (final _, final __) => const OnboardingContainer(),
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const OnboardingContainer(),
+          transitionsBuilder: curtainTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/login',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LoginScreen(),
+          transitionsBuilder: shimmerSlideTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/phone-login',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const PhoneLogInPage(),
+          transitionsBuilder: shadowGateTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/favorites',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const FavoritesPage(),
+          transitionsBuilder: cinematicFadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/my-tickets/:userId',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: MyTicketPage(userId: state.pathParameters['userId']!),
+          transitionsBuilder: scrollSlideTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/profile-edit/:userId',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: UserProfileEditScreen(userId: state.pathParameters['userId']!),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/search',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SearchPage(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/settings',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AppSettingsPage(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/contracts',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: ContractsPage(),
+          transitionsBuilder: shadowGateTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/help-support',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: HelpSupportPage(),
+          transitionsBuilder: shadowGateTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
       ),
     ],
     errorBuilder: (final context, final state) =>
