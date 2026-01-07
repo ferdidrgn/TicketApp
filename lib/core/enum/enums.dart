@@ -9,12 +9,3 @@ enum UserRole {
       UserRole.values.firstWhere((final e) => e.name == role?.toLowerCase(),
           orElse: () => UserRole.unknown);
 }
-
-enum WebSection {
-  home,
-  shows,
-  artistic,
-  about,
-  team,
-  contact,
-}
