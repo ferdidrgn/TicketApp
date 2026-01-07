@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
+import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
+import 'package:ticketapp/features/teams/presentation/pages/team_details_mobile.dart';
 import '../../../features/appTools/presentation/pages/contracts.dart';
 import '../../../features/appTools/presentation/pages/help_support_page.dart';
 import '../../../features/discovery/presentation/pages/discovery_page.dart';
@@ -146,6 +149,36 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: ShowDetailPage(showId: state.pathParameters['id']!),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/player/:id',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: PlayerDetailPage(playerId: state.pathParameters['id']!),
+          transitionsBuilder: curtainTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/stage/:id',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: StageDetailPage(stageId: state.pathParameters['id']!),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/team/:id',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: TeamDetailsPage(teamId: state.pathParameters['id']!),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),

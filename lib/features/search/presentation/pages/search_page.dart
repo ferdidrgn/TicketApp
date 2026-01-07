@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
@@ -18,10 +19,8 @@ import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
 import '../../../stages/domain/entities/stage.dart';
-import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../../teams/domain/entities/team.dart';
-import '../../../teams/presentation/pages/team_details_mobile.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/search_query_provider.dart';
 
@@ -806,12 +805,9 @@ class _GridCards {
   static Widget verticalLarge(
           final BuildContext context, final dynamic item, final bool isStage) =>
       _BaseCardContainer(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => isStage
-                    ? StageDetailPage(stageId: item.id)
-                    : TeamDetailsPage(teamId: item.id))),
+        onTap: () => isStage
+            ? context.push('/stage/${item.id}')
+            : context.push('/team/${item.id}'),
         child: LayoutBuilder(
           builder: (final context, final constraints) => Stack(
             children: [
@@ -1008,12 +1004,9 @@ class _HorizontalListSection extends StatelessWidget {
 
   Widget _card(final BuildContext context, final dynamic item) =>
       _BaseCardContainer(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (final _) => isStage
-                    ? StageDetailPage(stageId: item.id)
-                    : TeamDetailsPage(teamId: item.id))),
+        onTap: () => isStage
+            ? context.push('/stage/${item.id}')
+            : context.push('/team/${item.id}'),
         width: 220,
         margin: const EdgeInsets.only(right: 12),
         padding: EdgeInsets.zero,

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../domain/entities/player.dart';
-import '../pages/player_details.dart';
 
 class PlayerHeroCard extends StatelessWidget {
   final Player? player;
@@ -45,13 +45,7 @@ class PlayerHeroCard extends StatelessWidget {
       );
 
     return GestureDetector(
-      onTap: onTap ??
-          () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (final _) =>
-                        PlayerDetailPage(playerId: player!.id)),
-              ),
+      onTap: onTap ?? () => context.push('/player/${player!.id}'),
       child: Container(
         width: 120,
         margin: const EdgeInsets.only(right: 12),
