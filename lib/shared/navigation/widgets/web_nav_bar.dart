@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/shared/navigation/widgets/web_nav_bar.dart';
 import 'package:ticketapp/features/home/presentation/pages/home_page_web.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../../core/util/responsive_utils.dart';
 
 /// Ana sayfa scaffold'u - Tüm componentleri bir araya getirir
 /// Active section tracking, smooth scroll ve modern navbar içerir
+
 class WebBar extends StatefulWidget {
   final bool startAnimations;
 
@@ -17,37 +16,40 @@ class WebBar extends StatefulWidget {
 }
 
 class WebBarState extends State<WebBar> {
-  // Section keys
+  // SECTION KEYS
+  // ------------------------
   final GlobalKey _showsKey = GlobalKey();
+  final GlobalKey _artisticKey = GlobalKey();
   final GlobalKey _aboutKey = GlobalKey();
   final GlobalKey _teamKey = GlobalKey();
-  final GlobalKey _artisticKey = GlobalKey();
   final GlobalKey _contactKey = GlobalKey();
 
-  // Active section tracker
+  // SCROLL
+  // ------------------------
   final ScrollController _scrollController = ScrollController();
-  final ValueNotifier<String> _activeSection = ValueNotifier('home');
+  final ValueNotifier<String> _activeSection = ValueNotifier<String>('home');
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _activeSection.dispose();
     super.dispose();
   }
 
+  // NAVIGATION
+  // ------------------------
   void scrollToSection(final String section) {
-    // 1. Ana Sayfa Kontrolü (En başa sarar)
     if (section == 'home') {
       _scrollController.animateTo(
         0,
         duration: const Duration(milliseconds: 800),
         curve: Curves.easeInOutCubic,
       );
-      _activeSection.value = 'home'; // Navigasyonu manuel güncelle
+      _activeSection.value = 'home';
       return;
     }
 
-    final Map<String, GlobalKey> sectionKeys = {
-      'home': GlobalKey(), // HomePage'in ilk elementi için
+    final Map<String, GlobalKey> sectionMap = {
       'shows': _showsKey,
       'artistic': _artisticKey,
       'about': _aboutKey,
@@ -55,42 +57,48 @@ class WebBarState extends State<WebBar> {
       'contact': _contactKey,
     };
 
-    final key = sectionKeys[section];
+    final key = sectionMap[section];
 
-    if (key?.currentContext != null)
+    if (key?.currentContext != null) {
       Scrollable.ensureVisible(
         key!.currentContext!,
         duration: const Duration(milliseconds: 800),
         curve: Curves.easeInOutCubic,
-        alignment: 0.05, // Hafif üstten boşluk
+        alignment: 0.05,
       );
+      _activeSection.value = section;
+    }
   }
 
+  // UI
+  // ------------------------
   @override
-  Widget build(final BuildContext context) => Scaffold(
-        backgroundColor: Colors.black,
-        body: Column(
-          children: [
-            WebNavBar(
-              activeSection: _activeSection,
-              onNavigate: (final section) => scrollToSection(section),
+  Widget build(final BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Column(
+        children: [
+          WebNavBar(
+            activeSection: _activeSection,
+            scrollController: _scrollController,
+            onNavigate: scrollToSection,
+          ),
+          Expanded(
+            child: HomePage(
+              showsKey: _showsKey,
+              artisticKey: _artisticKey,
+              aboutKey: _aboutKey,
+              teamKey: _teamKey,
+              contactKey: _contactKey,
               scrollController: _scrollController,
+              activeSection: _activeSection,
+              startAnimations: widget.startAnimations,
             ),
-            Expanded(
-              child: HomePage(
-                showsKey: _showsKey,
-                aboutKey: _aboutKey,
-                teamKey: _teamKey,
-                artisticKey: _artisticKey,
-                contactKey: _contactKey,
-                activeSection: _activeSection,
-                scrollController: _scrollController,
-                startAnimations: widget.startAnimations,
-              ),
-            )
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class WebNavBar extends StatefulWidget {
