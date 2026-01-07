@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../domain/entities/show.dart';
-import '../../pages/show_detail_page_mobil.dart';
 
 class ShowMosaicGallery extends StatelessWidget {
   final List<Show> shows;
@@ -125,7 +124,7 @@ class _MosaicCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => GestureDetector(
-        onTap: () => () => context.push('/show/${show.id}'),
+        onTap: () => context.push('/show/${show.id}'),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
@@ -8,13 +9,11 @@ class PlayersBubbleCard extends StatelessWidget {
   final List<Player> players;
   final String title;
   final bool isGrayscale;
-  final Function(String) onPlayerTap;
 
   const PlayersBubbleCard({
     super.key,
     required this.players,
     required this.title,
-    required this.onPlayerTap,
     this.isGrayscale = false,
   });
 
@@ -44,7 +43,7 @@ class PlayersBubbleCard extends StatelessWidget {
                 width: 125,
                 margin: const EdgeInsets.only(right: 5),
                 child: InkWell(
-                  onTap: () => onPlayerTap(player.id),
+                  onTap: () => context.push('/player/${player.id}'),
                   borderRadius: const BorderRadius.all(Radius.circular(60)),
                   child: Card(
                     elevation: 3,

@@ -8,13 +8,11 @@ import '../../domain/entities/player.dart';
 class PlayerHeroCard extends StatelessWidget {
   final Player? player;
   final bool isLoading;
-  final VoidCallback? onTap;
 
   const PlayerHeroCard({
     super.key,
     this.player,
     this.isLoading = false,
-    this.onTap,
   });
 
   @override
@@ -45,7 +43,7 @@ class PlayerHeroCard extends StatelessWidget {
       );
 
     return GestureDetector(
-      onTap: onTap ?? () => context.push('/player/${player!.id}'),
+      onTap: () => context.push('/player/${player!.id}'),
       child: Container(
         width: 120,
         margin: const EdgeInsets.only(right: 12),

@@ -13,7 +13,6 @@ import '../../../../shared/widgets/button/glass_back_button.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../login/presentation/providers/login_provider.dart';
-import '../../../players/presentation/pages/player_details.dart';
 import '../../../players/presentation/providers/player_notifier.dart';
 import '../../../players/presentation/widgets/players_bubble_card.dart';
 import '../../../seat/presentation/pages/seat_details.dart';
@@ -273,13 +272,6 @@ class ShowCastSection extends ConsumerWidget {
     if (players.isEmpty) return const SizedBox.shrink();
 
     return PlayersBubbleCard(
-      title: title,
-      players: players,
-      isGrayscale: isGrayscale,
-      onPlayerTap: (final id) => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (final _) => PlayerDetailPage(playerId: id)),
-      ),
-    );
+        title: title, players: players, isGrayscale: isGrayscale);
   }
 }
