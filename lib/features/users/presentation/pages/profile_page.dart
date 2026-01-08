@@ -377,7 +377,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             padding: const EdgeInsets.all(16),
             decoration: _neuBox(borderRadius: 100),
             child: Icon(Icons.auto_awesome,
-                size: 32, color: Colors.red.withOpacity(0.4)),
+                size: 32, color: context.colors.primary.withOpacity(0.4)),
           ),
           const SizedBox(height: 24),
           Text('DENEYİM KÜRATÖRÜ',
