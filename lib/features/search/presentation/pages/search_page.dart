@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/button/glass_back_button.dart';
@@ -15,7 +16,6 @@ import '../../../../shared/widgets/top_gradient_header.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/providers/player_provider.dart';
 import '../../../players/presentation/widgets/players_hero_card.dart';
-import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
 import '../../../stages/domain/entities/stage.dart';
@@ -25,7 +25,7 @@ import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/search_query_provider.dart';
 
 // =============================================================================
-// 1. DESIGN TOKENS & STYLES (TEMİZLENDİ)
+// 1. DATA LOGIC (Yardımcı Sınıf)
 // =============================================================================
 
 class _Styles {
@@ -61,14 +61,15 @@ class _Styles {
       );
 }
 
-// =============================================================================
-// 2. DATA LOGIC
-// =============================================================================
-
 class _SearchLogic {
-  static List<T> filterAndPaginate<T>(final List<T>? items, final String query,
-      final String Function(T) selector,
-      {final int page = 0, final bool paginate = true, final int? limit}) {
+  static List<T> filterAndPaginate<T>(
+    final List<T>? items,
+    final String query,
+    final String Function(T) selector, {
+    final int page = 0,
+    final bool paginate = true,
+    final int? limit,
+  }) {
     if (items == null) return [];
     final filtered = query.isEmpty
         ? items
@@ -76,8 +77,9 @@ class _SearchLogic {
             .where((final i) => selector(i).toLowerCase().contains(query))
             .toList();
 
-    if (limit != null && !paginate)
+    if (limit != null && !paginate) {
       return filtered.sublist(0, math.min(limit, filtered.length));
+    }
 
     if (!paginate) return filtered;
 
@@ -86,8 +88,11 @@ class _SearchLogic {
     return filtered.sublist(start, math.min(start + 20, filtered.length));
   }
 
-  static int totalCount<T>(final List<T>? items, final String query,
-          final String Function(T) selector) =>
+  static int totalCount<T>(
+    final List<T>? items,
+    final String query,
+    final String Function(T) selector,
+  ) =>
       items
           ?.where((final i) =>
               query.isEmpty || selector(i).toLowerCase().contains(query))
@@ -96,44 +101,7 @@ class _SearchLogic {
 }
 
 // =============================================================================
-// 3. UI COMPONENTS
-// =============================================================================
-
-class _BaseCardContainer extends StatelessWidget {
-  final Widget child;
-  final VoidCallback? onTap;
-  final BorderRadius? borderRadius;
-  final double? width;
-  final EdgeInsetsGeometry? padding;
-  final EdgeInsetsGeometry? margin;
-
-  const _BaseCardContainer(
-      {required this.child,
-      this.onTap,
-      this.borderRadius,
-      this.width,
-      this.padding,
-      this.margin});
-
-  @override
-  Widget build(final BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: width,
-          margin: margin,
-          padding: padding,
-          decoration: BoxDecoration(
-              color: context.colors.surface,
-              borderRadius: borderRadius ?? _Styles.cardRadius,
-              boxShadow: _Styles.shadow(false, Colors.black)),
-          clipBehavior: Clip.antiAlias,
-          child: child,
-        ),
-      );
-}
-
-// =============================================================================
-// 4. MAIN SEARCH PAGE
+// 2. MAIN SEARCH PAGE
 // =============================================================================
 
 class SearchPage extends ConsumerStatefulWidget {
@@ -143,13 +111,14 @@ class SearchPage extends ConsumerStatefulWidget {
   ConsumerState<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends ConsumerState<SearchPage> {
+class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
 
   bool _isInitialized = false;
   bool _loadingMore = false;
-  int _selectedFilter = 0;
+  int _selectedFilter =
+      0; // 0: Tümü, 1: Etkinlikler, 2: Oyuncular, 3: Mekanlar, 4: Ekipler
   final Map<int, int> _pages = {1: 0, 2: 0, 3: 0, 4: 0};
 
   @override
@@ -186,7 +155,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void _onScroll() {
     if (_selectedFilter == 0 || _loadingMore) return;
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) _loadMoreItems();
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreItems();
+    }
   }
 
   void _loadMoreItems() {
@@ -194,9 +165,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
       final query = ref.read(searchQueryProvider);
+
       void increment(final int type, final int total) {
-        if (((_pages[type] ?? 0) + 1) * 20 < total)
+        if (((_pages[type] ?? 0) + 1) * 20 < total) {
           _pages[type] = (_pages[type] ?? 0) + 1;
+        }
       }
 
       setState(() {
@@ -206,21 +179,25 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 1,
                 _SearchLogic.totalCount(ref.read(showProvider).dataList, query,
                     (final s) => s.name));
+            break;
           case 2:
             increment(
                 2,
                 _SearchLogic.totalCount(ref.read(playerProvider).dataList,
                     query, (final p) => '${p.firstName} ${p.lastName}'));
+            break;
           case 3:
             increment(
                 3,
                 _SearchLogic.totalCount(ref.read(stageProvider).dataList, query,
                     (final s) => s.name));
+            break;
           case 4:
             increment(
                 4,
                 _SearchLogic.totalCount(ref.read(teamProvider).dataList, query,
                     (final t) => t.name));
+            break;
         }
         _loadingMore = false;
       });
@@ -233,16 +210,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       _pages.updateAll((final _, final __) => 0);
     });
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (_scrollController.hasClients)
+      if (_scrollController.hasClients) {
         _scrollController.animateTo(0,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut);
+      }
     });
   }
 
   @override
   Widget build(final BuildContext context) {
     final query = ref.watch(searchQueryProvider);
+
+    // Verileri Çek
     final (rawShows, rawPlayers, rawStages, rawTeams) = (
       ref.watch(showProvider),
       ref.watch(playerProvider),
@@ -257,6 +237,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       teams: rawTeams.isLoading || !_isInitialized,
     );
 
+    // Filtreleme
     final data = (
       shows: _SearchLogic.filterAndPaginate(
           rawShows.dataList, query, (final s) => s.name,
@@ -289,6 +270,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         data.stages.isEmpty &&
         data.teams.isEmpty;
 
+    // Responsive Değerler (Mixin & Extension kullanımı)
+    // Desktop modunda içeriği sınırlar, mobilde tam genişlik kullanır.
+    final contentMaxWidth = context.responsive(
+      mobile: double.infinity,
+      desktop: 1200.0,
+    );
+
+    // Grid kolon sayısı
+    final gridCrossCount = context.gridColumns(5); // Desktop'ta 5 kolon
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
@@ -298,375 +289,747 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             : const Color(0xFFF0F4F8),
         ambientColor: Colors.indigoAccent,
         particleColor: Colors.blueGrey.withOpacity(0.3),
-        child: Stack(
-          children: [
-            SafeArea(
+        child: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: contentMaxWidth),
+            child: SafeArea(
               bottom: false,
               child: CustomScrollView(
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  SliverToBoxAdapter(child: _buildHeader(query)),
-                  SliverToBoxAdapter(child: _buildFilterList()),
+                  // 1. HEADER & SEARCH BAR
+                  SliverToBoxAdapter(
+                    child: _buildHeader(context, query),
+                  ),
+
+                  // 2. FILTERS
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 800),
+                        child: _FilterList(
+                          selectedIndex: _selectedFilter,
+                          onSelected: (final i) => setState(() {
+                            _selectedFilter = i;
+                            _pages.updateAll((final _, final __) => 0);
+                            WidgetsBinding.instance
+                                .addPostFrameCallback((final _) {
+                              if (_scrollController.hasClients) {
+                                _scrollController.animateTo(0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut);
+                              }
+                            });
+                          }),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                  // 3. SECTIONS
                   if (isAllEmpty)
-                    _buildEmptyState()
+                    _buildEmptyState(context)
                   else if (_selectedFilter == 0)
-                    ..._buildAllSections(loading, data)
+                    ..._buildAllSections(context, loading, data)
                   else
-                    ..._buildFilteredSection(loading, data),
+                    ..._buildFilteredSection(
+                        context, loading, data, gridCrossCount),
+
+                  // 4. LOADING INDICATOR
                   if (_loadingMore)
                     const SliverToBoxAdapter(
-                        child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 20),
-                            child: Center(child: CircularProgressIndicator()))),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
+
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(final String query) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  // --- WIDGET BUILDERS ---
+
+  Widget _buildHeader(final BuildContext context, final String query) {
+    final isDesktop = context.isDesktop;
+
+    return Padding(
+      // Responsive Padding kullanımı
+      padding: context.responsive(
+        mobile: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+        desktop: const EdgeInsets.fromLTRB(40, 20, 40, 30),
+      ),
+      child: Column(
+        crossAxisAlignment:
+            isDesktop ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+        children: [
           Row(
+            mainAxisAlignment:
+                isDesktop ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
-              GlassBackButton(),
-              const TopHeader(title: "Tablolarımız"),
+              if (!isDesktop) const GlassBackButton(),
+              TopHeader(
+                title: "Tablolarımız",
+              ),
             ],
           ),
           const SizedBox(height: 20),
-          GlassSearchBar(
-              controller: _textController,
-              onChanged: (final v) => ref
-                  .read(searchQueryProvider.notifier)
-                  .setQuery(v.toLowerCase())),
-        ]),
-      );
+          Center(
+            child: ConstrainedBox(
+              // Desktop'ta search bar çok uzamasın
+              constraints: BoxConstraints(
+                maxWidth: context.responsive(
+                  mobile: double.infinity,
+                  tablet: 600.0,
+                  desktop: 600.0,
+                ),
+              ),
+              child: GlassSearchBar(
+                controller: _textController,
+                onChanged: (final v) => ref
+                    .read(searchQueryProvider.notifier)
+                    .setQuery(v.toLowerCase()),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  Widget _buildFilterList() => FilterList(
-        selectedIndex: _selectedFilter,
-        onSelected: (final i) {
-          setState(() {
-            _selectedFilter = i;
-            _pages.updateAll((final _, final __) => 0);
-          });
-          WidgetsBinding.instance.addPostFrameCallback((final _) {
-            if (_scrollController.hasClients)
-              _scrollController.animateTo(0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut);
-          });
-        },
-      );
-
+  // --- TÜM BÖLÜMLER (YATAY LİSTELER) ---
   List<Widget> _buildAllSections(
-    final ({bool players, bool shows, bool stages, bool teams}) loading,
-    final ({
-      List<Player> players,
-      List<Show> shows,
-      List<Stage> stages,
-      List<Team> teams
-    }) data,
-  ) =>
-      [
-        // 1. OYUNCULAR (PlayerHeroCard kendi loadingini yönetiyor)
-        if (loading.players || data.players.isNotEmpty)
-          SliverToBoxAdapter(
-              child: _PlayerSection(
-                  players: data.players,
-                  isLoading: loading.players,
-                  onSeeAll: () => _onSeeAll(2))),
+    final BuildContext context,
+    final dynamic loading,
+    final dynamic data,
+  ) {
+    return [
+      // 1. OYUNCULAR
+      if (loading.players || data.players.isNotEmpty)
+        SliverToBoxAdapter(
+          child: _PlayerHorizontalSection(
+            players: data.players,
+            isLoading: loading.players,
+            onSeeAll: () => _onSeeAll(2),
+          ),
+        ),
 
-        // 2. ETKİNLİKLER (ShowMosaicGallery kendi loadingini yönetiyor)
-        if (loading.shows || data.shows.isNotEmpty)
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SectionHeader(
+      // 2. ETKİNLİKLER (MOSAIC)
+      if (loading.shows || data.shows.isNotEmpty)
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                // SectionHeader padding'i responsive hale getirilebilir
+                padding: context.paddingHorizontal,
+                child: SectionHeader(
                   title: "Etkinlikler Vitrini",
                   subtitle: "Akışta Kal",
                   onTap: () => _onSeeAll(1),
                 ),
-                ShowMosaicGallery(
-                  shows: data.shows,
-                  isLoading: loading.shows,
-                  direction: Axis.horizontal,
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
+              ),
+              // ShowMosaicGallery kendi içinde responsive olmalı veya
+              // desktop'ta yatayda daha geniş bir alan kaplamalı.
+              ShowMosaicGallery(
+                shows: data.shows,
+                isLoading: loading.shows,
+                direction: Axis.horizontal,
+              ),
+              const SizedBox(height: 32),
+            ],
           ),
+        ),
 
-        // 3. MEKANLAR & 4. EKİPLER (Eski yapı - değişmedi)
-        if (loading.stages || data.stages.isNotEmpty)
-          SliverToBoxAdapter(
-              child: _HorizontalListSection(
-                  title: "Mekanlar",
-                  subtitle: "Atmosfer",
-                  items: data.stages,
-                  isStage: true,
-                  isLoading: loading.stages,
-                  onSeeAll: () => _onSeeAll(3))),
-        if (loading.teams || data.teams.isNotEmpty)
-          SliverToBoxAdapter(
-              child: _HorizontalListSection(
-                  title: "Ekipler",
-                  subtitle: "Mutfak",
-                  items: data.teams,
-                  isStage: false,
-                  isLoading: loading.teams,
-                  onSeeAll: () => _onSeeAll(4))),
-      ];
+      // 3. MEKANLAR
+      if (loading.stages || data.stages.isNotEmpty)
+        SliverToBoxAdapter(
+          child: _HorizontalListSection(
+            title: "Mekanlar",
+            subtitle: "Atmosfer",
+            items: data.stages,
+            isStage: true,
+            isLoading: loading.stages,
+            onSeeAll: () => _onSeeAll(3),
+          ),
+        ),
 
+      // 4. EKİPLER
+      if (loading.teams || data.teams.isNotEmpty)
+        SliverToBoxAdapter(
+          child: _HorizontalListSection(
+            title: "Ekipler",
+            subtitle: "Mutfak",
+            items: data.teams,
+            isStage: false,
+            isLoading: loading.teams,
+            onSeeAll: () => _onSeeAll(4),
+          ),
+        ),
+    ];
+  }
+
+  // --- FİLTRELENMİŞ BÖLÜMLER (GRIDLER) ---
   List<Widget> _buildFilteredSection(
-    final ({bool players, bool shows, bool stages, bool teams}) l,
-    final ({
-      List<Player> players,
-      List<Show> shows,
-      List<Stage> stages,
-      List<Team> teams
-    }) d,
-  ) =>
-      switch (_selectedFilter) {
-        1 => [
-            ShowMosaicGallery(
-                shows: d.shows, isLoading: l.shows, direction: Axis.vertical),
-            if (d.shows.isEmpty && !l.shows)
-              _buildEmptyState(msg: "Etkinlik bulunamadı"),
-          ],
-        2 => [
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 20,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.75,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (final ctx, final i) => PlayerHeroCard(
-                    isLoading: l.players,
-                    player: l.players ? null : d.players[i],
-                  ),
-                  childCount: l.players ? 9 : d.players.length,
-                ),
+    final BuildContext context,
+    final dynamic l,
+    final dynamic d,
+    final int crossAxisCount,
+  ) {
+    final gridSpacing = context.gridSpacing;
+
+    return switch (_selectedFilter) {
+      // ETKİNLİKLER (Grid)
+      1 => [
+          SliverPadding(
+            padding: context.paddingAll,
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                mainAxisSpacing: gridSpacing,
+                crossAxisSpacing: gridSpacing,
+                childAspectRatio: 0.65, // Shows için dikey oran
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (final ctx, final i) => l.shows
+                    ? const ShimmerCard(
+                        width: double.infinity, height: double.infinity)
+                    : Container(
+                        // BURAYA ShowCard Widget'ınızı koyun
+                        color: Colors.red.withOpacity(0.1),
+                        child: Center(child: Text(d.shows[i].name)),
+                      ),
+                childCount: l.shows ? 6 : d.shows.length,
               ),
             ),
-            if (d.players.isEmpty && !l.players)
-              _buildEmptyState(msg: "Oyuncu bulunamadı"),
-          ],
-        3 => [
-            if (l.stages)
-              _GridHelpers.standardShimmer(cross: 2, ratio: 1.4)
-            else
-              _GridHelpers.grid(
-                  d.stages,
-                  (final c, final s) =>
-                      _GridCards.verticalLarge(c, s as Stage, true),
-                  cross: 2,
-                  ratio: 1.4),
-            if (d.stages.isEmpty && !l.stages)
-              _buildEmptyState(msg: "Mekan bulunamadı"),
-          ],
-        4 => [
-            if (l.teams)
-              _GridHelpers.standardShimmer(cross: 2, ratio: 1.4)
-            else
-              _GridHelpers.grid(
-                  d.teams,
-                  (final c, final t) =>
-                      _GridCards.verticalLarge(c, t as Team, false),
-                  cross: 2,
-                  ratio: 1.4),
-            if (d.teams.isEmpty && !l.teams)
-              _buildEmptyState(msg: "Ekip bulunamadı"),
-          ],
-        _ => [],
-      };
+          ),
+          if (d.shows.isEmpty && !l.shows)
+            _buildEmptyState(context, msg: "Etkinlik bulunamadı"),
+        ],
 
-  Widget _buildEmptyState({final String? msg}) => SliverFillRemaining(
+      // OYUNCULAR (Grid)
+      2 => [
+          SliverPadding(
+            padding: context.paddingAll,
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount:
+                    context.responsive(mobile: 3, tablet: 4, desktop: 6),
+                mainAxisSpacing: gridSpacing,
+                crossAxisSpacing: gridSpacing,
+                childAspectRatio: 0.75, // Player kart oranı
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (final ctx, final i) => PlayerHeroCard(
+                  isLoading: l.players,
+                  player: l.players ? null : d.players[i],
+                ),
+                childCount: l.players ? 9 : d.players.length,
+              ),
+            ),
+          ),
+          if (d.players.isEmpty && !l.players)
+            _buildEmptyState(context, msg: "Oyuncu bulunamadı"),
+        ],
+
+      // MEKANLAR (Grid)
+      3 => [
+          _GridHelpers.buildGridSliver(
+            context,
+            isLoading: l.stages,
+            items: d.stages,
+            crossAxisCount: crossAxisCount,
+            ratio: 1.4,
+            // Yatay kart oranı
+            itemBuilder: (final ctx, final item) =>
+                _GridCards.verticalLarge(ctx, item as Stage, true),
+          ),
+          if (d.stages.isEmpty && !l.stages)
+            _buildEmptyState(context, msg: "Mekan bulunamadı"),
+        ],
+
+      // EKİPLER (Grid)
+      4 => [
+          _GridHelpers.buildGridSliver(
+            context,
+            isLoading: l.teams,
+            items: d.teams,
+            crossAxisCount: crossAxisCount,
+            ratio: 1.4,
+            itemBuilder: (final ctx, final item) =>
+                _GridCards.verticalLarge(ctx, item as Team, false),
+          ),
+          if (d.teams.isEmpty && !l.teams)
+            _buildEmptyState(context, msg: "Ekip bulunamadı"),
+        ],
+      _ => [],
+    };
+  }
+
+  Widget _buildEmptyState(final BuildContext context, {final String? msg}) =>
+      SliverFillRemaining(
         hasScrollBody: false,
         child: Center(
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.search_off_rounded,
-              size: 80, color: context.colors.onSurface.withOpacity(0.2)),
-          const SizedBox(height: 16),
-          Text(msg ?? "Aradığınız kriterlere uygun\nsonuç bulunamadı.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: context.colors.onSurface.withOpacity(0.5))),
-        ])),
-      );
-}
-
-// =============================================================================
-// YARDIMCI WIDGETLAR (ÖZEL SECTIONLAR)
-// =============================================================================
-
-class _PlayerSection extends StatelessWidget {
-  final List<Player> players;
-  final bool isLoading;
-  final VoidCallback? onSeeAll;
-
-  const _PlayerSection(
-      {required this.players, this.isLoading = false, this.onSeeAll});
-
-  @override
-  Widget build(final BuildContext context) {
-    // Yükleniyorsa 6 sahte veri
-    final itemCount = isLoading ? 6 : players.length;
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SectionHeader(
-          title: "Performansçılar",
-          subtitle: "Sahnenin Yıldızları",
-          onTap: onSeeAll),
-      // Expanded kullanıldığı için Yükseklik Şart
-      SizedBox(
-          height: 190,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: itemCount,
-            physics: const BouncingScrollPhysics(),
-            itemBuilder: (final ctx, final i) => PlayerHeroCard(
-              isLoading: isLoading,
-              player: isLoading ? null : players[i],
-            ),
-          )),
-      const SizedBox(height: 32),
-    ]);
-  }
-}
-
-class GlassSearchBar extends StatelessWidget {
-  final TextEditingController controller;
-  final Function(String) onChanged;
-
-  const GlassSearchBar(
-      {super.key, required this.controller, required this.onChanged});
-
-  @override
-  Widget build(final BuildContext context) {
-    final isDark = context.isDarkMode;
-
-    return Container(
-      height: 56, // Standart yükseklik
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          // Hafif bir derinlik gölgesi
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Stack(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 1. KATMAN: Arka Plan Gradient (Camsı Dolgu)
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [
-                            Colors.white.withOpacity(0.1),
-                            Colors.white.withOpacity(0.05),
-                          ]
-                        : [
-                            Colors.white.withOpacity(0.8),
-                            Colors.white.withOpacity(0.5),
-                          ],
-                  ),
-                ),
+              Icon(
+                Icons.search_off_rounded,
+                size: context.responsive(mobile: 80.0, desktop: 100.0),
+                color: context.colors.onSurface.withOpacity(0.2),
               ),
-
-              // 2. KATMAN: Gradient Border (Premium Kenarlık Efekti)
-              // Düz border yerine, ışığın vurduğu yerleri parlatan özel yapı
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    width: 0.8, // Çok ince ve zarif
-                    color: Colors.transparent, // Rengi gradient ile vereceğiz
-                  ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [
-                            Colors.white.withOpacity(0.2), // Sol üst parlak
-                            Colors.white.withOpacity(0.0), // Sağ alt sönük
-                          ]
-                        : [
-                            Colors.white.withOpacity(0.6),
-                            Colors.white.withOpacity(0.1),
-                          ],
-                    stops: const [0.0, 1.0],
-                  ),
-                ),
-              ),
-
-              // 3. KATMAN: İçerik (TextField ve İkon)
-              Center(
-                child: TextField(
-                  controller: controller,
-                  onChanged: onChanged,
-                  style: TextStyle(
-                    color: context.colors.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Sanatın izini sür...',
-                    hintStyle: TextStyle(
-                      color: context.colors.onSurface.withOpacity(0.5),
-                      fontStyle: FontStyle.normal,
-                      fontSize: 15,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: context.primaryColor.withOpacity(0.8),
-                      size: 24,
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12, // Dikey hizalama için
-                    ),
-                  ),
+              const SizedBox(height: 16),
+              Text(
+                msg ?? "Aradığınız kriterlere uygun\nsonuç bulunamadı.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: context.bodySize,
+                  fontWeight: FontWeight.w500,
+                  color: context.colors.onSurface.withOpacity(0.5),
                 ),
               ),
             ],
           ),
+        ),
+      );
+}
+
+// =============================================================================
+// YARDIMCI WIDGETLAR (Responsive)
+// =============================================================================
+
+class _PlayerHorizontalSection extends StatelessWidget {
+  final List<Player> players;
+  final bool isLoading;
+  final VoidCallback? onSeeAll;
+
+  const _PlayerHorizontalSection({
+    required this.players,
+    this.isLoading = false,
+    this.onSeeAll,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final itemCount = isLoading ? 6 : players.length;
+    // Desktop'ta biraz daha yüksek olabilir
+    final height = context.responsive(mobile: 190.0, desktop: 220.0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: context.paddingHorizontal,
+          child: SectionHeader(
+            title: "Performansçılar",
+            subtitle: "Sahnenin Yıldızları",
+            onTap: onSeeAll,
+          ),
+        ),
+        SizedBox(
+          height: height,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: context.paddingHorizontal,
+            // Responsive padding
+            itemCount: itemCount,
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (final ctx, final i) => Padding(
+              padding: const EdgeInsets.only(right: 16),
+              // Kart arası boşluk
+              child: PlayerHeroCard(
+                isLoading: isLoading,
+                player: isLoading ? null : players[i],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+}
+
+class _HorizontalListSection extends StatelessWidget {
+  final String title, subtitle;
+  final List<dynamic> items;
+  final bool isStage, isLoading;
+  final VoidCallback? onSeeAll;
+
+  const _HorizontalListSection({
+    required this.title,
+    required this.subtitle,
+    required this.items,
+    required this.isStage,
+    this.isLoading = false,
+    this.onSeeAll,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final height = context.responsive(mobile: 150.0, desktop: 180.0);
+    final cardWidth = context.responsive(mobile: 220.0, desktop: 260.0);
+
+    if (isLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: context.paddingHorizontal,
+            child: SectionHeader(
+                title: title, subtitle: subtitle, onTap: onSeeAll),
+          ),
+          SizedBox(
+            height: height,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: context.paddingHorizontal,
+              itemCount: 5,
+              itemBuilder: (final _, final __) => Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: ShimmerCard(width: cardWidth, height: height),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: context.paddingHorizontal,
+          child:
+              SectionHeader(title: title, subtitle: subtitle, onTap: onSeeAll),
+        ),
+        SizedBox(
+          height: height,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: context.paddingHorizontal,
+            itemCount: items.length,
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (final ctx, final i) => Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _GridCards.horizontalCard(
+                context,
+                items[i],
+                isStage,
+                width: cardWidth,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+}
+
+// =============================================================================
+// HELPER CLASSES (UI & Grid Logic)
+// =============================================================================
+
+class _GridHelpers {
+  static Widget buildGridSliver(
+    final BuildContext context, {
+    required final bool isLoading,
+    required final List<dynamic> items,
+    required final int crossAxisCount,
+    required final double ratio,
+    required final Widget Function(BuildContext, dynamic) itemBuilder,
+  }) {
+    final spacing = context.gridSpacing;
+
+    return SliverPadding(
+      padding: context.paddingAll,
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          childAspectRatio: ratio,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (final ctx, final i) => isLoading
+              ? const ShimmerLoading(
+                  width: double.infinity,
+                  height: double.infinity,
+                  borderRadius: 16)
+              : itemBuilder(ctx, items[i]),
+          childCount: isLoading ? 6 : items.length,
         ),
       ),
     );
   }
 }
 
-class FilterList extends StatelessWidget {
+// Kartların Tasarımları (Önceki koddan temizlenmiş ve toparlanmış)
+class _GridCards {
+  // Dikey büyük kart (Grid görünümü için)
+  static Widget verticalLarge(
+      final BuildContext context, final dynamic item, final bool isStage) {
+    // _BaseCardContainer kullanımı (Eski kodunuzdaki yapıyı koruyarak)
+    return _BaseCardContainer(
+      onTap: () => isStage
+          ? context.push('/stage/${item.id}')
+          : context.push('/team/${item.id}'),
+      child: LayoutBuilder(
+        builder: (final context, final constraints) => Stack(
+          children: [
+            Positioned.fill(
+              child: OptimizedCachedImage(
+                imageUrl: item.imageUrl,
+                fit: BoxFit.cover,
+              ),
+            ),
+            // Gradient Overlay
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isStage
+                        ? [
+                            Colors.cyan.withOpacity(0.15),
+                            Colors.blue.withOpacity(0.25),
+                            Colors.indigo.withOpacity(0.35),
+                            Colors.black.withOpacity(0.85),
+                          ]
+                        : [
+                            Colors.orange.withOpacity(0.15),
+                            Colors.deepOrange.withOpacity(0.25),
+                            Colors.red.withOpacity(0.35),
+                            Colors.black.withOpacity(0.85),
+                          ],
+                    stops: const [0.0, 0.3, 0.6, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            // İçerik
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.7),
+                      Colors.black.withOpacity(0.92),
+                    ],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        height: 1.2,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black87,
+                            offset: Offset(0, 2),
+                            blurRadius: 4,
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Badge (Sol Üst)
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: (isStage ? Colors.cyan : Colors.orange)
+                        .withOpacity(0.5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isStage ? Icons.location_on : Icons.group,
+                      color: isStage ? Colors.cyanAccent : Colors.orangeAccent,
+                      size: 10,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isStage ? "MEKAN" : "EKİP",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Yatay liste kartı (Horizontal List için)
+  static Widget horizontalCard(
+      final BuildContext context, final dynamic item, final bool isStage,
+      {required final double width}) {
+    return _BaseCardContainer(
+      onTap: () => isStage
+          ? context.push('/stage/${item.id}')
+          : context.push('/team/${item.id}'),
+      width: width,
+      margin: EdgeInsets.zero,
+      // Margin'i dışarıda padding ile yönetiyoruz
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(16),
+      child: LayoutBuilder(
+        builder: (final context, final constraints) => Stack(
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: width * 0.4,
+              // Sol %40 resim
+              child: OptimizedCachedImage(
+                imageUrl: item.imageUrl,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Positioned(
+              left: width * 0.4,
+              top: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: isStage
+                        ? [
+                            Colors.cyan.withOpacity(0.1),
+                            Colors.blue.withOpacity(0.05)
+                          ]
+                        : [
+                            Colors.orange.withOpacity(0.1),
+                            Colors.deepOrange.withOpacity(0.05)
+                          ],
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: context.colors.onSurface,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// _BaseCardContainer (Önceki koddan)
+class _BaseCardContainer extends StatelessWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final BorderRadius? borderRadius;
+  final double? width;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+
+  const _BaseCardContainer({
+    required this.child,
+    this.onTap,
+    this.borderRadius,
+    this.width,
+    this.padding,
+    this.margin,
+  });
+
+  @override
+  Widget build(final BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: width,
+          margin: margin,
+          padding: padding,
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: borderRadius ?? BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              )
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: child,
+        ),
+      );
+}
+
+// _FilterList Widget (Mevcut kodunuzdaki FilterList ile aynı)
+class _FilterList extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onSelected;
 
-  const FilterList(
-      {super.key, required this.selectedIndex, required this.onSelected});
+  const _FilterList({
+    required this.selectedIndex,
+    required this.onSelected,
+  });
 
   static const _filters = [
     "Tümü",
@@ -675,6 +1038,7 @@ class FilterList extends StatelessWidget {
     "Mekanlar",
     "Ekipler"
   ];
+
   static final _palettes = [
     [
       WebColors.darkBlueBackground,
@@ -697,21 +1061,29 @@ class FilterList extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => SizedBox(
-      height: 80,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: _filters.length,
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: (final _, final i) => Padding(
+        height: 80,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          itemCount: _filters.length,
+          physics: const BouncingScrollPhysics(),
+          itemBuilder: (final _, final i) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             child: ArtisticBrushChip(
-                text: _filters[i],
-                isSelected: selectedIndex == i,
-                colors: _palettes[i],
-                onTap: () => onSelected(i))),
-      ));
+              text: _filters[i],
+              isSelected: selectedIndex == i,
+              colors: _palettes[i],
+              onTap: () => onSelected(i),
+            ),
+          ),
+        ),
+      );
 }
+
+// ArtisticBrushChip ve _PaintDropletPainter sınıflarını (önceki kodunuzdan)
+// buraya veya ayrı bir dosyaya eklemeniz gerekmektedir.
+// Sayfa bütünlüğü açısından önceki kodunuzdaki hallerini koruyabilirsiniz.
+// Sadece WebColors ve AppDarkColors importlarının doğru olduğundan emin olun.
 
 class ArtisticBrushChip extends StatefulWidget {
   final String text;
@@ -844,426 +1216,81 @@ class _PaintDropletPainter extends CustomPainter {
   bool shouldRepaint(covariant final CustomPainter oldDelegate) => false;
 }
 
-class _GridHelpers {
-  static Widget grid(final List<dynamic> items,
-          final Widget Function(BuildContext, dynamic) builder,
-          {final int cross = 2, final double ratio = 0.8}) =>
-      SliverPadding(
-        padding: const EdgeInsets.all(16),
-        sliver: SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: cross,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: ratio),
-          delegate: SliverChildBuilderDelegate(
-              (final ctx, final i) => builder(ctx, items[i]),
-              childCount: items.length),
-        ),
-      );
+class GlassSearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final Function(String) onChanged;
 
-  static Widget standardShimmer(
-          {final int cross = 2, final double ratio = 0.8}) =>
-      SliverPadding(
-        padding: const EdgeInsets.all(16),
-        sliver: SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: cross,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: ratio),
-          delegate: SliverChildBuilderDelegate(
-              (final _, final __) => const ShimmerLoading(
-                  width: double.infinity,
-                  height: double.infinity,
-                  borderRadius: 16),
-              childCount: 6),
-        ),
-      );
-}
-
-class _GridCards {
-  static Widget verticalLarge(
-          final BuildContext context, final dynamic item, final bool isStage) =>
-      _BaseCardContainer(
-        onTap: () => isStage
-            ? context.push('/stage/${item.id}')
-            : context.push('/team/${item.id}'),
-        child: LayoutBuilder(
-          builder: (final context, final constraints) => Stack(
-            children: [
-              Positioned.fill(
-                child: OptimizedCachedImage(
-                  imageUrl: item.imageUrl,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isStage
-                          ? [
-                              Colors.cyan.withOpacity(0.15),
-                              Colors.blue.withOpacity(0.25),
-                              Colors.indigo.withOpacity(0.35),
-                              Colors.black.withOpacity(0.85),
-                            ]
-                          : [
-                              Colors.orange.withOpacity(0.15),
-                              Colors.deepOrange.withOpacity(0.25),
-                              Colors.red.withOpacity(0.35),
-                              Colors.black.withOpacity(0.85),
-                            ],
-                      stops: const [0.0, 0.3, 0.6, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _DotPatternPainter(
-                    color: Colors.white.withOpacity(0.05),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.7),
-                        Colors.black.withOpacity(0.92),
-                      ],
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isStage
-                                ? [
-                                    Colors.cyan.shade400,
-                                    Colors.blue.shade600,
-                                  ]
-                                : [
-                                    Colors.orange.shade400,
-                                    Colors.deepOrange.shade600,
-                                  ],
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isStage ? Colors.cyan : Colors.orange)
-                                  .withOpacity(0.5),
-                              blurRadius: 12,
-                              spreadRadius: 1,
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isStage ? Icons.location_on : Icons.group,
-                              color: Colors.white,
-                              size: 12,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isStage ? "MEKAN" : "EKİP",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        item.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          height: 1.2,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black87,
-                              offset: Offset(0, 2),
-                              blurRadius: 4,
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                child: CustomPaint(
-                  size: const Size(60, 60),
-                  painter: _CornerLinePainter(
-                    color: (isStage ? Colors.cyan : Colors.orange)
-                        .withOpacity(0.6),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-}
-
-class _HorizontalListSection extends StatelessWidget {
-  final String title, subtitle;
-  final List<dynamic> items;
-  final bool isStage, isLoading;
-  final VoidCallback? onSeeAll;
-
-  const _HorizontalListSection(
-      {required this.title,
-      required this.subtitle,
-      required this.items,
-      required this.isStage,
-      this.isLoading = false,
-      this.onSeeAll});
+  const GlassSearchBar(
+      {super.key, required this.controller, required this.onChanged});
 
   @override
   Widget build(final BuildContext context) {
-    if (isLoading)
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SectionHeader(title: title, subtitle: subtitle, onTap: onSeeAll),
-        SizedBox(
-            height: 150,
-            child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: 5,
-                itemBuilder: (final _, final __) =>
-                    const ShimmerCard(width: 220, height: 150))),
-        const SizedBox(height: 32),
-      ]);
+    final isDark = context.isDarkMode;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SectionHeader(title: title, subtitle: subtitle, onTap: onSeeAll),
-      SizedBox(
-          height: 150,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: items.length,
-            physics: const BouncingScrollPhysics(),
-            itemBuilder: (final ctx, final i) => _card(ctx, items[i]),
-          )),
-      const SizedBox(height: 32),
-    ]);
-  }
-
-  Widget _card(final BuildContext context, final dynamic item) =>
-      _BaseCardContainer(
-        onTap: () => isStage
-            ? context.push('/stage/${item.id}')
-            : context.push('/team/${item.id}'),
-        width: 220,
-        margin: const EdgeInsets.only(right: 12),
-        padding: EdgeInsets.zero,
-        borderRadius: _Styles.cardRadius,
-        child: LayoutBuilder(
-          builder: (final context, final constraints) => Stack(
-            children: [
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 90,
-                child: OptimizedCachedImage(
-                  imageUrl: item.imageUrl,
-                  fit: BoxFit.cover,
-                ),
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        // TAM YUVARLAK YAPI
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30), // Clip de yuvarlak olmalı
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              // Camsı Arka Plan
+              color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(isDark ? 0.1 : 0.4),
+                width: 1.0, // İnce zarif çizgi
               ),
-              Positioned(
-                left: 90,
-                top: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: isStage
-                          ? [
-                              Colors.cyan.withOpacity(0.1),
-                              Colors.blue.withOpacity(0.05),
-                            ]
-                          : [
-                              Colors.orange.withOpacity(0.1),
-                              Colors.deepOrange.withOpacity(0.05),
-                            ],
-                    ),
+            ),
+            child: Center(
+              child: TextField(
+                controller: controller,
+                onChanged: onChanged,
+                cursorColor: context.primaryColor,
+                style: TextStyle(
+                  color: context.colors.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+                // KARE GÖRÜNTÜYÜ YOK EDEN KISIM BURASI:
+                decoration: InputDecoration(
+                  hintText: 'Sanatın izini sür...',
+                  hintStyle: TextStyle(
+                    color: context.colors.onSurface.withOpacity(0.5),
+                    fontStyle: FontStyle.normal,
+                    fontSize: 15,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isStage
-                                ? [
-                                    Colors.cyan.shade400,
-                                    Colors.blue.shade600,
-                                  ]
-                                : [
-                                    Colors.orange.shade400,
-                                    Colors.deepOrange.shade600,
-                                  ],
-                          ),
-                          borderRadius: BorderRadius.circular(6),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isStage ? Colors.cyan : Colors.orange)
-                                  .withOpacity(0.3),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isStage ? Icons.location_on : Icons.group,
-                              color: Colors.white,
-                              size: 10,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              isStage ? "MEKAN" : "EKİP",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item.name,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.onSurface,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: context.primaryColor.withOpacity(0.8),
+                    size: 24,
+                  ),
+                  // Border'ları yok ediyoruz, çünkü Container'da verdik
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14, // Ortalamak için
                   ),
                 ),
               ),
-              Positioned(
-                left: 4,
-                top: 4,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.3),
-                    border: Border.all(
-                      color: (isStage ? Colors.cyan : Colors.orange)
-                          .withOpacity(0.6),
-                      width: 2,
-                    ),
-                  ),
-                  child: Icon(
-                    isStage ? Icons.place : Icons.star,
-                    color: (isStage ? Colors.cyan : Colors.orange).shade300,
-                    size: 14,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      );
-}
-
-class _DotPatternPainter extends CustomPainter {
-  final Color color;
-
-  _DotPatternPainter({required this.color});
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-    const spacing = 15.0;
-    for (double x = 0; x < size.width; x += spacing) {
-      for (double y = 0; y < size.height; y += spacing) {
-        canvas.drawCircle(Offset(x, y), 1.5, paint);
-      }
-    }
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant final CustomPainter oldDelegate) => false;
-}
-
-class _CornerLinePainter extends CustomPainter {
-  final Color color;
-
-  _CornerLinePainter({required this.color});
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(0, size.height * 0.6)
-      ..lineTo(0, 0)
-      ..lineTo(size.width * 0.6, 0);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant final CustomPainter oldDelegate) => false;
 }
