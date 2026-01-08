@@ -556,28 +556,109 @@ class GlassSearchBar extends StatelessWidget {
       {super.key, required this.controller, required this.onChanged});
 
   @override
-  Widget build(final BuildContext context) => ClipRRect(
+  Widget build(final BuildContext context) {
+    final isDark = context.isDarkMode;
+
+    return Container(
+      height: 56, // Standart yükseklik
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          // Hafif bir derinlik gölgesi
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              decoration: _Styles.glassDecoration(context),
-              child: TextField(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Stack(
+            children: [
+              // 1. KATMAN: Arka Plan Gradient (Camsı Dolgu)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            Colors.white.withOpacity(0.1),
+                            Colors.white.withOpacity(0.05),
+                          ]
+                        : [
+                            Colors.white.withOpacity(0.8),
+                            Colors.white.withOpacity(0.5),
+                          ],
+                  ),
+                ),
+              ),
+
+              // 2. KATMAN: Gradient Border (Premium Kenarlık Efekti)
+              // Düz border yerine, ışığın vurduğu yerleri parlatan özel yapı
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    width: 0.8, // Çok ince ve zarif
+                    color: Colors.transparent, // Rengi gradient ile vereceğiz
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            Colors.white.withOpacity(0.2), // Sol üst parlak
+                            Colors.white.withOpacity(0.0), // Sağ alt sönük
+                          ]
+                        : [
+                            Colors.white.withOpacity(0.6),
+                            Colors.white.withOpacity(0.1),
+                          ],
+                    stops: const [0.0, 1.0],
+                  ),
+                ),
+              ),
+
+              // 3. KATMAN: İçerik (TextField ve İkon)
+              Center(
+                child: TextField(
                   controller: controller,
                   onChanged: onChanged,
-                  style: TextStyle(color: context.colors.onSurface),
+                  style: TextStyle(
+                    color: context.colors.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
                   decoration: InputDecoration(
-                      hintText: 'Sanatın izini sür...',
-                      hintStyle: TextStyle(
-                          color: context.colors.onSurface.withOpacity(0.5),
-                          fontStyle: FontStyle.italic),
-                      prefixIcon: Icon(Icons.search_rounded,
-                          color: context.primaryColor),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 16))),
-            )),
-      );
+                    hintText: 'Sanatın izini sür...',
+                    hintStyle: TextStyle(
+                      color: context.colors.onSurface.withOpacity(0.5),
+                      fontStyle: FontStyle.normal,
+                      fontSize: 15,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: context.primaryColor.withOpacity(0.8),
+                      size: 24,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12, // Dikey hizalama için
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class FilterList extends StatelessWidget {
