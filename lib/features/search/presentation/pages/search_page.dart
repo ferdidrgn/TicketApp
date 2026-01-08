@@ -124,7 +124,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _initData();
       _scrollController.addListener(_onScroll);
     });
@@ -177,26 +177,26 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
           case 1:
             increment(
                 1,
-                _SearchLogic.totalCount(ref.read(showProvider).dataList, query,
-                    (final s) => s.name));
+                _SearchLogic.totalCount(
+                    ref.read(showProvider).dataList, query, (s) => s.name));
             break;
           case 2:
             increment(
                 2,
                 _SearchLogic.totalCount(ref.read(playerProvider).dataList,
-                    query, (final p) => '${p.firstName} ${p.lastName}'));
+                    query, (p) => '${p.firstName} ${p.lastName}'));
             break;
           case 3:
             increment(
                 3,
-                _SearchLogic.totalCount(ref.read(stageProvider).dataList, query,
-                    (final s) => s.name));
+                _SearchLogic.totalCount(
+                    ref.read(stageProvider).dataList, query, (s) => s.name));
             break;
           case 4:
             increment(
                 4,
-                _SearchLogic.totalCount(ref.read(teamProvider).dataList, query,
-                    (final t) => t.name));
+                _SearchLogic.totalCount(
+                    ref.read(teamProvider).dataList, query, (t) => t.name));
             break;
         }
         _loadingMore = false;
@@ -207,9 +207,9 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   void _onSeeAll(final int filterIndex) {
     setState(() {
       _selectedFilter = filterIndex;
-      _pages.updateAll((final _, final __) => 0);
+      _pages.updateAll((_, __) => 0);
     });
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(0,
             duration: const Duration(milliseconds: 300),
@@ -219,7 +219,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   }
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     final query = ref.watch(searchQueryProvider);
 
     // Verileri Çek
@@ -240,22 +240,22 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
     // Filtreleme
     final data = (
       shows: _SearchLogic.filterAndPaginate(
-          rawShows.dataList, query, (final s) => s.name,
+          rawShows.dataList, query, (s) => s.name,
           page: _selectedFilter == 1 ? _pages[1]! : 0,
           paginate: _selectedFilter == 1,
           limit: _selectedFilter == 0 ? 10 : null),
-      players: _SearchLogic.filterAndPaginate(rawPlayers.dataList, query,
-          (final p) => '${p.firstName} ${p.lastName}',
+      players: _SearchLogic.filterAndPaginate(
+          rawPlayers.dataList, query, (p) => '${p.firstName} ${p.lastName}',
           page: _selectedFilter == 2 ? _pages[2]! : 0,
           paginate: _selectedFilter == 2,
           limit: _selectedFilter == 0 ? 10 : null),
       stages: _SearchLogic.filterAndPaginate(
-          rawStages.dataList, query, (final s) => s.name,
+          rawStages.dataList, query, (s) => s.name,
           page: _selectedFilter == 3 ? _pages[3]! : 0,
           paginate: _selectedFilter == 3,
           limit: _selectedFilter == 0 ? 10 : null),
       teams: _SearchLogic.filterAndPaginate(
-          rawTeams.dataList, query, (final t) => t.name,
+          rawTeams.dataList, query, (t) => t.name,
           page: _selectedFilter == 4 ? _pages[4]! : 0,
           paginate: _selectedFilter == 4,
           limit: _selectedFilter == 0 ? 10 : null),
@@ -270,15 +270,14 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
         data.stages.isEmpty &&
         data.teams.isEmpty;
 
-    // Responsive Değerler (Mixin & Extension kullanımı)
-    // Desktop modunda içeriği sınırlar, mobilde tam genişlik kullanır.
+    // Responsive Değerler
     final contentMaxWidth = context.responsive(
       mobile: double.infinity,
       desktop: 1200.0,
     );
 
-    // Grid kolon sayısı
-    final gridCrossCount = context.gridColumns(5); // Desktop'ta 5 kolon
+    // Grid kolon sayısı (Oyuncular/Mekanlar için)
+    final gridCrossCount = context.gridColumns(5);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -310,11 +309,10 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
                         constraints: const BoxConstraints(maxWidth: 800),
                         child: _FilterList(
                           selectedIndex: _selectedFilter,
-                          onSelected: (final i) => setState(() {
+                          onSelected: (i) => setState(() {
                             _selectedFilter = i;
-                            _pages.updateAll((final _, final __) => 0);
-                            WidgetsBinding.instance
-                                .addPostFrameCallback((final _) {
+                            _pages.updateAll((_, __) => 0);
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
                               if (_scrollController.hasClients) {
                                 _scrollController.animateTo(0,
                                     duration: const Duration(milliseconds: 300),
@@ -359,11 +357,10 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
 
   // --- WIDGET BUILDERS ---
 
-  Widget _buildHeader(final BuildContext context, final String query) {
+  Widget _buildHeader(BuildContext context, String query) {
     final isDesktop = context.isDesktop;
 
     return Padding(
-      // Responsive Padding kullanımı
       padding: context.responsive(
         mobile: const EdgeInsets.fromLTRB(20, 10, 20, 20),
         desktop: const EdgeInsets.fromLTRB(40, 20, 40, 30),
@@ -377,15 +374,12 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
                 isDesktop ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
               if (!isDesktop) const GlassBackButton(),
-              TopHeader(
-                title: "Tablolarımız",
-              ),
+              TopHeader(title: "Tablolarımız"),
             ],
           ),
           const SizedBox(height: 20),
           Center(
             child: ConstrainedBox(
-              // Desktop'ta search bar çok uzamasın
               constraints: BoxConstraints(
                 maxWidth: context.responsive(
                   mobile: double.infinity,
@@ -395,7 +389,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
               ),
               child: GlassSearchBar(
                 controller: _textController,
-                onChanged: (final v) => ref
+                onChanged: (v) => ref
                     .read(searchQueryProvider.notifier)
                     .setQuery(v.toLowerCase()),
               ),
@@ -408,9 +402,9 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
 
   // --- TÜM BÖLÜMLER (YATAY LİSTELER) ---
   List<Widget> _buildAllSections(
-    final BuildContext context,
-    final dynamic loading,
-    final dynamic data,
+    BuildContext context,
+    dynamic loading,
+    dynamic data,
   ) {
     return [
       // 1. OYUNCULAR
@@ -423,14 +417,13 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
           ),
         ),
 
-      // 2. ETKİNLİKLER (MOSAIC)
+      // 2. ETKİNLİKLER (MOSAIC - YATAY)
       if (loading.shows || data.shows.isNotEmpty)
         SliverToBoxAdapter(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                // SectionHeader padding'i responsive hale getirilebilir
                 padding: context.paddingHorizontal,
                 child: SectionHeader(
                   title: "Etkinlikler Vitrini",
@@ -438,8 +431,6 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
                   onTap: () => _onSeeAll(1),
                 ),
               ),
-              // ShowMosaicGallery kendi içinde responsive olmalı veya
-              // desktop'ta yatayda daha geniş bir alan kaplamalı.
               ShowMosaicGallery(
                 shows: data.shows,
                 isLoading: loading.shows,
@@ -478,58 +469,54 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
     ];
   }
 
-  // --- FİLTRELENMİŞ BÖLÜMLER (GRIDLER) ---
+  // --- FİLTRELENMİŞ BÖLÜMLER ---
   List<Widget> _buildFilteredSection(
-    final BuildContext context,
-    final dynamic l,
-    final dynamic d,
-    final int crossAxisCount,
+    BuildContext context,
+    dynamic l,
+    dynamic d,
+    int crossAxisCount,
   ) {
     final gridSpacing = context.gridSpacing;
 
     return switch (_selectedFilter) {
-      // ETKİNLİKLER (Grid)
+      // 1. ETKİNLİKLER (MOZAİK - DİKEY)
+      // DİKKAT: Burada SliverToBoxAdapter kullanmadık çünkü ShowMosaicGallery
+      // içinde muhtemelen bir Sliver (örn: SliverMasonryGrid) döndürüyor.
       1 => [
+          // Padding'i SliverPadding ile veriyoruz.
           SliverPadding(
-            padding: context.paddingAll,
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                mainAxisSpacing: gridSpacing,
-                crossAxisSpacing: gridSpacing,
-                childAspectRatio: 0.65, // Shows için dikey oran
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (final ctx, final i) => l.shows
-                    ? const ShimmerCard(
-                        width: double.infinity, height: double.infinity)
-                    : Container(
-                        // BURAYA ShowCard Widget'ınızı koyun
-                        color: Colors.red.withOpacity(0.1),
-                        child: Center(child: Text(d.shows[i].name)),
-                      ),
-                childCount: l.shows ? 6 : d.shows.length,
-              ),
-            ),
+            padding: context.paddingHorizontal.copyWith(bottom: 20),
+            sliver: d.shows.isEmpty && l.shows
+                // Yükleniyorsa
+                ? SliverToBoxAdapter(
+                    child: const ShimmerLoading(
+                        height: 300, width: double.infinity, borderRadius: 16))
+                : ShowMosaicGallery(
+                    shows: d.shows,
+                    isLoading: l.shows,
+                    direction: Axis.vertical,
+                  ),
           ),
           if (d.shows.isEmpty && !l.shows)
             _buildEmptyState(context, msg: "Etkinlik bulunamadı"),
         ],
 
-      // OYUNCULAR (Grid)
+      // 2. OYUNCULAR (Grid - MOBİLDE 3 YAPILDI)
       2 => [
           SliverPadding(
             padding: context.paddingAll,
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                // RESPONSIVE AYAR: Mobile 3, Tablet 4, Desktop 6
                 crossAxisCount:
                     context.responsive(mobile: 3, tablet: 4, desktop: 6),
                 mainAxisSpacing: gridSpacing,
                 crossAxisSpacing: gridSpacing,
-                childAspectRatio: 0.75, // Player kart oranı
+                childAspectRatio:
+                    0.70, // 3'e bölünce kartlar daraldığı için boyunu uzattık
               ),
               delegate: SliverChildBuilderDelegate(
-                (final ctx, final i) => PlayerHeroCard(
+                (ctx, i) => PlayerHeroCard(
                   isLoading: l.players,
                   player: l.players ? null : d.players[i],
                 ),
@@ -541,7 +528,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
             _buildEmptyState(context, msg: "Oyuncu bulunamadı"),
         ],
 
-      // MEKANLAR (Grid)
+      // 3. MEKANLAR (Grid)
       3 => [
           _GridHelpers.buildGridSliver(
             context,
@@ -549,15 +536,14 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
             items: d.stages,
             crossAxisCount: crossAxisCount,
             ratio: 1.4,
-            // Yatay kart oranı
-            itemBuilder: (final ctx, final item) =>
+            itemBuilder: (ctx, item) =>
                 _GridCards.verticalLarge(ctx, item as Stage, true),
           ),
           if (d.stages.isEmpty && !l.stages)
             _buildEmptyState(context, msg: "Mekan bulunamadı"),
         ],
 
-      // EKİPLER (Grid)
+      // 4. EKİPLER (Grid)
       4 => [
           _GridHelpers.buildGridSliver(
             context,
@@ -565,7 +551,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
             items: d.teams,
             crossAxisCount: crossAxisCount,
             ratio: 1.4,
-            itemBuilder: (final ctx, final item) =>
+            itemBuilder: (ctx, item) =>
                 _GridCards.verticalLarge(ctx, item as Team, false),
           ),
           if (d.teams.isEmpty && !l.teams)
@@ -575,7 +561,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
     };
   }
 
-  Widget _buildEmptyState(final BuildContext context, {final String? msg}) =>
+  Widget _buildEmptyState(BuildContext context, {String? msg}) =>
       SliverFillRemaining(
         hasScrollBody: false,
         child: Center(
@@ -604,7 +590,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
 }
 
 // =============================================================================
-// YARDIMCI WIDGETLAR (Responsive)
+// YARDIMCI WIDGETLAR
 // =============================================================================
 
 class _PlayerHorizontalSection extends StatelessWidget {
@@ -619,9 +605,8 @@ class _PlayerHorizontalSection extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     final itemCount = isLoading ? 6 : players.length;
-    // Desktop'ta biraz daha yüksek olabilir
     final height = context.responsive(mobile: 190.0, desktop: 220.0);
 
     return Column(
@@ -640,12 +625,10 @@ class _PlayerHorizontalSection extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: context.paddingHorizontal,
-            // Responsive padding
             itemCount: itemCount,
             physics: const BouncingScrollPhysics(),
-            itemBuilder: (final ctx, final i) => Padding(
+            itemBuilder: (ctx, i) => Padding(
               padding: const EdgeInsets.only(right: 16),
-              // Kart arası boşluk
               child: PlayerHeroCard(
                 isLoading: isLoading,
                 player: isLoading ? null : players[i],
@@ -675,7 +658,7 @@ class _HorizontalListSection extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     final height = context.responsive(mobile: 150.0, desktop: 180.0);
     final cardWidth = context.responsive(mobile: 220.0, desktop: 260.0);
 
@@ -694,7 +677,7 @@ class _HorizontalListSection extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               padding: context.paddingHorizontal,
               itemCount: 5,
-              itemBuilder: (final _, final __) => Padding(
+              itemBuilder: (_, __) => Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: ShimmerCard(width: cardWidth, height: height),
               ),
@@ -720,7 +703,7 @@ class _HorizontalListSection extends StatelessWidget {
             padding: context.paddingHorizontal,
             itemCount: items.length,
             physics: const BouncingScrollPhysics(),
-            itemBuilder: (final ctx, final i) => Padding(
+            itemBuilder: (ctx, i) => Padding(
               padding: const EdgeInsets.only(right: 12),
               child: _GridCards.horizontalCard(
                 context,
@@ -737,18 +720,14 @@ class _HorizontalListSection extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// HELPER CLASSES (UI & Grid Logic)
-// =============================================================================
-
 class _GridHelpers {
   static Widget buildGridSliver(
-    final BuildContext context, {
-    required final bool isLoading,
-    required final List<dynamic> items,
-    required final int crossAxisCount,
-    required final double ratio,
-    required final Widget Function(BuildContext, dynamic) itemBuilder,
+    BuildContext context, {
+    required bool isLoading,
+    required List<dynamic> items,
+    required int crossAxisCount,
+    required double ratio,
+    required Widget Function(BuildContext, dynamic) itemBuilder,
   }) {
     final spacing = context.gridSpacing;
 
@@ -762,7 +741,7 @@ class _GridHelpers {
           childAspectRatio: ratio,
         ),
         delegate: SliverChildBuilderDelegate(
-          (final ctx, final i) => isLoading
+          (ctx, i) => isLoading
               ? const ShimmerLoading(
                   width: double.infinity,
                   height: double.infinity,
@@ -775,18 +754,15 @@ class _GridHelpers {
   }
 }
 
-// Kartların Tasarımları (Önceki koddan temizlenmiş ve toparlanmış)
 class _GridCards {
-  // Dikey büyük kart (Grid görünümü için)
   static Widget verticalLarge(
-      final BuildContext context, final dynamic item, final bool isStage) {
-    // _BaseCardContainer kullanımı (Eski kodunuzdaki yapıyı koruyarak)
+      BuildContext context, dynamic item, bool isStage) {
     return _BaseCardContainer(
       onTap: () => isStage
           ? context.push('/stage/${item.id}')
           : context.push('/team/${item.id}'),
       child: LayoutBuilder(
-        builder: (final context, final constraints) => Stack(
+        builder: (context, constraints) => Stack(
           children: [
             Positioned.fill(
               child: OptimizedCachedImage(
@@ -794,7 +770,6 @@ class _GridCards {
                 fit: BoxFit.cover,
               ),
             ),
-            // Gradient Overlay
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -819,7 +794,6 @@ class _GridCards {
                 ),
               ),
             ),
-            // İçerik
             Positioned(
               bottom: 0,
               left: 0,
@@ -863,7 +837,6 @@ class _GridCards {
                 ),
               ),
             ),
-            // Badge (Sol Üst)
             Positioned(
               top: 10,
               left: 10,
@@ -904,28 +877,24 @@ class _GridCards {
     );
   }
 
-  // Yatay liste kartı (Horizontal List için)
-  static Widget horizontalCard(
-      final BuildContext context, final dynamic item, final bool isStage,
-      {required final double width}) {
+  static Widget horizontalCard(BuildContext context, dynamic item, bool isStage,
+      {required double width}) {
     return _BaseCardContainer(
       onTap: () => isStage
           ? context.push('/stage/${item.id}')
           : context.push('/team/${item.id}'),
       width: width,
       margin: EdgeInsets.zero,
-      // Margin'i dışarıda padding ile yönetiyoruz
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(16),
       child: LayoutBuilder(
-        builder: (final context, final constraints) => Stack(
+        builder: (context, constraints) => Stack(
           children: [
             Positioned(
               left: 0,
               top: 0,
               bottom: 0,
               width: width * 0.4,
-              // Sol %40 resim
               child: OptimizedCachedImage(
                 imageUrl: item.imageUrl,
                 fit: BoxFit.cover,
@@ -979,7 +948,6 @@ class _GridCards {
   }
 }
 
-// _BaseCardContainer (Önceki koddan)
 class _BaseCardContainer extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -998,7 +966,7 @@ class _BaseCardContainer extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) => GestureDetector(
+  Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
           width: width,
@@ -1021,7 +989,6 @@ class _BaseCardContainer extends StatelessWidget {
       );
 }
 
-// _FilterList Widget (Mevcut kodunuzdaki FilterList ile aynı)
 class _FilterList extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onSelected;
@@ -1060,14 +1027,14 @@ class _FilterList extends StatelessWidget {
   ];
 
   @override
-  Widget build(final BuildContext context) => SizedBox(
+  Widget build(BuildContext context) => SizedBox(
         height: 80,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           itemCount: _filters.length,
           physics: const BouncingScrollPhysics(),
-          itemBuilder: (final _, final i) => Padding(
+          itemBuilder: (_, i) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             child: ArtisticBrushChip(
               text: _filters[i],
@@ -1079,11 +1046,6 @@ class _FilterList extends StatelessWidget {
         ),
       );
 }
-
-// ArtisticBrushChip ve _PaintDropletPainter sınıflarını (önceki kodunuzdan)
-// buraya veya ayrı bir dosyaya eklemeniz gerekmektedir.
-// Sayfa bütünlüğü açısından önceki kodunuzdaki hallerini koruyabilirsiniz.
-// Sadece WebColors ve AppDarkColors importlarının doğru olduğundan emin olun.
 
 class ArtisticBrushChip extends StatefulWidget {
   final String text;
