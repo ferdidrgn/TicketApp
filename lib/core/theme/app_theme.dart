@@ -9,7 +9,7 @@ mixin AppTheme {
   static Color createAtmosphericBackground(final Color sourceColor) {
     final hsl = HSLColor.fromColor(sourceColor);
     // Işığı %7'ye, Doygunluğu %40'a çekerek "Renkli Karanlık" elde ediyoruz
-    return hsl.withLightness(0.07).withSaturation(0.4).toColor();
+    return hsl.withLightness(0.07).withSaturation(0.3).toColor();
   }
 
   // --- 2. TEMA FABRİKASI ---

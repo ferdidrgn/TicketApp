@@ -2,6 +2,7 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
 
 class MobileBottomNavBar extends StatefulWidget {
@@ -33,17 +34,12 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
   @override
   Widget build(final BuildContext context) {
     final Color vibrantColor = context.isDarkMode
-        ? context.colors
-            .primaryContainer // Veya AppLightColors.primary diyerek zorla o rengi ver
+        ? context.colors.secondaryContainer
         : context.colors.primary;
-
-    final Color systemBarColor = context.isDarkMode
-        ? Colors.black // Dark modda alt taraf siyah kalsın, bar ile karışmasın
-        : vibrantColor;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-          systemNavigationBarColor: systemBarColor,
+          systemNavigationBarColor: vibrantColor,
           systemNavigationBarDividerColor: Colors.transparent,
           // Alt bar üzerindeki tuşların rengini ayarlıyoruz
           systemNavigationBarIconBrightness:

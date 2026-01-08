@@ -46,7 +46,7 @@ class ThemeManager {
     const defaultSeed = AppLightColors.primary;
 
     // 2. ÖZEL DURUM: Sadece 'AppDark' modu için kullanacağın renk
-    const myDarkSpecificSeed = AppDarkColors.primary;
+    const myDarkSpecificSeed = AppDarkColors.primaryVariant;
 
     switch (style) {
       // DURUM 1 & 3: App Light ve System
@@ -66,8 +66,8 @@ class ThemeManager {
       // -------------------------------------------------------------
       case AppThemeStyle.appDark:
         return AppTheme.createTheme(
-          colors: ColorScheme.fromSeed(
-            seedColor: myDarkSpecificSeed, // <-- Kendi özel rengin burada!
+          colors: ColorScheme.dark(
+            secondaryContainer: myDarkSpecificSeed,
             brightness: Brightness.dark,
           ),
         );
@@ -95,6 +95,7 @@ class ThemeManager {
                       seedColor: seed, brightness: Brightness.dark))
               .copyWith(
             surface: atmosphericColor,
+            secondaryContainer: atmosphericColor,
             onSurface: Colors.white,
           ),
         );
