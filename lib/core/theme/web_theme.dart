@@ -3,93 +3,118 @@ import 'app_colors.dart';
 import 'app_text_styles.dart';
 
 mixin WebTheme {
-  static ThemeData get darkTheme => ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        primaryColor: WebColors.primaryGold,
-        scaffoldBackgroundColor: WebColors.darkBlueBackground,
-        colorScheme: const ColorScheme.dark(
+  // 1. WEB TEMA FABRİKASI
+  // ===========================================================================
+  static ThemeData createTheme(final ColorScheme colors) {
+    // Web için özel tipografiyi çağırıyoruz
+    final TextTheme baseTextTheme = AppTextStyles.webTextTheme;
+
+    // Yazı tiplerini gelen rengin "onSurface" (yüzey üzerindeki renk) tonuna boyuyoruz
+    // Genelde bu beyaz veya kırık beyaz olur.
+    final TextTheme coloredTextTheme = baseTextTheme.apply(
+      bodyColor: colors.onSurface,
+      displayColor: colors.onSurface,
+      decorationColor: colors.onSurface,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: colors.brightness,
+      primaryColor: colors.primary,
+      scaffoldBackgroundColor: colors.background,
+      // Web'de genelde background kullanılır
+      colorScheme: colors,
+
+      // Boyanmış text teması
+      textTheme: coloredTextTheme,
+
+      // --- BİLEŞEN AYARLARI ---
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        // Web'de başlık genelde solda olur
+        iconTheme: IconThemeData(color: colors.onSurface),
+        titleTextStyle: coloredTextTheme.titleLarge
+            ?.copyWith(color: colors.onSurface, fontWeight: FontWeight.w600),
+      ),
+
+      cardTheme: CardThemeData(
+        color: colors.surface, // WebColors.darkBlueSurface buraya denk gelecek
+        elevation: 2,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: colors.surface,
+        // Inputlar kartlarla aynı renk
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+              color: WebColors.primaryGold), // Veya colors.primary
+        ),
+      ),
+
+      buttonTheme: const ButtonThemeData(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8))),
+      ),
+
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+      ),
+
+      // Scrollbar Web için önemlidir
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: MaterialStateProperty.all(colors.primary.withOpacity(0.5)),
+        trackColor: MaterialStateProperty.all(colors.surface.withOpacity(0.5)),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // 2. VARSAYILAN WEB KOYU TEMASI (Dark Theme)
+  // ===========================================================================
+
+  // Burada senin özel WebColors renklerini ColorScheme paketine sarıp fabrikaya yolluyoruz.
+  static ThemeData get darkTheme => createTheme(
+        const ColorScheme.dark(
+          // Ana Renk (Gold)
           primary: WebColors.primaryGold,
-          onPrimary: WebColors.whiteText,
+          onPrimary: WebColors.darkBlueBackground,
+          // Gold üstüne koyu yazı okunur
+
+          // İkincil Renk (Surface ile aynı yaptık ama istersen değiştirebilirsin)
           secondary: WebColors.darkBlueSurface,
           onSecondary: WebColors.whiteText,
-          surface: WebColors.darkBlueSurface,
-          onSurface: WebColors.whiteText,
+
+          // Arka Planlar
           background: WebColors.darkBlueBackground,
           onBackground: WebColors.whiteText,
+
+          // Kartlar ve Yüzeyler
+          surface: WebColors.darkBlueSurface,
+          onSurface: WebColors.whiteText,
+
+          // Hata
           error: WebColors.error,
           onError: WebColors.whiteText,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: false,
-          iconTheme: IconThemeData(color: WebColors.whiteText),
-          titleTextStyle: TextStyle(
-            color: WebColors.whiteText,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        textTheme: TextTheme(
-          displayLarge:
-              WebTextStyles.displayLarge.copyWith(color: WebColors.whiteText),
-          displayMedium:
-              WebTextStyles.displayMedium.copyWith(color: WebColors.whiteText),
-          displaySmall:
-              WebTextStyles.displaySmall.copyWith(color: WebColors.whiteText),
-          headlineLarge:
-              WebTextStyles.headlineLarge.copyWith(color: WebColors.whiteText),
-          headlineMedium:
-              WebTextStyles.headlineMedium.copyWith(color: WebColors.whiteText),
-          headlineSmall:
-              WebTextStyles.headlineSmall.copyWith(color: WebColors.whiteText),
-          titleLarge:
-              WebTextStyles.titleLarge.copyWith(color: WebColors.whiteText),
-          titleMedium:
-              WebTextStyles.titleMedium.copyWith(color: WebColors.whiteText),
-          titleSmall:
-              WebTextStyles.titleSmall.copyWith(color: WebColors.whiteText),
-          bodyLarge:
-              WebTextStyles.bodyLarge.copyWith(color: WebColors.lightWhite),
-          bodyMedium:
-              WebTextStyles.bodyMedium.copyWith(color: WebColors.lightWhite),
-          bodySmall:
-              WebTextStyles.bodySmall.copyWith(color: WebColors.textSecondary),
-          labelLarge:
-              WebTextStyles.labelLarge.copyWith(color: WebColors.whiteText),
-          labelMedium:
-              WebTextStyles.labelMedium.copyWith(color: WebColors.whiteText),
-          labelSmall:
-              WebTextStyles.labelSmall.copyWith(color: WebColors.textSecondary),
-        ),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          color: WebColors.darkBlueSurface,
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          filled: true,
-          fillColor: WebColors.darkBlueSurface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(8)),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(8)),
-            borderSide: BorderSide(color: WebColors.primaryGold),
-          ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
-        buttonTheme: const ButtonThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(8)),
-          ),
-        ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: WebColors.primaryGold,
-          foregroundColor: WebColors.darkBlueBackground,
+
+          // Outline ve diğer detaylar
+          outline: WebColors.textSecondary,
         ),
       );
 }
