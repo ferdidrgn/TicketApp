@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:ui'; // Blur efekti için gerekli
-import '../../../core/theme/theme_context_extension.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
+import '../../../core/enum/enums.dart';
 import '../../../core/theme/theme_notifier.dart';
 
 class ThemeSelectorCard extends ConsumerWidget {
@@ -9,12 +9,14 @@ class ThemeSelectorCard extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final currentTheme = ref.watch(themeProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentPref = ref.watch(themeProvider);
+    final isDark = context.isDarkMode;
+
+    // Ahenk modu için sistemin o anki ana rengini çekiyoruz
+    final systemColor = context.colors.primary;
 
     return Column(
       children: [
-        // Başlık: Sanatsal ve minimal
         Text(
           "ATÖLYE IŞIĞI",
           style: TextStyle(
@@ -26,18 +28,17 @@ class ThemeSelectorCard extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
-        // Ana Kapsayıcı (Tuval)
+        // Tuval
         Center(
           child: Container(
             height: 70,
-            width: 320, // Genişlik sınırlaması estetik durur
+            // 4 Buton olduğu için genişliği biraz artırdık
+            width: 360,
             decoration: BoxDecoration(
-              // Light modda çok hafif gri, Dark modda yarı saydam siyah
               color: isDark
                   ? Colors.black.withOpacity(0.3)
                   : Colors.grey.shade200.withOpacity(0.5),
               borderRadius: BorderRadius.circular(40),
-              // İnce, zarif bir çerçeve
               border: Border.all(
                 color: isDark
                     ? Colors.white.withOpacity(0.1)
@@ -48,29 +49,28 @@ class ThemeSelectorCard extends ConsumerWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // 1. KATMAN: SİHİRLİ GEZEN IŞIK (GLOW)
-                // Bu parça seçilen modun arkasına kayar
+                // 1. KATMAN: GLOW (IŞIK)
                 AnimatedAlign(
                   duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOutBack, // Hafif taşma efekti (yaylanma)
-                  alignment: _getAlignment(currentTheme),
+                  curve: Curves.easeOutBack,
+                  alignment: _getAlignment(currentPref),
                   child: Container(
-                    width: 90,
+                    width: 80, // 4 tane sığsın diye biraz daralttık
                     height: 55,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle, // Işık topu şeklinde
+                      shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          // Moduna göre ışığın rengi değişiyor!
-                          color: _getGlowColor(currentTheme).withOpacity(0.4),
-                          blurRadius: 25, // Çok yumuşak yayılım
-                          spreadRadius: 5,
+                          color: _getGlowColor(currentPref, systemColor)
+                              .withOpacity(0.4),
+                          blurRadius: 20,
+                          spreadRadius: 2,
                         ),
                       ],
-                      // Işığın merkezi
                       gradient: RadialGradient(
                         colors: [
-                          _getGlowColor(currentTheme).withOpacity(0.3),
+                          _getGlowColor(currentPref, systemColor)
+                              .withOpacity(0.3),
                           Colors.transparent,
                         ],
                       ),
@@ -78,37 +78,47 @@ class ThemeSelectorCard extends ConsumerWidget {
                   ),
                 ),
 
-                // 2. KATMAN: İKONLAR VE ETKİLEŞİM
+                // 2. KATMAN: İKONLAR (4 SEÇENEK)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _ArtisticButton(
                       label: 'Gündüz',
                       icon: Icons.wb_sunny_rounded,
-                      isSelected: currentTheme == ThemeMode.light,
+                      isSelected: currentPref == AppThemePreference.light,
                       activeColor: Colors.orangeAccent,
                       onTap: () => ref
                           .read(themeProvider.notifier)
-                          .setTheme(ThemeMode.light),
+                          .setTheme(AppThemePreference.light),
                     ),
                     _ArtisticButton(
                       label: 'Gece',
                       icon: Icons.nights_stay_rounded,
-                      isSelected: currentTheme == ThemeMode.dark,
+                      isSelected: currentPref == AppThemePreference.dark,
                       activeColor: Colors.purpleAccent.shade100,
                       onTap: () => ref
                           .read(themeProvider.notifier)
-                          .setTheme(ThemeMode.dark),
+                          .setTheme(AppThemePreference.dark),
                     ),
                     _ArtisticButton(
                       label: 'Sistem',
-                      // Sistem yerine daha şiirsel
-                      icon: Icons.all_inclusive_rounded,
-                      isSelected: currentTheme == ThemeMode.system,
-                      activeColor: Colors.blueAccent,
+                      icon: Icons.smartphone_rounded,
+                      isSelected: currentPref == AppThemePreference.system,
+                      activeColor: Colors.blueGrey,
                       onTap: () => ref
                           .read(themeProvider.notifier)
-                          .setTheme(ThemeMode.system),
+                          .setTheme(AppThemePreference.system),
+                    ),
+                    _ArtisticButton(
+                      label: 'Ahenk',
+                      // Monet / Dinamik Renk
+                      icon: Icons.graphic_eq_rounded,
+                      isSelected: currentPref == AppThemePreference.monet,
+                      activeColor: systemColor,
+                      // Duvar kağıdı rengi!
+                      onTap: () => ref
+                          .read(themeProvider.notifier)
+                          .setTheme(AppThemePreference.monet),
                     ),
                   ],
                 ),
@@ -120,25 +130,30 @@ class ThemeSelectorCard extends ConsumerWidget {
     );
   }
 
-  Alignment _getAlignment(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.light:
-        return const Alignment(-0.75, 0);
-      case ThemeMode.dark:
-        return const Alignment(0, 0);
-      case ThemeMode.system:
-        return const Alignment(0.75, 0);
+  // 4 Seçenek için Alignment Ayarları
+  Alignment _getAlignment(final AppThemePreference pref) {
+    switch (pref) {
+      case AppThemePreference.light:
+        return const Alignment(-0.9, 0);
+      case AppThemePreference.dark:
+        return const Alignment(-0.3, 0);
+      case AppThemePreference.system:
+        return const Alignment(0.3, 0);
+      case AppThemePreference.monet:
+        return const Alignment(0.9, 0);
     }
   }
 
-  Color _getGlowColor(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.light:
+  Color _getGlowColor(final AppThemePreference pref, final Color dynamicColor) {
+    switch (pref) {
+      case AppThemePreference.light:
         return Colors.orange;
-      case ThemeMode.dark:
+      case AppThemePreference.dark:
         return Colors.purple;
-      case ThemeMode.system:
-        return Colors.blue;
+      case AppThemePreference.system:
+        return Colors.blueGrey;
+      case AppThemePreference.monet:
+        return dynamicColor; // Sihir burada
     }
   }
 }
@@ -159,50 +174,45 @@ class _ArtisticButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Pasif ikon rengi: Light modda gri, Dark modda beyazımsı
     final inactiveColor = isDark ? Colors.white38 : Colors.black26;
 
     return GestureDetector(
       onTap: onTap,
-      behavior: HitTestBehavior.translucent, // Tıklama alanını iyileştirir
+      behavior: HitTestBehavior.translucent,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
-        // Seçili olunca hafif yukarı kalksın (Havalanma efekti)
-        transform: Matrix4.translationValues(0, isSelected ? -4 : 0, 0),
+        // Seçili ikon hafifçe yukarı süzülür
+        transform: Matrix4.translationValues(0, isSelected ? -5 : 0, 0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // İkon Animasyonu
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? activeColor.withOpacity(0.2)
+                    ? activeColor.withOpacity(0.15)
                     : Colors.transparent,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                size: isSelected ? 26 : 22,
+                size: isSelected ? 24 : 20,
                 color: isSelected ? activeColor : inactiveColor,
               ),
             ),
-
-            // Yazı Animasyonu (Opaklık geçişi)
             AnimatedOpacity(
               duration: const Duration(milliseconds: 300),
               opacity: isSelected ? 1.0 : 0.0,
-              child: Container(
-                margin: const EdgeInsets.only(top: 4),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                     color: activeColor,
                   ),

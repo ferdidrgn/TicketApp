@@ -1,70 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../enum/enums.dart';
 import '../services/local_storage_service.dart';
 
 final themeProvider =
-    NotifierProvider<ThemeNotifier, ThemeMode>(ThemeNotifier.new);
+    NotifierProvider<ThemeNotifier, AppThemePreference>(ThemeNotifier.new);
 
-class ThemeNotifier extends Notifier<ThemeMode> {
-  // Depolama anahtarı
-  static const String _themeKey = 'theme_mode';
+class ThemeNotifier extends Notifier<AppThemePreference> {
+  static const String _themeKey = 'app_theme_preference';
 
   @override
-  ThemeMode build() {
-    // Başlangıçta sistem varsayılanını veriyoruz
-    _loadThemeFromSecureStorage();
-    return ThemeMode.system;
+  AppThemePreference build() {
+    // Build işlemi bittikten hemen sonra yüklemeyi başlat
+    Future.microtask(() => _loadThemeFromStorage());
+
+    // Varsayılan olarak Sistem (veya Monet) başlat
+    return AppThemePreference.system;
   }
 
-  /// 💾 Secure Storage'dan temayı yükler
-  Future<void> _loadThemeFromSecureStorage() async {
+  /// 💾 Kayıtlı tercihi yükle
+  Future<void> _loadThemeFromStorage() async {
     try {
-      // SharedPreferences yerine senin LocalStorageService'ini kullanıyoruz
-      // Ancak LocalStorageService içinde henüz theme için metod yoksa
-      // doğrudan _storage.read kullanabiliriz veya LocalStorageService'e ekleyebilirsin
-
-      // Şimdilik LocalStorageService üzerinden String olarak okuyoruz:
       final String? themeString =
           await LocalStorageService.readSecureData(_themeKey);
 
-      if (themeString != null) {
-        state = _parseThemeMode(themeString);
-      }
+      if (themeString != null)
+        state = AppThemePreference.values.firstWhere(
+          (final e) => e.name == themeString,
+          orElse: () => AppThemePreference.system,
+        );
     } catch (e) {
-      debugPrint('Theme loading error: $e');
+      debugPrint('Tema yükleme hatası: $e');
     }
   }
 
-  /// 💾 Temayı kaydeder ve durumu günceller
-  Future<void> setTheme(final ThemeMode theme) async {
+  /// 💾 Tercihi kaydet ve güncelle
+  Future<void> setTheme(final AppThemePreference preference) async {
     try {
-      state = theme;
-      // Enum'ın ismini (light, dark, system) String olarak kaydediyoruz
-      await LocalStorageService.writeSecureData(_themeKey, theme.name);
+      state = preference;
+      await LocalStorageService.writeSecureData(_themeKey, preference.name);
     } catch (e) {
-      debugPrint('Theme saving error: $e');
+      debugPrint('Tema kaydetme hatası: $e');
     }
   }
 
-  /// String'i Enum'a çevirir
-  ThemeMode _parseThemeMode(final String themeString) {
-    return ThemeMode.values.firstWhere(
-      (e) => e.name == themeString,
-      orElse: () => ThemeMode.system,
-    );
-  }
+  // --- HESAPLANAN ÖZELLİKLER (Helper Getters) ---
 
-  /// 🔄 Temayı tersine çevirir (Toggle)
-  Future<void> toggleTheme(final BuildContext context) async {
-    if (state == ThemeMode.system) {
-      final isPlatformDark =
-          View.of(context).platformDispatcher.platformBrightness ==
-              Brightness.dark;
-      await setTheme(isPlatformDark ? ThemeMode.light : ThemeMode.dark);
-    } else {
-      final newTheme =
-          state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-      await setTheme(newTheme);
+  /// 1. MaterialApp için gerekli ThemeMode'u hesaplar
+  ThemeMode get currentThemeMode {
+    switch (state) {
+      case AppThemePreference.light:
+        return ThemeMode.light;
+      case AppThemePreference.dark:
+        return ThemeMode.dark;
+      case AppThemePreference.system:
+      case AppThemePreference.monet:
+        // Monet de sistemin aydınlık/karanlık moduna uyar
+        return ThemeMode.system;
     }
   }
+
+  /// 2. Dinamik renklerin (Monet) açık olup olmadığını söyler
+  bool get isDynamicColorEnabled => state == AppThemePreference.monet;
 }
