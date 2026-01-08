@@ -2,9 +2,11 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'core/config/app_initializer.dart';
 import 'core/config/router/app_router.dart';
 import 'core/constants/app_constants.dart';
+import 'core/enum/enums.dart';
 import 'core/network/connectivity_wrapper.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_notifier.dart';
@@ -23,13 +25,15 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    // 1. Notifier'ın kendisini okuyoruz (Helper getter'lara erişmek için)
+    // State izleme
+    final currentStyle = ref.watch(themeProvider);
     final themeNotifier = ref.watch(themeProvider.notifier);
-    // 2. State'i izliyoruz (Değişiklikte rebuild olması için)
-    final currentPreference = ref.watch(themeProvider);
     final router = ref.watch(appRouterProvider);
     final loginState = ref.watch(loginProvider);
     final isWeb = PlatformChecker.isWeb;
+
+    // Sabit App Renkleri (WebColors veya AppLightColors'dan çekilir)
+    const fixedSeedColor = AppLightColors.primary; // Kırmızı/Altın rengin
 
     return DynamicColorBuilder(builder:
         (final ColorScheme? lightDynamic, final ColorScheme? darkDynamic) {
@@ -37,34 +41,102 @@ class MyApp extends ConsumerWidget {
       // 2. Desteklemiyorsa (iOS veya eski Android) varsayılan 'seedColor' kullan.
       // Not: AppTheme.lightScheme ve darkScheme senin kendi belirlediğin fallback renkler olmalı.
 
-      ColorScheme lightScheme;
-      ColorScheme darkScheme;
+      ThemeData lightThemeData;
+      ThemeData darkThemeData;
 
-      // Eğer kullanıcı "Senin Teman" (Monet) seçtiyse VE cihaz destekliyorsa:
-      if (themeNotifier.isDynamicColorEnabled &&
-          lightDynamic != null &&
-          darkDynamic != null) {
-        lightScheme = lightDynamic.harmonized();
-        darkScheme = darkDynamic.harmonized();
-      } else {
-        // Diğer seçeneklerde (Gündüz/Gece/Sistem) senin varsayılan renklerin kullanılır
-        lightScheme =
-            ColorScheme.fromSeed(seedColor: Colors.deepPurple); // Senin rengin
-        darkScheme = ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple, brightness: Brightness.dark);
+      // --- TEMA MANTIĞI ---
+      switch (currentStyle) {
+        // 1. SABİT GÜNDÜZ (Zorla Kendi Rengin)
+        case AppThemeStyle.appLight:
+          lightThemeData = AppTheme.createTheme(
+            colors: ColorScheme.fromSeed(
+                seedColor: fixedSeedColor, brightness: Brightness.light),
+          );
+          darkThemeData = AppTheme.createTheme(
+            // Kullanılmayacak ama null olmasın
+            colors: ColorScheme.fromSeed(
+                seedColor: fixedSeedColor, brightness: Brightness.dark),
+          );
+          break;
+
+        // 2. SABİT GECE (Zorla Kendi Rengin)
+        case AppThemeStyle.appDark:
+          lightThemeData = AppTheme.createTheme(
+            colors: ColorScheme.fromSeed(
+                seedColor: fixedSeedColor, brightness: Brightness.light),
+          );
+          darkThemeData = AppTheme.createTheme(
+            colors: ColorScheme.fromSeed(
+                seedColor: fixedSeedColor, brightness: Brightness.dark),
+          );
+          break;
+
+        // 3. SİSTEM (Telefona Göre Senin Renklerin)
+        case AppThemeStyle.system:
+          lightThemeData = AppTheme.createTheme(
+            colors: ColorScheme.fromSeed(
+                seedColor: fixedSeedColor, brightness: Brightness.light),
+          );
+          darkThemeData = AppTheme.createTheme(
+            colors: ColorScheme.fromSeed(
+                seedColor: fixedSeedColor, brightness: Brightness.dark),
+          );
+          break;
+
+        // 4. MATERIAL GÜNDÜZ (Duvar Kağıdı Rengi)
+        case AppThemeStyle.materialLight:
+          final seed = lightDynamic?.primary ?? fixedSeedColor;
+          lightThemeData = AppTheme.createTheme(
+            colors: lightDynamic ??
+                ColorScheme.fromSeed(
+                    seedColor: seed, brightness: Brightness.light),
+          );
+          darkThemeData = AppTheme.createTheme(
+            colors: darkDynamic ??
+                ColorScheme.fromSeed(
+                    seedColor: seed, brightness: Brightness.dark),
+          );
+          break;
+
+        // 5. MATERIAL ATMOSFERİK GECE (Duvar Kağıdı + Özel Koyu Mod)
+        case AppThemeStyle.materialDark:
+          final seed = darkDynamic?.primary ?? fixedSeedColor;
+
+          // Light tema standart kalır
+          lightThemeData = AppTheme.createTheme(
+            colors: lightDynamic ??
+                ColorScheme.fromSeed(
+                    seedColor: seed, brightness: Brightness.light),
+          );
+
+          // Dark Tema için SİHİRLİ DOKUNUŞ:
+          final atmosphericColor = AppTheme.createAtmosphericBackground(seed);
+
+          darkThemeData = AppTheme.createTheme(
+            // Şemanın surface rengini override ediyoruz
+            scaffoldBackgroundOverride: atmosphericColor,
+
+            colors: (darkDynamic ??
+                    ColorScheme.fromSeed(
+                        seedColor: seed, brightness: Brightness.dark))
+                .copyWith(
+              surface: atmosphericColor, // Yüzey rengini değiştir
+              onSurface: Colors.white, // Yazılar beyaz
+            ),
+          );
+          break;
       }
 
       return MaterialApp.router(
         routerConfig: router,
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
-        theme: AppTheme.createTheme(lightScheme),
-        darkTheme:
-            isWeb ? WebTheme.darkTheme : AppTheme.createTheme(darkScheme),
-        themeMode: isWeb ? ThemeMode.dark : themeNotifier.currentThemeMode,
+        // Web için özel tema, mobil için hesaplanan tema
+        theme: lightThemeData,
+        darkTheme: isWeb ? WebTheme.darkTheme : darkThemeData,
+        themeMode: isWeb ? ThemeMode.dark : themeNotifier.themeMode,
         builder: (final context, final child) {
           if (child == null) return const SizedBox.shrink();
-
           return ConnectivityWrapper(
             child: SplashDataGuard(
               isLoading: loginState.isLoading,

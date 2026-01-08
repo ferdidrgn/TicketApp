@@ -5,11 +5,22 @@ import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/app_text_styles.dart';
 
 mixin AppTheme {
-  // 1. TEMA FABRİKASI (En Önemli Kısım)
+  // --- 1. ATMOSFERİK MOD HESAPLAYICI (İstediğin Kod Burada) ---
+  static Color createAtmosphericBackground(final Color sourceColor) {
+    final hsl = HSLColor.fromColor(sourceColor);
+    // Işığı %7'ye, Doygunluğu %40'a çekerek "Renkli Karanlık" elde ediyoruz
+    return hsl.withLightness(0.07).withSaturation(0.4).toColor();
+  }
+
+  // --- 2. TEMA FABRİKASI ---
   // ===========================================================================
   /// Bu metot, dışarıdan verilen bir [ColorScheme] (renk paketi) alır
   /// ve tüm butonları, inputları o renge göre boyayıp ThemeData döndürür.
-  static ThemeData createTheme(final ColorScheme colors) {
+  static ThemeData createTheme({
+    required final ColorScheme colors,
+    final Color? scaffoldBackgroundOverride,
+    // Atmosferik mod için override imkanı
+  }) {
     // 1. Web mi Mobil mi karar ver ve ham (renksiz) text temasını al
     final TextTheme baseTextTheme =
         kIsWeb ? AppTextStyles.webTextTheme : AppTextStyles.mobileTextTheme;
@@ -22,19 +33,23 @@ mixin AppTheme {
       decorationColor: colors.onSurface,
     );
 
+    // Arka plan rengi: Override varsa onu kullan, yoksa standart surface
+    final bgColor = scaffoldBackgroundOverride ?? colors.surface;
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: colors,
       brightness: colors.brightness,
-      scaffoldBackgroundColor: colors.surface,
-      // Background yerine surface daha modern
+      scaffoldBackgroundColor: bgColor,
+      // Arka plan rengi: Override varsa onu kullan, yoksa standart surface, Background yerine surface daha modern
 
       // Boyanmış text temasını içeri alıyoruz
       textTheme: coloredTextTheme,
 
       // Bileşen Temaları (Artık 'colors' değişkenini kullanıyorlar)
-      appBarTheme: _appBarTheme(colors: colors, textTheme: coloredTextTheme),
-      cardTheme: _cardTheme(colors: colors),
+      appBarTheme: _appBarTheme(
+          colors: colors, textTheme: coloredTextTheme, bgColor: bgColor),
+      cardTheme: _cardTheme(colors: colors, bgColor: bgColor),
       elevatedButtonTheme: _elevatedButtonTheme(
           colors: colors, textStyle: coloredTextTheme.labelLarge!),
       outlinedButtonTheme: _outlinedButtonTheme(
@@ -50,7 +65,7 @@ mixin AppTheme {
   // 2. SABİT TEMALAR (Fallback / Gündüz-Gece Seçenekleri İçin)
   // ===========================================================================
   static final ThemeData lightTheme = createTheme(
-    const ColorScheme.light(
+    colors: const ColorScheme.light(
       primary: AppLightColors.primary,
       onPrimary: AppLightColors.onPrimary,
       primaryContainer: AppLightColors.primaryVariant,
@@ -72,7 +87,7 @@ mixin AppTheme {
   // DARK THEME -- Fabrikayı kullanarak Dark Tema üretiyoruz
   // ------------------------------------------------------------
   static final ThemeData darkTheme = createTheme(
-    const ColorScheme.dark(
+    colors: const ColorScheme.dark(
       primary: AppDarkColors.primary,
       primaryContainer: AppDarkColors.primaryVariant,
       secondary: AppDarkColors.secondary,
@@ -93,9 +108,12 @@ mixin AppTheme {
   static AppBarTheme _appBarTheme({
     required final ColorScheme colors,
     required final TextTheme textTheme,
+    required final Color bgColor,
   }) =>
       AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: bgColor,
+        // Atmosferik modda Appbar da renkli olsun
+        //backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: colors.onSurface, size: 28),
@@ -108,17 +126,26 @@ mixin AppTheme {
             : SystemUiOverlayStyle.light,
       );
 
-  static CardThemeData _cardTheme({required final ColorScheme colors}) =>
-      CardThemeData(
-        // M3'te surfaceContainerHighest önerilir, yoksa surface kullanır
-        color: colors.surfaceContainerHighest,
-        elevation: 2,
-        shadowColor: colors.shadow.withOpacity(0.35),
-        surfaceTintColor: Colors.transparent,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16))),
-        margin: EdgeInsets.zero,
-      );
+  static CardThemeData _cardTheme(
+      {required final ColorScheme colors, required final Color bgColor}) {
+    // Atmosferik modda kartlar, arka plandan biraz daha açık (aydınlık) olmalı
+    final cardColor = HSLColor.fromColor(bgColor)
+        .withLightness(
+            (HSLColor.fromColor(bgColor).lightness + 0.05).clamp(0.0, 1.0))
+        .toColor();
+    return CardThemeData(
+      // M3'te surfaceContainerHighest önerilir, yoksa surface kullanır
+      color: colors.brightness == Brightness.dark
+          ? cardColor
+          : colors.surfaceContainerHighest,
+      elevation: 2,
+      shadowColor: colors.shadow.withOpacity(0.35),
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16))),
+      margin: EdgeInsets.zero,
+    );
+  }
 
   static ElevatedButtonThemeData _elevatedButtonTheme({
     required final ColorScheme colors,

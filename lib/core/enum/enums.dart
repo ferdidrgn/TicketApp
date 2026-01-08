@@ -10,9 +10,10 @@ enum UserRole {
           orElse: () => UserRole.unknown);
 }
 
-enum AppThemePreference {
-  light, // Gündüz (Sabit Renk)
-  dark, // Gece (Sabit Renk)
-  system, // Sistem (Sabit Renk - Cihaza uyar)
-  monet, // Ahenk / Senin Teman (Dinamik Renk - Cihaza uyar)
+enum AppThemeStyle {
+  appLight, // Sabit TiyatRol Kırmızı/Beyaz (Gündüz)
+  appDark, // Sabit TiyatRol Gri/Siyah (Gece)
+  system, // Telefon ayarına göre sabit renkler (Oto)
+  materialLight, // Duvar kağıdı rengi (Gündüz)
+  materialDark, // Duvar kağıdı rengi + ATMOSFERİK MOD (Gece)
 }

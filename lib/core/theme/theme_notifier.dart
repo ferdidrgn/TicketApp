@@ -4,62 +4,40 @@ import '../enum/enums.dart';
 import '../services/local_storage_service.dart';
 
 final themeProvider =
-    NotifierProvider<ThemeNotifier, AppThemePreference>(ThemeNotifier.new);
+    NotifierProvider<ThemeNotifier, AppThemeStyle>(ThemeNotifier.new);
 
-class ThemeNotifier extends Notifier<AppThemePreference> {
-  static const String _themeKey = 'app_theme_preference';
+class ThemeNotifier extends Notifier<AppThemeStyle> {
+  static const String _themeKey = 'app_theme_style_v2';
 
   @override
-  AppThemePreference build() {
-    // Build işlemi bittikten hemen sonra yüklemeyi başlat
-    Future.microtask(() => _loadThemeFromStorage());
-
-    // Varsayılan olarak Sistem (veya Monet) başlat
-    return AppThemePreference.system;
+  AppThemeStyle build() {
+    Future.microtask(() => _loadTheme());
+    return AppThemeStyle.system; // Varsayılan: Sistem (App Renkleri)
   }
 
-  /// 💾 Kayıtlı tercihi yükle
-  Future<void> _loadThemeFromStorage() async {
-    try {
-      final String? themeString =
-          await LocalStorageService.readSecureData(_themeKey);
-
-      if (themeString != null)
-        state = AppThemePreference.values.firstWhere(
-          (final e) => e.name == themeString,
-          orElse: () => AppThemePreference.system,
-        );
-    } catch (e) {
-      debugPrint('Tema yükleme hatası: $e');
-    }
+  Future<void> _loadTheme() async {
+    final saved = await LocalStorageService.readSecureData(_themeKey);
+    if (saved != null)
+      state = AppThemeStyle.values.firstWhere((final e) => e.name == saved,
+          orElse: () => AppThemeStyle.system);
   }
 
-  /// 💾 Tercihi kaydet ve güncelle
-  Future<void> setTheme(final AppThemePreference preference) async {
-    try {
-      state = preference;
-      await LocalStorageService.writeSecureData(_themeKey, preference.name);
-    } catch (e) {
-      debugPrint('Tema kaydetme hatası: $e');
-    }
+  Future<void> setTheme(final AppThemeStyle style) async {
+    state = style;
+    await LocalStorageService.writeSecureData(_themeKey, style.name);
   }
 
-  // --- HESAPLANAN ÖZELLİKLER (Helper Getters) ---
-
-  /// 1. MaterialApp için gerekli ThemeMode'u hesaplar
-  ThemeMode get currentThemeMode {
+  // --- Helper Getters ---
+  ThemeMode get themeMode {
     switch (state) {
-      case AppThemePreference.light:
+      case AppThemeStyle.appLight:
+      case AppThemeStyle.materialLight:
         return ThemeMode.light;
-      case AppThemePreference.dark:
+      case AppThemeStyle.appDark:
+      case AppThemeStyle.materialDark:
         return ThemeMode.dark;
-      case AppThemePreference.system:
-      case AppThemePreference.monet:
-        // Monet de sistemin aydınlık/karanlık moduna uyar
+      case AppThemeStyle.system:
         return ThemeMode.system;
     }
   }
-
-  /// 2. Dinamik renklerin (Monet) açık olup olmadığını söyler
-  bool get isDynamicColorEnabled => state == AppThemePreference.monet;
 }
