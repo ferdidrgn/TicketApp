@@ -36,7 +36,7 @@ class EventsCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: Card(
             elevation: 4,
-            color: context.surfaceColor,
+            color: context.colors.surface,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: context.isDarkMode

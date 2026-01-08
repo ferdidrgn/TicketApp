@@ -36,7 +36,7 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage> {
       initialPage: widget.initialIndex,
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       ref.read(campaignProvider.notifier).loadCampaigns();
     });
   }
@@ -442,11 +442,11 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage> {
               CachedNetworkImage(
                 imageUrl: campaign.imageUrl,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
+                placeholder: (final _, final __) => Container(
                   color: Colors.grey[900],
                 ),
-                errorWidget: (_, __, ___) => Container(
-                  color: context.surfaceColor,
+                errorWidget: (final _, final __, final ___) => Container(
+                  color: context.colors.surface,
                   child: Center(
                     child: Icon(
                       Icons.campaign_outlined,
