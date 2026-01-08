@@ -33,7 +33,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       ? Colors.black.withOpacity(0.5)
       : Colors.grey.withOpacity(0.4);
 
-  Color get _bgColor => context.theme.colorScheme.surface;
+  Color get _bgColor => context.colors.surface;
 
   @override
   Widget build(final BuildContext context) {
@@ -107,7 +107,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   title: 'Fırça İzlerim',
                   subtitle: 'Kendi portreni ve sanatsal kimliğini yorumla',
                   isLocked: !isUserLoggedIn,
-                  color: context.theme.colorScheme.primary,
+                  color: context.colors.primary,
                   onTap: () =>
                       context.push('/profile-edit/${loginState.userId}'),
                 ),
@@ -197,14 +197,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 16,
-                              color: context.theme.colorScheme.onSurface,
+                              color: context.colors.onSurface,
                               letterSpacing: 0.5)),
                       const SizedBox(height: 4),
                       Text(subtitle,
                           style: TextStyle(
                               fontSize: 12,
-                              color: context.theme.colorScheme.onSurface
-                                  .withOpacity(0.7),
+                              color: context.colors.onSurface.withOpacity(0.7),
                               fontWeight: FontWeight.w500)),
                     ],
                   ),
@@ -330,8 +329,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         child: Column(
           children: [
             Icon(Icons.theater_comedy_rounded,
-                size: 56,
-                color: context.theme.colorScheme.primary.withOpacity(0.4)),
+                size: 56, color: context.colors.primary.withOpacity(0.4)),
             const SizedBox(height: 24),
             const Text("SAHNE ŞİMDİLİK SESSİZ",
                 style: TextStyle(
@@ -366,11 +364,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             padding: const EdgeInsets.all(16),
             decoration: _neuBox(borderRadius: 100),
             child: Icon(Icons.auto_awesome,
-                size: 32, color: context.theme.colorScheme.primary),
+                size: 32, color: Colors.red.withOpacity(0.4)),
           ),
           const SizedBox(height: 24),
           Text('DENEYİM KÜRATÖRÜ',
-              style: context.theme.textTheme.labelMedium?.copyWith(
+              style: context.textTheme.labelMedium?.copyWith(
                   letterSpacing: 5, fontSize: 10, color: Colors.grey)),
           const SizedBox(height: 12),
           Text(
@@ -378,7 +376,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   ? 'Kendi Hikayeni\nKaleme Al'
                   : 'Tanıklığın\nKarakterindir',
               textAlign: TextAlign.center,
-              style: context.theme.textTheme.headlineLarge?.copyWith(
+              style: context.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                   fontSize: 26,
                   letterSpacing: -0.5)),
