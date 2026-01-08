@@ -323,40 +323,53 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               ],
       );
 
-  Widget _buildSilentStageInvitation() => Container(
-        padding: const EdgeInsets.all(40),
-        decoration: _neuBox(borderRadius: 32),
-        child: Column(
-          children: [
-            Icon(Icons.theater_comedy_rounded,
-                size: 56, color: context.colors.primary.withOpacity(0.4)),
-            const SizedBox(height: 24),
-            const Text("SAHNE ŞİMDİLİK SESSİZ",
-                style: TextStyle(
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18)),
-            const SizedBox(height: 12),
-            const Text(
-                "Işıkları açmak ve kendi hikayeni başlatmak için galerinin anahtarını teslim al.",
-                textAlign: TextAlign.center,
-                style:
-                    TextStyle(color: Colors.grey, fontSize: 12, height: 1.6)),
-            const SizedBox(height: 32),
-            ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                onPressed: () => context.push('/login'),
-                child: const Text("SAHNEYİ UYANDIR",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, letterSpacing: 2))),
-          ],
-        ),
-      );
+  Widget _buildSilentStageInvitation() {
+    // Dark modda bile canlı kalacak renk seçimi
+    final Color buttonColor = context.isDarkMode
+        ? context.colors.primaryContainer // Koyu modda daha tok ve canlı durur
+        : context.colors.primary;
+
+    // Butonun üzerindeki yazı rengi
+    final Color buttonTextColor = context.isDarkMode
+        ? context.colors.onPrimaryContainer
+        : context.colors.onPrimary;
+
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: _neuBox(borderRadius: 32),
+      child: Column(
+        children: [
+          Icon(Icons.theater_comedy_rounded,
+              size: 56, color: context.colors.primary.withOpacity(0.4)),
+          const SizedBox(height: 24),
+          const Text("SAHNE ŞİMDİLİK SESSİZ",
+              style: TextStyle(
+                  letterSpacing: 2, fontWeight: FontWeight.w900, fontSize: 18)),
+          const SizedBox(height: 12),
+          const Text(
+              "Işıkları açmak ve kendi hikayeni başlatmak için galerinin anahtarını teslim al.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.6)),
+          const SizedBox(height: 32),
+
+          // BUTON GÜNCELLEMESİ
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 56),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+                backgroundColor: buttonColor,
+                foregroundColor: buttonTextColor,
+              ),
+              onPressed: () => context.push('/login'),
+              child: const Text("SAHNEYİ UYANDIR",
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, letterSpacing: 2))),
+        ],
+      ),
+    );
+  }
 
   Widget _buildArtisticHeader(final bool isGuest) => Column(
         children: [
