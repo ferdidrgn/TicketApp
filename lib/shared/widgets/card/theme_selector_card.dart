@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:ui'; // Blur efekti için gerekli
 import '../../../core/theme/theme_context_extension.dart';
 import '../../../core/theme/theme_notifier.dart';
 
@@ -8,116 +9,207 @@ class ThemeSelectorCard extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final theme = context.colors;
     final currentTheme = ref.watch(themeProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: theme.outline.withOpacity(0.1),
+    return Column(
+      children: [
+        // Başlık: Sanatsal ve minimal
+        Text(
+          "ATÖLYE IŞIĞI",
+          style: TextStyle(
+            fontSize: 10,
+            letterSpacing: 3,
+            fontWeight: FontWeight.w900,
+            color: isDark ? Colors.white54 : Colors.black45,
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'TEMA TERCİHİ',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        const SizedBox(height: 16),
+
+        // Ana Kapsayıcı (Tuval)
+        Center(
+          child: Container(
+            height: 70,
+            width: 320, // Genişlik sınırlaması estetik durur
+            decoration: BoxDecoration(
+              // Light modda çok hafif gri, Dark modda yarı saydam siyah
+              color: isDark
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.grey.shade200.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(40),
+              // İnce, zarif bir çerçeve
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.white.withOpacity(0.8),
+                width: 1.5,
+              ),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 1. KATMAN: SİHİRLİ GEZEN IŞIK (GLOW)
+                // Bu parça seçilen modun arkasına kayar
+                AnimatedAlign(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutBack, // Hafif taşma efekti (yaylanma)
+                  alignment: _getAlignment(currentTheme),
+                  child: Container(
+                    width: 90,
+                    height: 55,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle, // Işık topu şeklinde
+                      boxShadow: [
+                        BoxShadow(
+                          // Moduna göre ışığın rengi değişiyor!
+                          color: _getGlowColor(currentTheme).withOpacity(0.4),
+                          blurRadius: 25, // Çok yumuşak yayılım
+                          spreadRadius: 5,
+                        ),
+                      ],
+                      // Işığın merkezi
+                      gradient: RadialGradient(
+                        colors: [
+                          _getGlowColor(currentTheme).withOpacity(0.3),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 2. KATMAN: İKONLAR VE ETKİLEŞİM
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _ArtisticButton(
+                      label: 'Gündüz',
+                      icon: Icons.wb_sunny_rounded,
+                      isSelected: currentTheme == ThemeMode.light,
+                      activeColor: Colors.orangeAccent,
+                      onTap: () => ref
+                          .read(themeProvider.notifier)
+                          .setTheme(ThemeMode.light),
+                    ),
+                    _ArtisticButton(
+                      label: 'Gece',
+                      icon: Icons.nights_stay_rounded,
+                      isSelected: currentTheme == ThemeMode.dark,
+                      activeColor: Colors.purpleAccent.shade100,
+                      onTap: () => ref
+                          .read(themeProvider.notifier)
+                          .setTheme(ThemeMode.dark),
+                    ),
+                    _ArtisticButton(
+                      label: 'Sistem',
+                      // Sistem yerine daha şiirsel
+                      icon: Icons.all_inclusive_rounded,
+                      isSelected: currentTheme == ThemeMode.system,
+                      activeColor: Colors.blueAccent,
+                      onTap: () => ref
+                          .read(themeProvider.notifier)
+                          .setTheme(ThemeMode.system),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _ThemeButton(
-                label: 'Açık',
-                mode: ThemeMode.light,
-                icon: Icons.wb_sunny_rounded,
-                isActive: currentTheme == ThemeMode.light,
-                onTap: () =>
-                    ref.read(themeProvider.notifier).setTheme(ThemeMode.light),
-              ),
-              const SizedBox(width: 10),
-              _ThemeButton(
-                label: 'Koyu',
-                mode: ThemeMode.dark,
-                icon: Icons.nights_stay_rounded,
-                isActive: currentTheme == ThemeMode.dark,
-                onTap: () =>
-                    ref.read(themeProvider.notifier).setTheme(ThemeMode.dark),
-              ),
-              const SizedBox(width: 10),
-              _ThemeButton(
-                label: 'Sistem',
-                mode: ThemeMode.system,
-                icon: Icons.phone_iphone_rounded,
-                isActive: currentTheme == ThemeMode.system,
-                onTap: () =>
-                    ref.read(themeProvider.notifier).setTheme(ThemeMode.system),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+
+  Alignment _getAlignment(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return const Alignment(-0.75, 0);
+      case ThemeMode.dark:
+        return const Alignment(0, 0);
+      case ThemeMode.system:
+        return const Alignment(0.75, 0);
+    }
+  }
+
+  Color _getGlowColor(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return Colors.orange;
+      case ThemeMode.dark:
+        return Colors.purple;
+      case ThemeMode.system:
+        return Colors.blue;
+    }
   }
 }
 
-// Sadece bu dosya içinde kullanılacak özel mini buton widget'ı
-class _ThemeButton extends StatelessWidget {
+class _ArtisticButton extends StatelessWidget {
   final String label;
-  final ThemeMode mode;
   final IconData icon;
-  final bool isActive;
+  final bool isSelected;
+  final Color activeColor;
   final VoidCallback onTap;
 
-  const _ThemeButton({
+  const _ArtisticButton({
     required this.label,
-    required this.mode,
     required this.icon,
-    required this.isActive,
+    required this.isSelected,
+    required this.activeColor,
     required this.onTap,
   });
 
   @override
-  Widget build(final BuildContext context) {
-    final theme = context.colors;
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 45,
-          decoration: BoxDecoration(
-            color: isActive ? theme.primary : theme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isActive
-                  ? Colors.transparent
-                  : theme.outline.withOpacity(0.2),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: isActive ? Colors.white : theme.onSurface,
+    // Pasif ikon rengi: Light modda gri, Dark modda beyazımsı
+    final inactiveColor = isDark ? Colors.white38 : Colors.black26;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.translucent, // Tıklama alanını iyileştirir
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        // Seçili olunca hafif yukarı kalksın (Havalanma efekti)
+        transform: Matrix4.translationValues(0, isSelected ? -4 : 0, 0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // İkon Animasyonu
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? activeColor.withOpacity(0.2)
+                    : Colors.transparent,
+                shape: BoxShape.circle,
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isActive ? Colors.white : theme.onSurface,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+              child: Icon(
+                icon,
+                size: isSelected ? 26 : 22,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
+            ),
+
+            // Yazı Animasyonu (Opaklık geçişi)
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: isSelected ? 1.0 : 0.0,
+              child: Container(
+                margin: const EdgeInsets.only(top: 4),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: activeColor,
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
