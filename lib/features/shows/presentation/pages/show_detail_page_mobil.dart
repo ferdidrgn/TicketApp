@@ -98,7 +98,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   Widget build(final BuildContext context) {
     final showData = ref.watch(showProvider).getShowById(widget.showId);
     final bgColor =
-        context.isDarkMode ? AppDarkColors.primary : AppLightColors.background;
+        context.isDarkMode ? AppDarkColors.primary : AppLightColors.onPrimary;
 
     if (_isLoading && showData == null)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));

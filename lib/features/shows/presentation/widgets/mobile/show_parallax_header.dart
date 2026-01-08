@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 
 class ShowParallaxHeader extends StatelessWidget {
@@ -39,9 +40,9 @@ class ShowParallaxHeader extends StatelessWidget {
                     colors: [
                       Colors.black12,
                       Colors.black54,
-                      Theme.of(context).brightness == Brightness.dark
+                      context.isDarkMode
                           ? AppDarkColors.primary
-                          : AppLightColors.background
+                          : AppLightColors.onPrimary
                     ],
                     stops: const [0.0, 0.6, 1.0],
                   ),

@@ -69,15 +69,13 @@ class AppLightColors {
   static const Color secondary = Color(0xFFFECACA);
   static const Color secondaryVariant = Color(0xFFFCA5A5);
 
-  static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFF8FAFC);
   static const Color error = Color(0xFFDC2626);
 
   static const Color onPrimary = Color(0xFFFFFFFF);
   static const Color onSecondary = Color(0xFF000000);
-  static const Color onBackground = Color(0xFF000000);
   static const Color onSurface = Color(0xFF000000);
-  static const Color onError = Color(0xFFFFFFFF);
+  static const Color onError = Color(0xFF731818);
 
   static const Color textPrimary = Color(0xFF000000);
   static const Color textSecondary = Color(0xFF64748B);
@@ -94,19 +92,20 @@ class AppDarkColors {
   static const Color secondary = Color(0xFF444653);
   static const Color secondaryVariant = Color(0xFF565864);
 
-  static const Color background = Color(0xFF1A1A1A);
   static const Color surface = Color(0xFF2D2D2D);
   static const Color error = Color(0xFFCF6679);
 
-  static const Color onPrimary = Color(0xFFFFFFFF);
+  static const Color onPrimary = Color(0xFF1A1A1A);
   static const Color onSecondary = Color(0xFFFFFFFF);
-  static const Color onBackground = Color(0xFFFFFFFF);
   static const Color onSurface = Color(0xFFFFFFFF);
   static const Color onError = Color(0xFF000000);
 
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFFB0B0B0);
   static const Color textDisabled = Color(0xFF666666);
+
+  static const Color border = Color(0xFF000000);
+  static const Color divider = Color(0xFF000000);
 }
 
 List<Color> gradientColors(final BuildContext context, final isTrue) => isTrue
