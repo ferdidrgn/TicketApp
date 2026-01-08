@@ -25,11 +25,7 @@ class ThemeSelectorCard extends ConsumerWidget {
         children: [
           Text(
             'TEMA TERCİHİ',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: theme.primary,
-            ),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Row(

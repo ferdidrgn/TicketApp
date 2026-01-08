@@ -233,8 +233,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               decoration: _neuBox(borderRadius: 100, invert: true),
               child: CircleAvatar(
                 radius: 55,
-                backgroundColor:
-                    context.theme.colorScheme.primary.withOpacity(0.1),
+                backgroundColor: context.colors.primary.withOpacity(0.1),
                 backgroundImage: NetworkImage(state.photoUrl ?? ''),
               ),
             ),
@@ -243,12 +242,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 22,
-                    color: context.theme.colorScheme.onSurface,
+                    color: context.colors.onSurface,
                     letterSpacing: 2)),
             const SizedBox(height: 6),
             Text(user?.city ?? "Bilinmeyen Şehir",
                 style: TextStyle(
-                    color: context.theme.colorScheme.primary,
+                    color: context.colors.primary,
                     fontWeight: FontWeight.w800,
                     fontSize: 13)),
             const SizedBox(height: 32),
@@ -270,11 +269,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             style: TextStyle(
                 fontWeight: FontWeight.w900,
                 fontSize: 22,
-                color: context.theme.colorScheme.onSurface)),
+                color: context.colors.onSurface)),
         Text(label,
             style: TextStyle(
                 fontSize: 10,
-                color: context.theme.colorScheme.primary.withOpacity(0.8),
+                color: context.colors.primary.withOpacity(0.8),
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.5)),
       ]);
@@ -285,7 +284,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         padding: const EdgeInsets.only(left: 4, bottom: 16, top: 8),
         child: Text(text,
             style: TextStyle(
-                color: context.theme.colorScheme.primary,
+                color: context.isDarkMode
+                    ? context.colors.onPrimary
+                    : context.colors.primary,
                 fontWeight: FontWeight.w900,
                 fontSize: 12,
                 letterSpacing: 3)),
