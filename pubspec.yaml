@@ -1,139 +1,90 @@
-name: ticketapp  # Paket adı, diğer paketler tarafından referans alınır.
-description: "A new Flutter project."  # Paket hakkında kısa bir açıklama.
+name: ticketapp
+description: "A new Flutter project."
+publish_to: 'none'
 
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+11 # Uygulama sürümü ve yapı numarası.
+version: 1.0.0+11
 
 environment:
-  sdk: '>=3.4.4 <4.0.0'  # Desteklenen Dart SDK sürümleri.
+  sdk: '>=3.4.4 <4.0.0'
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
-
-# Paketinizin çalışması için gereken bağımlılıkları belirtir.
 dependencies:
   flutter:
-    sdk: flutter  # Flutter SDK bağımlılığı.
+    sdk: flutter
 
-  # Cupertino İkonları fontunu uygulamanıza ekler.
-  # cupertino_icons: ^1.0.8  # Kullanım için yorum satırına alındı.
+  # State Management & Logic
+  equatable:
+  dartz:
+  flutter_riverpod: ^3.0.3
+  riverpod_annotation: ^3.0.3
+  freezed_annotation:
+  json_annotation:
 
-  #flutter_launcher_icons: ^0.9.2
-
-  # State Yönetimi
-  equatable: # Nesne karşılaştırmaları için kullanılır.
-
-  # Fonksiyonel Programlama
-  dartz:  # Fonksiyonel programlama yapıları sağlar.
-
-  # Ağ
-  dio: # HTTP istekleri için kullanılan bir ağ kütüphanesi.
-
-  #Resim - Video
-  cached_network_image:  #Resimleri önbelleğe alır.
-  video_player: ^2.7.0   #Video Oynatıcısı
-  audioplayers: ^6.0.0   #Ses Oynatıcısı
-
-  # Yerel Depolama
-  flutter_secure_storage: ^9.2.2  # Kalıcı veri depolamak için.
-
-  # Servis Lokasyonu
+  # Network & Storage
+  dio:
+  flutter_secure_storage: ^9.2.2
   connectivity_plus: ^6.0.3
+  cached_network_image:
+
+  # Media
+  video_player: ^2.7.0
+  audioplayers: ^6.0.0
+  image_picker:
+  file_picker:
 
   # Firebase
-  firebase_core: ^4.3.0  # Firebase temel yapı.
-  firebase_auth:  # Firebase kimlik doğrulama.
-  cloud_firestore:   # Firebase'in NoSQL veritabanı.
-  firebase_storage:   # Firebase dosya depolama hizmeti.
+  firebase_core: ^4.3.0
+  firebase_auth:
+  cloud_firestore:
+  firebase_storage:
   firebase_app_check:
-
-  # Google
-  google_sign_in: ^5.0.0  # Google ile giriş yapma.
-  google_maps_flutter:  # Google Haritalar entegrasyonu.
-  google_mobile_ads:
-
-  # Diğer bağımlılıklar
-  curved_navigation_bar:  # En son sürüm.
-  permission_handler:   # İzin yönetimi için.
-  simple_html_css:   # HTML/CSS işleme.
-  pinput:  # Giriş alanı için.
-  qr_flutter:   # QR kod oluşturma.
-  shimmer: ^3.0.0   # Görüntü yükseltme.
-
-  # URL ve Dosya Seçimi ve Paylaşım
-  url_launcher:   # URL açmak için.
-  image_picker: # Kamera ve galeriye erişim için.
-  file_picker:   # Dosya seçimi için.
-  share_plus: ^12.0.1
-  go_router:   #Web sayfasında link adlarını ayarlama ve gitme işlemlerini yapıyor
-
-  # Uluslararasılaştırma
-  intl: # Tarih ve sayı biçimlendirme için.
-
-  # Diğer Kütüphaneler
-  flutter_riverpod: ^3.0.3  # State yönetimi için Riverpod.
-  freezed_annotation:  # Immutable veri sınıfları için.
-  riverpod_annotation: ^3.0.3  # Riverpod için anotasyon desteği.
-  json_annotation: # JSON veri sınıfları için.
-
-  # Web Plugins
-  flutter_web_plugins:
-    sdk: flutter
-  visibility_detector: ^0.4.0+2
   firebase_crashlytics: ^5.0.6
   firebase_analytics: ^12.1.0
   firebase_messaging: ^16.1.0
+
+  # Google Services
+  google_sign_in: ^5.0.0
+  google_maps_flutter:
+  google_mobile_ads:
+
+  # UI Components
+  curved_navigation_bar:
+  permission_handler:
+  simple_html_css:
+  pinput:
+  qr_flutter:
+  shimmer: ^3.0.0
+  url_launcher:
+  share_plus: ^12.0.1
+  go_router:
   dynamic_color: ^1.8.1
+  visibility_detector: ^0.4.0+2
+
+  # Utils
+  intl:
+  flutter_web_plugins:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
-    sdk: flutter  # Flutter test kütüphanesi.
+    sdk: flutter
 
-  # Kod Üretimi
-  flutter_lints:   # Kod kalitesini artıran lint kuralları.
-  injectable_generator:  # Injectable için otomatik kod üretimi.
-  build_runner: ^2.10.4 # Kod üretimi aracı.
-  freezed: # Freezed ile veri sınıfları oluşturur.
-  riverpod_generator: ^3.0.3 # Riverpod için kod üretimi.
-  json_serializable:  # JSON veri sınıfları için.
-
-  # Native Splash Screen
+  # Generators
+  flutter_lints:
+  injectable_generator:
+  build_runner: ^2.10.4
+  freezed:
+  riverpod_generator: ^3.0.3
+  json_serializable:
   flutter_native_splash: ^2.4.1
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
-# Flutter paketleri için özel alanlar.
 flutter:
-  uses-material-design: true  # Material tasarım ikonlarının kullanımını sağlar.
+  uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # Uygulamaya varlık eklemek için assets bölümünü kullanın.
   assets:
-    - assets/images/app_logo.jpg  # Uygulama logosu.
-    - assets/images/app_near_logo.jpg  # Yakın logo.
-    - assets/images/book_logo.jpg  # Kitap logosu.
-    - assets/images/tiyatrol_logo.png  # Tiyatrol logosu.
+    - assets/images/app_logo.jpg
+    - assets/images/app_near_logo.jpg
+    - assets/images/book_logo.jpg
+    - assets/images/tiyatrol_logo.png
     - assets/images/main_theatre.png
 
 
@@ -178,6 +129,12 @@ flutter_native_splash:
     color_dark: "#0A1628"
     icon_background_color: "#0A1628"
 
+  color_dark: "#0A1628"
+  background_image_dark: "assets/images/app_logo.jpg"
+  image_dark: "assets/images/tiyatrol_logo.png"
+  android_navbar_color: "#0A1628"
+
+
   android: true
   ios: true
   web: false
@@ -185,9 +142,4 @@ flutter_native_splash:
   android_gravity: center
   ios_content_mode: center
 
-  color_dark: "#0A1628"
-  background_image_dark: "assets/images/app_logo.jpg"
-  image_dark: "assets/images/tiyatrol_logo.png"
-
   fullscreen: true
-  android_navbar_color: "#0A1628"
