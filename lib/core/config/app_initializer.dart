@@ -31,6 +31,7 @@ abstract final class AppInitializer {
 
     // 🔥 Firebase Temel Kurulum
     await _initFirebase();
+    await MobileAds.instance.initialize();
 
     // 🛡️ Güvenlik ve Hata Takibi (Firebase bağımlı servisler)
     if (Firebase.apps.isNotEmpty) {

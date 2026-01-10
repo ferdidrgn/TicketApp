@@ -69,6 +69,7 @@ dependencies:
   # Google
   google_sign_in: ^5.0.0  # Google ile giriş yapma.
   google_maps_flutter:  # Google Haritalar entegrasyonu.
+  google_mobile_ads:
 
   # Diğer bağımlılıklar
   curved_navigation_bar:  # En son sürüm.
