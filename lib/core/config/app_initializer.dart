@@ -32,12 +32,14 @@ abstract final class AppInitializer {
 
     // 🔥 Firebase Temel Kurulum
     await _initFirebase();
+
+    // 📢 Google Mobile Ads Başlatma
     await MobileAds.instance.initialize();
 
     // 🛡️ Güvenlik ve Hata Takibi (Firebase bağımlı servisler)
     if (Firebase.apps.isNotEmpty) {
       await AppCheckService.init();
-      _setupCrashlytics();
+      if (!kIsWeb) _setupCrashlytics();
     }
 
     // ☁️ Bildirim Yönetimi
@@ -46,6 +48,7 @@ abstract final class AppInitializer {
 
     // 📱 Sistem Arayüzü (StatusBar vb.)
     _configureSystemUI();
+    debugPrint('🚀 TiyatRol Sistemleri Hazır.');
   }
 
   static Future<void> _initFirebase() async {
@@ -53,15 +56,15 @@ abstract final class AppInitializer {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       ).timeout(const Duration(seconds: 8));
+      debugPrint('🔥 Firebase başarıyla bağlandı.');
     } catch (e) {
       debugPrint('🔥 Firebase init hatası: $e');
     }
   }
 
   static void _setupCrashlytics() {
-    if (kIsWeb) return;
-
-    FlutterError.onError = (errorDetails) {
+    // Web'de Crashlytics desteklenmez, bu yüzden kontrol ekliyoruz
+    FlutterError.onError = (final errorDetails) {
       FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
     };
 
@@ -75,8 +78,10 @@ abstract final class AppInitializer {
     if (!PlatformChecker.isWeb) {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        // Koyu ikonlar daha okunaklıdır
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ));
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
