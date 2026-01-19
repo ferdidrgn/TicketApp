@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../../../core/common/base_loadable_state.dart';
+import '../../../../core/base/base_loadable_state.dart';
 import '../../domain/entities/event.dart';
 
 typedef EventSeatStatus = Map<String, Map<String, dynamic>?>;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
-import '../../navigation/providers/navigation_service.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 
 class CategoryCardBuilder extends StatelessWidget {
   final List<Map<String, Object>>? categories;
@@ -45,7 +45,7 @@ class CategoryCardBuilder extends StatelessWidget {
           final BuildContext context) =>
       InkWell(
           onTap: () {
-            NavigationService.goToDiscoverWithCategory(context, title);
+            NavigationHandler.goToDiscoverWithCategory(context, title);
           },
           child: Container(
               width: 150,

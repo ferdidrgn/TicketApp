@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/features/home/presentation/pages/home_page_web.dart';
+import '../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/util/responsive_utils.dart';
 
 /// Ana sayfa scaffold'u - Tüm componentleri bir araya getirir
 /// Active section tracking, smooth scroll ve modern navbar içerir

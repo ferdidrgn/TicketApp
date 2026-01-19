@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/constants/app_constants.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_state.dart';
 import 'package:ticketapp/features/login/presentation/providers/login_provider.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
+import '../../../../../core/common/constants/app_constants.dart';
 import '../../../../../shared/widgets/empty_state_message_web.dart';
 import '../../../../seat/presentation/pages/seat_details.dart';
 import '../../../../stages/presentation/providers/stage_notifier.dart';

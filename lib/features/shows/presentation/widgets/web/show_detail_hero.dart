@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/constants/app_constants.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
+import '../../../../../core/common/constants/app_constants.dart';
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/util/responsive_utils.dart';
 import '../../../domain/entities/show.dart';
 

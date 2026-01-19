@@ -2,10 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
-import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../providers/home_asset_video_provider.dart';
 
 class HeroVideoSection extends ConsumerStatefulWidget {

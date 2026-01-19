@@ -1,4 +1,4 @@
-import 'package:ticketapp/core/common/base_loadable_state.dart';
+import '../../../../core/base/base_loadable_state.dart';
 import '../../domain/entities/player.dart';
 
 class PlayerState extends LoadableState<Player, List<Player>> {

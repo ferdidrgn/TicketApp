@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import '../providers/navigation_keys.dart';
 
 /// 🧭 Global Navigation Handler
@@ -15,14 +14,26 @@ class NavigationHandler {
   // ═══════════════════════════════════════════════════════════════
 
   /// Ürün detay sayfasına git (nereden geldiğini kaydet)
-  static void goToProduct({
+  static void goToShow({
     required final BuildContext context,
-    required final String productId,
-    required final String productSlug,
+    required final String showId,
+    required final String showSlug,
   }) {
     final String currentPath = GoRouterState.of(context).uri.path;
     final String targetPath =
-        '/product/$productSlug-$productId?from=${Uri.encodeComponent(currentPath)}';
+        '/show/$showId-$showSlug?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
+  static void goToPlayer({
+    required final BuildContext context,
+    required final String playerId,
+    required final String playerSlug,
+  }) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/player/$playerSlug-$playerId?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
   }
@@ -57,27 +68,29 @@ class NavigationHandler {
   /// Arama sayfasına git
   static void goToSearch(final BuildContext context) => context.go('/search');
 
-  /// Yeni ürünler sayfasına git
-  static void goToNewProducts(final BuildContext context) => context.go('/new');
+  static void goToNearby(final BuildContext context) => context.go('/nearby');
 
-  /// Spot ürünler sayfasına git
-  static void goToSpotProducts(final BuildContext context) =>
-      context.go('/spot');
+  static void goToProfile(final BuildContext context) => context.go('/profile');
 
   // ✅ MOBİL TAB NAVIGATION (ROUTER)
   static void goToDiscoverWithCategory(
           final BuildContext context, final String category) =>
       context.go('/discover?category=$category');
 
-  // ✅ WEB SCROLL (UI-ONLY → GlobalKey OK)
+  /// Web'de belirli bir bölüme (Hakkımızda, İletişim vb.) kaydır
   static void scrollToWebSection(final String section) =>
       NavigationKeys.webBarKey.currentState?.scrollToSection(section);
 
-  static NavigatorState? get _nav => NavigationKeys.rootNavigator.currentState;
+  // ═══════════════════════════════════════════════════════════════
+  // GLOBAL ERİŞİM (BuildContext Olmayan Yerler İçin)
+  // ═══════════════════════════════════════════════════════════════
 
-  static Future<T?> push<T>(final Route<T> route) => _nav!.push(route);
+  static NavigatorState? get _rootNav =>
+      NavigationKeys.rootNavigator.currentState;
 
-  static void pop<T extends Object?>([final T? result]) => _nav?.pop(result);
+  /// Örn: Bildirim geldiğinde BuildContext olmadan sayfaya yönlendirme
+  static void globalGoTo(final String location) =>
+      _rootNav?.context.go(location);
 
   // ═══════════════════════════════════════════════════════════════
   // UTILITY

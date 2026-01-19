@@ -1,3 +1,13 @@
+enum AppLanguage { tr, en }
+
+enum AdUnitType {
+  banner, // Mobil Banner
+  native, // Mobil Native
+  display, // Web Görüntülü
+  inArticle, // Web Yazı İçi
+  multiplex, // Web Benzer Ürünler Altı
+}
+
 enum UserRole {
   admin,
   curator,

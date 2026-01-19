@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../../core/errors/failures.dart';
-import '../../../../core/common/base_repo.dart';
+import '../../../../core/base/base_repo.dart';
 import '../../domain/repositories/seat_repository.dart';
 import '../datasources/seat_remote_data_source_and_impl.dart';
 

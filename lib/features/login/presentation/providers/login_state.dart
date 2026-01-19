@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../../core/common/base_state.dart';
+import '../../../../core/base/base_state.dart';
 import '../../../../core/util/role_manager.dart';
 
 class LoginState extends BaseState {

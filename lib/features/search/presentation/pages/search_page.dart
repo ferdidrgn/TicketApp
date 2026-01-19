@@ -4,12 +4,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../core/theme/theme_context_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
+import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/button/glass_back_button.dart';
-import '../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/top_gradient_header.dart';
@@ -124,7 +125,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       _initData();
       _scrollController.addListener(_onScroll);
     });
@@ -178,25 +179,25 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
             increment(
                 1,
                 _SearchLogic.totalCount(
-                    ref.read(showProvider).dataList, query, (s) => s.name));
+                    ref.read(showProvider).dataList, query, (final s) => s.name));
             break;
           case 2:
             increment(
                 2,
                 _SearchLogic.totalCount(ref.read(playerProvider).dataList,
-                    query, (p) => '${p.firstName} ${p.lastName}'));
+                    query, (final p) => '${p.firstName} ${p.lastName}'));
             break;
           case 3:
             increment(
                 3,
                 _SearchLogic.totalCount(
-                    ref.read(stageProvider).dataList, query, (s) => s.name));
+                    ref.read(stageProvider).dataList, query, (final s) => s.name));
             break;
           case 4:
             increment(
                 4,
                 _SearchLogic.totalCount(
-                    ref.read(teamProvider).dataList, query, (t) => t.name));
+                    ref.read(teamProvider).dataList, query, (final t) => t.name));
             break;
         }
         _loadingMore = false;
@@ -207,9 +208,9 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   void _onSeeAll(final int filterIndex) {
     setState(() {
       _selectedFilter = filterIndex;
-      _pages.updateAll((_, __) => 0);
+      _pages.updateAll((final _, final __) => 0);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(0,
             duration: const Duration(milliseconds: 300),
@@ -219,7 +220,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final query = ref.watch(searchQueryProvider);
 
     // Verileri Çek
@@ -240,22 +241,22 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
     // Filtreleme
     final data = (
       shows: _SearchLogic.filterAndPaginate(
-          rawShows.dataList, query, (s) => s.name,
+          rawShows.dataList, query, (final s) => s.name,
           page: _selectedFilter == 1 ? _pages[1]! : 0,
           paginate: _selectedFilter == 1,
           limit: _selectedFilter == 0 ? 10 : null),
       players: _SearchLogic.filterAndPaginate(
-          rawPlayers.dataList, query, (p) => '${p.firstName} ${p.lastName}',
+          rawPlayers.dataList, query, (final p) => '${p.firstName} ${p.lastName}',
           page: _selectedFilter == 2 ? _pages[2]! : 0,
           paginate: _selectedFilter == 2,
           limit: _selectedFilter == 0 ? 10 : null),
       stages: _SearchLogic.filterAndPaginate(
-          rawStages.dataList, query, (s) => s.name,
+          rawStages.dataList, query, (final s) => s.name,
           page: _selectedFilter == 3 ? _pages[3]! : 0,
           paginate: _selectedFilter == 3,
           limit: _selectedFilter == 0 ? 10 : null),
       teams: _SearchLogic.filterAndPaginate(
-          rawTeams.dataList, query, (t) => t.name,
+          rawTeams.dataList, query, (final t) => t.name,
           page: _selectedFilter == 4 ? _pages[4]! : 0,
           paginate: _selectedFilter == 4,
           limit: _selectedFilter == 0 ? 10 : null),
@@ -309,10 +310,10 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
                         constraints: const BoxConstraints(maxWidth: 800),
                         child: _FilterList(
                           selectedIndex: _selectedFilter,
-                          onSelected: (i) => setState(() {
+                          onSelected: (final i) => setState(() {
                             _selectedFilter = i;
-                            _pages.updateAll((_, __) => 0);
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _pages.updateAll((final _, final __) => 0);
+                            WidgetsBinding.instance.addPostFrameCallback((final _) {
                               if (_scrollController.hasClients) {
                                 _scrollController.animateTo(0,
                                     duration: const Duration(milliseconds: 300),
@@ -357,7 +358,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
 
   // --- WIDGET BUILDERS ---
 
-  Widget _buildHeader(BuildContext context, String query) {
+  Widget _buildHeader(final BuildContext context, final String query) {
     final isDesktop = context.isDesktop;
 
     return Padding(
@@ -389,7 +390,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
               ),
               child: GlassSearchBar(
                 controller: _textController,
-                onChanged: (v) => ref
+                onChanged: (final v) => ref
                     .read(searchQueryProvider.notifier)
                     .setQuery(v.toLowerCase()),
               ),
@@ -402,9 +403,9 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
 
   // --- TÜM BÖLÜMLER (YATAY LİSTELER) ---
   List<Widget> _buildAllSections(
-    BuildContext context,
-    dynamic loading,
-    dynamic data,
+    final BuildContext context,
+    final dynamic loading,
+    final dynamic data,
   ) {
     return [
       // 1. OYUNCULAR
@@ -471,10 +472,10 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
 
   // --- FİLTRELENMİŞ BÖLÜMLER ---
   List<Widget> _buildFilteredSection(
-    BuildContext context,
-    dynamic l,
-    dynamic d,
-    int crossAxisCount,
+    final BuildContext context,
+    final dynamic l,
+    final dynamic d,
+    final int crossAxisCount,
   ) {
     final gridSpacing = context.gridSpacing;
 
@@ -516,7 +517,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
                     0.70, // 3'e bölünce kartlar daraldığı için boyunu uzattık
               ),
               delegate: SliverChildBuilderDelegate(
-                (ctx, i) => PlayerHeroCard(
+                (final ctx, final i) => PlayerHeroCard(
                   isLoading: l.players,
                   player: l.players ? null : d.players[i],
                 ),
@@ -536,7 +537,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
             items: d.stages,
             crossAxisCount: crossAxisCount,
             ratio: 1.4,
-            itemBuilder: (ctx, item) =>
+            itemBuilder: (final ctx, final item) =>
                 _GridCards.verticalLarge(ctx, item as Stage, true),
           ),
           if (d.stages.isEmpty && !l.stages)
@@ -551,7 +552,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
             items: d.teams,
             crossAxisCount: crossAxisCount,
             ratio: 1.4,
-            itemBuilder: (ctx, item) =>
+            itemBuilder: (final ctx, final item) =>
                 _GridCards.verticalLarge(ctx, item as Team, false),
           ),
           if (d.teams.isEmpty && !l.teams)
@@ -561,7 +562,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
     };
   }
 
-  Widget _buildEmptyState(BuildContext context, {String? msg}) =>
+  Widget _buildEmptyState(final BuildContext context, {final String? msg}) =>
       SliverFillRemaining(
         hasScrollBody: false,
         child: Center(
@@ -605,7 +606,7 @@ class _PlayerHorizontalSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final itemCount = isLoading ? 6 : players.length;
     final height = context.responsive(mobile: 190.0, desktop: 220.0);
 
@@ -627,7 +628,7 @@ class _PlayerHorizontalSection extends StatelessWidget {
             padding: context.paddingHorizontal,
             itemCount: itemCount,
             physics: const BouncingScrollPhysics(),
-            itemBuilder: (ctx, i) => Padding(
+            itemBuilder: (final ctx, final i) => Padding(
               padding: const EdgeInsets.only(right: 16),
               child: PlayerHeroCard(
                 isLoading: isLoading,
@@ -658,7 +659,7 @@ class _HorizontalListSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final height = context.responsive(mobile: 150.0, desktop: 180.0);
     final cardWidth = context.responsive(mobile: 220.0, desktop: 260.0);
 
@@ -677,9 +678,9 @@ class _HorizontalListSection extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               padding: context.paddingHorizontal,
               itemCount: 5,
-              itemBuilder: (_, __) => Padding(
+              itemBuilder: (final _, final __) => Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: ShimmerCard(width: cardWidth, height: height),
+                child: ShimmerCard(height: height),
               ),
             ),
           ),
@@ -703,7 +704,7 @@ class _HorizontalListSection extends StatelessWidget {
             padding: context.paddingHorizontal,
             itemCount: items.length,
             physics: const BouncingScrollPhysics(),
-            itemBuilder: (ctx, i) => Padding(
+            itemBuilder: (final ctx, final i) => Padding(
               padding: const EdgeInsets.only(right: 12),
               child: _GridCards.horizontalCard(
                 context,
@@ -722,12 +723,12 @@ class _HorizontalListSection extends StatelessWidget {
 
 class _GridHelpers {
   static Widget buildGridSliver(
-    BuildContext context, {
-    required bool isLoading,
-    required List<dynamic> items,
-    required int crossAxisCount,
-    required double ratio,
-    required Widget Function(BuildContext, dynamic) itemBuilder,
+    final BuildContext context, {
+    required final bool isLoading,
+    required final List<dynamic> items,
+    required final int crossAxisCount,
+    required final double ratio,
+    required final Widget Function(BuildContext, dynamic) itemBuilder,
   }) {
     final spacing = context.gridSpacing;
 
@@ -741,7 +742,7 @@ class _GridHelpers {
           childAspectRatio: ratio,
         ),
         delegate: SliverChildBuilderDelegate(
-          (ctx, i) => isLoading
+          (final ctx, final i) => isLoading
               ? const ShimmerLoading(
                   width: double.infinity,
                   height: double.infinity,
@@ -756,13 +757,13 @@ class _GridHelpers {
 
 class _GridCards {
   static Widget verticalLarge(
-      BuildContext context, dynamic item, bool isStage) {
+      final BuildContext context, final dynamic item, final bool isStage) {
     return _BaseCardContainer(
       onTap: () => isStage
           ? context.push('/stage/${item.id}')
           : context.push('/team/${item.id}'),
       child: LayoutBuilder(
-        builder: (context, constraints) => Stack(
+        builder: (final context, final constraints) => Stack(
           children: [
             Positioned.fill(
               child: OptimizedCachedImage(
@@ -877,8 +878,8 @@ class _GridCards {
     );
   }
 
-  static Widget horizontalCard(BuildContext context, dynamic item, bool isStage,
-      {required double width}) {
+  static Widget horizontalCard(final BuildContext context, final dynamic item, final bool isStage,
+      {required final double width}) {
     return _BaseCardContainer(
       onTap: () => isStage
           ? context.push('/stage/${item.id}')
@@ -888,7 +889,7 @@ class _GridCards {
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(16),
       child: LayoutBuilder(
-        builder: (context, constraints) => Stack(
+        builder: (final context, final constraints) => Stack(
           children: [
             Positioned(
               left: 0,
@@ -966,7 +967,7 @@ class _BaseCardContainer extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
+  Widget build(final BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
           width: width,
@@ -1027,14 +1028,14 @@ class _FilterList extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) => SizedBox(
+  Widget build(final BuildContext context) => SizedBox(
         height: 80,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           itemCount: _filters.length,
           physics: const BouncingScrollPhysics(),
-          itemBuilder: (_, i) => Padding(
+          itemBuilder: (final _, final i) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             child: ArtisticBrushChip(
               text: _filters[i],

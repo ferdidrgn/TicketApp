@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod eklendi
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
-import '../../../../../shared/widgets/card/shimmer_card.dart';
+import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../domain/entities/show.dart';
 

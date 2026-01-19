@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_html_css/simple_html_css.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
-import 'package:ticketapp/shared/widgets/top_normal_header.dart'; // Senin sanatsal headerın
+import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../providers/app_tools_provider.dart';
-import '../providers/app_tools_state.dart';
 
 class ContractsPage extends ConsumerStatefulWidget {
   const ContractsPage({super.key});
@@ -22,7 +21,6 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    Future.microtask(_loadData);
   }
 
   @override
@@ -31,40 +29,58 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
     super.dispose();
   }
 
-  void _loadData() {
-    final notifier = ref.read(appToolsProvider.notifier);
-    notifier.fetchPrivacyPolicy();
-    notifier.fetchTermsCondition();
-  }
-
   @override
   Widget build(final BuildContext context) {
-    final state = ref.watch(appToolsProvider);
-
     return Scaffold(
       backgroundColor: context.colors.surface,
       body: CustomAppBackground(
         child: Column(
           children: [
-            // 🎨 SANATSAL HEADER
             const TopNormalHeader(
               title: 'LEGAL PROTOKOLLER',
               subtitle: 'Serüvenin yasal çerçevesini inceleyin...',
               rightIcon: Icons.gavel_rounded,
             ),
-
-            // 📑 TAB SELECTOR (Biletlerim sayfasındaki stilde)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: _buildTabSelector(context),
             ),
-
             Expanded(
-              child: _buildBody(state, context),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildPrivacyTab(context),
+                  _buildTermsTab(context),
+                ],
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // --- GİZLİLİK TABI ---
+  Widget _buildPrivacyTab(final BuildContext context) {
+    final privacyAsync = ref.watch(privacyPolicyProvider);
+    return privacyAsync.when(
+      data: (final content) =>
+          _buildContentTab(content, 'Gizlilik Politikası', context),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (final err, final _) => _buildErrorState(
+          err.toString(), context, () => ref.invalidate(privacyPolicyProvider)),
+    );
+  }
+
+  // --- ŞARTLAR TABI ---
+  Widget _buildTermsTab(final BuildContext context) {
+    final termsAsync = ref.watch(termsConditionProvider);
+    return termsAsync.when(
+      data: (final content) =>
+          _buildContentTab(content, 'Kullanım Şartları', context),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (final err, final _) => _buildErrorState(err.toString(), context,
+          () => ref.invalidate(termsConditionProvider)),
     );
   }
 
@@ -101,26 +117,10 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
     );
   }
 
-  Widget _buildBody(final AppToolsState state, final BuildContext context) {
-    if (state.isLoading)
-      return const Center(child: CircularProgressIndicator());
-    if (state.errorMessage != null)
-      return _buildErrorState(state.errorMessage!, context);
-
-    return TabBarView(
-      controller: _tabController,
-      children: [
-        _buildContentTab(state.privacyPolicy, 'Gizlilik Politikası', context),
-        _buildContentTab(state.termsCondition, 'Kullanım Şartları', context),
-      ],
-    );
-  }
-
   Widget _buildContentTab(
       final String? content, final String title, final BuildContext context) {
     final colors = context.colors;
-    if (content == null)
-      return const Center(child: CircularProgressIndicator());
+    if (content == null) return const Center(child: Text("İçerik Bulunamadı"));
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -128,7 +128,6 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 📜 KAĞIT EFEKTLİ İÇERİK KUTUSU
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -186,7 +185,8 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
         ),
       );
 
-  Widget _buildErrorState(final String message, final BuildContext context) =>
+  Widget _buildErrorState(final String message, final BuildContext context,
+          final VoidCallback onRetry) =>
       Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -194,7 +194,7 @@ class _ContractsPageState extends ConsumerState<ContractsPage>
             Icon(Icons.gavel_rounded, size: 64, color: context.colors.outline),
             const SizedBox(height: 16),
             Text(message),
-            TextButton(onPressed: _loadData, child: const Text("Tekrar Dene"))
+            TextButton(onPressed: onRetry, child: const Text("Tekrar Dene"))
           ],
         ),
       );

@@ -12,9 +12,9 @@ abstract class BaseRepository {
       return Right(result);
     } on SocketException {
       // İnternet yoksa veya sunucuya ulaşılamıyorsa
-      return const Left(NetworkFailure('Bağlantı hatası'));
+      return const Left(NetworkFailure('Bağlantı hatası / Network Connection Error'));
     } on HttpException catch (e) {
-      return Left(ServerFailure('HTTP Hatası: ${e.message}'));
+      return Left(ServerFailure('HTTP Error: ${e.message}'));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

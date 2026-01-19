@@ -71,8 +71,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       /// 📱 MOBILE SHELL
       if (!isWeb)
         StatefulShellRoute.indexedStack(
-          builder: (final context, final state, final shell) =>
-              MobileBottomNavBar(navigationShell: shell),
+          builder: (final context, final state, final navigationShell) =>
+              MobileBottomNavBar(navigationShell: navigationShell),
           branches: [
             // HOME
             StatefulShellBranch(
@@ -145,44 +145,59 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       /// COMMON ROUTES
       GoRoute(
-        path: '/show/:id',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: ShowDetailPage(showId: state.pathParameters['id']!),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
+          path: '/show/:slugWithId',
+          name: 'showDetail',
+          pageBuilder: (final context, final state) {
+            final String fullParam = state.pathParameters['slugWithId']!;
+            final String showId = fullParam.split('-').last;
+
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: ShowDetailPage(showId: showId),
+              transitionsBuilder: fadeTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            );
+          }),
 
       GoRoute(
-        path: '/player/:id',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: PlayerDetailPage(playerId: state.pathParameters['id']!),
-          transitionsBuilder: curtainTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
+          path: '/player/:slugWithId',
+          pageBuilder: (final context, final state) {
+            final String fullParam = state.pathParameters['slugWithId']!;
+            final String playerId = fullParam.split('-').last;
+
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: PlayerDetailPage(playerId: playerId),
+              transitionsBuilder: curtainTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            );
+          }),
 
       GoRoute(
-        path: '/stage/:id',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: StageDetailPage(stageId: state.pathParameters['id']!),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
+          path: '/stage/:slugWithId',
+          pageBuilder: (final context, final state) {
+            final String fullParam = state.pathParameters['slugWithId']!;
+            final String stageId = fullParam.split('-').last;
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: StageDetailPage(stageId: stageId),
+              transitionsBuilder: fadeTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            );
+          }),
 
       GoRoute(
-        path: '/team/:id',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: TeamDetailsPage(teamId: state.pathParameters['id']!),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
+          path: '/team/:slugWithId',
+          pageBuilder: (final context, final state) {
+            final String fullParam = state.pathParameters['slugWithId']!;
+            final String teamId = fullParam.split('-').last;
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: TeamDetailsPage(teamId: teamId),
+              transitionsBuilder: fadeTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            );
+          }),
 
       GoRoute(
         path: '/onboarding',
@@ -225,24 +240,32 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       ),
 
       GoRoute(
-        path: '/my-tickets/:userId',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: MyTicketPage(userId: state.pathParameters['userId']!),
-          transitionsBuilder: scrollSlideTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
+          path: '/my-tickets/:slugWithId',
+          pageBuilder: (final context, final state) {
+            final String fullParam = state.pathParameters['slugWithId']!;
+            final String userId = fullParam.split('-').last;
+
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: MyTicketPage(userId: userId),
+              transitionsBuilder: scrollSlideTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            );
+          }),
 
       GoRoute(
-        path: '/profile-edit/:userId',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: UserProfileEditScreen(userId: state.pathParameters['userId']!),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
+          path: '/profile-edit/:slugWithId',
+          pageBuilder: (final context, final state) {
+            final String fullParam = state.pathParameters['slugWithId']!;
+            final String userId = fullParam.split('-').last;
+
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: UserProfileEditScreen(userId: userId),
+              transitionsBuilder: fadeTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            );
+          }),
 
       GoRoute(
         path: '/search',

@@ -7,19 +7,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../ads/ads_manager.dart';
 import '../services/app_check_service.dart';
-import '../services/fcm_manager_service.dart';
+import '../services/remote_config_service.dart';
+import '../util/date_formatter.dart';
 import '../util/platform_checker.dart';
 import 'firebase_options.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(
-        final RemoteMessage message) async =>
-    Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    final RemoteMessage message) async {
+  // Arka plan bildirimleri için Firebase'i başlat
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
 
 abstract final class AppInitializer {
   static Future<void> init() async {
-    // 1. Flutter bindings başlatılması (En önce bu gelmeli)
+    // 1. Flutter bindings başlatılması
     WidgetsFlutterBinding.ensureInitialized();
 
     // 🌐 Web URL stratejisi (# işaretini kaldırır)
@@ -30,35 +34,46 @@ abstract final class AppInitializer {
     // ama Secure Storage'da bu satırı siliyoruz veya sadece log basıyoruz.
     debugPrint('🔐 Güvenli depolama hazır.');
 
-    // 🔥 Firebase Temel Kurulum
+    // Dil formatlarını hazırla
+    await DateFormatter.initializeLocale();
+
+    // 🔥 Firebase Temel Kurulum (Artık her platform için ortak)
     await _initFirebase();
 
+    await RemoteConfigService.init();
+
+    await AdManager.initialize();
+
     // 📢 Google Mobile Ads Başlatma
-    await MobileAds.instance.initialize();
+    if (kIsWeb) // Web'de bunları await etme, arka planda başlasınlar
+      MobileAds.instance.initialize();
+    else
+      await MobileAds.instance.initialize();
 
     // 🛡️ Güvenlik ve Hata Takibi (Firebase bağımlı servisler)
     if (Firebase.apps.isNotEmpty) {
-      await AppCheckService.init();
+      await AppCheckService.init(); // App Check (Hacker koruması)
+      // Crashlytics (Hata raporlama - Sadece Mobil)
       if (!kIsWeb) _setupCrashlytics();
     }
 
     // ☁️ Bildirim Yönetimi
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    if (!PlatformChecker.isWeb) await FCMManager.instance.init();
+    //FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    //if (!PlatformChecker.isWeb) await FCMManager.instance.init();
 
-    // 📱 Sistem Arayüzü (StatusBar vb.)
+    // 📱 Sistem Arayüzü Ayarları
     _configureSystemUI();
-    debugPrint('🚀 TiyatRol Sistemleri Hazır.');
+    debugPrint('🚀 Sağlam Spot Sistemleri Hazır.');
   }
 
   static Future<void> _initFirebase() async {
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(const Duration(seconds: 10));
       debugPrint('🔥 Firebase başarıyla bağlandı.');
     } catch (e) {
-      debugPrint('🔥 Firebase init hatası: $e');
+      debugPrint('🔥 Firebase başlatma hatası: $e');
     }
   }
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/enum/enums.dart';
 import 'package:ticketapp/features/login/presentation/providers/login_provider.dart';
-import 'package:ticketapp/shared/widgets/card/shimmer_card.dart';
+import '../../core/common/enum/enums.dart';
+import 'background/shimmer_components.dart';
 
 class AdminGuard extends ConsumerWidget {
   final Widget child;

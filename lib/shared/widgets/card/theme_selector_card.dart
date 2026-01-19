@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/theme_context_extension.dart';
-import '../../../core/enum/enums.dart'; // AppThemeStyle enum'ının olduğu yer
+import '../../../core/common/enum/enums.dart';
 import '../../../core/theme/theme_notifier.dart';
 
 class ThemeSelectorCard extends ConsumerWidget {
   const ThemeSelectorCard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final currentStyle = ref.watch(themeProvider);
     final isDark = context.isDarkMode;
 
@@ -95,7 +95,7 @@ class ThemeSelectorCard extends ConsumerWidget {
                 // 2. KATMAN: BUTONLAR (5 ADET)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: AppThemeStyle.values.map((style) {
+                  children: AppThemeStyle.values.map((final style) {
                     return _ArtisticButton(
                       style: style,
                       isSelected: currentStyle == style,
@@ -166,7 +166,7 @@ extension AppThemeStyleUI on AppThemeStyle {
   }
 
   // 4. Renk (Glow Rengi)
-  Color getGlowColor(Color systemDynamicColor) {
+  Color getGlowColor(final Color systemDynamicColor) {
     switch (this) {
       case AppThemeStyle.appLight:
         return Colors.orangeAccent;
@@ -197,7 +197,7 @@ class _ArtisticButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final inactiveColor = isDark ? Colors.white24 : Colors.black26;
 

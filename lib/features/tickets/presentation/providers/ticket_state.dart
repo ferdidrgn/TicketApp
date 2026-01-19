@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../../../core/common/base_loadable_state.dart';
+import '../../../../core/base/base_loadable_state.dart';
 import '../../../events/domain/entities/event.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../stages/domain/entities/stage.dart';

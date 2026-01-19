@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../../core/common/base_loadable_state.dart';
+import '../../../../../core/base/base_loadable_state.dart';
 import '../../../../../core/theme/theme_context_extension.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 
@@ -15,7 +15,7 @@ class StoryCircles extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (!state.hasData) return const SizedBox.shrink();
 
     final campaigns = state.dataList!;
@@ -26,8 +26,8 @@ class StoryCircles extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         itemCount: campaigns.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 18),
-        itemBuilder: (context, index) {
+        separatorBuilder: (final _, final __) => const SizedBox(width: 18),
+        itemBuilder: (final context, final index) {
           return _StoryItem(
             campaign: campaigns[index],
             onTap: () => onStoryTap(index),
@@ -48,7 +48,7 @@ class _StoryItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Column(

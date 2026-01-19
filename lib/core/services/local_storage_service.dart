@@ -1,5 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../enum/enums.dart';
+import '../common/enum/enums.dart';
 
 class LocalStorageService {
   // 🔐 Secure Storage instance'ı oluşturulur

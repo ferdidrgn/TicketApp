@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../../../../core/common/base_repo.dart';
+import '../../../../core/base/base_repo.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/repositories/login_repository.dart';
 import '../datasources/login_remote_data_source_and_impl.dart';

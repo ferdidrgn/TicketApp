@@ -1,3 +1,4 @@
+import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class Failure extends Equatable {
@@ -19,4 +20,15 @@ class CacheFailure extends Failure {
 
 class NetworkFailure extends Failure {
   const NetworkFailure(super.message);
+}
+
+extension FutureEitherX<T> on Future<Either<Failure, T>> {
+  /// Either sonucunu bekler, Failure ise hata fırlatır, başarılı ise veriyi döner.
+  Future<T> getOrThrow() async {
+    final result = await this;
+    return result.fold(
+      (final failure) => throw Exception(failure.message),
+      (final success) => success,
+    );
+  }
 }

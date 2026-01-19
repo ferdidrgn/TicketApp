@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../../../core/errors/failures.dart';
-import '../../../../core/common/base_repo.dart';
+import '../../../../core/base/base_repo.dart';
 import '../../domain/repositories/player_repository.dart';
 import '../datasources/player_remote_data_source_and_impl.dart';
 import '../models/player_model.dart';

@@ -5,7 +5,7 @@ import 'connectivity_provider.dart';
 mixin AutoRefreshOnReconnect<T extends ConsumerStatefulWidget>
     on ConsumerState<T> {
   bool _wasOffline = false;
-  ProviderSubscription<bool>? _subscription; // bool oldu
+  ProviderSubscription<bool>? _subscription;
 
   @override
   void initState() {

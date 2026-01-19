@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../../core/common/base_loadable_state.dart';
+import '../../../../../core/base/base_loadable_state.dart';
 import '../../../../../core/theme/theme_context_extension.dart';
-import '../../../../../shared/widgets/card/shimmer_card.dart';
+import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shows/domain/entities/show.dart';
 
 class ShowCollage extends StatelessWidget {
@@ -17,7 +17,7 @@ class ShowCollage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (state.isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: 20),
@@ -54,7 +54,7 @@ class _HeroShowSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Padding(
@@ -128,7 +128,7 @@ class _HorizontalShowStrip extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (shows.length <= 3) return const SizedBox.shrink();
 
     final random = math.Random(42);
@@ -140,7 +140,7 @@ class _HorizontalShowStrip extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: stripShows.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (final context, final index) {
           return Padding(
             padding: EdgeInsets.only(
               right: 12,
@@ -175,7 +175,7 @@ class _MosaicShowGrid extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (shows.length <= 7) return const SizedBox.shrink();
 
     return Padding(
@@ -270,7 +270,7 @@ class ShowCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -399,7 +399,7 @@ class _TagLabel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../enum/enums.dart';
+import '../common/enum/enums.dart';
 import 'app_colors.dart';
 import 'app_theme.dart';
 
@@ -15,29 +15,23 @@ class ThemeManager {
       case AppThemeStyle.appLight:
         return AppTheme.createTheme(
           colors: ColorScheme.fromSeed(
-            seedColor: fixedSeedColor,
-            brightness: Brightness.light,
-          ),
+              seedColor: fixedSeedColor, brightness: Brightness.light),
         );
 
       case AppThemeStyle.system:
       case AppThemeStyle.appDark:
         // AppDark seçili olsa bile Light modda standart light rengi döner
         return AppTheme.createTheme(
-          colors: ColorScheme.fromSeed(
-            seedColor: fixedSeedColor,
-            brightness: Brightness.light,
-          ),
-        );
+            colors: ColorScheme.fromSeed(
+                seedColor: fixedSeedColor, brightness: Brightness.light));
 
       case AppThemeStyle.materialLight:
       case AppThemeStyle.materialDark:
         final seed = lightDynamic?.primary ?? fixedSeedColor;
         return AppTheme.createTheme(
-          colors: lightDynamic ??
-              ColorScheme.fromSeed(
-                  seedColor: seed, brightness: Brightness.light),
-        );
+            colors: lightDynamic ??
+                ColorScheme.fromSeed(
+                    seedColor: seed, brightness: Brightness.light));
     }
   }
 
@@ -55,11 +49,8 @@ class ThemeManager {
       case AppThemeStyle.appLight:
       case AppThemeStyle.system:
         return AppTheme.createTheme(
-          colors: ColorScheme.fromSeed(
-            seedColor: defaultSeed,
-            brightness: Brightness.dark,
-          ),
-        );
+            colors: ColorScheme.fromSeed(
+                seedColor: defaultSeed, brightness: Brightness.dark));
 
       // DURUM 2: APP DARK (SENİN İSTEDİĞİN YER)
       // Burayı ayırdık. Artık burası 'myDarkSpecificSeed' kullanıyor.
@@ -67,9 +58,8 @@ class ThemeManager {
       case AppThemeStyle.appDark:
         return AppTheme.createTheme(
           colors: ColorScheme.dark(
-            secondaryContainer: myDarkSpecificSeed,
-            brightness: Brightness.dark,
-          ),
+              secondaryContainer: myDarkSpecificSeed,
+              brightness: Brightness.dark),
         );
 
       // DURUM 4: Material Light (Fallback olarak darkDynamic kullanır)
@@ -77,10 +67,9 @@ class ThemeManager {
       case AppThemeStyle.materialLight:
         final seed = darkDynamic?.primary ?? defaultSeed;
         return AppTheme.createTheme(
-          colors: darkDynamic ??
-              ColorScheme.fromSeed(
-                  seedColor: seed, brightness: Brightness.dark),
-        );
+            colors: darkDynamic ??
+                ColorScheme.fromSeed(
+                    seedColor: seed, brightness: Brightness.dark));
 
       // DURUM 5: Material Dark (Atmosferik Mod)
       // -------------------------------------------------------------
@@ -94,10 +83,9 @@ class ThemeManager {
                   ColorScheme.fromSeed(
                       seedColor: seed, brightness: Brightness.dark))
               .copyWith(
-            surface: atmosphericColor,
-            secondaryContainer: atmosphericColor,
-            onSurface: Colors.white,
-          ),
+                  surface: atmosphericColor,
+                  secondaryContainer: atmosphericColor,
+                  onSurface: Colors.white),
         );
     }
   }

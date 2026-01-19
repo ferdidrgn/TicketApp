@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../../core/common/base_loadable_state.dart';
-import '../../../../../shared/widgets/card/shimmer_card.dart';
+import '../../../../../core/base/base_loadable_state.dart';
+import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../stages/domain/entities/stage.dart';
 
 class StageCarousel extends StatelessWidget {
@@ -15,7 +15,7 @@ class StageCarousel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (state.isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: 20),
@@ -33,8 +33,8 @@ class StageCarousel extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         itemCount: stages.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 15),
-        itemBuilder: (context, index) {
+        separatorBuilder: (final _, final __) => const SizedBox(width: 15),
+        itemBuilder: (final context, final index) {
           return _StageCard(
             stage: stages[index],
             onTap: () => onStageTap(stages[index].id),
@@ -55,7 +55,7 @@ class _StageCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

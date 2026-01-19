@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
-import 'package:ticketapp/shared/widgets/card/shimmer_card.dart';
+import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../shows/presentation/providers/show_notifier.dart';
 import '../../domain/entities/player.dart';
 import '../providers/player_notifier.dart';

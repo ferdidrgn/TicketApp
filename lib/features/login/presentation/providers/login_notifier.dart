@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/common/base_notifier.dart';
-import '../../../../core/enum/enums.dart';
+import '../../../../core/common/enum/enums.dart';
 import '../../../../core/services/local_storage_service.dart';
 import '../../../auth/presentation/providers/auth_service.dart';
 import '../../../users/domain/entities/user.dart' as entity;

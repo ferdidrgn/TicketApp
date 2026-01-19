@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../base/base_state.dart';
 import '../errors/failures.dart';
-import 'base_state.dart';
 
 /// Sayfa kapansa bile state tutulur (cache gibi)
 /// Riverpod 3+ Notifier sınıfını kullanır
@@ -15,7 +15,7 @@ abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
 
   T initialState();
 
-  // Alt sınıfların temizlik yapması için opsiyonel metod
+// Alt sınıfların temizlik yapması için opsiyonel metod
   void onDispose() {}
 
   /// API çağrılarını wrap eden ana metod

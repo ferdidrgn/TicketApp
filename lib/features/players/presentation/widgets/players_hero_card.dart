@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme_context_extension.dart';
-import '../../../../shared/widgets/card/shimmer_card.dart';
+import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../domain/entities/player.dart';
 

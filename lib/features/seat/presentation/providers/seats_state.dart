@@ -1,4 +1,4 @@
-import 'package:ticketapp/core/common/base_state.dart';
+import '../../../../core/base/base_state.dart';
 
 class SeatsState extends BaseState {
   Map<String, List<String>>? seats;

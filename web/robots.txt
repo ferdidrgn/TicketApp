@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tiyatrol.web.app/sitemap.xml
+Sitemap: https://tiyatroekip.web.app/sitemap.xml

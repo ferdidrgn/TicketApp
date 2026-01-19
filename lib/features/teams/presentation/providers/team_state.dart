@@ -1,4 +1,4 @@
-import '../../../../core/common/base_loadable_state.dart';
+import '../../../../core/base/base_loadable_state.dart';
 import '../../domain/entities/team.dart';
 
 class TeamState extends LoadableState<Team, List<Team>> {

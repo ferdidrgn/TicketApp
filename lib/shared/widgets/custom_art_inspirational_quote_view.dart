@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../../core/util/responsive_utils.dart';
+import '../../core/common/extentions/app_context_ui_extension.dart';
 import 'optimized_cached_image.dart';
 
 class InspirationalQuoteView extends StatelessWidget {

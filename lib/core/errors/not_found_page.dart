@@ -2,7 +2,7 @@
 // 404 ERROR PAGE
 // ═══════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import '../../shared/navigation/widgets/nav_handler.dart';
 
 class NotFoundPage extends StatelessWidget {
   final String? errorPath;
@@ -37,7 +37,7 @@ class NotFoundPage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD4AF37),
                     foregroundColor: Colors.black),
-                onPressed: () => context.go('/home'),
+                onPressed: () => NavigationHandler.goToHome(context),
                 child: const Text('Ana Sayfaya Dön'),
               )
             ],

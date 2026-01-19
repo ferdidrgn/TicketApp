@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../../../core/theme/app_colors.dart';
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../../../shared/widgets/card/shimmer_card.dart';
 import '../../../domain/entities/show.dart';
 import '../../providers/show_provider.dart';
 

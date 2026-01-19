@@ -1,7 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/util/responsive_utils.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../core/common/extentions/app_context_ui_extension.dart';
 
 // ═══════════════════════════════════════════════════════════
 // WIDGET: DÖNEN PLAK VE 399 NUMARASI (FİNAL)
@@ -46,22 +46,17 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
 
     // Ses dinleyicilerini kurun
     _audioPlayer.onPlayerStateChanged.listen((final PlayerState s) {
-      if (mounted) {
-        setState(() {
-          _playerState = s;
-        });
-      }
+      if (mounted) setState(() => _playerState = s);
     });
 
     // Mobil/Web ayrımı: Mobil ilk yüklendiğinde kısa bir gösterim yapsın
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (!context.isDesktop) {
+      if (!context.isDesktop)
         _glitchController.forward().then((final _) {
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) _glitchController.reverse();
           });
         });
-      }
     });
   }
 
@@ -75,43 +70,37 @@ class _RecordPlayerCardState extends State<RecordPlayerCard>
 
   // ---------------- SES ÇALMA MANTIKLARI ----------------
   Future<void> _playAudio() async {
-    if (!_isPlaying) {
-      await _audioPlayer.play(UrlSource(_audioUrl));
-    }
+    if (!_isPlaying) await _audioPlayer.play(UrlSource(_audioUrl));
   }
 
   Future<void> _stopAudio() async {
-    if (_isPlaying) {
-      await _audioPlayer.stop();
-    }
+    if (_isPlaying) await _audioPlayer.stop();
   }
 
   // WEB: Mouse üzerine gelince
   void _onHover(final bool isHovering) {
     if (context.isDesktop) {
-      if (isHovering) {
+      if (isHovering)
         _glitchController.forward();
-      } else {
+      else
         _glitchController.reverse();
-      }
     }
   }
 
   // MOBİL/WEB: Kartın 399 yazan kısmına tıklanınca
   void _onTap() {
-    if (_isPlaying) {
+    if (_isPlaying)
       _stopAudio();
-    } else {
+    else
       _playAudio();
-    }
+
     // Glitch animasyonunu tekrar tetikle
-    if (_glitchController.status != AnimationStatus.forward) {
+    if (_glitchController.status != AnimationStatus.forward)
       _glitchController.forward().then((final _) {
         Future.delayed(const Duration(milliseconds: 300), () {
           if (mounted) _glitchController.reverse();
         });
       });
-    }
   }
 
   @override
