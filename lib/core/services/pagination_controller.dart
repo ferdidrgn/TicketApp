@@ -4,19 +4,15 @@ class PaginationController<T> {
   int currentPage = 1;
   bool hasMoreItems = true;
 
-  PaginationController({
-    required this.allItems,
-    this.itemsPerPage = 10,
-  });
+  PaginationController({required this.allItems, this.itemsPerPage = 10});
 
   List<T> get currentItems {
-    final startIndex = 0;
     final endIndex = currentPage * itemsPerPage;
     if (endIndex >= allItems.length) {
       hasMoreItems = false;
       return allItems;
     }
-    return allItems.sublist(startIndex, endIndex);
+    return allItems.sublist(0, endIndex);
   }
 
   void loadMoreItems() {

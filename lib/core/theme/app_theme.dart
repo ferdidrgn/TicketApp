@@ -31,6 +31,8 @@ mixin AppTheme {
       bodyColor: colors.onSurface,
       displayColor: colors.onSurface,
       decorationColor: colors.onSurface,
+      // Eğer tüm metinlerde zorunlu font kullanmak isterseniz:
+      fontFamily: AppTextStyles.fontFamily,
     );
 
     // Arka plan rengi: Override varsa onu kullan, yoksa standart surface
@@ -45,10 +47,13 @@ mixin AppTheme {
 
       // Boyanmış text temasını içeri alıyoruz
       textTheme: coloredTextTheme,
+      fontFamily: AppTextStyles.fontFamily,
+      // Global font tanımı
 
       // Bileşen Temaları (Artık 'colors' değişkenini kullanıyorlar)
       appBarTheme: _appBarTheme(
           colors: colors, textTheme: coloredTextTheme, bgColor: bgColor),
+
       cardTheme: _cardTheme(colors: colors, bgColor: bgColor),
       elevatedButtonTheme: _elevatedButtonTheme(
           colors: colors, textStyle: coloredTextTheme.labelLarge!),
