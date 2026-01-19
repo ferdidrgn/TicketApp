@@ -43,7 +43,7 @@ class PlayerSection extends StatelessWidget {
         return TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
           duration: Duration(
-            milliseconds: 300 + entry.key * AppConstants.staggerAnimationDelay,
+            milliseconds: 300 + entry.key * 70,
           ),
           builder: (final context, final value, final child) => Opacity(
             opacity: value,

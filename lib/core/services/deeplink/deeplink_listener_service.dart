@@ -3,6 +3,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
+/// 🔗 Sağlam Spot Deeplink / App Link Dinleyicisi
 final class TiyatrolDeeplinkListener {
   TiyatrolDeeplinkListener._();
 
@@ -10,15 +11,15 @@ final class TiyatrolDeeplinkListener {
   static StreamSubscription<Uri>? _subscription;
   static bool _isInitialized = false;
 
-  /// 🚀 Uygulama başlarken çağrılır
+  /// 🚀 Uygulama başlatıldığında GoRouter ile entegre edilir.
   static Future<void> init(final GoRouter router) async {
     if (_isInitialized) return;
     _isInitialized = true;
 
     if (kIsWeb) return;
 
+    // 1️⃣ Uygulama TAM KAPALIYKEN gelen linki yakala
     try {
-      // 1️⃣ Uygulama TAM KAPALIYKEN gelen linki yakala
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) _handleNavigation(router, initialUri);
     } catch (e) {
@@ -32,10 +33,12 @@ final class TiyatrolDeeplinkListener {
     );
   }
 
-  /// 🎯 Navigasyon Yönetimi
+  /// 🎯 Navigasyon ve URL Senkronizasyonu
   static void _handleNavigation(final GoRouter router, final Uri uri) {
     final String path = uri.path;
     if (path.isEmpty || path == '/') return;
+
+    debugPrint('🔗 Deeplink yakalandı: $path');
 
     final currentPath = router.routerDelegate.currentConfiguration.fullPath;
     if (currentPath == path) return;

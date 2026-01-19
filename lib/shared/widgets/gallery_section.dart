@@ -76,10 +76,10 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
     }
 
     final totalPages =
-        (photos.length / AppConstants.galleryItemsPerPage).ceil();
-    final start = _currentPage * AppConstants.galleryItemsPerPage;
+        (photos.length / 8).ceil();
+    final start = _currentPage * 8;
     final end =
-        math.min(start + AppConstants.galleryItemsPerPage, photos.length);
+        math.min(start + 8, photos.length);
 
     return Column(
       children: [

@@ -86,8 +86,7 @@ class AppSettingsPage extends StatelessWidget {
                         desc: 'Bu koleksiyonu yıldızlarla parlat.',
                         icon: Icons.auto_awesome_rounded,
                         gradient: [colors.primary, colors.primaryContainer],
-                        onTap: () => CommunicationActions.buyTicket(
-                            AppConstants.playStoreUrl),
+                        onTap: () => TiyatrolDeeplinkService.shareApp(),
                       ),
                       const SizedBox(height: 16),
                       _buildCreativeAction(

@@ -111,15 +111,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   void _initControllers() {
     _heroController = AnimationController(
       vsync: this,
-      duration: AppConstants.heroAnimationDuration,
+      duration: Duration(milliseconds: 800),
     );
     _contentController = AnimationController(
       vsync: this,
-      duration: AppConstants.contentAnimationDuration,
+      duration: Duration(milliseconds: 500),
     );
     _floatingController = AnimationController(
       vsync: this,
-      duration: AppConstants.floatAnimationDuration,
+      duration: Duration(seconds: 3),
     );
 
     _heroFade = CurvedAnimation(
@@ -339,11 +339,8 @@ class _MainContent extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final isDesktop = context.isDesktop;
-    final horizontalPadding = context.responsive(
-      mobile: AppConstants.mobilePadding,
-      tablet: AppConstants.tabletPadding,
-      desktop: AppConstants.desktopPadding,
-    );
+    final horizontalPadding =
+        context.responsive(mobile: 16.0, tablet: 40.0, desktop: 100.0);
 
     return Padding(
       padding:

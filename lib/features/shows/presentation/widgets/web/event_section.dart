@@ -83,7 +83,7 @@ class AnimatedEventCard extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: Duration(
-          milliseconds: 400 + index * AppConstants.staggerAnimationDelay),
+          milliseconds: 400 + index * 70),
       builder: (final context, final value, final child) => Opacity(
         opacity: value,
         child: Transform.translate(

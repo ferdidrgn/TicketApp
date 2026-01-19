@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../common/constants/app_constants.dart';
 import '../../common/extentions/reg_exp_extentions.dart';
 
 final class TiyatrolDeeplinkService {
@@ -7,10 +7,10 @@ final class TiyatrolDeeplinkService {
 
   static const String _baseUrl = "https://www.tiyatrol.web.app";
 
-  /// 🛠 URL Oluşturucu (Slug-ID yapısı SEO ve Deeplink için en iyisidir)
+  /// 🛠 URL Oluşturucu (Slug-ID yapısı)
   static String _createUrl(
       final String folder, final String name, final String id) {
-    final slug = name.toSlug(); // Ismi URL uyumlu yapar
+    final slug = name.toSlug();
     return "$_baseUrl/$folder/$slug-$id";
   }
 
@@ -30,13 +30,19 @@ final class TiyatrolDeeplinkService {
         "Ekibimizin yetenekli ismi $name hakkında her şey burada: $url");
   }
 
-  /// 🎟 Bilet Paylaşımı (Opsiyonel)
+  /// 🎟 Bilet Paylaşımı
   static Future<void> shareTicket(final String ticketId) async {
     final url = "$_baseUrl/my-tickets/$ticketId";
     await Share.share("Biletini buradan kontrol edebilirsin: $url");
   }
 
-  /// 📱 Uygulama Paylaşımı
-  static Future<void> shareApp() async =>
-      Share.share("TiyatRol ile sanat her yerde! Uygulamayı indir: $_baseUrl");
+  /// 📱 Uygulama Paylaşımı (Market Linkleri ile)
+  static Future<void> shareApp() async {
+    const String message = "TiyatRol ile sanat her yerde! 🎭\n\n"
+        "Hemen indirmek için:\n"
+        "🤖 Android: ${AppConstants.playStoreUrl}\n"
+        "🍎 iOS: ${AppConstants.appStoreUrl}";
+
+    await Share.share(message);
+  }
 }

@@ -24,11 +24,7 @@ class ShowDetailHero extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final height = context.responsive(
-      mobile: AppConstants.heroHeightMobile,
-      tablet: AppConstants.heroHeightTablet,
-      desktop: AppConstants.heroHeightDesktop,
-    );
+    final height = context.responsive(mobile: 500.0, tablet: 600.0, desktop: 700.0);
 
     return FadeTransition(
       opacity: fadeAnimation,
@@ -43,7 +39,7 @@ class ShowDetailHero extends StatelessWidget {
                 valueListenable: scrollNotifier,
                 builder: (final context, final scrollOffset, final child) {
                   return Positioned(
-                    top: -(scrollOffset * AppConstants.parallaxFactor),
+                    top: -(scrollOffset * 0.25),
                     left: 0,
                     right: 0,
                     child: SizedBox(
