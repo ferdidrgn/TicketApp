@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
-import 'package:ticketapp/shared/widgets/top_normal_header.dart'; // Yeni Header Class'ın
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/services/url_launcher_service.dart';
+import 'package:ticketapp/core/services/deeplink/deeplink_service.dart';
+import 'package:ticketapp/core/util/comminucation_actions.dart';
+import 'package:ticketapp/shared/widgets/top_normal_header.dart';
+import '../../../../core/common/constants/app_constants.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
 
@@ -17,9 +18,8 @@ class AppSettingsPage extends StatelessWidget {
   }
 
   void _shareApp() => Share.share(
-        'Ruhunu sanatla besleyecek bu serüvene sen de katıl: ${AppConstants.shareUrl}',
-        subject: 'Sanat Serüveni',
-      );
+      'Ruhunu sanatla besleyecek bu serüvene sen de katıl: ${AppConstants.shareUrl}',
+      subject: 'Sanat Serüveni');
 
   @override
   Widget build(final BuildContext context) {
@@ -86,7 +86,7 @@ class AppSettingsPage extends StatelessWidget {
                         desc: 'Bu koleksiyonu yıldızlarla parlat.',
                         icon: Icons.auto_awesome_rounded,
                         gradient: [colors.primary, colors.primaryContainer],
-                        onTap: () => UrlLauncherService.launchUrl(
+                        onTap: () => CommunicationActions.buyTicket(
                             AppConstants.playStoreUrl),
                       ),
                       const SizedBox(height: 16),

@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/theme_context_extension.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/custom_dots_indicator.dart';
 import '../../../campaigns/domain/entities/campaign.dart';

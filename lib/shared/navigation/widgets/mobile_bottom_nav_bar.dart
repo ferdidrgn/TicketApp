@@ -2,8 +2,8 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ticketapp/core/theme/app_colors.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
+
+import '../../../core/common/extentions/app_context_ui_extension.dart';
 
 class MobileBottomNavBar extends StatefulWidget {
   final StatefulNavigationShell navigationShell;

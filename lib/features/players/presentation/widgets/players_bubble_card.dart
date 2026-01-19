@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/section_header.dart';
 
 class PlayersBubbleCard extends StatelessWidget {

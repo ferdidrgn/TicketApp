@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import 'package:ticketapp/shared/widgets/section_header.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 
 class DiscoveryPage extends ConsumerStatefulWidget {

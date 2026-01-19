@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../../core/base/base_loadable_state.dart';
-import '../../../../../core/theme/theme_context_extension.dart';
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shows/domain/entities/show.dart';
 

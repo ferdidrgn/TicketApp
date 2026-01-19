@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart'; // GoRouter ekledik
-import '../../../core/theme/theme_context_extension.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/common/extentions/app_context_ui_extension.dart';
 
 /// Cam Efektli Geri Butonu
 class GlassBackButton extends StatelessWidget {

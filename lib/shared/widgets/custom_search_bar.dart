@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../core/theme/theme_context_extension.dart';
+
+import '../../core/common/extentions/app_context_ui_extension.dart';
 
 /// Sanat eseri gibi tasarlanmış search bar
 /// Hem ana sayfada hem AppBar'da kullanılabilir

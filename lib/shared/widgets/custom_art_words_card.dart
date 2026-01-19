@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
+import '../../core/common/extentions/app_context_ui_extension.dart';
 
 class CustomArtWordsCard extends StatelessWidget {
   final String word;

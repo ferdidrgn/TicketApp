@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import 'package:ticketapp/shared/widgets/top_normal_header.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 
 class HelpSupportPage extends StatelessWidget {

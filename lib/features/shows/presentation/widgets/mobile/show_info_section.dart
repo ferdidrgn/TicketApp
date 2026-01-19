@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
+
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 
 class ShowInfoSection extends StatefulWidget {
   final String title;

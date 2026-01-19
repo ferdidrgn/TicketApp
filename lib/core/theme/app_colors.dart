@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
+
+import '../common/extentions/app_context_ui_extension.dart';
 
 /// WEB UYGULAMASI RENKLERİ
 class WebColors {

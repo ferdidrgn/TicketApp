@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
-import '../../../../shared/widgets/button/glass_back_button.dart'; // Dosya yolunu kontrol et
+
+import '../../core/common/extentions/app_context_ui_extension.dart';
+import 'button/glass_back_button.dart';
 
 class TopNormalHeader extends StatelessWidget {
   final String title;

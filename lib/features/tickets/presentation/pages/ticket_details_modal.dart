@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/magic_box.dart';
 import '../providers/my_ticket_viewmodel.dart';

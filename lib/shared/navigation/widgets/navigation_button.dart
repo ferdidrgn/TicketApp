@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/theme_context_extension.dart';
+import '../../../core/common/extentions/app_context_ui_extension.dart';
 
 class NavigationButton extends StatelessWidget {
   final VoidCallback? onTap;

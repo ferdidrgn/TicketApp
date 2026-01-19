@@ -8,19 +8,19 @@ import 'deeplink_service_stub.dart'
 final class DeeplinkShareService {
   DeeplinkShareService._();
 
-  static const String _baseUrl = "https://saglamspot.com";
+  static const String _baseUrl = "https://www.tiyatrol.web.app";
 
-  static String generateProductUrl(final String id, final String name) {
+  static String generateShowUrl(final String id, final String name) {
     final slug = name.toSlug();
-    return "$_baseUrl/product/$slug-$id";
+    return "$_baseUrl/show/$slug-$id";
   }
 
-  static Future<void> shareProduct({
+  static Future<void> shareShow({
     required final String productId,
     required final String productName,
   }) async {
-    final url = generateProductUrl(productId, productName);
-    final message = "Sağlam Spot - $productName\n$url";
+    final url = generateShowUrl(productId, productName);
+    final message = "TiyatRol - $productName\n$url";
 
     await Share.share(
       message,
@@ -39,7 +39,7 @@ final class DeeplinkShareService {
     if (!kIsWeb) return;
 
     try {
-      final url = generateProductUrl(productId, productName);
+      final url = generateShowUrl(productId, productName);
       setMeta(title, description, imageUrl, url);
     } catch (e) {
       debugPrint("Meta error: $e");

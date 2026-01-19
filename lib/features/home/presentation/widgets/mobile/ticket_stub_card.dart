@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/theme/theme_context_extension.dart';
+
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 
 class TicketStubCard extends StatelessWidget {
   final String title;
@@ -16,7 +17,7 @@ class TicketStubCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
@@ -63,7 +64,7 @@ class _ImageSection extends StatelessWidget {
   const _ImageSection({required this.imageUrl});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Container(
       width: 100,
       decoration: BoxDecoration(
@@ -81,7 +82,7 @@ class _ImageSection extends StatelessWidget {
 
 class _PerforatedDivider extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return SizedBox(
       width: 20,
       child: Flex(
@@ -89,7 +90,7 @@ class _PerforatedDivider extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(
           10,
-          (_) => Container(
+          (final _) => Container(
             width: 2,
             height: 6,
             color: Colors.grey[600],
@@ -110,7 +111,7 @@ class _ContentSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -170,7 +171,7 @@ class _TicketHole extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Positioned(
       top: top,
       bottom: bottom,

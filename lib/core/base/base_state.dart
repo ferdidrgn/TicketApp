@@ -1,5 +1,3 @@
-import 'package:equatable/equatable.dart';
-
 abstract class BaseState {
   final bool isLoading;
   final String? errorMessage;

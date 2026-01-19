@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/theme/theme_context_extension.dart';
 import '../../../core/common/enum/enums.dart';
+import '../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../core/theme/theme_notifier.dart';
 
 class ThemeSelectorCard extends ConsumerWidget {

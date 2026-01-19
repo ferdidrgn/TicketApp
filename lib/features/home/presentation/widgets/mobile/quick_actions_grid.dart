@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/theme/theme_context_extension.dart';
+
+import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 
 /// Quick actions grid - 4 hızlı erişim butonu
 class QuickActionsGrid extends StatelessWidget {
