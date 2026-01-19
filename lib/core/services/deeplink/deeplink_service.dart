@@ -1,48 +1,42 @@
 import 'package:flutter/foundation.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../common/extentions/reg_exp_extentions.dart';
-import 'deeplink_service_stub.dart'
-    if (dart.library.js_interop) 'deeplink_service_web.dart';
-// KOŞULLU IMPORT: Web ise web dosyasını, değilse stub dosyasını yükle
 
-final class DeeplinkShareService {
-  DeeplinkShareService._();
+final class TiyatrolDeeplinkService {
+  TiyatrolDeeplinkService._();
 
   static const String _baseUrl = "https://www.tiyatrol.web.app";
 
-  static String generateShowUrl(final String id, final String name) {
-    final slug = name.toSlug();
-    return "$_baseUrl/show/$slug-$id";
+  /// 🛠 URL Oluşturucu (Slug-ID yapısı SEO ve Deeplink için en iyisidir)
+  static String _createUrl(
+      final String folder, final String name, final String id) {
+    final slug = name.toSlug(); // Ismi URL uyumlu yapar
+    return "$_baseUrl/$folder/$slug-$id";
   }
 
-  static Future<void> shareShow({
-    required final String productId,
-    required final String productName,
-  }) async {
-    final url = generateShowUrl(productId, productName);
-    final message = "TiyatRol - $productName\n$url";
-
+  /// 🎭 Gösteri Paylaşımı
+  static Future<void> shareShow(
+      {required final String id, required final String name}) async {
+    final url = _createUrl("show", name, id);
     await Share.share(
-      message,
-      subject: productName,
-    );
+        "TiyatRol - $name oyununu kaçırma! 🎭\nDetaylar ve Bilet: $url");
   }
 
-  /// WEB ONLY — SEO + OG META
-  static void updateWebMeta({
-    required final String title,
-    required final String description,
-    required final String imageUrl,
-    required final String productId,
-    required final String productName,
-  }) {
-    if (!kIsWeb) return;
-
-    try {
-      final url = generateShowUrl(productId, productName);
-      setMeta(title, description, imageUrl, url);
-    } catch (e) {
-      debugPrint("Meta error: $e");
-    }
+  /// 👤 Oyuncu/Ekip Paylaşımı
+  static Future<void> shareActor(
+      {required final String id, required final String name}) async {
+    final url = _createUrl("team", name, id);
+    await Share.share(
+        "Ekibimizin yetenekli ismi $name hakkında her şey burada: $url");
   }
+
+  /// 🎟 Bilet Paylaşımı (Opsiyonel)
+  static Future<void> shareTicket(final String ticketId) async {
+    final url = "$_baseUrl/my-tickets/$ticketId";
+    await Share.share("Biletini buradan kontrol edebilirsin: $url");
+  }
+
+  /// 📱 Uygulama Paylaşımı
+  static Future<void> shareApp() async =>
+      Share.share("TiyatRol ile sanat her yerde! Uygulamayı indir: $_baseUrl");
 }

@@ -7,65 +7,53 @@ import 'package:go_router/go_router.dart';
 /// - App kapalıyken gelen link
 /// - App açıkken gelen link
 /// - Double init & crash protection
-final class DeeplinkListener {
-  DeeplinkListener._();
+final class TiyatrolDeeplinkListener {
+  TiyatrolDeeplinkListener._();
 
   static final AppLinks _appLinks = AppLinks();
   static StreamSubscription<Uri>? _subscription;
+  static bool _isInitialized = false;
 
-  static bool _initialized = false;
+  static Future<void> init(final GoRouter router) async {
+    if (_isInitialized) return;
+    _isInitialized = true;
 
-  /// 🚀 Uygulama başlarken SADECE 1 KEZ çağrılır
-  static Future<void> start(final GoRouter router) async {
-    if (_initialized) return; // 🛑 ikinci kez başlatma
-    _initialized = true;
+    if (kIsWeb) return; // Web'de tarayıcı URL'i otomatik yönetir
 
-    if (kIsWeb) return; // 🌐 Web deeplink dinlemez
-
-    // 1️⃣ App TAM KAPALIYKEN gelen deeplink
+    // 1️⃣ Uygulama TAM KAPALIYKEN gelen linki yakala
     try {
-      final Uri? initialUri = await _appLinks.getInitialLink();
-      if (initialUri != null) _handleUri(router, initialUri);
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) _handleNavigation(router, initialUri);
     } catch (e) {
-      debugPrint('❌ Initial deeplink error: $e');
+      debugPrint('❌ Deeplink Initial Error: $e');
     }
 
-    // 2️⃣ App AÇIKKEN gelen deeplink
+    // 2️⃣ Uygulama AÇIKKEN gelen linkleri dinle
     _subscription = _appLinks.uriLinkStream.listen(
-      (final uri) {
-        _handleUri(router, uri);
-      },
-      onError: (final error) {
-        debugPrint('❌ Deeplink stream error: $error');
-      },
+      (final uri) => _handleNavigation(router, uri),
+      onError: (final err) => debugPrint('❌ Deeplink Stream Error: $err'),
     );
   }
 
-  /// 🧹 Hot restart / dispose için
-  static void dispose() {
-    _subscription?.cancel();
-    _subscription = null;
-    _initialized = false;
-  }
-
-  /// 🎯 Gerçek yönlendirme
-  static void _handleUri(final GoRouter router, final Uri uri) {
+  static void _handleNavigation(final GoRouter router, final Uri uri) {
     final String path = uri.path;
+    if (path.isEmpty || path == '/') return;
 
     debugPrint('🔗 Deeplink received: $path');
 
-    // Aynı sayfadaysak tekrar gitme (crash önler)
     final currentPath = router.routerDelegate.currentConfiguration.fullPath;
-
-    if (currentPath == path) {
-      debugPrint('ℹ️ Already on $path, navigation skipped');
-      return;
-    }
+    if (currentPath == path) return;
 
     try {
+      // Adres çubuğunda görünmesi ve temiz bir geçiş için 'go' kullanıyoruz
       router.go(path);
     } catch (e) {
       debugPrint('❌ Invalid deeplink path: $path');
     }
+  }
+
+  static void stop() {
+    _subscription?.cancel();
+    _isInitialized = false;
   }
 }
