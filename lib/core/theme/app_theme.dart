@@ -89,15 +89,18 @@ mixin AppTheme {
   static final ThemeData darkTheme = createTheme(
     colors: const ColorScheme.dark(
       primary: AppDarkColors.primary,
+      onPrimary: AppDarkColors.onPrimary,
       primaryContainer: AppDarkColors.primaryVariant,
       secondary: AppDarkColors.secondary,
+      onSecondary: AppDarkColors.onSecondary,
       secondaryContainer: AppDarkColors.secondaryVariant,
       surface: AppDarkColors.surface,
-      error: AppDarkColors.error,
-      onPrimary: AppDarkColors.onPrimary,
-      onSecondary: AppDarkColors.onSecondary,
       onSurface: AppDarkColors.onSurface,
+      error: AppDarkColors.error,
       onError: AppDarkColors.onError,
+      surfaceContainerHighest: AppDarkColors.surface,
+      outline: AppDarkColors.border,
+      shadow: Colors.white12,
     ),
   );
 
