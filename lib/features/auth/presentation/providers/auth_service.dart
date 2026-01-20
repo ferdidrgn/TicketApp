@@ -2,10 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'firebase_auth_provider.dart';
 
-/// 🔐 Firebase Auth Service
+part 'auth_service.g.dart';
+
+@riverpod
+AuthService authService(final Ref ref) => AuthService(ref);
+
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Ref _ref;
+
+  AuthService(this._ref);
+
+  FirebaseAuth get _auth => _ref.read(firebaseAuthProvider);
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 

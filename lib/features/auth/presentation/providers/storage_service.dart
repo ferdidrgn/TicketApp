@@ -1,19 +1,21 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/features/auth/presentation/providers/storage_provider.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-// Servis sağlayıcı
-final storageServiceProvider =
-    Provider<StorageService>((final ref) => StorageService(ref));
+part 'storage_service.g.dart';
+
+@riverpod
+FirebaseStorage firebaseStorage(final Ref ref) => FirebaseStorage.instance;
+
+@riverpod
+StorageService storageService(final Ref ref) => StorageService(ref);
 
 class StorageService {
   final Ref _ref;
 
   StorageService(this._ref);
 
-  // FirebaseStorage'ı provider'dan çekiyoruz
-  FirebaseStorage get _storage => _ref.read(storageProvider);
+  FirebaseStorage get _storage => _ref.read(firebaseStorageProvider);
 
   Future<String?> uploadProfileImage(
       final String userId, final File file) async {
