@@ -1,14 +1,14 @@
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:ticketapp/features/login/domain/repositories/login_repository.dart';
 import '../../../../core/errors/failures.dart';
+import '../repositories/auth_repository.dart';
 
 abstract class SignInAnonymouslyUseCase {
   Future<Either<Failure, User?>> call();
 }
 
 class SignInAnonymouslyUseCaseImpl implements SignInAnonymouslyUseCase {
-  final LoginRepository remoteDataSource;
+  final AuthRepository remoteDataSource;
 
   SignInAnonymouslyUseCaseImpl(this.remoteDataSource);
 

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-abstract class LoginRemoteDataSource {
+abstract class AuthRemoteDataSource {
   Future<User?> getCurrentUser();
 
   Future<User?> signInAnonymously();
@@ -25,14 +25,14 @@ abstract class LoginRemoteDataSource {
   });
 }
 
-class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
+class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
 
-  LoginRemoteDataSourceImpl({
-    required final FirebaseAuth firebaseAuth,
-    final GoogleSignIn? googleSignIn,
-  })  : _auth = firebaseAuth,
+  AuthRemoteDataSourceImpl(
+      {required final FirebaseAuth firebaseAuth,
+      final GoogleSignIn? googleSignIn})
+      : _auth = firebaseAuth,
         _googleSignIn = googleSignIn ?? GoogleSignIn.standard();
 
   @override

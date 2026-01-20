@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/errors/failures.dart';
-import '../repositories/login_repository.dart';
+import '../repositories/auth_repository.dart';
 
 abstract class VerifyPhoneUseCase {
   Future<Either<Failure, String>> call({
@@ -13,7 +13,7 @@ abstract class VerifyPhoneUseCase {
 }
 
 class VerifyPhoneUseCaseImpl implements VerifyPhoneUseCase {
-  final LoginRepository repository;
+  final AuthRepository repository;
 
   VerifyPhoneUseCaseImpl(this.repository);
 

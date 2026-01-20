@@ -1,14 +1,14 @@
 import 'package:dartz/dartz.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:ticketapp/features/login/domain/repositories/login_repository.dart';
 import '../../../../core/errors/failures.dart';
+import '../repositories/auth_repository.dart';
 
 abstract class SignInWithGoogleUseCase {
   Future<Either<Failure, GoogleSignInAccount?>> call();
 }
 
 class SignInWithGoogleUseCaseImpl implements SignInWithGoogleUseCase {
-  final LoginRepository remoteDataSource;
+  final AuthRepository remoteDataSource;
 
   SignInWithGoogleUseCaseImpl(this.remoteDataSource);
 

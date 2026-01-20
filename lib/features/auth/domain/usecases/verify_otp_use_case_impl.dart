@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../repositories/login_repository.dart';
+import '../repositories/auth_repository.dart';
 
 abstract class VerifyOtpUseCase {
   Future<Either<Failure, bool>> call(
@@ -8,7 +8,7 @@ abstract class VerifyOtpUseCase {
 }
 
 class VerifyOtpUseCaseImpl implements VerifyOtpUseCase {
-  final LoginRepository repository;
+  final AuthRepository repository;
 
   VerifyOtpUseCaseImpl(this.repository);
 

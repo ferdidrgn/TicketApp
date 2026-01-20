@@ -5,14 +5,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'storage_service.g.dart';
 
 @riverpod
-FirebaseStorage firebaseStorage(final Ref ref) => FirebaseStorage.instance;
-
-@riverpod
 StorageService storageService(final Ref ref) => StorageService(ref);
 
 class StorageService {
   final Ref _ref;
-
   StorageService(this._ref);
 
   FirebaseStorage get _storage => _ref.read(firebaseStorageProvider);

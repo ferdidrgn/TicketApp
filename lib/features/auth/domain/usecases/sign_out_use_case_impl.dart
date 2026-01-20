@@ -1,13 +1,13 @@
 import 'package:dartz/dartz.dart';
-import 'package:ticketapp/features/login/domain/repositories/login_repository.dart';
 import '../../../../../core/errors/failures.dart';
+import '../repositories/auth_repository.dart';
 
 abstract class SignOutUseCase {
   Future<Either<Failure, bool>> call();
 }
 
 class SignOutUseCaseImpl implements SignOutUseCase {
-  final LoginRepository remoteDataSource;
+  final AuthRepository remoteDataSource;
 
   SignOutUseCaseImpl(this.remoteDataSource);
 

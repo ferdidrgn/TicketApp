@@ -12,20 +12,14 @@ AuthService authService(final Ref ref) => AuthService(ref);
 
 class AuthService {
   final Ref _ref;
-
   AuthService(this._ref);
 
   FirebaseAuth get _auth => _ref.read(firebaseAuthProvider);
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // ========================================
-  // STREAM & STATE
-  // ========================================
-
   /// Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
   /// Current user
   User? get currentUser => _auth.currentUser;
 

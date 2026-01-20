@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
-import '../providers/login_provider.dart';
-import '../providers/login_state.dart';
+import '../../../login/presentation/providers/login_provider.dart';
+import '../../../login/presentation/providers/login_state.dart';
 
 /// 🔥 Riverpod ile state management kullanan temiz phone login
 class PhoneLogInPage extends ConsumerStatefulWidget {
