@@ -2,32 +2,37 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../login/presentation/providers/login_provider.dart';
-import '../../../login/presentation/providers/login_state.dart';
+import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import '../providers/auth_mutation_provider.dart';
+import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final loginState = ref.watch(loginProvider);
-    final theme = Theme.of(context);
+    final authMutation = ref.watch(authMutationProvider);
+    final theme = context.theme;
 
-    ref.listen<LoginState>(loginProvider, (final previous, final next) {
-      if (next.hasError) {
-        _showSnackBar(context, next.errorMessage!, isError: true);
-        Future.microtask(() => ref.read(loginProvider.notifier).clearError());
-      }
-      if (next.isLoggedIn && next.loginMethod == 'google') {
-        if (context.mounted) context.go('/home');
-      }
+    ref.listen<AsyncValue<void>>(authMutationProvider,
+        (final previous, final next) {
+      next.whenOrNull(
+        error: (final error, final stack) {
+          _showSnackBar(context, error.toString(), isError: true);
+        },
+        data: (final _) {
+          // Router redirect zaten devreye girecek, ancak ekstra kontrol istersen:
+          if (ref.read(isLoggedInProvider)) if (context.mounted)
+            NavigationHandler.goToHome(context);
+        },
+      );
     });
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Arka Plan Resmi (Opacity artırıldı, resim daha net)
           Positioned.fill(
             child: Image.asset(
               'assets/images/book_logo.jpg',
@@ -92,7 +97,7 @@ class LoginScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 48),
 
-                          if (loginState.isLoading)
+                          if (authMutation.isLoading)
                             const CircularProgressIndicator(color: Colors.white)
                           else ...[
                             // GOOGLE GRADIENT
@@ -202,12 +207,8 @@ class LoginScreen extends ConsumerWidget {
 
   // --- Atladığın metodlar varsa buraya ekleyebilirsin ---
   Future<void> _handleGoogleSignIn(
-      final BuildContext context, final WidgetRef ref) async {
-    final success = await ref.read(loginProvider.notifier).signInWithGoogle();
-    if (!success && context.mounted)
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Giriş başarısız.')));
-  }
+          final BuildContext context, final WidgetRef ref) async =>
+      ref.read(authMutationProvider.notifier).signInWithGoogle();
 
   void _showSnackBar(final BuildContext context, final String msg,
           {final bool isError = false}) =>
