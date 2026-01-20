@@ -1,6 +1,8 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
 import 'package:ticketapp/features/teams/presentation/pages/team_details_mobile.dart';
@@ -36,6 +38,10 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
     navigatorKey: NavigationKeys.rootNavigator,
     initialLocation: '/home',
     refreshListenable: authNotifier,
+    observers: [
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      SeoRouteObserver(),
+    ],
     redirect: (final context, final state) {
       final loggedIn = loginState.isLoggedIn;
       final path = state.uri.path;

@@ -43,12 +43,11 @@ abstract final class AppInitializer {
     await RemoteConfigService.init();
 
     await AdManager.initialize();
-
     // 📢 Google Mobile Ads Başlatma
-    if (kIsWeb) // Web'de bunları await etme, arka planda başlasınlar
+    /*if (kIsWeb) // Web'de bunları await etme, arka planda başlasınlar
       MobileAds.instance.initialize();
     else
-      await MobileAds.instance.initialize();
+      await MobileAds.instance.initialize();*/
 
     // 🛡️ Güvenlik ve Hata Takibi (Firebase bağımlı servisler)
     if (Firebase.apps.isNotEmpty) {
