@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
 import '../../../../../../shared/widgets/custom_pop_up.dart';
-import '../../../login/presentation/providers/login_provider.dart';
 import '../providers/storage_service.dart';
 
 /// =======================================
@@ -41,13 +41,8 @@ mixin ProfileSignOutHandler on ProfileSnackBarHandler {
 
     if (confirmed == true && context.mounted) {
       showLoading(context, "Oturum kapatılıyor...");
-      final success = await ref.read(loginpro.notifier).signOut();
+      await ref.read(authMutationProvider.notifier).signOut();
       if (context.mounted) Navigator.pop(context); // Loading'i kapat
-
-      if (success)
-        showSuccessDialog(context, 'Başarıyla çıkış yapıldı.');
-      else
-        showErrorDialog(context, 'Çıkış yapılırken bir sorun oluştu.');
     }
   }
 }
@@ -78,17 +73,16 @@ mixin ProfileDeleteAccountHandler on ProfileSnackBarHandler {
         debugPrint("Storage silme atlandı (Dosya yok veya hata): $e");
       }
 
-      // 2. ADIM: Auth ve Firestore silme işlemini tetikle
-      final success = await ref.read(loginProvider.notifier).deleteAccount();
+      await ref.read(authMutationProvider.notifier).deleteAccount();
 
       if (context.mounted) Navigator.pop(context); // Loading'i kapat
 
-      if (success) {
+      final state = ref.read(authMutationProvider);
+      if (!state.hasError)
         showSuccessDialog(context, 'Hesabınız ve eserleriniz silindi.');
-      } else {
+      else
         showErrorDialog(context,
             'Hesap silme işlemi başarısız oldu. Güvenlik nedeniyle yeniden giriş yapmanız gerekebilir.');
-      }
     }
   }
 }
@@ -128,14 +122,14 @@ mixin ProfilePhoneLinkHandler on ProfileSnackBarHandler {
   Future<void> _startPhoneLink(final BuildContext context, final WidgetRef ref,
       final String phone) async {
     showLoading(context, "Kod gönderiliyor...");
-    await ref.read(loginProvider.notifier).verifyPhone(phone);
+    await ref.read(authMutationProvider.notifier).verifyPhone(phone);
     if (context.mounted) Navigator.pop(context);
 
-    final state = ref.read(loginProvider);
-    if (state.isCodeSent)
+    final state = ref.read(authMutationProvider);
+    if (!state.hasError)
       _showOtpDialog(context, ref);
     else
-      showErrorDialog(context, state.errorMessage ?? 'Kod gönderilemedi.');
+      showErrorDialog(context, state.error.toString());
   }
 
   void _showOtpDialog(final BuildContext context, final WidgetRef ref) {
@@ -164,13 +158,14 @@ mixin ProfilePhoneLinkHandler on ProfileSnackBarHandler {
   Future<void> _verifyOtp(final BuildContext context, final WidgetRef ref,
       final String code) async {
     showLoading(context, "Doğrulanıyor...");
-    final success = await ref.read(loginProvider.notifier).verifyOtp(code);
+    await ref.read(authMutationProvider.notifier).verifyOtp(code);
     if (context.mounted) Navigator.pop(context);
 
-    if (success)
+    final state = ref.read(authMutationProvider);
+    if (!state.hasError)
       showSuccessDialog(context, 'Telefon numaranız başarıyla bağlandı.');
     else
-      showErrorDialog(context, 'Doğrulama kodu hatalı.');
+      showErrorDialog(context, 'Doğrulama kodu hatalı veya geçersiz.');
   }
 }
 
@@ -181,10 +176,11 @@ mixin ProfileGoogleLinkHandler on ProfileSnackBarHandler {
   Future<void> handleGoogleLink(
       final BuildContext context, final WidgetRef ref) async {
     showLoading(context, "Google ile bağlanılıyor...");
-    final success = await ref.read(loginProvider.notifier).signInWithGoogle();
+    await ref.read(authMutationProvider.notifier).signInWithGoogle();
     if (context.mounted) Navigator.pop(context);
 
-    if (success)
+    final state = ref.read(authMutationProvider);
+    if (!state.hasError)
       showSuccessDialog(context, 'Google hesabınız bağlandı.');
     else
       showErrorDialog(context, 'Bağlantı sırasında bir hata oluştu.');
