@@ -9,9 +9,19 @@ import 'auth_provider.dart';
 part 'auth_mutation_provider.g.dart';
 
 @riverpod
+class OtpTimer extends _$OtpTimer {
+  @override
+  int build() => 0;
+
+  void set(final int seconds) => state = seconds;
+
+  void decrement() => state = state > 0 ? state - 1 : 0;
+}
+
+@riverpod
 class AuthMutation extends _$AuthMutation {
+  String? _verificationId;
   Timer? _timer;
-  int _timerValue = 0;
 
   @override
   FutureOr<void> build() {
@@ -52,12 +62,45 @@ class AuthMutation extends _$AuthMutation {
             onVerificationCompleted: (final credential) =>
                 ref.invalidate(currentUserProvider),
             onCodeSent: (final id, final token) {
-              _startTimer(60); // LoginNotifier'daki timer mantığı
+              _verificationId = id;
+              _startCountdown(60);
               state = const AsyncData(null);
             },
-            onAutoRetrievalTimeout: (final id) {},
+            onAutoRetrievalTimeout: (final id) => _verificationId = id,
           )
           .getOrThrow();
+    });
+  }
+
+  void _startCountdown(final int seconds) {
+    ref.read(otpTimerProvider.notifier).set(seconds);
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
+      if (ref.read(otpTimerProvider) <= 0) {
+        timer.cancel();
+      } else {
+        ref.read(otpTimerProvider.notifier).decrement();
+      }
+    });
+  }
+
+  Future<void> verifyOtp(final String otp) async {
+    if (_verificationId == null) {
+      state =
+          AsyncError(Exception("Doğrulama ID bulunamadı"), StackTrace.current);
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(verifyOtpUseCaseProvider)
+          .call(_verificationId!, otp)
+          .getOrThrow();
+
+      // Başarılıysa kullanıcı verilerini işle
+      final userId = ref.read(currentUserIdProvider) ?? '';
+      await _handlePostLogin(userId, UserRole.user);
     });
   }
 
@@ -97,8 +140,6 @@ class AuthMutation extends _$AuthMutation {
     });
   }
 
-  // --- YARDIMCI METODLAR (Private Helpers) ---
-
   Future<void> _handlePostLogin(final String uid, final UserRole role) async {
     final user =
         await ref.read(getCurrentUserUseCaseProvider).call().getOrThrow();
@@ -119,16 +160,5 @@ class AuthMutation extends _$AuthMutation {
     ref.invalidate(currentUserProvider);
 
     ref.invalidate(currentUserRoleProvider);
-  }
-
-  void _startTimer(final int seconds) {
-    _timerValue = seconds;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (_timerValue <= 0)
-        timer.cancel();
-      else
-        _timerValue--;
-    });
   }
 }

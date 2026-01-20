@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -140,16 +139,19 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     final color = context.colors;
     final textTheme = context.textTheme;
 
+    final seconds = ref.watch(otpTimerProvider);
+    // Saniyeyi 00:XX formatına çevir
+    final timerText = "00:${seconds.toString().padLeft(2, '0')}";
+    final canResend = seconds == 0;
+
     return Column(
       key: const ValueKey('otp_ui'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          state.timerText,
-          style: textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w900,
-            color: color.primary,
-          ),
+          timerText,
+          style: textTheme.displaySmall
+              ?.copyWith(fontWeight: FontWeight.w900, color: color.primary),
         ),
         const SizedBox(height: 12),
         Text(
@@ -164,13 +166,14 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         ),
         const SizedBox(height: 24),
         _buildArtisticButton("DOĞRULA VE BAŞLA", _signInWithOTP),
-        if (state.canResendCode) ...[
+        if (canResend) ...[
           const SizedBox(height: 16),
           TextButton(
             onPressed: _verifyPhone,
             child: Text(
               "Yeniden Kod Gönder",
-              style: TextStyle(color: color.secondary),
+              style: TextStyle(
+                  color: color.secondary, fontWeight: FontWeight.bold),
             ),
           ),
         ],
