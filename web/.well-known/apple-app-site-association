@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAMID.com.yourdomain.saglamspot",
+        "appID": "TEAMID.com.yourdomain.ticketapp",
         "paths": ["/product/*"]
       }
     ]
