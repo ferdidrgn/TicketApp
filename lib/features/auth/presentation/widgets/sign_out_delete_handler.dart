@@ -41,7 +41,7 @@ mixin ProfileSignOutHandler on ProfileSnackBarHandler {
 
     if (confirmed == true && context.mounted) {
       showLoading(context, "Oturum kapatılıyor...");
-      final success = await ref.read(loginProvider.notifier).signOut();
+      final success = await ref.read(loginpro.notifier).signOut();
       if (context.mounted) Navigator.pop(context); // Loading'i kapat
 
       if (success)
