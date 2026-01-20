@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
-import '../../../login/presentation/providers/login_provider.dart';
-import '../../../login/presentation/providers/login_state.dart';
+import '../providers/auth_provider.dart';
 
 /// 🔥 Riverpod ile state management kullanan temiz phone login
 class PhoneLogInPage extends ConsumerStatefulWidget {
@@ -27,24 +28,22 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
   Future<void> _verifyPhone() async {
     final phone = _phoneController.text.trim();
-
     if (phone.isEmpty) {
       _showSnackBar("Lütfen telefon numaranızı girin");
       return;
     }
 
-    await ref.read(loginProvider.notifier).verifyPhone(phone);
+    await ref.read(authMutationProvider.notifier).verifyPhone(phone);
   }
 
   Future<void> _signInWithOTP() async {
     final otp = _otpController.text.trim();
-
     if (otp.isEmpty || otp.length != 6) {
       _showSnackBar("Lütfen 6 haneli kodu girin");
       return;
     }
 
-    await ref.read(loginProvider.notifier).verifyOtp(otp);
+    await ref.read(authMutationProvider.notifier).verifyOtp(otp);
   }
 
   void _showSnackBar(final String msg) {
@@ -54,17 +53,17 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
   @override
   Widget build(final BuildContext context) {
-    final theme = context.theme;
-    final loginState = ref.watch(loginProvider);
+    final authMutation = ref.watch(authMutationProvider);
 
-    // 🔥 Error handling
-    ref.listen<LoginState>(loginProvider, (final previous, final next) {
-      if (next.errorMessage != null && next.errorMessage!.isNotEmpty)
-        _showSnackBar(next.errorMessage!);
-
-      // 🔥 Başarılı login sonrası otomatik yönlendirme
-      if (next.isLoggedIn && !next.isLoading)
-        if (context.mounted) context.go('/home');
+    ref.listen<AsyncValue<void>>(authMutationProvider,
+        (final previous, final next) {
+      next.whenOrNull(
+        error: (final error, final stack) => _showSnackBar(error.toString()),
+        data: (final _) {
+          if (ref.read(isLoggedInProvider)) if (context.mounted)
+            NavigationHandler.goToHome(context);
+        },
+      );
     });
 
     return Scaffold(
@@ -72,7 +71,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       appBar: AppBar(
         title: Text(
           "SERÜVENE KATIL",
-          style: theme.textTheme.labelLarge?.copyWith(letterSpacing: 4),
+          style: context.textTheme.labelLarge?.copyWith(letterSpacing: 4),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -81,13 +80,14 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
-            child: loginState.isLoading
+            child: authMutation.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : AnimatedSwitcher(
                     duration: const Duration(milliseconds: 500),
-                    child: loginState.isCodeSent
-                        ? _buildOtpUI(theme, loginState)
-                        : _buildPhoneUI(theme),
+                    child: (authMutation.hasValue &&
+                            !ref.watch(isLoggedInProvider))
+                        ? _buildOtpUI()
+                        : _buildPhoneUI(),
                   ),
           ),
         ),
@@ -95,19 +95,23 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     );
   }
 
-  Widget _buildPhoneUI(final ThemeData theme) => Column(
+  Widget _buildPhoneUI() {
+    final color = context.colors;
+    final textTheme = context.textTheme;
+
+    return Column(
       key: const ValueKey('phone_ui'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
           Icons.phone_iphone_rounded,
           size: 64,
-          color: theme.colorScheme.primary,
+          color: color.primary,
         ),
         const SizedBox(height: 24),
         Text(
           "DOĞRULAMA",
-          style: theme.textTheme.headlineSmall?.copyWith(
+          style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w900,
             letterSpacing: 2,
           ),
@@ -116,8 +120,8 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         Text(
           "Serüvene başlamak için numaranı gir.",
           textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.5),
+          style: textTheme.bodyMedium?.copyWith(
+            color: color.onSurface.withOpacity(0.5),
           ),
         ),
         const SizedBox(height: 40),
@@ -127,25 +131,30 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           prefix: "+90 ",
         ),
         const SizedBox(height: 24),
-        _buildArtisticButton("KOD GÖNDER", _verifyPhone, theme),
+        _buildArtisticButton("KOD GÖNDER", _verifyPhone),
       ],
     );
+  }
 
-  Widget _buildOtpUI(final ThemeData theme, final LoginState state)=> Column(
+  Widget _buildOtpUI() {
+    final color = context.colors;
+    final textTheme = context.textTheme;
+
+    return Column(
       key: const ValueKey('otp_ui'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           state.timerText,
-          style: theme.textTheme.displaySmall?.copyWith(
+          style: textTheme.displaySmall?.copyWith(
             fontWeight: FontWeight.w900,
-            color: theme.colorScheme.primary,
+            color: color.primary,
           ),
         ),
         const SizedBox(height: 12),
         Text(
           "SMS KODUNU GİR",
-          style: theme.textTheme.labelLarge?.copyWith(letterSpacing: 2),
+          style: textTheme.labelLarge?.copyWith(letterSpacing: 2),
         ),
         const SizedBox(height: 40),
         _buildTextField(
@@ -154,55 +163,56 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
-        _buildArtisticButton("DOĞRULA VE BAŞLA", _signInWithOTP, theme),
+        _buildArtisticButton("DOĞRULA VE BAŞLA", _signInWithOTP),
         if (state.canResendCode) ...[
           const SizedBox(height: 16),
           TextButton(
             onPressed: _verifyPhone,
             child: Text(
               "Yeniden Kod Gönder",
-              style: TextStyle(color: theme.colorScheme.secondary),
+              style: TextStyle(color: color.secondary),
             ),
           ),
         ],
       ],
     );
+  }
 
   Widget _buildTextField(
     final TextEditingController controller,
     final String hint, {
     final String? prefix,
     final TextAlign textAlign = TextAlign.start,
-  }) => Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: context.colors.primary.withOpacity(0.1),
+  }) =>
+      Container(
+        decoration: BoxDecoration(
+          color: context.colors.surface.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: context.colors.primary.withOpacity(0.1),
+          ),
         ),
-      ),
-      child: TextField(
-        controller: controller,
-        textAlign: textAlign,
-        keyboardType: TextInputType.phone,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
+        child: TextField(
+          controller: controller,
+          textAlign: textAlign,
+          keyboardType: TextInputType.phone,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixText: prefix,
+            contentPadding: const EdgeInsets.all(20),
+            border: InputBorder.none,
+          ),
         ),
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixText: prefix,
-          contentPadding: const EdgeInsets.all(20),
-          border: InputBorder.none,
-        ),
-      ),
-    );
+      );
 
-  Widget _buildArtisticButton(
-    final String label,
-    final VoidCallback onTap,
-    final ThemeData theme,
-  ) => GestureDetector(
+  Widget _buildArtisticButton(final String label, final VoidCallback onTap) {
+    final color = context.colors;
+
+    return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -210,14 +220,14 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.secondary,
+              color.primary,
+              color.secondary,
             ],
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.3),
+              color: color.primary.withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -236,3 +246,4 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       ),
     );
   }
+}
