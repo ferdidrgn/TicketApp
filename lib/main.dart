@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
 import 'core/common/constants/app_constants.dart';
 import 'core/config/app_initializer.dart';
 import 'core/config/router/app_router.dart';
@@ -13,7 +14,6 @@ import 'core/theme/theme_manager.dart';
 import 'core/theme/theme_notifier.dart';
 import 'core/theme/web_theme.dart';
 import 'core/util/platform_checker.dart';
-import 'features/login/presentation/providers/login_provider.dart';
 import 'features/splash/presentation/widgets/splash_data_guard.dart';
 import 'l10n/app_localizations.dart';
 
@@ -52,7 +52,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     final currentStyle = ref.watch(themeProvider);
     final themeNotifier = ref.watch(themeProvider.notifier);
     final localeAsync = ref.watch(localeControllerProvider);
-    final loginState = ref.watch(loginProvider);
+    final authMutation = ref.watch(authMutationProvider);
     final isWeb = PlatformChecker.isWeb;
     final themeManager = ThemeManager(currentStyle);
 
@@ -80,10 +80,13 @@ class _MyAppState extends ConsumerState<MyApp> {
           if (child == null) return const SizedBox.shrink();
           return ConnectivityWrapper(
             child: SplashDataGuard(
-              isLoading: loginState.isLoading,
-              loadingMessage: loginState.hasError
-                  ? loginState.errorMessage!
-                  : 'TiyatRol Sahnesi Hazırlanıyor...',
+              isLoading: authMutation.isLoading,
+              loadingMessage: !authMutation.hasError
+                  ? 'TiyatRol Sahnesi Hazırlanıyor...'
+                  : authMutation.when(
+                      error: (final error, final stack) => error.toString(),
+                      data: (final void data) {},
+                      loading: () {}),
               // Web değilse sarmalayıcıyı kullan
               child: isWeb ? child : _MobileSystemUIWrapper(child: child),
             ),
