@@ -8,14 +8,14 @@ import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart'
 import 'package:ticketapp/features/teams/presentation/pages/team_details_mobile.dart';
 import '../../../features/appTools/presentation/pages/contracts.dart';
 import '../../../features/appTools/presentation/pages/help_support_page.dart';
+import '../../../features/auth/presentation/page/login_screen.dart';
+import '../../../features/auth/presentation/page/phone_login_page.dart';
+import '../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../features/discovery/presentation/pages/discovery_page.dart';
 import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
 import '../../../features/favorite/presentation/pages/favorite_screen.dart';
 import '../../../features/home/presentation/pages/home_page_mobile.dart';
 import '../../../features/home/presentation/pages/wrapper/app_home_page.dart';
-import '../../../features/auth/presentation/page/login_screen.dart';
-import '../../../features/auth/presentation/page/phone_login_page.dart';
-import '../../../features/login/presentation/providers/login_provider.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
@@ -29,9 +29,13 @@ import '../../errors/not_found_page.dart';
 import 'page_transitions.dart';
 
 final appRouterProvider = Provider<GoRouter>((final ref) {
-  final loginState = ref.watch(loginProvider);
-  final authNotifier = ValueNotifier(loginState);
-  ref.listen(loginProvider, (final _, final next) => authNotifier.value = next);
+  final isLoggedIn = ref.watch(isLoggedInProvider);
+
+  final authNotifier = ValueNotifier(isLoggedIn);
+  ref.listen(isLoggedInProvider, (final _, final next) {
+    authNotifier.value = next;
+  });
+
   final isWeb = kIsWeb;
 
   return GoRouter(
@@ -43,7 +47,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       SeoRouteObserver(),
     ],
     redirect: (final context, final state) {
-      final loggedIn = loginState.isLoggedIn;
+      final loggedIn = isLoggedIn;
       final path = state.uri.path;
 
       // Profil sayfasının kendisinde "Giriş Yap" butonu gösterebilirsin.
@@ -59,7 +63,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       if (loggedIn && (path == '/login' || path == '/phone-login'))
         return '/home';
 
-      return null; // yönlendirme yok
+      return null;
     },
     routes: [
       /// 🌍 WEB
