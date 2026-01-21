@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/features/login/presentation/providers/login_provider.dart';
 import '../../core/common/enum/enums.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/users/presentation/providers/user_provider.dart'
+    hide currentUserProvider;
 import 'background/shimmer_components.dart';
 
 class AdminGuard extends ConsumerWidget {
@@ -11,34 +13,28 @@ class AdminGuard extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final loginState = ref.watch(loginProvider);
+    final userAsync = ref.watch(currentUserProvider);
 
-    // 1. Yüklenme durumu
-    if (loginState.isLoading)
-      return const Scaffold(body: Center(child: ShimmerLoading()));
+    return userAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (final err, final stack) => _buildErrorState(
+          context, "HATA", "Kullanıcı verisi alınamadı.", Icons.error_outline),
+      data: (final user) {
+        // 2. Oturum kontrolü
+        if (user == null)
+          return _buildErrorState(context, "OTURUM GEREKLİ",
+              "Lütfen giriş yapın.", Icons.lock_outline);
 
-    // 2. Oturum açık mı kontrolü
-    if (!loginState.isLoggedIn)
-      return _buildErrorState(
-        context,
-        "OTURUM GEREKLİ",
-        "Bu alana erişmek için küratör hesabı ile giriş yapmalısınız.",
-        Icons.lock_outline_rounded,
-      );
+        // 3. Yetki kontrolü (Özel selector provider'ımızı kullanıyoruz)
+        final isPrivileged = ref.watch(isUserPrivilegedProvider);
+        if (!isPrivileged)
+          return _buildErrorState(context, "YETKİSİZ ERİŞİM",
+              "Sadece Admin veya Küratörler erişebilir.", Icons.gavel_rounded);
 
-    // 3. Rol kontrolü (Enum kullanarak)
-    if (loginState.userRole != UserRole.curator ||
-        loginState.userRole != UserRole.admin) {
-      return _buildErrorState(
-        context,
-        "YETKİSİZ ERİŞİM",
-        "Bu operasyonel panel sadece sistem yöneticilerine özeldir.",
-        Icons.gavel_rounded,
-      );
-    }
-
-    // Her şey tamamsa sayfayı göster
-    return child;
+        return child;
+      },
+    );
   }
 
   Widget _buildErrorState(final BuildContext context, final String title,

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart'; // Fotoğraf seçimi için
+import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/shared/widgets/top_normal_header.dart';
@@ -13,11 +13,10 @@ import '../../../../shared/widgets/custom_art_words_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../auth/presentation/providers/storage_service.dart';
-import '../../../login/presentation/providers/login_provider.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/entities/user.dart' as entity;
+import '../providers/user_mutation_provider.dart';
 import '../providers/user_provider.dart';
-import '../providers/user_state.dart';
 
 class UserProfileEditScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -51,11 +50,6 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
     _cityController = TextEditingController();
-
-    // Veriyi Firestore'dan çekmeye başla
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      ref.read(userProvider.notifier).loadUserById(widget.userId);
-    });
   }
 
   @override
@@ -101,17 +95,14 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   @override
   Widget build(final BuildContext context) {
-    final userState = ref.watch(userProvider);
+    final userAsync = ref.watch(currentUserProvider);
+    final mutationState = ref.watch(userMutationProvider);
 
-    // ⚡ VERİ GELDİĞİNDE KUTUCUKLARI DOLDURAN DİNLEYİCİ
-    ref.listen<UserState>(userProvider, (final previous, final next) {
-      if (!next.isLoading && next.dataSingle != null && !_isInitialized) {
-        _fillFields(next.dataSingle!);
-      }
+    userAsync.whenData((final user) {
+      if (user != null && !_isInitialized) _fillFields(user);
     });
 
     return Scaffold(
-      backgroundColor: context.colors.surface,
       body: CustomAppBackground(
         child: SafeArea(
           child: Column(
@@ -122,9 +113,12 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                 rightIcon: Icons.auto_fix_high_rounded,
               ),
               Expanded(
-                child: (userState.isLoading && !_isInitialized)
-                    ? _buildShimmerLoading()
-                    : _buildForm(context, userState.dataSingle),
+                child: userAsync.when(
+                  loading: () => _buildShimmerLoading(),
+                  error: (final err, final stack) =>
+                      Center(child: Text('Hata: $err')),
+                  data: (final user) => _buildForm(context, user),
+                ),
               ),
             ],
           ),
@@ -215,7 +209,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       );
 
   Widget _buildSaveButton() {
-    final isLoading = ref.watch(userProvider).isLoading;
+    final isLoading = ref.watch(userMutationProvider).isLoading;
     return SizedBox(
       width: double.infinity,
       child: CustomElevatedButton(
@@ -225,66 +219,36 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
   }
 
-  // ⚡ GÜNCELLEME VE SENKRONİZASYON MANTIĞI
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // ⚡ Riverpod üzerinden servisimizi alıyoruz
-    final storageService = ref.read(storageServiceProvider);
-    final userNotifier = ref.read(userProvider.notifier);
+    final currentUser = ref.read(currentUserProvider).value;
+    if (currentUser == null) return;
 
-    String finalImageUrl = _profileImageUrl;
+    // 1. Yeni veriyi hazırla
+    final updatedUser = currentUser.copyWith(
+      firstName: _firstNameController.text.trim(),
+      lastName: _lastNameController.text.trim(),
+      city: _cityController.text.trim(),
+      phoneNumber: _phoneController.text.trim(),
+    );
 
-    try {
-      // 1. ADIM: EĞER YENİ FOTOĞRAF SEÇİLDİYSE
-      if (_selectedImageFile != null) {
-        // a) Eski fotoğrafı temizle (Varsayılan placeholder değilse)
-        if (_profileImageUrl.isNotEmpty &&
-            !_profileImageUrl.contains('placeholder')) {
-          await storageService.deleteProfileImage(widget.userId);
-        }
+    // 2. ⚡ TEK SATIRDA GÜNCELLEME:
+    // Bu metod hem Storage'ı, hem Firestore'u hem de LocalStorage'ı senkronize eder.
+    await ref.read(userMutationProvider.notifier).save(
+          updatedUser,
+          _selectedImageFile?.path ?? _profileImageUrl,
+          // Yeni dosya yolu veya eski URL
+          isUpdate: true,
+        );
 
-        // b) Yeni fotoğrafı yükle
-        final uploadedUrl = await storageService.uploadProfileImage(
-            widget.userId, _selectedImageFile!);
-
-        if (uploadedUrl != null) {
-          finalImageUrl = uploadedUrl;
-        } else {
-          throw "Fotoğraf sunucuya yüklenemedi.";
-        }
-      }
-
-      // 2. ADIM: FIRESTORE GÜNCELLEME
-      final currentUser = ref.read(userProvider).dataSingle;
-      final userToSave =
-          (currentUser ?? entity.User.empty(widget.userId)).copyWith(
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        imageUrl: finalImageUrl,
-        updatedAt: DateTime.now().toIso8601String(),
-      );
-
-      await userNotifier.saveUser(userToSave, finalImageUrl, isUpdate: true);
-
-      // 3. ADIM: LOKAL VE AUTH STATE SENKRONİZASYONU
-      await LocalStorageService.saveEssentialUserData(
-        uid: widget.userId,
-        displayName: '${userToSave.firstName} ${userToSave.lastName}',
-        photoUrl: finalImageUrl,
-      );
-
-      // LoginProvider state'ini tazele
-      ref.read(loginProvider.notifier).refreshUserState(userToSave);
-
-      if (mounted) {
-        _showSuccessDialog();
-      }
-    } catch (e) {
-      _showSnackBar(e.toString(), isError: true);
-    } finally {
-      if (mounted) setState(() => _selectedImageFile = null);
-    }
+    // 3. Sonuç Kontrolü
+    final state = ref.read(userMutationProvider);
+    if (!state.hasError && mounted) {
+      _showSuccessDialog();
+      setState(() => _selectedImageFile = null);
+    } else if (state.hasError)
+      _showSnackBar(state.error.toString(), isError: true);
   }
 
   void _showSuccessDialog() => showDialog(

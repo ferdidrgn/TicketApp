@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../../core/common/enum/enums.dart';
 import '../../domain/entities/user.dart';
 
 class UserModel {
@@ -13,7 +14,7 @@ class UserModel {
   final String? city;
   final bool? isPhoneActive;
   final String? fcmToken;
-  final String? role;
+  final String? role; // Firestore'da String olarak tutulur
   final List<String?>? favoriteShows;
   final List<String?>? favoriteStages;
   final List<String?>? favoritePlayers;
@@ -102,7 +103,7 @@ class UserModel {
         city: city ?? 'Şehir bulunamadı',
         isPhoneActive: isPhoneActive ?? false,
         fcmToken: fcmToken ?? 'FCM token bulunamadı',
-        role: role ?? 'Rol bulunamadı',
+        role: UserRole.fromString(role),
         favoriteShows: favoriteShows
                 ?.where((final e) => e != null)
                 .map((final e) => e!)
@@ -137,7 +138,7 @@ class UserModel {
         city: user.city,
         isPhoneActive: user.isPhoneActive,
         fcmToken: user.fcmToken,
-        role: user.role,
+        role: user.role.name,
         favoriteShows: user.favoriteShows,
         favoriteStages: user.favoriteStages,
         favoritePlayers: user.favoritePlayers,
