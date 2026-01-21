@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../events/presentation/providers/event_notifier.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../events/presentation/providers/event_state.dart';
-import '../../../login/presentation/providers/login_provider.dart';
 import '../../../tickets/presentation/providers/ticket_provider.dart';
-import '../../../users/presentation/providers/user_provider.dart';
 
 class SeatSelectionScreen extends ConsumerStatefulWidget {
   final String showId;
@@ -45,7 +44,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   @override
   Widget build(final BuildContext context) {
     final state = ref.watch(eventProvider);
-    final loginState = ref.watch(loginProvider);
 
     // 🔔 State Dinleyicileri (Loading, Error, Success)
     _setupListeners();
@@ -98,8 +96,8 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
             positiveText: "BİLETLERİM",
             negativeText: "ANASAYFA",
             onPositiveAction: () =>
-                context.go('/my-tickets/${widget.customerId}'),
-            onNegativeAction: () => context.go('/home'),
+                NavigationHandler.goToMyTickets(context, widget.customerId),
+            onNegativeAction: () => NavigationHandler.goToHome(context),
           ),
         );
         ref.read(eventProvider.notifier).resetPaymentSuccess();
@@ -331,8 +329,9 @@ class _SeatFab extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final loginState = ref.watch(loginProvider);
-    final user = ref.watch(userProvider).dataSingle;
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final currentUser = ref.watch(currentUserProvider).value;
+
     final tickets = ref.watch(ticketProvider).dataList ?? [];
 
     // 1. Daha önce alınan biletleri say
@@ -344,15 +343,15 @@ class _SeatFab extends ConsumerWidget {
     final bool isOverLimit = (existingTicketsCount + selectedCount) > 3;
 
     // 3. Genel Geçerlilik (Kullanıcı doğrulanmış mı?)
-    final bool isUserValid = loginState.isLoggedIn && user != null;
+    final bool isUserValid = isLoggedIn && currentUser != null;
     final bool canProcess = isUserValid &&
         !state.isLoading &&
         state.hasSelectedSeats &&
         !isOverLimit;
 
-    if (!loginState.isLoggedIn) {
+    if (!isLoggedIn) {
       return FloatingActionButton.extended(
-          onPressed: () => context.push('/login'),
+          onPressed: () => NavigationHandler.goToLogin(context),
           label: const Text('Giriş Yap'),
           icon: const Icon(Icons.login));
     }

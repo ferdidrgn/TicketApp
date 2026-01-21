@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/settings/presentation/pages/app_settings.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/presentation/pages/campaign_showcase_page.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../../../favorite/presentation/pages/favorite_screen.dart';
-import '../../../login/presentation/providers/login_provider.dart';
-import '../../../search/presentation/pages/search_page.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
-import '../../../tickets/presentation/pages/my_ticket_page.dart';
 import '../widgets/mobile/category_grid.dart';
 import '../widgets/mobile/decorative_elements.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
@@ -64,7 +63,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     ref.read(stageProvider.notifier).loadStages(true);
   }
 
-  void _openSearch() => _navigateToPage(const SearchPage());
+  void _openSearch() => NavigationHandler.goToSearch(context);
 
   void _navigateToPage(final Widget page) =>
       Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
@@ -74,7 +73,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     final campaignState = ref.watch(campaignProvider);
     final showState = ref.watch(showProvider);
     final stageState = ref.watch(stageProvider);
-    final loginState = ref.watch(loginProvider);
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final currentUser = ref.watch(currentUserProvider).value;
 
     return Scaffold(
       extendBody: true,
@@ -202,8 +202,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onNotificationsTap: () =>
                       _navigateTo(const AppSettingsPage()),
                   onFavoritesTap: () => _navigateTo(FavoritesPage()),
-                  onTicketsTap: () =>
-                      _navigateTo(MyTicketPage(userId: loginState.user!.uid)),
+                  onTicketsTap: () {
+                    if (isLoggedIn && currentUser != null)
+                      NavigationHandler.goToMyTickets(context, currentUser.uid);
+                    else
+                      NavigationHandler.goToLogin(context);
+                  },
                   onCalendarTap: () {
                     // TODO: Etkinlik takvimi
                   },

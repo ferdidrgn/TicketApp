@@ -10,8 +10,31 @@ class NavigationHandler {
   static final NavigationHandler instance = NavigationHandler._();
 
   // ═══════════════════════════════════════════════════════════════
-  // PRODUCT NAVIGATION
+  // ROUTE HELPERS
   // ═══════════════════════════════════════════════════════════════
+
+  static void goToLogin(final BuildContext context) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/login/?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
+  /// Ana sayfaya git
+  static void goToHome(final BuildContext context) => context.go('/');
+
+  /// Arama sayfasına git
+  static void goToSearch(final BuildContext context) => context.go('/search');
+
+  static void goToNearby(final BuildContext context) => context.go('/nearby');
+
+  static void goToProfile(final BuildContext context) => context.go('/profile');
+
+  // ✅ MOBİL TAB NAVIGATION (ROUTER)
+  static void goToDiscoverWithCategory(
+          final BuildContext context, final String category) =>
+      context.go('/discover?category=$category');
 
   /// Ürün detay sayfasına git (nereden geldiğini kaydet)
   static void goToShow({
@@ -38,6 +61,23 @@ class NavigationHandler {
     context.go(targetPath);
   }
 
+  static void goToMyTickets(
+      final BuildContext context, final String currentUserId) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/my-tickets/$currentUserId?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
+  static void goToSeatSelection(final BuildContext context, final String showId,
+      final String eventId, final String userId) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath = '/seat-selection/$showId-$eventId-$userId';
+
+    context.go(targetPath);
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // SMART BACK NAVIGATION
   // ═══════════════════════════════════════════════════════════════
@@ -58,24 +98,13 @@ class NavigationHandler {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // ROUTE HELPERS
-  // ═══════════════════════════════════════════════════════════════
+  /// Geri dönülebilir mi?
+  static bool canGoBack(final BuildContext context) {
+    final state = GoRouterState.of(context);
+    final fromRoute = state.uri.queryParameters['from'];
 
-  /// Ana sayfaya git
-  static void goToHome(final BuildContext context) => context.go('/');
-
-  /// Arama sayfasına git
-  static void goToSearch(final BuildContext context) => context.go('/search');
-
-  static void goToNearby(final BuildContext context) => context.go('/nearby');
-
-  static void goToProfile(final BuildContext context) => context.go('/profile');
-
-  // ✅ MOBİL TAB NAVIGATION (ROUTER)
-  static void goToDiscoverWithCategory(
-          final BuildContext context, final String category) =>
-      context.go('/discover?category=$category');
+    return fromRoute != null || Navigator.canPop(context);
+  }
 
   /// Web'de belirli bir bölüme (Hakkımızda, İletişim vb.) kaydır
   static void scrollToWebSection(final String section) =>
@@ -99,14 +128,6 @@ class NavigationHandler {
   /// Mevcut route path'i al
   static String getCurrentPath(final BuildContext context) =>
       GoRouterState.of(context).uri.path;
-
-  /// Geri dönülebilir mi?
-  static bool canGoBack(final BuildContext context) {
-    final state = GoRouterState.of(context);
-    final fromRoute = state.uri.queryParameters['from'];
-
-    return fromRoute != null || Navigator.canPop(context);
-  }
 }
 
 /*

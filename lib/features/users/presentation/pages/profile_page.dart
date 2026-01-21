@@ -4,11 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
-import '../../../login/presentation/providers/login_provider.dart';
-import '../../../login/presentation/providers/login_state.dart';
 import '../../domain/entities/user.dart' as entity;
-import '../providers/user_provider.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -37,9 +35,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   @override
   Widget build(final BuildContext context) {
-    final loginState = ref.watch(loginProvider);
-    final userDetail = ref.watch(userProvider).dataSingle;
-    final bool isUserLoggedIn = loginState.isLoggedIn;
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final entity.User? currentUser = currentUserAsync.value;
 
     return Scaffold(
       backgroundColor: _bgColor,
@@ -52,12 +50,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           child: SafeArea(
             child: Column(
               children: [
-                _buildArtisticHeader(!isUserLoggedIn),
+                _buildArtisticHeader(!isLoggedIn),
                 const SizedBox(height: 32),
 
                 // 1. KİMLİK PORTRESİ VEYA SESSİZ SAHNE DAVETİ
-                if (isUserLoggedIn)
-                  _buildNeumorphicPortrait(loginState, userDetail)
+                if (isLoggedIn && currentUser != null)
+                  _buildNeumorphicPortrait(currentUser)
                 else
                   _buildSilentStageInvitation(),
 
@@ -83,16 +81,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   icon: Icons.auto_stories_rounded,
                   title: 'Tanıklık Günlüğü',
                   subtitle: 'Sahne tozunu yuttuğun tüm anların dökümü',
-                  isLocked: !isUserLoggedIn,
+                  isLocked: !isLoggedIn,
                   color: const Color(0xFF6366F1),
-                  onTap: () => context.push('/my-tickets/${loginState.userId}'),
+                  onTap: () =>
+                      context.push('/my-tickets/${currentUser?.uid ?? ""}'),
                 ),
                 const SizedBox(height: 16),
                 _buildSculptedTile(
                   icon: Icons.auto_awesome_mosaic_rounded,
                   title: 'İlham Galerisi',
                   subtitle: 'Zihninde yankılanan seçilmiş eserler',
-                  isLocked: !isUserLoggedIn,
+                  isLocked: !isLoggedIn,
                   color: const Color(0xFFEC4899),
                   onTap: () => context.push('/favorites'),
                 ),
@@ -106,10 +105,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   icon: Icons.brush_rounded,
                   title: 'Fırça İzlerim',
                   subtitle: 'Kendi portreni ve sanatsal kimliğini yorumla',
-                  isLocked: !isUserLoggedIn,
+                  isLocked: !isLoggedIn,
                   color: context.colors.primary,
                   onTap: () =>
-                      context.push('/profile-edit/${loginState.userId}'),
+                      context.push('/profile-edit/${currentUser?.uid ?? ""}'),
                 ),
                 const SizedBox(height: 16),
                 _buildSculptedTile(
@@ -133,7 +132,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 ),
 
                 // 6. SİSTEMSEL KARARLAR
-                if (isUserLoggedIn) ...[
+                if (isLoggedIn) ...[
                   const SizedBox(height: 40),
                   _buildSectionLabel("SON DOKUNUŞLAR"),
                   _buildSculptedTile(
@@ -150,7 +149,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     subtitle: 'Tüm izlerini ve hatıralarını kalıcı olarak sil',
                     color: Colors.red.shade900,
                     onTap: () => showDeleteAccountDialog(
-                        context, ref, loginState.userId!),
+                        context, ref, currentUser?.uid ?? ""),
                   ),
                 ],
 
@@ -220,9 +219,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  Widget _buildNeumorphicPortrait(
-          final LoginState state, final entity.User? user) =>
-      Container(
+  Widget _buildNeumorphicPortrait(final entity.User user) => Container(
         padding: const EdgeInsets.all(32),
         decoration: _neuBox(borderRadius: 32),
         child: Column(
@@ -233,18 +230,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               child: CircleAvatar(
                 radius: 55,
                 backgroundColor: context.colors.primary.withOpacity(0.1),
-                backgroundImage: NetworkImage(state.photoUrl ?? ''),
+                backgroundImage: NetworkImage(user.imageUrl),
               ),
             ),
             const SizedBox(height: 24),
-            Text((state.displayName ?? 'İSİMSİZ ŞAHİT').toUpperCase(),
+            Text('${user.firstName} ${user.lastName}'.toUpperCase().trim(),
                 style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 22,
                     color: context.colors.onSurface,
                     letterSpacing: 2)),
             const SizedBox(height: 6),
-            Text(user?.city ?? "Bilinmeyen Şehir",
+            Text(user.city ?? "Bilinmeyen Şehir",
                 style: TextStyle(
                     color: context.colors.primary,
                     fontWeight: FontWeight.w800,
@@ -253,7 +250,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat('HAFIZA', '${user?.ticketsId.length ?? 0}'),
+                _buildStat('HAFIZA', '${user.ticketsId.length ?? 0}'),
                 _buildStat('ŞAHİTLİK', '12'),
                 _buildStat('DİKKAT', '8.9'),
               ],

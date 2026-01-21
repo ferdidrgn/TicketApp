@@ -6,13 +6,14 @@ import 'package:ticketapp/features/events/presentation/providers/event_provider.
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_provider.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_provider.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/gallery_section.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/button/glass_back_button.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../events/presentation/widgets/events_card.dart';
-import '../../../login/presentation/providers/login_provider.dart';
 import '../../../players/presentation/providers/player_notifier.dart';
 import '../../../players/presentation/widgets/players_bubble_card.dart';
 import '../../../seat/presentation/pages/seat_details.dart';
@@ -162,20 +163,19 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   }
 
   Future<void> _handleTicketPurchase(final String eventId) async {
-    final String? userId = ref.read(loginProvider).userId;
+    final String? userId = ref.read(currentUserProvider).value?.uid;
 
-    // 5. Veri geldiğinde ve sayfa hala ekrandaysa (mounted) yönlendirme yapıyoruz
-    if (context.mounted)
-      Navigator.push(
+    if (context.mounted && userId != null) {
+      // Navigator.push yerine GoRouter (path tabanlı) kullanımı profesyonel yaklaşımdır
+      //NavigationHandler.goToSeatSelection(context, widget.showId, eventId, userId);
+
+      await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (final _) => SeatSelectionScreen(
-            showId: widget.showId,
-            eventId: eventId,
-            customerId: userId ?? "",
-          ),
-        ),
+            builder: (final _) => SeatSelectionScreen(
+                showId: widget.showId, eventId: eventId, customerId: userId)),
       );
+    }
   }
 }
 // YARDIMCI WIDGETLAR (Hepsi tek dosyada)
