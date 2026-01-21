@@ -1,13 +1,32 @@
 import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
+part 'campaign.g.dart';
+
+@JsonSerializable()
 class Campaign extends Equatable {
+  // JSON'da '_id' olarak gelir ama biz 'id' olarak kullanırız
+  @JsonKey(name: '_id')
   final String id;
+
+  @JsonKey(name: '_createdAt')
   final String createdAt;
+
+  @JsonKey(name: '_updatedAt')
   final String updatedAt;
+
   final String endDate;
+
+  // Eğer null gelirse varsayılan resim atanır
+  @JsonKey(defaultValue: 'https://example.com/default-image.png')
   final String imageUrl;
+
   final String startDate;
+
+  @JsonKey(defaultValue: 'İsimsiz Kampanya')
   final String title;
+
+  @JsonKey(defaultValue: 'https://example.com')
   final String url;
 
   const Campaign({
@@ -21,6 +40,25 @@ class Campaign extends Equatable {
     required this.url,
   });
 
+  /// 🏭 OTO-JENERASYON (g.dart kullanır)
+  factory Campaign.fromJson(final Map<String, dynamic> json) =>
+      _$CampaignFromJson(json);
+
+  /// 📦 JSON'A ÇEVİRME
+  Map<String, dynamic> toJson() => _$CampaignToJson(this);
+
+  /// 🕸️ BOŞ NESNE (Loading veya Hata durumları için)
+  factory Campaign.empty() => const Campaign(
+        id: '0',
+        createdAt: '',
+        updatedAt: '',
+        endDate: '',
+        imageUrl: '',
+        startDate: '',
+        title: '',
+        url: '',
+      );
+
   @override
   List<Object?> get props => [
         id,
@@ -32,27 +70,4 @@ class Campaign extends Equatable {
         title,
         url,
       ];
-
-  factory Campaign.fromMap(final Map<String, dynamic>? data) => Campaign(
-        id: data?['_id'] as String? ?? '0',
-        createdAt: data?['_createdAt'] as String? ?? 'Tarih bulunamadı',
-        updatedAt: data?['_updatedAt'] as String? ?? 'Tarih bulunamadı',
-        endDate: data?['endDate'] as String? ?? 'Tarih bulunamadı',
-        imageUrl: data?['imageUrl'] as String? ??
-            'https://example.com/default-image.png',
-        startDate: data?['startDate'] as String? ?? 'Tarih bulunamadı',
-        title: data?['title'] as String? ?? 'İsimsiz Kampanya',
-        url: data?['url'] as String? ?? 'https://example.com',
-      );
-
-  Map<String, dynamic> toMap() => {
-        '_createdAt': createdAt,
-        '_updatedAt': updatedAt,
-        '_id': id,
-        'endDate': endDate,
-        'imageUrl': imageUrl,
-        'startDate': startDate,
-        'title': title,
-        'url': url,
-      };
 }

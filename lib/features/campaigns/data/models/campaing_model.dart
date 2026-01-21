@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/campaign.dart';
 
 class CampaignModel {
@@ -21,11 +22,17 @@ class CampaignModel {
     this.url,
   });
 
+  /// 🔥 MANUEL FIRESTORE DÖNÜŞÜMÜ (Güvenli Timestamp Kontrolü)
   factory CampaignModel.fromFirestore(final Map<String, dynamic>? data) {
     if (data == null) return const CampaignModel();
     return CampaignModel(
-      createdAt: data['_createdAt'] as String?,
-      updatedAt: data['_updatedAt'] as String?,
+      // Timestamp -> String dönüşümü
+      createdAt: data['_createdAt'] is Timestamp
+          ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
+          : data['_createdAt']?.toString() ?? '',
+      updatedAt: data['_updatedAt'] is Timestamp
+          ? (data['_updatedAt'] as Timestamp).toDate().toIso8601String()
+          : data['_updatedAt']?.toString() ?? '',
       id: data['_id'] as String?,
       endDate: data['endDate'] as String?,
       imageUrl: data['imageUrl'] as String?,
@@ -47,14 +54,14 @@ class CampaignModel {
       };
 
   Campaign toEntity() => Campaign(
-        createdAt: createdAt ?? 'Tarih bulunamadı',
-        updatedAt: updatedAt ?? 'Tarih bulunamadı',
+        createdAt: createdAt ?? '',
+        updatedAt: updatedAt ?? '',
         id: id ?? '0',
-        endDate: endDate ?? 'Bitiş tarihi bulunamadı',
+        endDate: endDate ?? '',
         imageUrl: imageUrl ?? 'https://example.com/default-image.png',
-        startDate: startDate ?? 'Başlangıç tarihi bulunamadı',
-        title: title ?? 'Başlık bulunamadı',
-        url: url ?? 'https://example.com',
+        startDate: startDate ?? '',
+        title: title ?? 'Başlık Yok',
+        url: url ?? '',
       );
 
   factory CampaignModel.fromEntity(final Campaign campaign) => CampaignModel(
