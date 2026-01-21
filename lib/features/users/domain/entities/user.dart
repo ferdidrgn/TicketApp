@@ -1,9 +1,20 @@
 import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
+import '../../../../core/common/enum/enums.dart';
 
+part 'user.g.dart';
+
+@JsonSerializable(explicitToJson: true)
 class User extends Equatable {
+  @JsonKey(name: '_id')
   final String id;
+
+  @JsonKey(name: '_createdAt')
   final String createdAt;
+
+  @JsonKey(name: '_updatedAt')
   final String updatedAt;
+
   final String firstName;
   final String lastName;
   final String imageUrl;
@@ -12,7 +23,11 @@ class User extends Equatable {
   final String city;
   final bool isPhoneActive;
   final String fcmToken;
-  final String role;
+
+  // 🔥 Firebase'den String gelir, Flutter'da Enum olarak kullanılır
+  @JsonKey(fromJson: UserRole.fromString, toJson: _userRoleToString)
+  final UserRole role;
+
   final List<String> favoriteShows;
   final List<String> favoriteStages;
   final List<String> favoritePlayers;
@@ -37,6 +52,19 @@ class User extends Equatable {
     required this.ticketsId,
   });
 
+  // --------------------------------------------------------------------------
+  // JsonSerializable Metotları (g.dart için)
+  // --------------------------------------------------------------------------
+  factory User.fromJson(final Map<String, dynamic> json) => _$UserFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UserToJson(this);
+
+  // Enum'ı Firestore'a yazarken String'e geri çevirmek için yardımcı metot
+  static String _userRoleToString(final UserRole role) => role.name;
+
+  // --------------------------------------------------------------------------
+  // Equatable: Nesne kıyaslaması ve UI tetiklenmesi için tüm alanlar
+  // --------------------------------------------------------------------------
   @override
   List<Object?> get props => [
         id,
@@ -57,9 +85,9 @@ class User extends Equatable {
         ticketsId,
       ];
 
-  // ---------------------------
-  // copyWith metodu
-  // ---------------------------
+  // --------------------------------------------------------------------------
+  // copyWith: Nesnenin kopyasını üretmek için (State Management dostu)
+  // --------------------------------------------------------------------------
   User copyWith({
     final String? id,
     final String? createdAt,
@@ -72,7 +100,7 @@ class User extends Equatable {
     final String? city,
     final bool? isPhoneActive,
     final String? fcmToken,
-    final String? role,
+    final UserRole? role,
     final List<String>? favoriteShows,
     final List<String>? favoriteStages,
     final List<String>? favoritePlayers,
@@ -97,54 +125,9 @@ class User extends Equatable {
         ticketsId: ticketsId ?? List.from(this.ticketsId),
       );
 
-  // ---------------------------
-  // fromMap ve toMap
-  // ---------------------------
-  factory User.fromMap(final Map<String, dynamic>? data) => User(
-        id: data?['_id'] ?? '0',
-        createdAt: data?['_createdAt'] as String? ?? 'Tarih bulunamadı',
-        updatedAt: data?['_updatedAt'] as String? ?? 'Tarih bulunamadı',
-        firstName: data?['firstName'] as String? ?? 'İsim bulunamadı',
-        lastName: data?['lastName'] as String? ?? 'Soyisim bulunamadı',
-        imageUrl: data?['imageUrl'] as String? ??
-            'https://example.com/default-image.png',
-        phoneNumber:
-            data?['phoneNumber'] as String? ?? 'Telefon numarası bulunamadı',
-        eMail: data?['eMail'] as String? ?? 'E-mail bulunamadı',
-        city: data?['city'] as String? ?? 'Şehir bulunamadı',
-        isPhoneActive: data?['isPhoneActive'] as bool? ?? false,
-        fcmToken: data?['fcmToken'] as String? ?? 'Fcm token bulunamadı',
-        role: data?['role'] as String? ?? 'Rol bulunamadı',
-        favoriteShows: List<String>.from(data?['favoriteShows'] as List? ?? []),
-        favoriteStages:
-            List<String>.from(data?['favoriteStages'] as List? ?? []),
-        favoritePlayers:
-            List<String>.from(data?['favoritePlayers'] as List? ?? []),
-        ticketsId: List<String>.from(data?['ticketsId'] as List? ?? []),
-      );
-
-  Map<String, dynamic> toMap() => {
-        '_createdAt': createdAt,
-        '_updatedAt': updatedAt,
-        '_id': id,
-        'firstName': firstName,
-        'lastName': lastName,
-        'imageUrl': imageUrl,
-        'phoneNumber': phoneNumber,
-        'eMail': eMail,
-        'city': city,
-        'isPhoneActive': isPhoneActive,
-        'fcmToken': fcmToken,
-        'role': role,
-        'favoriteShows': favoriteShows,
-        'favoriteStages': favoriteStages,
-        'favoritePlayers': favoritePlayers,
-        'ticketsId': ticketsId,
-      };
-
-// ---------------------------
-  // User.empty (Başlangıç durumu)
-  // ---------------------------
+  // --------------------------------------------------------------------------
+  // User.empty: Yeni kayıt olan kullanıcılar için taslak oluşturur
+  // --------------------------------------------------------------------------
   factory User.empty(final String id) => User(
         id: id,
         createdAt: DateTime.now().toIso8601String(),
@@ -157,7 +140,7 @@ class User extends Equatable {
         city: '',
         isPhoneActive: false,
         fcmToken: '',
-        role: 'users',
+        role: UserRole.user,
         favoriteShows: const [],
         favoriteStages: const [],
         favoritePlayers: const [],

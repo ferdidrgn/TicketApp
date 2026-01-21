@@ -4,7 +4,7 @@ import '../entities/user.dart';
 import '../repositories/user_repository.dart';
 
 abstract class GetUserByIdUseCase {
-  Future<Either<Failure, User>> call(final String userId);
+  Future<Either<Failure, User?>> call(final String userId);
 }
 
 class GetUserByIdUseCaseImpl implements GetUserByIdUseCase {
@@ -13,7 +13,7 @@ class GetUserByIdUseCaseImpl implements GetUserByIdUseCase {
   GetUserByIdUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, User>> call(final String userId) async {
+  Future<Either<Failure, User?>> call(final String userId) async {
     final result = await repository.getUserById(userId);
     return result.fold(
       (final failure) => Left(failure),

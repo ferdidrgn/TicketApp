@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
 import '../../../../../../shared/widgets/custom_pop_up.dart';
+import '../../../users/presentation/providers/user_mutation_provider.dart';
 import '../providers/storage_service.dart';
 
 /// =======================================
@@ -73,12 +74,12 @@ mixin ProfileDeleteAccountHandler on ProfileSnackBarHandler {
         debugPrint("Storage silme atlandı (Dosya yok veya hata): $e");
       }
 
-      await ref.read(authMutationProvider.notifier).deleteAccount();
+      await ref.read(userMutationProvider.notifier).deleteAccountCompletely();
 
       if (context.mounted) Navigator.pop(context); // Loading'i kapat
 
-      final state = ref.read(authMutationProvider);
-      if (!state.hasError)
+      final mutationState = ref.read(userMutationProvider);
+      if (!mutationState.hasError)
         showSuccessDialog(context, 'Hesabınız ve eserleriniz silindi.');
       else
         showErrorDialog(context,

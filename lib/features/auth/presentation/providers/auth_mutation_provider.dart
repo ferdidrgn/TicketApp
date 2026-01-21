@@ -4,7 +4,10 @@ import 'package:ticketapp/features/auth/presentation/providers/auth_service.dart
 import '../../../../core/common/enum/enums.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/services/local_storage_service.dart';
-import 'auth_provider.dart';
+import '../../../users/data/models/user_model.dart';
+import '../../../users/domain/entities/user.dart' as entity;
+import '../../../users/presentation/providers/user_provider.dart';
+import 'auth_provider.dart' hide currentUserProvider;
 
 part 'auth_mutation_provider.g.dart';
 
@@ -24,9 +27,7 @@ class AuthMutation extends _$AuthMutation {
   Timer? _timer;
 
   @override
-  FutureOr<void> build() {
-    ref.onDispose(() => _timer?.cancel());
-  }
+  FutureOr<void> build() {}
 
   /// 🔑 Google ile Giriş
   Future<void> signInWithGoogle() async {
@@ -38,20 +39,16 @@ class AuthMutation extends _$AuthMutation {
     });
   }
 
-  /// 👤 Anonim Giriş (Ziyaretçi)
-  Future<void> signInAnonymously() async {
+  Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final user =
-          await ref.read(signInAnonymouslyUseCaseProvider).call().getOrThrow();
-      if (user != null) {
-        // LoginNotifier'daki FCM ve Firestore senkronizasyon mantığı burada çalışır
-        await _handlePostLogin(user.uid, UserRole.guest);
-      }
+      await ref.read(signOutUseCaseProvider).call();
+      await LocalStorageService.clearAllUserData();
+      ref.invalidate(currentUserProvider);
     });
   }
 
-  /// 📱 Telefon Doğrulama (OTP Gönder)
+  /// 📱 Telefon Doğrulama (Kodu Gönder)
   Future<void> verifyPhone(final String phoneNumber) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
@@ -63,7 +60,7 @@ class AuthMutation extends _$AuthMutation {
                 ref.invalidate(currentUserProvider),
             onCodeSent: (final id, final token) {
               _verificationId = id;
-              _startCountdown(60);
+              _startCountdown(60); // 60 saniyelik geri sayımı başlat
               state = const AsyncData(null);
             },
             onAutoRetrievalTimeout: (final id) => _verificationId = id,
@@ -72,22 +69,12 @@ class AuthMutation extends _$AuthMutation {
     });
   }
 
-  void _startCountdown(final int seconds) {
-    ref.read(otpTimerProvider.notifier).set(seconds);
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (ref.read(otpTimerProvider) <= 0) {
-        timer.cancel();
-      } else {
-        ref.read(otpTimerProvider.notifier).decrement();
-      }
-    });
-  }
-
+  /// 📱 SMS Kodunu Doğrula ve Giriş Yap
   Future<void> verifyOtp(final String otp) async {
     if (_verificationId == null) {
-      state =
-          AsyncError(Exception("Doğrulama ID bulunamadı"), StackTrace.current);
+      state = AsyncError(
+          Exception("Doğrulama kimliği bulunamadı. Lütfen tekrar kod isteyin."),
+          StackTrace.current);
       return;
     }
 
@@ -98,67 +85,59 @@ class AuthMutation extends _$AuthMutation {
           .call(_verificationId!, otp)
           .getOrThrow();
 
-      // Başarılıysa kullanıcı verilerini işle
       final userId = ref.read(currentUserIdProvider) ?? '';
       await _handlePostLogin(userId, UserRole.user);
     });
   }
 
-  /// 🚪 Çıkış Yap
-  Future<void> signOut() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final user = ref.read(currentUserProvider).value;
-
-      // 1. FCM Token'ı temizle (LoginNotifier mantığı)
-      if (user != null)
-        await ref.read(authServiceProvider).clearFcmToken(user.uid);
-
-      // 2. Auth oturumunu kapat
-      await ref.read(signOutUseCaseProvider).call();
-
-      // 3. Yerel verileri temizle
-      await LocalStorageService.clearAllUserData();
-      _timer?.cancel();
-      ref.invalidate(currentUserProvider);
-    });
-  }
-
-  /// 🗑️ Hesabı Tamamen Sil
-  Future<void> deleteAccount() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      // LoginNotifier'daki kapsamlı silme sırası:
-      // 1. Veritabanı ve Firestore verilerini sil (UseCase içinde halledilmeli)
-      // 2. Auth sil
-      await ref.read(deleteAccountUseCaseProvider).call();
-
-      // 3. Yerel temizlik
-      await LocalStorageService.clearAllUserData();
-      _timer?.cancel();
-      ref.invalidate(currentUserProvider);
+  void _startCountdown(final int seconds) {
+    ref.read(otpTimerProvider.notifier).set(seconds);
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
+      if (ref.read(otpTimerProvider) <= 0)
+        timer.cancel();
+      else
+        ref.read(otpTimerProvider.notifier).decrement();
     });
   }
 
   Future<void> _handlePostLogin(final String uid, final UserRole role) async {
-    final user =
-        await ref.read(getCurrentUserUseCaseProvider).call().getOrThrow();
+    final firebaseUser = ref.read(authServiceProvider).currentUser;
 
-    if (user != null) {
-      // 2. Yerel hafızayı (LocalStorage) tüm bilgilerle doldur
-      await LocalStorageService.saveUserData(
-        userId: user.uid,
-        displayName: user.displayName ?? 'Kullanıcı',
-        email: user.email ?? '',
-        photoUrl: user.photoURL ?? '',
+    // 1. Döküman var mı kontrol et
+    final existingUser =
+        await ref.read(getUserByIdUseCaseProvider).call(uid).getOrThrow();
+
+    if (existingUser == null) {
+      final newUser = entity.User.empty(uid).copyWith(
+        eMail: firebaseUser?.email ?? '',
+        firstName: firebaseUser?.displayName?.split(' ').first ?? 'Yeni',
+        lastName: firebaseUser?.displayName?.split(' ').last ?? 'Kullanıcı',
+        imageUrl: firebaseUser?.photoURL ?? '',
         role: role,
       );
-
-      await ref.read(authServiceProvider).saveFcmToken(user.uid);
+      await ref.read(saveUserUseCaseProvider).call(
+            UserModel.fromEntity(newUser),
+            newUser.imageUrl,
+          );
+    } else {
+      // 🔄 MEVCUT KULLANICI: Tarihi güncelle
+      await ref.read(saveUserUseCaseProvider).call(
+            UserModel.fromEntity(existingUser.copyWith(
+                updatedAt: DateTime.now().toIso8601String())),
+            existingUser.imageUrl,
+            isUpdate: true,
+          );
     }
 
-    ref.invalidate(currentUserProvider);
+    // 2. LOKAL HAFIZA SENKRONİZASYONU (Senin metodun)
+    await LocalStorageService.saveUserData(
+        userId: uid,
+        displayName: firebaseUser?.displayName ?? 'Kullanıcı',
+        email: firebaseUser?.email ?? '',
+        photoUrl: firebaseUser?.photoURL ?? '',
+        role: role);
 
-    ref.invalidate(currentUserRoleProvider);
+    ref.invalidate(currentUserProvider);
   }
 }

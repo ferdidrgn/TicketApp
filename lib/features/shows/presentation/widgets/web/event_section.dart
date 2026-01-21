@@ -6,7 +6,6 @@ import 'package:ticketapp/features/events/presentation/providers/event_state.dar
 import 'package:ticketapp/features/login/presentation/providers/login_provider.dart';
 import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
-import '../../../../../core/common/constants/app_constants.dart';
 import '../../../../../shared/widgets/empty_state_message_web.dart';
 import '../../../../seat/presentation/pages/seat_details.dart';
 import '../../../../stages/presentation/providers/stage_notifier.dart';
@@ -157,7 +156,29 @@ class AnimatedEventCard extends StatelessWidget {
     );
   }
 
-  void _navigateToSeatSelection(final BuildContext context) {}
+  void _navigateToSeatSelection(final BuildContext context) {
+    final ref = ProviderScope.containerOf(context);
+    final String? userId = ref.read(loginProvider).user?.uid ??
+        ref.read(userProvider).dataSingle?.id;
+
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Kullanıcı oturumu bulunamadı.")));
+      return;
+    }
+    // 4. Navigasyon (Artık userId kesinlikle bir String)
+    if (context.mounted)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (final _) => SeatSelectionScreen(
+            showId: showId,
+            eventId: eventId,
+            customerId: userId,
+          ),
+        ),
+      );
+  }
 }
 
 class DateBox extends StatelessWidget {

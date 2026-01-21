@@ -1,54 +1,59 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'user_notifier.dart';
-import 'user_state.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../../core/common/enum/enums.dart';
+import '../../../../core/errors/failures.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/repositories/user_repository_provider.dart';
+import '../../domain/entities/user.dart' as entity;
 import '../../domain/usecases/delete_user_use_case_impl.dart';
 import '../../domain/usecases/get_user_by_id_use_case_impl.dart';
 import '../../domain/usecases/save_user_use_case_impl.dart';
 
-/// 👤 User Provider
-///
-/// User bilgilerini yönetir (profile edit, user details vb.)
-/// Auth işlemleri için LoginProvider kullanılır
-final userProvider =
-    NotifierProvider<UserNotifier, UserState>(UserNotifier.new);
+part 'user_provider.g.dart';
 
-// ========================================
-// USE CASE PROVIDERS
-// ========================================
+// ═══════════════════════════════════════════════════════════
+// 1. USE CASE PROVIDERS
+// ═══════════════════════════════════════════════════════════
 
-/// Save user use case
-final saveUserUseCaseProvider = Provider<SaveUserUseCase>(
-    (final ref) => SaveUserUseCaseImpl(ref.watch(userRepositoryProvider)));
+@riverpod
+SaveUserUseCase saveUserUseCase(final Ref ref) =>
+    SaveUserUseCaseImpl(ref.watch(userRepositoryProvider));
 
-/// Get user by ID use case
-final getUserByIdUseCaseProvider = Provider<GetUserByIdUseCase>(
-    (final ref) => GetUserByIdUseCaseImpl(ref.watch(userRepositoryProvider)));
+@riverpod
+GetUserByIdUseCase getUserByIdUseCase(final Ref ref) =>
+    GetUserByIdUseCaseImpl(ref.watch(userRepositoryProvider));
 
-/// Delete user use case
-final deleteUserUseCaseProvider = Provider<DeleteUserUseCase>(
-    (final ref) => DeleteUserUseCaseImpl(ref.watch(userRepositoryProvider)));
+@riverpod
+DeleteUserUseCase deleteUserUseCase(final Ref ref) =>
+    DeleteUserUseCaseImpl(ref.watch(userRepositoryProvider));
 
-// ========================================
-// DERIVED PROVIDERS (Convenience)
-// ========================================
+// ═══════════════════════════════════════════════════════════
+// 2. READ OPERATIONS (Sürekli Güncel Veri)
+// ═══════════════════════════════════════════════════════════
 
-/// Current user
-final currentUserProvider = Provider((final ref) =>
-    ref.watch(userProvider.select((final state) => state.dataSingle)));
+/// 🔥 Uygulamanın en kritik provider'ı. Auth UID'sini izler ve
+/// Firestore dökümanını (entity.User) asenkron döndürür.
+@riverpod
+Future<entity.User?> currentUser(final Ref ref) async {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
 
-/// User full name
-final userFullNameProvider = Provider<String>((final ref) => ref.watch(userProvider.select((final state) => state.userFullName)));
+  // Firestore dökümanını UseCase üzerinden çekiyoruz
+  return await ref.watch(getUserByIdUseCaseProvider).call(userId).getOrThrow();
+}
 
-/// Is loading
-final isUserLoadingProvider = Provider<bool>((final ref) => ref.watch(userProvider.select((final state) => state.isLoading)));
+// ═══════════════════════════════════════════════════════════
+// 3. SELECTORS (Durum ve Yetki Kontrolleri)
+// ═══════════════════════════════════════════════════════════
 
-/// Has error
-final hasUserErrorProvider = Provider<bool>((final ref) {
-  final errorMessage =
-      ref.watch(userProvider.select((final state) => state.errorMessage));
-  return errorMessage != null && errorMessage.isNotEmpty;
-});
+/// Kullanıcının Admin veya Küratör olup olmadığını kontrol eder.
+@riverpod
+bool isUserPrivileged(final Ref ref) {
+  final user = ref.watch(currentUserProvider).value;
+  if (user == null) return false;
+  return user.role == UserRole.admin || user.role == UserRole.curator;
+}
 
-/// Error message
-final userErrorMessageProvider = Provider<String?>((final ref) => ref.watch(userProvider.select((final state) => state.errorMessage)));
+/// Kullanıcının toplam bilet sayısını döner.
+@riverpod
+int userTicketCount(final Ref ref) =>
+    ref.watch(currentUserProvider).value?.ticketsId.length ?? 0;
