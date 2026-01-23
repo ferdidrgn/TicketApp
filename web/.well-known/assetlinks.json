@@ -7,7 +7,9 @@
       "namespace": "android_app",
       "package_name": "com.ferdidrgn.ticketapp",
       "sha256_cert_fingerprints": [
-        "A3:E4:AE:D5:F7:D9:EC:A2:DC:7D:44:69:BB:98:DB:04:C8:63:73:37:7B:40:03:06:D8:83:1D:75:9F:BA:68:0D"
+        "30:DF:9D:D6:E0:6C:31:07:6B:F0:6B:07:64:11:F6:75:76:9A:C6:89:D4:B0:83:01:0A:44:E5:79:93:B1:10:B6",
+        "A3:E4:AE:D5:F7:D9:EC:A2:DC:7D:44:69:BB:98:DB:04:C8:63:73:37:7B:40:03:06:D8:83:1D:75:9F:BA:68:0D",
+        "B1:5C:79:F1:6E:F9:FE:35:E2:7A:87:4A:51:FE:63:C0:B7:4B:77:F3:B7:D4:8F:F0:4F:82:44:6E:CD:2D:F7:AE"
       ]
     }
   }

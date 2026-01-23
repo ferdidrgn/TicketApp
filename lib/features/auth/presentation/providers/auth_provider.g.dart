@@ -384,15 +384,18 @@ final class CurrentUserRoleProvider extends $FunctionalProvider<
 String _$currentUserRoleHash() => r'19d3c1a7e4066bc687461c8829208b169d856ec7';
 
 /// 🔐 Giriş Durumu Kontrolü
+// currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
 
 @ProviderFor(isLoggedIn)
 const isLoggedInProvider = IsLoggedInProvider._();
 
 /// 🔐 Giriş Durumu Kontrolü
+// currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
 
 final class IsLoggedInProvider extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
   /// 🔐 Giriş Durumu Kontrolü
+// currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
   const IsLoggedInProvider._()
       : super(
           from: null,
@@ -426,7 +429,7 @@ final class IsLoggedInProvider extends $FunctionalProvider<bool, bool, bool>
   }
 }
 
-String _$isLoggedInHash() => r'b94c68c1f48229fc1652bdeb2894c6f35a09dfa0';
+String _$isLoggedInHash() => r'f2e3058b69791577b053972b40b8c7bd272f0959';
 
 /// 🆔 Kullanıcı ID (Kısa erişim için)
 

@@ -64,11 +64,9 @@ Future<UserRole> currentUserRole(final Ref ref) async {
 }
 
 /// 🔐 Giriş Durumu Kontrolü
+// currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
 @riverpod
-bool isLoggedIn(final Ref ref) {
-  // currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
-  return ref.watch(currentUserProvider).value != null;
-}
+bool isLoggedIn(final Ref ref) => ref.watch(currentUserProvider).value != null;
 
 /// 🆔 Kullanıcı ID (Kısa erişim için)
 @riverpod

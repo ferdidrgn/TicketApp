@@ -1,14 +1,20 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../../core/errors/failures.dart';
 import '../../data/repositories/campaign_repository_provider.dart';
+import '../../domain/entities/campaign.dart';
 import '../../domain/usecases/get_campaigns_use_case_impl.dart';
-import 'campaign_notifier.dart';
-import 'campaign_state.dart';
 
-final campaignProvider =
-    NotifierProvider.autoDispose<CampaignNotifier, CampaignState>(
-  CampaignNotifier.new,
-);
+part 'campaign_provider.g.dart';
 
-// GetCampaignsUseCase provider
-final getCampaignsUseCaseProvider = Provider<GetCampaignsUseCase>((final ref) =>
-    GetCampaignsUseCaseImpl(ref.watch(campaignRepositoryProvider)));
+/// 1. UseCase Provider (Dependency Injection)
+/// Fonksiyon ismi 'getCampaignsUseCase' -> Üretilen: 'getCampaignsUseCaseProvider'
+@riverpod
+GetCampaignsUseCase getCampaignsUseCase(final Ref ref) =>
+    GetCampaignsUseCaseImpl(ref.watch(campaignRepositoryProvider));
+
+/// 2. 🔥 KAMPANYA LİSTESİ (FutureProvider)
+/// Fonksiyon ismi 'campaigns' -> Üretilen: 'campaignsProvider'
+/// @riverpod default olarak 'autoDispose'dur.
+@riverpod
+Future<List<Campaign>> campaigns(final Ref ref) async =>
+    ref.watch(getCampaignsUseCaseProvider).call().getOrThrow();

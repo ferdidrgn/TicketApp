@@ -4,7 +4,7 @@ import '../entities/campaign.dart';
 import '../repositories/campaign_repository.dart';
 
 abstract class GetCampaignsUseCase {
-  Future<Either<Failure, List<Campaign>?>> call();
+  Future<Either<Failure, List<Campaign>>> call();
 }
 
 class GetCampaignsUseCaseImpl implements GetCampaignsUseCase {
@@ -13,7 +13,7 @@ class GetCampaignsUseCaseImpl implements GetCampaignsUseCase {
   GetCampaignsUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Campaign>?>> call() async {
+  Future<Either<Failure, List<Campaign>>> call() async {
     final result = await repository.getCampaigns();
     return result.fold(
         (final failure) => Left(failure),
