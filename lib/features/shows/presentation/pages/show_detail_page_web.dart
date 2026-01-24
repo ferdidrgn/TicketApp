@@ -6,20 +6,18 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../shared/widgets/error_stage_widget_web.dart';
 import '../../../../shared/widgets/gallery_section.dart';
+import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/providers/event_provider.dart';
-import '../../../events/presentation/providers/event_state.dart';
-import '../../../players/presentation/providers/player_notifier.dart';
+import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/providers/player_provider.dart';
-import '../../../players/presentation/providers/player_state.dart';
+import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
-import '../../../stages/presentation/providers/stage_state.dart';
 import '../../domain/entities/show.dart';
-import '../providers/show_notifier.dart';
+import '../providers/show_detail_provider.dart';
 import '../providers/show_provider.dart';
-import '../providers/show_state.dart';
 import '../widgets/web/event_section.dart';
 import '../widgets/web/player_section.dart';
 import '../widgets/web/show_detail_hero.dart';
@@ -38,7 +36,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   late final AnimationController _heroController;
   late final AnimationController _contentController;
   late final AnimationController _floatingController;
-
   late final Animation<double> _heroFade;
   late final Animation<Offset> _heroSlide;
   late final Animation<double> _contentFade;
@@ -46,103 +43,25 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
 
-  // Başlangıçta loading true
-  bool _isInitLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initControllers();
-    _initScrollListener();
-
-    Future.microtask(() => _fetchInitialData());
-  }
-
-  // --- KRİTİK DÜZELTME: Veri Çekme Mantığı ---
-  Future<void> _fetchInitialData() async {
-    if (!mounted) return;
-
-    final state = ref.read(showProvider);
-
-    // 1. Veri zaten hafızada var mı kontrol et
-    final Show? existingShow = state.getShowById(widget.showId) ??
-        (state.dataSingle?.id == widget.showId ? state.dataSingle : null);
-
-    // Eğer veri varsa, hemen loading'i kapat ve animasyonları başlat
-    if (existingShow != null) {
-      if (mounted) {
-        setState(() => _isInitLoading = false);
-        _startPageAnimations();
-        // Arka planda alt verileri (oyuncular, eventler) güncellemek istersen yine çağırabilirsin
-        await _loadSubData(existingShow);
-      }
-      return;
-    }
-
-    // 2. Veri yoksa API'den çek
-    try {
-      // Sadece bu ID'ye ait veriyi iste
-      await ref.read(showProvider.notifier).loadShowsByIds([widget.showId]);
-
-      // Yükleme sonrası state'i tekrar oku
-      final updatedState = ref.read(showProvider);
-      final loadedShow =
-          updatedState.getShowById(widget.showId) ?? updatedState.dataSingle;
-
-      if (loadedShow != null && loadedShow.id == widget.showId) {
-        // Alt verileri (Event/Player) yükle
-        await _loadSubData(loadedShow);
-
-        if (mounted)
-          // Resmi önceden yükle
-          await _precacheHeaderImage(loadedShow);
-      }
-    } catch (e) {
-      debugPrint("ShowDetail Fetch Error: $e");
-    } finally {
-      // Başarılı da olsa başarısız da olsa loading'i bitir ki ekran takılmasın
-      if (mounted) {
-        setState(() => _isInitLoading = false);
-        _startPageAnimations();
-      }
-    }
-  }
-
   void _initControllers() {
     _heroController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 800),
-    );
+        vsync: this, duration: const Duration(milliseconds: 800));
     _contentController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 500),
-    );
-    _floatingController = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: 3),
-    );
+        vsync: this, duration: const Duration(milliseconds: 500));
+    _floatingController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 3));
 
-    _heroFade = CurvedAnimation(
-      parent: _heroController,
-      curve: Curves.easeOut,
-    );
-    _heroSlide = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _heroController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
-    _contentFade = CurvedAnimation(
-      parent: _contentController,
-      curve: Curves.easeOut,
-    );
+    _heroFade = CurvedAnimation(parent: _heroController, curve: Curves.easeOut);
+    _heroSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
+        .animate(CurvedAnimation(
+            parent: _heroController, curve: Curves.easeOutCubic));
+    _contentFade =
+        CurvedAnimation(parent: _contentController, curve: Curves.easeOut);
   }
 
   void _startPageAnimations() {
-    if (!mounted) return;
+    if (!mounted || _heroController.isAnimating || _heroController.isCompleted)
+      return;
     _heroController.forward();
     _floatingController.repeat(reverse: true);
     Future.delayed(const Duration(milliseconds: 400), () {
@@ -153,46 +72,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   void _initScrollListener() => _scrollController.addListener(() {
         if (mounted) _scrollNotifier.value = _scrollController.offset;
       });
-
-  Future<void> _precacheHeaderImage(final Show show) async {
-    if (mounted && show.imageUrl.isNotEmpty)
-      try {
-        await precacheImage(
-          OptimizedCachedImage.provider(
-            show.imageUrl,
-            context: context,
-            width: MediaQuery.of(context).size.width,
-          ),
-          context,
-        );
-      } catch (e) {
-        debugPrint('Image precache warning: $e');
-      }
-  }
-
-  Future<void> _loadSubData(final Show show) async {
-    final futures = <Future>[];
-
-    // Events
-    if (show.eventsId.isNotEmpty)
-      futures
-          .add(ref.read(eventProvider.notifier).loadEventsByIds(show.eventsId));
-
-    // Players (Hem şimdiki hem eski oyuncuları topla)
-    final allPlayers = {...show.nowPlayersId, ...show.oldPlayersId}.toList();
-    if (allPlayers.isNotEmpty)
-      futures
-          .add(ref.read(playerProvider.notifier).getPlayersByIds(allPlayers));
-
-    if (futures.isNotEmpty) await Future.wait(futures);
-  }
-
-  void _handleBackNavigation() {
-    if (context.canPop())
-      context.pop();
-    else
-      context.go('/home', extra: {'section': 'shows'});
-  }
 
   @override
   void dispose() {
@@ -206,160 +85,114 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
   @override
   Widget build(final BuildContext context) {
-    final showState = ref.watch(showProvider);
-    final eventState = ref.watch(eventProvider);
-    final playerState = ref.watch(playerProvider);
-    final stageState = ref.watch(stageProvider);
+    final detailAsync = ref.watch(showDetailProvider(widget.showId));
 
-    // Ekrana basılacak veriyi bul
-    final showData = showState.getShowById(widget.showId) ??
-        (showState.dataSingle?.id == widget.showId
-            ? showState.dataSingle
-            : null);
-
-    // Loading Durumu Kontrolü (Daha güvenli hale getirildi)
-    // 1. Init loading hala true ise -> LOADING
-    // 2. Init bitti ama veri yok VE provider hala meşgulse -> LOADING
-    bool isLoading = _isInitLoading;
-    if (!_isInitLoading && showData == null && showState.isLoading)
-      isLoading = true;
-
-    _listenForStageData(showData);
+    if (detailAsync.hasError)
+      return GlobalErrorWidget(
+        message: detailAsync.error.toString(),
+        onRetry: () => ref.invalidate(showDetailProvider(widget.showId)),
+      );
 
     return SplashDataGuard(
-      isLoading: isLoading,
-      loadingMessage: 'Oyun detayları hazırlanıyor...',
+      isLoading: detailAsync.isLoading,
+      loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
       child: Scaffold(
         backgroundColor: const Color(0xFF0a0a1a),
-        // Loading bitti ama hala veri yoksa hata göster
-        body: !isLoading && showData == null
-            ? _buildErrorState(showState)
-            : (showData != null // Veri varsa içeriği göster
-                ? _buildSuccessState(
-                    showData, eventState, playerState, stageState)
-                : const SizedBox()), // Ara durum (nadiren olur)
+        body: detailAsync.when(
+          loading: () => const SizedBox.shrink(),
+          error: (final err, final stack) => const SizedBox.shrink(),
+          data: (final state) {
+            WidgetsBinding.instance
+                .addPostFrameCallback((final _) => _startPageAnimations());
+            return _buildSuccessState(
+                state.show, state.events, state.players, state.stages);
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildErrorState(final ShowState showState) => Center(
-        child: ErrorStateWidget(
-          message: showState.errorMessage ?? "Oyun bilgisi bulunamadı.",
-          onRetry: () {
-            setState(() => _isInitLoading = true);
-            _fetchInitialData();
-          },
-        ),
-      );
-
   Widget _buildSuccessState(
     final Show showData,
-    final EventState eventState,
-    final PlayerState playerState,
-    final StageState stageState,
-  ) =>
-      Stack(
-        children: [
-          _BackgroundParticles(animation: _floatingController),
-          CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            cacheExtent: 500,
-            slivers: [
-              SliverToBoxAdapter(
-                child: ShowDetailHero(
-                  showData: showData,
-                  scrollNotifier: _scrollNotifier,
-                  fadeAnimation: _heroFade,
-                  slideAnimation: _heroSlide,
-                  floatingAnimation: _floatingController,
-                ),
+    final List<Event> eventList,
+    final List<Player> playerList,
+    final List<Stage> stageList,
+  ) {
+    return Stack(
+      children: [
+        _BackgroundParticles(animation: _floatingController),
+        CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          cacheExtent: 500,
+          slivers: [
+            SliverToBoxAdapter(
+              child: ShowDetailHero(
+                showData: showData,
+                scrollNotifier: _scrollNotifier,
+                fadeAnimation: _heroFade,
+                slideAnimation: _heroSlide,
+                floatingAnimation: _floatingController,
               ),
-              SliverToBoxAdapter(
-                child: FadeTransition(
-                  opacity: _contentFade,
-                  child: _MainContent(
-                    showData: showData,
-                    eventState: eventState,
-                    playerState: playerState,
-                    stageState: stageState,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            top: 40,
-            left: 20,
-            child: _FloatingBackButton(
-              onTap: _handleBackNavigation,
             ),
-          ),
-        ],
-      );
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _contentFade,
+                child: _MainContent(
+                  showData: showData,
+                  events: eventList,
+                  players: playerList,
+                  stages: stageList,
+                ),
+              ),
+            ),
+          ],
+        ),
+        Positioned(
+          top: 40,
+          left: 20,
+          child: _FloatingBackButton(onTap: _handleBackNavigation),
+        ),
+      ],
+    );
+  }
 
-  void _listenForStageData(final Show? showData) {
-    // Stage datası için listener
-    ref.listen<EventState>(eventProvider, (final previous, final next) {
-      // Sadece veri yeni yüklendiğinde tetikle
-      final previousEmpty = previous?.dataList?.isEmpty ?? true;
-      final nextNotEmpty = next.dataList?.isNotEmpty ?? false;
-
-      if (previousEmpty && nextNotEmpty && showData != null) {
-        final stageIds = next.dataList!
-            .map((final e) => e.stageId)
-            .whereType<String>()
-            .where((final id) => id.trim().isNotEmpty && id != '0')
-            .toSet()
-            .toList();
-
-        if (stageIds.isNotEmpty)
-          // Future.microtask içine alarak build çakışmalarını önle
-          Future.microtask(() {
-            ref.read(stageProvider.notifier).loadStagesByIds(stageIds);
-          });
-      }
-    });
+  void _handleBackNavigation() {
+    if (context.canPop())
+      context.pop();
+    else
+      context.go('/home');
   }
 }
 
 class _MainContent extends StatelessWidget {
   final Show showData;
-  final EventState eventState;
-  final PlayerState playerState;
-  final StageState stageState;
+  final List<Event> events;
+  final List<Player> players;
+  final List<Stage> stages;
 
   const _MainContent({
     required this.showData,
-    required this.eventState,
-    required this.playerState,
-    required this.stageState,
+    required this.events,
+    required this.players,
+    required this.stages,
   });
 
   @override
-  Widget build(final BuildContext context) {
-    final isDesktop = context.isDesktop;
-    final horizontalPadding =
-        context.responsive(mobile: 16.0, tablet: 40.0, desktop: 100.0);
-
-    return Padding(
+  Widget build(final BuildContext context) => Padding(
       padding:
-          EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 60),
-      child: isDesktop
+          EdgeInsets.symmetric(horizontal: context.paddingHorizontal, vertical: 60),
+      child: context.isDesktop
           ? _DesktopLayout(
               showData: showData,
-              eventState: eventState,
-              playerState: playerState,
-              stageState: stageState,
-            )
+              events: events,
+              players: players,
+              stages: stages)
           : _MobileLayout(
               showData: showData,
-              eventState: eventState,
-              playerState: playerState,
-              stageState: stageState,
-            ),
-    );
-  }
+              events: events,
+              players: players,
+              stages: stages));
 }
 
 class _DesktopLayout extends StatelessWidget {
