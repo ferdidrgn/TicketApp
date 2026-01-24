@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
@@ -153,17 +153,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         Positioned(
           top: 40,
           left: 20,
-          child: _FloatingBackButton(onTap: _handleBackNavigation),
+          child: GlassmorphismBackButton(),
         ),
       ],
     );
-  }
-
-  void _handleBackNavigation() {
-    if (context.canPop())
-      context.pop();
-    else
-      context.go('/home');
   }
 }
 
@@ -312,34 +305,6 @@ class _MobileLayout extends StatelessWidget {
       ],
     );
   }
-}
-
-class _FloatingBackButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _FloatingBackButton({required this.onTap});
-
-  @override
-  Widget build(final BuildContext context) => MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Color(0xFF1a1a2e).withOpacity(0.9),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Color(0xFFD4AF37).withOpacity(0.5),
-              ),
-            ),
-            child: Icon(
-              Icons.arrow_back_rounded,
-              color: Color(0xFFD4AF37),
-            ),
-          ),
-        ),
-      );
 }
 
 class _AnimatedPoster extends StatelessWidget {

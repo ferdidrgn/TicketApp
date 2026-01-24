@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../../core/common/extentions/app_context_ui_extension.dart';
-import 'button/glass_back_button.dart';
+import 'button/back_button_glassmorphism.dart';
 
 class TopNormalHeader extends StatelessWidget {
   final String title;
@@ -32,7 +31,7 @@ class TopNormalHeader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 if (showBackButton)
-                  const GlassBackButton()
+                  const GlassmorphismBackButton()
                 else
                   const SizedBox(height: 44), // Hizayı bozmamak için
                 Icon(

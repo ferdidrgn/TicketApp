@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../common/extentions/app_context_ui_extension.dart';
 
 /// WEB UYGULAMASI RENKLERİ

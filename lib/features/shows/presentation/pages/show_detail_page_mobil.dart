@@ -4,7 +4,7 @@ import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_detail_provider.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/date_formatter.dart';
-import '../../../../shared/widgets/button/glass_back_button.dart';
+import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -61,7 +61,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
               scrollController: _scrollController,
             ),
             _buildContent(state, bgColor),
-            const Positioned(top: 50, left: 16, child: GlassBackButton()),
+            const Positioned(top: 50, left: 16, child: GlassmorphismBackButton()),
           ],
         ),
       ),
