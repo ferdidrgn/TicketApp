@@ -23,12 +23,17 @@ class NetworkFailure extends Failure {
 }
 
 extension FutureEitherX<T> on Future<Either<Failure, T>> {
-  /// Either sonucunu bekler, Failure ise hata fırlatır, başarılı ise veriyi döner.
+  /// Future içindeki Either sonucunu bekler ve çözer.
   Future<T> getOrThrow() async {
     final result = await this;
-    return result.fold(
-      (final failure) => throw Exception(failure.message),
-      (final success) => success,
-    );
+    return result.getOrThrow();
   }
+}
+
+extension EitherX<T> on Either<Failure, T> {
+  /// Doğrudan Either nesnesini çözer.
+  T getOrThrow() => fold(
+        (final failure) => throw Exception(failure.message),
+        (final success) => success,
+      );
 }

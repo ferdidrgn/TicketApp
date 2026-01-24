@@ -75,19 +75,19 @@ Future<List<DetailedTicket>> myTickets(
   // Boş stringleri filtrelemek iyi bir pratiktir.
   final showIds = tickets
       .map((final t) => t.showId)
-      .where((id) => id.isNotEmpty)
+      .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
 
   final eventIds = tickets
       .map((final t) => t.eventId)
-      .where((id) => id.isNotEmpty)
+      .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
 
   final stageIds = tickets
       .map((final t) => t.stageId)
-      .where((id) => id.isNotEmpty)
+      .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
 

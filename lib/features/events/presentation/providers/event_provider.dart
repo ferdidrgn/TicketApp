@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../../../core/errors/failures.dart'; // getOrThrow extension için
-import '../../../tickets/domain/entities/ticket.dart'; // Ticket entity için
+import '../../../../../../core/errors/failures.dart';
+import '../../../tickets/domain/entities/ticket.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../data/repositories/event_repository_provider.dart';
 import '../../domain/entities/event.dart';
@@ -11,10 +11,10 @@ import '../../domain/usecases/get_events_by_ids_use_case_impl.dart';
 import '../../domain/usecases/get_seat_status_by_event_use_case_impl.dart';
 import '../../domain/usecases/release_reservation_use_case_impl.dart';
 
-part 'event_providers.g.dart';
+part 'event_provider.g.dart';
 
 // ==============================================================================
-// 1. USE CASE PROVIDERS (Dependency Injection)
+// 1. USE CASE PROVIDERS
 // ==============================================================================
 
 @riverpod
@@ -39,32 +39,35 @@ ConfirmPurchaseUseCase confirmPurchaseUseCase(final Ref ref) =>
     ConfirmPurchaseUseCaseImpl(ref.watch(eventRepositoryProvider));
 
 // ==============================================================================
-// 2. DATA PROVIDERS (Read Operations - AsyncValue)
+// 2. DATA PROVIDERS
 // ==============================================================================
 
 /// 🎯 KOLTUK DURUMU (Real-time Stream)
+/// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
 @riverpod
 Stream<Map<String, Map<String, dynamic>>> eventSeats(
         final Ref ref, final String eventId) =>
-    ref.watch(getEventSeatStatusStreamUseCaseProvider).call(eventId);
+    ref.watch(getEventSeatStatusStreamUseCaseProvider).call(eventId).map(
+        (final eventData) => eventData.cast<String, Map<String, dynamic>>());
 
 /// 🎯 ETKİNLİK DETAYI
 @riverpod
 Future<Event> eventDetail(final Ref ref, final String eventId) async {
-  final result = await ref.watch(getEventsByIdsUseCaseProvider).call([eventId]);
-  return result.getOrThrow().first;
+  final list = await ref
+      .watch(getEventsByIdsUseCaseProvider)
+      .call([eventId]).getOrThrow();
+  return list.first;
 }
 
-/// 🎯 GERİ SAYIM (Timer) - 10 Dakika (600 Saniye)
+/// 🎯 GERİ SAYIM (Timer)
 @riverpod
 Stream<int> reservationTimer(final Ref ref) =>
     Stream.periodic(const Duration(seconds: 1), (final i) => 600 - i).take(601);
 
 // ==============================================================================
-// 3. ACTION PROVIDERS (Side Effects / Mutations)
+// 3. ACTION PROVIDERS (Side Effects)
 // ==============================================================================
 
-/// ⚡ KOLTUK SEÇME / BIRAKMA (Rezervasyon İşlemi)
 @riverpod
 Future<bool> toggleSeatSelection(
   final Ref ref, {
@@ -73,20 +76,18 @@ Future<bool> toggleSeatSelection(
   required final String customerId,
   required final bool isAdding,
 }) async {
-  if (isAdding) {
-    final result = await ref
+  if (isAdding)
+    return ref
         .read(attemptReservationUseCaseProvider)
-        .call(eventId, seatId, customerId);
-    return result.getOrThrow();
-  } else {
-    final result = await ref
+        .call(eventId, seatId, customerId)
+        .getOrThrow();
+  else
+    return ref
         .read(releaseReservationUseCaseProvider)
-        .call(eventId, seatId, customerId);
-    return result.getOrThrow();
-  }
+        .call(eventId, seatId, customerId)
+        .getOrThrow();
 }
 
-/// ⚡ SATIN ALMA VE BİLET OLUŞTURMA SÜRECİ
 @riverpod
 Future<void> purchaseAction(
   final Ref ref, {
@@ -98,28 +99,16 @@ Future<void> purchaseAction(
   required final String paymentMethod,
   required final double totalPrice,
 }) async {
-  // 1. Koltukları Firestore'da 'sold' (satıldı) yap
-  final confirmResult = await ref
+  // 1. Koltukları onayla
+  await ref
       .read(confirmPurchaseUseCaseProvider)
-      .call(eventId, seatIds, customerId);
-  confirmResult.getOrThrow();
+      .call(eventId, seatIds, customerId)
+      .getOrThrow();
 
-  // 2. Bilet bilgilerini hazırla
-  final now = DateTime.now();
-  String finalPrice = totalPrice.toStringAsFixed(2);
-  String finalMethod = paymentMethod;
-
-  if (paymentMethod == 'free_ticket')
-    finalPrice = "0.0";
-  else if (paymentMethod.startsWith('coffee_')) {
-    finalPrice =
-        paymentMethod.split('_').last.replaceAll(RegExp(r'[^0-9.]'), '');
-    if (finalPrice.isEmpty) finalPrice = "20.0";
-    finalMethod = 'coffee_donation';
-  }
-
+  // 2. Ticket nesnesi
   final ticket = Ticket(
     id: '',
+    createdAt: DateTime.now().toIso8601String(),
     updatedAt: DateTime.now().toIso8601String(),
     showId: showId,
     customerId: customerId,
@@ -128,9 +117,9 @@ Future<void> purchaseAction(
     orderPrice: totalPrice.toStringAsFixed(2),
     orderMethod: paymentMethod,
     buySeats: seatIds,
-    createdAt: DateTime.now().toIso8601String(),
     isPast: false,
   );
-  // 3. Bileti veritabanına kaydet
+
+  // 3. Bileti kaydet
   await ref.read(createTicketUseCaseProvider).call(ticket).getOrThrow();
 }

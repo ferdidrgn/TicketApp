@@ -230,7 +230,7 @@ final class MyTicketsProvider extends $FunctionalProvider<
   }
 }
 
-String _$myTicketsHash() => r'9ce285e130a676b9a919ccc8d88aff6c15cc4571';
+String _$myTicketsHash() => r'5a630fdf756c115bac4057075996793317de46d7';
 
 /// ==============================================================================
 /// 3. COMPOSITE PROVIDER (MAIN LOGIC)
