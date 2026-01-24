@@ -180,8 +180,7 @@ class _MainContent extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Padding(
-      padding:
-          EdgeInsets.symmetric(horizontal: context.paddingHorizontal, vertical: 60),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 60),
       child: context.isDesktop
           ? _DesktopLayout(
               showData: showData,
@@ -197,21 +196,25 @@ class _MainContent extends StatelessWidget {
 
 class _DesktopLayout extends StatelessWidget {
   final Show showData;
-  final EventState eventState;
-  final PlayerState playerState;
-  final StageState stageState;
+  final List<Event> events;
+  final List<Player> players;
+  final List<Stage> stages;
 
   const _DesktopLayout({
     required this.showData,
-    required this.eventState,
-    required this.playerState,
-    required this.stageState,
+    required this.events,
+    required this.players,
+    required this.stages,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final nowPlayers = playerState.getPlayersByIds(showData.nowPlayersId);
-    final oldPlayers = playerState.getPlayersByIds(showData.oldPlayersId);
+    final nowPlayers = players
+        .where((final p) => showData.nowPlayersId.contains(p.id))
+        .toList();
+    final oldPlayers = players
+        .where((final p) => showData.oldPlayersId.contains(p.id))
+        .toList();
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,39 +236,22 @@ class _DesktopLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _SectionTitle(
-                title: 'Etkinlik Takvimi',
-                icon: Icons.calendar_today_rounded,
-              ),
+                  title: 'Etkinlik Takvimi',
+                  icon: Icons.calendar_today_rounded),
               const SizedBox(height: 24),
-              EventSection(
-                showData: showData,
-                eventState: eventState,
-                stageState: stageState,
-              ),
+              EventSection(showData: showData, events: events, stages: stages),
               const SizedBox(height: 50),
               const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
               const SizedBox(height: 24),
-              PlayerSection(
-                players: nowPlayers,
-                isOld: false,
-                isLoading: playerState.isLoading,
-              ),
+              PlayerSection(players: nowPlayers, isOld: false),
               const SizedBox(height: 50),
               const _SectionTitle(
-                title: 'Eski Ekip',
-                icon: Icons.history_rounded,
-              ),
+                  title: 'Eski Ekip', icon: Icons.history_rounded),
               const SizedBox(height: 24),
-              PlayerSection(
-                players: oldPlayers,
-                isOld: true,
-                isLoading: playerState.isLoading,
-              ),
+              PlayerSection(players: oldPlayers, isOld: true),
               const SizedBox(height: 50),
               const _SectionTitle(
-                title: 'Galeri',
-                icon: Icons.photo_library_rounded,
-              ),
+                  title: 'Galeri', icon: Icons.photo_library_rounded),
               const SizedBox(height: 24),
               GallerySection(photos: showData.photosShowId),
             ],
@@ -278,21 +264,25 @@ class _DesktopLayout extends StatelessWidget {
 
 class _MobileLayout extends StatelessWidget {
   final Show showData;
-  final EventState eventState;
-  final PlayerState playerState;
-  final StageState stageState;
+  final List<Event> events;
+  final List<Player> players;
+  final List<Stage> stages;
 
   const _MobileLayout({
     required this.showData,
-    required this.eventState,
-    required this.playerState,
-    required this.stageState,
+    required this.events,
+    required this.players,
+    required this.stages,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final nowPlayers = playerState.getPlayersByIds(showData.nowPlayersId);
-    final oldPlayers = playerState.getPlayersByIds(showData.oldPlayersId);
+    final nowPlayers = players
+        .where((final p) => showData.nowPlayersId.contains(p.id))
+        .toList();
+    final oldPlayers = players
+        .where((final p) => showData.oldPlayersId.contains(p.id))
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

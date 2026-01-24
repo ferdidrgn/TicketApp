@@ -107,21 +107,19 @@ mixin ResponsiveUtils {
   // ═══════════════════════════════════════════════════════════
 
   /// Ekran kenar boşluğu (tüm sayfa için)
-  EdgeInsets getScreenPadding(final BuildContext context) {
-    return EdgeInsets.symmetric(
+  EdgeInsets getScreenPadding(final BuildContext context) =>
+      EdgeInsets.symmetric(
       horizontal: getValueForDevice(context, mobile: 16.0, desktop: 24.0),
       vertical: getValueForDevice(context, mobile: 12.0, desktop: 20.0),
     );
-  }
+
 
   /// Tüm yönlere eşit padding
   static EdgeInsets paddingAll(final BuildContext context,
       {final double? mobile, final double? desktop}) {
     final m = mobile ?? 16.0;
     final d = desktop ?? 24.0;
-    return EdgeInsets.all(
-      isDesktop(context) ? d : m,
-    );
+    return EdgeInsets.all(isDesktop(context) ? d : m);
   }
 
   /// Yatay padding
@@ -129,9 +127,7 @@ mixin ResponsiveUtils {
       {final double? mobile, final double? desktop}) {
     final m = mobile ?? 16.0;
     final d = desktop ?? 24.0;
-    return EdgeInsets.symmetric(
-      horizontal: isDesktop(context) ? d : m,
-    );
+    return EdgeInsets.symmetric(horizontal: isDesktop(context) ? d : m);
   }
 
   /// Dikey padding
@@ -139,82 +135,60 @@ mixin ResponsiveUtils {
       {final double? mobile, final double? desktop}) {
     final m = mobile ?? 12.0;
     final d = desktop ?? 20.0;
-    return EdgeInsets.symmetric(
-      vertical: isDesktop(context) ? d : m,
-    );
+    return EdgeInsets.symmetric(vertical: isDesktop(context) ? d : m);
   }
 
   /// Card içi padding
-  EdgeInsets getCardPadding(final BuildContext context) {
-    return EdgeInsets.all(
-      getValueForDevice(context, mobile: 12.0, tablet: 14.0, desktop: 16.0),
-    );
-  }
+  EdgeInsets getCardPadding(final BuildContext context) => EdgeInsets.all(
+      getValueForDevice(context, mobile: 12.0, tablet: 14.0, desktop: 16.0));
 
   /// Badge padding
-  EdgeInsets getBadgePadding(final BuildContext context) {
-    return EdgeInsets.symmetric(
-      horizontal: getValueForDevice(context, mobile: 6.0, desktop: 8.0),
-      vertical: 4.0,
-    );
-  }
+  EdgeInsets getBadgePadding(final BuildContext context) =>
+      EdgeInsets.symmetric(
+        horizontal: getValueForDevice(context, mobile: 6.0, desktop: 8.0),
+        vertical: 4.0,
+      );
 
   // ═══════════════════════════════════════════════════════════
   // FONT SIZES (Hazır Yardımcı Metotlar)
   // ═══════════════════════════════════════════════════════════
 
   /// Başlık font boyutu
-  double getTitleFontSize(final BuildContext context) {
-    return getValueForDevice(context,
-        mobile: 16.0, tablet: 18.0, desktop: 18.0);
-  }
+  double getTitleFontSize(final BuildContext context) =>
+      getValueForDevice(context, mobile: 16.0, tablet: 18.0, desktop: 18.0);
 
   /// Body/İçerik font boyutu
-  double getBodyFontSize(final BuildContext context) {
-    return getValueForDevice(context,
-        mobile: 13.0, tablet: 14.0, desktop: 14.0);
-  }
+  double getBodyFontSize(final BuildContext context) =>
+      getValueForDevice(context, mobile: 13.0, tablet: 14.0, desktop: 14.0);
 
   /// Alt yazı/Caption font boyutu
-  double getCaptionFontSize(final BuildContext context) {
-    return getValueForDevice(context,
-        mobile: 10.0, tablet: 11.0, desktop: 11.0);
-  }
+  double getCaptionFontSize(final BuildContext context) =>
+      getValueForDevice(context, mobile: 10.0, tablet: 11.0, desktop: 11.0);
 
   /// Fiyat font boyutu
-  double getPriceFontSize(final BuildContext context) {
-    return getValueForDevice(context,
-        mobile: 14.0, tablet: 16.0, desktop: 16.0);
-  }
+  double getPriceFontSize(final BuildContext context) =>
+      getValueForDevice(context, mobile: 14.0, tablet: 16.0, desktop: 16.0);
 
   /// Generic font boyutu
-  double getFontSize(
-      final BuildContext context, final double mobile, final double desktop) {
-    return getValueForDevice(context, mobile: mobile, desktop: desktop);
-  }
+  double getFontSize(final BuildContext context, final double mobile,
+          final double desktop) =>
+      getValueForDevice(context, mobile: mobile, desktop: desktop);
 
   // ═══════════════════════════════════════════════════════════
   // ICON SIZES
   // ═══════════════════════════════════════════════════════════
 
   /// Küçük icon boyutu
-  double getIconSizeSmall(final BuildContext context) {
-    return getValueForDevice(context, mobile: 18.0, desktop: 20.0);
-  }
+  double getIconSizeSmall(final BuildContext context) =>
+      getValueForDevice(context, mobile: 18.0, desktop: 20.0);
 
   /// Orta icon boyutu
-  double getIconSizeMedium(final BuildContext context) {
-    return getValueForDevice(context, mobile: 24.0, desktop: 24.0);
-  }
+  double getIconSizeMedium(final BuildContext context) =>
+      getValueForDevice(context, mobile: 24.0, desktop: 24.0);
 
   /// Generic icon boyutu (scale ile)
-  double getIconSize(final BuildContext context, {final double scale = 1.0}) {
-    return getValueForDevice(
-      context,
-      mobile: 20.0 * scale,
-      desktop: 24.0 * scale,
-    );
-  }
+  double getIconSize(final BuildContext context, {final double scale = 1.0}) =>
+      getValueForDevice(context, mobile: 20.0 * scale, desktop: 24.0 * scale);
 
   // ═══════════════════════════════════════════════════════════
   // GRID & LAYOUT
@@ -222,32 +196,20 @@ mixin ResponsiveUtils {
 
   /// Grid sütun sayısı
   int getGridCrossAxisCount(final BuildContext context,
-      {final int desktopCount = 4}) {
-    return getValueForDevice(
-      context,
-      mobile: 2,
-      tablet: 3,
-      desktop: desktopCount,
-    );
-  }
+          {final int desktopCount = 4}) =>
+      getValueForDevice(context, mobile: 2, tablet: 3, desktop: desktopCount);
 
   /// Grid boşlukları
-  double getGridSpacing(final BuildContext context) {
-    return getValueForDevice(context,
-        mobile: 12.0, tablet: 16.0, desktop: 20.0);
-  }
+  double getGridSpacing(final BuildContext context) =>
+      getValueForDevice(context, mobile: 12.0, tablet: 16.0, desktop: 20.0);
 
   /// Card aspect ratio (yükseklik/genişlik oranı)
-  double getCardAspectRatio(final BuildContext context) {
-    return getValueForDevice(context,
-        mobile: 0.72, tablet: 0.78, desktop: 0.80);
-  }
+  double getCardAspectRatio(final BuildContext context) =>
+      getValueForDevice(context, mobile: 0.72, tablet: 0.78, desktop: 0.80);
 
   /// Card görsel yüksekliği
-  double getCardImageHeight(final BuildContext context) {
-    return getValueForDevice(context,
-        mobile: 140.0, tablet: 160.0, desktop: 180.0);
-  }
+  double getCardImageHeight(final BuildContext context) =>
+      getValueForDevice(context, mobile: 140.0, tablet: 160.0, desktop: 180.0);
 
   // ═══════════════════════════════════════════════════════════
   // BORDER RADIUS
@@ -255,20 +217,12 @@ mixin ResponsiveUtils {
 
   /// Border radius (scale ile özelleştirilebilir)
   double getBorderRadius(final BuildContext context,
-      {final double scale = 1.0}) {
-    return getValueForDevice(
-      context,
-      mobile: 12.0 * scale,
-      desktop: 16.0 * scale,
-    );
-  }
+          {final double scale = 1.0}) =>
+      getValueForDevice(context, mobile: 12.0 * scale, desktop: 16.0 * scale);
 
   /// Card margin
-  EdgeInsets getCardMargin(final BuildContext context) {
-    return EdgeInsets.all(
-      getValueForDevice(context, mobile: 4.0, desktop: 6.0),
-    );
-  }
+  EdgeInsets getCardMargin(final BuildContext context) =>
+      EdgeInsets.all(getValueForDevice(context, mobile: 4.0, desktop: 6.0));
 
   // ═══════════════════════════════════════════════════════════
   // LAYOUT HELPERS

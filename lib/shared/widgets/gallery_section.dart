@@ -47,6 +47,11 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
         ),
       );
 
+    if (widget.photos.isEmpty)
+      return const Center(
+          child: Text("Henüz fotoğraf eklenmemiş.",
+              style: TextStyle(color: Colors.white30)));
+
     final isMobile = context.isMobile;
     final isTablet = context.isTablet;
     final photos = widget.photos;
