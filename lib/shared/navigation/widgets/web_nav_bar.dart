@@ -229,7 +229,7 @@ class _WebNavBarState extends State<WebNavBar>
                     mainAxisSize: MainAxisSize.min,
                     children: _navItems(context))),
             const SizedBox(width: 20),
-            _buildSearchBox(context),
+            _buildSearchBox(context, isMobile: false),
             const LanguageSelector(),
           ],
         ),
@@ -239,7 +239,7 @@ class _WebNavBarState extends State<WebNavBar>
   Widget _tabletLayout(final BuildContext context) => _mobileLayout(context);
 
   Widget _mobileLayout(final BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 15),
         child: Row(
           children: [
             _mobileMenu(context),
@@ -248,21 +248,24 @@ class _WebNavBarState extends State<WebNavBar>
             const SizedBox(width: 8),
             _title(context),
             const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.search, color: WebColors.primaryGold),
-              onPressed: () => NavigationHandler.goToSearch(context),
-            ),
+            _buildSearchBox(context, isMobile: true),
+            const SizedBox(width: 8),
+            const LanguageSelector(),
           ],
         ),
       );
 
   // --- YARDIMCI BİLEŞENLER ---
 
-  Widget _buildSearchBox(final BuildContext context) => InkWell(
+  Widget _buildSearchBox(final BuildContext context, {required final bool isMobile}) => InkWell(
         onTap: () => NavigationHandler.goToSearch(context),
         borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 8 : 12,
+              vertical: isMobile ? 6 : 8
+          ),
           decoration: BoxDecoration(
             color: WebColors.primaryGold.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
@@ -271,12 +274,11 @@ class _WebNavBarState extends State<WebNavBar>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.search, size: 16, color: WebColors.primaryGold),
-              const SizedBox(width: 8),
+              Icon(Icons.search, size: isMobile ? 14 : 16, color: WebColors.primaryGold),              const SizedBox(width: 8),
               const Text("Ara...",
                   style: TextStyle(color: WebColors.primaryGold, fontSize: 13)),
               const SizedBox(width: 12),
-              if (ResponsiveUtils.isDesktop(context)) _kbdIndicator(),
+             _kbdIndicator(),
             ],
           ),
         ),
@@ -328,7 +330,10 @@ class _WebNavBarState extends State<WebNavBar>
       ValueListenableBuilder<String>(
         valueListenable: widget.activeSection,
         builder: (final context, final active, final _) {
-          final isActive = active == section;
+          bool isActive = active == section;
+          if (section == 'shows')
+            isActive = active == 'shows' || widget.games.containsKey(active);
+
           return GestureDetector(
             onTap: () => widget.onNavigate(section),
             child: AnimatedContainer(
