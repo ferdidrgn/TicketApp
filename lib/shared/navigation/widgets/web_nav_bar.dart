@@ -257,15 +257,15 @@ class _WebNavBarState extends State<WebNavBar>
 
   // --- YARDIMCI BİLEŞENLER ---
 
-  Widget _buildSearchBox(final BuildContext context, {required final bool isMobile}) => InkWell(
+  Widget _buildSearchBox(final BuildContext context,
+          {required final bool isMobile}) =>
+      InkWell(
         onTap: () => NavigationHandler.goToSearch(context),
         borderRadius: BorderRadius.circular(10),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 8 : 12,
-              vertical: isMobile ? 6 : 8
-          ),
+              horizontal: isMobile ? 8 : 12, vertical: isMobile ? 6 : 8),
           decoration: BoxDecoration(
             color: WebColors.primaryGold.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
@@ -274,11 +274,13 @@ class _WebNavBarState extends State<WebNavBar>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.search, size: isMobile ? 14 : 16, color: WebColors.primaryGold),              const SizedBox(width: 8),
+              Icon(Icons.search,
+                  size: isMobile ? 14 : 16, color: WebColors.primaryGold),
+              const SizedBox(width: 8),
               const Text("Ara...",
                   style: TextStyle(color: WebColors.primaryGold, fontSize: 13)),
               const SizedBox(width: 12),
-             _kbdIndicator(),
+              _kbdIndicator(),
             ],
           ),
         ),
@@ -310,9 +312,9 @@ class _WebNavBarState extends State<WebNavBar>
       );
 
   List<Widget> _navItems(final BuildContext context) {
-    const items = {
+    final items = {
       'home': 'ANA SAYFA',
-      'shows': 'OYUNLAR',
+      'shows': context.l10n.plays,
       'about': 'HAKKIMIZDA',
       'team': 'EKİP',
       'contact': 'İLETİŞİM'
