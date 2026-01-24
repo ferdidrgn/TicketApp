@@ -38,15 +38,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
     ).animate(
       CurvedAnimation(parent: _headerController, curve: Curves.easeOut),
     );
-
-    Future.microtask(() {
-      final state = ref.read(showProvider);
-
-      if (!state.isLoading &&
-          (state.dataList == null || state.dataList!.isEmpty))
-        ref.read(showProvider.notifier).loadShows(false);
-    });
-
     _headerController.forward();
   }
 
@@ -69,14 +60,11 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
   @override
   Widget build(final BuildContext context) {
-    final showState = ref.watch(showProvider);
+    // showsProvider artık isLimit parametresi bekliyor
+    final showState = ref.watch(showsProvider(isLimit: false));
 
     return Container(
       width: double.infinity,
-      padding: context.responsive(
-        mobile: const EdgeInsets.symmetric(vertical: 50),
-        desktop: const EdgeInsets.symmetric(vertical: 90),
-      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -90,6 +78,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
       ),
       child: Column(
         children: [
+          // Header Animasyonları
           FadeTransition(
             opacity: _headerFadeAnimation,
             child: SlideTransition(
@@ -98,18 +87,40 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
             ),
           ),
           SizedBox(height: context.responsive(mobile: 30.0, desktop: 60.0)),
-          if (showState.isLoading)
-            _buildLoadingState(context)
-          else if (showState.hasError)
-            _buildErrorState(showState.errorMessage)
-          else if (showState.isListNullOrEmpty)
-            _buildEmptyState()
-          else
-            _buildShowsCarousel(context, showState.dataList!.cast<Show>()),
+
+          // State bazlı UI yönetimi
+          showState.when(
+            loading: () => _buildLoadingState(context),
+            error: (final err, final stack) => _buildErrorState(err.toString()),
+            data: (final shows) => shows.isEmpty
+                ? _buildEmptyState()
+                : _buildShowsCarousel(context, shows),
+          ),
         ],
       ),
     );
   }
+
+  Widget _buildLoadingState(final BuildContext context) => SizedBox(
+        height:
+            context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0),
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(
+            horizontal: context.responsive(mobile: 16.0, desktop: 80.0),
+          ),
+          itemCount: context.isMobile ? 2 : 4,
+          itemBuilder: (final context, final index) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: SizedBox(
+              width: context.responsive(
+                  mobile: 170.0, tablet: 220.0, desktop: 280.0),
+              // Artik kendi Shimmer yapını kullanıyoruz
+              child: const ShimmerLoading(borderRadius: 24),
+            ),
+          ),
+        ),
+      );
 
   Widget _buildHeader(final BuildContext context) => Column(
         children: [
@@ -160,26 +171,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
         ],
       );
 
-  Widget _buildLoadingState(final BuildContext context) => SizedBox(
-        height:
-            context.responsive(mobile: 260.0, tablet: 320.0, desktop: 380.0),
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(
-            horizontal: context.responsive(mobile: 16.0, desktop: 80.0),
-          ),
-          itemCount: context.isMobile ? 2 : 4,
-          itemBuilder: (final context, final index) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: SizedBox(
-              width: context.responsive(
-                  mobile: 170.0, tablet: 220.0, desktop: 280.0),
-              child: const ShimmerLoading(),
-            ),
-          ),
-        ),
-      );
-
   Widget _buildErrorState(final String? message) => Center(
       child: Text(message ?? 'Hata',
           style: const TextStyle(color: WebColors.error)));
@@ -222,10 +213,10 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
                 padding:
                     EdgeInsets.symmetric(horizontal: context.isMobile ? 8 : 12),
                 child: _ShowCard(
-                  imageUrl: shows[index].imageUrl ?? '',
-                  gameName: shows[index].name ?? '',
+                  imageUrl: shows[index].imageUrl,
+                  gameName: shows[index].name,
                   index: index,
-                  showId: shows[index].id ?? '',
+                  showId: shows[index].id,
                 ),
               );
             },
@@ -309,13 +300,11 @@ class _ShowCardState extends State<_ShowCard>
 
   @override
   Widget build(final BuildContext context) {
-    final isMobile = context.isMobile;
-
     // Sabit İçerik (Hover sırasında rebuild olmaz)
     final Widget staticCardContent = _buildStaticContent(context);
 
     // Hover/Active Wrapper
-    final Widget interactiveWidget = isMobile
+    final Widget interactiveWidget = context.isMobile
         ? Listener(
             onPointerDown: (final _) => _isHovered.value = true,
             onPointerUp: (final _) => _isHovered.value = false,

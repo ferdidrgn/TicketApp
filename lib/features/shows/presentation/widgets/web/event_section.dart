@@ -2,56 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
-import 'package:ticketapp/features/events/presentation/providers/event_state.dart';
-import 'package:ticketapp/features/login/presentation/providers/login_provider.dart';
-import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
-import '../../../../../shared/widgets/empty_state_message_web.dart';
+import '../../../../events/domain/entities/event.dart';
 import '../../../../seat/presentation/pages/seat_details.dart';
-import '../../../../stages/presentation/providers/stage_notifier.dart';
+import '../../../../stages/domain/entities/stage.dart';
 import '../../../domain/entities/show.dart';
 
 class EventSection extends StatelessWidget {
   final Show showData;
-  final EventState eventState;
-  final StageState stageState;
+  final List<Event> events;
+  final List<Stage> stages;
 
   const EventSection({
     super.key,
     required this.showData,
-    required this.eventState,
-    required this.stageState,
+    required this.events,
+    required this.stages,
   });
 
   @override
   Widget build(final BuildContext context) {
-    if (eventState.isLoading && !eventState.hasData)
-      return SizedBox(
-        height: 100,
-        child: Center(
-          child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
-        ),
-      );
-
-    final events = eventState.dataList
-            ?.where((final e) => showData.eventsId.contains(e.id))
-            .toList() ??
-        [];
-
+    // Veri zaten showDetailProvider'dan hazır geldiği için isLoading kontrolüne gerek yok
     if (events.isEmpty)
-      return EmptyStateMessage(
-        message: 'Yaklaşan etkinlik bulunmamaktadır.',
-        icon: Icons.calendar_today,
+      return const Center(
+        child: Text('Yaklaşan etkinlik bulunmamaktadır.',
+            style: TextStyle(color: Colors.white38)),
       );
 
     return Column(
       children: events.asMap().entries.map((final entry) {
-        final stage = stageState.getStageById(entry.value.stageId);
+        final stage = stages.firstWhere(
+            (final s) => s.id == entry.value.stageId,
+            orElse: () => const Stage(
+                id: '0',
+                name: 'Sahne bilgisi yok',
+                imageUrl: '',
+                capacity: '',
+                description: '',
+                communication: '',
+                address: '',
+                locationLat: 0.0,
+                locationLng: 0.0,
+                createdAt: '',
+                updatedAt: '',
+                showsId: []));
+
         return AnimatedEventCard(
           date: entry.value.date.toString(),
           eventId: entry.value.id,
           showId: showData.id,
-          stageName: stage?.name ?? "Sahne bilgisi yok",
+          stageName: stage.name,
           index: entry.key,
         );
       }).toList(),
@@ -59,7 +59,7 @@ class EventSection extends StatelessWidget {
   }
 }
 
-class AnimatedEventCard extends StatelessWidget {
+class AnimatedEventCard extends ConsumerWidget {
   final String date;
   final String eventId;
   final String showId;
@@ -76,13 +76,12 @@ class AnimatedEventCard extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final formatted = DateFormatter.formatForEventCard(date);
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(
-          milliseconds: 400 + index * 70),
+      duration: Duration(milliseconds: 400 + index * 70),
       builder: (final context, final value, final child) => Opacity(
         opacity: value,
         child: Transform.translate(
@@ -93,19 +92,20 @@ class AnimatedEventCard extends StatelessWidget {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
-          onTap: () => _navigateToSeatSelection(context),
+          // 🔥 ref'i fonksiyona paslıyoruz
+          onTap: () => _navigateToSeatSelection(context, ref),
           child: Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Color(0xFF1a1a2e),
+              color: const Color(0xFF1a1a2e), //
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Color(0xFFD4AF37).withOpacity(0.3),
+                color: const Color(0xFFD4AF37).withOpacity(0.3), //
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0xFFD4AF37).withOpacity(0.1),
+                  color: const Color(0xFFD4AF37).withOpacity(0.1), //
                   blurRadius: 20,
                 ),
               ],
@@ -137,13 +137,13 @@ class AnimatedEventCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Color(0xFFD4AF37).withOpacity(0.15),
+                    color: const Color(0xFFD4AF37).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: Color(0xFFD4AF37).withOpacity(0.3),
+                      color: const Color(0xFFD4AF37).withOpacity(0.3),
                     ),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.arrow_forward_rounded,
                     color: Color(0xFFD4AF37),
                   ),
@@ -156,17 +156,18 @@ class AnimatedEventCard extends StatelessWidget {
     );
   }
 
-  void _navigateToSeatSelection(final BuildContext context) {
-    final ref = ProviderScope.containerOf(context);
-    final String? userId = ref.read(loginProvider).user?.uid ??
-        ref.read(userProvider).dataSingle?.id;
+  void _navigateToSeatSelection(
+      final BuildContext context, final WidgetRef ref) {
+    // Auth sağlayıcını watch veya read ederek kullanıcıyı al
+    final String? userId = ref.read(currentUserProvider).value?.id;
 
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Kullanıcı oturumu bulunamadı.")));
+        const SnackBar(content: Text("Bilet almak için giriş yapmalısınız.")),
+      );
       return;
     }
-    // 4. Navigasyon (Artık userId kesinlikle bir String)
+
     if (context.mounted)
       Navigator.push(
         context,
