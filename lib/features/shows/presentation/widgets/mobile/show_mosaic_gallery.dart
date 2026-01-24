@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod eklendi
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/common/extentions/reg_exp_extentions.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../domain/entities/show.dart';
+import '../../providers/show_provider.dart';
 
 class ShowMosaicGallery extends StatelessWidget {
   final List<Show> shows;
@@ -131,15 +133,14 @@ class _MosaicCard extends ConsumerWidget {
       GestureDetector(
         onTap: () async {
           // 1. Sayfaya git ve kullanıcının geri dönmesini bekle
-          await context.push('/show/${show.id}');
+          NavigationHandler.goToShow(context, show.id, show.name.toSlug());
 
           // 2. Kullanıcı geri döndü. Eğer context hala canlıysa listeyi yenile.
           if (context.mounted) {
             // Mevcut (filtrelenmiş 4 kişilik) listeyi temizle
-            ref.invalidate(playerProvider);
-
-            // Tüm oyuncuları sunucudan/cache'den tekrar yükle
-            ref.read(playerProvider.notifier).getPlayers(true);
+            ref.invalidate(showsProvider);
+            // Notifier üzerinden tazelemeyi tetikle
+            ref.read(playersProvider(isLimit: false)).value;
           }
         },
         child: Container(

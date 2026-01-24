@@ -189,7 +189,18 @@ class _ShowEventSection extends StatelessWidget {
               final stage = stages.firstWhere(
                 (final s) => s.id == event.stageId,
                 orElse: () => const Stage(
-                    id: '0', name: 'Bilinmiyor', location: '', imageUrl: ''),
+                    id: '0',
+                    name: 'Bilinmiyor',
+                    imageUrl: '',
+                    capacity: '',
+                    description: '',
+                    communication: '',
+                    address: '',
+                    locationLat: 0.0,
+                    locationLng: 0.0,
+                    createdAt: '',
+                    updatedAt: '',
+                    showsId: []),
               );
 
               final dateInfo = DateFormatter.formatForEventCard(event.date);

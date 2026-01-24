@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/core/theme/app_colors.dart'; // ✅ Senin renk dosyan
+import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/features/events/domain/entities/event.dart';
-import 'package:ticketapp/features/stages/presentation/providers/stage_state.dart';
-
-import '../../../../stages/presentation/providers/stage_notifier.dart';
+import '../../../../stages/domain/entities/stage.dart';
 
 class ShowEventList extends StatelessWidget {
   final List<Event> events;
-  final StageState stageState;
+  final List<Stage> stages;
   final Function(String eventId) onTicketTap;
 
   const ShowEventList({
     super.key,
     required this.events,
-    required this.stageState,
+    required this.stages,
     required this.onTicketTap,
   });
 
@@ -22,10 +21,10 @@ class ShowEventList extends StatelessWidget {
   Widget build(final BuildContext context) {
     if (events.isEmpty) return const SizedBox.shrink();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = context.isDarkMode;
 
     // RENKLER
-    const brandRed = AppLightColors.primary; // Kırmızı Vurgu
+    const brandRed = AppLightColors.primary;
     final textColor =
         isDark ? AppDarkColors.textPrimary : AppLightColors.textPrimary;
 
@@ -43,7 +42,6 @@ class ShowEventList extends StatelessWidget {
           child: Row(
             children: [
               Container(width: 4, height: 24, color: brandRed),
-              // ✅ Kırmızı Çubuk
               const SizedBox(width: 10),
               Text(
                 "ETKİNLİK TAKVİMİ",
@@ -66,7 +64,22 @@ class ShowEventList extends StatelessWidget {
             itemCount: events.length,
             itemBuilder: (final context, final index) {
               final event = events[index];
-              final stage = stageState.getStageById(event.stageId);
+              final stage = stages.firstWhere(
+                (final s) => s.id == event.stageId,
+                orElse: () => const Stage(
+                    id: '0',
+                    name: 'Sahne Bilgisi Yok',
+                    imageUrl: '',
+                    capacity: '',
+                    description: '',
+                    communication: '',
+                    address: '',
+                    locationLat: 0.0,
+                    locationLng: 0.0,
+                    createdAt: '',
+                    updatedAt: '',
+                    showsId: []),
+              );
               final dateInfo =
                   DateFormatter.formatForEventCard(event.date.toString());
 
@@ -78,7 +91,7 @@ class ShowEventList extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: cardBgColor, // ✅ Senin Surface rengin
+                      color: cardBgColor,
                       borderRadius: BorderRadius.circular(20),
                       border: isDark ? Border.all(color: Colors.white10) : null,
                       boxShadow: [
@@ -92,15 +105,13 @@ class ShowEventList extends StatelessWidget {
                     padding: const EdgeInsets.all(15),
                     child: Row(
                       children: [
-                        // Tarih Kutusu
                         Container(
                           width: 60,
                           decoration: BoxDecoration(
                             color: dateBoxColor,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: brandRed
-                                    .withOpacity(0.5)), // ✅ Kırmızı Çerçeve
+                            border:
+                                Border.all(color: brandRed.withOpacity(0.5)),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -108,7 +119,7 @@ class ShowEventList extends StatelessWidget {
                               Text(
                                 dateInfo['day'] ?? '00',
                                 style: const TextStyle(
-                                  color: brandRed, // ✅ Kırmızı Gün
+                                  color: brandRed,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -124,29 +135,26 @@ class ShowEventList extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 15),
-                        // Bilgiler
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                stage?.name ?? 'Sahne Bilgisi Yok',
+                                stage.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: textColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
+                                    color: textColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15),
                               ),
                               const SizedBox(height: 5),
                               Text(
                                 "${dateInfo['time']} • İstanbul",
                                 style: TextStyle(
-                                  color: textColor.withOpacity(0.6),
-                                  fontSize: 13,
-                                ),
+                                    color: textColor.withOpacity(0.6),
+                                    fontSize: 13),
                               ),
                               const Spacer(),
                               // Bilet Al Butonu
@@ -161,7 +169,7 @@ class ShowEventList extends StatelessWidget {
                                 child: const Text(
                                   "BİLET AL >",
                                   style: TextStyle(
-                                    color: brandRed, // ✅ Kırmızı Yazı
+                                    color: brandRed,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),

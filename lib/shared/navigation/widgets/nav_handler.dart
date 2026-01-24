@@ -37,11 +37,8 @@ class NavigationHandler {
       context.go('/discover?category=$category');
 
   /// Ürün detay sayfasına git (nereden geldiğini kaydet)
-  static void goToShow({
-    required final BuildContext context,
-    required final String showId,
-    required final String showSlug,
-  }) {
+  static void goToShow(
+      final BuildContext context, final String showId, final String showSlug) {
     final String currentPath = GoRouterState.of(context).uri.path;
     final String targetPath =
         '/show/$showId-$showSlug?from=${Uri.encodeComponent(currentPath)}';
@@ -73,7 +70,7 @@ class NavigationHandler {
   static void goToSeatSelection(final BuildContext context, final String showId,
       final String eventId, final String userId) {
     final String currentPath = GoRouterState.of(context).uri.path;
-    final String targetPath = '/seat-selection/$showId-$eventId-$userId';
+    final String targetPath = '/seat-selection/$showId-$eventId-$userId?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
   }

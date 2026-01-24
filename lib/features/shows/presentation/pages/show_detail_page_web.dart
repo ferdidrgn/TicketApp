@@ -4,20 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
-import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../events/domain/entities/event.dart';
-import '../../../events/presentation/providers/event_provider.dart';
 import '../../../players/domain/entities/player.dart';
-import '../../../players/presentation/providers/player_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
-import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../domain/entities/show.dart';
 import '../providers/show_detail_provider.dart';
-import '../providers/show_provider.dart';
 import '../widgets/web/event_section.dart';
 import '../widgets/web/player_section.dart';
 import '../widgets/web/show_detail_hero.dart';
@@ -42,6 +37,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
+
+  @override
+  void initState() {
+    super.initState();
+    _initControllers();
+    _initScrollListener();
+  }
 
   void _initControllers() {
     _heroController = AnimationController(
@@ -294,27 +296,15 @@ class _MobileLayout extends StatelessWidget {
           icon: Icons.calendar_today_rounded,
         ),
         const SizedBox(height: 20),
-        EventSection(
-          showData: showData,
-          eventState: eventState,
-          stageState: stageState,
-        ),
+        EventSection(showData: showData, events: events, stages: stages),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
         const SizedBox(height: 20),
-        PlayerSection(
-          players: nowPlayers,
-          isOld: false,
-          isLoading: playerState.isLoading,
-        ),
+        PlayerSection(players: nowPlayers, isOld: false),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Eski Ekip', icon: Icons.history_rounded),
         const SizedBox(height: 20),
-        PlayerSection(
-          players: oldPlayers,
-          isOld: true,
-          isLoading: playerState.isLoading,
-        ),
+        PlayerSection(players: oldPlayers, isOld: true),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Galeri', icon: Icons.photo_library_rounded),
         const SizedBox(height: 20),

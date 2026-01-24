@@ -55,7 +55,7 @@ abstract class BaseNotifier<T extends BaseState> extends Notifier<T> {
       'NetworkFailure' => 'Bağlantı hatası. Lütfen internetinizi kontrol edin.',
       'ServerFailure' => 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.',
       'CacheFailure' => 'Önbellek hatası.',
-      _ => failure.message ?? 'Bir hata oluştu',
+      _ => failure.message,
     };
   }
 
