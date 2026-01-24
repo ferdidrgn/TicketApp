@@ -44,6 +44,17 @@ ConfirmPurchaseUseCase confirmPurchaseUseCase(final Ref ref) =>
 
 /// 🎯 KOLTUK DURUMU (Real-time Stream)
 /// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+/// 🎯 ID LİSTESİNE GÖRE ETKİNLİKLERİ ÇEKER
+/// MyTicketProvider'ın beklediği provider budur.
+@riverpod
+Future<List<Event>> eventsByIds(final Ref ref, final List<String> ids) async {
+  if (ids.isEmpty) return [];
+  final result = await ref.watch(getEventsByIdsUseCaseProvider).call(ids);
+  return result.getOrThrow();
+}
+
+/// 🎯 KOLTUK DURUMU (Real-time Stream)
+/// HATA ÇÖZÜMÜ: .map ve .cast ile nullable Map uyuşmazlığını gideriyoruz.
 @riverpod
 Stream<Map<String, Map<String, dynamic>>> eventSeats(
         final Ref ref, final String eventId) =>
@@ -53,9 +64,8 @@ Stream<Map<String, Map<String, dynamic>>> eventSeats(
 /// 🎯 ETKİNLİK DETAYI
 @riverpod
 Future<Event> eventDetail(final Ref ref, final String eventId) async {
-  final list = await ref
-      .watch(getEventsByIdsUseCaseProvider)
-      .call([eventId]).getOrThrow();
+  final result = await ref.watch(getEventsByIdsUseCaseProvider).call([eventId]);
+  final list = await result.getOrThrow();
   return list.first;
 }
 
@@ -99,13 +109,13 @@ Future<void> purchaseAction(
   required final String paymentMethod,
   required final double totalPrice,
 }) async {
-  // 1. Koltukları onayla
+  // 1. Koltukları onayla (confirmPurchaseUseCaseProvider otomatik üretilir)
   await ref
       .read(confirmPurchaseUseCaseProvider)
       .call(eventId, seatIds, customerId)
       .getOrThrow();
 
-  // 2. Ticket nesnesi
+  // 2. Ticket nesnesi oluştur ve kaydet
   final ticket = Ticket(
     id: '',
     createdAt: DateTime.now().toIso8601String(),
@@ -120,6 +130,8 @@ Future<void> purchaseAction(
     isPast: false,
   );
 
-  // 3. Bileti kaydet
   await ref.read(createTicketUseCaseProvider).call(ticket).getOrThrow();
+
+  // 3. Başarılı alımdan sonra bilet listesini yenile
+  ref.invalidate(myTicketsProvider(customerId));
 }

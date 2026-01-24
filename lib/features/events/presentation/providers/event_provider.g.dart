@@ -234,12 +234,111 @@ String _$confirmPurchaseUseCaseHash() =>
 
 /// 🎯 KOLTUK DURUMU (Real-time Stream)
 /// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+/// 🎯 ID LİSTESİNE GÖRE ETKİNLİKLERİ ÇEKER
+/// MyTicketProvider'ın beklediği provider budur.
+
+@ProviderFor(eventsByIds)
+const eventsByIdsProvider = EventsByIdsFamily._();
+
+/// 🎯 KOLTUK DURUMU (Real-time Stream)
+/// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+/// 🎯 ID LİSTESİNE GÖRE ETKİNLİKLERİ ÇEKER
+/// MyTicketProvider'ın beklediği provider budur.
+
+final class EventsByIdsProvider extends $FunctionalProvider<
+        AsyncValue<List<Event>>, List<Event>, FutureOr<List<Event>>>
+    with $FutureModifier<List<Event>>, $FutureProvider<List<Event>> {
+  /// 🎯 KOLTUK DURUMU (Real-time Stream)
+  /// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+  /// 🎯 ID LİSTESİNE GÖRE ETKİNLİKLERİ ÇEKER
+  /// MyTicketProvider'ın beklediği provider budur.
+  const EventsByIdsProvider._(
+      {required EventsByIdsFamily super.from,
+      required List<String> super.argument})
+      : super(
+          retry: null,
+          name: r'eventsByIdsProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$eventsByIdsHash();
+
+  @override
+  String toString() {
+    return r'eventsByIdsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Event>> $createElement(
+          $ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Event>> create(Ref ref) {
+    final argument = this.argument as List<String>;
+    return eventsByIds(
+      ref,
+      argument,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is EventsByIdsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$eventsByIdsHash() => r'd1e56dfdd08fd7c2ac2c4a65ffbe483242eaed19';
+
+/// 🎯 KOLTUK DURUMU (Real-time Stream)
+/// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+/// 🎯 ID LİSTESİNE GÖRE ETKİNLİKLERİ ÇEKER
+/// MyTicketProvider'ın beklediği provider budur.
+
+final class EventsByIdsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<Event>>, List<String>> {
+  const EventsByIdsFamily._()
+      : super(
+          retry: null,
+          name: r'eventsByIdsProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  /// 🎯 KOLTUK DURUMU (Real-time Stream)
+  /// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+  /// 🎯 ID LİSTESİNE GÖRE ETKİNLİKLERİ ÇEKER
+  /// MyTicketProvider'ın beklediği provider budur.
+
+  EventsByIdsProvider call(
+    List<String> ids,
+  ) =>
+      EventsByIdsProvider._(argument: ids, from: this);
+
+  @override
+  String toString() => r'eventsByIdsProvider';
+}
+
+/// 🎯 KOLTUK DURUMU (Real-time Stream)
+/// HATA ÇÖZÜMÜ: .map ve .cast ile nullable Map uyuşmazlığını gideriyoruz.
 
 @ProviderFor(eventSeats)
 const eventSeatsProvider = EventSeatsFamily._();
 
 /// 🎯 KOLTUK DURUMU (Real-time Stream)
-/// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+/// HATA ÇÖZÜMÜ: .map ve .cast ile nullable Map uyuşmazlığını gideriyoruz.
 
 final class EventSeatsProvider extends $FunctionalProvider<
         AsyncValue<Map<String, Map<String, dynamic>>>,
@@ -249,7 +348,7 @@ final class EventSeatsProvider extends $FunctionalProvider<
         $FutureModifier<Map<String, Map<String, dynamic>>>,
         $StreamProvider<Map<String, Map<String, dynamic>>> {
   /// 🎯 KOLTUK DURUMU (Real-time Stream)
-  /// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+  /// HATA ÇÖZÜMÜ: .map ve .cast ile nullable Map uyuşmazlığını gideriyoruz.
   const EventSeatsProvider._(
       {required EventSeatsFamily super.from, required String super.argument})
       : super(
@@ -299,7 +398,7 @@ final class EventSeatsProvider extends $FunctionalProvider<
 String _$eventSeatsHash() => r'a73a9b613e4bc88b02c1b4f472487d13097d334d';
 
 /// 🎯 KOLTUK DURUMU (Real-time Stream)
-/// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+/// HATA ÇÖZÜMÜ: .map ve .cast ile nullable Map uyuşmazlığını gideriyoruz.
 
 final class EventSeatsFamily extends $Family
     with
@@ -315,7 +414,7 @@ final class EventSeatsFamily extends $Family
         );
 
   /// 🎯 KOLTUK DURUMU (Real-time Stream)
-  /// HATA ÇÖZÜMÜ: .cast() kullanarak nullable Map'i istenen tipe zorluyoruz.
+  /// HATA ÇÖZÜMÜ: .map ve .cast ile nullable Map uyuşmazlığını gideriyoruz.
 
   EventSeatsProvider call(
     String eventId,
@@ -382,7 +481,7 @@ final class EventDetailProvider
   }
 }
 
-String _$eventDetailHash() => r'f1ab19d3b1cb62bdfa648adcf820920958cc0bf4';
+String _$eventDetailHash() => r'53b611a3e0e9b20bbd7c80d359cd9075c8d1a376';
 
 /// 🎯 ETKİNLİK DETAYI
 
@@ -626,7 +725,7 @@ final class PurchaseActionProvider
   }
 }
 
-String _$purchaseActionHash() => r'9479a9ed6751e9fbd1202f11cb0ca0acb0c2a42c';
+String _$purchaseActionHash() => r'ca4a9354b86a65b81c070d0f0bdf72460116f587';
 
 final class PurchaseActionFamily extends $Family
     with
