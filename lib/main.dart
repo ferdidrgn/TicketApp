@@ -81,12 +81,9 @@ class _MyAppState extends ConsumerState<MyApp> {
           return ConnectivityWrapper(
             child: SplashDataGuard(
               isLoading: authMutation.isLoading,
-              loadingMessage: !authMutation.hasError
-                  ? 'TiyatRol Sahnesi Hazırlanıyor...'
-                  : authMutation.when(
-                      error: (final error, final stack) => error.toString(),
-                      data: (final void data) {},
-                      loading: () {}),
+              loadingMessage: authMutation.hasError
+                  ? 'Bir hata oluştu, lütfen tekrar deneyin.'
+                  : 'TiyatRol Sahnesi Hazırlanıyor...',
               // Web değilse sarmalayıcıyı kullan
               child: isWeb ? child : _MobileSystemUIWrapper(child: child),
             ),
