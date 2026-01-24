@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/shared/navigation/widgets/web_nav_bar.dart';
 import '../../../../../shared/navigation/providers/navigation_keys.dart';
-import '../../../../../shared/widgets/global_error_widget.dart';
-import '../../../../shows/presentation/providers/show_provider.dart';
 import '../../providers/home_asset_video_provider.dart';
 
 class AppHomePage extends ConsumerStatefulWidget {
@@ -16,22 +14,38 @@ class AppHomePage extends ConsumerStatefulWidget {
 }
 
 class _AppHomePageState extends ConsumerState<AppHomePage> {
+  // Başlangıçta animasyonlar KAPALI
+  bool _animationsStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Eğer dışarıdan (Router'dan) özel bir istek gelmediyse,
+    // animasyon kontrolünü provider dinleyerek yapacağız.
+  }
+
   @override
   Widget build(final BuildContext context) {
-    final showState = ref.watch(showsProvider(isLimit: false));
+    // 1. Videonun (veya sayfanın) yüklenme durumunu izle
     final videoState = ref.watch(homeAssetsProvider);
 
-    // Eğer veri çekme işlemi tamamen çöktüyse (Network hatası vb.)
-    if (showState.hasError)
-      return GlobalErrorWidget(
-        message: "Sunucuya bağlanılamadı.",
-        onRetry: () => ref.invalidate(showsProvider),
-      );
+    // 2. Logic: Video Hazırsa + Animasyon henüz başlamadıysa
+    if (!videoState.isLoading && !videoState.hasError && !_animationsStarted) {
+      // Splash'in fade-out (kaybolma) süresi yaklaşık 800ms'dir.
+      // Animasyonların tam splash bittikten sonra, temiz bir şekilde başlaması için
+      // süreyi 500ms'den 900ms'ye çıkardık. Böylece perde tamamen kalkmış olur.
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) setState(() => _animationsStarted = true);
+      });
+    }
 
+    // 🚀 ARTIK SENKRONİZE:
+    // WebBar (ve içindeki HomePage), veriler yüklenip Splash
+    // kalkana kadar "false" sinyali alacak.
+    // Splash kalktığı an "true" sinyali gidecek ve animasyonlar GÖZÜNÜN ÖNÜNDE başlayacak.
     return Scaffold(
-      body: WebBar(
-          key: NavigationKeys.webBarKey,
-          startAnimations: widget.startAnimations),
-    );
+        body: WebBar(
+            key: NavigationKeys.webBarKey,
+            startAnimations: _animationsStarted));
   }
 }
