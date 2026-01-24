@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:ticketapp/core/common/extentions/reg_exp_extentions.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../shared/widgets/background/shimmer_components.dart';
@@ -295,8 +296,8 @@ class _ShowCardState extends State<_ShowCard>
     super.dispose();
   }
 
-  void _navigateToDetails() =>
-      context.goNamed('showDetail', pathParameters: {'id': widget.showId});
+  void _navigateToDetails() => NavigationHandler.goToShow(
+      context, widget.showId, widget.gameName.toSlug());
 
   @override
   Widget build(final BuildContext context) {
@@ -368,7 +369,7 @@ class _ShowCardState extends State<_ShowCard>
           child: staticChild,
         );
       },
-      child: child, // Static child buraya aktarılır
+      child: child,
     );
   }
 

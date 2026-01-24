@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:ticketapp/core/services/local_storage_service.dart';
 import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
@@ -12,9 +11,7 @@ import '../../../../shared/widgets/button/custom_elevated_button.dart';
 import '../../../../shared/widgets/custom_art_words_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
-import '../../../auth/presentation/providers/storage_service.dart';
 import '../../domain/entities/user.dart';
-import '../../domain/entities/user.dart' as entity;
 import '../providers/user_mutation_provider.dart';
 import '../providers/user_provider.dart';
 

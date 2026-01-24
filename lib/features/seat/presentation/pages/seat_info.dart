@@ -222,7 +222,7 @@ class _CuratorSeatingAuditPageState
 class _UserDetailFetcher extends ConsumerWidget {
   final String uid;
 
-  const _UserDetailFetcher({required this.uid, super.key});
+  const _UserDetailFetcher({required this.uid});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {

@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import '../../../../../core/errors/failures.dart';
-import '../../data/models/ticket_model.dart';
 import '../entities/ticket.dart';
 import '../repositories/ticket_repository.dart';
 

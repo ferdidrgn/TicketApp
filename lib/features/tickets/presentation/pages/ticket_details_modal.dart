@@ -72,7 +72,7 @@ class _LuxuryTicketDetails extends StatelessWidget {
 class _LargeQRCodeSection extends StatelessWidget {
   final String ticketId;
 
-  const _LargeQRCodeSection({super.key, required this.ticketId});
+  const _LargeQRCodeSection({required this.ticketId});
 
   @override
   Widget build(final BuildContext context) {

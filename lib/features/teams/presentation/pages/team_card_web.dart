@@ -173,8 +173,8 @@ class _TeamMemberCardState extends State<_TeamMemberCard> {
 
   String _getInitials() {
     if (widget.member == null) return '?';
-    final firstName = widget.member!.firstName ?? '';
-    final lastName = widget.member!.lastName ?? '';
+    final firstName = widget.member!.firstName;
+    final lastName = widget.member!.lastName;
     return '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}'
         .toUpperCase();
   }

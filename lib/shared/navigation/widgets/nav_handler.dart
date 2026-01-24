@@ -40,8 +40,9 @@ class NavigationHandler {
   static void goToShow(
       final BuildContext context, final String showId, final String showSlug) {
     final String currentPath = GoRouterState.of(context).uri.path;
+
     final String targetPath =
-        '/show/$showId-$showSlug?from=${Uri.encodeComponent(currentPath)}';
+        '/show/$showSlug-$showId?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
   }
@@ -70,7 +71,8 @@ class NavigationHandler {
   static void goToSeatSelection(final BuildContext context, final String showId,
       final String eventId, final String userId) {
     final String currentPath = GoRouterState.of(context).uri.path;
-    final String targetPath = '/seat-selection/$showId-$eventId-$userId?from=${Uri.encodeComponent(currentPath)}';
+    final String targetPath =
+        '/seat-selection/$showId-$eventId-$userId?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
   }
