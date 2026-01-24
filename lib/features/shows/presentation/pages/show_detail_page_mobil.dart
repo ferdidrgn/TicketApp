@@ -15,6 +15,7 @@ import '../../../players/presentation/widgets/players_bubble_card.dart';
 import '../../../seat/presentation/pages/seat_details.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../domain/entities/show.dart';
+import '../widgets/mobile/show_event_list.dart';
 import '../widgets/mobile/show_info_section.dart';
 import '../widgets/mobile/show_parallax_header.dart';
 
@@ -114,6 +115,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                     allPlayers: state.players,
                     isGrayscale: true,
                   ),
+
+                ShowEventList(
+                  events: state.events,
+                  stages: state.stages,
+                  onTicketTap: (final eventId) =>
+                      _handleTicketPurchase(eventId),
+                ),
 
                 // Gallery
                 if (state.show.photosShowId.isNotEmpty) ...[
