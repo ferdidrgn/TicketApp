@@ -53,9 +53,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     widget.scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      ref.read(homeAssetsProvider.notifier).initializeVideo();
-    });
+    WidgetsBinding.instance.addPostFrameCallback(
+        (final _) => ref.read(homeAssetsProvider.notifier).initializeVideo());
   }
 
   @override
@@ -157,25 +156,18 @@ class _HomePageState extends ConsumerState<HomePage> {
             // 1. Hero Section (KeepAlive Eklendi)
             // Bu sayede aşağı inip yukarı çıkınca video baştan yüklenmez/yanıp sönmez.
             SliverToBoxAdapter(
-              key: _homeKey,
-              child: _KeepAliveWrapper(
-                child: HeroVideoSection(
-                    startAnimations: _internalAnimationTrigger),
-              ),
-            ),
+                key: _homeKey,
+                child: _KeepAliveWrapper(
+                    child: HeroVideoSection(
+                        startAnimations: _internalAnimationTrigger))),
 
             // 2. Shows Section
             SliverToBoxAdapter(
-              key: widget.showsKey,
-              child: const ShowsSection(),
-            ),
+                key: widget.showsKey, child: const ShowsSection()),
 
             const SliverToBoxAdapter(
-              child: TheaterSectionDivider(
-                style: DividerStyle.spotlight,
-                height: 150,
-              ),
-            ),
+                child: TheaterSectionDivider(
+                    style: DividerStyle.spotlight, height: 150)),
 
             // 3. Artistic Section
             SliverToBoxAdapter(
@@ -184,35 +176,24 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
 
             const SliverToBoxAdapter(
-              child: TheaterSectionDivider(
-                style: DividerStyle.spotlight,
-                height: 150,
-              ),
-            ),
+                child: TheaterSectionDivider(
+                    style: DividerStyle.spotlight, height: 150)),
 
             // 4. Goz Kap Vaz Yap
             const SliverToBoxAdapter(
-              child: RepaintBoundary(child: GozYapVazYapLanding()),
-            ),
+                child: RepaintBoundary(child: GozYapVazYapLanding())),
 
             const SliverToBoxAdapter(
-              child: TheaterSectionDivider(
-                style: DividerStyle.spotlight,
-                height: 150,
-              ),
-            ),
+                child: TheaterSectionDivider(
+                    style: DividerStyle.spotlight, height: 150)),
 
             // 5. Kurtar Beni Doktor
             SliverToBoxAdapter(
-              child: RepaintBoundary(child: KurtarBeniDoktorLanding()),
-            ),
+                child: RepaintBoundary(child: KurtarBeniDoktorLanding())),
 
             const SliverToBoxAdapter(
-              child: TheaterSectionDivider(
-                style: DividerStyle.iconCenter,
-                height: 120,
-              ),
-            ),
+                child: TheaterSectionDivider(
+                    style: DividerStyle.iconCenter, height: 120)),
 
             // 6. Info Sections
             SliverToBoxAdapter(key: widget.aboutKey, child: AboutCard()),
@@ -238,9 +219,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(height: 40),
           Text(
             "Sahne Hazırlanamadı!",
-            style: Theme.of(context)
-                .textTheme
-                .displaySmall
+            style: context.textTheme.displaySmall
                 ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
@@ -248,18 +227,17 @@ class _HomePageState extends ConsumerState<HomePage> {
               "Işıklar ve dekorlar yüklenirken bir sorun oluştu. Lütfen tekrar deneyin."),
           const SizedBox(height: 40),
           ElevatedButton(
-            onPressed: () {
-              // Provider'ları invalidate ederek veriyi tekrar çektiriyoruz
-              ref.invalidate(homeAssetsProvider);
-              ref.invalidate(showsProvider);
-            },
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-              backgroundColor: Colors.redAccent,
-            ),
-            child: const Text("SAHNEYİ YENİLE",
-                style: TextStyle(color: Colors.white)),
-          ),
+              onPressed: () {
+                // Provider'ları invalidate ederek veriyi tekrar çektiriyoruz
+                ref.invalidate(homeAssetsProvider);
+                ref.invalidate(showsProvider);
+              },
+              style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                  backgroundColor: Colors.redAccent),
+              child: const Text("SAHNEYİ YENİLE",
+                  style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -280,7 +258,7 @@ class _KeepAliveWrapperState extends State<_KeepAliveWrapper>
     with AutomaticKeepAliveClientMixin {
   @override
   Widget build(final BuildContext context) {
-    super.build(context); // Bunu çağırmak zorunludur
+    super.build(context);
     return widget.child;
   }
 
