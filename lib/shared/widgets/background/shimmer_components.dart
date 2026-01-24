@@ -303,3 +303,113 @@ class ArtisticPageShimmer extends StatelessWidget {
             color: Colors.white, borderRadius: BorderRadius.circular(radius)),
       );
 }
+
+// --- 5. WEB Artistic STIL SHIMMER ---
+
+class ArtisticWebShimmer extends StatelessWidget {
+  const ArtisticWebShimmer({super.key});
+
+  @override
+  Widget build(final BuildContext context) {
+    // Tek bir Shimmer.fromColors tüm sayfayı senkronize parlatır
+    return Shimmer.fromColors(
+      baseColor: context.isDarkMode ? Colors.grey[900]! : Colors.grey[300]!,
+      highlightColor:
+          context.isDarkMode ? Colors.grey[800]! : Colors.grey[100]!,
+      child: CustomScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        slivers: [
+          // 1. Hero Video Section Simülasyonu
+          SliverToBoxAdapter(
+            child: Container(
+              width: double.infinity,
+              height: context.screenHeight, // Tam ekran yüksekliği
+              color: Colors.white,
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+
+          // 2. "Öne Çıkan Oyunlar" Başlık Simülasyonu
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 80),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _shimmerBox(width: 150, height: 20, radius: 4),
+                  const SizedBox(height: 12),
+                  _shimmerBox(width: 300, height: 40, radius: 8),
+                ],
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
+
+          // 3. Shows Grid (Tiyatro Kartları)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 80),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 30,
+                crossAxisSpacing: 30,
+                childAspectRatio: 0.7,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (final context, final index) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                        child: _shimmerBox(
+                            width: double.infinity,
+                            height: double.infinity,
+                            radius: 20)),
+                    const SizedBox(height: 15),
+                    _shimmerBox(width: 200, height: 20, radius: 4),
+                    const SizedBox(height: 8),
+                    _shimmerBox(width: 120, height: 15, radius: 4),
+                  ],
+                ),
+                childCount: 3,
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+
+          // 4. Sanatsal Bölüm (Metafor/Landing) Simülasyonu
+          SliverToBoxAdapter(
+            child: Container(
+              width: double.infinity,
+              height: 500,
+              margin: const EdgeInsets.symmetric(horizontal: 80),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(40),
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
+    );
+  }
+
+  // Yardımcı kutu oluşturucu
+  Widget _shimmerBox(
+      {required final double width,
+      required final double height,
+      required final double radius}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+}

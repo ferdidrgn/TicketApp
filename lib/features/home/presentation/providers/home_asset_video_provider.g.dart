@@ -9,50 +9,54 @@ part of 'home_asset_video_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(HomeVideoAsset)
-const homeVideoAssetProvider = HomeVideoAssetProvider._();
+@ProviderFor(HomeAssets)
+const homeAssetsProvider = HomeAssetsProvider._();
 
-final class HomeVideoAssetProvider
-    extends $NotifierProvider<HomeVideoAsset, HomeVideoState> {
-  const HomeVideoAssetProvider._()
+final class HomeAssetsProvider
+    extends $NotifierProvider<HomeAssets, AsyncValue<VideoPlayerController?>> {
+  const HomeAssetsProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
-          name: r'homeVideoAssetProvider',
+          name: r'homeAssetsProvider',
           isAutoDispose: true,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
 
   @override
-  String debugGetCreateSourceHash() => _$homeVideoAssetHash();
+  String debugGetCreateSourceHash() => _$homeAssetsHash();
 
   @$internal
   @override
-  HomeVideoAsset create() => HomeVideoAsset();
+  HomeAssets create() => HomeAssets();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(HomeVideoState value) {
+  Override overrideWithValue(AsyncValue<VideoPlayerController?> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<HomeVideoState>(value),
+      providerOverride:
+          $SyncValueProvider<AsyncValue<VideoPlayerController?>>(value),
     );
   }
 }
 
-String _$homeVideoAssetHash() => r'9e5dc8a5e0e378fb257ca43650af1fd3f025eec7';
+String _$homeAssetsHash() => r'008f4cf4a983d4f4705695322d8a208474b50039';
 
-abstract class _$HomeVideoAsset extends $Notifier<HomeVideoState> {
-  HomeVideoState build();
+abstract class _$HomeAssets
+    extends $Notifier<AsyncValue<VideoPlayerController?>> {
+  AsyncValue<VideoPlayerController?> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<HomeVideoState, HomeVideoState>;
+    final ref = this.ref as $Ref<AsyncValue<VideoPlayerController?>,
+        AsyncValue<VideoPlayerController?>>;
     final element = ref.element as $ClassProviderElement<
-        AnyNotifier<HomeVideoState, HomeVideoState>,
-        HomeVideoState,
+        AnyNotifier<AsyncValue<VideoPlayerController?>,
+            AsyncValue<VideoPlayerController?>>,
+        AsyncValue<VideoPlayerController?>,
         Object?,
         Object?>;
     element.handleValue(ref, created);

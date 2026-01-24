@@ -11,10 +11,7 @@ import '../../providers/home_asset_video_provider.dart';
 class HeroVideoSection extends ConsumerStatefulWidget {
   final bool startAnimations;
 
-  const HeroVideoSection({
-    super.key,
-    this.startAnimations = false,
-  });
+  const HeroVideoSection({super.key, this.startAnimations = false});
 
   @override
   ConsumerState<HeroVideoSection> createState() => _HeroVideoSectionState();
@@ -25,25 +22,21 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
   late final AnimationController _controller;
   late final AnimationController _pulseController;
 
-  // Video tetikleme kontrolü
-  bool _videoInitTriggered = false;
-
   late final Animation<double> _contentOpacity;
   late final Animation<double> _contentSlide;
   late final Animation<double> _cardSlide;
   late final Animation<double> _cardOpacity;
 
-  // 📸 FALLBACK GÖRSEL
   final String _fallbackImage = 'assets/images/main_theatre.png';
 
-  @override
+  @override // Kaydırdığında videonun ölmemesi için kritik!
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
 
-    // 1. Animasyon Controllerları
+    // 1. Animasyon Controllerları (KORUNDU)
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -54,7 +47,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    // 2. Animasyon Tanımları
+    // 2. Animasyon Tanımları (KORUNDU)
     _contentSlide = Tween<double>(begin: 30.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -79,45 +72,15 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
       curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
     );
 
-    // 🚀 DÜZELTME: Sayfa açılır açılmaz videoyu başlat
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeAndPlayVideo();
-
-      if (widget.startAnimations) {
-        _controller.forward();
-      }
-    });
+    // İlk açılışta animasyon başlasın mı kontrolü
+    if (widget.startAnimations) _controller.forward();
   }
 
   @override
   void didUpdateWidget(covariant final HeroVideoSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Animasyon durumu değişirse tetikle
-    if (!oldWidget.startAnimations && widget.startAnimations) {
+    if (!oldWidget.startAnimations && widget.startAnimations)
       _controller.forward(from: 0);
-      _initializeAndPlayVideo();
-    }
-  }
-
-  // 🚀 VİDEO BAŞLATMA MANTIĞI (GÜNCELLENDİ)
-  void _initializeAndPlayVideo() {
-    if (_videoInitTriggered) return;
-    _videoInitTriggered = true;
-
-    // Provider üzerindeki videoyu başlatıyoruz
-    final notifier = ref.read(homeAssetsProvider.notifier);
-
-    // Önce initialize et (varsa metodun), sonra oynat
-    // Not: initializeVideo metodun yoksa playVideo yeterli olabilir,
-    // ancak playVideo'nun içini kontrol etmelisin.
-    notifier.initializeVideo();
-
-    // Küçük bir gecikme ile oynatmayı garantiye al (özellikle web için)
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        notifier.playVideo();
-      }
-    });
   }
 
   @override
@@ -127,97 +90,105 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
     super.dispose();
   }
 
-  // GÖRÜNÜRLÜK DEĞİŞİKLİĞİ
   void _handleVisibilityChanged(
       final VisibilityInfo info, final VideoPlayerController? controller) {
     if (controller == null || !controller.value.isInitialized) return;
-
-    if (info.visibleFraction == 0) {
-      if (controller.value.isPlaying) {
-        controller.pause();
-      }
-    } else {
-      if (!controller.value.isPlaying) {
-        controller.play();
-      }
-    }
+    if (info.visibleFraction == 0)
+      controller.pause();
+    else
+      controller.play();
   }
 
   @override
   Widget build(final BuildContext context) {
-    super.build(context);
+    super.build(context); // AutomaticKeepAlive için zorunlu
 
-    final assetsState = ref.watch(homeAssetsProvider);
-    final controller = assetsState.videoController;
-    // Video hazır mı? VEYA controller initialize olmuş mu?
-    final hasVideo = controller != null && controller.value.isInitialized;
+    // Riverpod ile video durumunu izle
+    final videoState = ref.watch(homeAssetsProvider);
 
-    return VisibilityDetector(
-      key: const Key('hero-video-visibility-key'),
-      onVisibilityChanged: (final info) =>
-          _handleVisibilityChanged(info, controller),
-      child: SizedBox(
-        height: context.screenHeight,
-        width: double.infinity,
-        child: Stack(
-          children: [
-            // 1. ZEMİN
-            Container(color: const Color(0xFF050505)),
+    // Video verisi hazır mı kontrol et
+    return videoState.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      // Ya da kendi Shimmer'ın
+      error: (final err, final stack) => _buildFallbackContent(context),
+      data: (final controller) {
+        final hasVideo = controller != null && controller.value.isInitialized;
 
-            // 2. MASAÜSTÜ
-            if (!context.isMobile) ...[
-              Positioned.fill(
-                child: _buildDesktopCinematicVideo(controller, hasVideo),
-              ),
-              Positioned.fill(
-                child: _buildDesktopContent(context),
-              ),
-              _buildIntegratedGlassCard(context),
-              // Scroll İkonu (Video yüklense de yüklenmese de animasyon başladıysa görünsün)
-              if (widget.startAnimations)
-                Positioned(
-                  bottom: 30,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 1000),
-                      opacity: 1.0,
-                      child: Column(
-                        children: [
-                          Text(
-                            'KEŞFETMEK İÇİN KAYDIR',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.5),
-                              fontSize: 10,
-                              letterSpacing: 4,
-                            ),
-                          ),
-                          Icon(Icons.keyboard_arrow_down,
-                              color: WebColors.primaryGold.withOpacity(0.6)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+        return VisibilityDetector(
+          key: const Key('hero-video-visibility-key'),
+          onVisibilityChanged: (final info) =>
+              _handleVisibilityChanged(info, controller),
+          child: SizedBox(
+            height: context.screenHeight,
+            width: double.infinity,
+            child: Stack(
+              children: [
+                Container(color: const Color(0xFF050505)),
 
-            // 3. MOBİL
-            if (context.isMobile)
-              _buildMobileEditorialLayout(context, controller, hasVideo),
-          ],
-        ),
+                // Masaüstü Layout
+                if (!context.isMobile) ...[
+                  Positioned.fill(
+                      child: _buildDesktopCinematicVideo(controller, hasVideo)),
+                  Positioned.fill(child: _buildDesktopContent(context)),
+                  _buildIntegratedGlassCard(context),
+                  if (widget.startAnimations) _buildScrollIcon(),
+                ],
+
+                // Mobil Layout
+                if (context.isMobile)
+                  _buildMobileEditorialLayout(context, controller, hasVideo),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Fallback (Hata durumunda) içeriği
+  Widget _buildFallbackContent(final BuildContext context) {
+    return SizedBox(
+      height: context.screenHeight,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          _buildFallbackImageWidget(),
+          _buildDesktopContent(context),
+        ],
       ),
     );
   }
 
-  // ... (Geri kalan _buildMobileEditorialLayout, _buildDesktopCinematicVideo vb. kodların AYNI KALACAK)
-  // Sadece yukarıdaki initState ve _initializeAndPlayVideo kısımlarını değiştirmen yeterli.
+  Widget _buildFallbackImageWidget() =>
+      Positioned.fill(child: Image.asset(_fallbackImage, fit: BoxFit.cover));
 
-  // KOLAYLIK OLSUN DİYE DEĞİŞMEYEN KISIMLARI TEKRAR YAZMIYORUM,
-  // SENİN KODUNDAKİ GİBİ KALABİLİR.
-
-  // AŞAĞIDAKİLER SENİN KODUNUN AYNISI (KOPYALAYABİLİRSİN):
+  Widget _buildScrollIcon() {
+    return Positioned(
+      bottom: 30,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 1000),
+          opacity: 1.0,
+          child: Column(
+            children: [
+              Text(
+                'KEŞFETMEK İÇİN KAYDIR',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 10,
+                  letterSpacing: 4,
+                ),
+              ),
+              Icon(Icons.keyboard_arrow_down,
+                  color: WebColors.primaryGold.withOpacity(0.6)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildMobileEditorialLayout(
     final BuildContext context,
@@ -273,9 +244,7 @@ class _HeroVideoSectionState extends ConsumerState<HeroVideoSection>
               // hasVideo kontrolü eklendi
               hasVideo && controller!.value.isPlaying
                   ? FadeTransition(
-                      opacity: _pulseController,
-                      child: _buildRedDot(),
-                    )
+                      opacity: _pulseController, child: _buildRedDot())
                   : _buildRedDot(),
               const SizedBox(width: 8),
               Text(

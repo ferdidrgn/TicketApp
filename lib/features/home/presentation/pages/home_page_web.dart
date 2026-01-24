@@ -9,6 +9,8 @@ import 'package:ticketapp/features/shows/presentation/widgets/web/kurtar_beni_do
 import 'package:ticketapp/features/shows/presentation/widgets/web/shows_section_web.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import 'package:ticketapp/features/teams/presentation/pages/team_card_web.dart';
+import 'package:ticketapp/shared/widgets/background/shimmer_components.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../about/presentation/widgets/about_cart_web.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -51,12 +53,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     widget.scrollController.addListener(_onScroll);
-
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      // 1. Video assetlerini başlat
       ref.read(homeAssetsProvider.notifier).initializeVideo();
-      ref.read(showProvider.notifier).loadShows(false);
-      // ----------------------------------------
     });
   }
 
@@ -113,15 +111,26 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(final BuildContext context) {
     final videoState = ref.watch(homeAssetsProvider);
-    final isVideoReady = videoState.isVideoReady;
+    final showState = ref.watch(showsProvider(isLimit: true));
 
-    if (isVideoReady &&
-        videoState.videoController != null &&
-        !videoState.videoController!.value.isPlaying)
-      videoState.videoController!.play();
+    final bool isLoading = videoState.isLoading || showState.isLoading;
+    final bool hasError = videoState.hasError || showState.hasError;
+    final bool isVideoReady = videoState.hasValue && videoState.value != null;
 
+    // 3. HATA DURUMU (En üstte kontrol edilir)
+    if (hasError) return Scaffold(body: _buildWebErrorWidget(context, ref));
+
+    // 4. YÜKLEME DURUMU (Shimmer)
+    if (isLoading) return const Scaffold(body: ArtisticWebShimmer());
+
+    // 5. ASIL İÇERİK (Data hazırsa burası çalışır)
+    // Eski video başlatma mantığını buraya aldık
+    if (isVideoReady && !videoState.value!.value.isPlaying)
+      videoState.value!.play();
+
+    // Animasyon tetikleyici
     if (isVideoReady && !_internalAnimationTrigger)
-      Future.delayed(const Duration(milliseconds: 1000), () {
+      Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) setState(() => _internalAnimationTrigger = true);
       });
 
@@ -151,8 +160,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               key: _homeKey,
               child: _KeepAliveWrapper(
                 child: HeroVideoSection(
-                  startAnimations: _internalAnimationTrigger,
-                ),
+                    startAnimations: _internalAnimationTrigger),
               ),
             ),
 
@@ -214,6 +222,45 @@ class _HomePageState extends ConsumerState<HomePage> {
             const SliverToBoxAdapter(child: Footer()),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildWebErrorWidget(final BuildContext context, final WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: context.isDarkMode ? const Color(0xFF0F0F0F) : Colors.white,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.theater_comedy, size: 120, color: Colors.redAccent),
+          const SizedBox(height: 40),
+          Text(
+            "Sahne Hazırlanamadı!",
+            style: Theme.of(context)
+                .textTheme
+                .displaySmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+              "Işıklar ve dekorlar yüklenirken bir sorun oluştu. Lütfen tekrar deneyin."),
+          const SizedBox(height: 40),
+          ElevatedButton(
+            onPressed: () {
+              // Provider'ları invalidate ederek veriyi tekrar çektiriyoruz
+              ref.invalidate(homeAssetsProvider);
+              ref.invalidate(showsProvider);
+            },
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+              backgroundColor: Colors.redAccent,
+            ),
+            child: const Text("SAHNEYİ YENİLE",
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
