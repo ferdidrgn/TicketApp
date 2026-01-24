@@ -249,7 +249,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     color: context.colors.onSurface,
                     letterSpacing: 2)),
             const SizedBox(height: 6),
-            Text(user.city ?? "Bilinmeyen Şehir",
+            Text(user.city,
                 style: TextStyle(
                     color: context.colors.primary,
                     fontWeight: FontWeight.w800,

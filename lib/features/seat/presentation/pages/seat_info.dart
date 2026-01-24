@@ -151,7 +151,7 @@ class _CuratorSeatingAuditPageState
                   Text(state.show.name.toUpperCase(),
                       style: context.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w900)),
-                  Text(state.event.date ?? "",
+                  Text(state.event.date,
                       style:
                       const TextStyle(color: Colors.green, fontSize: 11)),
                 ],

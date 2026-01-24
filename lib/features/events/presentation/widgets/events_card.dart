@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../shared/widgets/background/shimmer_components.dart';
 
 class EventsCard extends StatelessWidget {
   final String imageUrl;

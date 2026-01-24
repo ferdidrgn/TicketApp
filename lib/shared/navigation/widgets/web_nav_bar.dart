@@ -35,6 +35,7 @@ class WebBarState extends State<WebBar> with ResponsiveUtils {
 
   // OYUN LİSTESİ (Hem WebBar hem NavBar için merkezi veri)
   static const Map<String, String> _gamesList = {
+    'shows': 'Tüm Oyunlar',
     'artistic': 'Metafor',
     'gozKap': 'Gözlerimi Kaparım Vazifemi Yaparım',
     'kurtarBeni': 'Sevgili Doktor',
@@ -314,7 +315,7 @@ class _WebNavBarState extends State<WebNavBar>
   List<Widget> _navItems(final BuildContext context) {
     final items = {
       'home': 'ANA SAYFA',
-      'shows': context.l10n.plays,
+      'shows': context.l10n.plays.toUpperCase(),
       'about': 'HAKKIMIZDA',
       'team': 'EKİP',
       'contact': 'İLETİŞİM'
@@ -332,9 +333,7 @@ class _WebNavBarState extends State<WebNavBar>
       ValueListenableBuilder<String>(
         valueListenable: widget.activeSection,
         builder: (final context, final active, final _) {
-          bool isActive = active == section;
-          if (section == 'shows')
-            isActive = active == 'shows' || widget.games.containsKey(active);
+          final bool isActive = active == section;
 
           return GestureDetector(
             onTap: () => widget.onNavigate(section),
@@ -359,19 +358,37 @@ class _WebNavBarState extends State<WebNavBar>
       );
 
   Widget _buildShowsDropdown(final BuildContext context, final String label) {
-    return PopupMenuButton<String>(
-      offset: const Offset(0, 45),
-      position: PopupMenuPosition.under,
-      color: WebColors.darkBlueSurface,
-      onSelected: (final value) => widget.onNavigate(value),
-      child: _navItem(context, 'shows', label),
-      itemBuilder: (final context) => widget.games.entries.map((final game) {
-        return PopupMenuItem<String>(
-          value: game.key,
-          child: Text(game.value,
-              style: const TextStyle(color: Colors.white, fontSize: 13)),
-        );
-      }).toList(),
+    final menuKey = GlobalKey<PopupMenuButtonState<String>>();
+
+    return MouseRegion(
+      onEnter: (final _) => menuKey.currentState?.showButtonMenu(),
+      child: PopupMenuButton<String>(
+        key: menuKey,
+        offset: const Offset(0, 50),
+        position: PopupMenuPosition.under,
+        color: WebColors.darkBlueSurface,
+        elevation: 8,
+        onSelected: widget.onNavigate,
+
+        // TIKLANAN ANA BUTON
+        child: _navItem(context, 'shows', label),
+
+        itemBuilder: (final _) => widget.games.entries.map((final game) {
+          return PopupMenuItem<String>(
+            value: game.key,
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              game.value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -383,10 +400,10 @@ class _WebNavBarState extends State<WebNavBar>
         itemBuilder: (final context) => [
           _MobileMenuItem('home', 'ANA SAYFA', Icons.home),
           // "Oyunlar" Başlığı (Tıklanamaz)
-          const PopupMenuItem(
+          PopupMenuItem(
             enabled: false,
-            child: Text('OYUNLAR',
-                style: TextStyle(
+            child: Text(context.l10n.plays.toUpperCase(),
+                style: const TextStyle(
                     color: WebColors.primaryGold,
                     fontWeight: FontWeight.bold,
                     fontSize: 11)),
