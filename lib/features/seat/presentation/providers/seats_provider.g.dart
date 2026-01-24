@@ -53,14 +53,12 @@ final class GetSeatsByStageUseCaseProvider extends $FunctionalProvider<
 String _$getSeatsByStageUseCaseHash() =>
     r'904efaa6d9690530e7beb4215ca5c6fd5343a39d';
 
-/// 🔥 SAHNE KOLTUK PLANINI (LAYOUT) ÇEKER
-/// Örn: Map<"A", ["A1", "A2"...]>
+/// 🎯 SAHNE DÜZENİ (Layout)
 
 @ProviderFor(stageLayout)
 const stageLayoutProvider = StageLayoutFamily._();
 
-/// 🔥 SAHNE KOLTUK PLANINI (LAYOUT) ÇEKER
-/// Örn: Map<"A", ["A1", "A2"...]>
+/// 🎯 SAHNE DÜZENİ (Layout)
 
 final class StageLayoutProvider extends $FunctionalProvider<
         AsyncValue<Map<String, List<String>>>,
@@ -69,8 +67,7 @@ final class StageLayoutProvider extends $FunctionalProvider<
     with
         $FutureModifier<Map<String, List<String>>>,
         $FutureProvider<Map<String, List<String>>> {
-  /// 🔥 SAHNE KOLTUK PLANINI (LAYOUT) ÇEKER
-  /// Örn: Map<"A", ["A1", "A2"...]>
+  /// 🎯 SAHNE DÜZENİ (Layout)
   const StageLayoutProvider._(
       {required StageLayoutFamily super.from, required String super.argument})
       : super(
@@ -119,8 +116,7 @@ final class StageLayoutProvider extends $FunctionalProvider<
 
 String _$stageLayoutHash() => r'46a20f8c74fdbb050f458eee293c3c69d4f5375a';
 
-/// 🔥 SAHNE KOLTUK PLANINI (LAYOUT) ÇEKER
-/// Örn: Map<"A", ["A1", "A2"...]>
+/// 🎯 SAHNE DÜZENİ (Layout)
 
 final class StageLayoutFamily extends $Family
     with
@@ -134,8 +130,7 @@ final class StageLayoutFamily extends $Family
           isAutoDispose: true,
         );
 
-  /// 🔥 SAHNE KOLTUK PLANINI (LAYOUT) ÇEKER
-  /// Örn: Map<"A", ["A1", "A2"...]>
+  /// 🎯 SAHNE DÜZENİ (Layout)
 
   StageLayoutProvider call(
     String stageId,
@@ -146,14 +141,12 @@ final class StageLayoutFamily extends $Family
   String toString() => r'stageLayoutProvider';
 }
 
-/// 🚀 SELECTION & AUDIT İÇİN COMPOSITE PROVIDER
-/// Bir etkinliğin ihtiyacı olan TÜM verileri paketler.
+/// 🎯 ETKİNLİK KOLTUK PAKETİ (Composite)
 
 @ProviderFor(eventSeating)
 const eventSeatingProvider = EventSeatingFamily._();
 
-/// 🚀 SELECTION & AUDIT İÇİN COMPOSITE PROVIDER
-/// Bir etkinliğin ihtiyacı olan TÜM verileri paketler.
+/// 🎯 ETKİNLİK KOLTUK PAKETİ (Composite)
 
 final class EventSeatingProvider extends $FunctionalProvider<
         AsyncValue<EventSeatingState>,
@@ -162,8 +155,7 @@ final class EventSeatingProvider extends $FunctionalProvider<
     with
         $FutureModifier<EventSeatingState>,
         $FutureProvider<EventSeatingState> {
-  /// 🚀 SELECTION & AUDIT İÇİN COMPOSITE PROVIDER
-  /// Bir etkinliğin ihtiyacı olan TÜM verileri paketler.
+  /// 🎯 ETKİNLİK KOLTUK PAKETİ (Composite)
   const EventSeatingProvider._(
       {required EventSeatingFamily super.from,
       required ({
@@ -219,10 +211,9 @@ final class EventSeatingProvider extends $FunctionalProvider<
   }
 }
 
-String _$eventSeatingHash() => r'fc767f84969c447346e3be703d12482ca30cda05';
+String _$eventSeatingHash() => r'a201fff87aeff8b0d2c0b5a46c6523ac2d4eccbe';
 
-/// 🚀 SELECTION & AUDIT İÇİN COMPOSITE PROVIDER
-/// Bir etkinliğin ihtiyacı olan TÜM verileri paketler.
+/// 🎯 ETKİNLİK KOLTUK PAKETİ (Composite)
 
 final class EventSeatingFamily extends $Family
     with
@@ -241,8 +232,7 @@ final class EventSeatingFamily extends $Family
           isAutoDispose: true,
         );
 
-  /// 🚀 SELECTION & AUDIT İÇİN COMPOSITE PROVIDER
-  /// Bir etkinliğin ihtiyacı olan TÜM verileri paketler.
+  /// 🎯 ETKİNLİK KOLTUK PAKETİ (Composite)
 
   EventSeatingProvider call({
     required String eventId,
