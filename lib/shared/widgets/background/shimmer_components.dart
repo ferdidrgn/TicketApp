@@ -126,271 +126,180 @@ class FullPageShimmer extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header simülasyonu (Opsiyonel)
-          const SizedBox(height: 40),
+    // Shimmer.fromColors en üstte olursa, içindeki tüm alt elemanlar senkronize parlar.
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 50),
 
-          // Hero Banner Shimmer
-          Padding(
-            padding: context.sectionPadding,
-            child: ShimmerLoading(
-                width: double.infinity,
-                height: context.hp(45),
-                borderRadius: 30),
-          ),
+            // 1. Arama Çubuğu veya Başlık Alanı
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _shimmerBox(width: 200, height: 30, radius: 8),
+            ),
 
-          // Kategori Listesi Shimmer
-          SizedBox(
-            height: 50,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.only(
-                  left: context.responsive(mobile: 24, desktop: 60)),
-              itemCount: 6,
-              itemBuilder: (final _, final __) => const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: ShimmerLoading(height: 40, width: 120, borderRadius: 12),
+            const SizedBox(height: 20),
+
+            // 2. Hero Banner (Öne Çıkan Mobilya)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child:
+                  _shimmerBox(width: double.infinity, height: 200, radius: 20),
+            ),
+
+            const SizedBox(height: 30),
+
+            // 3. Kategoriler (Yatay Kaydırma Simülasyonu)
+            SizedBox(
+              height: 40,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 24),
+                itemCount: 5,
+                itemBuilder: (final _, final __) => Padding(
+                  padding: const EdgeInsets.only(right: 15),
+                  child: _shimmerBox(width: 80, height: 40, radius: 12),
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 40),
+            const SizedBox(height: 30),
 
-          // Ürün Gridi Shimmer
-          Padding(
-              padding: context.sectionPadding,
-              child: const ShimmerCard(itemCount: 8)),
-        ],
+            // 4. Ürün Gridi (Mobilya Kartları)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 4,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  childAspectRatio: 0.8,
+                ),
+                itemBuilder: (final _, final __) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                        child: _shimmerBox(
+                            width: double.infinity,
+                            height: double.infinity,
+                            radius: 15)),
+                    const SizedBox(height: 10),
+                    _shimmerBox(width: 100, height: 15, radius: 5),
+                    const SizedBox(height: 5),
+                    _shimmerBox(width: 60, height: 15, radius: 5),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Tekrarlayan kutuları oluşturmak için yardımcı metod
+  Widget _shimmerBox(
+      {required final double width,
+      required final double height,
+      required final double radius}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
 }
 
-// --- 4. VINTAGE STIL SHIMMER (Antika temalı) ---
-class VintagePageShimmer extends StatelessWidget {
-  const VintagePageShimmer({super.key});
+// --- 4. Artistic STIL SHIMMER ---
+class ArtisticPageShimmer extends StatelessWidget {
+  const ArtisticPageShimmer({super.key});
 
   @override
-  Widget build(final BuildContext context) {
-    return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Vintage Hero Banner Shimmer
-          Container(
-            height: 280,
-            color: const Color(0xFF5D4037),
-            child: Stack(
-              children: [
-                Shimmer.fromColors(
-                  baseColor: const Color(0xFF6B4F3A),
-                  highlightColor: const Color(0xFF8B7355),
-                  child: Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          const Color(0xFF5D4037),
-                          const Color(0xFF8B7355).withOpacity(0.6),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 24,
-                  bottom: 20,
-                  child: Container(
-                    width: context.responsive(mobile: 250, desktop: 350),
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFD4B483)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Search Bar Shimmer
-          Container(
-            padding:
-                EdgeInsets.all(context.responsive(mobile: 20, desktop: 24)),
-            color: Colors.white,
-            child: Column(
-              children: [
-                Shimmer.fromColors(
-                  baseColor: Colors.grey.shade200,
-                  highlightColor: Colors.grey.shade100,
-                  child: Container(
-                    height: 58,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Kategori Chips Shimmer
-                SizedBox(
-                  height: 50,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: 6,
-                    separatorBuilder: (final _, final __) =>
-                        const SizedBox(width: 12),
-                    itemBuilder: (final context, final index) =>
-                        Shimmer.fromColors(
-                      baseColor: Colors.grey.shade200,
-                      highlightColor: Colors.grey.shade100,
-                      child: Container(
-                        width: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(25),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Ürün Grid Shimmer (Vintage Stil)
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: 8,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:
-                    context.responsive(mobile: 2, tablet: 3, desktop: 4),
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.75,
+  Widget build(final BuildContext context) => Shimmer.fromColors(
+        baseColor: context.isDarkMode ? Colors.grey[900]! : Colors.grey[300]!,
+        highlightColor:
+            context.isDarkMode ? Colors.grey[800]! : Colors.grey[100]!,
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 60),
+              // Sanatsal Hero (Sahne/Afiş Alanı)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _artBox(
+                    width: 180,
+                    height: 35,
+                    radius: 8), // "Öne Çıkanlar" başlığı simülasyonu
               ),
-              itemBuilder: (final context, final index) => Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Shimmer.fromColors(
-                        baseColor: Colors.grey.shade200,
-                        highlightColor: Colors.grey.shade100,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
+              const SizedBox(height: 20),
+
+              // Büyük Sahne Kartı
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _artBox(width: double.infinity, height: 220, radius: 24),
+              ),
+
+              const SizedBox(height: 40),
+
+              // Tiyatro Kategorileri (Yuvarlak Circle Shimmer'lar)
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(left: 24),
+                  itemCount: 5,
+                  itemBuilder: (final _, final __) => Padding(
+                    padding: const EdgeInsets.only(right: 20),
+                    child: Column(
+                      children: [
+                        _artBox(width: 65, height: 65, radius: 32.5),
+                        // Yuvarlak kategori
+                        const SizedBox(height: 8),
+                        _artBox(width: 50, height: 12, radius: 4),
+                      ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Shimmer.fromColors(
-                            baseColor: Colors.grey.shade200,
-                            highlightColor: Colors.grey.shade100,
-                            child: Container(
-                              height: 12,
-                              width: 80,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Shimmer.fromColors(
-                            baseColor: Colors.grey.shade200,
-                            highlightColor: Colors.grey.shade100,
-                            child: Container(
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Shimmer.fromColors(
-                                baseColor: Colors.grey.shade200,
-                                highlightColor: Colors.grey.shade100,
-                                child: Container(
-                                  height: 20,
-                                  width: 60,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                              ),
-                              Shimmer.fromColors(
-                                baseColor: Colors.grey.shade200,
-                                highlightColor: Colors.grey.shade100,
-                                child: Container(
-                                  height: 20,
-                                  width: 20,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          // Adsense Banner Shimmer
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Shimmer.fromColors(
-              baseColor: Colors.grey.shade200,
-              highlightColor: Colors.grey.shade100,
-              child: Container(
-                height: 250,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
+              const SizedBox(height: 20),
+
+              // Bilet Koçanı / Etkinlik Kartları simülasyonu
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _artBox(width: double.infinity, height: 120, radius: 16),
               ),
-            ),
+              const SizedBox(height: 15),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _artBox(width: double.infinity, height: 120, radius: 16),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      );
+
+  Widget _artBox(
+          {required final double width,
+          required final double height,
+          required final double radius}) =>
+      Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(radius)),
+      );
 }

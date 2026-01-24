@@ -1,43 +1,32 @@
 import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../../core/base/base_loadable_state.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shows/domain/entities/show.dart';
 
 class ShowCollage extends StatelessWidget {
-  final LoadableState<dynamic, List<Show>> state;
+  final List<Show> shows;
   final Function(String showId) onShowTap;
 
   const ShowCollage({
     super.key,
-    required this.state,
+    required this.shows,
     required this.onShowTap,
   });
 
   @override
   Widget build(final BuildContext context) {
-    if (state.isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
-        child: ShimmerLoading(height: 400, width: double.infinity),
-      );
-    }
+    if (shows.isEmpty) return const SizedBox.shrink();
 
-    if (!state.hasData || state.dataList!.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final shows = state.dataList!.take(12).toList();
+    final displayShows = shows.take(12).toList();
 
     return Column(
       children: [
-        _HeroShowSection(shows: shows, onShowTap: onShowTap),
+        _HeroShowSection(shows: displayShows, onShowTap: onShowTap),
         const SizedBox(height: 15),
-        _HorizontalShowStrip(shows: shows, onShowTap: onShowTap),
+        _HorizontalShowStrip(shows: displayShows, onShowTap: onShowTap),
         const SizedBox(height: 20),
-        _MosaicShowGrid(shows: shows, onShowTap: onShowTap),
+        _MosaicShowGrid(shows: displayShows, onShowTap: onShowTap),
       ],
     );
   }
@@ -48,10 +37,7 @@ class _HeroShowSection extends StatelessWidget {
   final List<Show> shows;
   final Function(String) onShowTap;
 
-  const _HeroShowSection({
-    required this.shows,
-    required this.onShowTap,
-  });
+  const _HeroShowSection({required this.shows, required this.onShowTap});
 
   @override
   Widget build(final BuildContext context) {
@@ -403,9 +389,8 @@ class _TagLabel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: isFeatured
-            ? Colors.white.withOpacity(0.9)
-            : context.primaryColor,
+        color:
+            isFeatured ? Colors.white.withOpacity(0.9) : context.primaryColor,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
