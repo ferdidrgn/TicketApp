@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/features/home/presentation/pages/home_page_web.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../core/theme/app_colors.dart';
+import 'nav_handler.dart';
 
 /// Ana sayfa scaffold'u - Tüm componentleri bir araya getirir
 /// Active section tracking, smooth scroll ve modern navbar içerir
@@ -227,8 +228,7 @@ class _WebNavBarState extends State<WebNavBar>
   // ------------------------
   Widget _desktopNav(final BuildContext context) => Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: context.responsive(mobile: 20, desktop: 40),
-        ),
+            horizontal: context.responsive(mobile: 20, desktop: 40)),
         child: Row(
           children: [
             _logo(context),
@@ -236,7 +236,11 @@ class _WebNavBarState extends State<WebNavBar>
             _title(context),
             const Spacer(),
             Row(
-              children: _navItems(context),
+              children: [
+                ..._navItems(context),
+                const SizedBox(width: 12),
+                _searchButton(context),
+              ],
             ),
           ],
         ),
@@ -261,18 +265,14 @@ class _WebNavBarState extends State<WebNavBar>
   // MOBILE
   // ------------------------
   Widget _mobileNav(final BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Stack(
-          alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _logo(context),
-                _mobileMenu(context),
-              ],
-            ),
-            _title(context),
+            _logo(context),
+            const SizedBox(width: 8),
+            Expanded(child: _title(context)),
+            _searchButton(context),
+            _mobileMenu(context),
           ],
         ),
       );
@@ -296,17 +296,21 @@ class _WebNavBarState extends State<WebNavBar>
     );
   }
 
-  Widget _title(final BuildContext context) => ShaderMask(
-        shaderCallback: WebColors.goldGradient.createShader,
-        child: Text(
-          'TiyatRol',
-          style: TextStyle(
-            fontSize: context.responsive(mobile: 18, desktop: 24),
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
+  Widget _title(final BuildContext context) => FittedBox(
+    fit: BoxFit.scaleDown,
+    alignment: Alignment.centerLeft,
+    child: ShaderMask(
+      shaderCallback: WebColors.goldGradient.createShader,
+      child: Text(
+        'TiyatRol',
+        style: TextStyle(
+          fontSize: context.responsive(mobile: 18, desktop: 24),
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _navItem(final BuildContext context, final String section,
           final String label) =>
@@ -355,6 +359,13 @@ class _WebNavBarState extends State<WebNavBar>
           _MobileMenuItem('team', 'EKİP', Icons.people),
           _MobileMenuItem('contact', 'İLETİŞİM', Icons.email),
         ],
+      );
+
+  Widget _searchButton(final BuildContext context) => IconButton(
+        onPressed: () => NavigationHandler.goToSearch(context),
+        icon: const Icon(Icons.search_rounded, color: WebColors.primaryGold),
+        tooltip: 'Deneyim',
+        splashRadius: 24,
       );
 }
 
