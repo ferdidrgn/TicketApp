@@ -1,10 +1,10 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/common/constants/app_constants.dart';
 import '../../core/common/extentions/app_context_ui_extension.dart';
 import '../../features/shows/presentation/providers/gallery_provider.dart';
-import 'empty_state_message_web.dart';
 import 'optimized_cached_image.dart';
 
 class GallerySection extends ConsumerStatefulWidget {
@@ -22,64 +22,79 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
   @override
   Widget build(final BuildContext context) {
     if (widget.photos.isEmpty)
-      return EmptyStateMessage(
-          message: context.l10n.galleryEmpty, icon: Icons.photo_library);
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.photo_library_outlined,
+                size: 48,
+                color: Colors.white.withOpacity(0.2),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Bu oyuna ait henüz fotoğraf eklenmemiş.",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.4),
+                  fontSize: 14,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 
     final isMobile = context.isMobile;
     final isTablet = context.isTablet;
     final photos = widget.photos;
 
-    if (isMobile) {
-      if (photos.length <= 4) {
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+    // MOBİL GÖRÜNÜM: Yatay akışkan liste veya 2'li Grid
+    if (isMobile) if (photos.length <= 4)
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: photos.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 4 / 3,
+        ),
+        itemBuilder: (final _, final index) => _GalleryItem(
+          url: photos[index],
+          index: index,
+          allPhotos: photos,
+          isMobile: true,
+        ),
+      );
+    else
+      return SizedBox(
+        height: 200,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: photos.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 4 / 3,
-          ),
-          itemBuilder: (final _, final index) {
-            return _GalleryItem(
+          itemBuilder: (final _, final index) => Container(
+            width: 160,
+            margin: const EdgeInsets.only(right: 12),
+            child: _GalleryItem(
               url: photos[index],
               index: index,
               allPhotos: photos,
               isMobile: true,
-            );
-          },
-        );
-      } else {
-        return SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: photos.length,
-            itemBuilder: (final _, final index) {
-              return Container(
-                width: 160,
-                margin: const EdgeInsets.only(right: 12),
-                child: _GalleryItem(
-                  url: photos[index],
-                  index: index,
-                  allPhotos: photos,
-                  isMobile: true,
-                ),
-              );
-            },
+            ),
           ),
-        );
-      }
-    }
+        ),
+      );
 
-    final totalPages =
-        (photos.length / 8).ceil();
+    // WEB/TABLET GÖRÜNÜM: Sayfalamalı Grid
+    final totalPages = (photos.length / 8).ceil();
     final start = _currentPage * 8;
-    final end =
-        math.min(start + 8, photos.length);
+    final end = math.min(start + 8, photos.length);
 
     return Column(
       children: [
@@ -98,14 +113,12 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
                 mainAxisSpacing: spacing,
                 childAspectRatio: 4 / 3,
               ),
-              itemBuilder: (final _, final index) {
-                return _GalleryItem(
-                  url: photos[start + index],
-                  index: start + index,
-                  allPhotos: photos,
-                  isMobile: false,
-                );
-              },
+              itemBuilder: (final _, final index) => _GalleryItem(
+                url: photos[start + index],
+                index: start + index,
+                allPhotos: photos,
+                isMobile: false,
+              ),
             );
           },
         ),
@@ -113,15 +126,16 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
           GalleryPaginationControls(
             currentPage: _currentPage,
             totalPages: totalPages,
-            onPageChanged: (final page) {
-              setState(() => _currentPage = page);
-            },
+            onPageChanged: (final page) => setState(() => _currentPage = page),
           ),
       ],
     );
   }
 }
 
+/// ------------------------------------------------------------
+/// TEKİL GALERİ ÖĞESİ
+/// ------------------------------------------------------------
 class _GalleryItem extends ConsumerWidget {
   final String url;
   final int index;
@@ -136,34 +150,50 @@ class _GalleryItem extends ConsumerWidget {
   });
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) =>
-      GestureDetector(
-        onTap: () {
-          // Riverpod 3+ family kullanımı: toplam resim sayısını parametre veriyoruz
-          ref
-              .read(galleryProvider(allPhotos.length).notifier)
-              .setCurrentIndex(index);
+  Widget build(final BuildContext context, final WidgetRef ref) => Hero(
+        tag: 'gallery_image_$index',
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            ref
+                .read(galleryProvider(allPhotos.length).notifier)
+                .setCurrentIndex(index);
 
-          showDialog(
-            context: context,
-            barrierColor: Colors.black.withOpacity(0.95),
-            builder: (final _) => GalleryViewerDialog(
-              images: allPhotos,
-              isMobile: isMobile,
+            showDialog(
+              context: context,
+              barrierColor: Colors.black.withOpacity(0.9),
+              builder: (final _) => GalleryViewerDialog(
+                images: allPhotos,
+                isMobile: isMobile,
+              ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
-          );
-          // autoDispose kullandığımız için .then(reset) kısmına artık gerek yok.
-        },
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: OptimizedCachedImage(
-            imageUrl: url,
-            fit: BoxFit.cover,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: OptimizedCachedImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
         ),
       );
 }
 
+/// ------------------------------------------------------------
+/// TAM EKRAN GALERİ GÖRÜNTÜLEYİCİ (DIALOG)
+/// ------------------------------------------------------------
 class GalleryViewerDialog extends ConsumerStatefulWidget {
   final List<String> images;
   final bool isMobile;
@@ -185,7 +215,6 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
   @override
   void initState() {
     super.initState();
-    // Başlangıç indexini provider'dan alıyoruz
     final currentIndex =
         ref.read(galleryProvider(widget.images.length)).currentIndex;
     _pageController = PageController(initialPage: currentIndex);
@@ -197,130 +226,139 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
     super.dispose();
   }
 
-  void _onPageChanged(final int index) => ref
-      .read(galleryProvider(widget.images.length).notifier)
-      .setCurrentIndex(index);
+  void _onPageChanged(final int index) {
+    HapticFeedback.selectionClick();
+    ref
+        .read(galleryProvider(widget.images.length).notifier)
+        .setCurrentIndex(index);
+  }
 
   @override
   Widget build(final BuildContext context) {
-    // State takibi
     final currentIndex =
         ref.watch(galleryProvider(widget.images.length)).currentIndex;
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.zero,
-      child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          height: double.infinity,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${currentIndex + 1} / ${widget.images.length}',
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        width: 40,
-                        height: 40,
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: SafeArea(
+          child: SizedBox(
+            width: double.infinity,
+            height: double.infinity,
+            child: Column(
+              children: [
+                // Üst Araç Çubuğu
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.5),
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Icon(Icons.close,
-                            color: Colors.white, size: 24),
+                        child: Text(
+                            '${currentIndex + 1} / ${widget.images.length}',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 14)),
                       ),
-                    ),
-                  ],
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close,
+                              color: Colors.white, size: 24),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    PageView.builder(
-                      controller: _pageController,
-                      itemCount: widget.images.length,
-                      onPageChanged: _onPageChanged,
-                      itemBuilder: (final context, final index) {
-                        return Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: InteractiveViewer(
-                            minScale: 0.5,
-                            maxScale: 4.0,
-                            child: OptimizedCachedImage(
-                              imageUrl: widget.images[index],
-                              fit: BoxFit.contain,
+                // Ana Görsel Alanı
+                Expanded(
+                  child: Stack(
+                    children: [
+                      PageView.builder(
+                        controller: _pageController,
+                        itemCount: widget.images.length,
+                        onPageChanged: _onPageChanged,
+                        itemBuilder: (final context, final index) {
+                          return Hero(
+                            tag: 'gallery_image_$index',
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: InteractiveViewer(
+                                minScale: 0.5,
+                                maxScale: 3.0,
+                                child: OptimizedCachedImage(
+                                  imageUrl: widget.images[index],
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // Masaüstü Navigasyon Okları
+                      if (!widget.isMobile) ...[
+                        if (currentIndex > 0)
+                          Positioned(
+                            left: 20,
+                            top: 0,
+                            bottom: 0,
+                            child: Center(
+                              child: _NavBtn(
+                                icon: Icons.arrow_back_ios_rounded,
+                                onTap: () => _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                ),
+                              ),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                    if (currentIndex > 0)
-                      Positioned(
-                        left: 20,
-                        top: 0,
-                        bottom: 0,
-                        child: Center(
-                          child: _NavBtn(
-                            icon: Icons.arrow_back_ios_rounded,
-                            onTap: () {
-                              _pageController.previousPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                              );
-                            },
+                        if (currentIndex < widget.images.length - 1)
+                          Positioned(
+                            right: 20,
+                            top: 0,
+                            bottom: 0,
+                            child: Center(
+                              child: _NavBtn(
+                                icon: Icons.arrow_forward_ios_rounded,
+                                onTap: () => _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    if (currentIndex < widget.images.length - 1)
-                      Positioned(
-                        right: 20,
-                        top: 0,
-                        bottom: 0,
-                        child: Center(
-                          child: _NavBtn(
-                            icon: Icons.arrow_forward_ios_rounded,
-                            onTap: () {
-                              _pageController.nextPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-              ThumbnailCarousel(
-                images: widget.images,
-                isMobile: widget.isMobile,
-                onThumbnailTap: (final index) {
-                  _pageController.animateToPage(
-                    index,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
+                // Alt Önizleme (Thumbnails)
+                ThumbnailCarousel(
+                  images: widget.images,
+                  isMobile: widget.isMobile,
+                  onThumbnailTap: (final index) {
+                    _pageController.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),
@@ -328,6 +366,9 @@ class _GalleryViewerDialogState extends ConsumerState<GalleryViewerDialog> {
   }
 }
 
+/// ------------------------------------------------------------
+/// ÖNİZLEME (THUMBNAIL) ŞERİDİ
+/// ------------------------------------------------------------
 class ThumbnailCarousel extends ConsumerStatefulWidget {
   final List<String> images;
   final bool isMobile;
@@ -347,12 +388,6 @@ class ThumbnailCarousel extends ConsumerStatefulWidget {
 class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
   final ScrollController _controller = ScrollController();
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
   void _scroll(final bool forward) {
     _controller.animateTo(
       _controller.offset + (forward ? 200 : -200),
@@ -362,19 +397,24 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(final BuildContext context) {
-    // State takibi
     final currentIndex =
         ref.watch(galleryProvider(widget.images.length)).currentIndex;
 
     return SizedBox(
-      height: 110,
+      height: 100,
       child: Row(
         children: [
           if (!widget.isMobile)
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios),
-              color: Colors.white,
+              icon: const Icon(Icons.arrow_back_ios,
+                  color: Colors.white, size: 20),
               onPressed: () => _scroll(false),
             ),
           Expanded(
@@ -395,19 +435,20 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
                   },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    width: 80,
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                    width: isActive ? 90 : 70,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isActive
                             ? const Color(0xFFD4AF37)
                             : Colors.transparent,
-                        width: 3,
+                        width: 2,
                       ),
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(9),
+                      borderRadius: BorderRadius.circular(10),
                       child: OptimizedCachedImage(
                         imageUrl: widget.images[index],
                         fit: BoxFit.cover,
@@ -420,8 +461,8 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
           ),
           if (!widget.isMobile)
             IconButton(
-              icon: const Icon(Icons.arrow_forward_ios),
-              color: Colors.white,
+              icon: const Icon(Icons.arrow_forward_ios,
+                  color: Colors.white, size: 20),
               onPressed: () => _scroll(true),
             ),
         ],
@@ -431,7 +472,7 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
 }
 
 /// ------------------------------------------------------------
-/// NAV BUTTON
+/// YARDIMCI BİLEŞENLER (NAV & PAGINATION)
 /// ------------------------------------------------------------
 class _NavBtn extends StatelessWidget {
   final IconData icon;
@@ -443,11 +484,15 @@ class _NavBtn extends StatelessWidget {
   Widget build(final BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
-            child: Icon(icon, color: Colors.white)),
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.6),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white10),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
       );
 }
 
@@ -456,21 +501,23 @@ class GalleryPaginationControls extends StatelessWidget {
   final int totalPages;
   final Function(int) onPageChanged;
 
-  const GalleryPaginationControls(
-      {super.key,
-      required this.currentPage,
-      required this.totalPages,
-      required this.onPageChanged});
+  const GalleryPaginationControls({
+    super.key,
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPageChanged,
+  });
 
   @override
   Widget build(final BuildContext context) => Container(
-        margin: const EdgeInsets.only(top: 20),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(top: 24),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1a1a2e).withOpacity(0.5),
-          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFF1a1a2e).withOpacity(0.4),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _PageButton(
@@ -478,12 +525,14 @@ class GalleryPaginationControls extends StatelessWidget {
               enabled: currentPage > 0,
               onTap: () => onPageChanged(currentPage - 1),
             ),
-            const SizedBox(width: 16),
-            Text(
-              '${currentPage + 1} / $totalPages',
-              style: const TextStyle(color: Colors.white70),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                '${currentPage + 1} / $totalPages',
+                style: const TextStyle(
+                    color: Colors.white70, fontWeight: FontWeight.w600),
+              ),
             ),
-            const SizedBox(width: 16),
             _PageButton(
               icon: Icons.arrow_forward_ios_rounded,
               enabled: currentPage < totalPages - 1,
@@ -508,53 +557,18 @@ class _PageButton extends StatelessWidget {
         child: GestureDetector(
           onTap: enabled ? onTap : null,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.all(12),
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: enabled
                   ? const Color(0xFFD4AF37)
-                  : Colors.grey.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
+                  : Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
-              color: enabled ? const Color(0xFF0a0a1a) : Colors.white38,
-              size: 16,
-            ),
-          ),
-        ),
-      );
-}
-
-class GalleryNavButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const GalleryNavButton({super.key, required this.icon, required this.onTap});
-
-  @override
-  Widget build(final BuildContext context) => MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1a1a2e).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(25),
-              border: Border.all(color: const Color(0xFFD4AF37)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: const Color(0xFFD4AF37),
-              size: 24,
+              color: enabled ? const Color(0xFF0a0a1a) : Colors.white24,
+              size: 14,
             ),
           ),
         ),
