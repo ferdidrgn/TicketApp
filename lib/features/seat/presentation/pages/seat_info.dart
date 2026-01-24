@@ -25,17 +25,12 @@ class _CuratorSeatingAuditPageState
 
   @override
   Widget build(final BuildContext context) {
-    // Eğer ID'ler yoksa boş state göstererek seçime zorla
     if (widget.eventId == null || widget.showId == null)
       return Scaffold(body: _buildEmptyState());
 
-    // 🔥 Tüm ilişkili veriyi (Show, Event, Layout) tek noktadan izle
     final seatingAsync = ref.watch(
         eventSeatingProvider(eventId: widget.eventId!, showId: widget.showId!));
-
-    // Dinamik bilet durumu (SATILDI/MÜSAİT) için mevcut eventProvider'ı izle
-    final eventStatus = ref.watch(eventProvider);
-    final theme = context.theme;
+    final seatsStatusAsync = ref.watch(eventSeatsProvider(widget.eventId!));
 
     return AdminGuard(
       child: Scaffold(
@@ -43,26 +38,25 @@ class _CuratorSeatingAuditPageState
           child: SafeArea(
             child: seatingAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (final err, final _) =>
-                  Center(child: Text("Hata oluştu: $err")),
-              data: (final state) => Column(
-                children: [
-                  _buildHeader(context, state),
-                  _buildOccupancyStats(eventStatus),
-                  const SizedBox(height: 10),
-
-                  // 🚀 ETKİLEŞİMLİ KOLTUK PLANI
-                  Expanded(child: _buildInteractiveMap(state, eventStatus)),
-
-                  // 👤 SEÇİLİ KOLTUK DETAYI
-                  if (_focusedSeatId != null)
-                    _buildSeatDetailPanel(eventStatus, theme)
-                  else
-                    _buildLegend(),
-
-                  const SizedBox(height: 20),
-                ],
-              ),
+              error: (final err, final _) => Center(child: Text("Hata: $err")),
+              data: (final state) =>
+                  seatsStatusAsync.when(
+                    loading: () => const ShimmerLoading(),
+                    error: (final err, final _) => Text("Hata: $err"),
+                    data: (final seatsStatus) =>
+                        Column(
+                          children: [
+                            _buildHeader(context, state),
+                            _buildOccupancyStats(seatsStatus),
+                            Expanded(child: _buildInteractiveMap(
+                                state, seatsStatus)),
+                            if (_focusedSeatId != null)
+                              _buildSeatDetailPanel(seatsStatus)
+                            else
+                              _buildLegend(),
+                          ],
+                        ),
+                  ),
             ),
           ),
         ),
@@ -72,8 +66,8 @@ class _CuratorSeatingAuditPageState
 
   // --- UI BİLEŞENLERİ ---
 
-  Widget _buildInteractiveMap(
-          final EventSeatingState state, final dynamic eventStatus) =>
+  Widget _buildInteractiveMap(final EventSeatingState state,
+      final dynamic eventStatus) =>
       Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
@@ -94,54 +88,55 @@ class _CuratorSeatingAuditPageState
         ),
       );
 
-  Widget _buildGrid(
-          final Map<String, List<String>> layout, final dynamic eventStatus) =>
+  Widget _buildGrid(final Map<String, List<String>> layout,
+      final dynamic eventStatus) =>
       Column(
         children: layout.entries
-            .map((final entry) => Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                        width: 25,
-                        child: Text(entry.key,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 12))),
-                    ...entry.value.map((final seatId) {
-                      final info = eventStatus.seatStatus[seatId];
-                      final isSold = info?['status'] == 'sold';
-                      final isFocused = _focusedSeatId == seatId;
+            .map((final entry) =>
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                    width: 25,
+                    child: Text(entry.key,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12))),
+                ...entry.value.map((final seatId) {
+                  final info = eventStatus.seatStatus[seatId];
+                  final isSold = info?['status'] == 'sold';
+                  final isFocused = _focusedSeatId == seatId;
 
-                      return GestureDetector(
-                        onTap: () => setState(() => _focusedSeatId = seatId),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 35,
-                          height: 35,
-                          margin: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            color: isSold ? Colors.redAccent : Colors.white10,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: isFocused
-                                    ? Colors.white
-                                    : Colors.transparent,
-                                width: 2),
-                          ),
-                          child: Center(
-                              child: Text(seatId.substring(1),
-                                  style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold))),
-                        ),
-                      );
-                    }),
-                  ],
-                ))
+                  return GestureDetector(
+                    onTap: () => setState(() => _focusedSeatId = seatId),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 35,
+                      height: 35,
+                      margin: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: isSold ? Colors.redAccent : Colors.white10,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: isFocused
+                                ? Colors.white
+                                : Colors.transparent,
+                            width: 2),
+                      ),
+                      child: Center(
+                          child: Text(seatId.substring(1),
+                              style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold))),
+                    ),
+                  );
+                }),
+              ],
+            ))
             .toList(),
       );
 
-  Widget _buildHeader(
-          final BuildContext context, final EventSeatingState state) =>
+  Widget _buildHeader(final BuildContext context,
+      final EventSeatingState state) =>
       Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
@@ -158,7 +153,7 @@ class _CuratorSeatingAuditPageState
                           ?.copyWith(fontWeight: FontWeight.w900)),
                   Text(state.event.date ?? "",
                       style:
-                          const TextStyle(color: Colors.green, fontSize: 11)),
+                      const TextStyle(color: Colors.green, fontSize: 11)),
                 ],
               ),
             ),
@@ -166,19 +161,19 @@ class _CuratorSeatingAuditPageState
         ),
       );
 
-  Widget _buildSeatDetailPanel(
-      final dynamic eventStatus, final ThemeData theme) {
+  Widget _buildSeatDetailPanel(final dynamic eventStatus) {
     final seatData = eventStatus.seatStatus[_focusedSeatId];
     final uid = seatData?['customerId'];
+    final color = context.colors;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          color: color.surface,
           borderRadius: BorderRadius.circular(24),
           border:
-              Border.all(color: theme.colorScheme.primary.withOpacity(0.2))),
+          Border.all(color: color.primary.withOpacity(0.2))),
       child: uid != null
           ? _UserDetailFetcher(uid: uid)
           : const Center(child: Text("Bu koltuk şu an müsait.")),
@@ -210,7 +205,8 @@ class _CuratorSeatingAuditPageState
   Widget _buildEmptyState() =>
       const Center(child: Text("Lütfen bir seans seçiniz"));
 
-  Widget _buildStageVisual() => const Column(children: [
+  Widget _buildStageVisual() =>
+      const Column(children: [
         Divider(indent: 50, endIndent: 50),
         Text("SAHNE", style: TextStyle(letterSpacing: 5, fontSize: 10))
       ]);
@@ -241,7 +237,7 @@ class _UserDetailFetcher extends ConsumerWidget {
         return ListTile(
           leading: CircleAvatar(
             backgroundImage:
-                user.imageUrl.isNotEmpty ? NetworkImage(user.imageUrl) : null,
+            user.imageUrl.isNotEmpty ? NetworkImage(user.imageUrl) : null,
             child: user.imageUrl.isEmpty ? const Icon(Icons.person) : null,
           ),
           title: Text("${user.firstName} ${user.lastName}"),
