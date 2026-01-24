@@ -1,11 +1,12 @@
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../../core/errors/failures.dart';
-import '../../data/models/show_model.dart';
+import '../entities/show.dart';
 import '../repositories/show_repository.dart';
 
 abstract class AddShowUseCase {
   Future<Either<Failure, bool>> call(
-      final ShowModel show, final Uri? showIdAddOrUpdateImgUrl);
+      final Show show, final File? showIdAddOrUpdateImgUrl);
 }
 
 class AddShowUseCaseImpl implements AddShowUseCase {
@@ -15,7 +16,6 @@ class AddShowUseCaseImpl implements AddShowUseCase {
 
   @override
   Future<Either<Failure, bool>> call(
-      final ShowModel show, final Uri? showIdAddOrUpdateImgUrl) async {
-    return repository.addShow(show, showIdAddOrUpdateImgUrl);
-  }
+          final Show show, final File? showIdAddOrUpdateImgUrl) async =>
+      repository.addShow(show, showIdAddOrUpdateImgUrl);
 }

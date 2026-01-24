@@ -2,16 +2,15 @@ import 'package:dartz/dartz.dart';
 import 'package:ticketapp/features/events/data/models/event_model.dart';
 import '../../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
+import '../../domain/entities/event.dart';
 import '../../domain/repositories/event_repository.dart';
 import '../datasources/event_remote_data_source_and_impl.dart';
+import '../mappers/event_mapper.dart';
 
 class EventRepositoryImpl extends BaseRepository implements EventRepository {
   final EventRemoteDataSource remoteDataSource;
 
-  EventRepositoryImpl({
-    required this.remoteDataSource,
-    //required super.internetService,
-  });
+  EventRepositoryImpl({required this.remoteDataSource});
 
   @override
   Future<Either<Failure, void>> initializeAndGetEventSeats(
@@ -20,10 +19,12 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   }
 
   @override
-  Future<Either<Failure, List<EventModel?>?>> getEventsByIds(
-      final List<String> eventIds) async {
-    return execute(() => remoteDataSource.getEventsByIds(eventIds));
-  }
+  Future<Either<Failure, List<Event>>> getEventsByIds(
+          final List<String> eventIds) async =>
+      execute(() async {
+        final List<EventModel> models = await remoteDataSource.getEventsByIds(eventIds);
+        return models.map((final model) => model.toEntity()).toList();
+      });
 
   @override
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(

@@ -8,19 +8,11 @@ abstract class GetPlayersUseCase {
 }
 
 class GetPlayersUseCaseImpl implements GetPlayersUseCase {
-  PlayerRepository repository;
+  final PlayerRepository repository;
 
   GetPlayersUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Player>>> call(final bool isLimit) async {
-    final result = await repository.getPlayers(isLimit);
-    return result.fold(
-        (final failure) => Left(failure),
-        (final playersModel) => Right(playersModel
-                ?.map((final playerModel) => playerModel?.toEntity())
-                .whereType<Player>()
-                .toList() ??
-            []));
-  }
+  Future<Either<Failure, List<Player>>> call(final bool isLimit) async =>
+      repository.getPlayers(isLimit);
 }

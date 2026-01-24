@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/services/local_storage_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/presentation/providers/auth_service.dart';
-import '../../data/models/user_model.dart';
 import '../../domain/entities/user.dart' as entity;
 import 'user_provider.dart' hide currentUserProvider;
 
@@ -21,7 +20,7 @@ class UserMutation extends _$UserMutation {
     final result = await AsyncValue.guard(() async {
       await ref
           .read(saveUserUseCaseProvider)
-          .call(UserModel.fromEntity(user), photoUrl, isUpdate: isUpdate);
+          .call(user, photoUrl, isUpdate: isUpdate);
 
       await LocalStorageService.saveEssentialUserData(
           uid: user.id,

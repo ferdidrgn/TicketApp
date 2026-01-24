@@ -14,14 +14,6 @@ class GetPlayerByIdUseCaseImpl implements GetPlayerByIdUseCase {
 
   @override
   Future<Either<Failure, List<Player>>> call(
-      final List<String> playersIds) async {
-    final result = await repository.getPlayersByIds(playersIds);
-    return result.fold(
-        (final failure) => Left(failure),
-        (final playersModel) => Right(playersModel
-                ?.map((final playerModel) => playerModel?.toEntity())
-                .whereType<Player>()
-                .toList() ??
-            []));
-  }
+          final List<String> playersIds) async =>
+      repository.getPlayersByIds(playersIds);
 }

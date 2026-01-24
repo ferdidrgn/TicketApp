@@ -11,7 +11,7 @@ abstract class ShowRemoteDataSource {
 
   Future<List<ShowModel>> getShowsByIds(final List<String> showIds);
 
-  Future<bool> addShow(final ShowModel show, final Uri? imageUri);
+  Future<bool> addShow(final ShowModel show, final File? imageFile);
 
   Future<bool> deleteShow(final String showId);
 
@@ -33,14 +33,17 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
       final List<String> categories, final String? type) async {
     try {
       var query = _showCollection as Query<Map<String, dynamic>>;
+
       if (categories.isNotEmpty)
         query = query.where('category', whereIn: categories);
-      if (type?.isNotEmpty ?? false)
+
+      if (type != null && type.isNotEmpty)
         query = query.where('type', isEqualTo: type);
 
       final snapshot = await query.get();
       return _mapSnapshot(snapshot);
     } catch (e) {
+      // BaseRepository yakalayacağı için hatayı fırlatıyoruz
       throw Exception('Search shows failed: $e');
     }
   }
@@ -48,11 +51,11 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   @override
   Future<List<ShowModel>> getShows(final bool isLimit) async {
     try {
-      final query = _showCollection.orderBy('_createdAt', descending: true);
-      final snapshot =
-          isLimit ? await query.limit(20).get() : await query.get();
-      final result = _mapSnapshot(snapshot);
-      return result;
+      var query = _showCollection.orderBy('_createdAt', descending: true);
+      if (isLimit) query = query.limit(20);
+
+      final snapshot = await query.get();
+      return _mapSnapshot(snapshot);
     } catch (e) {
       throw Exception('Fetch shows failed: $e');
     }
@@ -62,6 +65,8 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   Future<List<ShowModel>> getShowsByIds(final List<String> showIds) async {
     if (showIds.isEmpty) return [];
     try {
+      // Firestore 'whereIn' en fazla 10 eleman alır.
+      // Eğer showIds > 10 ise chunk logic gerekir. Şimdilik basit tutuyoruz.
       final snapshot = await _showCollection
           .where(FieldPath.documentId, whereIn: showIds)
           .get();
@@ -72,34 +77,33 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   }
 
   @override
-  Future<bool> addShow(final ShowModel show, final Uri? imageUri) async {
+  Future<bool> addShow(final ShowModel show, final File? imageFile) async {
     try {
+      // 1. Dökümanı oluştur (ID otomatik)
       final docRef = await _showCollection.add(show.toFirestore());
 
-      if (imageUri != null) {
-        final downloadUrl = await _uploadImage(docRef.id, imageUri);
+      // 2. ID'yi güncelle
+      await docRef.update({'_id': docRef.id});
+
+      // 3. Resim varsa yükle ve güncelle
+      if (imageFile != null) {
+        final downloadUrl = await _uploadImage(docRef.id, imageFile);
         await docRef.update({'imageUrl': downloadUrl});
       }
       return true;
     } catch (e) {
-      print('Add show failed: $e');
-      return false;
+      throw Exception('Add show failed: $e');
     }
   }
 
   @override
   Future<bool> deleteShow(final String showId) async {
     try {
-      final docRef = _showCollection.doc(showId);
-      final snapshot = await docRef.get();
-      if (!snapshot.exists) return false;
-
       await _deleteImage(showId);
-      await docRef.delete();
+      await _showCollection.doc(showId).delete();
       return true;
     } catch (e) {
-      print('Delete show failed: $e');
-      return false;
+      throw Exception('Delete show failed: $e');
     }
   }
 
@@ -107,40 +111,39 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   Future<bool> updateShow(
       final String showId, final Map<String, dynamic> updatedData) async {
     try {
-      final docRef = _showCollection.doc(showId);
-      final snapshot = await docRef.get();
-      if (!snapshot.exists) return false;
-
-      await docRef.update({
+      await _showCollection.doc(showId).update({
         ...updatedData,
         '_updatedAt': FieldValue.serverTimestamp(),
       });
       return true;
     } catch (e) {
-      print('Update show failed: $e');
-      return false;
+      throw Exception('Update show failed: $e');
     }
   }
 
-  /// --- Private helpers ---
+  // --- Helpers ---
 
-  Future<String> _uploadImage(final String showId, final Uri imageUri) async {
+  List<ShowModel> _mapSnapshot(
+      final QuerySnapshot<Map<String, dynamic>> snapshot) {
+    return snapshot.docs.map((final doc) {
+      final data = doc.data();
+      // ID'yi dökümandan garanti altına alıyoruz
+      data['_id'] = doc.id;
+      return ShowModel.fromFirestore(data);
+    }).toList();
+  }
+
+  Future<String> _uploadImage(final String showId, final File imageFile) async {
     final ref = storage.ref('ShowImages/$showId.jpg');
-    await ref.putFile(File.fromUri(imageUri));
-    return ref.getDownloadURL();
+    await ref.putFile(imageFile);
+    return await ref.getDownloadURL();
   }
 
   Future<void> _deleteImage(final String showId) async {
     try {
       await storage.ref('ShowImages/$showId.jpg').delete();
     } catch (_) {
-      // Eğer resim yoksa hata bastırılır (örneğin zaten silinmişse)
+      // Resim yoksa hatayı yut, sorun değil.
     }
   }
-
-  List<ShowModel> _mapSnapshot(
-          final QuerySnapshot<Map<String, dynamic>> snapshot) =>
-      snapshot.docs
-          .map((final doc) => ShowModel.fromFirestore(doc.data()))
-          .toList();
 }

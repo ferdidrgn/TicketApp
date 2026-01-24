@@ -8,19 +8,11 @@ abstract class GetStagesUseCase {
 }
 
 class GetStagesUseCaseImpl implements GetStagesUseCase {
-  StageRepository repository;
+  final StageRepository repository;
 
   GetStagesUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Stage>>> call(final bool isLimit) async {
-    final result = await repository.getStages(isLimit);
-    return result.fold(
-        (final failure) => Left(failure),
-        (final stagesModels) => Right(stagesModels
-                ?.map((final stageModel) => stageModel?.toEntity())
-                .whereType<Stage>()
-                .toList() ??
-            []));
-  }
+  Future<Either<Failure, List<Stage>>> call(final bool isLimit) async => repository.getStages(isLimit);
+
 }

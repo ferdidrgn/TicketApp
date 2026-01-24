@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/campaing_model.dart';
 
 abstract class CampaignRemoteDataSource {
-  Future<List<CampaignModel?>?> getCampaigns();
+  Future<List<CampaignModel>> getCampaigns();
 }
 
 class CampaignRemoteDataSourceImpl implements CampaignRemoteDataSource {
@@ -11,12 +11,14 @@ class CampaignRemoteDataSourceImpl implements CampaignRemoteDataSource {
   const CampaignRemoteDataSourceImpl({required this.firestore});
 
   @override
-  Future<List<CampaignModel?>?> getCampaigns() async {
+  Future<List<CampaignModel>> getCampaigns() async {
     try {
       final snapshot = await firestore.collection('Campaign').get();
-      return snapshot.docs
-          .map((final doc) => CampaignModel.fromFirestore(doc.data()))
-          .toList();
+      return snapshot.docs.map((final doc) {
+        final data = doc.data();
+        data['_id'] = doc.id;
+        return CampaignModel.fromFirestore(data);
+      }).toList();
     } on FirebaseException catch (e) {
       throw Exception('Firestore error: ${e.message}');
     } catch (e) {

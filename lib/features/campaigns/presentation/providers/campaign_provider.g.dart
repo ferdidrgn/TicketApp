@@ -71,9 +71,9 @@ const campaignsProvider = CampaignsProvider._();
 /// Fonksiyon ismi 'campaigns' -> Üretilen: 'campaignsProvider'
 /// @riverpod default olarak 'autoDispose'dur.
 
-final class CampaignsProvider
-    extends $FunctionalProvider<List<Campaign>, List<Campaign>, List<Campaign>>
-    with $Provider<List<Campaign>> {
+final class CampaignsProvider extends $FunctionalProvider<
+        AsyncValue<List<Campaign>>, List<Campaign>, FutureOr<List<Campaign>>>
+    with $FutureModifier<List<Campaign>>, $FutureProvider<List<Campaign>> {
   /// 2. 🔥 KAMPANYA LİSTESİ (FutureProvider)
   /// Fonksiyon ismi 'campaigns' -> Üretilen: 'campaignsProvider'
   /// @riverpod default olarak 'autoDispose'dur.
@@ -93,21 +93,14 @@ final class CampaignsProvider
 
   @$internal
   @override
-  $ProviderElement<List<Campaign>> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+  $FutureProviderElement<List<Campaign>> $createElement(
+          $ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
   @override
-  List<Campaign> create(Ref ref) {
+  FutureOr<List<Campaign>> create(Ref ref) {
     return campaigns(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(List<Campaign> value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<List<Campaign>>(value),
-    );
   }
 }
 
-String _$campaignsHash() => r'fe95b1be7bf253bcff553c321b0ba1757625961b';
+String _$campaignsHash() => r'9cd66054f2febfa0f325493bdc69dfc33bd1b442';

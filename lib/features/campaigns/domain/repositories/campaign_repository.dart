@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../../../core/errors/failures.dart';
-import '../../data/models/campaing_model.dart';
+import '../entities/campaign.dart';
 
 abstract class CampaignRepository {
-  Future<Either<Failure, List<CampaignModel?>?>> getCampaigns();
+  Future<Either<Failure, List<Campaign>>> getCampaigns();
 }

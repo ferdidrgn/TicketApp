@@ -1,251 +1,92 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/features/players/presentation/providers/player_notifier.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../../../../core/errors/failures.dart';
+import '../../../shows/domain/entities/show.dart';
+import '../../../shows/presentation/providers/show_provider.dart';
 import '../../data/repositories/player_repository_provider.dart';
+import '../../domain/entities/player.dart';
 import '../../domain/usecases/get_player_by_id_use_case_impl.dart';
 import '../../domain/usecases/get_players_use_case_impl.dart';
-import 'player_state.dart';
 
-/// Ana Player ViewModel provider'ı
-final playerProvider =
-    NotifierProvider.autoDispose<PlayerNotifier, PlayerState>(
-        PlayerNotifier.new);
-
-/// ID ile oyuncu getirme use case provider'ı
-final getPlayerByIdUseCaseProvider = Provider<GetPlayerByIdUseCase>(
-    (final ref) =>
-        GetPlayerByIdUseCaseImpl(ref.watch(playerRepositoryProvider)));
-
-/// Tüm oyuncuları getirme use case provider'ı
-final getPlayersUseCaseProvider = Provider<GetPlayersUseCase>(
-    (final ref) => GetPlayersUseCaseImpl(ref.watch(playerRepositoryProvider)));
+part 'player_provider.g.dart';
 
 // ==============================================================================
-// USAGE EXAMPLES
+// 1. USE CASE PROVIDERS
 // ==============================================================================
 
-/// Örnek 1: ConsumerWidget ile state dinleme
-/// ```dart
-/// class PlayerListScreen extends ConsumerWidget {
-///   @override
-///   Widget build(BuildContext context, WidgetRef ref) {
-///     final playerState = ref.watch(playerProvider);
-///
-///     if (playerState.isLoading) {
-///       return const CircularProgressIndicator();
-///     }
-///
-///     if (playerState.hasError) {
-///       return Text(playerState.errorMessage!);
-///     }
-///
-///     return ListView.builder(
-///       itemCount: playerState.dataList?.length ?? 0,
-///       itemBuilder: (context, index) {
-///         final player = playerState.dataList![index];
-///         return ListTile(title: Text(player.name));
-///       },
-///     );
-///   }
-/// }
-/// ```
+@riverpod
+GetPlayersUseCase getPlayersUseCase(final Ref ref) =>
+    GetPlayersUseCaseImpl(ref.watch(playerRepositoryProvider));
 
-/// Örnek 2: Button ile veri yükleme
-/// ```dart
-/// ElevatedButton(
-///   onPressed: () {
-///     ref.read(playerProvider.notifier).loadPlayers(shouldLimit: false);
-///   },
-///   child: const Text('Oyuncuları Yükle'),
-/// )
-/// ```
+@riverpod
+GetPlayerByIdUseCase getPlayerByIdUseCase(final Ref ref) =>
+    GetPlayerByIdUseCaseImpl(ref.watch(playerRepositoryProvider));
 
-/// Örnek 3: Pull-to-refresh implementasyonu
-/// ```dart
-/// RefreshIndicator(
-///   onRefresh: () async {
-///     await ref.read(playerProvider.notifier).refresh();
-///   },
-///   child: PlayerListView(),
-/// )
-/// ```
+// ==============================================================================
+// 2. DATA PROVIDERS
+// ==============================================================================
 
-/// Örnek 4: Belirli oyuncuları ID ile yükleme
-/// ```dart
-/// final playerIds = ['player1', 'player2', 'player3'];
-/// ref.read(playerProvider.notifier).loadPlayersByIds(playerIds);
-/// ```
+@riverpod
+Future<List<Player>> players(final Ref ref,
+        {final bool isLimit = false}) async =>
+    ref.watch(getPlayersUseCaseProvider).call(isLimit).getOrThrow();
 
-/// Örnek 5: Logout sonrası state temizleme
-/// ```dart
-/// void logout() {
-///   ref.read(playerProvider.notifier).clearPlayers();
-///   Navigator.pushReplacementNamed(context, '/login');
-/// }
-/// ```
+@riverpod
+Future<List<Player>> playersByIds(final Ref ref, final List<String> ids) async {
+  final validIds = ids.where((final id) => id.trim().isNotEmpty).toList();
+  if (validIds.isEmpty) return [];
+  return ref.watch(getPlayerByIdUseCaseProvider).call(validIds).getOrThrow();
+}
 
-/// Örnek 6: State'ten oyuncu kontrolü (Extension kullanımı)
-/// ```dart
-/// final playerState = ref.watch(playerProvider);
-///
-/// if (playerState.hasPlayer('player123')) {
-///   final player = playerState.getPlayerById('player123');
-///   print('Oyuncu bulundu: ${player.name}');
-/// }
-///
-/// print('Toplam oyuncu sayısı: ${playerState.playerCount}');
-/// ```
+@riverpod
+Future<Player?> playerById(final Ref ref, final String id) async {
+  if (id.isEmpty) return null;
+  // Tekil oyuncu verisini çekiyoruz
+  final result = await ref.watch(playersByIdsProvider([id]).future);
+  return result.isNotEmpty ? result.first : null;
+}
 
-/// Örnek 7: initState'te otomatik veri yükleme
-/// ```dart
-/// class PlayerScreen extends ConsumerStatefulWidget {
-///   @override
-///   ConsumerState<PlayerScreen> createState() => _PlayerScreenState();
-/// }
-///
-/// class _PlayerScreenState extends ConsumerState<PlayerScreen> {
-///   @override
-///   void initState() {
-///     super.initState();
-///     WidgetsBinding.instance.addPostFrameCallback((_) {
-///       ref.read(playerProvider.notifier).loadPlayers(shouldLimit: true);
-///     });
-///   }
-///
-///   @override
-///   Widget build(BuildContext context) {
-///     final playerState = ref.watch(playerProvider);
-///     return Scaffold(
-///       appBar: AppBar(title: const Text('Oyuncular')),
-///       body: /* ... */,
-///     );
-///   }
-/// }
-/// ```
+/// 🔥 OYUNCU DETAY VE GÖSTERİLERİNİ BİRLEŞTİREN ANA PROVIDER
+@riverpod
+Future<PlayerDetailState> playerDetail(
+    final Ref ref, final String playerId) async {
+  // 1. Oyuncuyu getir
+  final player = await ref.watch(playerByIdProvider(playerId).future);
+  if (player == null) throw Exception('Oyuncu bulunamadı');
 
-/// Örnek 8: Error durumunda SnackBar gösterme
-/// ```dart
-/// ref.listen<PlayerState>(
-///   playerProvider,
-///   (previous, next) {
-///     if (next.hasError) {
-///       ScaffoldMessenger.of(context).showSnackBar(
-///         SnackBar(
-///           content: Text(next.errorMessage!),
-///           backgroundColor: Colors.red,
-///         ),
-///       );
-///     }
-///   },
-/// );
-/// ```
+  // 2. Tüm gösteri ID'lerini birleştir
+  final allShowIds = [...player.nowShowsId, ...player.oldShowsId];
 
-/// Örnek 9: Loading overlay ile kullanım
-/// ```dart
-/// Widget build(BuildContext context, WidgetRef ref) {
-///   final playerState = ref.watch(playerProvider);
-///
-///   return Stack(
-///     children: [
-///       PlayerListView(players: playerState.dataList ?? []),
-///       if (playerState.isLoading)
-///         Container(
-///           color: Colors.black26,
-///           child: const Center(
-///             child: CircularProgressIndicator(),
-///           ),
-///         ),
-///     ],
-///   );
-/// }
-/// ```
+  // 3. Gösterileri çek
+  final shows = allShowIds.isNotEmpty
+      ? await ref.watch(showsByIdsProvider(allShowIds).future)
+      : <Show>[];
 
-/// Örnek 10: Empty state kontrolü
-/// ```dart
-/// Widget build(BuildContext context, WidgetRef ref) {
-///   final playerState = ref.watch(playerProvider);
-///
-///   if (playerState.isLoading) {
-///     return const LoadingWidget();
-///   }
-///
-///   if (playerState.hasError) {
-///     return ErrorWidget(message: playerState.errorMessage!);
-///   }
-///
-///   if (playerState.isListEmpty) {
-///     return const EmptyStateWidget(
-///       icon: Icons.person_off,
-///       message: 'Henüz oyuncu yok',
-///     );
-///   }
-///
-///   return PlayerListView(players: playerState.dataList!);
-/// }
-/// ```
+  // 4. 🔥 UI'ın beklediği ayrıştırılmış state'i döndür
+  return PlayerDetailState(
+    player: player,
+    activeShows:
+        shows.where((final s) => player.nowShowsId.contains(s.id)).toList(),
+    pastShows:
+        shows.where((final s) => player.oldShowsId.contains(s.id)).toList(),
+  );
+}
 
-/// Örnek 11: Internet bağlantısı geri geldiğinde otomatik retry
-/// ```dart
-/// // BaseNotifier otomatik hallediyor!
-/// // Internet kesildiğinde: state.errorMessage = "İnternet Bağlantısı Yok!"
-/// // Internet geri geldiğinde: reloadData() otomatik çağrılır (2 saniye debounce)
-///
-/// class PlayerListScreen extends ConsumerWidget {
-///   @override
-///   Widget build(BuildContext context, WidgetRef ref) {
-///     final playerState = ref.watch(playerProvider);
-///
-///     // Offline durumunda özel UI
-///     if (playerState.errorMessage == 'İnternet Bağlantısı Yok!') {
-///       return Center(
-///         child: Column(
-///           mainAxisAlignment: MainAxisAlignment.center,
-///           children: [
-///             const Icon(Icons.wifi_off, size: 64),
-///             const Text('Bağlantı bekleniyor...'),
-///             const Text('Geri gelince otomatik yüklenecek'),
-///           ],
-///         ),
-///       );
-///     }
-///
-///     return PlayerListView();
-///   }
-/// }
-/// ```
+// ==============================================================================
+// 3. STATE CLASS (UI Getter hatalarını burası çözer)
+// ==============================================================================
+class PlayerDetailState {
+  final Player player;
+  final List<Show> activeShows;
+  final List<Show> pastShows;
 
-/// Örnek 12: Kendi ViewModel'inizi oluşturma
-/// ```dart
-/// // 1. State sınıfı
-/// class MyState extends LoadableState<MyData, List<MyData>> {
-///   const MyState({
-///     MyData? data,
-///     List<MyData>? dataList,
-///     super.isLoading,
-///     super.errorMessage,
-///   }) : super(dataSingle: data, dataList: dataList);
-///
-///   @override
-///   MyState copyWith({...}) { /* implementation */ }
-/// }
-///
-/// // 2. Notifier sınıfı
-/// class MyNotifier extends BaseNotifierWithNetworkChecker<MyState> {
-///   @override
-///   MyState initialState() => const MyState();
-///
-///   @override
-///   void reloadData() => loadData();
-///
-///   Future<void> loadData() async {
-///     await executeWithInternetCheck(
-///       () => ref.read(myUseCaseProvider).call(),
-///       onSuccess: (data) => state = state.copyWith(data: data),
-///     );
-///   }
-/// }
-///
-/// // 3. Provider
-/// final myProvider = NotifierProvider<MyNotifier, MyState>(
-///   MyNotifier.new,
-/// );
-/// ```
+  PlayerDetailState({
+    required this.player,
+    required this.activeShows,
+    required this.pastShows,
+  });
+}
+
+extension PlayerListX on List<Player> {
+  List<Player> filterByIds(final List<String> ids) =>
+      where((final p) => ids.contains(p.id)).toList();
+}

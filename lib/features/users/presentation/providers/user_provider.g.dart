@@ -178,6 +178,94 @@ final class CurrentUserProvider extends $FunctionalProvider<
 
 String _$currentUserHash() => r'792aa23a940977e131300a3c158d3a23c12d96b7';
 
+/// 🆔 Verilen UID'ye göre kullanıcı dökümanını asenkron getirir.
+/// UI'da bilet sahibi veya admin paneli gibi yerlerde kullanılır.
+
+@ProviderFor(userById)
+const userByIdProvider = UserByIdFamily._();
+
+/// 🆔 Verilen UID'ye göre kullanıcı dökümanını asenkron getirir.
+/// UI'da bilet sahibi veya admin paneli gibi yerlerde kullanılır.
+
+final class UserByIdProvider extends $FunctionalProvider<
+        AsyncValue<entity.User?>, entity.User?, FutureOr<entity.User?>>
+    with $FutureModifier<entity.User?>, $FutureProvider<entity.User?> {
+  /// 🆔 Verilen UID'ye göre kullanıcı dökümanını asenkron getirir.
+  /// UI'da bilet sahibi veya admin paneli gibi yerlerde kullanılır.
+  const UserByIdProvider._(
+      {required UserByIdFamily super.from, required String super.argument})
+      : super(
+          retry: null,
+          name: r'userByIdProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$userByIdHash();
+
+  @override
+  String toString() {
+    return r'userByIdProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<entity.User?> $createElement(
+          $ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<entity.User?> create(Ref ref) {
+    final argument = this.argument as String;
+    return userById(
+      ref,
+      argument,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is UserByIdProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$userByIdHash() => r'c17092179095bcfc6ec36fe7f55bfb10bb6aac43';
+
+/// 🆔 Verilen UID'ye göre kullanıcı dökümanını asenkron getirir.
+/// UI'da bilet sahibi veya admin paneli gibi yerlerde kullanılır.
+
+final class UserByIdFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<entity.User?>, String> {
+  const UserByIdFamily._()
+      : super(
+          retry: null,
+          name: r'userByIdProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  /// 🆔 Verilen UID'ye göre kullanıcı dökümanını asenkron getirir.
+  /// UI'da bilet sahibi veya admin paneli gibi yerlerde kullanılır.
+
+  UserByIdProvider call(
+    String uid,
+  ) =>
+      UserByIdProvider._(argument: uid, from: this);
+
+  @override
+  String toString() => r'userByIdProvider';
+}
+
 /// Kullanıcının Admin veya Küratör olup olmadığını kontrol eder.
 
 @ProviderFor(isUserPrivileged)

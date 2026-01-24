@@ -41,35 +41,4 @@ class Ticket extends Equatable {
         buySeats,
         isPast,
       ];
-
-  factory Ticket.fromMap(final Map<String, dynamic>? data) => Ticket(
-        id: data?['_id'] as String? ?? '0',
-        createdAt: data?['_createdAt'] as String? ?? 'Tarih bulunamadı',
-        updatedAt: data?['_updatedAt'] as String? ?? 'Tarih bulunamadı',
-        customerId: data?['customerId'] as String? ?? '0',
-        showId: data?['showId'] as String? ?? '0',
-        stageId: data?['stageId'] as String? ?? '0',
-        eventId: data?['eventId'] as String? ?? '0',
-        orderMethod: data?['orderMethod'] as String? ?? '0',
-        orderPrice: data?['orderPrice'] as String? ?? '0',
-        buySeats: (data?['buySeats'] as List<dynamic>?)
-                ?.map((final e) => e as String)
-                .toList() ??
-            [],
-        isPast: data?['isPast'] as bool? ?? false,
-      );
-
-  Map<String, dynamic> toMap() => {
-        '_createdAt': createdAt,
-        '_updatedAt': updatedAt,
-        '_id': id,
-        'customerId': customerId,
-        'showId': showId,
-        'stageId': stageId,
-        'eventId': eventId,
-        'orderMethod': orderMethod,
-        'orderPrice': orderPrice,
-        'buySeats': buySeats,
-        'isPast': isPast,
-      };
 }

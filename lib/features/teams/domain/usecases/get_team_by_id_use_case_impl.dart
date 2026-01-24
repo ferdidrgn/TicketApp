@@ -13,15 +13,6 @@ class GetTeamByIdUseCaseImpl implements GetTeamByIdUseCase {
   GetTeamByIdUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Team>>> call(final List<String> teamsIds) async {
-    final result = await repository.getTeamsByIds(teamsIds);
-
-    return result.fold(
-        (final failure) => Left(failure),
-        (final teamsModels) => Right(teamsModels
-                ?.map((final teamModel) => teamModel?.toEntity())
-                .whereType<Team>()
-                .toList() ??
-            []));
-  }
+  Future<Either<Failure, List<Team>>> call(final List<String> teamsIds) async =>
+      repository.getTeamsByIds(teamsIds);
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/features/tickets/presentation/providers/my_ticket_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
@@ -7,7 +8,6 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../events/presentation/providers/event_notifier.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../events/presentation/providers/event_state.dart';
-import '../../../tickets/presentation/providers/ticket_provider.dart';
 
 class SeatSelectionScreen extends ConsumerStatefulWidget {
   final String showId;
@@ -34,10 +34,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
           eventId: widget.eventId,
           showId: widget.showId,
           customerId: widget.customerId);
-      if (widget.customerId.isNotEmpty)
-        ref
-            .read(ticketProvider.notifier)
-            .loadTicketsAndDetailsByCustomerId(widget.customerId);
     });
   }
 
@@ -45,7 +41,6 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   Widget build(final BuildContext context) {
     final state = ref.watch(eventProvider);
 
-    // 🔔 State Dinleyicileri (Loading, Error, Success)
     _setupListeners();
 
     return Scaffold(
@@ -78,13 +73,11 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
                 message: "Biletleriniz Hazırlanıyor..."));
       else if (!next.isLoading && prev!.isLoading) Navigator.of(context).pop();
 
-      if (next.errorMessage != null &&
-          prev?.errorMessage != next.errorMessage) {
+      if (next.errorMessage != null && prev?.errorMessage != next.errorMessage)
         showDialog(
             context: context,
             builder: (final _) =>
                 CustomErrorDialog(message: next.errorMessage!));
-      }
 
       if (next.paymentSuccessful && !prev!.paymentSuccessful) {
         showDialog(
@@ -332,11 +325,12 @@ class _SeatFab extends ConsumerWidget {
     final isLoggedIn = ref.watch(isLoggedInProvider);
     final currentUser = ref.watch(currentUserProvider).value;
 
-    final tickets = ref.watch(ticketProvider).dataList ?? [];
+    final ticketsAsync = ref.watch(myTicketsProvider(currentUser?.uid ?? ''));
+    final tickets = ticketsAsync.value ?? [];
 
-    // 1. Daha önce alınan biletleri say
+    // 1. Bu etkinliğe ait daha önce alınan biletleri say
     final existingTicketsCount =
-        tickets.where((final t) => t.eventId == eventId).length;
+        tickets.where((final t) => t.ticket.eventId == eventId).length;
     final selectedCount = state.selectedSeats.length;
 
     // 2. Limit Kontrolü (Toplam 3'ü geçemez)

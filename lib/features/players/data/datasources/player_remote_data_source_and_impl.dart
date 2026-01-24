@@ -2,26 +2,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/player_model.dart';
 
 abstract class PlayerRemoteDataSource {
-  Future<List<PlayerModel?>?> getPlayers(final bool isLimit);
-
-  Future<List<PlayerModel?>?> getPlayersByIds(final List<String> playerIds);
+  Future<List<PlayerModel>> getPlayers(final bool isLimit);
+  Future<List<PlayerModel>> getPlayersByIds(final List<String> playerIds);
 }
 
 class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
   final FirebaseFirestore _firestore;
+  static const String _collectionPath = 'Player';
 
   const PlayerRemoteDataSourceImpl({required final FirebaseFirestore firestore})
       : _firestore = firestore;
 
   @override
-  Future<List<PlayerModel?>?> getPlayers(final bool isLimit) async {
+  Future<List<PlayerModel>> getPlayers(final bool isLimit) async {
     try {
-      final query = _firestore.collection('Player');
-      final snapshot = isLimit
-          ? await query.orderBy('_createdAt', descending: true).limit(20).get()
-          : await query.get();
+      final collectionRef = _firestore.collection(_collectionPath);
 
-      return snapshot.docs.isEmpty ? [] : _mapToPlayers(snapshot);
+      Query<Map<String, dynamic>> query = collectionRef;
+
+      if (isLimit)
+        query = query.orderBy('_createdAt', descending: true).limit(20);
+
+      final snapshot = await query.get();
+
+      return _mapSnapshot(snapshot);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getPlayers): ${e.message}');
     } catch (e) {
@@ -30,17 +34,19 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
   }
 
   @override
-  Future<List<PlayerModel?>?> getPlayersByIds(
+  Future<List<PlayerModel>> getPlayersByIds(
       final List<String> playerIds) async {
     if (playerIds.isEmpty) return [];
 
     try {
+      // Firestore 'whereIn' sorgusu en fazla 30 ID destekler.
+      // Daha fazlası için chunk logic gerekir ama şimdilik standart kullanım:
       final snapshot = await _firestore
-          .collection('Player')
+          .collection(_collectionPath)
           .where(FieldPath.documentId, whereIn: playerIds)
           .get();
 
-      return snapshot.docs.isEmpty ? [] : _mapToPlayers(snapshot);
+      return _mapSnapshot(snapshot);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getPlayersByIds): ${e.message}');
     } catch (e) {
@@ -48,10 +54,14 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
     }
   }
 
-  /// Firestore belgelerini [PlayerModel] listesine dönüştürür.
-  List<PlayerModel> _mapToPlayers(
+  /// 🔥 KRİTİK METOT: Firestore dökümanlarını modele çevirirken
+  /// döküman ID'sini (_id) verinin içine enjekte eder.
+  List<PlayerModel> _mapSnapshot(
           final QuerySnapshot<Map<String, dynamic>> snapshot) =>
-      snapshot.docs
-          .map((final doc) => PlayerModel.fromFirestore(doc.data()))
-          .toList();
+      snapshot.docs.map((final doc) {
+        final data = doc.data();
+        data['_id'] =
+            doc.id; // Firestore Document ID'yi modelin içine koyuyoruz
+        return PlayerModel.fromFirestore(data);
+      }).toList();
 }

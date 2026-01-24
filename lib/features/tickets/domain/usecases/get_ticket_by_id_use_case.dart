@@ -14,14 +14,6 @@ class GetTicketsByIdUseCaseImpl implements GetTicketsByIdUseCase {
 
   @override
   Future<Either<Failure, List<Ticket>>> call(
-      final List<String> ticketsIds) async {
-    final result = await repository.getTicketsByIds(ticketsIds);
-    return result.fold(
-        (final failure) => Left(failure),
-        (final ticketsModels) => Right(ticketsModels
-                ?.map((final ticketModel) => ticketModel?.toEntity())
-                .whereType<Ticket>()
-                .toList() ??
-            []));
-  }
+          final List<String> ticketsIds) async =>
+      repository.getTicketsByIds(ticketsIds);
 }

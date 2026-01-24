@@ -12,7 +12,6 @@ class DeleteUserUseCaseImpl implements DeleteUserUseCase {
   DeleteUserUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, bool>> call(final String userId) async {
-    return repository.deleteUser(userId);
-  }
+  Future<Either<Failure, bool>> call(final String userId) async =>
+      repository.deleteUser(userId);
 }

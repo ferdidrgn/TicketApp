@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
 import '../../../../../../core/errors/failures.dart';
-import '../../data/models/player_model.dart';
+import '../entities/player.dart';
 
 abstract class PlayerRepository {
-  Future<Either<Failure, List<PlayerModel?>?>> getPlayers(final bool isLimit);
-  Future<Either<Failure, List<PlayerModel?>?>> getPlayersByIds(final List<String> playersIds);
+  Future<Either<Failure, List<Player>>> getPlayers(final bool isLimit);
+  Future<Either<Failure, List<Player>>> getPlayersByIds(final List<String> playersIds);
 }

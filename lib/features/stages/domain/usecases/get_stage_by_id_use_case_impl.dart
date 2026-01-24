@@ -14,14 +14,6 @@ class GetStageByIdUseCaseImpl implements GetStagesByIdsUseCase {
 
   @override
   Future<Either<Failure, List<Stage>>> call(
-      final List<String> stagesIds) async {
-    final result = await repository.getStagesByIds(stagesIds);
-    return result.fold(
-        (final failure) => Left(failure),
-        (final stagesModels) => Right(stagesModels
-                ?.map((final stageModel) => stageModel?.toEntity())
-                .whereType<Stage>()
-                .toList() ??
-            []));
-  }
+          final List<String> stagesIds) async =>
+      repository.getStagesByIds(stagesIds);
 }

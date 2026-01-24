@@ -1,4 +1,4 @@
-import '../../domain/entities/event.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EventModel {
   final String? id;
@@ -17,17 +17,18 @@ class EventModel {
     this.seats,
   });
 
-  factory EventModel.fromFirestore(final Map<String, dynamic>? data) {
-    if (data == null) return const EventModel();
-    return EventModel(
-      id: data['_id'] as String?,
-      stageId: data['stageId'] as String?,
-      showId: data['showId'] as String?,
-      date: data['date'] as String?,
-      price: data['price'] as String?,
-      seats: data['seats'] as Map<String, dynamic>?,
-    );
-  }
+  factory EventModel.fromFirestore(final Map<String, dynamic> data) =>
+      EventModel(
+        id: data['_id'] as String?,
+        stageId: data['stageId'] as String?,
+        showId: data['showId'] as String?,
+        price: data['price'] as String?,
+        seats: data['seats'] as Map<String, dynamic>?,
+        // Firestore Timestamp kontrolü (Eğer tarih Timestamp gelirse)
+        date: data['date'] is Timestamp
+            ? (data['date'] as Timestamp).toDate().toIso8601String()
+            : data['date']?.toString(),
+      );
 
   Map<String, dynamic> toFirestore() => {
         '_id': id,
@@ -37,22 +38,4 @@ class EventModel {
         'price': price,
         'seats': seats,
       };
-
-  Event toEntity() => Event(
-        id: id ?? '0',
-        stageId: stageId ?? '0',
-        showId: showId ?? '0',
-        date: date ?? 'Tarih bulunamadı',
-        price: price ?? 'Fiyat bulunamadı',
-    seats: seats ?? {},
-      );
-
-  factory EventModel.fromEntity(final Event event) => EventModel(
-        id: event.id,
-        stageId: event.stageId,
-        showId: event.showId,
-        date: event.date,
-        price: event.price,
-    seats: event.seats,
-      );
 }

@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 
 abstract class UserRemoteDataSource {
-  Future<bool> saveUser(final UserModel user, final String downloadUrl,
+  Future<bool> saveUser(final UserModel user, final String? downloadUrl,
       {final bool isUpdate = false});
 
   Future<UserModel?> getUserById(final String userId);
@@ -19,60 +18,71 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       : _firestore = firestore;
 
   @override
-  Future<bool> saveUser(final UserModel user, final String downloadUrl,
+  Future<bool> saveUser(final UserModel user, final String? downloadUrl,
       {final bool isUpdate = false}) async {
+    // ID kontrolü
+    if (user.id == null || user.id!.isEmpty)
+      throw Exception('User ID cannot be empty');
+
     final docRef = _firestore.collection(_collection).doc(user.id);
 
     try {
-      final exists = (await docRef.get()).exists;
-      if (exists && !isUpdate) return false;
+      // Eğer update değilse (create ise) ve kullanıcı zaten varsa hata fırlatılabilir
+      // veya mevcut mantıktaki gibi false dönebilir. Senior yapıda logic net olmalı.
+      // Mevcut mantığı koruyoruz:
+      if (!isUpdate) {
+        final docSnapshot = await docRef.get();
+        if (docSnapshot.exists) return false;
+      }
 
-      final userMap = {
-        ...user.toFirestore(),
-        'imageUrl': downloadUrl,
-      };
+      var userMap = user.toFirestore();
 
-      await (isUpdate ? docRef.update(userMap) : docRef.set(userMap));
+      // Eğer resim URL'i geldiyse map'e ekle
+      if (downloadUrl != null && downloadUrl.isNotEmpty)
+        userMap['imageUrl'] = downloadUrl;
+
+      if (isUpdate) {
+        // Güncelleme işleminde merge: true veya sadece update kullanmak güvenlidir
+        // _updatedAt alanını server timestamp ile güncellemek iyi pratiktir
+        userMap['_updatedAt'] = FieldValue.serverTimestamp();
+        await docRef.update(userMap);
+      } else
+        await docRef.set(userMap);
+
       return true;
-    } catch (e, s) {
-      throw Exception('Failed to save users → $e\n$s');
+    } catch (e) {
+      throw Exception('Failed to save user: $e');
     }
   }
 
   @override
   Future<UserModel?> getUserById(final String userId) async {
-    if (userId.isEmpty) return null;
+    if (userId.isEmpty) throw Exception('User ID cannot be empty');
 
     try {
       final doc = await _firestore.collection(_collection).doc(userId).get();
 
-      if (!doc.exists) return null;
+      if (!doc.exists || doc.data() == null) return null;
 
-      final data = doc.data();
-      if (data == null) return null;
+      final data = doc.data()!;
+      data['_id'] = doc.id; // ID enjeksiyonu
 
-      // Modelin içindeki id alanını doldurmak için ID'yi manuel ekliyoruz
-      data['_id'] = doc.id;
-
-      // Veriyi modele çeviriyoruz
+      // Map<String, dynamic> olduğunu garanti ederek gönderiyoruz
       return UserModel.fromFirestore(data);
-    } catch (e, stack) {
-      debugPrint("🔥 Firestore Hatası: $e\n$stack");
-      return null;
+    } catch (e) {
+      throw Exception('Failed to get user: $e');
     }
   }
 
   @override
   Future<bool> deleteUser(final String userId) async {
-    if (userId.isEmpty) return false;
+    if (userId.isEmpty) throw Exception('User ID cannot be empty');
 
     try {
       await _firestore.collection(_collection).doc(userId).delete();
       return true;
-    } on FirebaseException catch (e) {
-      return false;
-    } catch (e, s) {
-      return false;
+    } catch (e) {
+      throw Exception('Failed to delete user: $e');
     }
   }
 }

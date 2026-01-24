@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 
@@ -51,24 +52,11 @@ class EventsCard extends StatelessWidget {
                     ClipRRect(
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(16)),
-                      child: CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        width: double.infinity,
-                        height: 150,
-                        fit: BoxFit.cover,
-                        placeholder: (final context, final url) =>
-                            const ShimmerLoading(
-                                width: double.infinity, height: 150),
-                        errorWidget: (final context, final url, final error) =>
-                            Container(
+                      child: OptimizedCachedImage(
+                          imageUrl: imageUrl,
+                          width: double.infinity,
                           height: 150,
-                          color: context.isDarkMode
-                              ? Colors.grey[800]
-                              : Colors.grey[300],
-                          child: const Icon(Icons.broken_image,
-                              color: Colors.grey),
-                        ),
-                      ),
+                          fit: BoxFit.cover),
                     ),
 
                     // --- KATEGORİ ETİKETİ ---

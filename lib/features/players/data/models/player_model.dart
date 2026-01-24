@@ -1,4 +1,4 @@
-import '../../domain/entities/player.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PlayerModel {
   final String? createdAt;
@@ -8,8 +8,8 @@ class PlayerModel {
   final String? lastName;
   final String? bio;
   final String? imageUrl;
-  final List<String?>? nowShowsId;
-  final List<String?>? oldShowsId;
+  final List<String>? nowShowsId;
+  final List<String>? oldShowsId;
 
   const PlayerModel({
     this.createdAt,
@@ -23,58 +23,32 @@ class PlayerModel {
     this.oldShowsId,
   });
 
-  factory PlayerModel.fromFirestore(final Map<String, dynamic>? data){
-    if (data == null) return PlayerModel();
-    return PlayerModel(
-      createdAt: data['_createdAt'] as String?,
-      updatedAt: data['_updatedAt'] as String?,
-      id: data['_id'] as String?,
-      firstName: data['firstName'] as String?,
-      lastName: data['lastName'] as String?,
-      bio: data['bio'] as String?,
-      imageUrl: data['imageUrl'] as String?,
-      nowShowsId: (data['nowShowsId'] as List?)
-          ?.map((final e) => e as String?)
-          .toList(),
-      oldShowsId: (data['oldShowsId'] as List?)
-          ?.map((final e) => e as String?)
-          .toList(),
-    );
-  }
+  factory PlayerModel.fromFirestore(final Map<String, dynamic> data) =>
+      PlayerModel(
+        id: data['_id'] as String?,
+        firstName: data['firstName'] as String?,
+        lastName: data['lastName'] as String?,
+        bio: data['bio'] as String?,
+        imageUrl: data['imageUrl'] as String?,
+        createdAt: data['_createdAt'] is Timestamp
+            ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
+            : data['_createdAt']?.toString(),
+        updatedAt: data['_updatedAt'] is Timestamp
+            ? (data['_updatedAt'] as Timestamp).toDate().toIso8601String()
+            : data['_updatedAt']?.toString(),
+        nowShowsId:
+            (data['nowShowsId'] as List?)?.map((e) => e.toString()).toList(),
+        oldShowsId:
+            (data['oldShowsId'] as List?)?.map((e) => e.toString()).toList(),
+      );
 
   Map<String, dynamic> toFirestore() => {
-    '_createdAt': createdAt,
-    '_updatedAt': updatedAt,
-    '_id': id,
-    'firstName': firstName,
-    'lastName': lastName,
-    'bio': bio,
-    'imageUrl': imageUrl,
-    'nowShowsId': nowShowsId,
-    'oldShowsId': oldShowsId,
-  };
-
-  Player toEntity() => Player(
-    id: id ?? '0',
-    createdAt: createdAt ?? 'Tarih bulunamadı',
-    updatedAt: updatedAt ?? 'Tarih bulunamadı',
-    firstName: firstName ?? 'İsim bulunamadı',
-    lastName: lastName ?? 'Soyisim bulunamadı',
-    bio: bio ?? 'Bio bulunamadı',
-    imageUrl: imageUrl ?? 'https://example.com/default-image.png',
-    nowShowsId: nowShowsId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
-    oldShowsId: oldShowsId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
-  );
-
-  factory PlayerModel.fromEntity(final Player player) => PlayerModel(
-    createdAt: player.createdAt,
-    updatedAt: player.updatedAt,
-    id: player.id,
-    firstName: player.firstName,
-    lastName: player.lastName,
-    bio: player.bio,
-    imageUrl: player.imageUrl,
-    nowShowsId: player.nowShowsId,
-    oldShowsId: player.oldShowsId,
-  );
+        '_id': id,
+        'firstName': firstName,
+        'lastName': lastName,
+        'bio': bio,
+        'imageUrl': imageUrl,
+        'nowShowsId': nowShowsId,
+        'oldShowsId': oldShowsId,
+      };
 }

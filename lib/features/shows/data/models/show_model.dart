@@ -1,9 +1,9 @@
-import '../../domain/entities/show.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ShowModel {
+  final String? id;
   final String? createdAt;
   final String? updatedAt;
-  final String? id;
   final String? imageUrl;
   final String? name;
   final String? description;
@@ -13,59 +13,64 @@ class ShowModel {
   final String? type;
   final String? ageLimit;
   final String? eventRule;
-  final List<String?>? nowPlayersId;
-  final List<String?>? oldPlayersId;
-  final List<String?>? eventsId;
-  final List<String?>? photosShowId;
+  final List<String>? nowPlayersId;
+  final List<String>? oldPlayersId;
+  final List<String>? eventsId;
+  final List<String>? photosShowId;
 
   const ShowModel({
+    this.id,
     this.createdAt,
     this.updatedAt,
-    this.id,
     this.imageUrl,
     this.name,
     this.description,
     this.duration,
     this.category,
-    this.type,
     this.teamId,
+    this.type,
     this.ageLimit,
     this.eventRule,
-    this.eventsId,
     this.nowPlayersId,
     this.oldPlayersId,
+    this.eventsId,
     this.photosShowId,
   });
 
-  factory ShowModel.fromFirestore(final Map<String, dynamic>? data) {
-    if (data == null) return const ShowModel();
-    return ShowModel(
-      createdAt: data['_createdAt'] as String?,
-      updatedAt: data['_updatedAt'] as String?,
-      id: data['_id'] as String?,
-      imageUrl: data['imageUrl'] as String?,
-      name: data['name'] as String?,
-      description: data['description'] as String?,
-      duration: data['duration'] as String?,
-      category: data['category'] as String?,
-      teamId: data['teamId'] as String?,
-      type: data['type'] as String?,
-      ageLimit: data['ageLimit'] as String?,
-      eventRule: data['eventRule'] as String?,
-      eventsId:
-          (data['eventsId'] as List?)?.map((final e) => e as String?).toList(),
-      nowPlayersId: (data['nowPlayersId'] as List?)
-          ?.map((final e) => e as String?)
-          .toList(),
-      oldPlayersId: (data['oldPlayersId'] as List?)
-          ?.map((final e) => e as String?)
-          .toList(),
-      photosShowId: (data['photosShowId'] as List?)
-          ?.map((final e) => e as String?)
-          .toList(),
-    );
-  }
+  /// 🔥 Firestore'dan güvenli okuma
+  factory ShowModel.fromFirestore(final Map<String, dynamic> data) => ShowModel(
+        id: data['_id'] as String?,
+        createdAt: data['_createdAt'] is Timestamp
+            ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
+            : data['_createdAt']?.toString(),
+        updatedAt: data['_updatedAt'] is Timestamp
+            ? (data['_updatedAt'] as Timestamp).toDate().toIso8601String()
+            : data['_updatedAt']?.toString(),
+        imageUrl: data['imageUrl'] as String?,
+        name: data['name'] as String?,
+        description: data['description'] as String?,
+        duration: data['duration'] as String?,
+        category: data['category'] as String?,
+        teamId: data['teamId'] as String?,
+        type: data['type'] as String?,
+        ageLimit: data['ageLimit'] as String?,
+        eventRule: data['eventRule'] as String?,
+        // Listeleri güvenli cast etme
+        eventsId: (data['eventsId'] as List?)
+            ?.map((final e) => e.toString())
+            .toList(),
+        nowPlayersId: (data['nowPlayersId'] as List?)
+            ?.map((final e) => e.toString())
+            .toList(),
+        oldPlayersId: (data['oldPlayersId'] as List?)
+            ?.map((final e) => e.toString())
+            .toList(),
+        photosShowId: (data['photosShowId'] as List?)
+            ?.map((final e) => e.toString())
+            .toList(),
+      );
 
+  /// 🔥 Firestore'a yazma
   Map<String, dynamic> toFirestore() => {
         '_createdAt': createdAt,
         '_updatedAt': updatedAt,
@@ -84,42 +89,4 @@ class ShowModel {
         'oldPlayersId': oldPlayersId,
         'photosShowId': photosShowId,
       };
-
-  Show toEntity() => Show(
-        id: id ?? '0',
-        createdAt: createdAt ?? 'Tarih bulunamadı',
-        updatedAt: updatedAt ?? 'Tarih bulunamadı',
-        name: name ?? 'İsim bulunamadı',
-        description: description ?? 'Açıklama bulunamadı',
-        duration: duration ?? 'Süre bulunamadı',
-        category: category ?? 'Kategori bulunamadı',
-        teamId: teamId ?? 'Takım bulunamadı',
-        type: type ?? 'Tür bulunamadı',
-        imageUrl: imageUrl ?? 'https://example.com/default-image.png',
-        ageLimit: ageLimit ?? 'Yaş sınırı bulunamadı',
-        eventRule: eventRule ?? 'Olay kuralları bulunamadı',
-        eventsId: eventsId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
-        nowPlayersId: nowPlayersId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
-        oldPlayersId: oldPlayersId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
-        photosShowId: photosShowId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
-      );
-
-  factory ShowModel.fromEntity(final Show show) => ShowModel(
-        createdAt: show.createdAt,
-        updatedAt: show.updatedAt,
-        id: show.id,
-        imageUrl: show.imageUrl,
-        name: show.name,
-        description: show.description,
-        duration: show.duration,
-        category: show.category,
-        teamId: show.teamId,
-        type: show.type,
-        ageLimit: show.ageLimit,
-        eventRule: show.eventRule,
-        eventsId: show.eventsId,
-        nowPlayersId: show.nowPlayersId,
-        oldPlayersId: show.oldPlayersId,
-        photosShowId: show.photosShowId,
-      );
 }

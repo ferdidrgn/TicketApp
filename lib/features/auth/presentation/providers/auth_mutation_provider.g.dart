@@ -40,7 +40,7 @@ final class OtpTimerProvider extends $NotifierProvider<OtpTimer, int> {
   }
 }
 
-String _$otpTimerHash() => r'6b6b8551f2380a74cc2623966154c3bd22a13507';
+String _$otpTimerHash() => r'e4d6fb4761a8bbfd7e6a9ee17ce0eacece05f112';
 
 abstract class _$OtpTimer extends $Notifier<int> {
   int build();
@@ -79,7 +79,7 @@ final class AuthMutationProvider
   AuthMutation create() => AuthMutation();
 }
 
-String _$authMutationHash() => r'4c3f23214d3e40a4c9dc6ffbe0cd84718d96380a';
+String _$authMutationHash() => r'fe4681ac84835fa8c0e2adf2a9ecae70a7e470be';
 
 abstract class _$AuthMutation extends $AsyncNotifier<void> {
   FutureOr<void> build();

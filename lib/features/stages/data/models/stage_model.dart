@@ -1,4 +1,4 @@
-import '../../domain/entities/stage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StageModel {
   final String? id;
@@ -12,7 +12,7 @@ class StageModel {
   final double? locationLng;
   final String? createdAt;
   final String? updatedAt;
-  final List<String?>? showsId;
+  final List<String>? showsId;
 
   const StageModel({
     this.id,
@@ -29,28 +29,27 @@ class StageModel {
     this.showsId,
   });
 
-  factory StageModel.fromFirestore(final Map<String, dynamic>? data) {
-    if (data == null) return const StageModel();
-    return StageModel(
-      createdAt: data['_createdAt'] as String?,
-      updatedAt: data['_updatedAt'] as String?,
-      id: data['_id'] as String?,
-      name: data['name'] as String?,
-      imageUrl: data['imageUrl'] as String?,
-      capacity: data['capacity'] as String?,
-      description: data['description'] as String?,
-      communication: data['communication'] as String?,
-      address: data['address'] as String?,
-      locationLat: data['locationLat'] as double?,
-      locationLng: data['locationLng'] as double?,
-      showsId:
-          (data['showsId'] as List?)?.map((final e) => e as String?).toList(),
-    );
-  }
+  factory StageModel.fromFirestore(final Map<String, dynamic> data) =>
+      StageModel(
+        id: data['_id'] as String?,
+        name: data['name'] as String?,
+        imageUrl: data['imageUrl'] as String?,
+        capacity: data['capacity'] as String?,
+        description: data['description'] as String?,
+        communication: data['communication'] as String?,
+        address: data['address'] as String?,
+        locationLat: data['locationLat'] as double?,
+        locationLng: data['locationLng'] as double?,
+        createdAt: data['_createdAt'] is Timestamp
+            ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
+            : data['_createdAt']?.toString(),
+        updatedAt: data['_updatedAt'] is Timestamp
+            ? (data['_updatedAt'] as Timestamp).toDate().toIso8601String()
+            : data['_updatedAt']?.toString(),
+        showsId: (data['showsId'] as List?)?.map((e) => e.toString()).toList(),
+      );
 
   Map<String, dynamic> toFirestore() => {
-        '_createdAt': createdAt,
-        '_updatedAt': updatedAt,
         '_id': id,
         'name': name,
         'imageUrl': imageUrl,
@@ -62,34 +61,4 @@ class StageModel {
         'locationLng': locationLng,
         'showsId': showsId,
       };
-
-  Stage toEntity() => Stage(
-    id: id ?? '0',
-    createdAt: createdAt ?? 'Tarih bulunamadı',
-    updatedAt: updatedAt ?? 'Tarih bulunamadı',
-    name: name ?? 'İsim bulunamadı',
-    capacity: capacity ?? 'Kapasite bulunamadı',
-    description: description ?? 'Açıklama bulunamadı',
-    communication: communication ?? 'İletişim bulunamadı',
-    address: address ?? 'Adres bulunamadı',
-    imageUrl: imageUrl ?? 'https://example.com/default-image.png',
-    locationLat: locationLat ?? 0.0,
-    locationLng: locationLng ?? 0.0,
-    showsId: showsId?.where((final e) => e != null).map((final e) => e!).toList() ?? [],
-  );
-
-  factory StageModel.fromEntity(final Stage entity) => StageModel(
-        id: entity.id,
-        name: entity.name,
-        imageUrl: entity.imageUrl,
-        capacity: entity.capacity,
-        description: entity.description,
-        communication: entity.communication,
-        address: entity.address,
-        locationLat: entity.locationLat,
-        locationLng: entity.locationLng,
-        createdAt: entity.createdAt,
-        updatedAt: entity.updatedAt,
-        showsId: entity.showsId,
-      );
 }

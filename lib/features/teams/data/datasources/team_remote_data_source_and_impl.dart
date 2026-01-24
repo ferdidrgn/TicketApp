@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:ticketapp/features/teams/data/models/team_model.dart';
+import '../models/team_model.dart';
 
 abstract class TeamRemoteDataSource {
-  Future<List<TeamModel?>?> getTeams(final bool isLimit);
+  Future<List<TeamModel>> getTeams(final bool isLimit);
 
-  Future<List<TeamModel?>?> getTeamsByIds(final List<String> teamsIds);
+  Future<List<TeamModel>> getTeamsByIds(final List<String> teamsIds);
 }
 
 class TeamRemoteDataSourceImpl implements TeamRemoteDataSource {
@@ -13,44 +13,43 @@ class TeamRemoteDataSourceImpl implements TeamRemoteDataSource {
   TeamRemoteDataSourceImpl({required this.firestore});
 
   @override
-  Future<List<TeamModel?>?> getTeams(final bool isLimit) async {
+  Future<List<TeamModel>> getTeams(final bool isLimit) async {
     try {
-      final snapshot = isLimit
-          ? await firestore
-              .collection('Team')
-              .orderBy('_createdAt', descending: true)
-              .limit(20)
-              .get()
-          : await firestore.collection('Team').get();
+      Query<Map<String, dynamic>> query = firestore.collection('Team');
 
-      return _convertQuerySnapshotToTeamList(snapshot);
+      if (isLimit)
+        query = query.orderBy('_createdAt', descending: true).limit(20);
+
+      final snapshot = await query.get();
+      return _mapSnapshot(snapshot);
     } catch (e) {
       throw Exception('Error fetching teams: $e');
     }
   }
 
   @override
-  Future<List<TeamModel?>?> getTeamsByIds(final List<String> teamsIds) async {
-    try {
-      if (teamsIds.isEmpty) return [];
+  Future<List<TeamModel>> getTeamsByIds(final List<String> teamsIds) async {
+    if (teamsIds.isEmpty) return [];
 
-      final result = await firestore
+    try {
+      final snapshot = await firestore
           .collection('Team')
           .where(FieldPath.documentId, whereIn: teamsIds)
           .get();
 
-      return _convertQuerySnapshotToTeamList(result);
+      return _mapSnapshot(snapshot);
     } catch (e) {
       throw Exception('Error fetching teams by IDs: $e');
     }
   }
 
-  List<TeamModel> _convertQuerySnapshotToTeamList(
-      final QuerySnapshot snapshot) {
-    if (snapshot.docs.isEmpty) return [];
-    return snapshot.docs
-        .map((final doc) =>
-            TeamModel.fromFirestore(doc.data()! as Map<String, dynamic>))
-        .toList();
+  /// 🔥 Yardımcı Metot: ID enjeksiyonu ve Model Dönüşümü
+  List<TeamModel> _mapSnapshot(
+      final QuerySnapshot<Map<String, dynamic>> snapshot) {
+    return snapshot.docs.map((final doc) {
+      final data = doc.data();
+      data['_id'] = doc.id;
+      return TeamModel.fromFirestore(data);
+    }).toList();
   }
 }

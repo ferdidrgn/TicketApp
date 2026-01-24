@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../../core/common/enum/enums.dart';
-import '../../domain/entities/user.dart';
 
 class UserModel {
   final String? id;
@@ -15,10 +13,10 @@ class UserModel {
   final bool? isPhoneActive;
   final String? fcmToken;
   final String? role; // Firestore'da String olarak tutulur
-  final List<String?>? favoriteShows;
-  final List<String?>? favoriteStages;
-  final List<String?>? favoritePlayers;
-  final List<String?>? ticketsId;
+  final List<String>? favoriteShows;
+  final List<String>? favoriteStages;
+  final List<String>? favoritePlayers;
+  final List<String>? ticketsId;
 
   const UserModel({
     this.id,
@@ -39,38 +37,36 @@ class UserModel {
     this.ticketsId,
   });
 
-  factory UserModel.fromFirestore(final Map<String, dynamic>? data) {
-    if (data == null) return const UserModel();
-    return UserModel(
-      createdAt: data['_createdAt'] is Timestamp
-          ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
-          : data['_createdAt']?.toString() ?? '',
-      updatedAt: data['_updatedAt'] is Timestamp
-          ? (data['_updatedAt'] as Timestamp).toDate().toIso8601String()
-          : data['_updatedAt']?.toString() ?? '',
-      id: data['_id'] as String?,
-      firstName: data['firstName'] as String?,
-      lastName: data['lastName'] as String?,
-      imageUrl: data['imageUrl'] as String?,
-      phoneNumber: data['phoneNumber'] as String?,
-      eMail: data['eMail'] as String?,
-      city: data['city'] as String?,
-      isPhoneActive: data['isPhoneActive'] as bool?,
-      fcmToken: data['fcmToken'] as String?,
-      role: data['role'] as String?,
-      favoriteShows: (data['favoriteShows'] as List?)
-          ?.map((final e) => e as String?)
-          .toList(),
-      favoriteStages: (data['favoriteStages'] as List?)
-          ?.map((final e) => e as String?)
-          .toList(),
-      favoritePlayers: (data['favoritePlayers'] as List?)
-          ?.map((final e) => e as String?)
-          .toList(),
-      ticketsId:
-          (data['ticketsId'] as List?)?.map((final e) => e as String?).toList(),
-    );
-  }
+  /// 🔥 Firestore'dan güvenli okuma (Map null gelemez varsayımıyla)
+  factory UserModel.fromFirestore(final Map<String, dynamic> data) => UserModel(
+        id: data['_id'] as String?,
+        createdAt: data['_createdAt'] is Timestamp
+            ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
+            : data['_createdAt']?.toString(),
+        updatedAt: data['_updatedAt'] is Timestamp
+            ? (data['_updatedAt'] as Timestamp).toDate().toIso8601String()
+            : data['_updatedAt']?.toString(),
+        firstName: data['firstName'] as String?,
+        lastName: data['lastName'] as String?,
+        imageUrl: data['imageUrl'] as String?,
+        phoneNumber: data['phoneNumber'] as String?,
+        eMail: data['eMail'] as String?,
+        city: data['city'] as String?,
+        isPhoneActive: data['isPhoneActive'] as bool?,
+        fcmToken: data['fcmToken'] as String?,
+        role: data['role'] as String?,
+        // Listeleri güvenli cast etme
+        favoriteShows:
+            (data['favoriteShows'] as List?)?.map((e) => e.toString()).toList(),
+        favoriteStages: (data['favoriteStages'] as List?)
+            ?.map((e) => e.toString())
+            .toList(),
+        favoritePlayers: (data['favoritePlayers'] as List?)
+            ?.map((e) => e.toString())
+            .toList(),
+        ticketsId:
+            (data['ticketsId'] as List?)?.map((e) => e.toString()).toList(),
+      );
 
   Map<String, dynamic> toFirestore() => {
         '_createdAt': createdAt,
@@ -90,58 +86,4 @@ class UserModel {
         'favoritePlayers': favoritePlayers,
         'ticketsId': ticketsId,
       };
-
-  User toEntity() => User(
-        id: id ?? '0',
-        createdAt: createdAt ?? 'Tarih bulunamadı',
-        updatedAt: updatedAt ?? 'Tarih bulunamadı',
-        firstName: firstName ?? 'İsim bulunamadı',
-        lastName: lastName ?? 'Soyisim bulunamadı',
-        phoneNumber: phoneNumber ?? 'Telefon numarası bulunamadı',
-        imageUrl: imageUrl ?? 'https://example.com/default-image.png',
-        eMail: eMail ?? 'E-mail bulunamadı',
-        city: city ?? 'Şehir bulunamadı',
-        isPhoneActive: isPhoneActive ?? false,
-        fcmToken: fcmToken ?? 'FCM token bulunamadı',
-        role: UserRole.fromString(role),
-        favoriteShows: favoriteShows
-                ?.where((final e) => e != null)
-                .map((final e) => e!)
-                .toList() ??
-            [],
-        favoriteStages: favoriteStages
-                ?.where((final e) => e != null)
-                .map((final e) => e!)
-                .toList() ??
-            [],
-        favoritePlayers: favoritePlayers
-                ?.where((final e) => e != null)
-                .map((final e) => e!)
-                .toList() ??
-            [],
-        ticketsId: ticketsId
-                ?.where((final e) => e != null)
-                .map((final e) => e!)
-                .toList() ??
-            [],
-      );
-
-  factory UserModel.fromEntity(final User user) => UserModel(
-        id: user.id,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        imageUrl: user.imageUrl,
-        phoneNumber: user.phoneNumber,
-        eMail: user.eMail,
-        city: user.city,
-        isPhoneActive: user.isPhoneActive,
-        fcmToken: user.fcmToken,
-        role: user.role.name,
-        favoriteShows: user.favoriteShows,
-        favoriteStages: user.favoriteStages,
-        favoritePlayers: user.favoritePlayers,
-        ticketsId: user.ticketsId,
-      );
 }

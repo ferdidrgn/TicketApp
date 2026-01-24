@@ -1,15 +1,13 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_modal.dart';
-import 'package:ticketapp/features/tickets/presentation/providers/ticket_provider.dart';
 import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
-import '../providers/my_ticket_viewmodel.dart';
+import '../providers/my_ticket_provider.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {
   final String userId;
@@ -31,9 +29,6 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() => setState(() {}));
-    WidgetsBinding.instance
-        .addPostFrameCallback((final _) => _loadTicketData());
   }
 
   @override
@@ -42,19 +37,16 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     super.dispose();
   }
 
-  Future<void> _loadTicketData() async => ref
-      .read(ticketProvider.notifier)
-      .loadTicketsAndDetailsByCustomerId(widget.userId);
-
   @override
   Widget build(final BuildContext context) {
     super.build(context);
-    final viewModel = ref.watch(ticketViewModelProvider);
+
+    final ticketsAsync = ref.watch(myTicketsProvider(widget.userId));
 
     return Scaffold(
-      backgroundColor: context.colors.surface,
-      body: CustomAppBackground(
-        child: SafeArea(
+        backgroundColor: context.colors.surface,
+        body: CustomAppBackground(
+            child: SafeArea(
           child: Column(
             children: [
               TopNormalHeader(
@@ -69,40 +61,43 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
               ),
               Expanded(
                 child: RefreshIndicator(
-                  onRefresh: _loadTicketData,
+                  // Listeyi yenilemek için invalidate yeterli
+                  onRefresh: () async =>
+                      ref.invalidate(myTicketsProvider(widget.userId)),
                   color: context.colors.primary,
-                  child: _buildBody(viewModel),
+                  child: ticketsAsync.when(
+                    loading: () => ListView.builder(
+                      padding: const EdgeInsets.all(24),
+                      itemCount: 3,
+                      itemBuilder: (final _, final __) => const ShimmerCard(),
+                    ),
+                    error: (final err, final stack) =>
+                        Center(child: Text('Hata: $err')),
+                    data: (final tickets) {
+                      if (tickets.isEmpty) return const _EmptyState();
+
+                      return TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _TicketList(
+                            // Extension sayesinde filtreleme
+                            tickets: tickets.upcoming,
+                            onTicketTap: _showTicketDetails,
+                          ),
+                          _TicketList(
+                            tickets: tickets.past,
+                            isPast: true,
+                            onTicketTap: _showTicketDetails,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(final TicketViewModel viewModel) {
-    if (viewModel.isLoading && viewModel.isEmpty) {
-      return ListView.builder(
-        padding: const EdgeInsets.all(24),
-        itemCount: 3,
-        itemBuilder: (final _, final __) => const ShimmerCard(),
-      );
-    }
-    if (viewModel.isEmpty) return const _EmptyState();
-
-    return TabBarView(
-      controller: _tabController,
-      children: [
-        _TicketList(
-            tickets: viewModel.upcomingTickets,
-            onTicketTap: _showTicketDetails),
-        _TicketList(
-            tickets: viewModel.pastTickets,
-            isPast: true,
-            onTicketTap: _showTicketDetails),
-      ],
-    );
+        )));
   }
 
   void _showTicketDetails(final DetailedTicket ticket) {
@@ -123,19 +118,15 @@ class _TicketCard extends StatelessWidget {
   const _TicketCard(
       {required this.detailedTicket, required this.onTap, this.isPast = false});
 
-  // _TicketCard içindeki build metodu en sade haline döndü:
   @override
-  Widget build(final BuildContext context) {
-    final colors = context.colors;
-    return GestureDetector(
-      onTap: onTap, // Doğrudan tıklama
-      child: _buildBaseCard(context, colors), // Sadece normal kart
-    );
-  }
+  Widget build(final BuildContext context) =>
+      GestureDetector(onTap: onTap, child: _buildBaseCard(context));
 
-  Widget _buildBaseCard(final BuildContext context, final ColorScheme colors) {
+  Widget _buildBaseCard(final BuildContext context) {
     final dateInfo =
         DateFormatter.formatForEventCard(detailedTicket.event?.date ?? '');
+    final colors = context.colors;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -222,10 +213,7 @@ class _ArtDateSidebar extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: isMagic
-              ? [
-                  themeColors.primary,
-                  themeColors.tertiary
-                ] // Sihirli katman renkleri
+              ? [themeColors.primary, themeColors.tertiary]
               : (isPast
                   ? [Colors.grey.shade400, Colors.grey.shade600]
                   : [
@@ -258,10 +246,6 @@ class _ArtDateSidebar extends StatelessWidget {
   }
 }
 
-// ... _TabSelector, _TicketList, _EmptyState ve _ArtInfoLine kodların aynı kalabilir ...
-// ============================================================
-// ARTISTIC TAB SELECTOR (YÜKSEK KONTRASTLI)
-// ============================================================
 class _TabSelector extends StatelessWidget {
   final TabController controller;
 

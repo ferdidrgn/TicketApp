@@ -2,11 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/stage_model.dart';
 
 abstract class StageRemoteDataSource {
-  Future<List<StageModel?>?> getSearchStage(final String query);
-
-  Future<List<StageModel?>?> getStages(final bool isLimit);
-
-  Future<List<StageModel?>?> getStagesByIds(final List<String> stageIds);
+  Future<List<StageModel>> getSearchStage(final String query);
+  Future<List<StageModel>> getStages(final bool isLimit);
+  Future<List<StageModel>> getStagesByIds(final List<String> stageIds);
 }
 
 class StageRemoteDataSourceImpl implements StageRemoteDataSource {
@@ -17,7 +15,7 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
       : _firestore = firestore;
 
   @override
-  Future<List<StageModel?>?> getSearchStage(final String query) async {
+  Future<List<StageModel>> getSearchStage(final String query) async {
     if (query.isEmpty) throw Exception('Arama sorgusu boş olamaz.');
 
     try {
@@ -27,7 +25,7 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
           .where('name', isLessThanOrEqualTo: '$query\uf8ff')
           .get();
 
-      return snapshot.docs.isEmpty ? [] : _mapToStages(snapshot);
+      return _mapToStages(snapshot);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getSearchStage): ${e.message}');
     } catch (e) {
@@ -36,14 +34,17 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
   }
 
   @override
-  Future<List<StageModel?>?> getStages(final bool isLimit) async {
+  Future<List<StageModel>> getStages(final bool isLimit) async {
     try {
-      final query = _firestore.collection(_collection);
+      final queryRef = _firestore.collection(_collection);
       final snapshot = isLimit
-          ? await query.orderBy('_createdAt', descending: true).limit(20).get()
-          : await query.get();
+          ? await queryRef
+              .orderBy('_createdAt', descending: true)
+              .limit(20)
+              .get()
+          : await queryRef.get();
 
-      return snapshot.docs.isEmpty ? [] : _mapToStages(snapshot);
+      return _mapToStages(snapshot);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getStages): ${e.message}');
     } catch (e) {
@@ -52,16 +53,16 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
   }
 
   @override
-  Future<List<StageModel?>?> getStagesByIds(final List<String> stageIds) async {
-    try {
-      if (stageIds.isEmpty) throw Exception('Stage ID cannot be empty.');
+  Future<List<StageModel>> getStagesByIds(final List<String> stageIds) async {
+    if (stageIds.isEmpty) return [];
 
+    try {
       final result = await _firestore
           .collection(_collection)
           .where(FieldPath.documentId, whereIn: stageIds)
           .get();
 
-      return result.docs.isEmpty ? [] : _mapToStages(result);
+      return _mapToStages(result);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getStagesByIds): ${e.message}');
     } catch (e) {
@@ -69,9 +70,11 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
     }
   }
 
-  /// Firestore belgelerini [StageModel] listesine dönüştürür
-  List<StageModel> _mapToStages(final QuerySnapshot snapshot) => snapshot.docs
-      .map((final doc) =>
-          StageModel.fromFirestore(doc.data()! as Map<String, dynamic>))
-      .toList();
+  List<StageModel> _mapToStages(
+          final QuerySnapshot<Map<String, dynamic>> snapshot) =>
+      snapshot.docs.map((final doc) {
+        final data = doc.data();
+        data['_id'] = doc.id;
+        return StageModel.fromFirestore(data);
+      }).toList();
 }

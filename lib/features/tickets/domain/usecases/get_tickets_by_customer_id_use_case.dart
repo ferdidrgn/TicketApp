@@ -14,14 +14,6 @@ class GetTicketByCustomerIdUseCaseImpl
   GetTicketByCustomerIdUseCaseImpl(this.repository);
 
   @override
-  Future<Either<Failure, List<Ticket>>> call(final String ticketsIds) async {
-    final result = await repository.getTicketsByCustomerId(ticketsIds);
-    return result.fold(
-        (final failure) => Left(failure),
-        (final ticketsModels) => Right(ticketsModels
-                ?.map((final ticketModel) => ticketModel?.toEntity())
-                .whereType<Ticket>()
-                .toList() ??
-            []));
-  }
+  Future<Either<Failure, List<Ticket>>> call(final String ticketsIds) async =>
+      repository.getTicketsByCustomerId(ticketsIds);
 }

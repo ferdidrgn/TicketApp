@@ -36,9 +36,7 @@ class TeamCard extends ConsumerWidget {
         tablet: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
         desktop: const EdgeInsets.symmetric(vertical: 80, horizontal: 60),
       ),
-      decoration: const BoxDecoration(
-        gradient: WebColors.backgroundGradient,
-      ),
+      decoration: const BoxDecoration(gradient: WebColors.backgroundGradient),
       child: Column(
         children: [
           ShaderMask(
@@ -69,10 +67,10 @@ class TeamCard extends ConsumerWidget {
           SizedBox(height: context.responsive(mobile: 30.0, desktop: 50.0)),
           castAsyncValue.when(
             data: (final players) {
-              if (players.isEmpty) {
+              if (players.isEmpty)
                 return const Text('Henüz oyuncu bilgisi yok',
                     style: TextStyle(color: Colors.white70));
-              }
+
               return _buildTeamCarousel(context, players, scrollController);
             },
             loading: () =>

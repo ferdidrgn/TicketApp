@@ -96,7 +96,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   @override
   Widget build(final BuildContext context) {
     final userAsync = ref.watch(currentUserProvider);
-    final mutationState = ref.watch(userMutationProvider);
+    ref.watch(userMutationProvider);
 
     userAsync.whenData((final user) {
       if (user != null && !_isInitialized) _fillFields(user);

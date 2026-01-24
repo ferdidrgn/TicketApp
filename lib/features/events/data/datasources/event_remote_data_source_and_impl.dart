@@ -5,7 +5,7 @@ import '../../../seat/data/datasources/seat_remote_data_source_and_impl.dart';
 abstract class EventRemoteDataSource {
   Future<void> initializeAndGetEventSeats(final String eventId);
 
-  Future<List<EventModel?>?> getEventsByIds(final List<String> eventIds);
+  Future<List<EventModel>> getEventsByIds(final List<String> eventIds);
 
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);
@@ -91,16 +91,18 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   @override
-  Future<List<EventModel?>?> getEventsByIds(final List<String> eventIds) async {
+  Future<List<EventModel>> getEventsByIds(final List<String> eventIds) async {
     if (eventIds.isEmpty) return [];
     try {
       final snapshot = await _eventCollection
           .where(FieldPath.documentId, whereIn: eventIds)
           .get();
 
-      return snapshot.docs
-          .map((final doc) => EventModel.fromFirestore(doc.data()))
-          .toList();
+      return snapshot.docs.map((final doc) {
+        final data = doc.data();
+        data['_id'] = doc.id;
+        return EventModel.fromFirestore(data);
+      }).toList();
     } catch (e) {
       throw Exception('getEventsByIds failed: $e');
     }

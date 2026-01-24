@@ -177,8 +177,8 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
           case 1:
             increment(
                 1,
-                _SearchLogic.totalCount(
-                    ref.read(showProvider).dataList, query, (final s) => s.name));
+                _SearchLogic.totalCount(ref.read(showProvider).dataList, query,
+                    (final s) => s.name));
             break;
           case 2:
             increment(
@@ -189,14 +189,14 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
           case 3:
             increment(
                 3,
-                _SearchLogic.totalCount(
-                    ref.read(stageProvider).dataList, query, (final s) => s.name));
+                _SearchLogic.totalCount(ref.read(stageProvider).dataList, query,
+                    (final s) => s.name));
             break;
           case 4:
             increment(
                 4,
-                _SearchLogic.totalCount(
-                    ref.read(teamProvider).dataList, query, (final t) => t.name));
+                _SearchLogic.totalCount(ref.read(teamProvider).dataList, query,
+                    (final t) => t.name));
             break;
         }
         _loadingMore = false;
@@ -219,186 +219,89 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   }
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchState = ref.watch(searchResultProvider);
+    final selectedFilter = ref.watch(searchFilterProvider);
     final query = ref.watch(searchQueryProvider);
-
-    // Verileri Çek
-    final (rawShows, rawPlayers, rawStages, rawTeams) = (
-      ref.watch(showProvider),
-      ref.watch(playerProvider),
-      ref.watch(stageProvider),
-      ref.watch(teamProvider)
-    );
-
-    final loading = (
-      shows: rawShows.isLoading || !_isInitialized,
-      players: rawPlayers.isLoading || !_isInitialized,
-      stages: rawStages.isLoading || !_isInitialized,
-      teams: rawTeams.isLoading || !_isInitialized,
-    );
-
-    // Filtreleme
-    final data = (
-      shows: _SearchLogic.filterAndPaginate(
-          rawShows.dataList, query, (final s) => s.name,
-          page: _selectedFilter == 1 ? _pages[1]! : 0,
-          paginate: _selectedFilter == 1,
-          limit: _selectedFilter == 0 ? 10 : null),
-      players: _SearchLogic.filterAndPaginate(
-          rawPlayers.dataList, query, (final p) => '${p.firstName} ${p.lastName}',
-          page: _selectedFilter == 2 ? _pages[2]! : 0,
-          paginate: _selectedFilter == 2,
-          limit: _selectedFilter == 0 ? 10 : null),
-      stages: _SearchLogic.filterAndPaginate(
-          rawStages.dataList, query, (final s) => s.name,
-          page: _selectedFilter == 3 ? _pages[3]! : 0,
-          paginate: _selectedFilter == 3,
-          limit: _selectedFilter == 0 ? 10 : null),
-      teams: _SearchLogic.filterAndPaginate(
-          rawTeams.dataList, query, (final t) => t.name,
-          page: _selectedFilter == 4 ? _pages[4]! : 0,
-          paginate: _selectedFilter == 4,
-          limit: _selectedFilter == 0 ? 10 : null),
-    );
-
-    final isAllEmpty = !loading.shows &&
-        !loading.players &&
-        !loading.stages &&
-        !loading.teams &&
-        data.shows.isEmpty &&
-        data.players.isEmpty &&
-        data.stages.isEmpty &&
-        data.teams.isEmpty;
-
-    // Responsive Değerler
-    final contentMaxWidth = context.responsive(
-      mobile: double.infinity,
-      desktop: 1200.0,
-    );
-
-    // Grid kolon sayısı (Oyuncular/Mekanlar için)
-    final gridCrossCount = context.gridColumns(5);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       body: CustomAppBackground(
-        backgroundColor: context.isDarkMode
-            ? const Color(0xFF10141C)
-            : const Color(0xFFF0F4F8),
-        ambientColor: Colors.indigoAccent,
-        particleColor: Colors.blueGrey.withOpacity(0.3),
-        child: Center(
-          child: Container(
-            constraints: BoxConstraints(maxWidth: contentMaxWidth),
-            child: SafeArea(
-              bottom: false,
-              child: CustomScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  // 1. HEADER & SEARCH BAR
-                  SliverToBoxAdapter(
-                    child: _buildHeader(context, query),
-                  ),
-
-                  // 2. FILTERS
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 800),
-                        child: _FilterList(
-                          selectedIndex: _selectedFilter,
-                          onSelected: (final i) => setState(() {
-                            _selectedFilter = i;
-                            _pages.updateAll((final _, final __) => 0);
-                            WidgetsBinding.instance.addPostFrameCallback((final _) {
-                              if (_scrollController.hasClients) {
-                                _scrollController.animateTo(0,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut);
-                              }
-                            });
-                          }),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-                  // 3. SECTIONS
-                  if (isAllEmpty)
-                    _buildEmptyState(context)
-                  else if (_selectedFilter == 0)
-                    ..._buildAllSections(context, loading, data)
-                  else
-                    ..._buildFilteredSection(
-                        context, loading, data, gridCrossCount),
-
-                  // 4. LOADING INDICATOR
-                  if (_loadingMore)
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                    ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                ],
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              // 1. HEADER & SEARCH BAR
+              SliverToBoxAdapter(
+                child: _buildHeader(context, ref),
               ),
-            ),
+
+              // 2. FILTERS
+              SliverToBoxAdapter(
+                child: _FilterList(
+                  selectedIndex: selectedFilter,
+                  onSelected: (i) =>
+                      ref.read(searchFilterProvider.notifier).setFilter(i),
+                ),
+              ),
+
+              // 3. SECTIONS
+              if (searchState.isLoading && query.isEmpty)
+                const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()))
+              else if (_isResultEmpty(searchState))
+                _buildEmptyState(context)
+              else
+                ..._buildContent(context, searchState, selectedFilter),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // --- WIDGET BUILDERS ---
+  bool _isResultEmpty(SearchResultState state) =>
+      state.shows.isEmpty &&
+      state.players.isEmpty &&
+      state.stages.isEmpty &&
+      state.teams.isEmpty;
 
-  Widget _buildHeader(final BuildContext context, final String query) {
-    final isDesktop = context.isDesktop;
-
-    return Padding(
-      padding: context.responsive(
-        mobile: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-        desktop: const EdgeInsets.fromLTRB(40, 20, 40, 30),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            isDesktop ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment:
-                isDesktop ? MainAxisAlignment.center : MainAxisAlignment.start,
-            children: [
-              if (!isDesktop) const GlassBackButton(),
-              TopHeader(title: "Tablolarımız"),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: context.responsive(
-                  mobile: double.infinity,
-                  tablet: 600.0,
-                  desktop: 600.0,
-                ),
-              ),
-              child: GlassSearchBar(
-                controller: _textController,
-                onChanged: (final v) => ref
-                    .read(searchQueryProvider.notifier)
-                    .setQuery(v.toLowerCase()),
-              ),
-            ),
-          ),
-        ],
-      ),
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        TopHeader(title: "Tablolarımız"),
+        const SizedBox(height: 20),
+        GlassSearchBar(
+          onChanged: (v) => ref.read(searchQueryProvider.notifier).update(v),
+        ),
+      ],
     );
   }
+
+  List<Widget> _buildContent(
+      BuildContext context, SearchResultState state, int filter) {
+    if (filter == 0) {
+      // "Tümü" görünümü (Yatay listeler)
+      return [
+        if (state.players.isNotEmpty)
+          SliverToBoxAdapter(
+              child: _PlayerHorizontalSection(players: state.players)),
+        if (state.shows.isNotEmpty)
+          SliverToBoxAdapter(child: _ShowMosaicSection(shows: state.shows)),
+        if (state.stages.isNotEmpty)
+          SliverToBoxAdapter(
+              child: _HorizontalSection(
+                  title: "Mekanlar", items: state.stages, isStage: true)),
+      ];
+    } else {
+      // Filtrelenmiş görünüm (Dikey Gridler)
+      return [_buildGridSection(context, state, filter)];
+    }
+  }
+
+  // --- WIDGET BUILDERS ---
 
   // --- TÜM BÖLÜMLER (YATAY LİSTELER) ---
   List<Widget> _buildAllSections(
@@ -877,7 +780,8 @@ class _GridCards {
     );
   }
 
-  static Widget horizontalCard(final BuildContext context, final dynamic item, final bool isStage,
+  static Widget horizontalCard(
+      final BuildContext context, final dynamic item, final bool isStage,
       {required final double width}) {
     return _BaseCardContainer(
       onTap: () => isStage
