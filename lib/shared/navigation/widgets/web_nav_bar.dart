@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/features/home/presentation/pages/home_page_web.dart';
-import '../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/util/responsive_utils.dart';
 import '../../widgets/button/language_selector.dart';
@@ -24,6 +24,8 @@ class WebBarState extends State<WebBar> with ResponsiveUtils {
   // Bölüm anahtarları - HomePage ile paylaşılır
   final GlobalKey _showsKey = GlobalKey();
   final GlobalKey _artisticKey = GlobalKey();
+  final GlobalKey _gozKapKey = GlobalKey();
+  final GlobalKey _kurtarBeniKey = GlobalKey();
   final GlobalKey _aboutKey = GlobalKey();
   final GlobalKey _teamKey = GlobalKey();
   final GlobalKey _contactKey = GlobalKey();
@@ -31,16 +33,56 @@ class WebBarState extends State<WebBar> with ResponsiveUtils {
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<String> _activeSection = ValueNotifier<String>('home');
 
+  // OYUN LİSTESİ (Hem WebBar hem NavBar için merkezi veri)
+  static const Map<String, String> _gamesList = {
+    'artistic': 'Metafor',
+    'gozKap': 'Gözlerimi Kaparım Vazifemi Yaparım',
+    'kurtarBeni': 'Sevgili Doktor',
+  };
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_detectActiveSection);
   }
 
+  void scrollToSection(final String section) {
+    if (section == 'home') {
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOutCubic);
+      return;
+    }
+
+    // Navigasyon Hedef Haritası
+    final Map<String, GlobalKey> sectionMap = {
+      'shows': _showsKey,
+      'artistic': _artisticKey,
+      'kurtarBeni': _kurtarBeniKey,
+      'gozKap': _gozKapKey,
+      'about': _aboutKey,
+      'team': _teamKey,
+      'contact': _contactKey,
+    };
+
+    final key = sectionMap[section];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.05,
+      );
+      _activeSection.value = section;
+    }
+  }
+
   void _detectActiveSection() {
     final sections = {
       'shows': _showsKey,
       'artistic': _artisticKey,
+      'gozKap': _gozKapKey,
+      'kurtarBeni': _kurtarBeniKey,
       'about': _aboutKey,
       'team': _teamKey,
       'contact': _contactKey,
@@ -58,29 +100,6 @@ class WebBarState extends State<WebBar> with ResponsiveUtils {
       }
     }
     _activeSection.value = 'home';
-  }
-
-  void scrollToSection(final String section) {
-    if (section == 'home') {
-      _scrollController.animateTo(0,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOutCubic);
-      return;
-    }
-    final keys = {
-      'shows': _showsKey,
-      'artistic': _artisticKey,
-      'about': _aboutKey,
-      'team': _teamKey,
-      'contact': _contactKey
-    };
-    final key = keys[section];
-    if (key?.currentContext != null) {
-      Scrollable.ensureVisible(key!.currentContext!,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOutCubic,
-          alignment: 0.05);
-    }
   }
 
   @override
@@ -107,11 +126,14 @@ class WebBarState extends State<WebBar> with ResponsiveUtils {
                     activeSection: _activeSection,
                     scrollController: _scrollController,
                     onNavigate: scrollToSection,
+                    games: _gamesList,
                   ),
                   Expanded(
                     child: HomePage(
                       showsKey: _showsKey,
                       artisticKey: _artisticKey,
+                      gozKapKey: _gozKapKey,
+                      kurtarBeniKey: _kurtarBeniKey,
                       aboutKey: _aboutKey,
                       teamKey: _teamKey,
                       contactKey: _contactKey,
@@ -139,12 +161,14 @@ class WebNavBar extends StatefulWidget {
   final ValueNotifier<String> activeSection;
   final ScrollController scrollController;
   final ValueChanged<String> onNavigate;
+  final Map<String, String> games;
 
   const WebNavBar({
     super.key,
     required this.activeSection,
     required this.scrollController,
     required this.onNavigate,
+    required this.games,
   });
 
   @override
@@ -287,14 +311,16 @@ class _WebNavBarState extends State<WebNavBar>
     const items = {
       'home': 'ANA SAYFA',
       'shows': 'OYUNLAR',
-      'artistic': 'SANATSAL',
       'about': 'HAKKIMIZDA',
       'team': 'EKİP',
       'contact': 'İLETİŞİM'
     };
-    return items.entries
-        .map((final e) => _navItem(context, e.key, e.value))
-        .toList();
+
+    return items.entries.map((final e) {
+      if (e.key == 'shows' && ResponsiveUtils.isDesktop(context))
+        return _buildShowsDropdown(context, e.value);
+      return _navItem(context, e.key, e.value);
+    }).toList();
   }
 
   Widget _navItem(final BuildContext context, final String section,
@@ -319,20 +345,62 @@ class _WebNavBarState extends State<WebNavBar>
                       color: isActive
                           ? WebColors.darkBlueBackground
                           : WebColors.lightWhite,
-                      fontSize: 12)),
+                      fontSize: context.responsive(mobile: 12, desktop: 14))),
             ),
           );
         },
       );
 
+  Widget _buildShowsDropdown(final BuildContext context, final String label) {
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 45),
+      position: PopupMenuPosition.under,
+      color: WebColors.darkBlueSurface,
+      onSelected: (final value) => widget.onNavigate(value),
+      child: _navItem(context, 'shows', label),
+      itemBuilder: (final context) => widget.games.entries.map((final game) {
+        return PopupMenuItem<String>(
+          value: game.key,
+          child: Text(game.value,
+              style: const TextStyle(color: Colors.white, fontSize: 13)),
+        );
+      }).toList(),
+    );
+  }
+
+  // MOBİL DRAWER MENÜ (İçe Girik Yapı)
   Widget _mobileMenu(final BuildContext context) => PopupMenuButton<String>(
         icon: const Icon(Icons.menu, color: WebColors.primaryGold),
         color: WebColors.darkBlueSurface,
         onSelected: widget.onNavigate,
         itemBuilder: (final context) => [
           _MobileMenuItem('home', 'ANA SAYFA', Icons.home),
-          _MobileMenuItem('shows', 'OYUNLAR', Icons.theater_comedy),
-          _MobileMenuItem('artistic', 'SANATSAL', Icons.palette),
+          // "Oyunlar" Başlığı (Tıklanamaz)
+          const PopupMenuItem(
+            enabled: false,
+            child: Text('OYUNLAR',
+                style: TextStyle(
+                    color: WebColors.primaryGold,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11)),
+          ),
+          // Alt Oyunlar
+          ...widget.games.entries.map((final game) => PopupMenuItem<String>(
+                value: game.key,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.subdirectory_arrow_right,
+                          size: 14, color: Colors.white54),
+                      const SizedBox(width: 8),
+                      Text(game.value,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13)),
+                    ],
+                  ),
+                ),
+              )),
           _MobileMenuItem('about', 'HAKKIMIZDA', Icons.info),
           _MobileMenuItem('team', 'EKİP', Icons.people),
           _MobileMenuItem('contact', 'İLETİŞİM', Icons.email),

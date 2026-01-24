@@ -23,6 +23,8 @@ class HomePage extends ConsumerStatefulWidget {
   final GlobalKey aboutKey;
   final GlobalKey teamKey;
   final GlobalKey artisticKey;
+  final GlobalKey gozKapKey;
+  final GlobalKey kurtarBeniKey;
   final GlobalKey contactKey;
   final ValueNotifier<String>? activeSection;
   final ScrollController scrollController;
@@ -33,6 +35,8 @@ class HomePage extends ConsumerStatefulWidget {
     required this.aboutKey,
     required this.teamKey,
     required this.artisticKey,
+    required this.gozKapKey,
+    required this.kurtarBeniKey,
     required this.contactKey,
     this.activeSection,
     required this.scrollController,
@@ -180,8 +184,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                     style: DividerStyle.spotlight, height: 150)),
 
             // 4. Goz Kap Vaz Yap
-            const SliverToBoxAdapter(
-                child: RepaintBoundary(child: GozYapVazYapLanding())),
+            SliverToBoxAdapter(
+                child: RepaintBoundary(
+                    key: widget.gozKapKey, child: const GozYapVazYapLanding())),
 
             const SliverToBoxAdapter(
                 child: TheaterSectionDivider(
@@ -189,7 +194,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             // 5. Kurtar Beni Doktor
             SliverToBoxAdapter(
-                child: RepaintBoundary(child: KurtarBeniDoktorLanding())),
+                child: RepaintBoundary(
+                    key: widget.kurtarBeniKey,
+                    child: KurtarBeniDoktorLanding())),
 
             const SliverToBoxAdapter(
                 child: TheaterSectionDivider(
