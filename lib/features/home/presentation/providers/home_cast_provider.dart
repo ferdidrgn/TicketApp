@@ -1,53 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../players/domain/entities/player.dart';
-import '../../../players/presentation/providers/player_provider.dart';
+import '../../../players/presentation/providers/player_provider.dart'; // getPlayerByIdUseCaseProvider için
 import '../../../shows/data/datasources/show_remote_data_source_and_impl.dart';
 
-final homeCastProvider =
-    FutureProvider.autoDispose<List<Player>>((final ref) async {
-  try {
-    final firestore = FirebaseFirestore.instance;
-    final storage = FirebaseStorage.instance;
+part 'home_cast_provider.g.dart';
 
-    // 1. Show Servisi (Oyun bilgilerini çekmek için)
-    final showService =
-        ShowRemoteDataSourceImpl(firestore: firestore, storage: storage);
+@riverpod
+Future<List<Player>> homeCast(final Ref ref) async {
+  final firestore = FirebaseFirestore.instance;
+  final storage = FirebaseStorage.instance;
 
-    // 2. İlgili Oyunun ID'si ile veriyi çek
-    final shows = await showService.getShowsByIds(["XqKkUbIflyWxZbNLZvqV"]);
+  final showService =
+      ShowRemoteDataSourceImpl(firestore: firestore, storage: storage);
 
-    if (shows.isNotEmpty && shows.first.nowPlayersId != null) {
-      // Oyuncu ID'lerini listeye çevir
-      final playerIds = shows.first!.nowPlayersId!.cast<String>();
+  // Örnek oyun ID'si üzerinden oyuncuları çekiyoruz
+  final shows = await showService.getShowsByIds(["XqKkUbIflyWxZbNLZvqV"]);
 
-      // UseCase'i çağır
-      final getPlayerByIdUseCase = ref.read(getPlayerByIdUseCaseProvider);
+  if (shows.isNotEmpty && shows.first.nowPlayersId != null) {
+    final playerIds = shows.first.nowPlayersId!.cast<String>();
+    final getPlayerByIdUseCase = ref.read(getPlayerByIdUseCaseProvider);
 
-      // UseCase bize 'Either' (Kutu) döndürür
-      final result = await getPlayerByIdUseCase.call(playerIds);
+    final result = await getPlayerByIdUseCase.call(playerIds);
 
-      // ✅ DÜZELTME BURADA:
-      // Either yapısını .fold() ile açıyoruz.
-      // Sol taraf (Left) -> Hata durumu
-      // Sağ taraf (Right) -> Başarılı veri
-      return result.fold(
-        (final failure) {
-          debugPrint("❌ OYUNCU YÜKLEME HATASI (Failure): $failure");
-          return <Player>[]; // Hata varsa boş liste dön
-        },
-        (final players) {
-          return players; // Başarı varsa oyuncu listesini dön
-        },
-      );
-    }
-
-    return [];
-  } catch (e, stackTrace) {
-    debugPrint("❌ BEKLENMEYEN HATA: $e");
-    debugPrint(stackTrace.toString());
-    return [];
+    // Either yapısını çözüyoruz
+    return result.fold(
+      (final failure) => <Player>[],
+      (final players) => players,
+    );
   }
-});
+
+  return [];
+}

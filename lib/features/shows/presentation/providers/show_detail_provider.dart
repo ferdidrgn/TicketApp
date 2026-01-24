@@ -1,7 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../events/domain/entities/event.dart';
+import '../../../events/presentation/providers/event_provider.dart';
 import '../../../players/domain/entities/player.dart';
+import '../../../players/presentation/providers/player_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
+import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../domain/entities/show.dart';
 import 'show_provider.dart';
 

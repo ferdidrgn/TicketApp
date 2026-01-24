@@ -40,7 +40,7 @@ final class SearchFilterProvider extends $NotifierProvider<SearchFilter, int> {
   }
 }
 
-String _$searchFilterHash() => r'd9c1315f358217817562efdcf5205012268869ca';
+String _$searchFilterHash() => r'd738404002624c5bde7ee1d4bfd7022233f96f44';
 
 abstract class _$SearchFilter extends $Notifier<int> {
   int build();
@@ -86,7 +86,7 @@ final class SearchQueryProvider extends $NotifierProvider<SearchQuery, String> {
   }
 }
 
-String _$searchQueryHash() => r'b38ca647f4785c77d51c7724d55c42fdeada582d';
+String _$searchQueryHash() => r'36a87b4caf6180e24001bc7d65aadc70ded18b28';
 
 abstract class _$SearchQuery extends $Notifier<String> {
   String build();
@@ -101,11 +101,16 @@ abstract class _$SearchQuery extends $Notifier<String> {
   }
 }
 
+/// 🔥 MERKEZİ ARAMA MANTIĞI
+
 @ProviderFor(searchResult)
 const searchResultProvider = SearchResultProvider._();
 
+/// 🔥 MERKEZİ ARAMA MANTIĞI
+
 final class SearchResultProvider extends $FunctionalProvider<SearchResultState,
     SearchResultState, SearchResultState> with $Provider<SearchResultState> {
+  /// 🔥 MERKEZİ ARAMA MANTIĞI
   const SearchResultProvider._()
       : super(
           from: null,
@@ -140,4 +145,4 @@ final class SearchResultProvider extends $FunctionalProvider<SearchResultState,
   }
 }
 
-String _$searchResultHash() => r'01f59c6aee696244717f92bda3997b62bc21ffa2';
+String _$searchResultHash() => r'b8c49d131de11c501b6316a41c6cd1957334c666';
