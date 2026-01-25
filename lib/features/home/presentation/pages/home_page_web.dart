@@ -183,20 +183,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: TheaterSectionDivider(
                     style: DividerStyle.spotlight, height: 150)),
 
-            // 4. Goz Kap Vaz Yap
-            SliverToBoxAdapter(
-                child: RepaintBoundary(
-                    key: widget.gozKapKey, child: const GozYapVazYapLanding())),
-
-            const SliverToBoxAdapter(
-                child: TheaterSectionDivider(
-                    style: DividerStyle.spotlight, height: 150)),
-
-            // 5. Kurtar Beni Doktor
+            // 4. Kurtar Beni Doktor
             SliverToBoxAdapter(
                 child: RepaintBoundary(
                     key: widget.kurtarBeniKey,
                     child: KurtarBeniDoktorLanding())),
+
+            const SliverToBoxAdapter(
+                child: TheaterSectionDivider(
+                    style: DividerStyle.spotlight, height: 150)),
+            // 5. Goz Kap Vaz Yap
+            SliverToBoxAdapter(
+                child: RepaintBoundary(
+                    key: widget.gozKapKey, child: const GozYapVazYapLanding())),
 
             const SliverToBoxAdapter(
                 child: TheaterSectionDivider(
