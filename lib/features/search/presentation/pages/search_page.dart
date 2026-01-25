@@ -60,13 +60,14 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
 
-  // _initData ve _isInitialized SİLİNDİ. Riverpod 3.0 otomatik yapar.
-
   @override
   void initState() {
     super.initState();
-    // Scroll listener kalabilir ama initData'ya gerek yok
     _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    // Scroll logic...
   }
 
   @override
@@ -76,26 +77,18 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
     super.dispose();
   }
 
-  void _onScroll() {
-    // Scroll logic...
-  }
-
   void _onSeeAll(final int filterIndex) {
     ref.read(searchFilterProvider.notifier).setFilter(filterIndex);
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (_scrollController.hasClients) {
+      if (_scrollController.hasClients)
         _scrollController.animateTo(0,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut);
-      }
     });
   }
 
-  // 🔥 DÜZELTME: build metodunda parametre olarak 'WidgetRef ref' OLMAZ.
-  // ConsumerState sınıfı zaten 'ref' property'sine sahiptir.
   @override
   Widget build(final BuildContext context) {
-    // 'ref' doğrudan kullanılıyor (this.ref)
     final searchState = ref.watch(searchResultProvider);
     final selectedFilter = ref.watch(searchFilterProvider);
     final query = ref.watch(searchQueryProvider);
@@ -112,10 +105,15 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
             slivers: [
               SliverToBoxAdapter(child: _buildHeader(context)),
               SliverToBoxAdapter(
-                child: _FilterList(
-                  selectedIndex: selectedFilter,
-                  onSelected: (final i) =>
-                      ref.read(searchFilterProvider.notifier).setFilter(i),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                      vertical: 24,
+                      horizontal:
+                          context.responsive(mobile: 16.0, desktop: 120.0)),
+                  child: _FilterList(
+                      selectedIndex: selectedFilter,
+                      onSelected: (final i) =>
+                          ref.read(searchFilterProvider.notifier).setFilter(i)),
                 ),
               ),
               if (searchState.isLoading && query.isEmpty)
@@ -141,19 +139,23 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
       state.teams.isEmpty;
 
   Widget _buildHeader(final BuildContext context) {
-    return Column(
-      children: [
-        const TopHeader(title: "Tablolarımız"), // const eklendi
-        const SizedBox(height: 20),
-        Padding(
-          padding: context.paddingHorizontal,
-          child: GlassSearchBar(
-            controller: _textController,
-            onChanged: (final v) =>
-                ref.read(searchQueryProvider.notifier).update(v),
+    return Container(
+      padding: EdgeInsets.only(
+          top: context.responsive(mobile: 20.0, desktop: 60.0), bottom: 20.0),
+      child: Column(
+        children: [
+          const TopHeader(title: "Tablolarımız"),
+          const SizedBox(height: 32),
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: context.responsive(mobile: 20.0, desktop: 120.0)),
+            child: GlassSearchBar(
+                controller: _textController,
+                onChanged: (final v) =>
+                    ref.read(searchQueryProvider.notifier).update(v)),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -205,9 +207,6 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
     }
   }
 
-  // ... (Geri kalan _buildFilteredSection, _buildEmptyState vs. kodun geri kalanı aynı)
-  // Sadece buildFilteredSection içinde _GridHelpers kullanırken hata alırsan importları kontrol et.
-
   List<Widget> _buildFilteredSection(final BuildContext context,
       final SearchResultState d, final int filter, final int crossAxisCount) {
     final gridSpacing = context.gridSpacing;
@@ -223,18 +222,22 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
                 : ShowMosaicGallery(shows: d.shows, direction: Axis.vertical),
           )
         ];
-      case 2: // Players
+      case 2: // Players (Oyuncular)
         return [
           SliverPadding(
-            padding: context.paddingAll,
+            // İçeriği yanlardan daraltıp kartları büyüterek daha şık bir görünüm sağlıyoruz
+            padding: EdgeInsets.symmetric(
+              horizontal: context.responsive(mobile: 16.0, desktop: 100.0),
+              vertical: 20,
+            ),
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:
-                    context.responsive(mobile: 3, tablet: 4, desktop: 6),
-                mainAxisSpacing: gridSpacing,
-                crossAxisSpacing: gridSpacing,
-                childAspectRatio: 0.70,
-              ),
+                  // Masaüstünde 6 yerine 5 veya 4 yaparak kartları büyütüyoruz
+                  crossAxisCount:
+                      context.responsive(mobile: 2, tablet: 4, desktop: 5),
+                  mainAxisSpacing: 32, // Dikey boşluk artırıldı
+                  crossAxisSpacing: 24, // Yatay boşluk artırıldı
+                  childAspectRatio: 0.65),
               delegate: SliverChildBuilderDelegate(
                 (final ctx, final i) => PlayerHeroCard(player: d.players[i]),
                 childCount: d.players.length,
@@ -523,6 +526,15 @@ class _FilterList extends StatelessWidget {
 
   const _FilterList({required this.selectedIndex, required this.onSelected});
 
+  // Kategorilere özel sanatsal renk paletleri
+  static const List<List<Color>> _filterColors = [
+    [Color(0xFF6366F1), Color(0xFF8B5CF6)], // Tümü (Indigo-Violet)
+    [Color(0xFFF59E0B), Color(0xFFD97706)], // Etkinlikler (Amber-Gold)
+    [Color(0xFFEC4899), Color(0xFFBE185D)], // Oyuncular (Pink-Crimson)
+    [Color(0xFF10B981), Color(0xFF047857)], // Mekanlar (Emerald-Teal)
+    [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Ekipler (Blue-Navy)
+  ];
+
   static const _filters = [
     "Tümü",
     "Etkinlikler",
@@ -533,17 +545,18 @@ class _FilterList extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => SizedBox(
-      height: 80,
+      height: 90, // Animasyon ve gölgeler için yükseklik artırıldı
       child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: _filters.length,
           itemBuilder: (final _, final i) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              child: ChoiceChip(
-                  label: Text(_filters[i]),
-                  selected: selectedIndex == i,
-                  onSelected: (final _) => onSelected(i)))));
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: ArtisticBrushChip(
+                  text: _filters[i],
+                  isSelected: selectedIndex == i,
+                  colors: _filterColors[i],
+                  onTap: () => onSelected(i)))));
 }
 
 class ArtisticBrushChip extends StatefulWidget {
