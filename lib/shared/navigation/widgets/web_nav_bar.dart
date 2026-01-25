@@ -157,6 +157,16 @@ class _WebNavBarState extends State<WebNavBar>
   OverlayEntry? _showsOverlay;
   bool _isHoveringShows = false;
 
+  // --- REFACTOR: Stil Sabitleri ---
+  BoxDecoration get _navDecoration => BoxDecoration(
+        color: WebColors.darkBlueBackground
+            .withOpacity(0.8 + (_controller.value * 0.2)),
+        border: Border(
+            bottom: BorderSide(
+                color: WebColors.primaryGold
+                    .withOpacity(0.1 + (_controller.value * 0.2)))),
+      );
+
   @override
   void initState() {
     super.initState();
@@ -169,12 +179,25 @@ class _WebNavBarState extends State<WebNavBar>
   }
 
   @override
+  void dispose() {
+    _closeShowsMenuDirect();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // --- REFACTOR: Merkezi Navigasyon Helper ---
+  void _handleNavigation(final String key) {
+    widget.onNavigate(key);
+    _closeShowsMenuDirect();
+  }
+
+  @override
   Widget build(final BuildContext context) => AnimatedBuilder(
         animation: _controller,
         builder: (final context, final _) => Container(
           height: getValueForDevice(context,
               mobile: 70.0, tablet: 75.0, desktop: 80.0),
-          decoration: _buildNavDecoration(),
+          decoration: _navDecoration,
           child: ResponsiveUtils.adaptive(
             context,
             mobile: _buildCompactLayout(context),
@@ -184,15 +207,7 @@ class _WebNavBarState extends State<WebNavBar>
         ),
       );
 
-  BoxDecoration _buildNavDecoration() => BoxDecoration(
-        color: WebColors.darkBlueBackground
-            .withOpacity(0.8 + (_controller.value * 0.2)),
-        border: Border(
-            bottom: BorderSide(
-                color: WebColors.primaryGold
-                    .withOpacity(0.1 + (_controller.value * 0.2)))),
-      );
-
+  // --- REFACTOR: Ortak Masaüstü Layout Parçası ---
   Widget _buildDesktopLayout(final BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Row(
@@ -205,13 +220,15 @@ class _WebNavBarState extends State<WebNavBar>
                 child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: _navItems(context))),
-            const SizedBox(width: 20),
+            const SizedBox(width: 24),
             _buildSearchBox(context, isMobile: false),
+            const SizedBox(width: 16),
             const LanguageSelector(),
           ],
         ),
       );
 
+  // --- REFACTOR: Ortak Mobil Layout Parçası ---
   Widget _buildCompactLayout(final BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: Row(
@@ -220,7 +237,7 @@ class _WebNavBarState extends State<WebNavBar>
             const Spacer(),
             _logo(),
             const SizedBox(width: 8),
-            _title(context),
+            FittedBox(fit: BoxFit.scaleDown, child: _title(context)),
             const Spacer(),
             _buildSearchBox(context, isMobile: true),
             const SizedBox(width: 8),
@@ -229,6 +246,7 @@ class _WebNavBarState extends State<WebNavBar>
         ),
       );
 
+  // --- REFACTOR: Gelişmiş Arama Kutusu ---
   Widget _buildSearchBox(final BuildContext context,
           {required final bool isMobile}) =>
       InkWell(
@@ -257,6 +275,68 @@ class _WebNavBarState extends State<WebNavBar>
                 _kbdIndicator(),
               ],
             ],
+          ),
+        ),
+      );
+
+  // --- REFACTOR: Overlay Builder ---
+  void _openShowsMenu(final BuildContext context) {
+    if (_showsOverlay != null) return;
+    _showsOverlay = OverlayEntry(
+      builder: (final _) => CompositedTransformFollower(
+        link: _showsLink,
+        showWhenUnlinked: false,
+        offset: const Offset(-80, 50),
+        child: Material(
+          color: Colors.transparent,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: _showsMenuContent(),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_showsOverlay!);
+  }
+
+  Widget _showsMenuContent() => MouseRegion(
+        onEnter: (final _) => _isHoveringShows = true,
+        onExit: (final _) {
+          _isHoveringShows = false;
+          _closeShowsMenuWithDelay();
+        },
+        child: Container(
+          width: 220,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8))
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: widget.games.entries
+                .map((final game) => InkWell(
+                      onTap: () => _handleNavigation(game.key),
+                      // 🔥 Tek metod üzerinden kontrol
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 14),
+                        child: Text(game.value,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500)),
+                      ),
+                    ))
+                .toList(),
           ),
         ),
       );
@@ -316,73 +396,6 @@ class _WebNavBarState extends State<WebNavBar>
         child: CompositedTransformTarget(
             link: _showsLink, child: _navItem(context, 'shows', label)),
       );
-
-  void _openShowsMenu(final BuildContext context) {
-    if (_showsOverlay != null) return;
-    _showsOverlay = OverlayEntry(
-      builder: (final _) => CompositedTransformFollower(
-        link: _showsLink,
-        showWhenUnlinked: false,
-        offset: const Offset(-80, 50),
-        child: Material(
-          color: Colors.transparent,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: _showsMenuContent(),
-          ),
-        ),
-      ),
-    );
-    Overlay.of(context, rootOverlay: true).insert(_showsOverlay!);
-  }
-
-  Widget _showsMenuContent() => MouseRegion(
-    onEnter: (_) => _isHoveringShows = true,
-    onExit: (_) {
-      _isHoveringShows = false;
-      _closeShowsMenuWithDelay();
-    },
-    child: Container(
-      width: 220, // 🔥 Devasa genişliği bu satır engeller
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // 🔥 İçerik bittiği an kutu bitsin
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: widget.games.entries.map((game) {
-          return InkWell(
-            onTap: () {
-              widget.onNavigate(game.key);
-              _closeShowsMenuDirect();
-            },
-            child: Container(
-              width: double.infinity, // Kutu içindeki satırı doldursun
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Text(
-                game.value,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    ),
-  );
 
   void _closeShowsMenuDirect() {
     _showsOverlay?.remove();
@@ -448,13 +461,6 @@ class _WebNavBarState extends State<WebNavBar>
               fontSize: getValueForDevice(context, mobile: 18.0, desktop: 22.0),
               fontWeight: FontWeight.w900,
               color: Colors.white)));
-
-  @override
-  void dispose() {
-    _closeShowsMenuDirect();
-    _controller.dispose();
-    super.dispose();
-  }
 }
 
 class _MobileMenuItem extends PopupMenuItem<String> {
