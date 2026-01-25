@@ -21,24 +21,25 @@ class WebBar extends StatefulWidget {
 }
 
 class WebBarState extends State<WebBar> with ResponsiveUtils {
-  // Bölüm anahtarları - HomePage ile paylaşılır
-  final GlobalKey _showsKey = GlobalKey();
-  final GlobalKey _artisticKey = GlobalKey();
-  final GlobalKey _gozKapKey = GlobalKey();
-  final GlobalKey _kurtarBeniKey = GlobalKey();
-  final GlobalKey _aboutKey = GlobalKey();
-  final GlobalKey _teamKey = GlobalKey();
-  final GlobalKey _contactKey = GlobalKey();
-
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<String> _activeSection = ValueNotifier<String>('home');
 
-  // OYUN LİSTESİ (Hem WebBar hem NavBar için merkezi veri)
+  // Bölüm anahtarlarını merkezi bir yerde topluyoruz
+  final Map<String, GlobalKey> _sectionKeys = {
+    'shows': GlobalKey(),
+    'artistic': GlobalKey(),
+    'gozKap': GlobalKey(),
+    'kurtarBeni': GlobalKey(),
+    'about': GlobalKey(),
+    'team': GlobalKey(),
+    'contact': GlobalKey(),
+  };
+
   static const Map<String, String> _gamesList = {
     'shows': 'Tüm Oyunlar',
     'artistic': 'Metafor',
-    'gozKap': 'Gözlerimi Kaparım Vazifemi Yaparım',
     'kurtarBeni': 'Sevgili Doktor',
+    'gozKap': 'Gözlerimi Kaparım Vazifemi Yaparım',
   };
 
   @override
@@ -54,47 +55,22 @@ class WebBarState extends State<WebBar> with ResponsiveUtils {
           curve: Curves.easeInOutCubic);
       return;
     }
-
-    // Navigasyon Hedef Haritası
-    final Map<String, GlobalKey> sectionMap = {
-      'shows': _showsKey,
-      'artistic': _artisticKey,
-      'kurtarBeni': _kurtarBeniKey,
-      'gozKap': _gozKapKey,
-      'about': _aboutKey,
-      'team': _teamKey,
-      'contact': _contactKey,
-    };
-
-    final key = sectionMap[section];
+    final key = _sectionKeys[section];
     if (key?.currentContext != null) {
-      Scrollable.ensureVisible(
-        key!.currentContext!,
-        duration: const Duration(milliseconds: 800),
-        curve: Curves.easeInOutCubic,
-        alignment: 0.05,
-      );
+      Scrollable.ensureVisible(key!.currentContext!,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOutCubic,
+          alignment: 0.05);
       _activeSection.value = section;
     }
   }
 
   void _detectActiveSection() {
-    final sections = {
-      'shows': _showsKey,
-      'artistic': _artisticKey,
-      'gozKap': _gozKapKey,
-      'kurtarBeni': _kurtarBeniKey,
-      'about': _aboutKey,
-      'team': _teamKey,
-      'contact': _contactKey,
-    };
-
-    for (final entry in sections.entries) {
+    for (final entry in _sectionKeys.entries) {
       final context = entry.value.currentContext;
       if (context == null) continue;
       final box = context.findRenderObject() as RenderBox;
       final offset = box.localToGlobal(Offset.zero).dy;
-
       if (offset < 150 && offset > -300) {
         _activeSection.value = entry.key;
         return;
@@ -105,17 +81,16 @@ class WebBarState extends State<WebBar> with ResponsiveUtils {
 
   @override
   Widget build(final BuildContext context) => Shortcuts(
-        shortcuts: <ShortcutActivator, Intent>{
+        shortcuts: {
           LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyK):
               const SearchIntent(),
           LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyK):
               const SearchIntent(),
         },
         child: Actions(
-          actions: <Type, Action<Intent>>{
+          actions: {
             SearchIntent: CallbackAction<SearchIntent>(
-                onInvoke: (final intent) =>
-                    NavigationHandler.goToSearch(context)),
+                onInvoke: (final _) => NavigationHandler.goToSearch(context))
           },
           child: Focus(
             autofocus: true,
@@ -124,20 +99,19 @@ class WebBarState extends State<WebBar> with ResponsiveUtils {
               body: Column(
                 children: [
                   WebNavBar(
-                    activeSection: _activeSection,
-                    scrollController: _scrollController,
-                    onNavigate: scrollToSection,
-                    games: _gamesList,
-                  ),
+                      activeSection: _activeSection,
+                      scrollController: _scrollController,
+                      onNavigate: scrollToSection,
+                      games: _gamesList),
                   Expanded(
                     child: HomePage(
-                      showsKey: _showsKey,
-                      artisticKey: _artisticKey,
-                      gozKapKey: _gozKapKey,
-                      kurtarBeniKey: _kurtarBeniKey,
-                      aboutKey: _aboutKey,
-                      teamKey: _teamKey,
-                      contactKey: _contactKey,
+                      showsKey: _sectionKeys['shows']!,
+                      artisticKey: _sectionKeys['artistic']!,
+                      gozKapKey: _sectionKeys['gozKap']!,
+                      kurtarBeniKey: _sectionKeys['kurtarBeni']!,
+                      aboutKey: _sectionKeys['about']!,
+                      teamKey: _sectionKeys['team']!,
+                      contactKey: _sectionKeys['contact']!,
                       scrollController: _scrollController,
                       activeSection: _activeSection,
                       startAnimations: widget.startAnimations,
@@ -188,48 +162,10 @@ class _WebNavBarState extends State<WebNavBar>
     super.initState();
     _controller = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 300));
-    widget.scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    final shouldScroll = widget.scrollController.offset > 100.0;
-    shouldScroll ? _controller.forward() : _controller.reverse();
-  }
-
-  void _openShowsMenu(BuildContext context) {
-    if (_showsOverlay != null) return;
-
-    final overlay = Overlay.of(context, rootOverlay: true);
-    if (overlay == null) return;
-
-    _showsOverlay = OverlayEntry(
-      builder: (_) => CompositedTransformFollower(
-        link: _showsLink,
-        offset: const Offset(0, 50),
-        showWhenUnlinked: false,
-        child: Material(
-          color: Colors.transparent,
-          child: MouseRegion(
-            onEnter: (_) => _isHoveringShows = true,
-            onExit: (_) {
-              _isHoveringShows = false;
-              _closeShowsMenuWithDelay();
-            },
-            child: _showsMenu(),
-          ),
-        ),
-      ),
-    );
-
-    overlay.insert(_showsOverlay!);
-  }
-
-  void _closeShowsMenuWithDelay() async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    if (!_isHoveringShows) {
-      _showsOverlay?.remove();
-      _showsOverlay = null;
-    }
+    widget.scrollController.addListener(() {
+      final shouldScroll = widget.scrollController.offset > 100.0;
+      shouldScroll ? _controller.forward() : _controller.reverse();
+    });
   }
 
   @override
@@ -238,25 +174,26 @@ class _WebNavBarState extends State<WebNavBar>
         builder: (final context, final _) => Container(
           height: getValueForDevice(context,
               mobile: 70.0, tablet: 75.0, desktop: 80.0),
-          decoration: BoxDecoration(
-            color: WebColors.darkBlueBackground
-                .withOpacity(0.8 + (_controller.value * 0.2)),
-            border: Border(
-                bottom: BorderSide(
-                    color: WebColors.primaryGold
-                        .withOpacity(0.1 + (_controller.value * 0.2)))),
-          ),
+          decoration: _buildNavDecoration(),
           child: ResponsiveUtils.adaptive(
             context,
-            mobile: _mobileLayout(context),
-            tablet: _tabletLayout(context),
-            desktop: _desktopLayout(context),
+            mobile: _buildCompactLayout(context),
+            tablet: _buildCompactLayout(context),
+            desktop: _buildDesktopLayout(context),
           ),
         ),
       );
 
-  // --- MASAÜSTÜ: Full Menu + Search Box ---
-  Widget _desktopLayout(final BuildContext context) => Padding(
+  BoxDecoration _buildNavDecoration() => BoxDecoration(
+        color: WebColors.darkBlueBackground
+            .withOpacity(0.8 + (_controller.value * 0.2)),
+        border: Border(
+            bottom: BorderSide(
+                color: WebColors.primaryGold
+                    .withOpacity(0.1 + (_controller.value * 0.2)))),
+      );
+
+  Widget _buildDesktopLayout(final BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Row(
           children: [
@@ -275,48 +212,7 @@ class _WebNavBarState extends State<WebNavBar>
         ),
       );
 
-  Widget _showsMenu() => Container(
-    width: 260,
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    decoration: BoxDecoration(
-      color: WebColors.darkBlueSurface,
-      borderRadius: BorderRadius.circular(10),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.3),
-          blurRadius: 12,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: widget.games.entries.map((game) {
-        return InkWell(
-          onTap: () {
-            widget.onNavigate(game.key);
-            _showsOverlay?.remove();
-            _showsOverlay = null;
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                game.value,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    ),
-  );
-
-  // --- TABLET & MOBİL: Logo + Hamburger + Search Icon ---
-  Widget _tabletLayout(final BuildContext context) => _mobileLayout(context);
-
-  Widget _mobileLayout(final BuildContext context) => Padding(
+  Widget _buildCompactLayout(final BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: Row(
           children: [
@@ -332,8 +228,6 @@ class _WebNavBarState extends State<WebNavBar>
           ],
         ),
       );
-
-  // --- YARDIMCI BİLEŞENLER ---
 
   Widget _buildSearchBox(final BuildContext context,
           {required final bool isMobile}) =>
@@ -354,39 +248,17 @@ class _WebNavBarState extends State<WebNavBar>
             children: [
               Icon(Icons.search,
                   size: isMobile ? 14 : 16, color: WebColors.primaryGold),
-              const SizedBox(width: 8),
-              const Text("Ara...",
-                  style: TextStyle(color: WebColors.primaryGold, fontSize: 13)),
-              const SizedBox(width: 12),
-              _kbdIndicator(),
+              if (!isMobile) ...[
+                const SizedBox(width: 8),
+                const Text("Ara...",
+                    style:
+                        TextStyle(color: WebColors.primaryGold, fontSize: 13)),
+                const SizedBox(width: 12),
+                _kbdIndicator(),
+              ],
             ],
           ),
         ),
-      );
-
-  Widget _kbdIndicator() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(
-            color: WebColors.primaryGold.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(4)),
-        child: const Text('Ctrl K',
-            style: TextStyle(
-                color: WebColors.primaryGold,
-                fontSize: 10,
-                fontWeight: FontWeight.bold)),
-      );
-
-  Widget _logo() =>
-      Image.asset('assets/images/tiyatrol_logo.png', width: 45, height: 45);
-
-  Widget _title(final BuildContext context) => ShaderMask(
-        shaderCallback: WebColors.goldGradient.createShader,
-        child: Text('TiyatRol',
-            style: TextStyle(
-                fontSize:
-                    getValueForDevice(context, mobile: 18.0, desktop: 22.0),
-                fontWeight: FontWeight.w900,
-                color: Colors.white)),
       );
 
   List<Widget> _navItems(final BuildContext context) {
@@ -397,12 +269,11 @@ class _WebNavBarState extends State<WebNavBar>
       'team': 'EKİP',
       'contact': 'İLETİŞİM'
     };
-
-    return items.entries.map((final e) {
-      if (e.key == 'shows' && ResponsiveUtils.isDesktop(context))
-        return _buildShowsDropdown(context, e.value);
-      return _navItem(context, e.key, e.value);
-    }).toList();
+    return items.entries
+        .map((final e) => e.key == 'shows' && ResponsiveUtils.isDesktop(context)
+            ? _buildShowsDropdown(context, e.value)
+            : _navItem(context, e.key, e.value))
+        .toList();
   }
 
   Widget _navItem(final BuildContext context, final String section,
@@ -411,7 +282,6 @@ class _WebNavBarState extends State<WebNavBar>
         valueListenable: widget.activeSection,
         builder: (final context, final active, final _) {
           final bool isActive = active == section;
-
           return GestureDetector(
             onTap: () => widget.onNavigate(section),
             child: AnimatedContainer(
@@ -419,9 +289,8 @@ class _WebNavBarState extends State<WebNavBar>
               margin: const EdgeInsets.symmetric(horizontal: 6),
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
               decoration: BoxDecoration(
-                gradient: isActive ? WebColors.goldGradient : null,
-                borderRadius: BorderRadius.circular(8),
-              ),
+                  gradient: isActive ? WebColors.goldGradient : null,
+                  borderRadius: BorderRadius.circular(8)),
               child: Text(label,
                   style: TextStyle(
                       fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
@@ -445,43 +314,111 @@ class _WebNavBarState extends State<WebNavBar>
           _closeShowsMenuWithDelay();
         },
         child: CompositedTransformTarget(
-          link: _showsLink,
-          child: _navItem(context, 'shows', label),
-        ),
+            link: _showsLink, child: _navItem(context, 'shows', label)),
       );
 
-  // MOBİL DRAWER MENÜ (İçe Girik Yapı)
+  void _openShowsMenu(final BuildContext context) {
+    if (_showsOverlay != null) return;
+    _showsOverlay = OverlayEntry(
+      builder: (final _) => CompositedTransformFollower(
+        link: _showsLink,
+        showWhenUnlinked: false,
+        offset: const Offset(-80, 50),
+        child: Material(
+          color: Colors.transparent,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: _showsMenuContent(),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_showsOverlay!);
+  }
+
+  Widget _showsMenuContent() => MouseRegion(
+    onEnter: (_) => _isHoveringShows = true,
+    onExit: (_) {
+      _isHoveringShows = false;
+      _closeShowsMenuWithDelay();
+    },
+    child: Container(
+      width: 220, // 🔥 Devasa genişliği bu satır engeller
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // 🔥 İçerik bittiği an kutu bitsin
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: widget.games.entries.map((game) {
+          return InkWell(
+            onTap: () {
+              widget.onNavigate(game.key);
+              _closeShowsMenuDirect();
+            },
+            child: Container(
+              width: double.infinity, // Kutu içindeki satırı doldursun
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: Text(
+                game.value,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    ),
+  );
+
+  void _closeShowsMenuDirect() {
+    _showsOverlay?.remove();
+    _showsOverlay = null;
+  }
+
+  void _closeShowsMenuWithDelay() async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (!_isHoveringShows) _closeShowsMenuDirect();
+  }
+
   Widget _mobileMenu(final BuildContext context) => PopupMenuButton<String>(
         icon: const Icon(Icons.menu, color: WebColors.primaryGold),
         color: WebColors.darkBlueSurface,
         onSelected: widget.onNavigate,
         itemBuilder: (final context) => [
           _MobileMenuItem('home', 'ANA SAYFA', Icons.home),
-          // "Oyunlar" Başlığı (Tıklanamaz)
           PopupMenuItem(
-            enabled: false,
-            child: Text(context.l10n.plays.toUpperCase(),
-                style: const TextStyle(
-                    color: WebColors.primaryGold,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11)),
-          ),
-          // Alt Oyunlar
+              enabled: false,
+              child: Text(context.l10n.plays.toUpperCase(),
+                  style: const TextStyle(
+                      color: WebColors.primaryGold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11))),
           ...widget.games.entries.map((final game) => PopupMenuItem<String>(
                 value: game.key,
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Row(
-                    children: [
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Row(children: [
                       const Icon(Icons.subdirectory_arrow_right,
                           size: 14, color: Colors.white54),
                       const SizedBox(width: 8),
                       Text(game.value,
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 13)),
-                    ],
-                  ),
-                ),
+                              color: Colors.white, fontSize: 13))
+                    ])),
               )),
           _MobileMenuItem('about', 'HAKKIMIZDA', Icons.info),
           _MobileMenuItem('team', 'EKİP', Icons.people),
@@ -489,9 +426,32 @@ class _WebNavBarState extends State<WebNavBar>
         ],
       );
 
+  // Ortak küçük bileşenler
+  Widget _logo() =>
+      Image.asset('assets/images/tiyatrol_logo.png', width: 45, height: 45);
+
+  Widget _kbdIndicator() => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+          color: WebColors.primaryGold.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(4)),
+      child: const Text('Ctrl K',
+          style: TextStyle(
+              color: WebColors.primaryGold,
+              fontSize: 10,
+              fontWeight: FontWeight.bold)));
+
+  Widget _title(final BuildContext context) => ShaderMask(
+      shaderCallback: WebColors.goldGradient.createShader,
+      child: Text('TiyatRol',
+          style: TextStyle(
+              fontSize: getValueForDevice(context, mobile: 18.0, desktop: 22.0),
+              fontWeight: FontWeight.w900,
+              color: Colors.white)));
+
   @override
   void dispose() {
-    _showsOverlay?.remove();
+    _closeShowsMenuDirect();
     _controller.dispose();
     super.dispose();
   }
