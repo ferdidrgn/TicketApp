@@ -1,6 +1,16 @@
-/*Bu dosya verinin tamamı (örneğin 100 tane oyunun hepsi) zaten elindeyken,
- bunu ekranda 10'ar 10'ar göstermek için yazılmış
-*/
+class PaginationResult<T> {
+  final List<T> items;
+  final Object? lastCursor;
+  final bool hasMore;
+
+  const PaginationResult({
+    required this.items,
+    required this.lastCursor,
+    required this.hasMore,
+  });
+}
+
+
 class PaginationController<T> {
   final List<T> allItems;
   final int itemsPerPage;
