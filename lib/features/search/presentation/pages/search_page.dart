@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
+import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
+import '../../../../shared/widgets/button/fab_scroll_up.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/top_gradient_header.dart';
@@ -56,18 +58,14 @@ class SearchPage extends ConsumerStatefulWidget {
   ConsumerState<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
+class _SearchPageState extends ConsumerState<SearchPage>
+    with GlobalScrollMixin, ResponsiveUtils {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
 
   @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    // Scroll logic...
+  void onLoadMore() {
+    // Burada pagination logic'ini (ref.read...) çalıştırabilirsin
   }
 
   @override
@@ -98,36 +96,42 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
-      body: CustomAppBackground(
-        child: SafeArea(
-          child: CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              SliverToBoxAdapter(child: _buildHeader(context)),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                      vertical: 24,
-                      horizontal:
-                          context.responsive(mobile: 16.0, desktop: 120.0)),
-                  child: _FilterList(
-                      selectedIndex: selectedFilter,
-                      onSelected: (final i) =>
-                          ref.read(searchFilterProvider.notifier).setFilter(i)),
-                ),
+      body: Stack(
+        children: [
+          CustomAppBackground(
+            child: SafeArea(
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  SliverToBoxAdapter(child: _buildHeader(context)),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                          vertical: 24,
+                          horizontal:
+                              context.responsive(mobile: 16.0, desktop: 120.0)),
+                      child: _FilterList(
+                          selectedIndex: selectedFilter,
+                          onSelected: (final i) => ref
+                              .read(searchFilterProvider.notifier)
+                              .setFilter(i)),
+                    ),
+                  ),
+                  if (searchState.isLoading && query.isEmpty)
+                    const SliverFillRemaining(
+                        child: Center(child: CircularProgressIndicator()))
+                  else if (_isResultEmpty(searchState))
+                    _buildEmptyState(context)
+                  else
+                    ..._buildContent(
+                        context, searchState, selectedFilter, crossAxisCount),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
               ),
-              if (searchState.isLoading && query.isEmpty)
-                const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator()))
-              else if (_isResultEmpty(searchState))
-                _buildEmptyState(context)
-              else
-                ..._buildContent(
-                    context, searchState, selectedFilter, crossAxisCount),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+            ),
           ),
-        ),
+          ScrollUpButton(scrollController: scrollController),
+        ],
       ),
     );
   }
