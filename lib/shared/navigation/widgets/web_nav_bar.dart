@@ -179,6 +179,9 @@ class WebNavBar extends StatefulWidget {
 class _WebNavBarState extends State<WebNavBar>
     with SingleTickerProviderStateMixin, ResponsiveUtils {
   late final AnimationController _controller;
+  final LayerLink _showsLink = LayerLink();
+  OverlayEntry? _showsOverlay;
+  bool _isHoveringShows = false;
 
   @override
   void initState() {
@@ -191,6 +194,42 @@ class _WebNavBarState extends State<WebNavBar>
   void _onScroll() {
     final shouldScroll = widget.scrollController.offset > 100.0;
     shouldScroll ? _controller.forward() : _controller.reverse();
+  }
+
+  void _openShowsMenu(BuildContext context) {
+    if (_showsOverlay != null) return;
+
+    final overlay = Overlay.of(context, rootOverlay: true);
+    if (overlay == null) return;
+
+    _showsOverlay = OverlayEntry(
+      builder: (_) => CompositedTransformFollower(
+        link: _showsLink,
+        offset: const Offset(0, 50),
+        showWhenUnlinked: false,
+        child: Material(
+          color: Colors.transparent,
+          child: MouseRegion(
+            onEnter: (_) => _isHoveringShows = true,
+            onExit: (_) {
+              _isHoveringShows = false;
+              _closeShowsMenuWithDelay();
+            },
+            child: _showsMenu(),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(_showsOverlay!);
+  }
+
+  void _closeShowsMenuWithDelay() async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (!_isHoveringShows) {
+      _showsOverlay?.remove();
+      _showsOverlay = null;
+    }
   }
 
   @override
@@ -235,6 +274,44 @@ class _WebNavBarState extends State<WebNavBar>
           ],
         ),
       );
+
+  Widget _showsMenu() => Container(
+    width: 260,
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    decoration: BoxDecoration(
+      color: WebColors.darkBlueSurface,
+      borderRadius: BorderRadius.circular(10),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.3),
+          blurRadius: 12,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: widget.games.entries.map((game) {
+        return InkWell(
+          onTap: () {
+            widget.onNavigate(game.key);
+            _showsOverlay?.remove();
+            _showsOverlay = null;
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                game.value,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    ),
+  );
 
   // --- TABLET & MOBİL: Logo + Hamburger + Search Icon ---
   Widget _tabletLayout(final BuildContext context) => _mobileLayout(context);
@@ -357,40 +434,21 @@ class _WebNavBarState extends State<WebNavBar>
         },
       );
 
-  Widget _buildShowsDropdown(final BuildContext context, final String label) {
-    final menuKey = GlobalKey<PopupMenuButtonState<String>>();
-
-    return MouseRegion(
-      onEnter: (final _) => menuKey.currentState?.showButtonMenu(),
-      child: PopupMenuButton<String>(
-        key: menuKey,
-        offset: const Offset(0, 50),
-        position: PopupMenuPosition.under,
-        color: WebColors.darkBlueSurface,
-        elevation: 8,
-        onSelected: widget.onNavigate,
-
-        // TIKLANAN ANA BUTON
-        child: _navItem(context, 'shows', label),
-
-        itemBuilder: (final _) => widget.games.entries.map((final game) {
-          return PopupMenuItem<String>(
-            value: game.key,
-            height: 42,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              game.value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
+  Widget _buildShowsDropdown(final BuildContext context, final String label) =>
+      MouseRegion(
+        onEnter: (final _) {
+          _isHoveringShows = true;
+          _openShowsMenu(context);
+        },
+        onExit: (final _) {
+          _isHoveringShows = false;
+          _closeShowsMenuWithDelay();
+        },
+        child: CompositedTransformTarget(
+          link: _showsLink,
+          child: _navItem(context, 'shows', label),
+        ),
+      );
 
   // MOBİL DRAWER MENÜ (İçe Girik Yapı)
   Widget _mobileMenu(final BuildContext context) => PopupMenuButton<String>(
@@ -433,7 +491,7 @@ class _WebNavBarState extends State<WebNavBar>
 
   @override
   void dispose() {
-    widget.scrollController.removeListener(_onScroll);
+    _showsOverlay?.remove();
     _controller.dispose();
     super.dispose();
   }
