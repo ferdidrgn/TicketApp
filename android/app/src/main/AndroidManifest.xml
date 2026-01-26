@@ -35,6 +35,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:label="TiyatRol App"
+        android:hardwareAccelerated="true"
         android:usesCleartextTraffic="false">
 
         <!-- ✅ AdMob App ID (TEK YER) -->
