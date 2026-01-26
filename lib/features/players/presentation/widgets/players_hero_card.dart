@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
@@ -43,7 +43,8 @@ class PlayerHeroCard extends StatelessWidget {
       );
 
     return GestureDetector(
-      onTap: () => context.push('/player/${player!.id}'),
+      onTap: () => NavigationHandler.goToPlayer(context, player?.id ?? "",
+          (player?.firstName ?? "" + player!.lastName)),
       child: Container(
         width: 120,
         margin: const EdgeInsets.only(right: 12),

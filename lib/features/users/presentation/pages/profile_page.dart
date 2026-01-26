@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
 import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
 import '../../../users/domain/entities/user.dart' as entity;
@@ -60,7 +61,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                       // 1. KİMLİK PORTRESİ VEYA SESSİZ SAHNE DAVETİ
                       if (isLoggedIn)
-                        _buildNeumorphicPortrait(userData!)
+                        _buildNeumorphicPortrait(userData)
                       else
                         _buildSilentStageInvitation(),
 
@@ -75,7 +76,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         title: 'Atölye Ayarları',
                         subtitle: 'Bildirimler, dil ve teknik tercihler',
                         color: Colors.blueGrey,
-                        onTap: () => context.push('/settings'),
+                        onTap: () => NavigationHandler.goToSettings(context),
                       ),
 
                       const SizedBox(height: 40),
@@ -88,8 +89,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         subtitle: 'Sahne tozunu yuttuğun tüm anların dökümü',
                         isLocked: !isLoggedIn,
                         color: const Color(0xFF6366F1),
-                        onTap: () =>
-                            context.push('/my-tickets/${userData?.id ?? ""}'),
+                        onTap: () => NavigationHandler.goToMyTickets(
+                            context, userData?.id ?? ""),
                       ),
                       const SizedBox(height: 16),
                       _buildSculptedTile(
@@ -98,7 +99,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         subtitle: 'Zihninde yankılanan seçilmiş eserler',
                         isLocked: !isLoggedIn,
                         color: const Color(0xFFEC4899),
-                        onTap: () => context.push('/favorites'),
+                        onTap: () => NavigationHandler.goToFavorites(context),
                       ),
 
                       const SizedBox(height: 40),
@@ -113,8 +114,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                             'Kendi portreni ve sanatsal kimliğini yorumla',
                         isLocked: !isLoggedIn,
                         color: context.colors.primary,
-                        onTap: () => context
-                            .push('/profile-edit/${userData?.id ?? ""}'),
+                        onTap: () =>
+                            context.push('/profile-edit/${userData?.id ?? ""}'),
                       ),
                       const SizedBox(height: 16),
                       _buildSculptedTile(
@@ -122,7 +123,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         title: 'Serüven Rehberi',
                         subtitle: 'Soruların için küratörle temas kur',
                         color: const Color(0xFF10B981),
-                        onTap: () => context.push('/help-support'),
+                        onTap: () => NavigationHandler.goToHelpSupport(context),
                       ),
 
                       const SizedBox(height: 40),
@@ -134,7 +135,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         title: 'Atölye Sözleşmesi',
                         subtitle: 'Kullanım şartları ve KVKK rehberi',
                         color: Colors.brown.shade400,
-                        onTap: () => context.push('/contracts'),
+                        onTap: () => NavigationHandler.goToContracts(context),
                       ),
 
                       // 6. SİSTEMSEL KARARLAR
@@ -184,7 +185,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       Opacity(
         opacity: isLocked ? 0.5 : 1.0,
         child: GestureDetector(
-          onTap: isLocked ? () => context.push('/login') : onTap,
+          onTap: isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: _neuBox(borderRadius: 24),
@@ -367,7 +368,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 backgroundColor: buttonColor,
                 foregroundColor: buttonTextColor,
               ),
-              onPressed: () => context.push('/login'),
+              onPressed: () => NavigationHandler.goToLogin(context),
               child: const Text("SAHNEYİ UYANDIR",
                   style: TextStyle(
                       fontWeight: FontWeight.bold, letterSpacing: 2))),

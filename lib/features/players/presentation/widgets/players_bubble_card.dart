@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/section_header.dart';
 
 class PlayersBubbleCard extends StatelessWidget {
@@ -43,7 +43,10 @@ class PlayersBubbleCard extends StatelessWidget {
                 width: 125,
                 margin: const EdgeInsets.only(right: 5),
                 child: InkWell(
-                  onTap: () => context.push('/player/${player.id}'),
+                  onTap: () => NavigationHandler.goToPlayer(
+                      context,
+                      player.id,
+                      (player.firstName + player.lastName)),
                   borderRadius: const BorderRadius.all(Radius.circular(60)),
                   child: Card(
                     elevation: 3,

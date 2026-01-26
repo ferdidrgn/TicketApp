@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/common/extentions/reg_exp_extentions.dart';
 import '../providers/navigation_keys.dart';
 
 /// 🧭 Global Navigation Handler
@@ -21,53 +22,69 @@ class NavigationHandler {
     context.go(targetPath);
   }
 
-  /// Ana sayfaya git
   static void goToHome(final BuildContext context) => context.go('/');
 
-  /// Arama sayfasına git
   static void goToSearch(final BuildContext context) => context.go('/search');
 
   static void goToNearby(final BuildContext context) => context.go('/nearby');
 
   static void goToProfile(final BuildContext context) => context.go('/profile');
 
-  // ✅ MOBİL TAB NAVIGATION (ROUTER)
   static void goToDiscoverWithCategory(
           final BuildContext context, final String category) =>
       context.go('/discover?category=$category');
 
-  /// Ürün detay sayfasına git (nereden geldiğini kaydet)
+  /// Etkinlik detay sayfasına git (slug-id yapısı)
   static void goToShow(
       final BuildContext context, final String showId, final String showSlug) {
     final String currentPath = GoRouterState.of(context).uri.path;
-
     final String targetPath =
-        '/show/$showSlug-$showId?from=${Uri.encodeComponent(currentPath)}';
+        '/show/${showSlug.toSlug()}-$showId?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
   }
 
-  static void goToPlayer({
-    required final BuildContext context,
-    required final String playerId,
-    required final String playerSlug,
-  }) {
+  /// Oyuncu detay sayfasına git
+  static void goToPlayer(
+    final BuildContext context,
+    final String playerId,
+    final String playerSlug,
+  ) {
     final String currentPath = GoRouterState.of(context).uri.path;
     final String targetPath =
-        '/player/$playerSlug-$playerId?from=${Uri.encodeComponent(currentPath)}';
+        '/player/${playerSlug.toSlug()}-$playerId?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
   }
 
-  static void goToMyTickets(
-      final BuildContext context, final String currentUserId) {
+  /// Mekan/Sahne detay sayfasına git
+  static void goToStage(
+    final BuildContext context,
+    final String stageId,
+    final String stageSlug,
+  ) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    // Slug kısmını temizleyip ID ile birleştiriyoruz
+    final String targetPath =
+        '/stage/${stageSlug.toSlug()}-$stageId?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
+  /// Ekip detay sayfasına git
+  static void goToTeam(
+    final BuildContext context,
+    final String teamId,
+    final String teamSlug,
+  ) {
     final String currentPath = GoRouterState.of(context).uri.path;
     final String targetPath =
-        '/my-tickets/$currentUserId?from=${Uri.encodeComponent(currentPath)}';
+        '/team/${teamSlug.toSlug()}-$teamId?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
   }
 
+  /// Koltuk seçimi sayfasına git
   static void goToSeatSelection(final BuildContext context, final String showId,
       final String eventId, final String userId) {
     final String currentPath = GoRouterState.of(context).uri.path;
@@ -77,56 +94,87 @@ class NavigationHandler {
     context.go(targetPath);
   }
 
+  static void goToSettings(final BuildContext context) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/settings?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
+  static void goToFavorites(final BuildContext context) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/favorites?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
+  static void goToContracts(final BuildContext context) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/contracts?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
+  static void goToHelpSupport(final BuildContext context) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/help-support?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
+  /// Biletlerim sayfasına git (User ID'yi slug yaparak koruma amaçlı veya SEO amaçlı)
+  static void goToMyTickets(
+      final BuildContext context, final String currentUserId) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/my-tickets/${currentUserId.toSlug()}?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // SMART BACK NAVIGATION
   // ═══════════════════════════════════════════════════════════════
 
-  /// Akıllı geri dön (nereden geldiyse oraya)
   static void smartGoBack(final BuildContext context) {
     final state = GoRouterState.of(context);
     final fromRoute = state.uri.queryParameters['from'];
 
-    if (fromRoute != null && fromRoute.isNotEmpty) // Nereden geldiyse oraya dön
+    if (fromRoute != null && fromRoute.isNotEmpty)
       context.go(Uri.decodeComponent(fromRoute));
     else {
-      // from bilgisi yoksa Navigator stack kontrol et
       if (Navigator.canPop(context))
         Navigator.pop(context);
-      else // Stack boşsa ana sayfaya git
+      else
         context.go('/');
     }
   }
 
-  /// Geri dönülebilir mi?
   static bool canGoBack(final BuildContext context) {
     final state = GoRouterState.of(context);
     final fromRoute = state.uri.queryParameters['from'];
-
     return fromRoute != null || Navigator.canPop(context);
   }
 
-  /// Web'de belirli bir bölüme (Hakkımızda, İletişim vb.) kaydır
-  static void scrollToWebSection(final String section) =>
-      NavigationKeys.webBarKey.currentState?.scrollToSection(section);
-
   // ═══════════════════════════════════════════════════════════════
-  // GLOBAL ERİŞİM (BuildContext Olmayan Yerler İçin)
+  // GLOBAL ERİŞİM & UTILITY
   // ═══════════════════════════════════════════════════════════════
 
   static NavigatorState? get _rootNav =>
       NavigationKeys.rootNavigator.currentState;
 
-  /// Örn: Bildirim geldiğinde BuildContext olmadan sayfaya yönlendirme
   static void globalGoTo(final String location) =>
       _rootNav?.context.go(location);
 
-  // ═══════════════════════════════════════════════════════════════
-  // UTILITY
-  // ═══════════════════════════════════════════════════════════════
-
-  /// Mevcut route path'i al
   static String getCurrentPath(final BuildContext context) =>
       GoRouterState.of(context).uri.path;
+
+  static void scrollToWebSection(final String section) =>
+      NavigationKeys.webBarKey.currentState?.scrollToSection(section);
 }
 
 /*

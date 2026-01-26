@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/core/common/extentions/reg_exp_extentions.dart';
 import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/background/shimmer_components.dart';
@@ -133,7 +132,7 @@ class _MosaicCard extends ConsumerWidget {
       GestureDetector(
         onTap: () async {
           // 1. Sayfaya git ve kullanıcının geri dönmesini bekle
-          NavigationHandler.goToShow(context, show.id, show.name.toSlug());
+          NavigationHandler.goToShow(context, show.id, show.name);
 
           // 2. Kullanıcı geri döndü. Eğer context hala canlıysa listeyi yenile.
           if (context.mounted) {
