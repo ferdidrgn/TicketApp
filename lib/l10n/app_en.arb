@@ -21,5 +21,26 @@
   "seoNearbyDesc": "Where is TiyatRol performing near you? Check out our tour schedule and theatre venues.",
   "buyTicketAction": "Buy Your Ticket Now",
   "sharePlayMessage": "You shouldn't miss this play!",
-  "galleryEmpty": "Gallery is empty"
+  "galleryEmpty": "Gallery is empty",
+  "searchTitle": "Art Gallery",
+  "searchHint": "Step into the heart of art...",
+  "searchEmptyState": "We couldn't find any masterpieces for '{query}'.",
+  "@searchEmptyState": {
+    "description": "Text shown when no search results are found",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchClearGallery": "Refresh Gallery",
+  "searchFilterAll": "All",
+  "searchFilterShows": "Events",
+  "searchFilterPlayers": "Artists",
+  "searchFilterStages": "Venues",
+  "searchFilterTeams": "Collectives",
+  "searchSectionsShowsSubtitle": "Flow of Art",
+  "searchSectionsPlayersSubtitle": "Stars of the Stage",
+  "searchSectionsStagesSubtitle": "Heart of Art",
+  "searchSectionsTeamsSubtitle": "Creative Groups"
 }

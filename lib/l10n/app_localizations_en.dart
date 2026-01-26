@@ -79,4 +79,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get galleryEmpty => 'Gallery is empty';
+
+  @override
+  String get searchTitle => 'Art Gallery';
+
+  @override
+  String get searchHint => 'Step into the heart of art...';
+
+  @override
+  String searchEmptyState(String query) {
+    return 'We couldn\'t find any masterpieces for \'$query\'.';
+  }
+
+  @override
+  String get searchClearGallery => 'Refresh Gallery';
+
+  @override
+  String get searchFilterAll => 'All';
+
+  @override
+  String get searchFilterShows => 'Events';
+
+  @override
+  String get searchFilterPlayers => 'Artists';
+
+  @override
+  String get searchFilterStages => 'Venues';
+
+  @override
+  String get searchFilterTeams => 'Collectives';
+
+  @override
+  String get searchSectionsShowsSubtitle => 'Flow of Art';
+
+  @override
+  String get searchSectionsPlayersSubtitle => 'Stars of the Stage';
+
+  @override
+  String get searchSectionsStagesSubtitle => 'Heart of Art';
+
+  @override
+  String get searchSectionsTeamsSubtitle => 'Creative Groups';
 }

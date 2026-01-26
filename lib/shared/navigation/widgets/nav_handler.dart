@@ -156,7 +156,7 @@ class NavigationHandler {
       if (Navigator.canPop(context))
         Navigator.pop(context);
       else
-        context.go('/');
+        context.go('/home');
     }
   }
 

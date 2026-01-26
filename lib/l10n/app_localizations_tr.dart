@@ -79,4 +79,45 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get galleryEmpty => 'Galeri boş';
+
+  @override
+  String get searchTitle => 'Sanat Galerisi';
+
+  @override
+  String get searchHint => 'Sanatın kalbine bir adım at...';
+
+  @override
+  String searchEmptyState(String query) {
+    return '\'$query\' arayışına dair bir eser bulamadık.';
+  }
+
+  @override
+  String get searchClearGallery => 'Galeriyi Yenile';
+
+  @override
+  String get searchFilterAll => 'Tümü';
+
+  @override
+  String get searchFilterShows => 'Etkinlikler';
+
+  @override
+  String get searchFilterPlayers => 'Sanatçılar';
+
+  @override
+  String get searchFilterStages => 'Mekanlar';
+
+  @override
+  String get searchFilterTeams => 'Topluluklar';
+
+  @override
+  String get searchSectionsShowsSubtitle => 'Sanatın Akışı';
+
+  @override
+  String get searchSectionsPlayersSubtitle => 'Sahne Yıldızları';
+
+  @override
+  String get searchSectionsStagesSubtitle => 'Sanatın Kalbi';
+
+  @override
+  String get searchSectionsTeamsSubtitle => 'Yaratıcı Gruplar';
 }

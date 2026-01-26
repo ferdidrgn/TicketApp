@@ -21,5 +21,26 @@
   "seoNearbyDesc": "TiyatRol size en yakın hangi sahnede? Turne takvimimizi ve sahne alacağımız tiyatro salonlarını inceleyin.",
   "buyTicketAction": "Biletini Hemen Al",
   "sharePlayMessage": "Bu oyunu kaçırmamalısın!",
-  "galleryEmpty": "Galeri boş"
+  "galleryEmpty": "Galeri boş",
+  "searchTitle": "Sanat Galerisi",
+  "searchHint": "Sanatın kalbine bir adım at...",
+  "searchEmptyState": "'{query}' arayışına dair bir eser bulamadık.",
+  "@searchEmptyState": {
+    "description": "Arama sonucu bulunamadığında gösterilen metin",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchClearGallery": "Galeriyi Yenile",
+  "searchFilterAll": "Tümü",
+  "searchFilterShows": "Etkinlikler",
+  "searchFilterPlayers": "Sanatçılar",
+  "searchFilterStages": "Mekanlar",
+  "searchFilterTeams": "Topluluklar",
+  "searchSectionsShowsSubtitle": "Sanatın Akışı",
+  "searchSectionsPlayersSubtitle": "Sahne Yıldızları",
+  "searchSectionsStagesSubtitle": "Sanatın Kalbi",
+  "searchSectionsTeamsSubtitle": "Yaratıcı Gruplar"
 }

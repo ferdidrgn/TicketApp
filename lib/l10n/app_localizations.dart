@@ -229,6 +229,84 @@ abstract class AppLocalizations {
   /// In tr, this message translates to:
   /// **'Galeri boş'**
   String get galleryEmpty;
+
+  /// No description provided for @searchTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sanat Galerisi'**
+  String get searchTitle;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sanatın kalbine bir adım at...'**
+  String get searchHint;
+
+  /// Arama sonucu bulunamadığında gösterilen metin
+  ///
+  /// In tr, this message translates to:
+  /// **'\'{query}\' arayışına dair bir eser bulamadık.'**
+  String searchEmptyState(String query);
+
+  /// No description provided for @searchClearGallery.
+  ///
+  /// In tr, this message translates to:
+  /// **'Galeriyi Yenile'**
+  String get searchClearGallery;
+
+  /// No description provided for @searchFilterAll.
+  ///
+  /// In tr, this message translates to:
+  /// **'Tümü'**
+  String get searchFilterAll;
+
+  /// No description provided for @searchFilterShows.
+  ///
+  /// In tr, this message translates to:
+  /// **'Etkinlikler'**
+  String get searchFilterShows;
+
+  /// No description provided for @searchFilterPlayers.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sanatçılar'**
+  String get searchFilterPlayers;
+
+  /// No description provided for @searchFilterStages.
+  ///
+  /// In tr, this message translates to:
+  /// **'Mekanlar'**
+  String get searchFilterStages;
+
+  /// No description provided for @searchFilterTeams.
+  ///
+  /// In tr, this message translates to:
+  /// **'Topluluklar'**
+  String get searchFilterTeams;
+
+  /// No description provided for @searchSectionsShowsSubtitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sanatın Akışı'**
+  String get searchSectionsShowsSubtitle;
+
+  /// No description provided for @searchSectionsPlayersSubtitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sahne Yıldızları'**
+  String get searchSectionsPlayersSubtitle;
+
+  /// No description provided for @searchSectionsStagesSubtitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sanatın Kalbi'**
+  String get searchSectionsStagesSubtitle;
+
+  /// No description provided for @searchSectionsTeamsSubtitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yaratıcı Gruplar'**
+  String get searchSectionsTeamsSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -68,15 +68,14 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      body: CustomAppBackground(
-        ambientColor: activeColor,
-        particleColor: activeColor.withOpacity(0.1),
-        child: Stack(
-          children: [
-            // StatusBar ve tıklama sorunlarını çözen SafeArea
-            SafeArea(
-              bottom: false,
-              child: CustomScrollView(
+      body: SafeArea(
+        child: CustomAppBackground(
+          ambientColor: activeColor,
+          particleColor: activeColor.withOpacity(0.1),
+          child: Stack(
+            children: [
+              // StatusBar ve tıklama sorunlarını çözen SafeArea
+              CustomScrollView(
                 controller: scrollController,
                 physics: const BouncingScrollPhysics(),
                 slivers: [
@@ -103,6 +102,44 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   // --- Dinamik İçerik Alanı ---
                   searchState.when(
                     data: (final data) {
+                      final bool isEmpty = data.shows.isEmpty &&
+                          data.players.isEmpty &&
+                          data.stages.isEmpty &&
+                          data.teams.isEmpty;
+
+                      if (isEmpty && query.isNotEmpty) {
+                        return SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.search_off,
+                                    size: 64,
+                                    color: context.colors.primary
+                                        .withOpacity(0.5)),
+                                const SizedBox(height: 16),
+                                // İŞTE BURADA QUERY'İ KULLANIYORUZ:
+                                Text(
+                                  context.l10n.searchEmptyState(query),
+                                  textAlign: TextAlign.center,
+                                  style: context.textTheme.bodyLarge,
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    _textController.clear();
+                                    ref
+                                        .read(searchQueryProvider.notifier)
+                                        .update("");
+                                  },
+                                  child:
+                                      Text(context.l10n.searchClearGallery),
+                                )
+                              ],
+                            ),
+                          ),
+                        );
+                      }
                       // HATA ÇÖZÜMÜ: Filtre 1 (Etkinlikler) seçiliyse, Sliver olan dikey mozaik doğrudan döner.
                       if (selectedFilter == 1)
                         return SliverPadding(
@@ -131,14 +168,14 @@ class _SearchPageState extends ConsumerState<SearchPage>
                   ),
                 ],
               ),
-            ),
 
-            GlassmorphismBackButton(),
-            // Yukarı Kaydır Butonu
-            ScrollUpButton(
-                scrollController: scrollController,
-                visibleNotifier: showFloatingButton),
-          ],
+              GlassmorphismBackButton(),
+              // Yukarı Kaydır Butonu
+              ScrollUpButton(
+                  scrollController: scrollController,
+                  visibleNotifier: showFloatingButton),
+            ],
+          ),
         ),
       ),
     );
@@ -146,24 +183,33 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
   // --- Widget Oluşturucular ---
 
-  Widget _buildPremiumHeader(final BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 20, bottom: 20),
-        child: Column(
-          children: [
-            const TopGradientHeader(title: "Sanat Galerisi"),
-            const SizedBox(height: 30),
-            Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: context.responsive(mobile: 24.0, desktop: 200.0)),
-              child: ModernSearchBar(
-                controller: _textController,
-                onChanged: (final String v) =>
-                    ref.read(searchQueryProvider.notifier).update(v),
-              ),
+  Widget _buildPremiumHeader(final BuildContext context) {
+    final currentQuery = ref.watch(searchQueryProvider);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 20),
+      child: Column(
+        children: [
+          // Query doluysa farklı başlık göster
+          TopGradientHeader(
+            title: currentQuery.isEmpty
+                ? context.l10n.searchTitle
+                : "'$currentQuery' için sonuçlar",
+          ),
+          const SizedBox(height: 30),
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: context.responsive(mobile: 24.0, desktop: 200.0)),
+            child: ModernSearchBar(
+              controller: _textController,
+              onChanged: (final String v) =>
+                  ref.read(searchQueryProvider.notifier).update(v),
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildFilterTabs(final int selectedIndex) {
     const labels = ["Tümü", "Etkinlikler", "Oyuncular", "Mekanlar", "Ekipler"];
