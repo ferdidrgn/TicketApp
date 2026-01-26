@@ -1,10 +1,10 @@
-import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/button/fab_scroll_up.dart';
@@ -14,8 +14,6 @@ import '../../../../shared/widgets/top_gradient_header.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/widgets/players_hero_card.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
-import '../../../stages/domain/entities/stage.dart';
-import '../../../teams/domain/entities/team.dart';
 import '../providers/search_query_provider.dart';
 
 // =============================================================================
@@ -24,11 +22,11 @@ import '../providers/search_query_provider.dart';
 
 class _SearchStyles {
   static const List<List<Color>> filterPalettes = [
-    [Color(0xFF6366F1), Color(0xFF8B5CF6)], // Tümü
-    [Color(0xFFF59E0B), Color(0xFFD97706)], // Etkinlikler
-    [Color(0xFFEC4899), Color(0xFFBE185D)], // Oyuncular
-    [Color(0xFF10B981), Color(0xFF047857)], // Mekanlar
-    [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Ekipler
+    [Color(0xFF6366F1), Color(0xFF8B5CF6)], // Tümü (Indigo)
+    [Color(0xFFF59E0B), Color(0xFFD97706)], // Etkinlikler (Amber)
+    [Color(0xFFEC4899), Color(0xFFBE185D)], // Oyuncular (Pink)
+    [Color(0xFF10B981), Color(0xFF047857)], // Mekanlar (Emerald)
+    [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Ekipler (Blue)
   ];
 }
 
@@ -54,11 +52,11 @@ class _SearchPageState extends ConsumerState<SearchPage>
   }
 
   @override
-  void onLoadMore() {}
+  void onLoadMore() {} // Veriler provider tarafında yönetiliyor
 
   void _onSeeAll(final int filterIndex) {
     ref.read(searchFilterProvider.notifier).setFilter(filterIndex);
-    scrollToTop();
+    scrollToTop(); // GlobalScrollMixin
   }
 
   @override
@@ -75,23 +73,17 @@ class _SearchPageState extends ConsumerState<SearchPage>
         particleColor: activeColor.withOpacity(0.1),
         child: Stack(
           children: [
-            // Safe Area status bar çakışmasını önler
+            // StatusBar ve tıklama sorunlarını çözen SafeArea
             SafeArea(
               bottom: false,
               child: CustomScrollView(
                 controller: scrollController,
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  // 1. HEADER & SEARCH
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
-                      child: _buildPremiumHeader(context),
-                    ),
-                  ),
+                  // --- Arama ve Başlık Kısmı ---
+                  SliverToBoxAdapter(child: _buildPremiumHeader(context)),
 
-                  // 2. STICKY FILTER TABS
+                  // --- Sticky (Yapışkan) Filtre Sekmeleri ---
                   SliverPersistentHeader(
                     pinned: true,
                     delegate: _SliverFilterDelegate(
@@ -108,19 +100,17 @@ class _SearchPageState extends ConsumerState<SearchPage>
                     ),
                   ),
 
-                  // 3. DYNAMIC CONTENT
+                  // --- Dinamik İçerik Alanı ---
                   searchState.when(
                     data: (final data) {
-                      // HATA ÇÖZÜMÜ: Eğer Etkinlikler (1) seçiliyse dikey mozaik doğrudan Sliver döner
-                      if (selectedFilter == 1) {
+                      // HATA ÇÖZÜMÜ: Filtre 1 (Etkinlikler) seçiliyse, Sliver olan dikey mozaik doğrudan döner.
+                      if (selectedFilter == 1)
                         return SliverPadding(
-                          padding: const EdgeInsets.all(16),
-                          sliver: ShowMosaicGallery(
-                              shows: data.shows, direction: Axis.vertical),
-                        );
-                      }
+                            padding: const EdgeInsets.all(16),
+                            sliver: ShowMosaicGallery(
+                                shows: data.shows, direction: Axis.vertical));
 
-                      // Tümü sekmesi veya diğer Grid görünümleri
+                      // Diğer durumlar için SliverList içinde normal widget akışı
                       final content =
                           _buildContent(context, data, selectedFilter);
                       return SliverPadding(
@@ -134,38 +124,45 @@ class _SearchPageState extends ConsumerState<SearchPage>
                       );
                     },
                     loading: () => const SliverFillRemaining(
-                      child:
-                          Center(child: CircularProgressIndicator.adaptive()),
-                    ),
+                        child: Center(
+                            child: CircularProgressIndicator.adaptive())),
                     error: (final e, final _) => SliverToBoxAdapter(
-                      child: Center(child: Text("Hata: $e")),
-                    ),
+                        child: Center(child: Text("Hata oluştu: $e"))),
                   ),
                 ],
               ),
             ),
 
-            // FAB
+            GlassmorphismBackButton(),
+            // Yukarı Kaydır Butonu
             ScrollUpButton(
-              scrollController: scrollController,
-              visibleNotifier: showFloatingButton,
-            ),
+                scrollController: scrollController,
+                visibleNotifier: showFloatingButton),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPremiumHeader(final BuildContext context) => Column(
-        children: [
-          const TopHeader(title: "Keşfet"),
-          const SizedBox(height: 20),
-          ModernSearchBar(
-            controller: _textController,
-            onChanged: (final v) =>
-                ref.read(searchQueryProvider.notifier).update(v),
-          ),
-        ],
+  // --- Widget Oluşturucular ---
+
+  Widget _buildPremiumHeader(final BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 20, bottom: 20),
+        child: Column(
+          children: [
+            const TopGradientHeader(title: "Sanat Galerisi"),
+            const SizedBox(height: 30),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: context.responsive(mobile: 24.0, desktop: 200.0)),
+              child: ModernSearchBar(
+                controller: _textController,
+                onChanged: (final String v) =>
+                    ref.read(searchQueryProvider.notifier).update(v),
+              ),
+            ),
+          ],
+        ),
       );
 
   Widget _buildFilterTabs(final int selectedIndex) {
@@ -185,9 +182,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
   List<Widget> _buildContent(final BuildContext context,
       final SearchResultState state, final int filter) {
-    if (filter == 0) {
+    // Filtre 0: TÜMÜ Sekmesi (Her şey Yatay ve 10 Item Sınırlı)
+    if (filter == 0)
       return [
-        // 1. ETKİNLİKLER (YATAY MOZAİK) - 10 ADET
+        // 1. ETKİNLİKLER (YATAY MOZAİK)
         if (state.shows.isNotEmpty) ...[
           SectionHeader(
               title: "Etkinlikler",
@@ -199,7 +197,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           const SizedBox(height: 30),
         ],
 
-        // 2. OYUNCULAR (YATAY) - 10 ADET
+        // 2. OYUNCULAR (YATAY LİSTE)
         if (state.players.isNotEmpty) ...[
           SectionHeader(
               title: "Oyuncular",
@@ -223,7 +221,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           const SizedBox(height: 30),
         ],
 
-        // 3. MEKANLAR (YATAY) - 10 ADET
+        // 3. MEKANLAR (YATAY LİSTE)
         if (state.stages.isNotEmpty)
           _HorizontalSection(
               title: "Mekanlar",
@@ -231,7 +229,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
               isStage: true,
               onSeeAll: () => _onSeeAll(3)),
 
-        // 4. EKİPLER (YATAY) - 10 ADET
+        // 4. EKİPLER (YATAY LİSTE)
         if (state.teams.isNotEmpty)
           _HorizontalSection(
               title: "Ekipler",
@@ -239,9 +237,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
               isStage: false,
               onSeeAll: () => _onSeeAll(4)),
       ];
-    }
 
-    // Diğer Filtreler için Grid (3'lü Mobilde)
+    // Diğer Filtreler (Oyuncular, Mekanlar, Ekipler) için Grid Görünümü
     return [_buildCommonGrid(context, state, filter)];
   }
 
@@ -250,26 +247,30 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final items = filter == 2 ? d.players : (filter == 3 ? d.stages : d.teams);
     final crossAxisCount = context.responsive(mobile: 3, tablet: 5, desktop: 6);
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: filter == 2 ? 0.65 : 1.0,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: filter == 2 ? 0.65 : 1.0,
+        ),
+        itemCount: items.length,
+        itemBuilder: (final context, final i) {
+          if (filter == 2) return PlayerHeroCard(player: items[i] as Player);
+          return _GridCards.verticalLarge(context, items[i], filter == 3);
+        },
       ),
-      itemCount: items.length,
-      itemBuilder: (final context, final i) {
-        if (filter == 2) return PlayerHeroCard(player: items[i] as Player);
-        return _GridCards.verticalLarge(context, items[i], filter == 3);
-      },
     );
   }
 }
 
-// --- ATOMIC UI COMPONENTS ---
+// =============================================================================
+// 3. ATOMIC UI COMPONENTS
+// =============================================================================
 
 class ArtisticBrushChip extends StatelessWidget {
   final String text;
@@ -334,36 +335,34 @@ class ModernSearchBar extends StatelessWidget {
       {super.key, required this.controller, required this.onChanged});
 
   @override
-  Widget build(final BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: context.colors.primary.withOpacity(0.3), width: 1.2),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: TextField(
-            controller: controller,
-            onChanged: onChanged,
-            decoration: InputDecoration(
-              hintText: 'Sanat eserini keşfet...',
-              prefixIcon:
-                  Icon(Icons.auto_awesome, color: context.colors.primary),
-              filled: true,
-              fillColor: context.colors.surface.withOpacity(0.6),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+  Widget build(final BuildContext context) => Container(
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: context.colors.primary.withOpacity(0.3), width: 1.2)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              decoration: InputDecoration(
+                hintText: 'Sanat eserini keşfet...',
+                prefixIcon:
+                    Icon(Icons.auto_awesome, color: context.colors.primary),
+                filled: true,
+                fillColor: context.colors.surface.withOpacity(0.6),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 15),
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
+// --- Yatay Liste Bölümü (Mekanlar/Ekipler için) ---
 class _HorizontalSection extends StatelessWidget {
   final String title;
   final List<dynamic> items;
@@ -401,7 +400,9 @@ class _HorizontalSection extends StatelessWidget {
   }
 }
 
-// --- SLIVER HELPERS ---
+// =============================================================================
+// 4. HELPERS & CARD WIDGETS
+// =============================================================================
 
 class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
@@ -425,94 +426,96 @@ class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
 }
 
 class _GridCards {
+  // Dikey Kart (Filtreli Görünümler için)
   static Widget verticalLarge(
-      final BuildContext context, final dynamic item, final bool isStage) {
-    return GestureDetector(
-      onTap: () => isStage
-          ? context.push('/stage/${item.id}')
-          : context.push('/team/${item.id}'),
-      child: Container(
-        decoration:
-            BoxDecoration(borderRadius: BorderRadius.circular(22), boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4))
-        ]),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(children: [
-          Positioned.fill(
-              child: OptimizedCachedImage(
-                  imageUrl: item.imageUrl, fit: BoxFit.cover)),
-          Positioned.fill(
-              child: Container(
-                  decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                Colors.black.withOpacity(0.9),
-                Colors.transparent
-              ],
-                          stops: const [
-                0.0,
-                0.6
-              ])))),
-          Positioned(
-            bottom: 15,
-            left: 15,
-            right: 15,
-            child: Text(item.name,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  static Widget horizontalCard(
-      final BuildContext context, final dynamic item, final bool isStage,
-      {required final double width}) {
-    return GestureDetector(
-      onTap: () => isStage
-          ? context.push('/stage/${item.id}')
-          : context.push('/team/${item.id}'),
-      child: Container(
-        width: width,
-        decoration: BoxDecoration(
-            color: context.colors.surface,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4))
-            ]),
-        clipBehavior: Clip.antiAlias,
-        child: Row(children: [
-          SizedBox(
-              width: width * 0.42,
-              child: OptimizedCachedImage(
-                  imageUrl: item.imageUrl, fit: BoxFit.cover)),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          final BuildContext context, final dynamic item, final bool isStage) =>
+      GestureDetector(
+        onTap: () => isStage
+            ? NavigationHandler.goToStage(context, item.id, item.name)
+            : NavigationHandler.goToTeam(context, item.id, item.name),
+        child: Container(
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4))
+              ]),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(children: [
+            Positioned.fill(
+                child: OptimizedCachedImage(
+                    imageUrl: item.imageUrl, fit: BoxFit.cover)),
+            Positioned.fill(
+                child: Container(
+                    decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                  Colors.black.withOpacity(0.9),
+                  Colors.transparent
+                ],
+                            stops: const [
+                  0.0,
+                  0.6
+                ])))),
+            Positioned(
+              bottom: 15,
+              left: 15,
+              right: 15,
               child: Text(item.name,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: context.colors.onSurface,
-                      fontSize: 13),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis),
             ),
-          ),
-        ]),
-      ),
-    );
-  }
+          ]),
+        ),
+      );
+
+  // Yatay Kart (All sekmesi için)
+  static Widget horizontalCard(
+          final BuildContext context, final dynamic item, final bool isStage,
+          {required final double width}) =>
+      GestureDetector(
+        onTap: () => isStage
+            ? NavigationHandler.goToStage(context, item.id, item.name)
+            : NavigationHandler.goToTeam(context, item.id, item.name),
+        child: Container(
+          width: width,
+          decoration: BoxDecoration(
+              color: context.colors.surface,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4))
+              ]),
+          clipBehavior: Clip.antiAlias,
+          child: Row(children: [
+            SizedBox(
+                width: width * 0.42,
+                child: OptimizedCachedImage(
+                    imageUrl: item.imageUrl, fit: BoxFit.cover)),
+            Expanded(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Text(item.name,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: context.colors.onSurface,
+                        fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ]),
+        ),
+      );
 }
