@@ -101,16 +101,16 @@ abstract class _$SearchQuery extends $Notifier<String> {
   }
 }
 
-/// 🔥 MERKEZİ ARAMA MANTIĞI
-
 @ProviderFor(searchResult)
 const searchResultProvider = SearchResultProvider._();
 
-/// 🔥 MERKEZİ ARAMA MANTIĞI
-
-final class SearchResultProvider extends $FunctionalProvider<SearchResultState,
-    SearchResultState, SearchResultState> with $Provider<SearchResultState> {
-  /// 🔥 MERKEZİ ARAMA MANTIĞI
+final class SearchResultProvider extends $FunctionalProvider<
+        AsyncValue<SearchResultState>,
+        SearchResultState,
+        FutureOr<SearchResultState>>
+    with
+        $FutureModifier<SearchResultState>,
+        $FutureProvider<SearchResultState> {
   const SearchResultProvider._()
       : super(
           from: null,
@@ -127,22 +127,14 @@ final class SearchResultProvider extends $FunctionalProvider<SearchResultState,
 
   @$internal
   @override
-  $ProviderElement<SearchResultState> $createElement(
+  $FutureProviderElement<SearchResultState> $createElement(
           $ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+      $FutureProviderElement(pointer);
 
   @override
-  SearchResultState create(Ref ref) {
+  FutureOr<SearchResultState> create(Ref ref) {
     return searchResult(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(SearchResultState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<SearchResultState>(value),
-    );
   }
 }
 
-String _$searchResultHash() => r'b8c49d131de11c501b6316a41c6cd1957334c666';
+String _$searchResultHash() => r'7afa4922851aa4ef993dc9b209c231122b0edfb1';

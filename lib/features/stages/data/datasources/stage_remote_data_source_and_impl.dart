@@ -3,28 +3,29 @@ import '../models/stage_model.dart';
 
 abstract class StageRemoteDataSource {
   Future<List<StageModel>> getSearchStage(final String query);
+
   Future<List<StageModel>> getStages(final bool isLimit);
+
   Future<List<StageModel>> getStagesByIds(final List<String> stageIds);
 }
 
 class StageRemoteDataSourceImpl implements StageRemoteDataSource {
   final FirebaseFirestore _firestore;
-  static const _collection = 'Stage';
 
   const StageRemoteDataSourceImpl({required final FirebaseFirestore firestore})
       : _firestore = firestore;
 
+  CollectionReference<Map<String, dynamic>> get _stageCollection =>
+      _firestore.collection('Stage');
+
   @override
   Future<List<StageModel>> getSearchStage(final String query) async {
-    if (query.isEmpty) throw Exception('Arama sorgusu boş olamaz.');
-
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
+      final firebaseQuery = await _stageCollection
           .where('name', isGreaterThanOrEqualTo: query)
-          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
-          .get();
+          .where('name', isLessThanOrEqualTo: '$query\uf8ff');
 
+      final snapshot = await firebaseQuery.get();
       return _mapToStages(snapshot);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getSearchStage): ${e.message}');
@@ -36,14 +37,10 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
   @override
   Future<List<StageModel>> getStages(final bool isLimit) async {
     try {
-      final queryRef = _firestore.collection(_collection);
-      final snapshot = isLimit
-          ? await queryRef
-              .orderBy('_createdAt', descending: true)
-              .limit(20)
-              .get()
-          : await queryRef.get();
+      var query = _stageCollection.orderBy('_createdAt', descending: true);
+      if (isLimit) query = query.limit(20);
 
+      final snapshot = await query.get();
       return _mapToStages(snapshot);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getStages): ${e.message}');
@@ -57,12 +54,11 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
     if (stageIds.isEmpty) return [];
 
     try {
-      final result = await _firestore
-          .collection(_collection)
+      final snapshot = await _stageCollection
           .where(FieldPath.documentId, whereIn: stageIds)
           .get();
 
-      return _mapToStages(result);
+      return _mapToStages(snapshot);
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getStagesByIds): ${e.message}');
     } catch (e) {

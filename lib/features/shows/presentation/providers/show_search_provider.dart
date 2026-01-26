@@ -14,7 +14,7 @@ class ShowSearch extends _$ShowSearch {
   }
 
   /// 🔍 İSTEDİĞİN FONKSİYON (Manuel Tetikleme)
-  Future<void> searchShows(
+  Future<void> searchShows(final String? query,
       final List<String> categories, final String? type) async {
     // 1. Loading durumuna çek
     state = const AsyncLoading();
@@ -22,7 +22,7 @@ class ShowSearch extends _$ShowSearch {
     // 2. İsteği at ve sonucu state'e kaydet (execute yerine guard kullanıyoruz)
     state = await AsyncValue.guard(() async => ref
         .read(getSearchShowUseCaseProvider)
-        .call(categories, type)
+        .call(query, categories, type)
         .getOrThrow());
   }
 

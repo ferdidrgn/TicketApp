@@ -44,54 +44,47 @@ class SearchQuery extends _$SearchQuery {
   void update(final String query) => state = query.toLowerCase();
 }
 
-/// 🔥 MERKEZİ ARAMA MANTIĞI
 @riverpod
-SearchResultState searchResult(final Ref ref) {
-  final query = ref.watch(searchQueryProvider);
+Future<SearchResultState> searchResult(final Ref ref) async {
+  final query = ref.watch(searchQueryProvider).toLowerCase();
   final filterIndex = ref.watch(searchFilterProvider);
 
-  // 🔥 Riverpod Generator ile oluşturulan provider'lar AsyncValue döner.
-  final showsAsync = ref.watch(showsProvider(isLimit: false));
-  final playersAsync = ref.watch(playersProvider(isLimit: false));
-  final stagesAsync = ref.watch(stagesProvider(isLimit: false));
-  final teamsAsync = ref.watch(teamsProvider(isLimit: false));
+  // 1. ADIM: Tüm verileri paralel ve güvenli bir şekilde çek
+  final results = await Future.wait<dynamic>([
+    ref.watch(showsProvider(isLimit: false).future),
+    ref.watch(playersProvider(isLimit: false).future),
+    ref.watch(stagesProvider(isLimit: false).future),
+    ref.watch(teamsProvider(isLimit: false).future),
+  ]);
 
-  // isLoading durumunu AsyncValue'ların kendi durumundan alıyoruz.
-  final bool isLoading = showsAsync.isLoading ||
-      playersAsync.isLoading ||
-      stagesAsync.isLoading ||
-      teamsAsync.isLoading;
+  final allShows = results[0] as List<Show>;
+  final allPlayers = results[1] as List<Player>;
+  final allStages = results[2] as List<Stage>;
+  final allTeams = results[3] as List<Team>;
 
-  // valueOrNull hatasını gidermek için .value kullanıyoruz.
-  // .value, veri varsa veriyi yoksa (veya yükleniyorsa) null döner.
-  final shows = showsAsync.value ?? [];
-  final players = playersAsync.value ?? [];
-  final stages = stagesAsync.value ?? [];
-  final teams = teamsAsync.value ?? [];
-
-  // Filtreleme Fonksiyonu
-  List<T> filterItems<T>(
-      final List<T> items, final String Function(T) selector) {
+  // 2. ADIM: Gerçek Filtreleme Mantığı (Arama kutusu doluysa)
+  List<T> applyFilter<T>(
+      final List<T> items, final String Function(T) searchField) {
     if (query.isEmpty) return items;
     return items
-        .where((final i) => selector(i).toLowerCase().contains(query))
+        .where((final item) => searchField(item).toLowerCase().contains(query))
         .toList();
   }
 
+  // 3. ADIM: Sonuçları Paketle
   return SearchResultState(
-    isLoading: isLoading,
+    isLoading: false,
     shows: (filterIndex == 0 || filterIndex == 1)
-        ? filterItems<Show>(shows, (final s) => s.name)
+        ? applyFilter(allShows, (final s) => s.name)
         : [],
     players: (filterIndex == 0 || filterIndex == 2)
-        ? filterItems<Player>(
-            players, (final p) => '${p.firstName} ${p.lastName}')
+        ? applyFilter(allPlayers, (final p) => "${p.firstName} ${p.lastName}")
         : [],
     stages: (filterIndex == 0 || filterIndex == 3)
-        ? filterItems<Stage>(stages, (final s) => s.name)
+        ? applyFilter(allStages, (final s) => s.name)
         : [],
     teams: (filterIndex == 0 || filterIndex == 4)
-        ? filterItems<Team>(teams, (final t) => t.name)
+        ? applyFilter(allTeams, (final t) => t.name)
         : [],
   );
 }

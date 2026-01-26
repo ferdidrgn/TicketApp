@@ -54,9 +54,9 @@ Future<List<Show>> shows(final Ref ref, {required final bool isLimit}) async =>
 /// Parametreler family olarak geçilir.
 /// Kullanım: ref.watch(searchShowsProvider(categories: ['Tiyatro'], type: 'Dram'))
 @riverpod
-Future<List<Show>> searchShows(final Ref ref,
+Future<List<Show>> searchShows(final Ref ref, final String? query,
         {required final List<String> categories, final String? type}) async =>
-    ref.watch(getSearchShowUseCaseProvider).call(categories, type).getOrThrow();
+    ref.watch(getSearchShowUseCaseProvider).call(query, categories, type).getOrThrow();
 
 /// 🆔 ID LİSTESİNE GÖRE ÇEKER
 /// Kullanım: ref.watch(showsByIdsProvider(['id1', 'id2']))

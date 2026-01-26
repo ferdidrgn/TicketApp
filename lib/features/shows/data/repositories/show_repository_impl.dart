@@ -13,10 +13,10 @@ class ShowRepositoryImpl extends BaseRepository implements ShowRepository {
   ShowRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, List<Show>>> getSearchShow(
+  Future<Either<Failure, List<Show>>> getSearchShow(final String? query,
       final List<String> categories, final String? type) {
     return execute(() async {
-      final models = await remoteDataSource.getSearchShow(categories, type);
+      final models = await remoteDataSource.getSearchShow(query, categories, type);
 
       // 🔥 Mapper kullanımı (Extension)
       return models.map((final model) => model.toEntity()).toList();

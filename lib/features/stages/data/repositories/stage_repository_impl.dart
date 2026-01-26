@@ -16,14 +16,14 @@ class StageRepositoryImpl extends BaseRepository implements StageRepository {
       execute(() async {
         if (query.isEmpty) throw Exception('Query cannot be empty.');
         final models = await remoteDataSource.getSearchStage(query);
-        return models.map((m) => m.toEntity()).toList();
+        return models.map((final m) => m.toEntity()).toList();
       });
 
   @override
   Future<Either<Failure, List<Stage>>> getStages(final bool isLimit) =>
       execute(() async {
         final models = await remoteDataSource.getStages(isLimit);
-        return models.map((m) => m.toEntity()).toList();
+        return models.map((final m) => m.toEntity()).toList();
       });
 
   @override
@@ -32,6 +32,6 @@ class StageRepositoryImpl extends BaseRepository implements StageRepository {
       execute(() async {
         if (stagesIds.isEmpty) return <Stage>[];
         final models = await remoteDataSource.getStagesByIds(stagesIds);
-        return models.map((m) => m.toEntity()).toList();
+        return models.map((final m) => m.toEntity()).toList();
       });
 }

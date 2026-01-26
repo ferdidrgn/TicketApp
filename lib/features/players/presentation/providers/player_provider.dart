@@ -5,6 +5,7 @@ import '../../../shows/presentation/providers/show_provider.dart';
 import '../../data/repositories/player_repository_provider.dart';
 import '../../domain/entities/player.dart';
 import '../../domain/usecases/get_player_by_id_use_case_impl.dart';
+import '../../domain/usecases/get_player_search_use_case_impl.dart';
 import '../../domain/usecases/get_players_use_case_impl.dart';
 
 part 'player_provider.g.dart';
@@ -20,6 +21,10 @@ GetPlayersUseCase getPlayersUseCase(final Ref ref) =>
 @riverpod
 GetPlayerByIdUseCase getPlayerByIdUseCase(final Ref ref) =>
     GetPlayerByIdUseCaseImpl(ref.watch(playerRepositoryProvider));
+
+@riverpod
+GetPlayerSearchUseCase getPlayerSearchUseCase(final Ref ref) =>
+    GetPlayerSearchUseCaseImpl(ref.watch(playerRepositoryProvider));
 
 // ==============================================================================
 // 2. DATA PROVIDERS

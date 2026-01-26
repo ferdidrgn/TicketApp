@@ -375,7 +375,8 @@ final class SearchShowsProvider extends $FunctionalProvider<
   /// Kullanım: ref.watch(searchShowsProvider(categories: ['Tiyatro'], type: 'Dram'))
   const SearchShowsProvider._(
       {required SearchShowsFamily super.from,
-      required ({
+      required (
+        String?, {
         List<String> categories,
         String? type,
       })
@@ -405,12 +406,14 @@ final class SearchShowsProvider extends $FunctionalProvider<
 
   @override
   FutureOr<List<Show>> create(Ref ref) {
-    final argument = this.argument as ({
+    final argument = this.argument as (
+      String?, {
       List<String> categories,
       String? type,
     });
     return searchShows(
       ref,
+      argument.$1,
       categories: argument.categories,
       type: argument.type,
     );
@@ -427,7 +430,7 @@ final class SearchShowsProvider extends $FunctionalProvider<
   }
 }
 
-String _$searchShowsHash() => r'd819ca09c3247091f7083e4cf0d804207234a908';
+String _$searchShowsHash() => r'52acc5750528080e892981de84b9631fe7ef5038';
 
 /// 🔍 ARAMA SONUÇLARINI ÇEKER
 /// Parametreler family olarak geçilir.
@@ -437,7 +440,8 @@ final class SearchShowsFamily extends $Family
     with
         $FunctionalFamilyOverride<
             FutureOr<List<Show>>,
-            ({
+            (
+              String?, {
               List<String> categories,
               String? type,
             })> {
@@ -454,11 +458,13 @@ final class SearchShowsFamily extends $Family
   /// Parametreler family olarak geçilir.
   /// Kullanım: ref.watch(searchShowsProvider(categories: ['Tiyatro'], type: 'Dram'))
 
-  SearchShowsProvider call({
+  SearchShowsProvider call(
+    String? query, {
     required List<String> categories,
     String? type,
   }) =>
       SearchShowsProvider._(argument: (
+        query,
         categories: categories,
         type: type,
       ), from: this);

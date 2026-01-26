@@ -96,6 +96,50 @@ final class GetPlayerByIdUseCaseProvider extends $FunctionalProvider<
 String _$getPlayerByIdUseCaseHash() =>
     r'50c36b4ced873dbb7025b0243553407fc3146cd8';
 
+@ProviderFor(getPlayerSearchUseCase)
+const getPlayerSearchUseCaseProvider = GetPlayerSearchUseCaseProvider._();
+
+final class GetPlayerSearchUseCaseProvider extends $FunctionalProvider<
+    GetPlayerSearchUseCase,
+    GetPlayerSearchUseCase,
+    GetPlayerSearchUseCase> with $Provider<GetPlayerSearchUseCase> {
+  const GetPlayerSearchUseCaseProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'getPlayerSearchUseCaseProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$getPlayerSearchUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<GetPlayerSearchUseCase> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  GetPlayerSearchUseCase create(Ref ref) {
+    return getPlayerSearchUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GetPlayerSearchUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GetPlayerSearchUseCase>(value),
+    );
+  }
+}
+
+String _$getPlayerSearchUseCaseHash() =>
+    r'd18863beda34587b8b7fef4f0d26dd578c472d6d';
+
 @ProviderFor(players)
 const playersProvider = PlayersFamily._();
 

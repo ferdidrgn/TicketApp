@@ -5,7 +5,7 @@ import '../models/show_model.dart';
 
 abstract class ShowRemoteDataSource {
   Future<List<ShowModel>> getSearchShow(
-      final List<String> categories, final String? type);
+      final String? query, final List<String> categories, final String? type);
 
   Future<List<ShowModel>> getShows(final bool isLimit);
 
@@ -29,18 +29,24 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
       firestore.collection('Show');
 
   @override
-  Future<List<ShowModel>> getSearchShow(
+  Future<List<ShowModel>> getSearchShow(final String? query,
       final List<String> categories, final String? type) async {
     try {
-      var query = _showCollection as Query<Map<String, dynamic>>;
+      var firebaseQuery = _showCollection as Query<Map<String, dynamic>>;
+
+      if (query != null && query.isNotEmpty) {
+        firebaseQuery = firebaseQuery
+            .where('name', isGreaterThanOrEqualTo: query)
+            .where('name', isLessThanOrEqualTo: '$query\uf8ff');
+      }
 
       if (categories.isNotEmpty)
-        query = query.where('category', whereIn: categories);
+        firebaseQuery = firebaseQuery.where('category', whereIn: categories);
 
       if (type != null && type.isNotEmpty)
-        query = query.where('type', isEqualTo: type);
+        firebaseQuery = firebaseQuery.where('type', isEqualTo: type);
 
-      final snapshot = await query.get();
+      final snapshot = await firebaseQuery.get();
       return _mapSnapshot(snapshot);
     } catch (e) {
       // BaseRepository yakalayacağı için hatayı fırlatıyoruz

@@ -3,22 +3,25 @@ import '../models/player_model.dart';
 
 abstract class PlayerRemoteDataSource {
   Future<List<PlayerModel>> getPlayers(final bool isLimit);
+
   Future<List<PlayerModel>> getPlayersByIds(final List<String> playerIds);
+
+  Future<List<PlayerModel>> searchPlayers(final String query);
 }
 
 class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
   final FirebaseFirestore _firestore;
-  static const String _collectionPath = 'Player';
 
   const PlayerRemoteDataSourceImpl({required final FirebaseFirestore firestore})
       : _firestore = firestore;
 
+  CollectionReference<Map<String, dynamic>> get _collectionPath =>
+      _firestore.collection('Player');
+
   @override
   Future<List<PlayerModel>> getPlayers(final bool isLimit) async {
     try {
-      final collectionRef = _firestore.collection(_collectionPath);
-
-      Query<Map<String, dynamic>> query = collectionRef;
+      Query<Map<String, dynamic>> query = _collectionPath;
 
       if (isLimit)
         query = query.orderBy('_createdAt', descending: true).limit(20);
@@ -41,8 +44,7 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
     try {
       // Firestore 'whereIn' sorgusu en fazla 30 ID destekler.
       // Daha fazlası için chunk logic gerekir ama şimdilik standart kullanım:
-      final snapshot = await _firestore
-          .collection(_collectionPath)
+      final snapshot = await _collectionPath
           .where(FieldPath.documentId, whereIn: playerIds)
           .get();
 
@@ -52,6 +54,19 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
     } catch (e) {
       throw Exception('Belirtilen ID\'lerdeki oyuncular alınamadı: $e');
     }
+  }
+
+  @override
+  Future<List<PlayerModel>> searchPlayers(final String query) async {
+    if (query.isEmpty) return [];
+
+    // 'firstName' üzerinden alfabetik arama (Büyük/Küçük harf duyarlılığına dikkat!)
+    final snapshot = await _collectionPath
+        .where('firstName', isGreaterThanOrEqualTo: query)
+        .where('firstName', isLessThanOrEqualTo: '$query\uf8ff')
+        .get();
+
+    return _mapSnapshot(snapshot);
   }
 
   /// 🔥 KRİTİK METOT: Firestore dökümanlarını modele çevirirken

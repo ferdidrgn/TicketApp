@@ -3,8 +3,8 @@ import '../models/team_model.dart';
 
 abstract class TeamRemoteDataSource {
   Future<List<TeamModel>> getTeams(final bool isLimit);
-
   Future<List<TeamModel>> getTeamsByIds(final List<String> teamsIds);
+  Future<List<TeamModel>> searchTeams(final String query);
 }
 
 class TeamRemoteDataSourceImpl implements TeamRemoteDataSource {
@@ -12,13 +12,14 @@ class TeamRemoteDataSourceImpl implements TeamRemoteDataSource {
 
   TeamRemoteDataSourceImpl({required this.firestore});
 
+  CollectionReference<Map<String, dynamic>> get _teamCollection =>
+      firestore.collection('Team');
+
   @override
   Future<List<TeamModel>> getTeams(final bool isLimit) async {
     try {
-      Query<Map<String, dynamic>> query = firestore.collection('Team');
-
-      if (isLimit)
-        query = query.orderBy('_createdAt', descending: true).limit(20);
+      var query = _teamCollection.orderBy('_createdAt', descending: true);
+      if (isLimit) query = query.limit(20);
 
       final snapshot = await query.get();
       return _mapSnapshot(snapshot);
@@ -32,14 +33,27 @@ class TeamRemoteDataSourceImpl implements TeamRemoteDataSource {
     if (teamsIds.isEmpty) return [];
 
     try {
-      final snapshot = await firestore
-          .collection('Team')
+      final snapshot = await _teamCollection
           .where(FieldPath.documentId, whereIn: teamsIds)
           .get();
 
       return _mapSnapshot(snapshot);
     } catch (e) {
       throw Exception('Error fetching teams by IDs: $e');
+    }
+  }
+
+  @override
+  Future<List<TeamModel>> searchTeams(final String query) async {
+    try {
+      final firebaseQuery = _teamCollection
+          .where('name', isGreaterThanOrEqualTo: query)
+          .where('name', isLessThanOrEqualTo: '$query\uf8ff');
+
+      final snapshot = await firebaseQuery.get();
+      return _mapSnapshot(snapshot);
+    } catch (e) {
+      throw Exception('Error searching teams: $e');
     }
   }
 

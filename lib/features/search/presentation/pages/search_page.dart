@@ -41,16 +41,6 @@ class _Styles {
             ];
 }
 
-class _SearchLogic {
-  static int totalCount<T>(final List<T>? items, final String query,
-          final String Function(T) selector) =>
-      items
-          ?.where((final i) =>
-              query.isEmpty || selector(i).toLowerCase().contains(query))
-          .length ??
-      0;
-}
-
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -61,28 +51,29 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage>
     with GlobalScrollMixin, ResponsiveUtils {
   final _textController = TextEditingController();
-  final _scrollController = ScrollController();
 
-  @override
-  void onLoadMore() {
-    // Burada pagination logic'ini (ref.read...) çalıştırabilirsin
-  }
+  static const List<Color> _categoryColors = [
+    Color(0xFF6366F1),
+    Color(0xFFF59E0B),
+    Color(0xFFEC4899),
+    Color(0xFF10B981),
+    Color(0xFF3B82F6),
+  ];
 
   @override
   void dispose() {
     _textController.dispose();
-    _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void onLoadMore() {
+    // GlobalScrollMixin'den gelir, pagination yoksa boş bırakılabilir
   }
 
   void _onSeeAll(final int filterIndex) {
     ref.read(searchFilterProvider.notifier).setFilter(filterIndex);
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (_scrollController.hasClients)
-        _scrollController.animateTo(0,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut);
-    });
+    scrollToTop(); // GlobalScrollMixin içindeki gelişmiş metod
   }
 
   @override
@@ -90,50 +81,108 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final searchState = ref.watch(searchResultProvider);
     final selectedFilter = ref.watch(searchFilterProvider);
     final query = ref.watch(searchQueryProvider);
-
-    final crossAxisCount = context.responsive(mobile: 2, tablet: 3, desktop: 4);
+    final activeColor = _categoryColors[selectedFilter];
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
+
+          _ArtisticBackgroundGlow(color: activeColor),
+
           CustomAppBackground(
             child: SafeArea(
               child: CustomScrollView(
-                controller: _scrollController,
+                controller: scrollController, // Mixin'den gelen controller
                 slivers: [
                   SliverToBoxAdapter(child: _buildHeader(context)),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          vertical: 24,
-                          horizontal:
-                              context.responsive(mobile: 16.0, desktop: 120.0)),
-                      child: _FilterList(
-                          selectedIndex: selectedFilter,
-                          onSelected: (final i) => ref
-                              .read(searchFilterProvider.notifier)
-                              .setFilter(i)),
+
+                  // Sticky Filter List
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SliverFilterDelegate(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          color: context.colors.surface.withOpacity(0.6),
+                          child: _FilterList(
+                            selectedIndex: selectedFilter,
+                            onSelected: (final i) => ref
+                                .read(searchFilterProvider.notifier)
+                                .setFilter(i),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  if (searchState.isLoading && query.isEmpty)
-                    const SliverFillRemaining(
-                        child: Center(child: CircularProgressIndicator()))
-                  else if (_isResultEmpty(searchState))
-                    _buildEmptyState(context)
-                  else
-                    ..._buildContent(
-                        context, searchState, selectedFilter, crossAxisCount),
+
+                  // AsyncValue yönetimini Sliver'a uygun hale getirdik
+                  searchState.when(
+                    data: (final data) {
+                      if (_isResultEmpty(data)) {
+                        return _buildEmptyState(
+                            context, query); // SliverFillRemaining döner
+                      }
+                      // Birden fazla Sliver'ı liste olarak dönmek için SliverMainAxisGroup kullanılır
+                      return SliverMainAxisGroup(
+                        slivers: _buildContent(context, data, selectedFilter),
+                      );
+                    },
+                    loading: () => const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (final e, final _) => SliverToBoxAdapter(
+                      child: Center(child: Text(e.toString())),
+                    ),
+                  ),
+
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
-            ),
+            )
           ),
-          ScrollUpButton(scrollController: scrollController),
+
+          // Mixin üzerinden gelen ValueNotifier ile buton kontrolü
+          ScrollUpButton(
+              scrollController: scrollController,
+              visibleNotifier: showFloatingButton),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildContent(final BuildContext context,
+      final SearchResultState state, final int filter) {
+    if (filter == 0) {
+      return [
+        _buildSectionWithCount(
+            "Performansçılar",
+            state.players.length,
+            _PlayerHorizontalSection(
+                players: state.players, onSeeAll: () => _onSeeAll(2))),
+        _buildSectionWithCount(
+            "Etkinlikler",
+            state.shows.length,
+            Column(children: [
+              ShowMosaicGallery(shows: state.shows, direction: Axis.horizontal),
+              const SizedBox(height: 32),
+            ])),
+        _buildSectionWithCount(
+            "Mekanlar",
+            state.stages.length,
+            _HorizontalListSection(
+                title: "Mekanlar",
+                subtitle: "Şehrin Sahneleri",
+                items: state.stages,
+                isStage: true,
+                onSeeAll: () => _onSeeAll(3))),
+      ];
+    } else {
+      final crossAxisCount =
+          context.responsive(mobile: 2, tablet: 3, desktop: 5);
+      return _buildFilteredSection(context, state, filter, crossAxisCount);
+    }
   }
 
   bool _isResultEmpty(final SearchResultState state) =>
@@ -142,153 +191,145 @@ class _SearchPageState extends ConsumerState<SearchPage>
       state.stages.isEmpty &&
       state.teams.isEmpty;
 
-  Widget _buildHeader(final BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-          top: context.responsive(mobile: 20.0, desktop: 60.0), bottom: 20.0),
-      child: Column(
-        children: [
-          const TopHeader(title: "Tablolarımız"),
-          const SizedBox(height: 32),
-          Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: context.responsive(mobile: 20.0, desktop: 120.0)),
-            child: GlassSearchBar(
-                controller: _textController,
-                onChanged: (final v) =>
-                    ref.read(searchQueryProvider.notifier).update(v)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildHeader(final BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 40, bottom: 10),
+        child: Column(
+          children: [
+            const TopHeader(title: "Sanat Galerisi"),
+            const SizedBox(height: 30),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: context.responsive(mobile: 20.0, desktop: 150.0)),
+              child: GlassSearchBar(
+                  controller: _textController,
+                  onChanged: (final v) =>
+                      ref.read(searchQueryProvider.notifier).update(v)),
+            ),
+          ],
+        ),
+      );
 
-  // --- CONTENT BUILDERS (Aynı kalabilir) ---
-  List<Widget> _buildContent(
-      final BuildContext context,
-      final SearchResultState state,
-      final int filter,
-      final int crossAxisCount) {
-    if (filter == 0) {
-      return [
-        if (state.players.isNotEmpty)
-          SliverToBoxAdapter(
-              child: _PlayerHorizontalSection(
-                  players: state.players, onSeeAll: () => _onSeeAll(2))),
-        if (state.shows.isNotEmpty)
-          SliverToBoxAdapter(
-              child: Column(
-            children: [
-              Padding(
-                  padding: context.paddingHorizontal,
-                  child: SectionHeader(
-                      title: "Etkinlikler Vitrini",
-                      subtitle: "Akışta Kal",
-                      onTap: () => _onSeeAll(1))),
-              ShowMosaicGallery(shows: state.shows, direction: Axis.horizontal),
-              const SizedBox(height: 32),
-            ],
-          )),
-        if (state.stages.isNotEmpty)
-          SliverToBoxAdapter(
-              child: _HorizontalListSection(
-                  title: "Mekanlar",
-                  subtitle: "Atmosfer",
-                  items: state.stages,
-                  isStage: true,
-                  onSeeAll: () => _onSeeAll(3))),
-        if (state.teams.isNotEmpty)
-          SliverToBoxAdapter(
-              child: _HorizontalListSection(
-                  title: "Ekipler",
-                  subtitle: "Mutfak",
-                  items: state.teams,
-                  isStage: false,
-                  onSeeAll: () => _onSeeAll(4))),
-      ];
-    } else {
-      return _buildFilteredSection(context, state, filter, crossAxisCount);
-    }
+  Widget _buildSectionWithCount(
+      final String title, final int count, final Widget child) {
+    if (count == 0) return const SliverToBoxAdapter(child: SizedBox.shrink());
+    return SliverToBoxAdapter(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Row(children: [
+            Text(title,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
+              child: Text(count.toString(),
+                  style: const TextStyle(fontSize: 12, color: Colors.blue)),
+            )
+          ]),
+        ),
+        child,
+      ]),
+    );
   }
 
   List<Widget> _buildFilteredSection(final BuildContext context,
       final SearchResultState d, final int filter, final int crossAxisCount) {
-    final gridSpacing = context.gridSpacing;
     switch (filter) {
-      case 1: // Shows
+      case 1:
         return [
           SliverPadding(
-            padding: context.paddingHorizontal.copyWith(bottom: 20),
-            sliver: d.shows.isEmpty
-                ? SliverToBoxAdapter(
-                    child:
-                        _buildEmptyState(context, msg: "Etkinlik bulunamadı"))
-                : ShowMosaicGallery(shows: d.shows, direction: Axis.vertical),
-          )
+              padding: context.paddingHorizontal,
+              sliver: d.shows.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: Center(child: Text("Oyun bulunamadı")))
+                  : ShowMosaicGallery(shows: d.shows, direction: Axis.vertical))
         ];
-      case 2: // Players (Oyuncular)
+      case 2:
         return [
           SliverPadding(
-            // İçeriği yanlardan daraltıp kartları büyüterek daha şık bir görünüm sağlıyoruz
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsive(mobile: 16.0, desktop: 100.0),
-              vertical: 20,
-            ),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  // Masaüstünde 6 yerine 5 veya 4 yaparak kartları büyütüyoruz
-                  crossAxisCount:
-                      context.responsive(mobile: 2, tablet: 4, desktop: 5),
-                  mainAxisSpacing: 32, // Dikey boşluk artırıldı
-                  crossAxisSpacing: 24, // Yatay boşluk artırıldı
-                  childAspectRatio: 0.65),
-              delegate: SliverChildBuilderDelegate(
-                (final ctx, final i) => PlayerHeroCard(player: d.players[i]),
-                childCount: d.players.length,
-              ),
-            ),
-          )
+              padding: const EdgeInsets.all(16),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.7),
+                delegate: SliverChildBuilderDelegate(
+                    (final ctx, final i) =>
+                        PlayerHeroCard(player: d.players[i]),
+                    childCount: d.players.length),
+              ))
         ];
-      case 3: // Stages
+      case 3:
         return [
-          _GridHelpers.buildGridSliver(
-            context,
-            items: d.stages,
-            crossAxisCount: crossAxisCount,
-            ratio: 1.4,
-            itemBuilder: (final ctx, final item) =>
-                _GridCards.verticalLarge(ctx, item as Stage, true),
-          )
+          _GridHelpers.buildGridSliver(context,
+              items: d.stages,
+              crossAxisCount: crossAxisCount,
+              ratio: 1.2,
+              itemBuilder: (final ctx, final item) =>
+                  _GridCards.verticalLarge(ctx, item as Stage, true))
         ];
-      case 4: // Teams
+      case 4:
         return [
-          _GridHelpers.buildGridSliver(
-            context,
-            items: d.teams,
-            crossAxisCount: crossAxisCount,
-            ratio: 1.4,
-            itemBuilder: (final ctx, final item) =>
-                _GridCards.verticalLarge(ctx, item as Team, false),
-          )
+          _GridHelpers.buildGridSliver(context,
+              items: d.teams,
+              crossAxisCount: crossAxisCount,
+              ratio: 1.2,
+              itemBuilder: (final ctx, final item) =>
+                  _GridCards.verticalLarge(ctx, item as Team, false))
         ];
       default:
         return [];
     }
   }
 
-  Widget _buildEmptyState(final BuildContext context, {final String? msg}) =>
+  Widget _buildEmptyState(final BuildContext context, final String query) =>
       SliverFillRemaining(
         hasScrollBody: false,
         child: Center(
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.search_off_rounded,
-              size: 80, color: context.colors.onSurface.withOpacity(0.2)),
-          const SizedBox(height: 16),
-          Text(msg ?? "Sonuç bulunamadı.",
-              style:
-                  TextStyle(color: context.colors.onSurface.withOpacity(0.5))),
-        ])),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.search_off_rounded, size: 100, color: Colors.grey),
+            const SizedBox(height: 20),
+            Text("'$query' ile ilgili bir şey bulamadık.",
+                style: context.textTheme.titleMedium),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () {
+                _textController.clear();
+                ref.read(searchQueryProvider.notifier).update("");
+              },
+              child: const Text("Aramayı Temizle"),
+            )
+          ]),
+        ),
+      );
+}
+
+// ARKA PLAN EFEKTLERİ VE YARDIMCI WIDGETLAR (Sınıf Dışında Tanımlanabilir)
+
+class _ArtisticBackgroundGlow extends StatelessWidget {
+  final Color color;
+
+  const _ArtisticBackgroundGlow({required this.color});
+
+  @override
+  Widget build(final BuildContext context) => AnimatedContainer(
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOutCubic,
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0.8, -0.5),
+            radius: 1.2,
+            colors: [
+              color.withOpacity(0.12),
+              color.withOpacity(0.04),
+              Colors.transparent,
+            ],
+          ),
+        ),
       );
 }
 
@@ -347,6 +388,32 @@ class GlassSearchBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+
+  _SliverFilterDelegate({required this.child});
+
+  @override
+  double get minExtent => 90;
+
+  @override
+  double get maxExtent => 90;
+
+  @override
+  Widget build(final BuildContext context, final double shrinkOffset,
+      final bool overlapsContent) {
+    return ClipRect(
+      child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), child: child),
+    );
+  }
+
+  @override
+  bool shouldRebuild(
+          covariant final SliverPersistentHeaderDelegate oldDelegate) =>
+      false;
 }
 
 class _GridHelpers {

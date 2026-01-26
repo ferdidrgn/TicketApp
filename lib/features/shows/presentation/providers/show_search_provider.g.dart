@@ -33,7 +33,7 @@ final class ShowSearchProvider
   ShowSearch create() => ShowSearch();
 }
 
-String _$showSearchHash() => r'8367593f39e9dc385d6d10a17f4705d4a75e247b';
+String _$showSearchHash() => r'5e75b270340de9a9951037f73f1aa5502bc5fe13';
 
 abstract class _$ShowSearch extends $AsyncNotifier<List<Show>> {
   FutureOr<List<Show>> build();

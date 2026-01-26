@@ -33,4 +33,14 @@ class PlayerRepositoryImpl extends BaseRepository implements PlayerRepository {
             await remoteDataSource.getPlayersByIds(playersIds);
         return models.map((final model) => model.toEntity()).toList();
       });
+
+  @override
+  Future<Either<Failure, List<Player>>> searchPlayers(
+          final String query) async =>
+      execute(() async {
+        if (query.isEmpty) return <Player>[];
+        final List<PlayerModel> models =
+            await remoteDataSource.searchPlayers(query);
+        return models.map((final model) => model.toEntity()).toList();
+      });
 }
