@@ -169,7 +169,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
                 ],
               ),
 
-              GlassmorphismBackButton(),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: GlassmorphismBackButton(),
+              ),
               // Yukarı Kaydır Butonu
               ScrollUpButton(
                   scrollController: scrollController,
