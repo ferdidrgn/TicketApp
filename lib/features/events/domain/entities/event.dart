@@ -2,8 +2,7 @@ import 'package:equatable/equatable.dart';
 
 class Event extends Equatable {
   final String id;
-  final String stageId;
-  final String showId;
+  final String stageId, showId;
   final String date;
   final String price;
   final Map<String, dynamic> seats;

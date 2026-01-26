@@ -15,8 +15,7 @@ class User extends Equatable {
   @JsonKey(name: '_updatedAt')
   final String updatedAt;
 
-  final String firstName;
-  final String lastName;
+  final String firstName, lastName;
   final String imageUrl;
   final String phoneNumber;
   final String eMail;

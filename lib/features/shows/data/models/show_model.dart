@@ -2,8 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ShowModel {
   final String? id;
-  final String? createdAt;
-  final String? updatedAt;
+  final String? createdAt, updatedAt;
   final String? imageUrl;
   final String? name;
   final String? description;

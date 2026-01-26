@@ -2,16 +2,12 @@ import 'package:equatable/equatable.dart';
 
 class Ticket extends Equatable {
   final String id;
-  final String createdAt;
-  final String updatedAt;
+  final String createdAt, updatedAt;
   final String customerId;
-  final String showId;
-  final String stageId;
-  final String eventId;
-  final String orderMethod;
-  final String orderPrice;
+  final String showId, stageId, eventId;
+  final String orderPrice, orderMethod;
   final List<String> buySeats;
-  final bool isPast;
+  final bool? isPast;
 
   const Ticket({
     required this.id,

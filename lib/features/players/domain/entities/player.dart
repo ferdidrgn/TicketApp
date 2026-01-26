@@ -1,11 +1,9 @@
 import 'package:equatable/equatable.dart';
 
 class Player extends Equatable {
-  final String createdAt;
-  final String updatedAt;
+  final String createdAt, updatedAt;
   final String id;
-  final String firstName;
-  final String lastName;
+  final String firstName, lastName;
   final String bio;
   final String imageUrl;
   final List<String> nowShowsId;

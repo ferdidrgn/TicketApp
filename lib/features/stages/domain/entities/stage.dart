@@ -2,16 +2,14 @@ import 'package:equatable/equatable.dart';
 
 class Stage extends Equatable {
   final String id;
+  final String createdAt, updatedAt;
   final String name;
   final String imageUrl;
   final String capacity;
   final String description;
   final String communication;
   final String address;
-  final double locationLat;
-  final double locationLng;
-  final String createdAt;
-  final String updatedAt;
+  final double locationLat, locationLng;
   final List<String> showsId;
 
   const Stage({

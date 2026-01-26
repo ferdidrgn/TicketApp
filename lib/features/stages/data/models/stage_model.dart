@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StageModel {
+  final String? createdAt, updatedAt;
   final String? id;
   final String? name;
   final String? imageUrl;
@@ -8,10 +9,7 @@ class StageModel {
   final String? description;
   final String? communication;
   final String? address;
-  final double? locationLat;
-  final double? locationLng;
-  final String? createdAt;
-  final String? updatedAt;
+  final double? locationLat, locationLng;
   final List<String>? showsId;
 
   const StageModel({

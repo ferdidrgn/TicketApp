@@ -2,11 +2,9 @@ import 'package:equatable/equatable.dart';
 
 class Campaign extends Equatable {
   final String id;
-  final String createdAt;
-  final String updatedAt;
-  final String endDate;
+  final String createdAt, updatedAt;
+  final String startDate, endDate;
   final String imageUrl;
-  final String startDate;
   final String title;
   final String url;
 

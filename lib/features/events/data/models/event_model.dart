@@ -2,8 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EventModel {
   final String? id;
-  final String? stageId;
-  final String? showId;
+  final String? stageId, showId;
   final String? date;
   final String? price;
   final Map<String, dynamic>? seats;

@@ -2,8 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TeamModel {
   final String? id;
-  final String? createdAt;
-  final String? updatedAt;
+  final String? createdAt, updatedAt;
   final String? name;
   final String? description;
   final String? imageUrl;
