@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-import '../../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../common/extentions/app_context_ui_extension.dart';
 
 // Ambient light effect in the background
 class AmbientLightEffect extends StatelessWidget {

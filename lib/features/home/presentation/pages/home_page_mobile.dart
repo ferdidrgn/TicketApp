@@ -20,7 +20,7 @@ import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../widgets/mobile/category_grid.dart';
-import '../widgets/mobile/decorative_elements.dart';
+import '../../../../core/util/decorative_elements.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
 import '../widgets/mobile/show_collage.dart';
 import '../widgets/mobile/stage_carousel.dart';
