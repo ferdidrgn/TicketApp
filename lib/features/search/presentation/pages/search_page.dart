@@ -51,55 +51,80 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final activeColor = _SearchStyles.filterPalettes[selectedFilter][0];
 
     return Scaffold(
-      backgroundColor: context.colors.surface,
       extendBodyBehindAppBar: true,
       body: CustomAppBackground(
         ambientColor: activeColor,
         particleColor: activeColor.withOpacity(0.1),
-        child: CustomScrollView(
-          controller: scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // 1. Üst Boşluk ve Header
-            const SliverToBoxAdapter(child: SizedBox(height: 60)),
-            SliverToBoxAdapter(child: _buildHeader(context)),
-
-            // 2. Sticky Glass Tabs (Garantili Yükseklik)
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _SliverFilterDelegate(
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                    child: Container(
-                      color: context.colors.surface.withOpacity(0.8),
-                      alignment: Alignment.center,
-                      child: _buildFilterTabs(selectedFilter),
+        child: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: CustomScrollView(
+                controller: scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // HEADER
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      child: _buildPremiumHeader(context),
                     ),
                   ),
-                ),
+
+                  // STICKY FILTER TABS
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SliverFilterDelegate(
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                          child: Container(
+                            color: context.colors.surface.withOpacity(0.7),
+                            alignment: Alignment.center,
+                            child: _buildFilterTabs(selectedFilter),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // CONTENT
+                  searchState.when(
+                    data: (data) {
+                      // Eğer filtre 1 (Etkinlikler) seçiliyse, dikey mozaik doğrudan Sliver olarak döner.
+                      if (selectedFilter == 1) {
+                        return SliverPadding(
+                          padding: const EdgeInsets.all(16),
+                          sliver: ShowMosaicGallery(shows: data.shows, direction: Axis.vertical),
+                        );
+                      }
+
+                      // Diğer durumlar (Tümü veya Oyuncular/Mekanlar/Ekipler)
+                      final content = _buildContent(context, data, selectedFilter);
+                      return SliverPadding(
+                        padding: const EdgeInsets.only(top: 20),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            ...content,
+                            const SizedBox(height: 120),
+                          ]),
+                        ),
+                      );
+                    },
+                    loading: () => const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator.adaptive()),
+                    ),
+                    error: (e, _) => SliverToBoxAdapter(
+                      child: Center(child: Text("Hata: $e")),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            // 3. İçerik Akışı
-            searchState.when(
-              data: (final data) {
-                final content = _buildContent(context, data, selectedFilter);
-                if (content.isEmpty) return _buildEmptyState(context, query);
-
-                return SliverList(
-                  delegate: SliverChildListDelegate([
-                    ...content,
-                    const SizedBox(height: 100),
-                  ]),
-                );
-              },
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (final e, final stack) => SliverToBoxAdapter(
-                child: Center(child: Text("Hata: $e")),
-              ),
+            ScrollUpButton(
+              scrollController: scrollController,
+              visibleNotifier: showFloatingButton,
             ),
           ],
         ),
@@ -107,105 +132,225 @@ class _SearchPageState extends ConsumerState<SearchPage>
     );
   }
 
-  // --- Yardımcı Metotlar ---
-
-  Widget _buildHeader(final BuildContext context) => Column(
-    children: [
-      const TopHeader(title: "Sanat Galerisi"),
-      const SizedBox(height: 25),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: GlassSearchBar(
+  Widget _buildPremiumHeader(BuildContext context) {
+    return Column(
+      children: [
+        const TopHeader(title: "Keşfet"),
+        const SizedBox(height: 20),
+        ModernSearchBar(
           controller: _textController,
-          onChanged: (final v) => ref.read(searchQueryProvider.notifier).update(v),
+          onChanged: (v) => ref.read(searchQueryProvider.notifier).update(v),
         ),
-      ),
-      const SizedBox(height: 10),
-    ],
-  );
+      ],
+    );
+  }
 
-  Widget _buildFilterTabs(final int selectedIndex) {
+  Widget _buildFilterTabs(int selectedIndex) {
     const labels = ["Tümü", "Etkinlikler", "Oyuncular", "Mekanlar", "Ekipler"];
     return ListView.builder(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: labels.length,
-      itemBuilder: (final context, final i) => ArtisticBrushChip(
+      itemBuilder: (context, i) => ArtisticBrushChip(
         text: labels[i],
         isSelected: selectedIndex == i,
         colors: _SearchStyles.filterPalettes[i],
-        onTap: () => ref.read(searchFilterProvider.notifier).setFilter(i),
+        onTap: () => _onSeeAll(i),
       ),
     );
   }
 
-  List<Widget> _buildContent(final BuildContext context, final SearchResultState state, final int filter) {
-    List<Widget> list = [];
-
+  List<Widget> _buildContent(BuildContext context, SearchResultState state, int filter) {
     if (filter == 0) {
-      if (state.players.isNotEmpty) {
-        list.add(_PlayerHorizontalSection(players: state.players, onSeeAll: () => _onSeeAll(2)));
-      }
-      if (state.shows.isNotEmpty) {
-        list.add(Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            children: [
-              SectionHeader(title: "Etkinlikler", subtitle: "Öne Çıkanlar", onTap: () => _onSeeAll(1)),
-              const SizedBox(height: 15),
-              ShowMosaicGallery(shows: state.shows, direction: Axis.horizontal),
-            ],
+      return [
+        // ETKİNLİKLER (YATAY) - 10 ADET SINIRI
+        if (state.shows.isNotEmpty) ...[
+          SectionHeader(title: "Etkinlikler", subtitle: "Sanatın Akışı", onTap: () => _onSeeAll(1)),
+          const SizedBox(height: 12),
+          ShowMosaicGallery(shows: state.shows.take(10).toList(), direction: Axis.horizontal),
+          const SizedBox(height: 30),
+        ],
+
+        // OYUNCULAR (YATAY) - 10 ADET SINIRI
+        if (state.players.isNotEmpty) ...[
+          SectionHeader(title: "Oyuncular", subtitle: "Sahne Yıldızları", onTap: () => _onSeeAll(2)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: state.players.take(10).length,
+              itemBuilder: (context, i) => Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SizedBox(width: 120, child: PlayerHeroCard(player: state.players[i])),
+              ),
+            ),
           ),
-        ));
-      }
-      if (state.stages.isNotEmpty) {
-        list.add(_HorizontalListSection(title: "Mekanlar", subtitle: 'Sanatsal', items: state.stages, isStage: true, onSeeAll: () => _onSeeAll(3)));
-      }
-    } else {
-      list.add(_buildFilteredGrid(context, state, filter));
+          const SizedBox(height: 30),
+        ],
+
+        // MEKANLAR (YATAY)
+        if (state.stages.isNotEmpty)
+          _HorizontalSection(title: "Mekanlar", items: state.stages.take(10).toList(), isStage: true, onSeeAll: () => _onSeeAll(3)),
+      ];
     }
-    return list;
+
+    // Diğer filtreler (Oyuncular, Mekanlar, Ekipler) için Grid Görünümü
+    return [_buildCommonGrid(context, state, filter)];
   }
 
-  Widget _buildFilteredGrid(final BuildContext context, final SearchResultState d, final int filter) {
-    // GridView'ı Column içine alıp shrinkWrap: true yaparak SliverList içinde çalıştırıyoruz
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 15,
-          crossAxisSpacing: 15,
-          childAspectRatio: 0.75,
+  Widget _buildCommonGrid(BuildContext context, SearchResultState d, int filter) {
+    final items = filter == 2 ? d.players : (filter == 3 ? d.stages : d.teams);
+    final crossAxisCount = context.responsive(mobile: 3, tablet: 5, desktop: 6);
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: filter == 2 ? 0.65 : 1.0,
+      ),
+      itemCount: items.length,
+      itemBuilder: (context, i) {
+        if (filter == 2) return PlayerHeroCard(player: items[i] as Player);
+        return _GridCards.verticalLarge(context, items[i], filter == 3);
+      },
+    );
+  }
+}
+
+// --- COMPONENTLER AYNI KALDI (StatusBar ve Tasarım düzeltmeleri dahil) ---
+
+class ArtisticBrushChip extends StatelessWidget {
+  final String text;
+  final bool isSelected;
+  final List<Color> colors;
+  final VoidCallback onTap;
+
+  const ArtisticBrushChip({super.key, required this.text, required this.isSelected, required this.colors, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 22),
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(22),
+            bottomRight: Radius.circular(22),
+            topRight: Radius.circular(6),
+            bottomLeft: Radius.circular(6),
+          ),
+          gradient: isSelected ? LinearGradient(colors: colors) : null,
+          color: isSelected ? null : context.colors.surface.withOpacity(0.5),
+          border: Border.all(color: isSelected ? Colors.transparent : context.colors.onSurface.withOpacity(0.1)),
+          boxShadow: isSelected ? [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 8)] : [],
         ),
-        itemCount: filter == 1 ? d.shows.length : (filter == 2 ? d.players.length : (filter == 3 ? d.stages.length : d.teams.length)),
-        itemBuilder: (final context, final i) {
-          if (filter == 2) return PlayerHeroCard(player: d.players[i]);
-          final item = filter == 1 ? d.shows[i] : (filter == 3 ? d.stages[i] : d.teams[i]);
-          return _GridCards.verticalLarge(context, item, filter == 3);
-        },
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: isSelected ? Colors.white : context.colors.onSurface.withOpacity(0.7),
+              fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildEmptyState(final BuildContext context, final String query) =>
-      SliverFillRemaining(
-        hasScrollBody: false,
-        child: Center(
-          child: Text("'$query' bulunamadı."),
+class ModernSearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final Function(String) onChanged;
+
+  const ModernSearchBar({super.key, required this.controller, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.primary.withOpacity(0.3), width: 1.2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: TextField(
+            controller: controller,
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              hintText: 'Sanat eserini keşfet...',
+              prefixIcon: Icon(Icons.auto_awesome, color: context.colors.primary),
+              filled: true,
+              fillColor: context.colors.surface.withOpacity(0.6),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+            ),
+          ),
         ),
-      );
+      ),
+    );
+  }
+}
+
+class _HorizontalSection extends StatelessWidget {
+  final String title;
+  final List<dynamic> items;
+  final bool isStage;
+  final VoidCallback onSeeAll;
+
+  const _HorizontalSection({required this.title, required this.items, required this.isStage, required this.onSeeAll});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SectionHeader(title: title, subtitle: "Keşfe Başla", onTap: onSeeAll),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 140,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: items.length,
+            itemBuilder: (context, i) => Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _GridCards.horizontalCard(context, items[i], isStage, width: 260),
+            ),
+          ),
+        ),
+        const SizedBox(height: 30),
+      ],
+    );
+  }
+}
+
+class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  _SliverFilterDelegate({required this.child});
+  @override double get minExtent => 65;
+  @override double get maxExtent => 65;
+  @override Widget build(ctx, offset, overlaps) => child;
+  @override bool shouldRebuild(old) => true;
 }
 
 class _SearchStyles {
   static const List<List<Color>> filterPalettes = [
-    [Color(0xFF6366F1), Color(0xFF8B5CF6)], // Tümü
-    [Color(0xFFF59E0B), Color(0xFFD97706)], // Etkinlikler
-    [Color(0xFFEC4899), Color(0xFFBE185D)], // Oyuncular
-    [Color(0xFF10B981), Color(0xFF047857)], // Mekanlar
-    [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Ekipler
+    [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+    [Color(0xFFF59E0B), Color(0xFFD97706)],
+    [Color(0xFFEC4899), Color(0xFFBE185D)],
+    [Color(0xFF10B981), Color(0xFF047857)],
+    [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
   ];
 }
 
@@ -232,80 +377,25 @@ class GlassSearchBar extends StatelessWidget {
             controller: controller,
             onChanged: onChanged,
             decoration: InputDecoration(
-              hintText: 'Sahneyi keşfet...',
-              prefixIcon: Icon(Icons.search, color: context.colors.primary),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+              hintText: 'Sanatı keşfet...',
+              prefixIcon: Icon(Icons.auto_awesome,
+                  color: context.colors.primary, size: 20),
+              filled: true,
+              fillColor: context.colors.surface.withOpacity(0.9),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                    color: context.colors.primary.withOpacity(0.15), width: 1),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                    color: context.colors.primary,
+                    width: 1.5), // Fokus olduğunda netleşen border
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class ArtisticBrushChip extends StatelessWidget {
-  final String text;
-  final bool isSelected;
-  final List<Color> colors;
-  final VoidCallback onTap;
-
-  const ArtisticBrushChip(
-      {super.key,
-      required this.text,
-      required this.isSelected,
-      required this.colors,
-      required this.onTap});
-
-  @override
-  Widget build(final BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 350),
-        padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
-        margin: const EdgeInsets.symmetric(horizontal: 5),
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(26),
-              bottomRight: Radius.circular(26),
-              topRight: Radius.circular(10),
-              bottomLeft: Radius.circular(10)),
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: colors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight)
-              : null,
-          color: isSelected ? null : context.colors.surface.withOpacity(0.5),
-          border: Border.all(
-              color: isSelected
-                  ? colors[0].withOpacity(0.6)
-                  : context.colors.onSurface.withOpacity(0.08),
-              width: 1.8),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                      color: colors[0].withOpacity(0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5))
-                ]
-              : [],
-        ),
-        child: Stack(children: [
-          if (isSelected)
-            Positioned.fill(
-                child: CustomPaint(painter: _DropletPainter(colors: colors))),
-          Center(
-              child: Text(text,
-                  style: TextStyle(
-                      color: isSelected
-                          ? Colors.white
-                          : context.colors.onSurface.withOpacity(0.7),
-                      fontWeight:
-                          isSelected ? FontWeight.w800 : FontWeight.w600,
-                      letterSpacing: 0.5))),
-        ]),
       ),
     );
   }
@@ -333,24 +423,6 @@ class _DropletPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant final CustomPainter old) => false;
-}
-
-class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-
-  _SliverFilterDelegate({required this.child});
-
-  @override
-  double get minExtent => 80;
-
-  @override
-  double get maxExtent => 80;
-
-  @override
-  Widget build(final BuildContext ctx, final double offset, final bool overlaps) => child;
-
-  @override
-  bool shouldRebuild(covariant final SliverPersistentHeaderDelegate old) => true;
 }
 
 class _GridCards {
@@ -404,7 +476,8 @@ class _GridCards {
     );
   }
 
-  static Widget horizontalCard(final BuildContext context, final dynamic item, final bool isStage,
+  static Widget horizontalCard(
+      final BuildContext context, final dynamic item, final bool isStage,
       {required final double width}) {
     return GestureDetector(
       onTap: () => isStage
