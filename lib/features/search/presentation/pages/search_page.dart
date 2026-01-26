@@ -77,6 +77,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
               // StatusBar ve tıklama sorunlarını çözen SafeArea
               CustomScrollView(
                 controller: scrollController,
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior
+                    .onDrag, // Kaydırınca klavyeyi kapat
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   // --- Arama ve Başlık Kısmı ---
@@ -114,17 +116,15 @@ class _SearchPageState extends ConsumerState<SearchPage>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.search_off,
-                                    size: 64,
+                                Icon(Icons.auto_awesome_motion_outlined,
+                                    size: 80,
                                     color: context.colors.primary
-                                        .withOpacity(0.5)),
+                                        .withOpacity(0.2)),
                                 const SizedBox(height: 16),
-                                // İŞTE BURADA QUERY'İ KULLANIYORUZ:
-                                Text(
-                                  context.l10n.searchEmptyState(query),
-                                  textAlign: TextAlign.center,
-                                  style: context.textTheme.bodyLarge,
-                                ),
+                                Text(context.l10n.searchEmptyState(query),
+                                    style: context.textTheme.titleMedium
+                                        ?.copyWith(
+                                        fontWeight: FontWeight.bold)),
                                 TextButton(
                                   onPressed: () {
                                     _textController.clear();
@@ -132,8 +132,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
                                         .read(searchQueryProvider.notifier)
                                         .update("");
                                   },
-                                  child:
-                                      Text(context.l10n.searchClearGallery),
+                                  child: Text(context.l10n.searchClearGallery),
                                 )
                               ],
                             ),
@@ -149,7 +148,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
                       // Diğer durumlar için SliverList içinde normal widget akışı
                       final content =
-                          _buildContent(context, data, selectedFilter);
+                      _buildContent(context, data, selectedFilter);
                       return SliverPadding(
                         padding: const EdgeInsets.only(top: 20),
                         sliver: SliverList(
@@ -329,10 +328,10 @@ class ArtisticBrushChip extends StatelessWidget {
 
   const ArtisticBrushChip(
       {super.key,
-      required this.text,
-      required this.isSelected,
-      required this.colors,
-      required this.onTap});
+        required this.text,
+        required this.isSelected,
+        required this.colors,
+        required this.onTap});
 
   @override
   Widget build(final BuildContext context) {
@@ -356,7 +355,13 @@ class ArtisticBrushChip extends StatelessWidget {
                   ? Colors.transparent
                   : context.colors.onSurface.withOpacity(0.1)),
           boxShadow: isSelected
-              ? [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 8)]
+              ? [
+            BoxShadow(
+              color: colors[0].withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ]
               : [],
         ),
         child: Center(
@@ -385,30 +390,41 @@ class ModernSearchBar extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-        decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: context.colors.primary.withOpacity(0.3), width: 1.2)),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              decoration: InputDecoration(
-                hintText: 'Sanat eserini keşfet...',
-                prefixIcon:
-                    Icon(Icons.auto_awesome, color: context.colors.primary),
-                filled: true,
-                fillColor: context.colors.surface.withOpacity(0.6),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15),
-              ),
-            ),
+    decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: context.colors.primary.withOpacity(0.2), width: 1.5)),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: TextField(
+          controller: controller,
+          onChanged: onChanged,
+          onSubmitted: (final value) => FocusScope.of(context).unfocus(),
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: context.l10n.searchHint,
+            prefixIcon: Icon(Icons.auto_awesome,
+                color: context.colors.primary, size: 20),
+            suffixIcon: controller.text.isNotEmpty
+                ? IconButton(
+              icon: const Icon(Icons.cancel_rounded, size: 20),
+              onPressed: () {
+                controller.clear();
+                onChanged("");
+              },
+            )
+                : null,
+            filled: true,
+            fillColor: context.colors.surface.withOpacity(0.6),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 15),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 // --- Yatay Liste Bölümü (Mekanlar/Ekipler için) ---
@@ -420,9 +436,9 @@ class _HorizontalSection extends StatelessWidget {
 
   const _HorizontalSection(
       {required this.title,
-      required this.items,
-      required this.isStage,
-      required this.onSeeAll});
+        required this.items,
+        required this.isStage,
+        required this.onSeeAll});
 
   @override
   Widget build(final BuildContext context) {
@@ -466,7 +482,7 @@ class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-          final BuildContext ctx, final double offset, final bool overlaps) =>
+      final BuildContext ctx, final double offset, final bool overlaps) =>
       child;
 
   @override
@@ -477,7 +493,7 @@ class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
 class _GridCards {
   // Dikey Kart (Filtreli Görünümler için)
   static Widget verticalLarge(
-          final BuildContext context, final dynamic item, final bool isStage) =>
+      final BuildContext context, final dynamic item, final bool isStage) =>
       GestureDetector(
         onTap: () => isStage
             ? NavigationHandler.goToStage(context, item.id, item.name)
@@ -503,13 +519,13 @@ class _GridCards {
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                  Colors.black.withOpacity(0.9),
-                  Colors.transparent
-                ],
+                              Colors.black.withOpacity(0.9),
+                              Colors.transparent
+                            ],
                             stops: const [
-                  0.0,
-                  0.6
-                ])))),
+                              0.0,
+                              0.6
+                            ])))),
             Positioned(
               bottom: 15,
               left: 15,
@@ -528,8 +544,8 @@ class _GridCards {
 
   // Yatay Kart (All sekmesi için)
   static Widget horizontalCard(
-          final BuildContext context, final dynamic item, final bool isStage,
-          {required final double width}) =>
+      final BuildContext context, final dynamic item, final bool isStage,
+      {required final double width}) =>
       GestureDetector(
         onTap: () => isStage
             ? NavigationHandler.goToStage(context, item.id, item.name)
@@ -554,7 +570,7 @@ class _GridCards {
             Expanded(
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: Text(item.name,
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
