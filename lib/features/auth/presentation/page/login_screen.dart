@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../providers/auth_mutation_provider.dart';
@@ -120,7 +119,8 @@ class LoginScreen extends ConsumerWidget {
                                 theme.colorScheme.primary,
                                 theme.colorScheme.secondary
                               ],
-                              onTap: () => context.push('/phone-login'),
+                              onTap: () =>
+                                  NavigationHandler.goToPhoneLogin(context),
                             ),
                           ],
 

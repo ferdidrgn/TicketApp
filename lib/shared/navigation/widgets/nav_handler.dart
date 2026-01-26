@@ -20,6 +20,12 @@ class NavigationHandler {
         '/login/?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
+  }static void goToPhoneLogin(final BuildContext context) {
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final String targetPath =
+        '/phone-login/?from=${Uri.encodeComponent(currentPath)}';
+
+    context.go(targetPath);
   }
 
   static void goToHome(final BuildContext context) => context.go('/');
