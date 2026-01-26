@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/common/extentions/app_context_ui_extension.dart';
 
-class TopHeader extends StatelessWidget {
+class TopGradientHeader extends StatelessWidget {
   final String title;
 
-  const TopHeader({super.key, required this.title});
+  const TopGradientHeader({super.key, required this.title});
 
   @override
   Widget build(final BuildContext context) => ShaderMask(

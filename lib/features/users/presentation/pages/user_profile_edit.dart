@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:ticketapp/shared/widgets/top_normal_header.dart';
+import '../../../../shared/widgets/top_header_with_back_button.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/button/custom_elevated_button.dart';
@@ -104,7 +104,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              TopNormalHeader(
+              TopHeaderWithBackButton(
                 title: 'Kimliğini Biçimlendir',
                 subtitle: 'Sanatçı profilini dünyaya tanıt...',
                 rightIcon: Icons.auto_fix_high_rounded,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
+import '../../../../shared/widgets/top_header_with_back_button.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
@@ -44,7 +44,7 @@ class _FavoritesPageState extends State<FavoritesPage>
           child: Column(
             children: [
               // Biletlerim sayfasıyla aynı sanatsal header
-              const TopNormalHeader(
+              const TopHeaderWithBackButton(
                 title: 'Koleksiyonum',
                 subtitle: 'Kalbinde yer eden tüm sahneler...',
                 rightIcon: Icons.favorite_rounded,

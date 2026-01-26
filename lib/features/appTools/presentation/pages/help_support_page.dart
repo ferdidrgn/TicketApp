@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
+import '../../../../shared/widgets/top_header_with_back_button.dart';
 
 class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
@@ -13,7 +13,7 @@ class HelpSupportPage extends StatelessWidget {
           child: SafeArea(
             child: Column(
               children: [
-                const TopNormalHeader(
+                const TopHeaderWithBackButton(
                   title: 'DANIŞMA MASASI',
                   subtitle: 'Serüveninde sana rehberlik edelim...',
                   rightIcon: Icons.support_agent_rounded,

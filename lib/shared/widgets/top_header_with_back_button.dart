@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import '../../core/common/extentions/app_context_ui_extension.dart';
 import 'button/back_button_glassmorphism.dart';
 
-class TopNormalHeader extends StatelessWidget {
+class TopHeaderWithBackButton extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData rightIcon;
   final bool showBackButton;
 
-  const TopNormalHeader({
+  const TopHeaderWithBackButton({
     super.key,
     required this.title,
     required this.subtitle,

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ticketapp/core/services/deeplink/deeplink_service.dart';
-import 'package:ticketapp/shared/widgets/top_normal_header.dart';
 import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
+import '../../../../shared/widgets/top_header_with_back_button.dart';
 
 class AppSettingsPage extends StatelessWidget {
   const AppSettingsPage({super.key});
@@ -32,7 +32,7 @@ class AppSettingsPage extends StatelessWidget {
           child: Column(
             children: [
               // 🎨 SANATSAL HEADER (Koleksiyon sayfanla aynı dilde)
-              const TopNormalHeader(
+              const TopHeaderWithBackButton(
                 title: 'ATÖLYE PANELİ',
                 subtitle: 'Serüvenin teknik detaylarını restore et...',
                 rightIcon: Icons.handyman_rounded,
