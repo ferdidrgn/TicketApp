@@ -82,13 +82,12 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       /// Route: /app/*
       StatefulShellRoute.indexedStack(
         builder: (final context, final state, final navigationShell) {
-          if (isWeb) {
+          if (isWeb)
             // WEB: Üst menü
             return WebTopNavigationBar(navigationShell: navigationShell);
-          } else {
+          else
             // MOBİL: Alt menü
             return MobileBottomNavBar(navigationShell: navigationShell);
-          }
         },
         branches: [
           /// TAB 1: ANA SAYFA
@@ -166,8 +165,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: ShowDetailPage(
-            showId: state.pathParameters['slugWithId']!.split('-').last,
-          ),
+              showId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
@@ -178,8 +176,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: PlayerDetailPage(
-            playerId: state.pathParameters['slugWithId']!.split('-').last,
-          ),
+              playerId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: curtainTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
@@ -190,8 +187,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: StageDetailPage(
-            stageId: state.pathParameters['slugWithId']!.split('-').last,
-          ),
+              stageId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
@@ -202,8 +198,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: TeamDetailsPage(
-            teamId: state.pathParameters['slugWithId']!.split('-').last,
-          ),
+              teamId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
@@ -244,8 +239,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: MyTicketPage(
-            userId: state.pathParameters['slugWithId']!.split('-').last,
-          ),
+              userId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: scrollSlideTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
@@ -256,8 +250,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: UserProfileEditScreen(
-            userId: state.pathParameters['slugWithId']!.split('-').last,
-          ),
+              userId: state.pathParameters['slugWithId']!.split('-').last),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
