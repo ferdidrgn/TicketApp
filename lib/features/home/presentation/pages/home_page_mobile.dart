@@ -205,7 +205,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             title: "Romeo & Juliet",
             subtitle: "%20 İndirim Fırsatı",
             imageUrl:
-                'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
+                'https://img.freepik.com/premium-vector/theatre2_1189973-28.jpg?semt=ais_hybrid&w=740&q=80',
           ),
           const SizedBox(height: 30),
           QuickActionsGrid(

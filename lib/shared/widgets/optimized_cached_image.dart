@@ -22,21 +22,29 @@ class OptimizedCachedImage extends StatelessWidget {
     this.errorBuilder,
   });
 
-  /// ✅ Provider Üretici (Precache işlemleri için)
+  /// ✅ Provider Üretici (SİLİNMEYEN, GELİŞMİŞ VERSİYON)
+  /// Bu metodu resimleri önceden yüklemek (precacheImage) için kullanabilirsin.
   static CachedNetworkImageProvider provider(
     final String imageUrl, {
     required final BuildContext context,
     final double? width,
     final double? height,
-  }) => CachedNetworkImageProvider(
+  }) {
+    return CachedNetworkImageProvider(
       imageUrl,
       maxWidth: _calculateCacheSize(context, width),
       maxHeight: _calculateCacheSize(context, height),
+      // Hata durumunda konsola basar
+      errorListener: (final e) => debugPrint("❌ Provider Hatası: $imageUrl"),
     );
+  }
 
   @override
   Widget build(final BuildContext context) {
-    // Eğer yuvarlak ise yarıçapı hesapla, değilse normal radius kullan
+    // URL Güvenlik Kontrolü
+    if (imageUrl.isEmpty || !imageUrl.startsWith('http'))
+      return _buildErrorWidget(context);
+
     final double effectiveRadius =
         isCircular ? (height ?? width ?? 50) / 2 : borderRadius;
 
@@ -47,12 +55,11 @@ class OptimizedCachedImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        // Animasyon Ayarları
-        fadeInDuration: const Duration(milliseconds: 300),
         fadeInCurve: Curves.easeOut,
+        fadeInDuration: const Duration(milliseconds: 300),
+        fadeOutDuration: const Duration(milliseconds: 300),
 
-        // Bellek Optimizasyonu (Çok Önemli!)
-        // Resmi ekranda göründüğü boyutta cache'ler, devasa resimleri küçültür.
+        // Bellek Optimizasyonu
         memCacheHeight: _calculateCacheSize(context, height),
         memCacheWidth: _calculateCacheSize(context, width),
 
@@ -60,44 +67,45 @@ class OptimizedCachedImage extends StatelessWidget {
         placeholder: (final context, final url) => ShimmerLoading(
           width: width ?? double.infinity,
           height: height ?? double.infinity,
-          borderRadius: effectiveRadius, // Shimmer da aynı şekli alsın
+          borderRadius: effectiveRadius,
           isCircular: isCircular,
         ),
 
-        // Hata Durumu (Eski kodunuzdaki tasarıma sadık kalındı)
+        // Hata Durumu
         errorWidget: errorBuilder ??
-            (final context, final url, final error) {
-              final isDarkMode =
-                  Theme.of(context).brightness == Brightness.dark;
-              return Container(
-                width: width,
-                height: height,
-                decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? Colors.grey[800]!.withOpacity(0.5)
-                      : Colors.grey[200]!.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(effectiveRadius),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.broken_image_outlined, // Veya photo_outlined
-                    color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
-                    size: (width != null && width! < 50) ? 20 : 24,
-                  ),
-                ),
-              );
-            },
+            (final context, final url, final error) =>
+                _buildErrorWidget(context),
       ),
     );
   }
 
-  /// Cache boyutunu hesaplayan yardımcı metot
+  /// 🛡️ Hata durumunda görünecek şık yer tutucu
+  Widget _buildErrorWidget(final BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final double effectiveRadius =
+        isCircular ? (height ?? width ?? 50) / 2 : borderRadius;
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+          color: isDarkMode ? Colors.grey[900] : Colors.grey[200],
+          borderRadius: BorderRadius.circular(effectiveRadius)),
+      child: Center(
+        child: Icon(
+          Icons.broken_image_outlined,
+          color: isDarkMode ? Colors.grey[700] : Colors.grey[400],
+          size: (width != null && width! < 50) ? 18 : 24,
+        ),
+      ),
+    );
+  }
+
+  /// Cache boyutunu hesaplayan yardımcı metot (Cihazın ekran kalitesine göre)
   static int? _calculateCacheSize(
       final BuildContext context, final double? size) {
-    if (size == null || size == double.infinity) return null;
-    // Cihazın piksel yoğunluğunu al (Retina ekranlar için x2, x3 gibi)
+    if (size == null || size == double.infinity || size <= 0) return null;
     final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-    // Biraz tolerans ekleyerek (cache kalitesi düşmesin diye) int'e çevir
     return (size * devicePixelRatio).round();
   }
 }
