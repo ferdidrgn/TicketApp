@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
@@ -26,8 +27,8 @@ class BasePageWrapper extends ConsumerStatefulWidget {
   final Widget child;
   final bool showBackButton;
   final bool showFab;
-  final bool isLoading; // Splash için
-  final bool isOverlayLoading; // Sayfa içi küçük loading için
+  final bool isLoading;
+  final bool isOverlayLoading;
   final String? loadingMessage;
   final PageLayoutConfig layoutConfig;
 
@@ -49,71 +50,82 @@ class BasePageWrapper extends ConsumerStatefulWidget {
 class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
     with GlobalScrollMixin {
   @override
-  Widget build(final BuildContext context) => SplashDataGuard(
+  Widget build(final BuildContext context) {
+    final isDark = context.isDarkMode;
+
+    // 1. SYSTEM UI YÖNETİMİ: Durum çubuğunu (status bar) sayfa stiline uydurur
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: Colors.transparent, // Navbar şeffaflığı
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
+      ),
+      child: SplashDataGuard(
         isLoading: widget.isLoading,
         loadingMessage: widget.loadingMessage,
         child: PopScope(
-          canPop: false, // Sistem geri tuşunu ele geçiriyoruz
+          canPop: false, // Telefonun geri tuşunu biz yöneteceğiz
           onPopInvokedWithResult: (final didPop, final result) {
             if (didPop) return;
-            // Senin akıllı geri dönme mantığın
             NavigationHandler.smartGoBack(context);
           },
           child: GestureDetector(
-            // 1. GLOBAL UNFOCUS: Boşluğa dokununca klavyeyi kapatır
+            // 2. GLOBAL UNFOCUS: Boşluğa dokununca klavyeyi kapatır
             onTap: () => FocusScope.of(context).unfocus(),
             child: Scaffold(
               extendBodyBehindAppBar: widget.layoutConfig.extendBody,
               body: CustomAppBackground(
                 backgroundColor: widget.layoutConfig.backgroundColor,
                 ambientColor: widget.layoutConfig.ambientColor,
-                child: Stack(
-                  children: [
-                    // 1. Ana İçerik
-                    // ScrollController'ı Mixin'den alıp her sayfaya enjekte ediyoruz
-                    Padding(
-                      padding: widget.layoutConfig.usePadding
-                          ? context
-                              .pagePadding // Extension'dan gelen responsive padding
-                          : EdgeInsets.zero,
-                      child: PrimaryScrollController(
-                        controller: scrollController,
-                        // Mixin'den gelen controller
-                        child: widget.child,
-                      ),
-                    ),
-
-                    // 2. Akıllı Geri Butonu (Sadece gerekliyse)
-                    if (widget.showBackButton &&
-                        NavigationHandler.canGoBack(context))
-                      Positioned(
-                        top: context.responsive(mobile: 50, desktop: 30),
-                        left: context.responsive(mobile: 16, desktop: 40),
-                        child: const GlassmorphismBackButton(),
+                child: SafeArea(
+                  // 🛡️ ASLA KALDIRILMAYAN GÜVENLİ ALAN
+                  child: Stack(
+                    children: [
+                      // 3. ANA İÇERİK
+                      Padding(
+                        padding: widget.layoutConfig.usePadding
+                            ? context.pagePadding
+                            : EdgeInsets.zero,
+                        child: PrimaryScrollController(
+                            controller: scrollController, child: widget.child),
                       ),
 
-                    // 3. Yukarı Çık Butonu (Mixin'den gelen showFloatingButton notifier ile)
-                    if (widget.showFab)
-                      ScrollUpButton(
-                          scrollController: scrollController,
-                          visibleNotifier: showFloatingButton),
+                      // 4. AKILLI GERİ BUTONU
+                      if (widget.showBackButton &&
+                          NavigationHandler.canGoBack(context))
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: const GlassmorphismBackButton(),
+                        ),
 
-                    //PROGRESSIVE (OVERLAY) LOADING: Sayfa içi şeffaf katman
-                    if (widget.isOverlayLoading)
-                      Container(
-                        color: Colors.black.withOpacity(0.4),
-                        child: const Center(
-                          child: CircularProgressIndicator.adaptive(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                Color(0xFFD4AF37)),
+                      // 5. YUKARI ÇIK BUTONU
+                      if (widget.showFab)
+                        ScrollUpButton(
+                            scrollController: scrollController,
+                            visibleNotifier: showFloatingButton),
+
+                      // 6. PROGRESSIVE (OVERLAY) LOADING
+                      if (widget.isOverlayLoading)
+                        Container(
+                          color: Colors.black.withOpacity(0.4),
+                          child: const Center(
+                            child: CircularProgressIndicator.adaptive(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFFD4AF37)),
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
