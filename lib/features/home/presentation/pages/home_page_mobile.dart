@@ -6,7 +6,6 @@ import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/decorative_elements.dart';
-import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -147,7 +146,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     final bool isLoggedIn,
     final User? currentUser,
   ) {
-    // CustomAppBackground artık BasePageWrapper içinde var, buradan sildik.
     return SingleChildScrollView(
       controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 100),
@@ -214,11 +212,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             onNotificationsTap: () => _navigateToPage(const AppSettingsPage()),
             onFavoritesTap: () => _navigateToPage(const FavoritesPage()),
             onTicketsTap: () {
-              if (isLoggedIn && currentUser != null) {
+              if (isLoggedIn && currentUser != null)
                 NavigationHandler.goToMyTickets(context, currentUser.uid);
-              } else {
+              else
                 NavigationHandler.goToLogin(context);
-              }
             },
             onCalendarTap: () {},
           ),
