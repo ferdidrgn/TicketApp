@@ -109,35 +109,33 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
 
   // --- Widget Oluşturucular (Sınıf İçinde Olmalı) ---
 
-  Widget _buildIntegratedSearchField(final BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-          horizontal: context.responsive(mobile: 20.0, desktop: 150.0)),
-      child: _CustomSearchVisualShell(
-        isDark: context.isDarkMode,
-        primaryColor: context.colors.primary,
-        child: TextField(
-          controller: _textController,
-          autofocus: true,
-          onChanged: (final v) =>
-              ref.read(searchQueryProvider.notifier).update(v),
-          onSubmitted: (final _) => FocusScope.of(context).unfocus(),
-          textInputAction: TextInputAction.search,
-          style: context.textTheme.bodyLarge
-              ?.copyWith(fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: "Sanatçını veya sahneni bul...",
-            hintStyle:
-                TextStyle(color: context.colors.onSurface.withOpacity(0.4)),
-            prefixIcon:
-                Icon(Icons.search_rounded, color: context.colors.primary),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 15),
+  Widget _buildIntegratedSearchField(final BuildContext context) => Padding(
+        padding: EdgeInsets.symmetric(
+            horizontal: context.responsive(mobile: 20.0, desktop: 150.0)),
+        child: _CustomSearchVisualShell(
+          isDark: context.isDarkMode,
+          primaryColor: context.colors.primary,
+          child: TextField(
+            controller: _textController,
+            autofocus: true,
+            onChanged: (final v) =>
+                ref.read(searchQueryProvider.notifier).update(v),
+            onSubmitted: (final _) => FocusScope.of(context).unfocus(),
+            textInputAction: TextInputAction.search,
+            style: context.textTheme.bodyLarge
+                ?.copyWith(fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              hintText: "Sanatçını veya sahneni bul...",
+              hintStyle:
+                  TextStyle(color: context.colors.onSurface.withOpacity(0.4)),
+              prefixIcon:
+                  Icon(Icons.search_rounded, color: context.colors.primary),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 
   Widget _buildFilterTabs(final int selectedIndex) {
     const labels = ["Tümü", "Etkinlikler", "Oyuncular", "Mekanlar", "Ekipler"];
@@ -162,7 +160,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
         data.stages.isEmpty &&
         data.teams.isEmpty;
 
-    if (isEmpty && query.isNotEmpty) {
+    if (isEmpty && query.isNotEmpty)
       return SliverFillRemaining(
         hasScrollBody: false,
         child: Center(
@@ -186,30 +184,26 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
           ),
         ),
       );
-    }
 
-    if (selectedFilter == 1) {
+    if (selectedFilter == 1)
       return SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver:
               ShowMosaicGallery(shows: data.shows, direction: Axis.vertical));
-    }
 
     final content = _buildContentList(context, data, selectedFilter);
     return SliverPadding(
       padding: const EdgeInsets.only(top: 20),
       sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          ...content,
-          const SizedBox(height: 120),
-        ]),
+        delegate:
+            SliverChildListDelegate([...content, const SizedBox(height: 120)]),
       ),
     );
   }
 
   List<Widget> _buildContentList(final BuildContext context,
       final SearchResultState state, final int filter) {
-    if (filter == 0) {
+    if (filter == 0)
       return [
         if (state.shows.isNotEmpty) ...[
           SectionHeader(
@@ -256,7 +250,7 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
               isStage: false,
               onSeeAll: () => _onSeeAll(4)),
       ];
-    }
+
     return [_buildCommonGrid(context, state, filter)];
   }
 
@@ -299,37 +293,35 @@ class _CustomSearchVisualShell extends StatelessWidget {
       {required this.child, required this.isDark, required this.primaryColor});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: primaryColor.withOpacity(0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.white.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: primaryColor.withOpacity(0.2)),
+  Widget build(final BuildContext context) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: primaryColor.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
-            child: child,
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.white.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: primaryColor.withOpacity(0.2)),
+              ),
+              child: child,
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class ArtisticBrushChip extends StatelessWidget {
@@ -346,47 +338,45 @@ class ArtisticBrushChip extends StatelessWidget {
       required this.onTap});
 
   @override
-  Widget build(final BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 22),
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(22),
-            bottomRight: Radius.circular(22),
-            topRight: Radius.circular(6),
-            bottomLeft: Radius.circular(6),
+  Widget build(final BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(22),
+              bottomRight: Radius.circular(22),
+              topRight: Radius.circular(6),
+              bottomLeft: Radius.circular(6),
+            ),
+            gradient: isSelected ? LinearGradient(colors: colors) : null,
+            color: isSelected ? null : context.colors.surface.withOpacity(0.5),
+            border: Border.all(
+                color: isSelected
+                    ? Colors.transparent
+                    : context.colors.onSurface.withOpacity(0.1)),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                        color: colors[0].withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4))
+                  ]
+                : [],
           ),
-          gradient: isSelected ? LinearGradient(colors: colors) : null,
-          color: isSelected ? null : context.colors.surface.withOpacity(0.5),
-          border: Border.all(
-              color: isSelected
-                  ? Colors.transparent
-                  : context.colors.onSurface.withOpacity(0.1)),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                      color: colors[0].withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4))
-                ]
-              : [],
+          child: Center(
+            child: Text(text,
+                style: TextStyle(
+                    color: isSelected
+                        ? Colors.white
+                        : context.colors.onSurface.withOpacity(0.7),
+                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                    fontSize: 14)),
+          ),
         ),
-        child: Center(
-          child: Text(text,
-              style: TextStyle(
-                  color: isSelected
-                      ? Colors.white
-                      : context.colors.onSurface.withOpacity(0.7),
-                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                  fontSize: 14)),
-        ),
-      ),
-    );
-  }
+      );
 }
 
 class _HorizontalSection extends StatelessWidget {
@@ -402,27 +392,25 @@ class _HorizontalSection extends StatelessWidget {
       required this.onSeeAll});
 
   @override
-  Widget build(final BuildContext context) {
-    return Column(
-      children: [
-        SectionHeader(title: title, subtitle: "Keşfe Başla", onTap: onSeeAll),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 140,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: items.length,
-            itemBuilder: (final context, final i) => Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: _GridCards.horizontalCard(context, items[i], isStage,
-                    width: 260)),
+  Widget build(final BuildContext context) => Column(
+        children: [
+          SectionHeader(title: title, subtitle: "Keşfe Başla", onTap: onSeeAll),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 140,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: items.length,
+              itemBuilder: (final context, final i) => Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: _GridCards.horizontalCard(context, items[i], isStage,
+                      width: 260)),
+            ),
           ),
-        ),
-        const SizedBox(height: 30),
-      ],
-    );
-  }
+          const SizedBox(height: 30),
+        ],
+      );
 }
 
 class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
