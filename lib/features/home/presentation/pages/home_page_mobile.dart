@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/settings/presentation/pages/app_settings.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/util/decorative_elements.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
-import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -20,7 +21,6 @@ import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../widgets/mobile/category_grid.dart';
-import '../../../../core/util/decorative_elements.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
 import '../widgets/mobile/show_collage.dart';
 import '../widgets/mobile/stage_carousel.dart';
@@ -80,13 +80,29 @@ class _HomePageState extends ConsumerState<HomePage> {
     final hasError =
         campaignState.hasError || showState.hasError || stageState.hasError;
 
-    return Scaffold(
-      extendBody: true,
-      extendBodyBehindAppBar: true,
-      backgroundColor: context.isDarkMode
-          ? const Color(0xFF0F0F0F)
-          : const Color(0xFFFAFAFA),
-      appBar: AppBar(
+    return BasePageWrapper(
+      showBackButton: false,
+      showFab: true,
+      appBar: _buildDynamicAppBar(),
+      isLoading: isLoading && (campaignState.value == null),
+      layoutConfig: PageBackgroundLayoutConfig(
+        ambientColor: context.colors.primary.withOpacity(0.05),
+        extendBody: true,
+      ),
+      child: hasError
+          ? _buildErrorWidget(context, ref)
+          : _buildActualContent(
+              context,
+              campaignState.value ?? [],
+              showState.value ?? [],
+              stageState.value ?? [],
+              isLoggedIn,
+              currentUser,
+            ),
+    );
+  }
+
+  PreferredSizeWidget _buildDynamicAppBar() => AppBar(
         backgroundColor: Colors.transparent,
         elevation: 5,
         toolbarHeight: _showSearchInAppBar ? 70 : 0,
@@ -106,7 +122,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   scale: _showSearchInAppBar ? 1 : 0.9,
                   curve: Curves.easeOutBack,
                   child: Material(
-                    color: Colors.transparent, // ÖNEMLİ: Transparent renk
+                    color: Colors.transparent,
                     child: InkWell(
                       onTap: _openSearch,
                       // Direkt burada tıklama olayı
@@ -121,21 +137,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
         ),
-      ),
-      body: isLoading
-          ? const FullPageShimmer()
-          : hasError
-              ? _buildErrorWidget(context, ref)
-              : _buildActualContent(
-                  context,
-                  campaignState.value ?? [],
-                  showState.value ?? [],
-                  stageState.value ?? [],
-                  isLoggedIn,
-                  currentUser,
-                ),
-    );
-  }
+      );
 
   Widget _buildActualContent(
     final BuildContext context,
@@ -145,161 +147,136 @@ class _HomePageState extends ConsumerState<HomePage> {
     final bool isLoggedIn,
     final User? currentUser,
   ) {
-    return CustomAppBackground(
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        padding: const EdgeInsets.symmetric(vertical: 50),
-        physics: const BouncingScrollPhysics(),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const HeroSection(), // Hero text
-
-              // Artistic Search Bar (ana sayfa) - Normal boyutta
-              CustomSearchbar(onTap: _openSearch),
-
-              const SizedBox(height: 20),
-
-              // Stories (Campaigns)
-              SectionHeader(
-                title: "Öne Çıkanlar",
-                subtitle: "Vitrin",
-                onTap: () => _navigateToPage(const CampaignShowcasePage()),
-              ),
-
-              StoryCircles(
-                campaigns: campaigns,
-                onStoryTap: (final index) =>
-                    _navigateToPage(CampaignShowcasePage(initialIndex: index)),
-              ),
-              const DividerWithAccent(),
-              const SizedBox(height: 30),
-
-              // Categories
-              SectionHeader(
-                title: "Kategoriler",
-                subtitle: "Sanatın Renkleri",
-                onTap: () {}, // TODO: Kategori sayfası
-              ),
-              const CategoryGrid(),
-              const DividerWithAccent(),
-              const SizedBox(height: 30),
-
-              // Discover Shows
-              SectionHeader(
-                title: "Keşfet",
-                subtitle: "Sana Özel Seçkiler",
-                onTap: () {}, // TODO: Kategori sayfası
-              ),
-
-              ShowCollage(
-                shows: shows,
-                onShowTap: (final showId) =>
-                    _navigateToPage(ShowDetailPage(showId: showId)),
-              ),
-              const DividerWithAccent(),
-              const SizedBox(height: 30),
-
-              // Venues
-              SectionHeader(
-                title: "Mekanlar",
-                subtitle: "Şehrin Sahneleri",
-                onTap: () {}, // TODO: Mekanlar sayfası
-              ),
-              StageCarousel(
-                stages: stages,
-                onStageTap: (final stageId) =>
-                    _navigateToPage(StageDetailPage(stageId: stageId)),
-              ),
-              const DividerWithAccent(),
-              const SizedBox(height: 30),
-
-              // Special offer
-              const TicketStubCard(
-                title: "Romeo & Juliet",
-                subtitle: "%20 İndirim Fırsatı",
-                imageUrl:
-                    'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
-              ),
-              const SizedBox(height: 30),
-
-              // Bottom extras
-              QuickActionsGrid(
-                onNotificationsTap: () =>
-                    _navigateToPage(const AppSettingsPage()),
-                onFavoritesTap: () => _navigateToPage(FavoritesPage()),
-                onTicketsTap: () {
-                  if (isLoggedIn && currentUser != null)
-                    NavigationHandler.goToMyTickets(context, currentUser.uid);
-                  else
-                    NavigationHandler.goToLogin(context);
-                },
-                onCalendarTap: () {
-                  // TODO: Etkinlik takvimi
-                },
-              ),
-              const SizedBox(height: 30),
-
-              const TrendingNowSection(),
-              const SizedBox(height: 30),
-
-              const NewsletterSubscribe(),
-              const SizedBox(height: 40),
-
-              const BottomQuote(),
-              const SizedBox(height: 20),
-            ],
+    // CustomAppBackground artık BasePageWrapper içinde var, buradan sildik.
+    return SingleChildScrollView(
+      controller: _scrollController,
+      padding: const EdgeInsets.only(bottom: 100),
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
+          const HeroSection(),
+          CustomSearchbar(onTap: _openSearch),
+          const SizedBox(height: 20),
+          SectionHeader(
+            title: "Öne Çıkanlar",
+            subtitle: "Vitrin",
+            onTap: () => _navigateToPage(const CampaignShowcasePage()),
           ),
-        ),
+          StoryCircles(
+            campaigns: campaigns,
+            onStoryTap: (final index) =>
+                _navigateToPage(CampaignShowcasePage(initialIndex: index)),
+          ),
+          const DividerWithAccent(),
+          const SizedBox(height: 30),
+          SectionHeader(
+            title: "Kategoriler",
+            subtitle: "Sanatın Renkleri",
+            onTap: () {},
+          ),
+          const CategoryGrid(),
+          const DividerWithAccent(),
+          const SizedBox(height: 30),
+          SectionHeader(
+            title: "Keşfet",
+            subtitle: "Sana Özel Seçkiler",
+            onTap: () {},
+          ),
+          ShowCollage(
+            shows: shows,
+            onShowTap: (final showId) =>
+                _navigateToPage(ShowDetailPage(showId: showId)),
+          ),
+          const DividerWithAccent(),
+          const SizedBox(height: 30),
+          SectionHeader(
+            title: "Mekanlar",
+            subtitle: "Şehrin Sahneleri",
+            onTap: () {},
+          ),
+          StageCarousel(
+            stages: stages,
+            onStageTap: (final stageId) =>
+                _navigateToPage(StageDetailPage(stageId: stageId)),
+          ),
+          const DividerWithAccent(),
+          const SizedBox(height: 30),
+          const TicketStubCard(
+            title: "Romeo & Juliet",
+            subtitle: "%20 İndirim Fırsatı",
+            imageUrl:
+                'https://images.unsplash.com/photo-1503095392269-2d609236f269?q=80&w=1000&auto=format&fit=crop',
+          ),
+          const SizedBox(height: 30),
+          QuickActionsGrid(
+            onNotificationsTap: () => _navigateToPage(const AppSettingsPage()),
+            onFavoritesTap: () => _navigateToPage(const FavoritesPage()),
+            onTicketsTap: () {
+              if (isLoggedIn && currentUser != null) {
+                NavigationHandler.goToMyTickets(context, currentUser.uid);
+              } else {
+                NavigationHandler.goToLogin(context);
+              }
+            },
+            onCalendarTap: () {},
+          ),
+          const SizedBox(height: 30),
+          const TrendingNowSection(),
+          const SizedBox(height: 30),
+          const NewsletterSubscribe(),
+          const SizedBox(height: 40),
+          const BottomQuote(),
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }
 
   Widget _buildErrorWidget(final BuildContext context, final WidgetRef ref) =>
-      Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Sanatsal bir ikon veya Lottie animasyonu buraya gelebilir
-            Icon(
-              Icons.theater_comedy_outlined,
-              size: 80,
-              color: context.isDarkMode ? Colors.grey[700] : Colors.grey[400],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              "Perdeler Henüz Açılmadı!",
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "İnternet bağlantını kontrol edip sahneyi tekrar canlandırabilirsin.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Tüm provider'ları refresh ederek tekrar yüklemeyi tetikler
-                ref.invalidate(campaignsProvider);
-                ref.invalidate(showsProvider);
-                ref.invalidate(stagesProvider);
-              },
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+      Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.theater_comedy_outlined,
+                size: 80,
+                color: context.colors.outline,
               ),
-              icon: const Icon(Icons.refresh),
-              label: const Text("Sahneyi Yenile"),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                "Perdeler Henüz Açılmadı!",
+                textAlign: TextAlign.center,
+                style: context.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "İnternet bağlantını kontrol edip sahneyi tekrar canlandırabilirsin.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.colors.onSurfaceVariant),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () {
+                  ref.invalidate(campaignsProvider);
+                  ref.invalidate(showsProvider);
+                  ref.invalidate(stagesProvider);
+                },
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.refresh),
+                label: const Text("Sahneyi Yenile"),
+              ),
+            ],
+          ),
         ),
       );
 }

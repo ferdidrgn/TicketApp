@@ -5,6 +5,7 @@ import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/button/fab_scroll_up.dart';
@@ -66,119 +67,114 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final query = ref.watch(searchQueryProvider);
     final activeColor = _SearchStyles.filterPalettes[selectedFilter][0];
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      body: SafeArea(
-        child: CustomAppBackground(
-          ambientColor: activeColor,
-          particleColor: activeColor.withOpacity(0.1),
-          child: Stack(
-            children: [
-              // StatusBar ve tıklama sorunlarını çözen SafeArea
-              CustomScrollView(
-                controller: scrollController,
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior
-                    .onDrag, // Kaydırınca klavyeyi kapat
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  // --- Arama ve Başlık Kısmı ---
-                  SliverToBoxAdapter(child: _buildPremiumHeader(context)),
+    return BasePageWrapper(
+      showBackButton: true,
+      showFab: true,
+      isLoading: searchState.isLoading,
+      // Provider'ın yüklenme durumuna bağlıyoruz
+      layoutConfig: PageBackgroundLayoutConfig(
+        ambientColor: activeColor, // Dinamik renk yönetimi
+        particleColor: activeColor.withOpacity(0.1),
+      ),
+      child: Stack(
+        children: [
+          // StatusBar ve tıklama sorunlarını çözen SafeArea
+          CustomScrollView(
+            controller: scrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // --- Arama ve Başlık Kısmı ---
+              SliverToBoxAdapter(child: _buildPremiumHeader(context)),
 
-                  // --- Sticky (Yapışkan) Filtre Sekmeleri ---
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SliverFilterDelegate(
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                          child: Container(
-                            color: context.colors.surface.withOpacity(0.7),
-                            alignment: Alignment.center,
-                            child: _buildFilterTabs(selectedFilter),
-                          ),
-                        ),
+              // --- Sticky (Yapışkan) Filtre Sekmeleri ---
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverFilterDelegate(
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                      child: Container(
+                        color: context.colors.surface.withOpacity(0.7),
+                        alignment: Alignment.center,
+                        child: _buildFilterTabs(selectedFilter),
                       ),
                     ),
                   ),
+                ),
+              ),
 
-                  // --- Dinamik İçerik Alanı ---
-                  searchState.when(
-                    data: (final data) {
-                      final bool isEmpty = data.shows.isEmpty &&
-                          data.players.isEmpty &&
-                          data.stages.isEmpty &&
-                          data.teams.isEmpty;
+              // --- Dinamik İçerik Alanı ---
+              searchState.when(
+                data: (final data) {
+                  final bool isEmpty = data.shows.isEmpty &&
+                      data.players.isEmpty &&
+                      data.stages.isEmpty &&
+                      data.teams.isEmpty;
 
-                      if (isEmpty && query.isNotEmpty) {
-                        return SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.auto_awesome_motion_outlined,
-                                    size: 80,
-                                    color: context.colors.primary
-                                        .withOpacity(0.2)),
-                                const SizedBox(height: 16),
-                                Text(context.l10n.searchEmptyState(query),
-                                    style: context.textTheme.titleMedium
-                                        ?.copyWith(
-                                        fontWeight: FontWeight.bold)),
-                                TextButton(
-                                  onPressed: () {
-                                    _textController.clear();
-                                    ref
-                                        .read(searchQueryProvider.notifier)
-                                        .update("");
-                                  },
-                                  child: Text(context.l10n.searchClearGallery),
-                                )
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      // HATA ÇÖZÜMÜ: Filtre 1 (Etkinlikler) seçiliyse, Sliver olan dikey mozaik doğrudan döner.
-                      if (selectedFilter == 1)
-                        return SliverPadding(
-                            padding: const EdgeInsets.all(16),
-                            sliver: ShowMosaicGallery(
-                                shows: data.shows, direction: Axis.vertical));
-
-                      // Diğer durumlar için SliverList içinde normal widget akışı
-                      final content =
-                      _buildContent(context, data, selectedFilter);
-                      return SliverPadding(
-                        padding: const EdgeInsets.only(top: 20),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            ...content,
-                            const SizedBox(height: 120),
-                          ]),
+                  if (isEmpty && query.isNotEmpty) {
+                    return SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.auto_awesome_motion_outlined,
+                                size: 80,
+                                color: context.colors.primary.withOpacity(0.2)),
+                            const SizedBox(height: 16),
+                            Text(context.l10n.searchEmptyState(query),
+                                style: context.textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold)),
+                            TextButton(
+                              onPressed: () {
+                                _textController.clear();
+                                ref
+                                    .read(searchQueryProvider.notifier)
+                                    .update("");
+                              },
+                              child: Text(context.l10n.searchClearGallery),
+                            )
+                          ],
                         ),
-                      );
-                    },
-                    loading: () => const SliverFillRemaining(
-                        child: Center(
-                            child: CircularProgressIndicator.adaptive())),
-                    error: (final e, final _) => SliverToBoxAdapter(
-                        child: Center(child: Text("Hata oluştu: $e"))),
-                  ),
-                ],
-              ),
+                      ),
+                    );
+                  }
+                  // HATA ÇÖZÜMÜ: Filtre 1 (Etkinlikler) seçiliyse, Sliver olan dikey mozaik doğrudan döner.
+                  if (selectedFilter == 1)
+                    return SliverPadding(
+                        padding: const EdgeInsets.all(16),
+                        sliver: ShowMosaicGallery(
+                            shows: data.shows, direction: Axis.vertical));
 
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: GlassmorphismBackButton(),
+                  // Diğer durumlar için SliverList içinde normal widget akışı
+                  final content = _buildContent(context, data, selectedFilter);
+                  return SliverPadding(
+                    padding: const EdgeInsets.only(top: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        ...content,
+                        const SizedBox(height: 120),
+                      ]),
+                    ),
+                  );
+                },
+                loading: () => const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator.adaptive())),
+                error: (final e, final _) => SliverToBoxAdapter(
+                    child: Center(child: Text("Hata oluştu: $e"))),
               ),
-              // Yukarı Kaydır Butonu
-              ScrollUpButton(
-                  scrollController: scrollController,
-                  visibleNotifier: showFloatingButton),
             ],
           ),
-        ),
+
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: GlassmorphismBackButton(),
+          ),
+          // Yukarı Kaydır Butonu
+          ScrollUpButton(
+              scrollController: scrollController,
+              visibleNotifier: showFloatingButton),
+        ],
       ),
     );
   }
@@ -328,10 +324,10 @@ class ArtisticBrushChip extends StatelessWidget {
 
   const ArtisticBrushChip(
       {super.key,
-        required this.text,
-        required this.isSelected,
-        required this.colors,
-        required this.onTap});
+      required this.text,
+      required this.isSelected,
+      required this.colors,
+      required this.onTap});
 
   @override
   Widget build(final BuildContext context) {
@@ -356,12 +352,12 @@ class ArtisticBrushChip extends StatelessWidget {
                   : context.colors.onSurface.withOpacity(0.1)),
           boxShadow: isSelected
               ? [
-            BoxShadow(
-              color: colors[0].withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            )
-          ]
+                  BoxShadow(
+                    color: colors[0].withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  )
+                ]
               : [],
         ),
         child: Center(
@@ -390,41 +386,41 @@ class ModernSearchBar extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-    decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: context.colors.primary.withOpacity(0.2), width: 1.5)),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: TextField(
-          controller: controller,
-          onChanged: onChanged,
-          onSubmitted: (final value) => FocusScope.of(context).unfocus(),
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            hintText: context.l10n.searchHint,
-            prefixIcon: Icon(Icons.auto_awesome,
-                color: context.colors.primary, size: 20),
-            suffixIcon: controller.text.isNotEmpty
-                ? IconButton(
-              icon: const Icon(Icons.cancel_rounded, size: 20),
-              onPressed: () {
-                controller.clear();
-                onChanged("");
-              },
-            )
-                : null,
-            filled: true,
-            fillColor: context.colors.surface.withOpacity(0.6),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 15),
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: context.colors.primary.withOpacity(0.2), width: 1.5)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              onSubmitted: (final value) => FocusScope.of(context).unfocus(),
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: context.l10n.searchHint,
+                prefixIcon: Icon(Icons.auto_awesome,
+                    color: context.colors.primary, size: 20),
+                suffixIcon: controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.cancel_rounded, size: 20),
+                        onPressed: () {
+                          controller.clear();
+                          onChanged("");
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: context.colors.surface.withOpacity(0.6),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+            ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 // --- Yatay Liste Bölümü (Mekanlar/Ekipler için) ---
@@ -436,9 +432,9 @@ class _HorizontalSection extends StatelessWidget {
 
   const _HorizontalSection(
       {required this.title,
-        required this.items,
-        required this.isStage,
-        required this.onSeeAll});
+      required this.items,
+      required this.isStage,
+      required this.onSeeAll});
 
   @override
   Widget build(final BuildContext context) {
@@ -482,7 +478,7 @@ class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      final BuildContext ctx, final double offset, final bool overlaps) =>
+          final BuildContext ctx, final double offset, final bool overlaps) =>
       child;
 
   @override
@@ -493,7 +489,7 @@ class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
 class _GridCards {
   // Dikey Kart (Filtreli Görünümler için)
   static Widget verticalLarge(
-      final BuildContext context, final dynamic item, final bool isStage) =>
+          final BuildContext context, final dynamic item, final bool isStage) =>
       GestureDetector(
         onTap: () => isStage
             ? NavigationHandler.goToStage(context, item.id, item.name)
@@ -519,13 +515,13 @@ class _GridCards {
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              Colors.black.withOpacity(0.9),
-                              Colors.transparent
-                            ],
+                  Colors.black.withOpacity(0.9),
+                  Colors.transparent
+                ],
                             stops: const [
-                              0.0,
-                              0.6
-                            ])))),
+                  0.0,
+                  0.6
+                ])))),
             Positioned(
               bottom: 15,
               left: 15,
@@ -544,8 +540,8 @@ class _GridCards {
 
   // Yatay Kart (All sekmesi için)
   static Widget horizontalCard(
-      final BuildContext context, final dynamic item, final bool isStage,
-      {required final double width}) =>
+          final BuildContext context, final dynamic item, final bool isStage,
+          {required final double width}) =>
       GestureDetector(
         onTap: () => isStage
             ? NavigationHandler.goToStage(context, item.id, item.name)
@@ -570,7 +566,7 @@ class _GridCards {
             Expanded(
               child: Container(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: Text(item.name,
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
