@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
-
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 
 class ShowParallaxHeader extends StatelessWidget {

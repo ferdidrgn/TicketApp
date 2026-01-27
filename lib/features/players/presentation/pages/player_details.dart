@@ -1,313 +1,312 @@
 import 'dart:ui';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
-import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
+import 'package:ticketapp/features/shows/presentation/pages/show_detail_page_mobil.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../providers/player_provider.dart';
 
-class PlayerDetailPage extends ConsumerWidget {
+class PlayerDetailPage extends ConsumerStatefulWidget {
   final String playerId;
-
   const PlayerDetailPage({super.key, required this.playerId});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    // 🔥 TEK NOKTADAN TÜM VERİ TAKİBİ
-    final detailAsync = ref.watch(playerDetailProvider(playerId));
+  ConsumerState<PlayerDetailPage> createState() => _PlayerDetailPageState();
+}
 
-    final theme = context.theme;
-    final backgroundColor = theme.scaffoldBackgroundColor;
-    final primaryColor = theme.primaryColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.white;
+class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage> {
+  final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: detailAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (final err, final stack) =>
-            _buildErrorState(backgroundColor, textColor),
-        data: (final state) => CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // --- 1. PARALLAX BAŞLIK ---
-            _buildSliverAppBar(
-                context, state.player, backgroundColor, primaryColor),
+  @override
+  void dispose() {
+    _scrollNotifier.dispose();
+    super.dispose();
+  }
 
-            // --- 2. İÇERİK ---
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 25),
+  @override
+  Widget build(final BuildContext context) {
+    final detailAsync = ref.watch(playerDetailProvider(widget.playerId));
 
-                    // Biyografi
-                    _buildSectionTitle("BİYOGRAFİ", primaryColor, textColor),
-                    const SizedBox(height: 15),
-                    _buildBioText(state.player.bio, textColor),
+    // Otantik Amber/Altın tonu
+    const accentColor = Color(0xFFD4AF37);
 
-                    const SizedBox(height: 35),
-
-                    // AKTİF GÖSTERİLER
-                    if (state.activeShows.isNotEmpty) ...[
-                      _buildSectionTitle(
-                          "GÖSTERİLERİ", primaryColor, textColor),
-                      const SizedBox(height: 20),
-                      _buildHorizontalShowList(context, state.activeShows,
-                          primaryColor, backgroundColor),
-                      const SizedBox(height: 30),
-                    ],
-
-                    // ESKİ GÖSTERİLER
-                    if (state.pastShows.isNotEmpty) ...[
-                      _buildSectionTitle(
-                          "ESKİ GÖSTERİLERİ", primaryColor, textColor),
-                      const SizedBox(height: 20),
-                      _buildHorizontalShowList(
-                        context,
-                        state.pastShows,
-                        primaryColor,
-                        backgroundColor,
-                        isGrayscale: true,
-                      ),
-                    ],
-
-                    if (state.activeShows.isEmpty && state.pastShows.isEmpty)
-                      _buildEmptyShowsMsg(textColor),
-
-                    const SizedBox(height: 100),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+    return BasePageWrapper(
+      showBackButton: true,
+      showFab: true,
+      isLoading: detailAsync.isLoading,
+      shimmerSkeleton: const ArtisticPageShimmer(),
+      layoutConfig: PageBackgroundLayoutConfig(
+        backgroundColor: const Color(0xFF0F0F0F), // Derin Müze Siyahı
+        ambientColor: accentColor.withOpacity(0.05),
+        extendBody: true,
       ),
-    );
-  }
-
-  // --- WIDGET PARÇALARI ---
-
-  Widget _buildSliverAppBar(final BuildContext context, final dynamic player,
-      final Color bgColor, final Color primaryColor) {
-    return SliverAppBar(
-      expandedHeight: MediaQuery.of(context).size.height * 0.55,
-      pinned: true,
-      stretch: true,
-      backgroundColor: bgColor,
-      elevation: 0,
-      leading: _buildBackButton(context),
-      flexibleSpace: FlexibleSpaceBar(
-        stretchModes: const [
-          StretchMode.zoomBackground,
-          StretchMode.blurBackground
-        ],
-        centerTitle: true,
-        title: Text(
-          "${player.firstName} ${player.lastName}",
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        background: _buildHeaderBackground(player, primaryColor, bgColor),
-      ),
-    );
-  }
-
-  Widget _buildBioText(final String bio, final Color textColor) {
-    return Text(
-      bio.isNotEmpty ? bio : "Biyografi bilgisi bulunamadı.",
-      style: TextStyle(
-        color: textColor.withOpacity(0.8),
-        fontSize: 16,
-        height: 1.6,
-        fontWeight: FontWeight.w300,
-      ),
-    );
-  }
-
-  Widget _buildErrorState(final Color bgColor, final Color textColor) {
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-      body: Center(
-          child: Text("Oyuncu yüklenirken bir hata oluştu.",
-              style: TextStyle(color: textColor))),
-    );
-  }
-
-  Widget _buildEmptyShowsMsg(final Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Text("Kayıtlı gösteri bulunamadı.",
-          style: TextStyle(color: textColor.withOpacity(0.5))),
-    );
-  }
-
-  // --- YARDIMCI METOTLAR (Eski kodunuzdan optimize edilerek taşındı) ---
-
-  Widget _buildBackButton(final BuildContext context) {
-    return Center(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white24)),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new,
-                  color: Colors.white, size: 18),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderBackground(
-      final dynamic player, final Color primaryColor, final Color bgColor) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        CachedNetworkImage(
-          imageUrl: player.imageUrl,
-          fit: BoxFit.cover,
-          placeholder: (final context, final url) => Container(color: bgColor),
-          errorWidget: (final context, final url, final error) =>
-              Container(color: bgColor, child: const Icon(Icons.person)),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.transparent, bgColor.withOpacity(0.2), bgColor],
-              stops: const [0.5, 0.8, 1.0],
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 60,
-          left: 20,
-          right: 20,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: detailAsync.when(
+        loading: () => const SizedBox.shrink(),
+        error: (err, stack) => Center(child: Text("Hata: $err", style: const TextStyle(color: Colors.white))),
+        data: (state) => NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollUpdateNotification) {
+              _scrollNotifier.value = notification.metrics.pixels;
+            }
+            return false;
+          },
+          child: Stack(
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                    color: primaryColor,
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Text("OYUNCU",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "${player.firstName}\n${player.lastName}",
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1),
+              // 1. KATMAN: OTANTİK PARALLAX VE SOFT SPOTLIGHT
+              _buildAuthenticHeader(context, state.player.imageUrl),
+
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(child: SizedBox(height: context.screenHeight * 0.6)),
+
+                  // 2. KATMAN: DEV EDİTORYAL İSİM
+                  SliverToBoxAdapter(child: _buildArtistHeritageTitle(state.player)),
+
+                  // 3. KATMAN: GALERİ KONSEPTLİ İÇERİK
+                  SliverToBoxAdapter(child: _buildGalleryContent(context, state, accentColor)),
+                ],
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildSectionTitle(
-      final String title, final Color primaryColor, final Color textColor) {
-    return Row(
-      children: [
-        Container(width: 4, height: 24, color: primaryColor),
-        const SizedBox(width: 10),
-        Text(title,
-            style: TextStyle(
-                color: textColor,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1)),
-      ],
+  Widget _buildAuthenticHeader(BuildContext context, String imageUrl) {
+    return ValueListenableBuilder<double>(
+      valueListenable: _scrollNotifier,
+      builder: (context, offset, child) {
+        double blur = (offset / 50).clamp(0, 15);
+        return Positioned(
+          top: -offset * 0.4,
+          left: 0, right: 0,
+          height: context.screenHeight * 0.85,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover),
+              // Yumuşak Blur Katmanı
+              if (blur > 0)
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                  child: Container(color: Colors.black.withOpacity(0.2)),
+                ),
+              // Müze Aydınlatması (Vignette & Gradient)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.3),
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.4),
+                      const Color(0xFF0F0F0F),
+                    ],
+                    stops: const [0.0, 0.4, 0.7, 1.0],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildHorizontalShowList(final BuildContext context,
-      final List<Show> shows, final Color primaryColor, final Color bgColor,
-      {final bool isGrayscale = false}) {
+  Widget _buildArtistHeritageTitle(dynamic player) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("SANATIN MİRASI",
+              style: TextStyle(color: Color(0xFFD4AF37), letterSpacing: 5, fontSize: 10, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(
+            "${player.firstName}\n${player.lastName}".toUpperCase(),
+            style: const TextStyle(
+              fontSize: 58,
+              fontWeight: FontWeight.w900,
+              height: 0.85,
+              letterSpacing: -2,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 30),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGalleryContent(BuildContext context, PlayerDetailState state, Color accent) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F0F0F),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 40),
+
+          // 🏆 OTANTİK STATS PANELİ (Beğendiğin Yapı)
+          _buildHeritageStats(state, accent),
+
+          const SizedBox(height: 60),
+
+          // 🖋️ BİYOGRAFİ (Spotlight Altında)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("HİKAYESİ", style: TextStyle(color: accent, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 12)),
+                const SizedBox(height: 16),
+                Text(
+                  state.player.bio,
+                  style: TextStyle(fontSize: 17, height: 1.8, color: Colors.white.withOpacity(0.7), fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 60),
+
+          // 🎭 AKTİF GÖSTERİLER
+          _buildGallerySectionHeader("SAHNEDEKİ ESERLER", accent),
+          const SizedBox(height: 24),
+          _buildHeritageSlider(context, state.activeShows, false),
+
+          const SizedBox(height: 60),
+
+          // 🏛️ ARŞİV (Eski oyunlar - Tıklanabilir & Şık)
+          _buildGallerySectionHeader("SAHNE ARŞİVİ", accent),
+          const SizedBox(height: 24),
+          _buildHeritageArchive(context, state.pastShows, accent),
+
+          const SizedBox(height: 150),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeritageStats(PlayerDetailState state, Color accent) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _heritageStatItem("${state.activeShows.length}", "AKTİF OYUN", accent),
+          _heritageStatItem("${state.pastShows.length}", "ANILAR", accent),
+          _heritageStatItem("∞", "İHTİRAS", accent),
+        ],
+      ),
+    );
+  }
+
+  Widget _heritageStatItem(String val, String label, Color accent) => Column(
+    children: [
+      Text(val, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1.5)),
+      Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accent, letterSpacing: 2)),
+    ],
+  );
+
+  Widget _buildHeritageSlider(BuildContext context, List<Show> shows, bool isPast) {
     return SizedBox(
-      height: 220,
+      height: 300,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(left: 32),
         physics: const BouncingScrollPhysics(),
         itemCount: shows.length,
-        itemBuilder: (final context, final index) {
+        itemBuilder: (context, index) {
           final show = shows[index];
           return GestureDetector(
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (final context) =>
-                        ShowDetailPage(showId: show.id))),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ShowDetailPage(showId: show.id))),
             child: Container(
-              width: 160,
-              margin: const EdgeInsets.only(right: 15),
-              decoration:
-                  BoxDecoration(borderRadius: BorderRadius.circular(20)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Stack(
-                  children: [
-                    ColorFiltered(
-                      colorFilter: ColorFilter.mode(
-                          isGrayscale ? Colors.grey : Colors.transparent,
-                          BlendMode.saturation),
-                      child: CachedNetworkImage(
-                        imageUrl: show.imageUrl,
-                        fit: BoxFit.cover,
-                        height: double.infinity,
-                        width: double.infinity,
-                        placeholder: (final context, final url) =>
-                            const ShimmerLoading(
-                                width: double.infinity,
-                                height: double.infinity),
-                        errorWidget: (final context, final url, final error) =>
-                            Container(
-                                color: bgColor, child: const Icon(Icons.error)),
-                      ),
+              width: 200,
+              margin: const EdgeInsets.only(right: 25),
+              decoration: BoxDecoration(
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 10))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: OptimizedCachedImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
                     ),
-                    Positioned(
-                      bottom: 15,
-                      left: 15,
-                      right: 15,
-                      child: Text(show.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16)),
-                    )
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(show.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
+                ],
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildHeritageArchive(BuildContext context, List<Show> shows, Color accent) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: shows.map((show) => GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ShowDetailPage(showId: show.id))),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: ColorFiltered(
+                    colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.saturation),
+                    child: OptimizedCachedImage(imageUrl: show.imageUrl, width: 60, height: 80, fit: BoxFit.cover),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(show.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text("ARŞİV KAYDI", style: TextStyle(color: accent, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 16, color: accent.withOpacity(0.5)),
+              ],
+            ),
+          ),
+        )).toList(),
+      ),
+    );
+  }
+
+  Widget _buildGallerySectionHeader(String title, Color accent) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          Container(width: 30, height: 1, color: accent),
+          const SizedBox(width: 15),
+          Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+        ],
       ),
     );
   }
