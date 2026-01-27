@@ -4,14 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Manager'ı Singleton olarak dışarı açar
-final fcmServiceProvider = Provider<FCMManager>((final ref) {
-  return FCMManager.instance;
-});
+final fcmServiceProvider =
+    Provider<FCMManager>((final ref) => FCMManager.instance);
 
 // Başlatma işlemini takip eden provider
-final fcmInitializerProvider = FutureProvider<void>((final ref) async {
-  await ref.read(fcmServiceProvider).init();
-});
+final fcmInitializerProvider = FutureProvider<void>(
+    (final ref) async => ref.read(fcmServiceProvider).init());
 
 class FCMManager {
   FCMManager._();
@@ -23,15 +21,10 @@ class FCMManager {
   // Servisi başlat ve izinleri yönet
   Future<void> init() async {
     // 1. İzinleri tazele
-    await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await _fcm.requestPermission(alert: true, badge: true, sound: true);
 
-    await _fcm.subscribeToTopic(
-        "all_users"); //Firebase Console'dan tek tek cihaz seçmek yerine "all_users" konusuna mesaj atarak herkese ulaşabiliriz.
-
+    //Firebase Console'dan tek tek cihaz seçmek yerine "all_users" konusuna mesaj atarak herkese ulaşabiliriz.
+    await _fcm.subscribeToTopic("all_users");
     // 2. Token'ı al (Konsola yazdır ki Firebase'den test yapabilesin)
     final String? token = await _fcm.getToken();
     debugPrint("--------------------------------------------------");
