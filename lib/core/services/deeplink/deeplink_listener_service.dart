@@ -3,7 +3,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
-/// 🔗 Sağlam Spot Deeplink / App Link Dinleyicisi
+/// 🔗 TiyatRol Deeplink / App Link Dinleyicisi
 final class TiyatrolDeeplinkListener {
   TiyatrolDeeplinkListener._();
 

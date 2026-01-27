@@ -61,7 +61,7 @@ abstract final class AppInitializer {
 
     // 📱 Sistem Arayüzü Ayarları
     _configureSystemUI();
-    debugPrint('🚀 Sağlam Spot Sistemleri Hazır.');
+    debugPrint('🚀 TiyatRol Sistemleri Hazır.');
   }
 
   static Future<void> _initFirebase() async {
