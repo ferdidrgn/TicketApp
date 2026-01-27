@@ -28,29 +28,24 @@ class ShowDetailState {
 /// 🔥 COMPOSITE PROVIDER (Tüm veriyi burada topluyoruz)
 @riverpod
 Future<ShowDetailState> showDetail(final Ref ref, final String showId) async {
-  // 1. Önce Show verisini çek (Cache'de yoksa network'ten)
-  // Not: showProvider'ın tekil getiren bir metodu yoksa, showsByIds kullanabiliriz.
   final shows = await ref.watch(showsByIdsProvider([showId]).future);
   if (shows.isEmpty) throw Exception('Gösteri bulunamadı');
   final show = shows.first;
 
-  // 2. Event ID'leri hazırla
-  final eventIds = show.eventsId.where((final e) => e.isNotEmpty).toList();
+  // Filtreleme: Boş ID'leri temizle
+  final eventIds = show.eventsId.where((final id) => id.isNotEmpty).toList();
+  final nowPlayerIds =
+      show.nowPlayersId.where((final id) => id.isNotEmpty).toList();
+  final oldPlayerIds =
+      show.oldPlayersId.where((final id) => id.isNotEmpty).toList();
 
-  // 3. Oyuncu ID'leri hazırla (Eski + Yeni kadro)
-  final allPlayerIds = {...show.nowPlayersId, ...show.oldPlayersId}
-      .where((final id) => id.isNotEmpty)
-      .toList();
+  final allPlayerIds = {...nowPlayerIds, ...oldPlayerIds}.toList();
 
-  // 4. 🔥 PARALEL VERİ ÇEKME (Events ve Players aynı anda başlasın)
   final results = await Future.wait([
-    // Eventleri çek
     if (eventIds.isNotEmpty)
       ref.watch(eventsByIdsProvider(eventIds).future)
     else
       Future.value(<Event>[]),
-
-    // Oyuncuları çek
     if (allPlayerIds.isNotEmpty)
       ref.watch(playersByIdsProvider(allPlayerIds).future)
     else
@@ -60,10 +55,10 @@ Future<ShowDetailState> showDetail(final Ref ref, final String showId) async {
   final events = results[0] as List<Event>;
   final players = results[1] as List<Player>;
 
-  // 5. Stage ID'leri Eventlerden ayıkla ve çek
+  // Sadece bu gösteriye ait ve geçerli sahnesi olan eventleri al
   final stageIds = events
       .map((final e) => e.stageId)
-      .where((final id) => id.isNotEmpty && id != '0')
+      .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
 
@@ -71,11 +66,6 @@ Future<ShowDetailState> showDetail(final Ref ref, final String showId) async {
       ? await ref.watch(stagesByIdsProvider(stageIds).future)
       : <Stage>[];
 
-  // 6. Paketi teslim et
   return ShowDetailState(
-    show: show,
-    events: events,
-    stages: stages,
-    players: players,
-  );
+      show: show, events: events, stages: stages, players: players);
 }
