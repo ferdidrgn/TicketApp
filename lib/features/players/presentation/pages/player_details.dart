@@ -53,7 +53,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final detailAsync = ref.watch(playerDetailProvider(widget.playerId));
     final accentColor = context.colors.primary;
 
@@ -69,14 +69,14 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       ),
       child: detailAsync.when(
         loading: () => const SizedBox.shrink(),
-        error: (err, stack) => Center(
+        error: (final err, final stack) => Center(
           child: Text(
             "Hata: $err",
             style: TextStyle(color: context.colors.onSurface),
           ),
         ),
-        data: (state) => NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
+        data: (final state) => NotificationListener<ScrollNotification>(
+          onNotification: (final notification) {
             if (notification is ScrollUpdateNotification) {
               _scrollNotifier.value = notification.metrics.pixels;
             }
@@ -134,14 +134,15 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   // 🎨 PARALLAX HEADER
-  Widget _buildParallaxHeader(BuildContext context, String imageUrl) {
+  Widget _buildParallaxHeader(
+      final BuildContext context, final String imageUrl) {
     return ValueListenableBuilder<double>(
       valueListenable: _scrollNotifier,
-      builder: (context, offset, child) {
+      builder: (final context, final offset, final child) {
         final accentColor = context.colors.primary;
-        double blur = (offset / 50).clamp(0, 15);
-        double scale = 1 + (offset / 1000).clamp(0, 0.2);
-        double opacity = (1 - (offset / 300)).clamp(0, 1);
+        final double blur = (offset / 50).clamp(0, 15);
+        final double scale = 1 + (offset / 1000).clamp(0, 0.2);
+        final double opacity = (1 - (offset / 300)).clamp(0, 1);
 
         return Positioned(
           top: -offset * 0.4,
@@ -191,7 +192,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               // Spotlight Pulse
               AnimatedBuilder(
                 animation: _pulseController,
-                builder: (context, child) {
+                builder: (final context, final child) {
                   return Container(
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
@@ -215,11 +216,20 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      context.scaffoldBackgroundColor.withOpacity(0.5),
-                      context.scaffoldBackgroundColor.withOpacity(0.9),
+                      context.scaffoldBackgroundColor.withOpacity(0.0),
+                      // Tepeyi tamamen açtık
+                      context.scaffoldBackgroundColor.withOpacity(0.4),
+                      context.scaffoldBackgroundColor.withOpacity(0.8),
                       context.scaffoldBackgroundColor,
+                      // İçerikle birleşen yer tam siyah
                     ],
-                    stops: const [0.0, 0.5, 0.8, 1.0],
+                    stops: const [
+                      0.0,
+                      0.3,
+                      0.6,
+                      0.8,
+                      1.0
+                    ], // Geçişi daha aşağı çektik
                   ),
                 ),
               ),
@@ -247,7 +257,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildDecorativeCorner(BuildContext context) {
+  Widget _buildDecorativeCorner(final BuildContext context) {
     return Container(
       width: context.responsive(mobile: 40.0, desktop: 60.0),
       height: context.responsive(mobile: 40.0, desktop: 60.0),
@@ -267,7 +277,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   // 📛 ARTIST NAME SECTION
-  Widget _buildArtistNameSection(BuildContext context, dynamic player) {
+  Widget _buildArtistNameSection(
+      final BuildContext context, final dynamic player) {
     return Container(
       padding: context.sectionPadding,
       child: Column(
@@ -346,7 +357,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   // 📊 STATS SECTION
-  Widget _buildStatsSection(BuildContext context, PlayerDetailState state) {
+  Widget _buildStatsSection(
+      final BuildContext context, final PlayerDetailState state) {
     return Padding(
       padding: context.sectionPadding,
       child: context.responsive(
@@ -356,7 +368,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildMobileStats(BuildContext context, PlayerDetailState state) {
+  Widget _buildMobileStats(
+      final BuildContext context, final PlayerDetailState state) {
     return Column(
       children: [
         Row(
@@ -406,7 +419,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildDesktopStats(BuildContext context, PlayerDetailState state) {
+  Widget _buildDesktopStats(
+      final BuildContext context, final PlayerDetailState state) {
     return Row(
       children: [
         Expanded(
@@ -449,10 +463,10 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   Widget _buildStatCard(
-    BuildContext context, {
-    required IconData icon,
-    required String value,
-    required String label,
+    final BuildContext context, {
+    required final IconData icon,
+    required final String value,
+    required final String label,
   }) {
     return Container(
       padding: EdgeInsets.all(
@@ -507,23 +521,22 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   // 📑 CONTENT TABS
-  Widget _buildContentTabs(BuildContext context, PlayerDetailState state) {
+  Widget _buildContentTabs(
+      final BuildContext context, final PlayerDetailState state) {
     return DefaultTabController(
       length: 4,
       child: Column(
         children: [
           SizedBox(height: context.spacingLarge),
-
-          // Tab Bar
+          // Tab Bar tasarımı...
           Padding(
             padding: context.paddingHorizontal,
             child: Container(
               decoration: BoxDecoration(
                 color: context.cardColor,
                 borderRadius: BorderRadius.circular(context.borderRadius()),
-                border: Border.all(
-                  color: context.colors.primary.withOpacity(0.2),
-                ),
+                border:
+                    Border.all(color: context.colors.primary.withOpacity(0.2)),
               ),
               child: TabBar(
                 labelColor: context.colors.primary,
@@ -534,10 +547,6 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
-                labelStyle: TextStyle(
-                  fontSize: context.responsive(mobile: 12.0, desktop: 14.0),
-                  fontWeight: FontWeight.bold,
-                ),
                 tabs: const [
                   Tab(text: "BİYOGRAFİ"),
                   Tab(text: "OYUNLAR"),
@@ -553,17 +562,14 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           // Tab Views
           SizedBox(
             height: context.responsive(
-              mobile: 600.0,
-              tablet: 700.0,
-              desktop: 800.0,
-            ),
+                mobile: 600.0, tablet: 700.0, desktop: 800.0),
             child: TabBarView(
               physics: const BouncingScrollPhysics(),
               children: [
                 _buildBiographyTab(context, state),
                 _buildActiveShowsTab(context, state),
                 _buildArchiveTab(context, state),
-                _buildAchievementsTab(context),
+                _buildAchievementsTab(context, state),
               ],
             ),
           ),
@@ -573,7 +579,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   // 📖 BIOGRAPHY TAB
-  Widget _buildBiographyTab(BuildContext context, PlayerDetailState state) {
+  Widget _buildBiographyTab(
+      final BuildContext context, final PlayerDetailState state) {
     return SingleChildScrollView(
       padding: context.pagePadding,
       child: Column(
@@ -665,19 +672,16 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           SizedBox(height: context.spacingLarge),
 
           // Collaborations
-          _buildCollaborationsCard(context),
+          _buildCollaborationsCard(context, state.player.collaborations),
         ],
       ),
     );
   }
 
-  Widget _buildCollaborationsCard(BuildContext context) {
-    final collaborations = [
-      "Devlet Tiyatrosu",
-      "İstanbul Şehir Tiyatroları",
-      "Oyun Atölyesi",
-      "Sahne Sanatları Merkezi",
-    ];
+  Widget _buildCollaborationsCard(
+      final BuildContext context, final List<String> collaborations) {
+    // Eğer işbirliği verisi yoksa bu bölümü hiç çizme
+    if (collaborations.isEmpty) return const SizedBox.shrink();
 
     return Container(
       padding: context.cardPadding,
@@ -690,11 +694,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         children: [
           Row(
             children: [
-              Icon(
-                Icons.people_outline,
-                color: context.colors.primary,
-                size: 20,
-              ),
+              Icon(Icons.people_outline,
+                  color: context.colors.primary, size: 20),
               SizedBox(width: context.spacing * 0.5),
               Text(
                 "İŞBİRLİKLERİ",
@@ -710,16 +711,13 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           Wrap(
             spacing: context.spacing * 0.75,
             runSpacing: context.spacing * 0.75,
-            children: collaborations.map((name) {
+            children: collaborations.map((final name) {
               return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: context.colors.primary.withOpacity(0.3),
-                  ),
+                      color: context.colors.primary.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(25),
                   color: context.colors.primary.withOpacity(0.05),
                 ),
@@ -740,7 +738,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   // 🎭 ACTIVE SHOWS TAB
-  Widget _buildActiveShowsTab(BuildContext context, PlayerDetailState state) {
+  Widget _buildActiveShowsTab(
+      final BuildContext context, final PlayerDetailState state) {
     return GridView.builder(
       padding: context.pagePadding,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -750,20 +749,20 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         mainAxisSpacing: context.gridSpacing,
       ),
       itemCount: state.activeShows.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (final context, final index) {
         final show = state.activeShows[index];
         return _buildShowCard(context, show, isActive: true);
       },
     );
   }
 
-  Widget _buildShowCard(BuildContext context, Show show,
-      {bool isActive = false}) {
+  Widget _buildShowCard(final BuildContext context, final Show show,
+      {final bool isActive = false}) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ShowDetailPage(showId: show.id),
+          builder: (final context) => ShowDetailPage(showId: show.id),
         ),
       ),
       child: Container(
@@ -853,23 +852,24 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   // 📚 ARCHIVE TAB
-  Widget _buildArchiveTab(BuildContext context, PlayerDetailState state) {
+  Widget _buildArchiveTab(
+      final BuildContext context, final PlayerDetailState state) {
     return ListView.builder(
       padding: context.pagePadding,
       itemCount: state.pastShows.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (final context, final index) {
         final show = state.pastShows[index];
         return _buildArchiveItem(context, show);
       },
     );
   }
 
-  Widget _buildArchiveItem(BuildContext context, Show show) {
+  Widget _buildArchiveItem(final BuildContext context, final Show show) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ShowDetailPage(showId: show.id),
+          builder: (final context) => ShowDetailPage(showId: show.id),
         ),
       ),
       child: Container(
@@ -966,52 +966,40 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   // 🏆 ACHIEVEMENTS TAB
-  Widget _buildAchievementsTab(BuildContext context) {
-    final achievements = [
-      {
-        "year": "2020",
-        "title": "En İyi Oyuncu",
-        "detail": "Ulusal Tiyatro Ödülleri"
-      },
-      {
-        "year": "2021",
-        "title": "Jüri Özel Ödülü",
-        "detail": "İstanbul Sanat Festivali"
-      },
-      {
-        "year": "2023",
-        "title": "Yılın Sanatçısı",
-        "detail": "Sahne Sanatları Akademisi"
-      },
-      {
-        "year": "2024",
-        "title": "Yaşam Boyu Başarı",
-        "detail": "Türkiye Sanat Kurumu"
-      },
-    ];
+  Widget _buildAchievementsTab(
+      final BuildContext context, final PlayerDetailState state) {
+    // HATA DÜZELTİLDİ: state.player.achievements üzerinden veri okunuyor
+    if (state.player.achievements.isEmpty)
+      return Center(
+        child: Text(
+          "Henüz başarı kaydı bulunmuyor.",
+          style: TextStyle(color: context.colors.onSurface.withOpacity(0.5)),
+        ),
+      );
 
     return ListView.builder(
       padding: context.pagePadding,
-      itemCount: achievements.length,
-      itemBuilder: (context, index) {
-        final achievement = achievements[index];
+      itemCount: state.player.achievements.length,
+      itemBuilder: (final context, final index) {
+        final achievement = state.player.achievements[index];
         return _buildTimelineItem(
           context,
-          year: achievement["year"]!,
-          title: achievement["title"]!,
-          detail: achievement["detail"]!,
-          isLast: index == achievements.length - 1,
+          year: achievement["year"] ?? "",
+          title: achievement["title"] ?? "",
+          detail: achievement["detail"] ?? "",
+          // Detail artık dinamik olarak geliyor
+          isLast: index == state.player.achievements.length - 1,
         );
       },
     );
   }
 
   Widget _buildTimelineItem(
-    BuildContext context, {
-    required String year,
-    required String title,
-    required String detail,
-    bool isLast = false,
+    final BuildContext context, {
+    required final String year,
+    required final String title,
+    required final String detail,
+    final bool isLast = false,
   }) {
     return Padding(
       padding: EdgeInsets.only(
