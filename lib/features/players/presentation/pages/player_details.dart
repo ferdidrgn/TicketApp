@@ -177,14 +177,27 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               // Vignette Effect
               Container(
                 decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment.center,
-                    radius: 1.2,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      context.scaffoldBackgroundColor.withOpacity(0.3),
-                      context.scaffoldBackgroundColor.withOpacity(0.7),
+                      context.scaffoldBackgroundColor.withOpacity(0.0),
+                      // Resmin üstü tamamen ferah
+                      context.scaffoldBackgroundColor.withOpacity(0.4),
+                      // Yumuşak geçiş başlar
+                      context.scaffoldBackgroundColor.withOpacity(0.95),
+                      // İçeriğe hazırlık
+                      context.scaffoldBackgroundColor,
+                      // Tam siyah/arka plan uyuşması (Hatayı siler)
                     ],
+                    stops: const [
+                      0.0,
+                      0.45,
+                      0.75,
+                      0.9,
+                      1.0
+                    ], // Geçiş noktalarını içeriğe göre optimize ettik
                   ),
                 ),
               ),
@@ -698,7 +711,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                   color: context.colors.primary, size: 20),
               SizedBox(width: context.spacing * 0.5),
               Text(
-                "İŞBİRLİKLERİ",
+                "TANIMLAR",
                 style: TextStyle(
                   fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
                   fontWeight: FontWeight.bold,
@@ -965,10 +978,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  // 🏆 ACHIEVEMENTS TAB
   Widget _buildAchievementsTab(
       final BuildContext context, final PlayerDetailState state) {
-    // HATA DÜZELTİLDİ: state.player.achievements üzerinden veri okunuyor
     if (state.player.achievements.isEmpty)
       return Center(
         child: Text(
@@ -978,107 +989,151 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       );
 
     return ListView.builder(
-      padding: context.pagePadding,
+      padding: context.pagePadding.copyWith(top: 24),
       itemCount: state.player.achievements.length,
       itemBuilder: (final context, final index) {
-        final achievement = state.player.achievements[index];
-        return _buildTimelineItem(
-          context,
-          year: achievement["year"] ?? "",
-          title: achievement["title"] ?? "",
-          detail: achievement["detail"] ?? "",
-          // Detail artık dinamik olarak geliyor
-          isLast: index == state.player.achievements.length - 1,
+        final item = state.player.achievements[index];
+        final bool isLast = index == state.player.achievements.length - 1;
+
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- KRONOLOJİ İSTASYONU (SOL TARAF) ---
+              SizedBox(
+                width: 40,
+                child: Column(
+                  children: [
+                    // İstasyon İkonu
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        border:
+                            Border.all(color: context.colors.primary, width: 2),
+                        shape: BoxShape.circle,
+                        color: context.colors.primary.withOpacity(0.1),
+                      ),
+                      child: Center(
+                        child: Icon(Icons.theater_comedy_rounded,
+                            size: 14, color: context.colors.primary),
+                      ),
+                    ),
+                    // Kesik Çizgi Tasarımı
+                    if (!isLast)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: CustomPaint(
+                            painter: _DashedLinePainter(
+                                color: context.colors.primary.withOpacity(0.3)),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // --- İÇERİK KARTI (SAĞ TARAF) ---
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Yıl ve Dekoratif Hat
+                      Row(
+                        children: [
+                          Text(
+                            item['year'] ?? '',
+                            style: TextStyle(
+                              color: context.colors.primary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    context.colors.primary.withOpacity(0.3),
+                                    Colors.transparent
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Başlık
+                      Text(
+                        (item['title'] ?? '').toUpperCase(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          letterSpacing: 0.5,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Detay Metni ve İkonu
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.auto_awesome,
+                              size: 12,
+                              color: context.colors.primary.withOpacity(0.5)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              item['detail'] ?? '',
+                              style: TextStyle(
+                                color:
+                                    context.colors.onSurface.withOpacity(0.6),
+                                fontSize: 13,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
+}
 
-  Widget _buildTimelineItem(
-    final BuildContext context, {
-    required final String year,
-    required final String title,
-    required final String detail,
-    final bool isLast = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: isLast ? 0 : context.spacing * 2,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Timeline
-          Column(
-            children: [
-              Container(
-                width: context.responsive(mobile: 12.0, desktop: 14.0),
-                height: context.responsive(mobile: 12.0, desktop: 14.0),
-                decoration: BoxDecoration(
-                  color: context.colors.primary,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: context.colors.primary.withOpacity(0.5),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-              ),
-              if (!isLast)
-                Container(
-                  width: 2,
-                  height: context.responsive(mobile: 60.0, desktop: 80.0),
-                  color: context.colors.primary.withOpacity(0.3),
-                ),
-            ],
-          ),
-          SizedBox(width: context.spacing),
+// Kesik çizgi çizici (Fütüristik fanzin havası için)
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
 
-          // Content
-          Expanded(
-            child: Container(
-              padding: context.cardPadding,
-              decoration: BoxDecoration(
-                color: context.cardColor,
-                borderRadius: BorderRadius.circular(context.borderRadius()),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    year,
-                    style: TextStyle(
-                      color: context.colors.primary,
-                      fontSize: context.responsive(mobile: 11.0, desktop: 13.0),
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  SizedBox(height: context.spacing * 0.5),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: context.colors.onSurface,
-                      fontSize: context.responsive(mobile: 16.0, desktop: 18.0),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: context.spacing * 0.25),
-                  Text(
-                    detail,
-                    style: TextStyle(
-                      color: context.colors.onSurface.withOpacity(0.6),
-                      fontSize: context.responsive(mobile: 13.0, desktop: 15.0),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  _DashedLinePainter({required this.color});
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    double dashHeight = 5, dashSpace = 3, startY = 0;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5;
+    while (startY < size.height) {
+      canvas.drawLine(Offset(size.width / 2, startY),
+          Offset(size.width / 2, startY + dashHeight), paint);
+      startY += dashHeight + dashSpace;
+    }
   }
+
+  @override
+  bool shouldRepaint(final CustomPainter oldDelegate) => false;
 }
