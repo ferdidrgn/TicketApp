@@ -12,12 +12,14 @@ import '../../features/splash/presentation/widgets/splash_data_guard.dart';
 class PageLayoutConfig {
   final Color? backgroundColor;
   final Color? ambientColor;
+  final Color? particleColor;
   final bool usePadding;
   final bool extendBody;
 
   const PageLayoutConfig({
     this.backgroundColor,
     this.ambientColor,
+    this.particleColor,
     this.usePadding = false,
     this.extendBody = true,
   });
@@ -25,6 +27,7 @@ class PageLayoutConfig {
 
 class BasePageWrapper extends ConsumerStatefulWidget {
   final Widget child;
+  final Widget? shimmerSkeleton;
   final bool showBackButton;
   final bool showFab;
   final bool isLoading;
@@ -35,6 +38,7 @@ class BasePageWrapper extends ConsumerStatefulWidget {
   const BasePageWrapper({
     super.key,
     required this.child,
+    this.shimmerSkeleton, // Opsiyonel shimmer
     this.showBackButton = true,
     this.showFab = true,
     this.isLoading = false,
@@ -52,6 +56,7 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
   @override
   Widget build(final BuildContext context) {
     final isDark = context.isDarkMode;
+
 
     // 1. SYSTEM UI YÖNETİMİ: Durum çubuğunu (status bar) sayfa stiline uydurur
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -79,6 +84,7 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
               body: CustomAppBackground(
                 backgroundColor: widget.layoutConfig.backgroundColor,
                 ambientColor: widget.layoutConfig.ambientColor,
+                particleColor: widget.layoutConfig.particleColor,
                 child: SafeArea(
                   // 🛡️ ASLA KALDIRILMAYAN GÜVENLİ ALAN
                   child: Stack(
