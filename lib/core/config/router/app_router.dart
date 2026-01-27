@@ -30,8 +30,8 @@ import 'page_transitions.dart';
 
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final isLoggedIn = ref.watch(isLoggedInProvider);
-
   final authNotifier = ValueNotifier(isLoggedIn);
+
   ref.listen(isLoggedInProvider, (final _, final next) {
     authNotifier.value = next;
   });
@@ -66,255 +66,246 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       return null;
     },
     routes: [
-      /// 🌍 WEB
+
+      /// 🌍 WEB HOME
       if (isWeb)
         GoRoute(
           path: '/home',
-          pageBuilder: (final context, final state) => CustomTransitionPage(
-            key: state.pageKey,
-            child: const AppHomePage(),
-            transitionsBuilder: curtainTransition,
-            transitionDuration: const Duration(milliseconds: 500),
-          ),
+          pageBuilder: (final context, final state) =>
+              CustomTransitionPage(
+                key: state.pageKey,
+                child: AppHomePage(),
+                transitionsBuilder: curtainTransition,
+                transitionDuration: const Duration(milliseconds: 500),
+              ),
         ),
 
-      /// 📱 MOBILE SHELL
+      /// 📱 MOBILE SHELL (Tablar arası geçişte wrapper genellikle MobileBottomNavBar'da yönetilir)
       if (!isWeb)
         StatefulShellRoute.indexedStack(
           builder: (final context, final state, final navigationShell) =>
               MobileBottomNavBar(navigationShell: navigationShell),
           branches: [
-            // HOME
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/home',
                   pageBuilder: (final context, final state) =>
                       CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const HomePage(),
-                    transitionsBuilder: curtainTransition,
-                    transitionDuration: const Duration(milliseconds: 500),
-                  ),
+                        key: state.pageKey,
+                        child: HomePage(),
+                        transitionsBuilder: curtainTransition,
+                        transitionDuration: const Duration(milliseconds: 500),
+                      ),
                 ),
               ],
             ),
-
-            // DISCOVER
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/discover',
-                  pageBuilder: (final context, final state) {
-                    final selectedCategory =
-                        state.uri.queryParameters['category'];
-                    return CustomTransitionPage(
-                      key: state.pageKey,
-                      child: DiscoveryPage(selectedCategory: selectedCategory),
-                      transitionsBuilder: fadeTransition,
-                      transitionDuration: const Duration(milliseconds: 500),
-                    );
-                  },
+                  pageBuilder: (final context, final state) =>
+                      CustomTransitionPage(
+                        key: state.pageKey,
+                        child: DiscoveryPage(
+                            selectedCategory:
+                            state.uri.queryParameters['category']),
+                        transitionsBuilder: fadeTransition,
+                        transitionDuration: const Duration(milliseconds: 500),
+                      ),
                 ),
               ],
             ),
-
-            // NEARBY
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/nearby',
                   pageBuilder: (final context, final state) =>
                       CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const NearbyEventsPage(),
-                    transitionsBuilder: scrollSlideTransition,
-                    transitionDuration: const Duration(milliseconds: 500),
-                  ),
+                        key: state.pageKey,
+                        child: NearbyEventsPage(),
+                        transitionsBuilder: scrollSlideTransition,
+                        transitionDuration: const Duration(milliseconds: 500),
+                      ),
                 ),
               ],
             ),
-
-            // PROFILE
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/profile',
                   pageBuilder: (final context, final state) =>
                       CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const ProfilePage(),
-                    transitionsBuilder: fadeTransition,
-                    transitionDuration: const Duration(milliseconds: 500),
-                  ),
+                        key: state.pageKey,
+                        child: ProfilePage(),
+                        transitionsBuilder: fadeTransition,
+                        transitionDuration: const Duration(milliseconds: 500),
+                      ),
                 ),
               ],
             ),
           ],
         ),
 
-      /// COMMON ROUTES
+      /// 🔗 COMMON ROUTES (Tüm detay sayfaları BasePageWrapper ile "Zırhlı")
       GoRoute(
           path: '/show/:slugWithId',
           name: 'showDetail',
-          pageBuilder: (final context, final state) {
-            final String fullParam = state.pathParameters['slugWithId']!;
-            final String showId = fullParam.split('-').last;
-
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: ShowDetailPage(showId: showId),
-              transitionsBuilder: fadeTransition,
-              transitionDuration: const Duration(milliseconds: 500),
-            );
-          }),
+          pageBuilder: (final context, final state) =>
+              CustomTransitionPage(
+                key: state.pageKey,
+                child: ShowDetailPage(
+                    showId:
+                    state.pathParameters['slugWithId']!.split('-').last),
+                transitionsBuilder: fadeTransition,
+                transitionDuration: const Duration(milliseconds: 500),
+              )),
 
       GoRoute(
           path: '/player/:slugWithId',
-          pageBuilder: (final context, final state) {
-            final String fullParam = state.pathParameters['slugWithId']!;
-            final String playerId = fullParam.split('-').last;
-
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: PlayerDetailPage(playerId: playerId),
-              transitionsBuilder: curtainTransition,
-              transitionDuration: const Duration(milliseconds: 500),
-            );
-          }),
+          pageBuilder: (final context, final state) =>
+              CustomTransitionPage(
+                key: state.pageKey,
+                child: PlayerDetailPage(
+                    playerId:
+                    state.pathParameters['slugWithId']!.split('-').last),
+                transitionsBuilder: curtainTransition,
+                transitionDuration: const Duration(milliseconds: 500),
+              )),
 
       GoRoute(
           path: '/stage/:slugWithId',
-          pageBuilder: (final context, final state) {
-            final String fullParam = state.pathParameters['slugWithId']!;
-            final String stageId = fullParam.split('-').last;
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: StageDetailPage(stageId: stageId),
-              transitionsBuilder: fadeTransition,
-              transitionDuration: const Duration(milliseconds: 500),
-            );
-          }),
+          pageBuilder: (final context, final state) =>
+              CustomTransitionPage(
+                key: state.pageKey,
+                child: StageDetailPage(
+                    stageId:
+                    state.pathParameters['slugWithId']!.split('-').last),
+                transitionsBuilder: fadeTransition,
+                transitionDuration: const Duration(milliseconds: 500),
+              )),
 
       GoRoute(
           path: '/team/:slugWithId',
-          pageBuilder: (final context, final state) {
-            final String fullParam = state.pathParameters['slugWithId']!;
-            final String teamId = fullParam.split('-').last;
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: TeamDetailsPage(teamId: teamId),
-              transitionsBuilder: fadeTransition,
-              transitionDuration: const Duration(milliseconds: 500),
-            );
-          }),
-
-      GoRoute(
-        path: '/onboarding',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const OnboardingContainer(),
-          transitionsBuilder: curtainTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
-
-      GoRoute(
-        path: '/login',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const LoginScreen(),
-          transitionsBuilder: shimmerSlideTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
-
-      GoRoute(
-        path: '/phone-login',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const PhoneLogInPage(),
-          transitionsBuilder: shadowGateTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
-
-      GoRoute(
-        path: '/favorites',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const FavoritesPage(),
-          transitionsBuilder: cinematicFadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      ),
-
-      GoRoute(
-          path: '/my-tickets/:slugWithId',
-          pageBuilder: (final context, final state) {
-            final String fullParam = state.pathParameters['slugWithId']!;
-            final String userId = fullParam.split('-').last;
-
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: MyTicketPage(userId: userId),
-              transitionsBuilder: scrollSlideTransition,
-              transitionDuration: const Duration(milliseconds: 500),
-            );
-          }),
-
-      GoRoute(
-          path: '/profile-edit/:slugWithId',
-          pageBuilder: (final context, final state) {
-            final String fullParam = state.pathParameters['slugWithId']!;
-            final String userId = fullParam.split('-').last;
-
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: UserProfileEditScreen(userId: userId),
-              transitionsBuilder: fadeTransition,
-              transitionDuration: const Duration(milliseconds: 500),
-            );
-          }),
+          pageBuilder: (final context, final state) =>
+              CustomTransitionPage(
+                key: state.pageKey,
+                child: TeamDetailsPage(
+                    teamId:
+                    state.pathParameters['slugWithId']!.split('-').last),
+                transitionsBuilder: fadeTransition,
+                transitionDuration: const Duration(milliseconds: 500),
+              )),
 
       GoRoute(
         path: '/search',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const SearchPage(),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: SearchPage(),
+              transitionsBuilder: fadeTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
       ),
 
       GoRoute(
         path: '/settings',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AppSettingsPage(),
-          transitionsBuilder: fadeTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: AppSettingsPage(),
+              transitionsBuilder: fadeTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
       ),
 
       GoRoute(
+        path: '/favorites',
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: FavoritesPage(),
+              transitionsBuilder: cinematicFadeTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
+      ),
+
+      GoRoute(
+          path: '/my-tickets/:slugWithId',
+          pageBuilder: (final context, final state) =>
+              CustomTransitionPage(
+                key: state.pageKey,
+                child: MyTicketPage(
+                    userId:
+                    state.pathParameters['slugWithId']!.split('-').last),
+                transitionsBuilder: scrollSlideTransition,
+                transitionDuration: const Duration(milliseconds: 500),
+              )),
+
+      GoRoute(
+          path: '/profile-edit/:slugWithId',
+          pageBuilder: (final context, final state) =>
+              CustomTransitionPage(
+                key: state.pageKey,
+                child: UserProfileEditScreen(
+                    userId:
+                    state.pathParameters['slugWithId']!.split('-').last),
+                transitionsBuilder: fadeTransition,
+                transitionDuration: const Duration(milliseconds: 500),
+              )),
+
+      GoRoute(
         path: '/contracts',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: ContractsPage(),
-          transitionsBuilder: shadowGateTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: ContractsPage(),
+              transitionsBuilder: shadowGateTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
       ),
 
       GoRoute(
         path: '/help-support',
-        pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: HelpSupportPage(),
-          transitionsBuilder: shadowGateTransition,
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: HelpSupportPage(),
+              transitionsBuilder: shadowGateTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
+      ),
+
+      /// 🚪 AUTH & ONBOARDING (Zırh istemeyen, sade sayfalar)
+      GoRoute(
+        path: '/login',
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: const LoginScreen(),
+              transitionsBuilder: shimmerSlideTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
+      ),
+      GoRoute(
+        path: '/phone-login',
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: const PhoneLogInPage(),
+              transitionsBuilder: shadowGateTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        pageBuilder: (final context, final state) =>
+            CustomTransitionPage(
+              key: state.pageKey,
+              child: const OnboardingContainer(),
+              transitionsBuilder: curtainTransition,
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
       ),
     ],
     errorBuilder: (final context, final state) =>
