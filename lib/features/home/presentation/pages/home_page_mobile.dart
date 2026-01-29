@@ -182,11 +182,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             subtitle: "Sana Özel Seçkiler",
             onTap: () {},
           ),
-          ShowCollage(
-            shows: shows,
-            onShowTap: (final showId) =>
-                _navigateToPage(ShowDetailPage(showId: showId)),
-          ),
+          ShowCollage(shows: shows),
           const DividerWithAccent(),
           const SizedBox(height: 30),
           SectionHeader(

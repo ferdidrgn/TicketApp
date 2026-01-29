@@ -2,17 +2,13 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shows/domain/entities/show.dart';
 
 class ShowCollage extends StatelessWidget {
   final List<Show> shows;
-  final Function(String showId) onShowTap;
 
-  const ShowCollage({
-    super.key,
-    required this.shows,
-    required this.onShowTap,
-  });
+  const ShowCollage({super.key, required this.shows});
 
   @override
   Widget build(final BuildContext context) {
@@ -22,22 +18,21 @@ class ShowCollage extends StatelessWidget {
 
     return Column(
       children: [
-        _HeroShowSection(shows: displayShows, onShowTap: onShowTap),
+        _HeroShowSection(shows: displayShows),
         const SizedBox(height: 15),
-        _HorizontalShowStrip(shows: displayShows, onShowTap: onShowTap),
+        _HorizontalShowStrip(shows: displayShows),
         const SizedBox(height: 20),
-        _MosaicShowGrid(shows: displayShows, onShowTap: onShowTap),
+        _MosaicShowGrid(shows: displayShows),
       ],
     );
   }
 }
 
-// Hero section with overlapping cards
+// Hero section
 class _HeroShowSection extends StatelessWidget {
   final List<Show> shows;
-  final Function(String) onShowTap;
 
-  const _HeroShowSection({required this.shows, required this.onShowTap});
+  const _HeroShowSection({required this.shows});
 
   @override
   Widget build(final BuildContext context) {
@@ -60,7 +55,6 @@ class _HeroShowSection extends StatelessWidget {
                   angle: -0.02,
                   child: ShowCard(
                     show: shows[0],
-                    onTap: () => onShowTap(shows[0].id),
                     tag: "ANA",
                   ),
                 ),
@@ -75,7 +69,6 @@ class _HeroShowSection extends StatelessWidget {
                   angle: 0.03,
                   child: ShowCard(
                     show: shows[1],
-                    onTap: () => onShowTap(shows[1].id),
                     tag: "TREND",
                     isFeatured: true,
                   ),
@@ -91,7 +84,6 @@ class _HeroShowSection extends StatelessWidget {
                   angle: -0.05,
                   child: ShowCard(
                     show: shows[2],
-                    onTap: () => onShowTap(shows[2].id),
                     tag: "YENİ",
                   ),
                 ),
@@ -103,15 +95,11 @@ class _HeroShowSection extends StatelessWidget {
   }
 }
 
-// Horizontal scrolling strip
+// Horizontal strip
 class _HorizontalShowStrip extends StatelessWidget {
   final List<Show> shows;
-  final Function(String) onShowTap;
 
-  const _HorizontalShowStrip({
-    required this.shows,
-    required this.onShowTap,
-  });
+  const _HorizontalShowStrip({required this.shows});
 
   @override
   Widget build(final BuildContext context) {
@@ -138,7 +126,6 @@ class _HorizontalShowStrip extends StatelessWidget {
                 width: 100,
                 child: ShowCard(
                   show: stripShows[index],
-                  onTap: () => onShowTap(stripShows[index].id),
                   tag: index == 0 ? "ÖZEL" : null,
                 ),
               ),
@@ -150,15 +137,11 @@ class _HorizontalShowStrip extends StatelessWidget {
   }
 }
 
-// Mosaic grid layout
+// Mosaic grid
 class _MosaicShowGrid extends StatelessWidget {
   final List<Show> shows;
-  final Function(String) onShowTap;
 
-  const _MosaicShowGrid({
-    required this.shows,
-    required this.onShowTap,
-  });
+  const _MosaicShowGrid({required this.shows});
 
   @override
   Widget build(final BuildContext context) {
@@ -179,7 +162,6 @@ class _MosaicShowGrid extends StatelessWidget {
                     angle: 0.02,
                     child: ShowCard(
                       show: shows[7],
-                      onTap: () => onShowTap(shows[7].id),
                       tag: "POPÜLER",
                     ),
                   ),
@@ -197,7 +179,6 @@ class _MosaicShowGrid extends StatelessWidget {
                           angle: -0.03,
                           child: ShowCard(
                             show: shows[8],
-                            onTap: () => onShowTap(shows[8].id),
                             tag: "SÜRPRİZ",
                           ),
                         ),
@@ -208,7 +189,6 @@ class _MosaicShowGrid extends StatelessWidget {
                         height: 105,
                         child: ShowCard(
                           show: shows[9],
-                          onTap: () => onShowTap(shows[9].id),
                           tag: "VİP",
                         ),
                       ),
@@ -225,7 +205,6 @@ class _MosaicShowGrid extends StatelessWidget {
                 angle: -0.01,
                 child: ShowCard(
                   show: shows[10],
-                  onTap: () => onShowTap(shows[10].id),
                   tag: "SON ŞANS",
                   isWide: true,
                 ),
@@ -241,7 +220,6 @@ class _MosaicShowGrid extends StatelessWidget {
 // Reusable show card component
 class ShowCard extends StatelessWidget {
   final Show show;
-  final VoidCallback onTap;
   final String? tag;
   final bool isFeatured;
   final bool isWide;
@@ -249,7 +227,6 @@ class ShowCard extends StatelessWidget {
   const ShowCard({
     super.key,
     required this.show,
-    required this.onTap,
     this.tag,
     this.isFeatured = false,
     this.isWide = false,
@@ -257,8 +234,11 @@ class ShowCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    // Navigasyon fonksiyonu
+    void handleTap() => NavigationHandler.goToShow(context, show.id, show.name);
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: handleTap,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -306,13 +286,8 @@ class ShowCard extends StatelessWidget {
                   if (tag != null)
                     Align(
                       alignment: Alignment.topLeft,
-                      child: _TagLabel(
-                        label: tag!,
-                        isFeatured: isFeatured,
-                      ),
-                    )
-                  else
-                    const SizedBox.shrink(),
+                      child: _TagLabel(label: tag!, isFeatured: isFeatured),
+                    ),
                   Text(
                     show.name,
                     maxLines: isWide ? 1 : 2,
@@ -362,7 +337,7 @@ class ShowCard extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
-                  onTap: onTap,
+                  onTap: handleTap,
                   splashColor: Colors.white.withOpacity(0.2),
                   highlightColor: Colors.white.withOpacity(0.1),
                 ),

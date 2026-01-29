@@ -16,6 +16,7 @@ mixin GlobalScrollMixin<T extends StatefulWidget> on State<T> {
   }
 
   void _enhancedScrollListener() {
+    // Eğer controller bir listeye bağlı değilse (Shimmer aşaması) işlem yapma
     if (!scrollController.hasClients) return;
 
     final double offset = scrollController.offset;
