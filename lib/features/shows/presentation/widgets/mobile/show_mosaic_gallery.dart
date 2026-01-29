@@ -130,18 +130,8 @@ class _MosaicCard extends ConsumerWidget {
   @override
   Widget build(final BuildContext context, final WidgetRef ref) =>
       GestureDetector(
-        onTap: () async {
-          // 1. Sayfaya git ve kullanıcının geri dönmesini bekle
-          NavigationHandler.goToShow(context, show.id, show.name);
-
-          // 2. Kullanıcı geri döndü. Eğer context hala canlıysa listeyi yenile.
-          if (context.mounted) {
-            // Mevcut (filtrelenmiş 4 kişilik) listeyi temizle
-            ref.invalidate(showsProvider);
-            // Notifier üzerinden tazelemeyi tetikle
-            ref.read(playersProvider(isLimit: false)).value;
-          }
-        },
+        onTap: () async =>
+            NavigationHandler.goToShow(context, show.id, show.name),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
