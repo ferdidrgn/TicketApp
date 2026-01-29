@@ -9,6 +9,13 @@ import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../providers/player_provider.dart';
 
+/// 🎭 PLAYER DETAIL PAGE
+///
+/// Hybrid system ile:
+/// - Dinamik achievements
+/// - Dinamik collaborations
+/// - Smooth scroll
+
 class PlayerDetailPage extends ConsumerStatefulWidget {
   final String playerId;
 
@@ -19,48 +26,43 @@ class PlayerDetailPage extends ConsumerStatefulWidget {
 }
 
 class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
-    with TickerProviderStateMixin {
-  final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
+    with SingleTickerProviderStateMixin {
+  late ScrollController _scrollController;
+  final ValueNotifier<double> _scrollOffset = ValueNotifier(0.0);
   late AnimationController _fadeController;
-  late AnimationController _pulseController;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      _scrollOffset.value = _scrollController.offset;
+    });
+
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 800),
     )..forward();
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
-    );
   }
 
   @override
   void dispose() {
-    _scrollNotifier.dispose();
+    _scrollController.dispose();
+    _scrollOffset.dispose();
     _fadeController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(BuildContext context) {
     final detailAsync = ref.watch(playerDetailProvider(widget.playerId));
     final accentColor = context.colors.primary;
 
     return BasePageWrapper(
       showBackButton: true,
       showFab: true,
-      isLoading: detailAsync.isLoading,
+      customScrollController: _scrollController,
+      isLoading: detailAsync.isLoading && !detailAsync.hasValue,
       shimmerSkeleton: const ArtisticPageShimmer(),
       layoutConfig: PageBackgroundLayoutConfig(
         backgroundColor: context.scaffoldBackgroundColor,
@@ -69,311 +71,138 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       ),
       child: detailAsync.when(
         loading: () => const SizedBox.shrink(),
-        error: (final err, final stack) => Center(
-          child: Text(
-            "Hata: $err",
-            style: TextStyle(color: context.colors.onSurface),
-          ),
-        ),
-        data: (final state) => NotificationListener<ScrollNotification>(
-          onNotification: (final notification) {
-            if (notification is ScrollUpdateNotification) {
-              _scrollNotifier.value = notification.metrics.pixels;
-            }
-            return false;
-          },
-          child: Stack(
-            children: [
-              // PARALLAX HEADER
-              _buildParallaxHeader(context, state.player.imageUrl),
-
-              // MAIN CONTENT
-              CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  // Spacer for header
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: context.responsive(
-                        mobile: context.screenHeight * 0.5,
-                        tablet: context.screenHeight * 0.55,
-                        desktop: context.screenHeight * 0.6,
-                      ),
-                    ),
-                  ),
-
-                  // ARTIST NAME SECTION
-                  SliverToBoxAdapter(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: _buildArtistNameSection(context, state.player),
-                    ),
-                  ),
-
-                  // STATS CARDS
-                  SliverToBoxAdapter(
-                    child: _buildStatsSection(context, state),
-                  ),
-
-                  // TABS SECTION
-                  SliverToBoxAdapter(
-                    child: _buildContentTabs(context, state),
-                  ),
-
-                  // Bottom spacing
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: context.spacingLarge * 2),
-                  ),
-                ],
+        error: (err, stack) => _buildError(context, err.toString()),
+        data: (state) => CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildSliverHeader(context, state.player.imageUrl,
+                "${state.player.firstName} ${state.player.lastName}"),
+            SliverToBoxAdapter(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: context.scaffoldBackgroundColor,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(40)),
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(height: context.spacingLarge),
+                    _buildStatsSection(context, state),
+                    SizedBox(height: context.spacingLarge * 2),
+                    _buildContentTabs(context, state),
+                    SizedBox(height: context.spacingLarge * 3),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // 🎨 PARALLAX HEADER
-  Widget _buildParallaxHeader(
-      final BuildContext context, final String imageUrl) {
-    return ValueListenableBuilder<double>(
-      valueListenable: _scrollNotifier,
-      builder: (final context, final offset, final child) {
-        final accentColor = context.colors.primary;
-        final double blur = (offset / 50).clamp(0, 15);
-        final double scale = 1 + (offset / 1000).clamp(0, 0.2);
-        final double opacity = (1 - (offset / 300)).clamp(0, 1);
+  Widget _buildSliverHeader(
+      BuildContext context, String imageUrl, String name) {
+    return SliverAppBar(
+      expandedHeight: context.responsive(
+        mobile: context.screenHeight * 0.5,
+        tablet: context.screenHeight * 0.55,
+        desktop: context.screenHeight * 0.6,
+      ),
+      pinned: false,
+      stretch: true,
+      automaticallyImplyLeading: false,
+      flexibleSpace: FlexibleSpaceBar(
+        background: ValueListenableBuilder<double>(
+          valueListenable: _scrollOffset,
+          builder: (context, offset, child) {
+            final blur = (offset / 50).clamp(0.0, 15.0);
+            final opacity = (1 - (offset / 300)).clamp(0.0, 1.0);
 
-        return Positioned(
-          top: -offset * 0.4,
-          left: 0,
-          right: 0,
-          height: context.responsive(
-            mobile: context.screenHeight * 0.7,
-            tablet: context.screenHeight * 0.75,
-            desktop: context.screenHeight * 0.8,
-          ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Background Image
-              Transform.scale(
-                scale: scale,
-                child: OptimizedCachedImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              // Blur Layer
-              if (blur > 0)
-                BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                  child: Container(
-                    color: context.scaffoldBackgroundColor.withOpacity(0.2),
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover),
+                if (blur > 0)
+                  BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                    child: Container(color: Colors.black.withOpacity(0.2)),
                   ),
-                ),
-
-              // Vignette Effect
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      context.scaffoldBackgroundColor.withOpacity(0.0),
-                      // Resmin üstü tamamen ferah
-                      context.scaffoldBackgroundColor.withOpacity(0.4),
-                      // Yumuşak geçiş başlar
-                      context.scaffoldBackgroundColor.withOpacity(0.95),
-                      // İçeriğe hazırlık
-                      context.scaffoldBackgroundColor,
-                      // Tam siyah/arka plan uyuşması (Hatayı siler)
-                    ],
-                    stops: const [
-                      0.0,
-                      0.45,
-                      0.75,
-                      0.9,
-                      1.0
-                    ], // Geçiş noktalarını içeriğe göre optimize ettik
-                  ),
-                ),
-              ),
-
-              // Spotlight Pulse
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (final context, final child) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        center: const Alignment(0, -0.3),
-                        radius: 0.8 + (_pulseController.value * 0.2),
-                        colors: [
-                          accentColor.withOpacity(0.15 * opacity),
-                          Colors.transparent,
-                        ],
-                      ),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        context.scaffoldBackgroundColor.withOpacity(0.0),
+                        context.scaffoldBackgroundColor.withOpacity(0.5),
+                        context.scaffoldBackgroundColor.withOpacity(0.9),
+                        context.scaffoldBackgroundColor,
+                      ],
+                      stops: const [0.0, 0.4, 0.7, 0.85, 1.0],
                     ),
-                  );
-                },
-              ),
-
-              // Bottom Gradient
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      context.scaffoldBackgroundColor.withOpacity(0.0),
-                      // Tepeyi tamamen açtık
-                      context.scaffoldBackgroundColor.withOpacity(0.4),
-                      context.scaffoldBackgroundColor.withOpacity(0.8),
-                      context.scaffoldBackgroundColor,
-                      // İçerikle birleşen yer tam siyah
-                    ],
-                    stops: const [
-                      0.0,
-                      0.3,
-                      0.6,
-                      0.8,
-                      1.0
-                    ], // Geçişi daha aşağı çektik
                   ),
                 ),
-              ),
-
-              // Decorative Corners (Desktop only)
-              if (context.isDesktop) ...[
                 Positioned(
-                  top: 40,
-                  left: 40,
-                  child: _buildDecorativeCorner(context),
-                ),
-                Positioned(
-                  top: 40,
-                  right: 40,
-                  child: Transform.flip(
-                    flipX: true,
-                    child: _buildDecorativeCorner(context),
+                  bottom: context.spacingLarge,
+                  left: context.pagePadding.left,
+                  right: context.pagePadding.right,
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: context.colors.primary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: context.colors.primary.withOpacity(0.5)),
+                          ),
+                          child: Text(
+                            "SANATIN MİRASI",
+                            style: TextStyle(
+                              color: context.colors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: context.spacing),
+                        Text(
+                          name.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: context.responsive(
+                                mobile: 32.0, tablet: 40.0, desktop: 48.0),
+                            fontWeight: FontWeight.w900,
+                            height: 1.0,
+                            letterSpacing: -1,
+                            color: Colors.white,
+                            shadows: const [
+                              Shadow(color: Colors.black87, blurRadius: 30),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDecorativeCorner(final BuildContext context) {
-    return Container(
-      width: context.responsive(mobile: 40.0, desktop: 60.0),
-      height: context.responsive(mobile: 40.0, desktop: 60.0),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: context.colors.primary.withOpacity(0.4),
-            width: 2,
-          ),
-          left: BorderSide(
-            color: context.colors.primary.withOpacity(0.4),
-            width: 2,
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  // 📛 ARTIST NAME SECTION
-  Widget _buildArtistNameSection(
-      final BuildContext context, final dynamic player) {
-    return Container(
-      padding: context.sectionPadding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Subtitle
-          Row(
-            children: [
-              Container(
-                width: context.responsive(mobile: 30.0, desktop: 40.0),
-                height: 2,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      context.colors.primary,
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: context.spacing),
-              Text(
-                "SANATIN MİRASI",
-                style: TextStyle(
-                  color: context.colors.primary,
-                  letterSpacing: context.responsive(mobile: 3.0, desktop: 5.0),
-                  fontSize: context.responsive(mobile: 9.0, desktop: 11.0),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: context.spacing),
-
-          // Artist Name with Shadow Effect
-          Stack(
-            children: [
-              // Outline text
-              Text(
-                "${player.firstName}\n${player.lastName}".toUpperCase(),
-                style: TextStyle(
-                  fontSize: context.responsive(
-                    mobile: 40.0,
-                    tablet: 50.0,
-                    desktop: 60.0,
-                  ),
-                  fontWeight: FontWeight.w900,
-                  height: 0.9,
-                  letterSpacing: -2,
-                  foreground: Paint()
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = 2
-                    ..color = context.colors.primary.withOpacity(0.3),
-                ),
-              ),
-              // Main text
-              Text(
-                "${player.firstName}\n${player.lastName}".toUpperCase(),
-                style: TextStyle(
-                  fontSize: context.responsive(
-                    mobile: 40.0,
-                    tablet: 50.0,
-                    desktop: 60.0,
-                  ),
-                  fontWeight: FontWeight.w900,
-                  height: 0.9,
-                  letterSpacing: -2,
-                  color: context.colors.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 📊 STATS SECTION
-  Widget _buildStatsSection(
-      final BuildContext context, final PlayerDetailState state) {
+  Widget _buildStatsSection(BuildContext context, PlayerDetailState state) {
     return Padding(
-      padding: context.sectionPadding,
+      padding: context.pagePadding,
       child: context.responsive(
         mobile: _buildMobileStats(context, state),
         desktop: _buildDesktopStats(context, state),
@@ -381,28 +210,23 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildMobileStats(
-      final BuildContext context, final PlayerDetailState state) {
+  Widget _buildMobileStats(BuildContext context, PlayerDetailState state) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(
-                context,
-                icon: Icons.theater_comedy,
-                value: "${state.activeShows.length}",
-                label: "Aktif Oyun",
-              ),
+              child: _buildStatCard(context,
+                  icon: Icons.theater_comedy,
+                  value: "${state.activeShows.length}",
+                  label: "Aktif Oyun"),
             ),
             SizedBox(width: context.spacing),
             Expanded(
-              child: _buildStatCard(
-                context,
-                icon: Icons.history_edu,
-                value: "${state.pastShows.length}",
-                label: "Geçmiş Oyun",
-              ),
+              child: _buildStatCard(context,
+                  icon: Icons.history_edu,
+                  value: "${state.pastShows.length}",
+                  label: "Geçmiş"),
             ),
           ],
         ),
@@ -410,21 +234,17 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(
-                context,
-                icon: Icons.auto_awesome,
-                value: "∞",
-                label: "İhtilas",
-              ),
+              child: _buildStatCard(context,
+                  icon: Icons.people_outline,
+                  value: "${state.player.collaborations.length}",
+                  label: "İşbirliği"),
             ),
             SizedBox(width: context.spacing),
             Expanded(
-              child: _buildStatCard(
-                context,
-                icon: Icons.emoji_events,
-                value: "12+",
-                label: "Ödül",
-              ),
+              child: _buildStatCard(context,
+                  icon: Icons.emoji_events,
+                  value: "${state.player.achievements.length}",
+                  label: "Başarı"),
             ),
           ],
         ),
@@ -432,54 +252,45 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildDesktopStats(
-      final BuildContext context, final PlayerDetailState state) {
+  Widget _buildDesktopStats(BuildContext context, PlayerDetailState state) {
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard(
-            context,
-            icon: Icons.theater_comedy,
-            value: "${state.activeShows.length}",
-            label: "Aktif Oyun",
-          ),
+          child: _buildStatCard(context,
+              icon: Icons.theater_comedy,
+              value: "${state.activeShows.length}",
+              label: "Aktif"),
         ),
         SizedBox(width: context.spacing),
         Expanded(
-          child: _buildStatCard(
-            context,
-            icon: Icons.history_edu,
-            value: "${state.pastShows.length}",
-            label: "Geçmiş Oyun",
-          ),
+          child: _buildStatCard(context,
+              icon: Icons.history_edu,
+              value: "${state.pastShows.length}",
+              label: "Geçmiş"),
         ),
         SizedBox(width: context.spacing),
         Expanded(
-          child: _buildStatCard(
-            context,
-            icon: Icons.auto_awesome,
-            value: "∞",
-            label: "İhtilas",
-          ),
+          child: _buildStatCard(context,
+              icon: Icons.people_outline,
+              value: "${state.player.collaborations.length}",
+              label: "İşbirliği"),
         ),
         SizedBox(width: context.spacing),
         Expanded(
-          child: _buildStatCard(
-            context,
-            icon: Icons.emoji_events,
-            value: "12+",
-            label: "Ödül",
-          ),
+          child: _buildStatCard(context,
+              icon: Icons.emoji_events,
+              value: "${state.player.achievements.length}",
+              label: "Başarı"),
         ),
       ],
     );
   }
 
   Widget _buildStatCard(
-    final BuildContext context, {
-    required final IconData icon,
-    required final String value,
-    required final String label,
+    BuildContext context, {
+    required IconData icon,
+    required String value,
+    required String label,
   }) {
     return Container(
       padding: EdgeInsets.all(
@@ -488,10 +299,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       decoration: BoxDecoration(
         color: context.cardColor,
         borderRadius: BorderRadius.circular(context.borderRadius(0.75)),
-        border: Border.all(
-          color: context.colors.primary.withOpacity(0.2),
-          width: 1,
-        ),
+        border: Border.all(color: context.colors.primary.withOpacity(0.2)),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -503,11 +311,9 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: context.colors.primary.withOpacity(0.7),
-            size: context.responsive(mobile: 28.0, desktop: 36.0),
-          ),
+          Icon(icon,
+              color: context.colors.primary.withOpacity(0.7),
+              size: context.responsive(mobile: 28.0, desktop: 36.0)),
           SizedBox(height: context.spacing * 0.5),
           Text(
             value,
@@ -533,15 +339,11 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  // 📑 CONTENT TABS
-  Widget _buildContentTabs(
-      final BuildContext context, final PlayerDetailState state) {
+  Widget _buildContentTabs(BuildContext context, PlayerDetailState state) {
     return DefaultTabController(
       length: 4,
       child: Column(
         children: [
-          SizedBox(height: context.spacingLarge),
-          // Tab Bar tasarımı...
           Padding(
             padding: context.paddingHorizontal,
             child: Container(
@@ -569,10 +371,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               ),
             ),
           ),
-
           SizedBox(height: context.spacingLarge),
-
-          // Tab Views
           SizedBox(
             height: context.responsive(
                 mobile: 600.0, tablet: 700.0, desktop: 800.0),
@@ -591,56 +390,12 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  // 📖 BIOGRAPHY TAB
-  Widget _buildBiographyTab(
-      final BuildContext context, final PlayerDetailState state) {
+  Widget _buildBiographyTab(BuildContext context, PlayerDetailState state) {
     return SingleChildScrollView(
       padding: context.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Quote Section
-          Container(
-            padding: EdgeInsets.all(
-              context.responsive(mobile: 20.0, desktop: 28.0),
-            ),
-            decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(context.borderRadius()),
-              border: Border(
-                left: BorderSide(
-                  color: context.colors.primary,
-                  width: 4,
-                ),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.format_quote,
-                  color: context.colors.primary.withOpacity(0.3),
-                  size: context.responsive(mobile: 32.0, desktop: 40.0),
-                ),
-                SizedBox(width: context.spacing),
-                Expanded(
-                  child: Text(
-                    "Sahne benim tuvalim, kelimeler fırçam, ve her gece yeni bir eser yaratırım.",
-                    style: TextStyle(
-                      fontSize: context.responsive(mobile: 15.0, desktop: 17.0),
-                      height: 1.7,
-                      fontStyle: FontStyle.italic,
-                      color: context.colors.onSurface.withOpacity(0.9),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: context.spacingLarge),
-
-          // Bio Section
           Container(
             padding: context.cardPadding,
             decoration: BoxDecoration(
@@ -651,10 +406,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: context.colors.primary.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -681,21 +434,16 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               ],
             ),
           ),
-
           SizedBox(height: context.spacingLarge),
-
-          // Collaborations
-          _buildCollaborationsCard(context, state.player.collaborations),
+          if (state.player.collaborations.isNotEmpty)
+            _buildCollaborationsCard(context, state.player.collaborations),
         ],
       ),
     );
   }
 
   Widget _buildCollaborationsCard(
-      final BuildContext context, final List<String> collaborations) {
-    // Eğer işbirliği verisi yoksa bu bölümü hiç çizme
-    if (collaborations.isEmpty) return const SizedBox.shrink();
-
+      BuildContext context, List<String> collaborations) {
     return Container(
       padding: context.cardPadding,
       decoration: BoxDecoration(
@@ -711,7 +459,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                   color: context.colors.primary, size: 20),
               SizedBox(width: context.spacing * 0.5),
               Text(
-                "TANIMLAR",
+                "İŞBİRLİKLERİ",
                 style: TextStyle(
                   fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
                   fontWeight: FontWeight.bold,
@@ -724,7 +472,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           Wrap(
             spacing: context.spacing * 0.75,
             runSpacing: context.spacing * 0.75,
-            children: collaborations.map((final name) {
+            children: collaborations.map((name) {
               return Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -750,9 +498,16 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  // 🎭 ACTIVE SHOWS TAB
-  Widget _buildActiveShowsTab(
-      final BuildContext context, final PlayerDetailState state) {
+  Widget _buildActiveShowsTab(BuildContext context, PlayerDetailState state) {
+    if (state.activeShows.isEmpty) {
+      return Center(
+        child: Text(
+          "Aktif oyun bulunmuyor",
+          style: TextStyle(color: context.colors.onSurface.withOpacity(0.5)),
+        ),
+      );
+    }
+
     return GridView.builder(
       padding: context.pagePadding,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -762,21 +517,17 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         mainAxisSpacing: context.gridSpacing,
       ),
       itemCount: state.activeShows.length,
-      itemBuilder: (final context, final index) {
-        final show = state.activeShows[index];
-        return _buildShowCard(context, show, isActive: true);
+      itemBuilder: (context, index) {
+        return _buildShowCard(context, state.activeShows[index], true);
       },
     );
   }
 
-  Widget _buildShowCard(final BuildContext context, final Show show,
-      {final bool isActive = false}) {
+  Widget _buildShowCard(BuildContext context, Show show, bool isActive) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (final context) => ShowDetailPage(showId: show.id),
-        ),
+        MaterialPageRoute(builder: (_) => ShowDetailPage(showId: show.id)),
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -794,13 +545,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Image
-              OptimizedCachedImage(
-                imageUrl: show.imageUrl,
-                fit: BoxFit.cover,
-              ),
-
-              // Gradient Overlay
+              OptimizedCachedImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -813,17 +558,13 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                   ),
                 ),
               ),
-
-              // Badge
               if (isActive)
                 Positioned(
                   top: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: context.colors.primary,
                       borderRadius: BorderRadius.circular(12),
@@ -839,8 +580,6 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                     ),
                   ),
                 ),
-
-              // Title
               Positioned(
                 bottom: 12,
                 left: 12,
@@ -864,42 +603,42 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  // 📚 ARCHIVE TAB
-  Widget _buildArchiveTab(
-      final BuildContext context, final PlayerDetailState state) {
+  Widget _buildArchiveTab(BuildContext context, PlayerDetailState state) {
+    if (state.pastShows.isEmpty) {
+      return Center(
+        child: Text(
+          "Arşiv bulunmuyor",
+          style: TextStyle(color: context.colors.onSurface.withOpacity(0.5)),
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: context.pagePadding,
       itemCount: state.pastShows.length,
-      itemBuilder: (final context, final index) {
-        final show = state.pastShows[index];
-        return _buildArchiveItem(context, show);
+      itemBuilder: (context, index) {
+        return _buildArchiveItem(context, state.pastShows[index]);
       },
     );
   }
 
-  Widget _buildArchiveItem(final BuildContext context, final Show show) {
+  Widget _buildArchiveItem(BuildContext context, Show show) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (final context) => ShowDetailPage(showId: show.id),
-        ),
+        MaterialPageRoute(builder: (_) => ShowDetailPage(showId: show.id)),
       ),
       child: Container(
         margin: EdgeInsets.only(bottom: context.spacing),
-        padding: EdgeInsets.all(
-          context.responsive(mobile: 12.0, desktop: 16.0),
-        ),
+        padding:
+            EdgeInsets.all(context.responsive(mobile: 12.0, desktop: 16.0)),
         decoration: BoxDecoration(
           color: context.cardColor,
           borderRadius: BorderRadius.circular(context.borderRadius()),
-          border: Border.all(
-            color: context.colors.onSurface.withOpacity(0.1),
-          ),
+          border: Border.all(color: context.colors.onSurface.withOpacity(0.1)),
         ),
         child: Row(
           children: [
-            // Thumbnail
             Container(
               width: context.responsive(mobile: 60.0, desktop: 80.0),
               height: context.responsive(mobile: 85.0, desktop: 110.0),
@@ -907,28 +646,20 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                 borderRadius: BorderRadius.circular(context.borderRadius(0.5)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
-                  ),
+                      color: Colors.black.withOpacity(0.2), blurRadius: 8),
                 ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(context.borderRadius(0.5)),
                 child: ColorFiltered(
-                  colorFilter: const ColorFilter.mode(
-                    Colors.grey,
-                    BlendMode.saturation,
-                  ),
+                  colorFilter:
+                      const ColorFilter.mode(Colors.grey, BlendMode.saturation),
                   child: OptimizedCachedImage(
-                    imageUrl: show.imageUrl,
-                    fit: BoxFit.cover,
-                  ),
+                      imageUrl: show.imageUrl, fit: BoxFit.cover),
                 ),
               ),
             ),
             SizedBox(width: context.spacing),
-
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -944,10 +675,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                   ),
                   SizedBox(height: context.spacing * 0.5),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: context.colors.primary.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -965,46 +694,40 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                 ],
               ),
             ),
-
-            // Arrow
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: context.responsive(mobile: 16.0, desktop: 18.0),
-              color: context.colors.primary.withOpacity(0.5),
-            ),
+            Icon(Icons.arrow_forward_ios_rounded,
+                size: context.responsive(mobile: 16.0, desktop: 18.0),
+                color: context.colors.primary.withOpacity(0.5)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAchievementsTab(
-      final BuildContext context, final PlayerDetailState state) {
-    if (state.player.achievements.isEmpty)
+  Widget _buildAchievementsTab(BuildContext context, PlayerDetailState state) {
+    if (state.player.achievements.isEmpty) {
       return Center(
         child: Text(
-          "Henüz başarı kaydı bulunmuyor.",
+          "Henüz başarı kaydı bulunmuyor",
           style: TextStyle(color: context.colors.onSurface.withOpacity(0.5)),
         ),
       );
+    }
 
     return ListView.builder(
       padding: context.pagePadding.copyWith(top: 24),
       itemCount: state.player.achievements.length,
-      itemBuilder: (final context, final index) {
+      itemBuilder: (context, index) {
         final item = state.player.achievements[index];
-        final bool isLast = index == state.player.achievements.length - 1;
+        final isLast = index == state.player.achievements.length - 1;
 
         return IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- KRONOLOJİ İSTASYONU (SOL TARAF) ---
               SizedBox(
                 width: 40,
                 child: Column(
                   children: [
-                    // İstasyon İkonu
                     Container(
                       width: 28,
                       height: 28,
@@ -1019,7 +742,6 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                             size: 14, color: context.colors.primary),
                       ),
                     ),
-                    // Kesik Çizgi Tasarımı
                     if (!isLast)
                       Expanded(
                         child: Padding(
@@ -1034,15 +756,12 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                 ),
               ),
               const SizedBox(width: 16),
-
-              // --- İÇERİK KARTI (SAĞ TARAF) ---
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Yıl ve Dekoratif Hat
                       Row(
                         children: [
                           Text(
@@ -1071,7 +790,6 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // Başlık
                       Text(
                         (item['title'] ?? '').toUpperCase(),
                         style: const TextStyle(
@@ -1082,7 +800,6 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // Detay Metni ve İkonu
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1113,16 +830,30 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       },
     );
   }
+
+  Widget _buildError(BuildContext context, String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 60, color: context.colors.error),
+          SizedBox(height: context.spacing * 2),
+          Text("Hata oluştu", style: context.textTheme.titleLarge),
+          SizedBox(height: context.spacing),
+          Text(error, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
 }
 
-// Kesik çizgi çizici (Fütüristik fanzin havası için)
 class _DashedLinePainter extends CustomPainter {
   final Color color;
 
   _DashedLinePainter({required this.color});
 
   @override
-  void paint(final Canvas canvas, final Size size) {
+  void paint(Canvas canvas, Size size) {
     double dashHeight = 5, dashSpace = 3, startY = 0;
     final paint = Paint()
       ..color = color
@@ -1135,5 +866,5 @@ class _DashedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(final CustomPainter oldDelegate) => false;
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

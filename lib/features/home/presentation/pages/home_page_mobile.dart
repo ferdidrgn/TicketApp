@@ -14,7 +14,6 @@ import '../../../campaigns/presentation/pages/campaign_showcase_page.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../../../favorite/presentation/pages/favorite_screen.dart';
 import '../../../shows/domain/entities/show.dart';
-import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/pages/stage_details.dart';

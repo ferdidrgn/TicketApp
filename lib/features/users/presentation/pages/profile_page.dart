@@ -259,7 +259,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat('HAFIZA', '${user.ticketsId.length ?? 0}'),
+                _buildStat('HAFIZA', '${user.ticketsId.length}'),
                 _buildStat('ŞAHİTLİK', '12'),
                 _buildStat('DİKKAT', '8.9'),
               ],
