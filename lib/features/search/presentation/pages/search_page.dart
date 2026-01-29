@@ -63,79 +63,64 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final activeColor = _SearchStyles.filterPalettes[selectedFilter][0];
 
     return BasePageWrapper(
-      showBackButton: true,
-      showFab: true,
-      isLoading: searchState.isLoading,
-      customScrollController: scrollController,
-      layoutConfig: PageBackgroundLayoutConfig(
-        ambientColor: activeColor,
-        particleColor: activeColor.withOpacity(0.1),
-      ),
-      child: Stack(
-        // 💡 Butonu en üste sabitlemek için Stack kullanıyoruz
-        children: [
-          // 1. ANA İÇERİK
-          CustomScrollView(
-            controller: scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Üst boşluk (Geri butonu ve Header için)
-              SliverToBoxAdapter(
+        showBackButton: true,
+        showFab: true,
+        isLoading: searchState.isLoading,
+        customScrollController: scrollController,
+        layoutConfig: PageBackgroundLayoutConfig(
+          ambientColor: activeColor,
+          particleColor: activeColor.withOpacity(0.1),
+        ),
+        child: CustomScrollView(
+          controller: scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Üst boşluk (Geri butonu ve Header için)
+            SliverToBoxAdapter(
                 child:
-                    SizedBox(height: MediaQuery.of(context).padding.top + 60),
-              ),
+                    SizedBox(height: MediaQuery.of(context).padding.top + 60)),
 
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Column(
-                    children: [
-                      const TopGradientHeader(title: "Sanat Serüveni"),
-                      const SizedBox(height: 10),
-                      _buildIntegratedSearchField(context),
-                    ],
-                  ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  children: [
+                    const TopGradientHeader(title: "Sanat Serüveni"),
+                    const SizedBox(height: 10),
+                    _buildIntegratedSearchField(context),
+                  ],
                 ),
               ),
+            ),
 
-              // Filtreler (Pinned Header)
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverFilterDelegate(
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                      child: Container(
-                        color: context.colors.surface.withOpacity(0.7),
-                        alignment: Alignment.center,
-                        child: _buildFilterTabs(selectedFilter),
-                      ),
+            // Filtreler (Pinned Header)
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverFilterDelegate(
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      color: context.colors.surface.withOpacity(0.7),
+                      alignment: Alignment.center,
+                      child: _buildFilterTabs(selectedFilter),
                     ),
                   ),
                 ),
               ),
+            ),
 
-              // Sonuçlar
-              searchState.when(
-                data: (final data) =>
-                    _buildSearchResultContent(data, selectedFilter),
-                loading: () => const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator())),
-                error: (final e, final _) =>
-                    SliverToBoxAdapter(child: Center(child: Text("Hata: $e"))),
-              ),
-            ],
-          ),
-
-          // 2. SABİT GERİ DÖN BUTONU (Manuel Eklendi)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
-            left: 16,
-            child: const GlassmorphismBackButton(),
-          ),
-        ],
-      ),
-    );
+            // Sonuçlar
+            searchState.when(
+              data: (final data) =>
+                  _buildSearchResultContent(data, selectedFilter),
+              loading: () => const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator())),
+              error: (final e, final _) =>
+                  SliverToBoxAdapter(child: Center(child: Text("Hata: $e"))),
+            ),
+          ],
+        ));
   }
 
   // --- Widget Oluşturucular (Sınıf İçinde Olmalı) ---

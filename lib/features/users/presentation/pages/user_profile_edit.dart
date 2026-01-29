@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../shared/widgets/top_header_with_back_button.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
@@ -93,36 +94,118 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   @override
   Widget build(final BuildContext context) {
     final userAsync = ref.watch(currentUserProvider);
-    ref.watch(userMutationProvider);
+    // Mutation durumunu takip et (Loading vs.)
+    final mutationState = ref.watch(userMutationProvider);
 
     userAsync.whenData((final user) {
       if (user != null && !_isInitialized) _fillFields(user);
     });
 
-    return Scaffold(
-      body: CustomAppBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              TopHeaderWithBackButton(
-                title: 'Kimliğini Biçimlendir',
-                subtitle: 'Sanatçı profilini dünyaya tanıt...',
-                rightIcon: Icons.auto_fix_high_rounded,
-              ),
-              Expanded(
-                child: userAsync.when(
-                  loading: () => _buildShimmerLoading(),
-                  error: (final err, final stack) =>
-                      Center(child: Text('Hata: $err')),
-                  data: (final user) => _buildForm(context, user),
+    return BasePageWrapper(
+      showBackButton: true,
+      showFab: false,
+      isLoading: userAsync.isLoading || mutationState.isLoading,
+      layoutConfig: PageBackgroundLayoutConfig(
+        backgroundColor: context.scaffoldBackgroundColor,
+        safeAreaTop: true,
+      ),
+      child: userAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (final err, final stack) => Center(child: Text('Hata: $err')),
+        data: (final user) => SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          physics: const BouncingScrollPhysics(),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                // Sayfa Başlığı (BasePageWrapper geri butonunu üstte bıraktığı için burayı sadeleştirdik)
+                const SizedBox(height: 20),
+                _buildHeaderTexts(),
+
+                const SizedBox(height: 24),
+                const CustomArtWordsCard(
+                  word: 'Gelecek, güzelliğe inananlarındır.',
+                  author: 'Eleanor Roosevelt',
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 32),
+                _buildAvatarSection(),
+
+                const SizedBox(height: 32),
+                _buildSectionTitle('Öz Kimlik Bilgileri'),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomTextField(
+                        controller: _firstNameController,
+                        label: 'Ad',
+                        isRequired: true,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: CustomTextField(
+                        controller: _lastNameController,
+                        label: 'Soyad',
+                        isRequired: true,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+                CustomTextField(
+                  controller: _emailController,
+                  label: 'E-Posta Adresi',
+                  isRequired: false,
+                ),
+
+                const SizedBox(height: 16),
+                CustomTextField(
+                  controller: _phoneController,
+                  label: 'Telefon Numarası',
+                  isRequired: false,
+                ),
+
+                const SizedBox(height: 16),
+                CustomTextField(
+                  controller: _cityController,
+                  label: 'Yaşadığın Şehir',
+                  isRequired: false,
+                ),
+
+                const SizedBox(height: 40),
+                _buildSaveButton(),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  // Başlık metinlerini düzenlemek için yardımcı metod
+  Widget _buildHeaderTexts() => Column(
+    children: [
+      Text(
+        'Kimliğini Biçimlendir',
+        style: context.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: context.colors.onSurface,
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Sanatçı profilini dünyaya tanıt...',
+        style: context.textTheme.bodyMedium?.copyWith(
+          color: context.colors.onSurfaceVariant,
+        ),
+      ),
+    ],
+  );
 
   Widget _buildForm(final BuildContext context, final User? currentUser) =>
       SingleChildScrollView(

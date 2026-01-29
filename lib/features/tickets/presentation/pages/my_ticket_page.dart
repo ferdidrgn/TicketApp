@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_modal.dart';
-import '../../../../shared/widgets/top_header_with_back_button.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/date_formatter.dart';
-import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/top_header_with_back_button.dart';
 import '../providers/my_ticket_provider.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {
@@ -43,61 +43,89 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 
     final ticketsAsync = ref.watch(myTicketsProvider(widget.userId));
 
-    return Scaffold(
+    return BasePageWrapper(
+      showBackButton: true,
+      showFab: false,
+      isLoading: ticketsAsync.isLoading,
+      layoutConfig: PageBackgroundLayoutConfig(
         backgroundColor: context.colors.surface,
-        body: CustomAppBackground(
-            child: SafeArea(
-          child: Column(
-            children: [
-              TopHeaderWithBackButton(
-                title: 'Sanat Ajandan',
-                subtitle: 'Unutulmaz anların koleksiyonu...',
-                rightIcon: Icons.theater_comedy_rounded,
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: _TabSelector(controller: _tabController),
-              ),
-              Expanded(
-                child: RefreshIndicator(
-                  // Listeyi yenilemek için invalidate yeterli
-                  onRefresh: () async =>
-                      ref.invalidate(myTicketsProvider(widget.userId)),
-                  color: context.colors.primary,
-                  child: ticketsAsync.when(
-                    loading: () => ListView.builder(
-                      padding: const EdgeInsets.all(24),
-                      itemCount: 3,
-                      itemBuilder: (final _, final __) => const ShimmerCard(),
-                    ),
-                    error: (final err, final stack) =>
-                        Center(child: Text('Hata: $err')),
-                    data: (final tickets) {
-                      if (tickets.isEmpty) return const _EmptyState();
-
-                      return TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _TicketList(
-                            // Extension sayesinde filtreleme
-                            tickets: tickets.upcoming,
-                            onTicketTap: _showTicketDetails,
-                          ),
-                          _TicketList(
-                            tickets: tickets.past,
-                            isPast: true,
-                            onTicketTap: _showTicketDetails,
-                          ),
-                        ],
-                      );
-                    },
+        ambientColor: context.colors.primary.withOpacity(0.05),
+        safeAreaTop: true,
+      ),
+      child: Column(
+        children: [
+          TopHeaderWithBackButton(
+            title: 'Sanat Ajandan',
+            subtitle: 'Unutulmaz anların koleksiyonu...',
+            rightIcon: Icons.theater_comedy_rounded,
+          ),
+          // Sayfa Başlığı ve Alt Başlığı
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sanat Ajandan',
+                  style: context.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
                   ),
                 ),
-              ),
-            ],
+                Text(
+                  'Unutulmaz anların koleksiyonu...',
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
-        )));
+
+          // Tab Seçici
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: _TabSelector(controller: _tabController),
+          ),
+
+          // Liste Alanı
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async =>
+                  ref.invalidate(myTicketsProvider(widget.userId)),
+              color: context.colors.primary,
+              child: ticketsAsync.when(
+                loading: () => ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: 3,
+                  itemBuilder: (final _, final __) => const ShimmerCard(),
+                ),
+                error: (final err, final stack) =>
+                    Center(child: Text('Hata: $err')),
+                data: (final tickets) {
+                  if (tickets.isEmpty) return const _EmptyState();
+
+                  return TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _TicketList(
+                        tickets: tickets.upcoming,
+                        onTicketTap: _showTicketDetails,
+                      ),
+                      _TicketList(
+                        tickets: tickets.past,
+                        isPast: true,
+                        onTicketTap: _showTicketDetails,
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showTicketDetails(final DetailedTicket ticket) {

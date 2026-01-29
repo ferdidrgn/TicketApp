@@ -140,6 +140,7 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
   @override
   Widget build(final BuildContext context) {
     final isDark = context.isDarkMode;
+    final topPadding = MediaQuery.of(context).padding.top;
 
     // LOADING + SHIMMER
     if (widget.isLoading && widget.shimmerSkeleton != null)
@@ -175,17 +176,16 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
             floatingActionButtonLocation: widget.floatingActionButtonLocation,
             bottomNavigationBar: widget.bottomNavigationBar,
             bottomSheet: widget.bottomSheet,
-            body: CustomAppBackground(
-              backgroundColor: widget.layoutConfig.backgroundColor,
-              ambientColor: widget.layoutConfig.ambientColor,
-              particleColor: widget.layoutConfig.particleColor,
-              child: SafeArea(
-                top: widget.layoutConfig.safeAreaTop,
-                bottom: widget.layoutConfig.safeAreaBottom,
-                child: Stack(
-                  children: [
-                    // CONTENT
-                    FadeTransition(
+            body: Stack(
+              children: [
+                CustomAppBackground(
+                  backgroundColor: widget.layoutConfig.backgroundColor,
+                  ambientColor: widget.layoutConfig.ambientColor,
+                  particleColor: widget.layoutConfig.particleColor,
+                  child: SafeArea(
+                    top: widget.layoutConfig.safeAreaTop,
+                    bottom: widget.layoutConfig.safeAreaBottom,
+                    child: FadeTransition(
                       opacity: _fadeAnimation,
                       child: widget.onRefresh != null
                           ? RefreshIndicator(
@@ -194,42 +194,49 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
                               child: _buildContent())
                           : _buildContent(),
                     ),
-
-                    // BACK BUTTON
-                    if (widget.showBackButton &&
-                        NavigationHandler.canGoBack(context))
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: const GlassmorphismBackButton(),
-                      ),
-
-                    // SCROLL UP FAB
-                    if (widget.showFab &&
-                        widget.customScrollController != null &&
-                        !widget.isLoading)
-                      ValueListenableBuilder<bool>(
-                        valueListenable: _showFabNotifier,
-                        builder: (final context, final show, final child) {
-                          if (!show) return const SizedBox.shrink();
-                          return ScrollUpButton(
-                            scrollController: widget.customScrollController!,
-                            visibleNotifier: _showFabNotifier,
-                          );
-                        },
-                      ),
-
-                    // OVERLAY LOADING
-                    if (widget.isOverlayLoading) _buildOverlayLoading(),
-                  ],
+                  ),
                 ),
-              ),
+
+                // 2. KATMAN: GERİ DÖN BUTONU (SafeArea dışına, Stack'in en tepesine)
+                // 💡 Artık Sliver'lar bu butonu ezemez.
+                if (widget.showBackButton)
+                  Positioned(
+                    top: topPadding > 0 ? topPadding : 20,
+                    // ✅ Notch varsa altına, yoksa 20px
+                    left: 16,
+                    child: const GlassmorphismBackButton(),
+                  ),
+
+                // 3. KATMAN: SCROLL UP FAB (GlobalScrollMixin uyumlu)
+                if (widget.showFab &&
+                    widget.customScrollController != null &&
+                    !widget.isLoading)
+                  _buildFloatingScrollButton(),
+
+                // 4. KATMAN: OVERLAY LOADING
+                if (widget.isOverlayLoading) _buildOverlayLoading(),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+
+  Widget _buildFloatingScrollButton() => ValueListenableBuilder<bool>(
+        valueListenable: _showFabNotifier,
+        builder: (final context, final show, final child) {
+          if (!show) return const SizedBox.shrink();
+          return Positioned(
+            bottom: 100, // Bottom navigation bar varsa üzerine binmesin
+            right: 20,
+            child: ScrollUpButton(
+              scrollController: widget.customScrollController!,
+              visibleNotifier: _showFabNotifier,
+            ),
+          );
+        },
+      );
 
   Widget _buildContent() => Padding(
       padding: widget.layoutConfig.customPadding ??
