@@ -51,13 +51,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
   }
 
   @override
-  void onLoadMore() {
-    debugPrint("Daha fazla arama sonucu yükleniyor...");
-  }
+  void onLoadMore() => debugPrint("Daha fazla arama sonucu yükleniyor...");
 
-  void _onSeeAll(final int filterIndex) {
-    ref.read(searchFilterProvider.notifier).setFilter(filterIndex);
-  }
+  void _onSeeAll(final int filterIndex) =>
+      ref.read(searchFilterProvider.notifier).setFilter(filterIndex);
 
   @override
   Widget build(final BuildContext context) {
@@ -74,7 +71,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
         ambientColor: activeColor,
         particleColor: activeColor.withOpacity(0.1),
       ),
-      child: Stack( // 💡 Butonu en üste sabitlemek için Stack kullanıyoruz
+      child: Stack(
+        // 💡 Butonu en üste sabitlemek için Stack kullanıyoruz
         children: [
           // 1. ANA İÇERİK
           CustomScrollView(
@@ -83,7 +81,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
             slivers: [
               // Üst boşluk (Geri butonu ve Header için)
               SliverToBoxAdapter(
-                child: SizedBox(height: MediaQuery.of(context).padding.top + 60),
+                child:
+                    SizedBox(height: MediaQuery.of(context).padding.top + 60),
               ),
 
               SliverToBoxAdapter(
@@ -118,9 +117,12 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
               // Sonuçlar
               searchState.when(
-                data: (final data) => _buildSearchResultContent(data, selectedFilter),
-                loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
-                error: (final e, final _) => SliverToBoxAdapter(child: Center(child: Text("Hata: $e"))),
+                data: (final data) =>
+                    _buildSearchResultContent(data, selectedFilter),
+                loading: () => const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator())),
+                error: (final e, final _) =>
+                    SliverToBoxAdapter(child: Center(child: Text("Hata: $e"))),
               ),
             ],
           ),
