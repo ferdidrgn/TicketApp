@@ -250,7 +250,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-// 🔥 ÖNEMLİ: Widget aşağıda veya yukarıda kalsa bile hafızada tutmak için bu wrapper'ı kullanıyoruz.
+// 🔥 ÖNEMLİ: Widget aşağıda veya yukarıda kalsa bile hafızada tutmak için bu wrappers'ı kullanıyoruz.
 class _KeepAliveWrapper extends StatefulWidget {
   final Widget child;
 
