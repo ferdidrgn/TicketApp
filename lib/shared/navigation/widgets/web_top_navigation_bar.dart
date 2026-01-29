@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
 
 /// 💻 WEB TOP NAVIGATION BAR
@@ -20,7 +21,7 @@ class WebTopNavigationBar extends StatefulWidget {
 class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
   int? _hoveredIndex;
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(final int index) {
     if (index == widget.navigationShell.currentIndex) {
       HapticFeedback.mediumImpact();
       return;
@@ -31,7 +32,7 @@ class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
@@ -39,15 +40,13 @@ class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
           _buildTopBar(context),
 
           // MAIN CONTENT
-          Expanded(
-            child: widget.navigationShell,
-          ),
+          Expanded(child: widget.navigationShell),
         ],
       ),
     );
   }
 
-  Widget _buildTopBar(BuildContext context) {
+  Widget _buildTopBar(final BuildContext context) {
     final accentColor = context.colors.primary;
     final isDark = context.isDarkMode;
 
@@ -99,11 +98,12 @@ class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
     );
   }
 
-  Widget _buildLogo(BuildContext context, Color accentColor, bool isDark) {
+  Widget _buildLogo(
+      final BuildContext context, final Color accentColor, final bool isDark) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => context.go('/app'),
+        onTap: () => NavigationHandler.goToApp(context),
         child: Row(
           children: [
             Container(
@@ -148,7 +148,8 @@ class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
     );
   }
 
-  Widget _buildNavItems(BuildContext context, Color accentColor, bool isDark) {
+  Widget _buildNavItems(
+      final BuildContext context, final Color accentColor, final bool isDark) {
     final items = [
       {"label": "Ana Sayfa", "icon": Icons.home_rounded},
       {"label": "Keşfet", "icon": Icons.explore_rounded},
@@ -157,7 +158,7 @@ class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
     ];
 
     return Row(
-      children: List.generate(items.length, (index) {
+      children: List.generate(items.length, (final index) {
         final item = items[index];
         return Padding(
           padding: EdgeInsets.only(right: context.spacing),
@@ -174,19 +175,20 @@ class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, {
-    required String label,
-    required IconData icon,
-    required int index,
-    required Color accentColor,
-    required bool isDark,
+  Widget _buildNavItem(
+    final BuildContext context, {
+    required final String label,
+    required final IconData icon,
+    required final int index,
+    required final Color accentColor,
+    required final bool isDark,
   }) {
     final isSelected = widget.navigationShell.currentIndex == index;
     final isHovered = _hoveredIndex == index;
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = null),
+      onEnter: (final _) => setState(() => _hoveredIndex = index),
+      onExit: (final _) => setState(() => _hoveredIndex = null),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () => _onItemTapped(index),
@@ -196,8 +198,9 @@ class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
           decoration: BoxDecoration(
             color: isSelected
                 ? accentColor.withOpacity(0.15)
-                : (isHovered ? accentColor.withOpacity(0.08) : Colors
-                .transparent),
+                : (isHovered
+                    ? accentColor.withOpacity(0.08)
+                    : Colors.transparent),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
@@ -233,7 +236,8 @@ class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
     );
   }
 
-  Widget _buildProfileButton(BuildContext context, Color accentColor) {
+  Widget _buildProfileButton(
+      final BuildContext context, final Color accentColor) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(

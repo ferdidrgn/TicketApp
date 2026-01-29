@@ -20,7 +20,9 @@ class NavigationHandler {
         '/login/?from=${Uri.encodeComponent(currentPath)}';
 
     context.go(targetPath);
-  }static void goToPhoneLogin(final BuildContext context) {
+  }
+
+  static void goToPhoneLogin(final BuildContext context) {
     final String currentPath = GoRouterState.of(context).uri.path;
     final String targetPath =
         '/phone-login/?from=${Uri.encodeComponent(currentPath)}';
@@ -28,7 +30,9 @@ class NavigationHandler {
     context.go(targetPath);
   }
 
-  static void goToHome(final BuildContext context) => context.go('/');
+  static void goToHome(final BuildContext context) => context.go('/app');
+
+  static void goToApp(final BuildContext context) => context.go('/app');
 
   static void goToSearch(final BuildContext context) => context.go('/search');
 
@@ -156,7 +160,7 @@ class NavigationHandler {
       if (Navigator.canPop(context))
         Navigator.pop(context);
       else
-        context.go('/home');
+        context.go('/app');
     }
   }
 

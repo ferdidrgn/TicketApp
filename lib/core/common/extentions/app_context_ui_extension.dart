@@ -174,7 +174,7 @@ extension ResponsiveExtension on BuildContext {
   double cardAspectRatio() =>
       responsive(mobile: 0.65, tablet: 0.75, desktop: 0.85, largeDesktop: 0.90);
 
-  // Max width wrapper
+  // Max width wrappers
   Widget maxWidth({required final Widget child, final double? width}) =>
       ResponsiveUtils.maxWidthContainer(
           maxWidth: width, padding: pagePadding, child: child);

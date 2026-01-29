@@ -95,7 +95,7 @@ class _MyAppState extends ConsumerState<MyApp> {
 }
 
 /// Mobil cihazlarda status bar ve navigation bar stilini ayarlamak için
-/// kullanılan wrapper widget
+/// kullanılan wrappers widget
 class _MobileSystemUIWrapper extends StatelessWidget {
   final Widget child;
 
