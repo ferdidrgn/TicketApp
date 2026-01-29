@@ -167,7 +167,7 @@ class _CustomSearchbarState extends State<CustomSearchbar>
                                   ),
                                   child: Icon(
                                     Icons.search_rounded,
-                                    color: context.primaryColor,
+                                    color: context.colors.primary,
                                     size: iconSize,
                                   ),
                                 ),
