@@ -37,7 +37,7 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(width: 4, height: 24, color: context.primaryColor),
+          Container(width: 4, height: 24, color: context.colors.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

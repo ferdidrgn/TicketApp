@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
-import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../events/presentation/providers/event_provider.dart';
+import '../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../providers/seats_provider.dart';
 
-class SeatSelectionScreen extends ConsumerWidget {
+class SeatSelectionScreen extends ConsumerStatefulWidget {
   final String showId;
   final String eventId;
   final String customerId;
@@ -19,183 +21,151 @@ class SeatSelectionScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    // 🎯 REAKTİF VERİLER (AsyncValue Yapısı)
-    final seatingAsync =
-        ref.watch(eventSeatingProvider(eventId: eventId, showId: showId));
-    final seatsStatusAsync = ref.watch(eventSeatsProvider(eventId));
-    final timerAsync = ref.watch(reservationTimerProvider);
+  ConsumerState<SeatSelectionScreen> createState() =>
+      _SeatSelectionScreenState();
+}
+
+class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
+  @override
+  Widget build(final BuildContext context) {
+    // Screenshot 2'deki GoError'ı engellemek için watch işlemlerini en üstte yapıyoruz.
+    final seatingAsync = ref.watch(
+        eventSeatingProvider(eventId: widget.eventId, showId: widget.showId));
+    final seatsStatusAsync = ref.watch(eventSeatsProvider(widget.eventId));
+    final myTicketsAsync = ref.watch(myTicketsProvider(widget.customerId));
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => context.pop(),
+        ),
         title: const Text('Koltuk Seçimi',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        actions: [
-          _TimerBadge(timerAsync: timerAsync),
-        ],
-      ),
-      // Alt panel ve FAB için Async verilerin yüklenmesini bekliyoruz
-      floatingActionButton: seatingAsync.whenOrNull(
-        data: (final state) => seatsStatusAsync.whenOrNull(
-          data: (final status) => _SeatFab(
-            eventId: eventId,
-            showId: showId,
-            stageId: state.event.stageId,
-            seatsStatus: status,
-            customerId: customerId,
-            seatPrice: double.tryParse(state.event.price) ?? 0,
-          ),
-        ),
       ),
       body: CustomAppBackground(
         child: SafeArea(
           child: seatingAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (final err, final _) => Center(child: Text("Hata: $err")),
-            data: (final state) => Column(
+            error: (final err, final _) => Center(
+                child: Text("Hata: $err",
+                    style: const TextStyle(color: Colors.white))),
+            data: (final seatingState) => Column(
               children: [
-                _buildStageVisual(),
+                _buildTopVisual(context),
                 const _SeatLegend(),
-                // Koltuk planı
                 Expanded(
                   child: seatsStatusAsync.when(
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (final err, final _) => Text("Yükleme Hatası: $err"),
-                    data: (final status) => _SeatLayoutContainer(
-                      layout: state.layout,
-                      status: status,
-                      eventId: eventId,
-                      customerId: customerId,
-                    ),
+                    error: (final err, final _) => Center(
+                        child: Text("Koltuklar yüklenemedi",
+                            style: const TextStyle(color: Colors.white))),
+                    data: (final statusData) =>
+                        _buildInteractiveArea(seatingState, statusData),
                   ),
                 ),
-                // Fiyat Özeti
-                seatsStatusAsync.whenOrNull(
-                      data: (final status) => _BottomPriceCard(
-                        status: status,
-                        customerId: customerId,
-                        price: double.tryParse(state.event.price) ?? 0,
-                      ),
-                    ) ??
-                    const SizedBox.shrink(),
-                const SizedBox(height: 80),
+                // Fiyat paneli
+                _BottomPriceCard(
+                  seatingState: seatingState,
+                  statusData: seatsStatusAsync.value ?? {},
+                  customerId: widget.customerId,
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStageVisual() => Container(
-        height: 60,
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: const Column(
-          children: [
-            Divider(
-                color: Colors.white24, thickness: 2, indent: 50, endIndent: 50),
-            Text("SAHNE",
-                style: TextStyle(
-                    letterSpacing: 8, fontSize: 10, color: Colors.white54)),
-          ],
-        ),
-      );
-}
-
-class _TimerBadge extends StatelessWidget {
-  final AsyncValue<int> timerAsync;
-
-  const _TimerBadge({required this.timerAsync});
-
-  @override
-  Widget build(final BuildContext context) {
-    return timerAsync.when(
-      data: (final time) => Container(
-        margin: const EdgeInsets.only(right: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-            color: Colors.white12, borderRadius: BorderRadius.circular(20)),
-        child: Center(
-            child: Text("$time sn",
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold))),
+      floatingActionButton: _SeatFab(
+        seatingState: seatingAsync.value,
+        statusData: seatsStatusAsync.value,
+        customerId: widget.customerId,
       ),
-      error: (final _, final __) => const SizedBox.shrink(),
-      loading: () => const Padding(
-          padding: EdgeInsets.only(right: 20),
-          child: SizedBox(
-              width: 15,
-              height: 15,
-              child: CircularProgressIndicator(strokeWidth: 2))),
     );
   }
-}
 
-class _SeatLayoutContainer extends StatelessWidget {
-  final Map<String, List<String>> layout;
-  final Map<String, Map<String, dynamic>> status;
-  final String eventId;
-  final String customerId;
-
-  const _SeatLayoutContainer(
-      {required this.layout,
-      required this.status,
-      required this.eventId,
-      required this.customerId});
-
-  @override
-  Widget build(final BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildTopVisual(final BuildContext context) {
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
-        children: layout.entries
-            .map((final entry) => _SeatRow(
-                  rowName: entry.key,
-                  seats: entry.value,
-                  status: status,
-                  eventId: eventId,
-                  customerId: customerId,
-                ))
-            .toList(),
+        children: [
+          Container(
+            width: context.screenWidth * 0.6,
+            height: 4,
+            decoration: BoxDecoration(
+              color: context.primaryColor,
+              borderRadius: BorderRadius.circular(2),
+              boxShadow: [
+                BoxShadow(
+                    color: context.primaryColor.withOpacity(0.5),
+                    blurRadius: 10)
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text("SAHNE",
+              style: TextStyle(
+                  letterSpacing: 10, fontSize: 10, color: Colors.white54)),
+        ],
       ),
     );
   }
-}
 
-class _SeatRow extends StatelessWidget {
-  final String rowName;
-  final List<String> seats;
-  final Map<String, Map<String, dynamic>> status;
-  final String eventId;
-  final String customerId;
-
-  const _SeatRow(
-      {required this.rowName,
-      required this.seats,
-      required this.status,
-      required this.eventId,
-      required this.customerId});
-
-  @override
-  Widget build(final BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(rowName,
-              style: const TextStyle(color: Colors.white38, fontSize: 12)),
-          const SizedBox(width: 10),
-          ...seats.map((final seatId) => _SeatItem(
-                seatId: seatId,
-                info: status[seatId],
-                eventId: eventId,
-                customerId: customerId,
-              )),
-        ],
+  Widget _buildInteractiveArea(
+      final EventSeatingState state, final dynamic statusData) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: InteractiveViewer(
+          boundaryMargin: const EdgeInsets.all(100),
+          minScale: 0.1,
+          maxScale: 2.0,
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: state.layout.entries.map((final entry) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 30,
+                          child: Text(entry.key,
+                              style: const TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                        ...entry.value.map((final seatId) => _SeatItem(
+                              seatId: seatId,
+                              info: (statusData is Map)
+                                  ? statusData[seatId]
+                                  : statusData.seatStatus[seatId],
+                              eventId: widget.eventId,
+                              customerId: widget.customerId,
+                            )),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -222,8 +192,8 @@ class _SeatItem extends ConsumerWidget {
     if (status == 'available')
       color = Colors.green.withOpacity(0.4);
     else if (status == 'reserved')
-      color = isMyRes ? Colors.blue : Colors.purple;
-    else if (status == 'sold') color = Colors.white10;
+      color = isMyRes ? Colors.blue : Colors.purple.withOpacity(0.6);
+    else if (status == 'sold') color = Colors.red.withOpacity(0.2);
 
     return GestureDetector(
       onTap: (status == 'available' || isMyRes)
@@ -235,18 +205,20 @@ class _SeatItem extends ConsumerWidget {
               ))
           : null,
       child: Container(
-        width: 35,
-        height: 35,
+        width: 32,
+        height: 32,
         margin: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isMyRes ? Colors.white : Colors.white10),
+          border: Border.all(
+              color: isMyRes ? Colors.white : Colors.white12,
+              width: isMyRes ? 2 : 1),
         ),
         child: Center(
           child: Text(seatId.substring(1),
               style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: 9,
                   fontWeight: FontWeight.bold,
                   color: Colors.white)),
         ),
@@ -256,28 +228,34 @@ class _SeatItem extends ConsumerWidget {
 }
 
 class _BottomPriceCard extends StatelessWidget {
-  final Map<String, Map<String, dynamic>> status;
+  final EventSeatingState seatingState;
+  final dynamic statusData;
   final String customerId;
-  final double price;
 
   const _BottomPriceCard(
-      {required this.status, required this.customerId, required this.price});
+      {required this.seatingState,
+      required this.statusData,
+      required this.customerId});
 
   @override
   Widget build(final BuildContext context) {
-    final selectedSeats = status.entries
+    final Map<String, dynamic> seatMap =
+        (statusData is Map) ? statusData : (statusData.seatStatus ?? {});
+    final selectedSeats = seatMap.entries
         .where((final e) =>
             e.value['customerId'] == customerId &&
             e.value['status'] == 'reserved')
         .map((final e) => e.key)
         .toList();
 
+    final double price = double.tryParse(seatingState.event.price) ?? 0;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white10)),
       child: Row(
         children: [
@@ -286,7 +264,7 @@ class _BottomPriceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("SEÇİLEN KOLTUKLAR",
+                const Text("SEÇİLENLER",
                     style: TextStyle(
                         fontSize: 10,
                         color: Colors.white54,
@@ -327,24 +305,21 @@ class _BottomPriceCard extends StatelessWidget {
 }
 
 class _SeatFab extends ConsumerWidget {
-  final String eventId;
-  final String showId;
-  final String stageId;
-  final Map<String, Map<String, dynamic>> seatsStatus;
+  final EventSeatingState? seatingState;
+  final dynamic statusData;
   final String customerId;
-  final double seatPrice;
 
   const _SeatFab(
-      {required this.eventId,
-      required this.showId,
-      required this.stageId,
-      required this.seatsStatus,
-      required this.customerId,
-      required this.seatPrice});
+      {this.seatingState, this.statusData, required this.customerId});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final mySelectedSeats = seatsStatus.entries
+    if (seatingState == null || statusData == null)
+      return const SizedBox.shrink();
+
+    final Map<String, dynamic> seatMap =
+        (statusData is Map) ? statusData : (statusData.seatStatus ?? {});
+    final mySelectedSeats = seatMap.entries
         .where((final e) =>
             e.value['customerId'] == customerId &&
             e.value['status'] == 'reserved')
@@ -354,75 +329,14 @@ class _SeatFab extends ConsumerWidget {
     if (mySelectedSeats.isEmpty) return const SizedBox.shrink();
 
     return FloatingActionButton.extended(
-      onPressed: () => _showPaymentOptions(context, ref, mySelectedSeats),
+      onPressed: () {},
+      // Ödeme logic buraya gelecek
       label: const Text("ÖDEMEYE GEÇ"),
       icon: const Icon(Icons.payment),
       backgroundColor: Colors.white,
       foregroundColor: Colors.black,
     );
   }
-
-  void _showPaymentOptions(final BuildContext context, final WidgetRef ref,
-      final List<String> selectedSeats) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.black,
-      builder: (final _) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.credit_card, color: Colors.white),
-              title: const Text("Kredi Kartı ile Öde",
-                  style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(context);
-                _confirmPurchase(context, ref, selectedSeats, 'credit_card');
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _confirmPurchase(final BuildContext context, final WidgetRef ref,
-          final List<String> seats, final String method) =>
-      showDialog(
-        context: context,
-        // Kullanıcı dışarı basıp kapatamasın, seçim yapsın
-        barrierDismissible: false,
-        builder: (final ctx) => CustomActionDialog(
-          title: "ONAY",
-          message:
-              "${seats.length} adet bilet satın alınacaktır. Onaylıyor musunuz?",
-          positiveText: "SATIN AL",
-          onPositiveAction: () async {
-            // Dialogu kapat (Loading dialogu açılacaksa çakışmasın)
-            Navigator.pop(ctx);
-
-            // İşlemi başlat
-            await ref.read(purchaseActionProvider(
-              eventId: eventId,
-              showId: showId,
-              stageId: stageId,
-              seatIds: seats,
-              customerId: customerId,
-              paymentMethod: method,
-              totalPrice: seats.length * seatPrice,
-            ).future);
-
-            if (context.mounted)
-              NavigationHandler.goToMyTickets(context, customerId);
-          },
-          // 👇 EKSİK KISIMLAR TAMAMLANDI
-          negativeText: "VAZGEÇ",
-          onNegativeAction: () {
-            Navigator.pop(ctx);
-          },
-        ),
-      );
 }
 
 class _SeatLegend extends StatelessWidget {
@@ -432,19 +346,20 @@ class _SeatLegend extends StatelessWidget {
   Widget build(final BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        _item(Colors.green, "Boş"),
-        _item(Colors.blue, "Sizin"),
-        _item(Colors.purple, "Dolu")
+        _legendItem(Colors.green, "Boş"),
+        _legendItem(Colors.blue, "Sizin"),
+        _legendItem(Colors.purple, "Dolu")
       ]));
 
-  Widget _item(final Color c, final String l) => Padding(
+  Widget _legendItem(final Color c, final String l) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(children: [
         Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+                color: c.withOpacity(0.6), shape: BoxShape.circle)),
         const SizedBox(width: 6),
-        Text(l, style: const TextStyle(fontSize: 12, color: Colors.white70))
+        Text(l, style: const TextStyle(fontSize: 11, color: Colors.white70))
       ]));
 }

@@ -5,6 +5,8 @@ import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/util/global_scroll_mixin.dart';
+import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/top_gradient_header.dart';
@@ -38,13 +40,19 @@ class SearchPage extends ConsumerStatefulWidget {
   ConsumerState<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
+class _SearchPageState extends ConsumerState<SearchPage>
+    with ResponsiveUtils, GlobalScrollMixin {
   final _textController = TextEditingController();
 
   @override
   void dispose() {
     _textController.dispose();
     super.dispose();
+  }
+
+  @override
+  void onLoadMore() {
+    debugPrint("Daha fazla arama sonucu yükleniyor...");
   }
 
   void _onSeeAll(final int filterIndex) {
@@ -61,46 +69,67 @@ class _SearchPageState extends ConsumerState<SearchPage> with ResponsiveUtils {
       showBackButton: true,
       showFab: true,
       isLoading: searchState.isLoading,
+      customScrollController: scrollController,
       layoutConfig: PageBackgroundLayoutConfig(
         ambientColor: activeColor,
         particleColor: activeColor.withOpacity(0.1),
       ),
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 20, bottom: 10),
-              child: Column(
-                children: [
-                  const TopGradientHeader(title: "Sanat Serüveni"),
-                  const SizedBox(height: 10),
-                  _buildIntegratedSearchField(context),
-                ],
+      child: Stack( // 💡 Butonu en üste sabitlemek için Stack kullanıyoruz
+        children: [
+          // 1. ANA İÇERİK
+          CustomScrollView(
+            controller: scrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Üst boşluk (Geri butonu ve Header için)
+              SliverToBoxAdapter(
+                child: SizedBox(height: MediaQuery.of(context).padding.top + 60),
               ),
-            ),
-          ),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _SliverFilterDelegate(
-              child: ClipRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: Container(
-                    color: context.colors.surface.withOpacity(0.7),
-                    alignment: Alignment.center,
-                    child: _buildFilterTabs(selectedFilter),
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Column(
+                    children: [
+                      const TopGradientHeader(title: "Sanat Serüveni"),
+                      const SizedBox(height: 10),
+                      _buildIntegratedSearchField(context),
+                    ],
                   ),
                 ),
               ),
-            ),
+
+              // Filtreler (Pinned Header)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverFilterDelegate(
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                      child: Container(
+                        color: context.colors.surface.withOpacity(0.7),
+                        alignment: Alignment.center,
+                        child: _buildFilterTabs(selectedFilter),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Sonuçlar
+              searchState.when(
+                data: (final data) => _buildSearchResultContent(data, selectedFilter),
+                loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+                error: (final e, final _) => SliverToBoxAdapter(child: Center(child: Text("Hata: $e"))),
+              ),
+            ],
           ),
-          searchState.when(
-            data: (final data) =>
-                _buildSearchResultContent(data, selectedFilter),
-            loading: () => const SliverFillRemaining(child: SizedBox.shrink()),
-            error: (final e, final _) =>
-                SliverToBoxAdapter(child: Center(child: Text("Hata: $e"))),
+
+          // 2. SABİT GERİ DÖN BUTONU (Manuel Eklendi)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            child: const GlassmorphismBackButton(),
           ),
         ],
       ),

@@ -21,7 +21,7 @@ class NavigationButton extends StatelessWidget {
           child: Icon(
             Icons.arrow_forward,
             size: 16,
-            color: context.primaryColor,
+            color: context.colors.primary,
           ),
         ),
       );

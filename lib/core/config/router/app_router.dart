@@ -19,6 +19,7 @@ import '../../../features/favorite/presentation/pages/favorite_screen.dart';
 import '../../../features/home/presentation/pages/home_page_mobile.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
+import '../../../features/seat/presentation/pages/seat_details.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
 import '../../../features/shows/presentation/pages/show_detail_page.dart';
 import '../../../features/tickets/presentation/pages/my_ticket_page.dart';
@@ -322,6 +323,25 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           transitionsBuilder: curtainTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
+      ),
+
+      GoRoute(
+        path: '/seat-selection/:slugWithId',
+        name: 'seatSelection',
+        pageBuilder: (final context, final state) {
+          final params = state.pathParameters['slugWithId']!.split('-');
+          // URL yapısı: showId-eventId-userId
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: SeatSelectionScreen(
+              showId: params[0],
+              eventId: params[1],
+              customerId: params[2],
+            ),
+            transitionsBuilder: fadeTransition,
+            transitionDuration: const Duration(milliseconds: 500),
+          );
+        },
       ),
     ],
     errorBuilder: (final context, final state) =>
