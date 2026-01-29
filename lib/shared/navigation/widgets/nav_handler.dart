@@ -119,9 +119,16 @@ class NavigationHandler {
   static void goToHelpSupport(final BuildContext context) =>
       _safeNavigate(context, _buildPath(context, '/help-support'));
 
-  // ═══════════════════════════════════════════════════════════════
-  // SMART BACK NAVIGATION
-  // ═══════════════════════════════════════════════════════════════
+  static void goToCampaigns(final BuildContext context,
+          {final int? index}) =>
+      _safeNavigate(
+          context,
+          _buildPath(context, '/campaign-details',
+              extraParams: {if (index != null) 'index': index.toString()}));
+
+// ═══════════════════════════════════════════════════════════════
+// SMART BACK NAVIGATION
+// ═══════════════════════════════════════════════════════════════
 
   static void smartGoBack(final BuildContext context) {
     final state = GoRouterState.of(context);

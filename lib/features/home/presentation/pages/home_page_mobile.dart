@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/features/settings/presentation/pages/app_settings.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -10,13 +9,10 @@ import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
-import '../../../campaigns/presentation/pages/campaign_showcase_page.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
-import '../../../favorite/presentation/pages/favorite_screen.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
-import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../widgets/mobile/category_grid.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
@@ -60,9 +56,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _openSearch() => NavigationHandler.goToSearch(context);
-
-  void _navigateToPage(final Widget page) =>
-      Navigator.push(context, MaterialPageRoute(builder: (final _) => page));
 
   @override
   Widget build(final BuildContext context) {
@@ -157,15 +150,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           CustomSearchbar(onTap: _openSearch),
           const SizedBox(height: 20),
           SectionHeader(
-            title: "Öne Çıkanlar",
-            subtitle: "Vitrin",
-            onTap: () => _navigateToPage(const CampaignShowcasePage()),
-          ),
+              title: "Öne Çıkanlar",
+              subtitle: "Vitrin",
+              onTap: () => NavigationHandler.goToCampaigns(context)),
           StoryCircles(
-            campaigns: campaigns,
-            onStoryTap: (final index) =>
-                _navigateToPage(CampaignShowcasePage(initialIndex: index)),
-          ),
+              campaigns: campaigns,
+              onStoryTap: (final index) =>
+                  NavigationHandler.goToCampaigns(context, index: index)),
           const DividerWithAccent(),
           const SizedBox(height: 30),
           SectionHeader(
@@ -191,8 +182,10 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           StageCarousel(
             stages: stages,
-            onStageTap: (final stageId) =>
-                _navigateToPage(StageDetailPage(stageId: stageId)),
+            onStageTap: (final stageId) {
+              final stage = stages.firstWhere((final e) => e.id == stageId);
+              NavigationHandler.goToStage(context, stage.id, stage.name);
+            },
           ),
           const DividerWithAccent(),
           const SizedBox(height: 30),
@@ -204,8 +197,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           const SizedBox(height: 30),
           QuickActionsGrid(
-            onNotificationsTap: () => _navigateToPage(const AppSettingsPage()),
-            onFavoritesTap: () => _navigateToPage(const FavoritesPage()),
+            onNotificationsTap: () => NavigationHandler.goToSettings(context),
+            onFavoritesTap: () => NavigationHandler.goToFavorites(context),
             onTicketsTap: () {
               if (isLoggedIn && currentUser != null)
                 NavigationHandler.goToMyTickets(context, currentUser.uid);

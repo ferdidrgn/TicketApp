@@ -12,6 +12,7 @@ import '../../../features/appTools/presentation/pages/help_support_page.dart';
 import '../../../features/auth/presentation/page/login_screen.dart';
 import '../../../features/auth/presentation/page/phone_login_page.dart';
 import '../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../features/campaigns/presentation/pages/campaign_showcase_page.dart';
 import '../../../features/discovery/presentation/pages/discovery_page.dart';
 import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
 import '../../../features/favorite/presentation/pages/favorite_screen.dart';
@@ -274,6 +275,22 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           transitionsBuilder: shadowGateTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
+      ),
+
+      GoRoute(
+        path: '/campaign-details',
+        pageBuilder: (final context, final state) {
+          // URL'deki 'index' parametresini oku, yoksa 0 kabul et
+          final indexRaw = state.uri.queryParameters['index'];
+          final initialIndex = int.tryParse(indexRaw ?? '0') ?? 0;
+
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CampaignShowcasePage(initialIndex: initialIndex),
+            transitionsBuilder: shadowGateTransition,
+            transitionDuration: const Duration(milliseconds: 500),
+          );
+        },
       ),
 
       /// 🚪 AUTH & ONBOARDING
