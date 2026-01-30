@@ -6,7 +6,6 @@ import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
-import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/top_gradient_header.dart';
@@ -67,7 +66,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
         showFab: true,
         isLoading: searchState.isLoading,
         customScrollController: scrollController,
-        layoutConfig: PageBackgroundLayoutConfig(
+        layoutConfig: BasePageLayoutConfig(
           ambientColor: activeColor,
           particleColor: activeColor.withOpacity(0.1),
         ),

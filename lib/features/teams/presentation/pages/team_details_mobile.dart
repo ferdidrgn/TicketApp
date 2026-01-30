@@ -33,7 +33,7 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
       showFab: true,
       customScrollController: scrollController,
       isLoading: teamDetailAsync.isLoading,
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
         ambientColor: context.colors.primary,
         safeAreaTop: false,
       ),

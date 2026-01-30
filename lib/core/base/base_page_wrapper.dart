@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
-import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import 'package:ticketapp/shared/widgets/button/fab_scroll_up.dart';
+import '../../shared/widgets/top_header_with_back_button.dart';
 
-class PageBackgroundLayoutConfig {
+class BasePageLayoutConfig {
   final Color? backgroundColor;
   final Color? ambientColor;
   final Color? particleColor;
@@ -17,7 +17,7 @@ class PageBackgroundLayoutConfig {
   final bool safeAreaBottom;
   final EdgeInsets? customPadding;
 
-  const PageBackgroundLayoutConfig({
+  const BasePageLayoutConfig({
     this.backgroundColor,
     this.ambientColor,
     this.particleColor,
@@ -37,9 +37,11 @@ class PageBackgroundLayoutConfig {
 /// - FAB (opsiyonel scroll controller ile)
 /// - Loading states
 /// - System UI overlay
-
 class BasePageWrapper extends ConsumerStatefulWidget {
   final Widget child;
+  final String? title;
+  final String? subtitle;
+  final IconData? rightIcon;
   final Widget? shimmerSkeleton;
   final PreferredSizeWidget? appBar;
   final Widget? floatingActionButton;
@@ -50,15 +52,17 @@ class BasePageWrapper extends ConsumerStatefulWidget {
   final bool showFab;
   final bool isLoading;
   final bool isOverlayLoading;
-  final PageBackgroundLayoutConfig layoutConfig;
+  final BasePageLayoutConfig layoutConfig;
   final VoidCallback? onRefresh;
   final bool resizeToAvoidBottomInset;
-  final ScrollController?
-      customScrollController; // ✅ Opsiyonel scroll controller
+  final ScrollController? customScrollController;
 
   const BasePageWrapper({
     super.key,
     required this.child,
+    this.title,
+    this.subtitle,
+    this.rightIcon,
     this.shimmerSkeleton,
     this.appBar,
     this.floatingActionButton,
@@ -69,7 +73,7 @@ class BasePageWrapper extends ConsumerStatefulWidget {
     this.showFab = false,
     this.isLoading = false,
     this.isOverlayLoading = false,
-    this.layoutConfig = const PageBackgroundLayoutConfig(),
+    this.layoutConfig = const BasePageLayoutConfig(),
     this.onRefresh,
     this.resizeToAvoidBottomInset = true,
     this.customScrollController,
@@ -95,7 +99,6 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
 
     if (!widget.isLoading) _fadeController.forward();
 
-    // FAB visibility listener
     if (widget.customScrollController != null)
       widget.customScrollController!.addListener(_onScroll);
   }
@@ -105,7 +108,6 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isLoading && !widget.isLoading) _fadeController.forward();
 
-    // Update scroll listener
     if (oldWidget.customScrollController != widget.customScrollController) {
       oldWidget.customScrollController?.removeListener(_onScroll);
       widget.customScrollController?.addListener(_onScroll);
@@ -121,16 +123,13 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
   }
 
   void _onScroll() {
-    // 1. Güvenlik kilidi: Controller yoksa, bağlı değilse veya sayfa yükleniyorsa çalışma
     if (widget.customScrollController == null ||
         !widget.customScrollController!.hasClients ||
         widget.isLoading) return;
 
     try {
-      // Scroll değerini alırken hata oluşma ihtimaline karşı try-catch
       final double offset = widget.customScrollController!.offset;
       final bool showFab = offset > 200;
-
       if (_showFabNotifier.value != showFab) _showFabNotifier.value = showFab;
     } catch (e) {
       debugPrint("Scroll listener error: $e");
@@ -140,9 +139,7 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
   @override
   Widget build(final BuildContext context) {
     final isDark = context.isDarkMode;
-    final topPadding = MediaQuery.of(context).padding.top;
 
-    // LOADING + SHIMMER
     if (widget.isLoading && widget.shimmerSkeleton != null)
       return AnnotatedRegion<SystemUiOverlayStyle>(
         value: _getSystemUiStyle(isDark),
@@ -157,7 +154,6 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
         ),
       );
 
-    // MAIN CONTENT
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: _getSystemUiStyle(isDark),
       child: PopScope(
@@ -176,46 +172,54 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
             floatingActionButtonLocation: widget.floatingActionButtonLocation,
             bottomNavigationBar: widget.bottomNavigationBar,
             bottomSheet: widget.bottomSheet,
-            body: Stack(
-              children: [
-                CustomAppBackground(
-                  backgroundColor: widget.layoutConfig.backgroundColor,
-                  ambientColor: widget.layoutConfig.ambientColor,
-                  particleColor: widget.layoutConfig.particleColor,
-                  child: SafeArea(
-                    top: widget.layoutConfig.safeAreaTop,
-                    bottom: widget.layoutConfig.safeAreaBottom,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: widget.onRefresh != null
-                          ? RefreshIndicator(
-                              onRefresh: () async => widget.onRefresh?.call(),
-                              color: context.colors.primary,
-                              child: _buildContent())
-                          : _buildContent(),
+            body: CustomAppBackground(
+              backgroundColor: widget.layoutConfig.backgroundColor,
+              ambientColor: widget.layoutConfig.ambientColor,
+              particleColor: widget.layoutConfig.particleColor,
+              child: SafeArea(
+                top: widget.layoutConfig.safeAreaTop,
+                bottom: widget.layoutConfig.safeAreaBottom,
+                child: Column(
+                  // 💡 Çakışmayı önleyen ana yapı: Column
+                  children: [
+                    // 1. DİNAMİK HEADER (Sadece veri varsa yer kaplar)
+                    TopHeaderWithBackButton(
+                      title: widget.title,
+                      subtitle: widget.subtitle,
+                      rightIcon: widget.rightIcon,
+                      showBackButton: widget.showBackButton,
                     ),
-                  ),
+
+                    // 2. ANA İÇERİK ALANI
+                    Expanded(
+                      child: Stack(
+                        // Sadece FAB ve Overlay'i sabitlemek için Stack
+                        children: [
+                          FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: widget.onRefresh != null
+                                ? RefreshIndicator(
+                                    onRefresh: () async =>
+                                        widget.onRefresh?.call(),
+                                    color: context.colors.primary,
+                                    child: _buildContent())
+                                : _buildContent(),
+                          ),
+
+                          // FAB (Yukarı Çık Butonu)
+                          if (widget.showFab &&
+                              widget.customScrollController != null &&
+                              !widget.isLoading)
+                            _buildFloatingScrollButton(),
+
+                          // Tam Ekran Loading Karartması
+                          if (widget.isOverlayLoading) _buildOverlayLoading(),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-
-                // 2. KATMAN: GERİ DÖN BUTONU (SafeArea dışına, Stack'in en tepesine)
-                // 💡 Artık Sliver'lar bu butonu ezemez.
-                if (widget.showBackButton)
-                  Positioned(
-                    top: topPadding > 0 ? topPadding : 20,
-                    // ✅ Notch varsa altına, yoksa 20px
-                    left: 16,
-                    child: const GlassmorphismBackButton(),
-                  ),
-
-                // 3. KATMAN: SCROLL UP FAB (GlobalScrollMixin uyumlu)
-                if (widget.showFab &&
-                    widget.customScrollController != null &&
-                    !widget.isLoading)
-                  _buildFloatingScrollButton(),
-
-                // 4. KATMAN: OVERLAY LOADING
-                if (widget.isOverlayLoading) _buildOverlayLoading(),
-              ],
+              ),
             ),
           ),
         ),
@@ -228,7 +232,7 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
         builder: (final context, final show, final child) {
           if (!show) return const SizedBox.shrink();
           return Positioned(
-            bottom: 100, // Bottom navigation bar varsa üzerine binmesin
+            bottom: 20, // Bottom bar varsa 100 yapabilirsin
             right: 20,
             child: ScrollUpButton(
               scrollController: widget.customScrollController!,

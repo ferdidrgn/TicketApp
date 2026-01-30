@@ -62,7 +62,7 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
       showBackButton: true,
       showFab: true,
       customScrollController: scrollController,
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
           backgroundColor: context.scaffoldBackgroundColor),
       child: campaignsAsync.when(
         loading: () =>

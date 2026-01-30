@@ -50,7 +50,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       isLoading: currentUserAsync.isLoading,
       customScrollController: scrollController,
       // ✅ Mixin'den gelen controller
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
           backgroundColor: context.colors.surface, ambientColor: Colors.black),
       child: Scaffold(
         backgroundColor: context.colors.surface,

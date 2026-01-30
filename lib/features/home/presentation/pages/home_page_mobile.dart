@@ -76,7 +76,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       showFab: true,
       appBar: _buildDynamicAppBar(),
       isLoading: isLoading && (campaignState.value == null),
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
         ambientColor: context.colors.primary.withOpacity(0.05),
         extendBody: true,
       ),

@@ -47,7 +47,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
       showBackButton: true,
       showFab: false,
       isLoading: ticketsAsync.isLoading,
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.colors.surface,
         ambientColor: context.colors.primary.withOpacity(0.05),
         safeAreaTop: true,

@@ -35,7 +35,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
       showFab: true,
       customScrollController: scrollController,
       isLoading: detailAsync.isLoading,
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.scaffoldBackgroundColor,
         safeAreaTop: false, // Görselin yukarı sızması için
       ),

@@ -105,7 +105,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       showBackButton: true,
       showFab: false,
       isLoading: userAsync.isLoading || mutationState.isLoading,
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.scaffoldBackgroundColor,
         safeAreaTop: true,
       ),

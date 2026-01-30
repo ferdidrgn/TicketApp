@@ -43,7 +43,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       showBackButton: true,
       showFab: true,
       customScrollController: _scrollController,
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
         safeAreaTop: false,
         extendBody: true,
         backgroundColor: context.scaffoldBackgroundColor,

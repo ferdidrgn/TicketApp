@@ -64,7 +64,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       customScrollController: _scrollController,
       isLoading: detailAsync.isLoading && !detailAsync.hasValue,
       shimmerSkeleton: const ArtisticPageShimmer(),
-      layoutConfig: PageBackgroundLayoutConfig(
+      layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.scaffoldBackgroundColor,
         ambientColor: accentColor.withOpacity(0.05),
         extendBody: true,

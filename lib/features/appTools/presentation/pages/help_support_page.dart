@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/top_header_with_back_button.dart';
@@ -7,37 +8,38 @@ class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
 
   @override
-  Widget build(final BuildContext context) => Scaffold(
-        backgroundColor: context.colors.surface,
-        body: CustomAppBackground(
-          child: SafeArea(
-            child: Column(
-              children: [
-                const TopHeaderWithBackButton(
-                  title: 'DANIŞMA MASASI',
-                  subtitle: 'Serüveninde sana rehberlik edelim...',
-                  rightIcon: Icons.support_agent_rounded,
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    children: [
-                      _buildSearchBox(context),
-                      const SizedBox(height: 32),
-                      _buildSupportActions(context),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle(context, 'SIKÇA SORULANLAR'),
-                      const SizedBox(height: 16),
-                      _buildFaqItem(context, 'Biletimi nasıl bulabilirim?',
-                          'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
-                      _buildFaqItem(context, 'Sanatçı profili nasıl açılır?',
-                          'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
-                    ],
-                  ),
-                ),
-              ],
+  Widget build(final BuildContext context) => BasePageWrapper(
+        showBackButton: true,
+        // ✅ Standart geri butonu
+        showFab: false,
+        // Statik sayfa olduğu için FAB'a gerek yok
+        layoutConfig: BasePageLayoutConfig(
+          backgroundColor: context.colors.surface,
+          safeAreaTop: true,
+        ),
+        title: 'DANIŞMA MASASI',
+        subtitle: 'Serüveninde sana rehberlik edelim...',
+        rightIcon: Icons.support_agent_rounded,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: [
+                  _buildSearchBox(context),
+                  const SizedBox(height: 32),
+                  _buildSupportActions(context),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle(context, 'SIKÇA SORULANLAR'),
+                  const SizedBox(height: 16),
+                  _buildFaqItem(context, 'Biletimi nasıl bulabilirim?',
+                      'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
+                  _buildFaqItem(context, 'Sanatçı profili nasıl açılır?',
+                      'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       );
 

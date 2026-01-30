@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../providers/auth_mutation_provider.dart';
 import '../providers/auth_provider.dart';
 
@@ -28,9 +29,17 @@ class LoginScreen extends ConsumerWidget {
       );
     });
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
+    return BasePageWrapper(
+      showBackButton: false,
+      // Login'de geri butonu olmaz
+      showFab: false,
+      isOverlayLoading: authMutation.isLoading,
+      // 💡 Giriş yaparken ekranın üzerine loader koyar
+      layoutConfig: const BasePageLayoutConfig(
+        safeAreaTop: false, // Arka plan resminin en üste sızması için
+        safeAreaBottom: false,
+      ),
+      child: Stack(
         children: [
           Positioned.fill(
             child: Image.asset(

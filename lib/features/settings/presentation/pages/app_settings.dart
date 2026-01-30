@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ticketapp/core/services/deeplink/deeplink_service.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../shared/widgets/background/custom_app_background.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
-import '../../../../shared/widgets/top_header_with_back_button.dart';
 
 class AppSettingsPage extends StatelessWidget {
   const AppSettingsPage({super.key});
@@ -25,96 +24,85 @@ class AppSettingsPage extends StatelessWidget {
     final theme = context.theme;
     final colors = context.colors;
 
-    return Scaffold(
-      backgroundColor: colors.surface,
-      body: CustomAppBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              // 🎨 SANATSAL HEADER (Koleksiyon sayfanla aynı dilde)
-              const TopHeaderWithBackButton(
-                title: 'ATÖLYE PANELİ',
-                subtitle: 'Serüvenin teknik detaylarını restore et...',
-                rightIcon: Icons.handyman_rounded,
-              ),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 🕊️ İLHAM KARTI
-                      const InspirationalQuoteView(
-                        word:
-                            "Sanat, ruhun üzerindeki günlük yaşamın tozunu siler.",
-                        author: "Pablo Picasso",
-                        imageUrl:
-                            'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
-                      ),
-
-                      const SizedBox(height: 32),
-                      _buildSectionTitle(context, 'DUYUSAL AYARLAR'),
-                      const SizedBox(height: 16),
-
-                      _buildAtelierTile(
-                        context,
-                        title: 'Mekansal Rezonans',
-                        subtitle: 'Çevrendeki sanat duraklarını hisset.',
-                        icon: Icons.location_searching_rounded,
-                        color: colors.primary,
-                        onTap: () => _handlePermission(Permission.location),
-                      ),
-                      _buildAtelierTile(
-                        context,
-                        title: 'Sanat Fısıltıları',
-                        subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
-                        icon: Icons.vibration_rounded,
-                        color: colors.secondary,
-                        onTap: () => _handlePermission(Permission.notification),
-                      ),
-
-                      const SizedBox(height: 32),
-                      _buildSectionTitle(context, 'GALERİ YAYILIMI'),
-                      const SizedBox(height: 16),
-
-                      _buildCreativeAction(
-                        context,
-                        title: 'Atölyeyi Puanla',
-                        desc: 'Bu koleksiyonu yıldızlarla parlat.',
-                        icon: Icons.auto_awesome_rounded,
-                        gradient: [colors.primary, colors.primaryContainer],
-                        onTap: () => TiyatrolDeeplinkService.shareApp(),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildCreativeAction(
-                        context,
-                        title: 'İlhamı Paylaş',
-                        desc: 'Sanatı bir dostunun kalbine bırak.',
-                        icon: Icons.send_rounded,
-                        gradient: [colors.secondary, colors.secondaryContainer],
-                        onTap: _shareApp,
-                      ),
-
-                      const SizedBox(height: 40),
-                      Center(
-                        child: Text(
-                          'Versiyon 1.0.4 - Sanatla Tasarlandı',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colors.onSurface.withOpacity(0.3),
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+    return BasePageWrapper(
+      // 🎯 Header Parametreleri (Artık Wrapper tarafından otomatik yönetiliyor)
+      title: 'ATÖLYE PANELİ',
+      subtitle: 'Serüvenin teknik detaylarını restore et...',
+      rightIcon: Icons.handyman_rounded,
+      showBackButton: true,
+      showFab: false,
+      layoutConfig: BasePageLayoutConfig(
+        backgroundColor: colors.surface,
+        safeAreaTop: true,
+      ),
+      // 💡 İçerik artık doğrudan ListView veya SingleChildScrollView olabilir
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        children: [
+          // 🕊️ İLHAM KARTI
+          const InspirationalQuoteView(
+            word: "Sanat, ruhun üzerindeki günlük yaşamın tozunu siler.",
+            author: "Pablo Picasso",
+            imageUrl:
+                'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
           ),
-        ),
+
+          const SizedBox(height: 32),
+          _buildSectionTitle(context, 'DUYUSAL AYARLAR'),
+          const SizedBox(height: 16),
+
+          _buildAtelierTile(
+            context,
+            title: 'Mekansal Rezonans',
+            subtitle: 'Çevrendeki sanat duraklarını hisset.',
+            icon: Icons.location_searching_rounded,
+            color: colors.primary,
+            onTap: () => _handlePermission(Permission.location),
+          ),
+          _buildAtelierTile(
+            context,
+            title: 'Sanat Fısıltıları',
+            subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
+            icon: Icons.vibration_rounded,
+            color: colors.secondary,
+            onTap: () => _handlePermission(Permission.notification),
+          ),
+
+          const SizedBox(height: 32),
+          _buildSectionTitle(context, 'GALERİ YAYILIMI'),
+          const SizedBox(height: 16),
+
+          _buildCreativeAction(
+            context,
+            title: 'Atölyeyi Puanla',
+            desc: 'Bu koleksiyonu yıldızlarla parlat.',
+            icon: Icons.auto_awesome_rounded,
+            gradient: [colors.primary, colors.primaryContainer],
+            onTap: () => TiyatrolDeeplinkService.shareApp(),
+          ),
+          const SizedBox(height: 16),
+          _buildCreativeAction(
+            context,
+            title: 'İlhamı Paylaş',
+            desc: 'Sanatı bir dostunun kalbine bırak.',
+            icon: Icons.send_rounded,
+            gradient: [colors.secondary, colors.secondaryContainer],
+            onTap: _shareApp,
+          ),
+
+          const SizedBox(height: 40),
+          Center(
+            child: Text(
+              'Versiyon 1.0.4 - Sanatla Tasarlandı',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.onSurface.withOpacity(0.3),
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
+        ],
       ),
     );
   }
