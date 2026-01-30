@@ -725,7 +725,7 @@ final class PurchaseActionProvider
   }
 }
 
-String _$purchaseActionHash() => r'ca4a9354b86a65b81c070d0f0bdf72460116f587';
+String _$purchaseActionHash() => r'33959d7e94f640e90d1adf48158469e3988744a6';
 
 final class PurchaseActionFamily extends $Family
     with
