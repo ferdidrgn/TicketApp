@@ -20,7 +20,8 @@ class HelpSupportPage extends StatelessWidget {
       title: 'DANIŞMA MASASI',
       subtitle: 'Serüveninde sana rehberlik edelim...',
       rightIcon: Icons.support_agent_rounded,
-      child: Center( // ✅ Web'de içeriği ortalamak için
+      child: Center(
+        // ✅ Web'de içeriği ortalamak için
         child: ConstrainedBox(
           constraints: BoxConstraints(
             // ✅ Web'de 800px genişliği geçmemesi için kısıt koyuyoruz
@@ -50,36 +51,36 @@ class HelpSupportPage extends StatelessWidget {
 
   // Arama Kutusu (Modern & Keskin Border)
   Widget _buildSearchBox(final BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      color: context.colors.surfaceVariant.withOpacity(0.5),
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: context.colors.outlineVariant),
-    ),
-    child: const TextField(
-      decoration: InputDecoration(
-        hintText: 'Sorunun cevabını burada ara...',
-        border: InputBorder.none,
-        icon: Icon(Icons.search),
-      ),
-    ),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: context.colors.surfaceVariant.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: context.colors.outlineVariant),
+        ),
+        child: const TextField(
+          decoration: InputDecoration(
+            hintText: 'Sorunun cevabını burada ara...',
+            border: InputBorder.none,
+            icon: Icon(Icons.search),
+          ),
+        ),
+      );
 
   // İletişim Kartları (Hızlı Aksiyon)
   Widget _buildSupportActions(final BuildContext context) => Row(
-    children: [
-      Expanded(
-          child: _buildActionCard(context, Icons.chat_bubble_outline,
-              'Canlı Destek', 'Küratörle Konuş')),
-      const SizedBox(width: 16),
-      Expanded(
-          child: _buildActionCard(
-              context, Icons.mail_outline, 'E-posta', 'Mektup Gönder')),
-    ],
-  );
+        children: [
+          Expanded(
+              child: _buildActionCard(context, Icons.chat_bubble_outline,
+                  'Canlı Destek', 'Küratörle Konuş')),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildActionCard(
+                  context, Icons.mail_outline, 'E-posta', 'Mektup Gönder')),
+        ],
+      );
 
   Widget _buildActionCard(final BuildContext context, final IconData icon,
-      final String title, final String sub) =>
+          final String title, final String sub) =>
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -101,14 +102,15 @@ class HelpSupportPage extends StatelessWidget {
 
   // Accordion (FAQ) Item
   Widget _buildFaqItem(final BuildContext context, final String question,
-      final String answer) =>
+          final String answer) =>
       Theme(
         // FAQ çizgilerini temizlemek için
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: EdgeInsets.zero,
           title: Text(question,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           children: [
             Padding(
                 padding: const EdgeInsets.only(bottom: 16),
