@@ -392,7 +392,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-              color: context.colors.onSecondary, shape: BoxShape.circle),
+              // İkon arka planı onSecondary yapıldı
+              color: context.colors.onSecondary,
+              shape: BoxShape.circle),
           child: Icon(icon, size: 18, color: context.primaryColor),
         ),
         const SizedBox(width: 10),
@@ -500,7 +502,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  // 🎭 OYUNCU LİSTESİ (ESKİ OYUNCULAR İÇİN ŞIK TASARIM)
   Widget _buildCastList(final BuildContext context, final dynamic state,
       final List<String> playerIds, final bool isGrayscale) {
     final List<Player> allPlayers =
@@ -509,7 +510,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         allPlayers.where((final p) => playerIds.contains(p.id)).toList();
 
     return SizedBox(
-      height: 120, // Biraz daha yer açtık
+      height: 120,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         scrollDirection: Axis.horizontal,
@@ -523,7 +524,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                 pathParameters: {'playerId': player.id}),
             child: Column(
               children: [
-                // ŞIK AVATAR TASARIMI
                 Container(
                   width: 75,
                   height: 75,
@@ -562,6 +562,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                           fontSize: 11,
                           fontWeight:
                               isGrayscale ? FontWeight.w600 : FontWeight.bold,
+                          // İsim rengi secondary yapıldı
                           color: isGrayscale
                               ? context.colors.secondary
                               : context.colors.onSurface)),
@@ -574,7 +575,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  // 💎 SÜSLÜ, KIVIRIK, SHADOWLU BOTTOM BAR
   Widget _buildFloatingBottomBar(
       final BuildContext context, final dynamic state) {
     double minPrice = 0;
@@ -584,13 +584,12 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-      // Yüzen (Floating) Effect
       decoration: BoxDecoration(
-        color: context.colors.surfaceContainer, // M3 Surface rengi
-        borderRadius: BorderRadius.circular(32), // İyice kıvırık
+        color: context.colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: context.colors.shadow.withOpacity(0.25), // Güçlü gölge
+            color: context.colors.shadow.withOpacity(0.25),
             blurRadius: 25,
             offset: const Offset(0, 8),
             spreadRadius: 2,
@@ -601,7 +600,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Glassmorphism içi
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
@@ -613,12 +612,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                     Text("Başlayan",
                         style: TextStyle(
                             fontSize: 11,
+                            // Başlık rengi secondary yapıldı
                             color: context.colors.secondary,
                             fontWeight: FontWeight.w600)),
                     Text("₺${minPrice.toStringAsFixed(0)}",
                         style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
+                            // Fiyat rengi onSecondary yapıldı
                             color: context.colors.onSecondary,
                             height: 1)),
                   ],
@@ -630,6 +631,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
+                          // Gölge rengi onPrimary yapıldı
                           color: context.colors.onPrimary.withOpacity(0.4),
                           blurRadius: 15,
                           offset: const Offset(0, 5),
@@ -646,7 +648,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20)),
-                        elevation: 0, // Gölgeyi Container veriyor
+                        elevation: 0,
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
