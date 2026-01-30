@@ -336,7 +336,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
             child: SeatSelectionPage(
               showId: params[0],
               eventId: params[1],
-              userId: params[2],
+              customerId: params[2],
             ),
             transitionsBuilder: fadeTransition,
             transitionDuration: const Duration(milliseconds: 500),
