@@ -41,7 +41,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       subtitle: widget.selectedCategory != null
           ? '${widget.selectedCategory} kategorisindeki etkinlikler'
           : 'Küratörlerin hazırladığı özel seçkiler',
-      showBackButton: true,
+      showBackButton: false,
       showFab: true,
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.colors.surface,
