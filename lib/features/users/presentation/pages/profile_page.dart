@@ -43,144 +43,154 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   @override
   Widget build(final BuildContext context) {
     final currentUserAsync = ref.watch(currentUserProvider);
+    final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
-      showBackButton: false,
-      showFab: true,
-      isLoading: currentUserAsync.isLoading,
-      customScrollController: scrollController,
-      // ✅ Mixin'den gelen controller
-      layoutConfig: BasePageLayoutConfig(
-          backgroundColor: context.colors.surface, ambientColor: Colors.black),
-      child: Scaffold(
-        backgroundColor: context.colors.surface,
-        body: currentUserAsync.when(
+        showBackButton: false,
+        showFab: true,
+        rightIcon: Icons.auto_awesome,
+        isLoading: currentUserAsync.isLoading,
+        customScrollController: scrollController,
+        layoutConfig: BasePageLayoutConfig(
+            backgroundColor: context.colors.surface,
+            ambientColor: Colors.black.withOpacity(0.05)),
+        child: currentUserAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (final err, final stack) =>
                 Center(child: Text("Hata: $err")),
             data: (final userData) {
               final bool isLoggedIn = userData != null;
 
-              return CustomScrollView(
-                controller: scrollController,
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.all(25),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        const SizedBox(height: 20),
-                        // SafeArea alternatifi üst boşluk
-                        _buildArtisticHeader(!isLoggedIn),
-                        const SizedBox(height: 32),
+              return Center(
+                  child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                          maxWidth: isLargeScreen ? 1100 : double.infinity),
+                      child: CustomScrollView(
+                        controller: scrollController,
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.all(25),
+                            sliver: SliverList(
+                              delegate: SliverChildListDelegate([
+                                const SizedBox(height: 20),
+                                _buildArtisticHeader(!isLoggedIn),
 
-                        if (isLoggedIn)
-                          _buildNeumorphicPortrait(userData)
-                        else
-                          _buildSilentStageInvitation(),
+                                if (isLoggedIn)
+                                  _buildNeumorphicPortrait(userData)
+                                else
+                                  _buildSilentStageInvitation(),
 
-                        const SizedBox(height: 40),
+                                const SizedBox(height: 40),
 
-                        _buildSectionLabel("ATMOSFER VE TEKNİK"),
-                        const ThemeSelectorCard(),
-                        const SizedBox(height: 16),
-                        _buildSculptedTile(
-                          icon: Icons.settings_suggest_rounded,
-                          title: 'Atölye Ayarları',
-                          subtitle: 'Bildirimler, dil ve teknik tercihler',
-                          color: Colors.blueGrey,
-                          onTap: () => NavigationHandler.goToSettings(context),
-                        ),
+                                _buildSectionLabel("ATMOSFER VE TEKNİK"),
+                                const ThemeSelectorCard(),
+                                const SizedBox(height: 16),
+                                _buildSculptedTile(
+                                  icon: Icons.settings_suggest_rounded,
+                                  title: 'Atölye Ayarları',
+                                  subtitle:
+                                      'Bildirimler, dil ve teknik tercihler',
+                                  color: Colors.blueGrey,
+                                  onTap: () =>
+                                      NavigationHandler.goToSettings(context),
+                                ),
 
-                        const SizedBox(height: 40),
+                                const SizedBox(height: 40),
 
-                        _buildSectionLabel("RUHUN İZLERİ"),
-                        _buildSculptedTile(
-                          icon: Icons.auto_stories_rounded,
-                          title: 'Tanıklık Günlüğü',
-                          subtitle: 'Sahne tozunu yuttuğun tüm anların dökümü',
-                          isLocked: !isLoggedIn,
-                          color: const Color(0xFF6366F1),
-                          onTap: () => NavigationHandler.goToMyTickets(
-                              context, userData?.id ?? ""),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSculptedTile(
-                          icon: Icons.auto_awesome_mosaic_rounded,
-                          title: 'İlham Galerisi',
-                          subtitle: 'Zihninde yankılanan seçilmiş eserler',
-                          isLocked: !isLoggedIn,
-                          color: const Color(0xFFEC4899),
-                          onTap: () => NavigationHandler.goToFavorites(context),
-                        ),
+                                _buildSectionLabel("RUHUN İZLERİ"),
+                                _buildSculptedTile(
+                                  icon: Icons.auto_stories_rounded,
+                                  title: 'Tanıklık Günlüğü',
+                                  subtitle:
+                                      'Sahne tozunu yuttuğun tüm anların dökümü',
+                                  isLocked: !isLoggedIn,
+                                  color: const Color(0xFF6366F1),
+                                  onTap: () => NavigationHandler.goToMyTickets(
+                                      context, userData?.id ?? ""),
+                                ),
+                                const SizedBox(height: 16),
+                                _buildSculptedTile(
+                                  icon: Icons.auto_awesome_mosaic_rounded,
+                                  title: 'İlham Galerisi',
+                                  subtitle:
+                                      'Zihninde yankılanan seçilmiş eserler',
+                                  isLocked: !isLoggedIn,
+                                  color: const Color(0xFFEC4899),
+                                  onTap: () =>
+                                      NavigationHandler.goToFavorites(context),
+                                ),
 
-                        const SizedBox(height: 40),
+                                const SizedBox(height: 40),
 
-                        _buildSectionLabel("KİMLİK ATÖLYESİ"),
-                        _buildSculptedTile(
-                          icon: Icons.brush_rounded,
-                          title: 'Fırça İzlerim',
-                          subtitle:
-                              'Kendi portreni ve sanatsal kimliğini yorumla',
-                          isLocked: !isLoggedIn,
-                          color: context.colors.primary,
-                          onTap: () => context
-                              .push('/profile-edit/${userData?.id ?? ""}'),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSculptedTile(
-                          icon: Icons.map_rounded,
-                          title: 'Serüven Rehberi',
-                          subtitle: 'Soruların için küratörle temas kur',
-                          color: const Color(0xFF10B981),
-                          onTap: () =>
-                              NavigationHandler.goToHelpSupport(context),
-                        ),
+                                _buildSectionLabel("KİMLİK ATÖLYESİ"),
+                                _buildSculptedTile(
+                                  icon: Icons.brush_rounded,
+                                  title: 'Fırça İzlerim',
+                                  subtitle:
+                                      'Kendi portreni ve sanatsal kimliğini yorumla',
+                                  isLocked: !isLoggedIn,
+                                  color: context.colors.primary,
+                                  onTap: () => context.push(
+                                      '/profile-edit/${userData?.id ?? ""}'),
+                                ),
+                                const SizedBox(height: 16),
+                                _buildSculptedTile(
+                                  icon: Icons.map_rounded,
+                                  title: 'Serüven Rehberi',
+                                  subtitle:
+                                      'Soruların için küratörle temas kur',
+                                  color: const Color(0xFF10B981),
+                                  onTap: () =>
+                                      NavigationHandler.goToHelpSupport(
+                                          context),
+                                ),
 
-                        const SizedBox(height: 40),
+                                const SizedBox(height: 40),
 
-                        _buildSectionLabel("YASAL YÜKÜMLÜLÜKLER"),
-                        _buildSculptedTile(
-                          icon: Icons.gavel_rounded,
-                          title: 'Atölye Sözleşmesi',
-                          subtitle: 'Kullanım şartları ve KVKK rehberi',
-                          color: Colors.brown.shade400,
-                          onTap: () => NavigationHandler.goToContracts(context),
-                        ),
+                                _buildSectionLabel("YASAL YÜKÜMLÜLÜKLER"),
+                                _buildSculptedTile(
+                                  icon: Icons.gavel_rounded,
+                                  title: 'Atölye Sözleşmesi',
+                                  subtitle: 'Kullanım şartları ve KVKK rehberi',
+                                  color: Colors.brown.shade400,
+                                  onTap: () =>
+                                      NavigationHandler.goToContracts(context),
+                                ),
 
-                        if (isLoggedIn) ...[
-                          const SizedBox(height: 40),
-                          _buildSectionLabel("SON DOKUNUŞLAR"),
-                          _buildSculptedTile(
-                            icon: Icons.logout_rounded,
-                            title: 'Atölyeyi Kapat',
-                            subtitle: 'Serüveni şimdilik mühürle ve ayrıl',
-                            color: Colors.orange.shade800,
-                            onTap: () => showSignOutDialog(context, ref),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSculptedTile(
-                            icon: Icons.delete_forever_rounded,
-                            title: 'Koleksiyonu Yak',
-                            subtitle:
-                                'Tüm izlerini ve hatıralarını kalıcı olarak sil',
-                            color: Colors.red.shade900,
-                            onTap: () => showDeleteAccountDialog(
-                                context, ref, userData.id),
+                                if (isLoggedIn) ...[
+                                  const SizedBox(height: 40),
+                                  _buildSectionLabel("SON DOKUNUŞLAR"),
+                                  _buildSculptedTile(
+                                    icon: Icons.logout_rounded,
+                                    title: 'Atölyeyi Kapat',
+                                    subtitle:
+                                        'Serüveni şimdilik mühürle ve ayrıl',
+                                    color: Colors.orange.shade800,
+                                    onTap: () =>
+                                        showSignOutDialog(context, ref),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildSculptedTile(
+                                    icon: Icons.delete_forever_rounded,
+                                    title: 'Koleksiyonu Yak',
+                                    subtitle:
+                                        'Tüm izlerini ve hatıralarını kalıcı olarak sil',
+                                    color: Colors.red.shade900,
+                                    onTap: () => showDeleteAccountDialog(
+                                        context, ref, userData.id),
+                                  ),
+                                ],
+
+                                _buildSoulReflection(),
+                                const SizedBox(height: 120),
+                                // Scroll rahatlığı için pay
+                              ]),
+                            ),
                           ),
                         ],
-
-                        _buildSoulReflection(),
-                        const SizedBox(height: 120),
-                        // Scroll rahatlığı için pay
-                      ]),
-                    ),
-                  ),
-                ],
-              );
-            }),
-      ),
-    );
+                      )));
+            }));
   }
 
   // --- MODÜLER YARDIMCI METOTLAR (Parametresiz ve Optimize) ---
