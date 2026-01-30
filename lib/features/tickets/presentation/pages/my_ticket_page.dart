@@ -7,7 +7,6 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
-import '../../../../shared/widgets/top_header_with_back_button.dart';
 import '../providers/my_ticket_provider.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {

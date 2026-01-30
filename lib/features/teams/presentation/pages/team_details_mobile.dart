@@ -31,12 +31,14 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
     return BasePageWrapper(
       showBackButton: true,
       showFab: true,
+      title: teamDetailAsync.value?.team.name.toUpperCase() ?? 'EKİP DETAYI',
+      subtitle: 'Sanat Topluluğu',
+      rightIcon: Icons.groups_2_rounded,
       customScrollController: scrollController,
       isLoading: teamDetailAsync.isLoading,
       layoutConfig: BasePageLayoutConfig(
-        ambientColor: context.colors.primary,
-        safeAreaTop: false,
-      ),
+          ambientColor: context.colors.primary.withOpacity(0.05),
+          safeAreaTop: true),
       child: teamDetailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (final err, final _) => Center(child: Text("Hata: $err")),
@@ -57,15 +59,12 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
                 ),
                 child: Column(
                   children: [
-                    const SizedBox(height: 12),
                     _buildDragHandle(),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         children: [
                           const SizedBox(height: 24),
-                          _buildTeamHeadline(context, state.team.name),
-                          const SizedBox(height: 32),
 
                           // 📖 EKİP HİKAYESİ
                           _buildSectionHeader(context, "EKİP HİKAYESİ",
@@ -77,7 +76,7 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
                           ),
                           const SizedBox(height: 40),
 
-                          // 🎬 SAHNEDEKİ ESERLER (Sliver Mozaik Gallery öncesi başlık)
+                          // 🎬 SAHNEDEKİ ESERLER Başlığı
                           if (state.shows.isNotEmpty) ...[
                             _buildSectionHeader(context, "SAHNEDEKİ ESERLER",
                                 Icons.auto_awesome_motion_rounded),
@@ -91,11 +90,11 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
               ),
             ),
 
-            // 🔥 MOZAİK GALERİ (Doğrudan Sliver olarak eklenmeli)
+            // 🔥 MOZAİK GALERİ
             if (state.shows.isNotEmpty)
               ShowMosaicGallery(shows: state.shows, direction: Axis.vertical),
 
-            // 📸 TAKIM GALERİSİ (Senin GallerySection'ın)
+            // 📸 TAKIM GALERİSİ
             SliverToBoxAdapter(
               child: Container(
                 color: context.scaffoldBackgroundColor,
@@ -107,10 +106,8 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
                       _buildSectionHeader(
                           context, "TAKIM GALERİSİ", Icons.collections_rounded),
                       const SizedBox(height: 20),
-                      // ✅ Senin yazdığın interaktif galeri yapısı buraya bağlandı
                       GallerySection(photos: state.team.photosId),
                       const SizedBox(height: 120),
-                      // FAB payı
                     ],
                   ],
                 ),

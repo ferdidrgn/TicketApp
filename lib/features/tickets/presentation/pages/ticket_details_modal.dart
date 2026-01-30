@@ -41,27 +41,42 @@ class _LuxuryTicketDetails extends StatelessWidget {
         color: themeColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      child: ListView(
-        controller: controller,
-        padding: EdgeInsets.zero,
+      child: Stack(
         children: [
-          _LargeEventImage(
-              imageUrl: ticket.show?.imageUrl ?? '',
-              title: ticket.show?.name ?? 'Gösteri'),
-          const SizedBox(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                _LargeQRCodeSection(ticketId: ticket.ticket.id),
-                const SizedBox(height: 32),
-                _DetailsSection(
-                    ticket: ticket,
-                    dateText: dateText,
-                    timeText: dateInfo['time'] ?? '--:--'),
-                const SizedBox(height: 40),
-              ],
-            ),
+          ListView(
+            controller: controller,
+            padding: EdgeInsets.zero,
+            children: [
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: themeColors.outlineVariant.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              _LargeEventImage(
+                  imageUrl: ticket.show?.imageUrl ?? '',
+                  title: ticket.show?.name ?? 'Gösteri'),
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    _LargeQRCodeSection(ticketId: ticket.ticket.id),
+                    const SizedBox(height: 32),
+                    _DetailsSection(
+                        ticket: ticket,
+                        dateText: dateText,
+                        timeText: dateInfo['time'] ?? '--:--'),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -79,7 +94,7 @@ class _LargeQRCodeSection extends StatelessWidget {
     final themeColors = context.colors;
 
     // 1. ÜST KATMAN (Sadece saf buzlu cam, üzerinde yazı yok!)
-    Widget foreground = ClipRRect(
+    final Widget foreground = ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
@@ -92,7 +107,7 @@ class _LargeQRCodeSection extends StatelessWidget {
     );
 
     // 2. ALT KATMAN (Net QR Kod)
-    Widget background = Container(
+    final Widget background = Container(
       width: 140,
       height: 140,
       padding: const EdgeInsets.all(12),
