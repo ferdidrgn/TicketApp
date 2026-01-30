@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
@@ -154,6 +155,22 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           top: 40,
           left: 20,
           child: GlassmorphismBackButton(),
+        ),
+        Positioned(
+          top: 40,
+          right: 20,
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            icon: Icon(Icons.share_outlined,
+                size: 20, color: context.colors.onSurface),
+            onPressed: () {
+              final currentState = ref.read(showDetailProvider(widget.showId));
+              if (currentState.hasValue && currentState.value != null) {
+                final show = currentState.value!.show;
+                TiyatrolDeeplinkService.shareShow(id: show.id, name: show.name);
+              }
+            },
+          ),
         ),
       ],
     );

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_detail_provider.dart';
-import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
+import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/widgets/gallery_section.dart';
@@ -13,7 +13,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../stages/domain/entities/stage.dart';
-import '../widgets/mobile/show_info_section.dart';
+import '../widgets/mobile/show_info_section.dart'; // Hikaye
 
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
@@ -33,8 +33,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     super.initState();
     _scrollController.addListener(() {
       final isScrolledNow = _scrollController.offset > 300;
-      if (isScrolledNow != _isScrolled)
+      if (isScrolledNow != _isScrolled) {
         setState(() => _isScrolled = isScrolledNow);
+      }
     });
   }
 
@@ -67,20 +68,22 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                 // 1. SİNEMATİK HEADER
                 _buildSliverHeader(context, state.show.imageUrl),
 
-                // 2. İÇERİK
+                // 2. İÇERİK GÖVDESİ (MODAL GÖRÜNÜMÜ)
                 SliverToBoxAdapter(
                   child: Transform.translate(
-                    offset: const Offset(0, -30),
+                    offset: const Offset(0, -50),
+                    // 🔥 YUKARI DAHA ÇOK ÇEKTİM
                     child: Container(
                       decoration: BoxDecoration(
                         color: colors.surface,
+                        // 🔥 KÖŞELER İYİCE YUVARLATILDI (40px)
                         borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(32)),
+                            top: Radius.circular(40)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
+                            color: Colors.black.withOpacity(0.25),
                             blurRadius: 30,
-                            spreadRadius: 5,
+                            spreadRadius: 2,
                             offset: const Offset(0, -10),
                           ),
                         ],
@@ -88,15 +91,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Tutamaç
+                          // Tutamaç (Handle)
                           Center(
                             child: Container(
                               margin:
-                                  const EdgeInsets.only(top: 12, bottom: 24),
-                              width: 40,
-                              height: 4,
+                                  const EdgeInsets.only(top: 16, bottom: 20),
+                              width: 50,
+                              height: 5,
                               decoration: BoxDecoration(
-                                color: colors.onSurface.withOpacity(0.1),
+                                color: colors.onSurface.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
@@ -107,34 +110,37 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Kategori
+                                // Kategori ve Puan
                                 Row(
                                   children: [
                                     _buildCategoryPill(context, "TİYATRO"),
                                     const SizedBox(width: 12),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
+                                          horizontal: 10, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: Colors.amber.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.amber.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color:
+                                                Colors.amber.withOpacity(0.2)),
                                       ),
                                       child: const Row(
                                         children: [
                                           Icon(Icons.star_rounded,
-                                              color: Colors.amber, size: 16),
+                                              color: Colors.amber, size: 18),
                                           SizedBox(width: 4),
                                           Text("9.8",
                                               style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
+                                                  fontWeight: FontWeight.w900,
                                                   color: Colors.amber,
-                                                  fontSize: 12)),
+                                                  fontSize: 13)),
                                         ],
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 20),
 
                                 // BAŞLIK
                                 Text(
@@ -168,53 +174,53 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
                           const SizedBox(height: 32),
 
-                          // 🎫 ETKİNLİKLER (Height Fix Yapıldı)
+                          // 🎫 ETKİNLİKLER
                           if (state.events.isNotEmpty) ...[
                             _buildSectionHeader(context, "Biletler & Tarihler",
-                                Icons.calendar_month_outlined),
+                                Icons.calendar_month_rounded),
                             const SizedBox(height: 16),
                             _buildEventsList(context, state),
                             const SizedBox(height: 32),
                           ],
 
-                          // 🎭 GÜNCEL KADRO
+                          // 🎭 OYUNCULAR (Renkli & Bubble)
                           if (state.show.nowPlayersId.isNotEmpty) ...[
-                            _buildSectionHeader(context, "Oyuncular",
-                                Icons.face_retouching_natural),
+                            _buildSectionHeader(context, "Oyuncu Kadrosu",
+                                Icons.face_retouching_natural_rounded),
                             const SizedBox(height: 16),
-                            _buildCastList(context, state,
-                                state.show.nowPlayersId, false), // Renkli
+                            _buildBubbleCastList(
+                                context, state, state.show.nowPlayersId, false),
                             const SizedBox(height: 32),
                           ],
 
-                          // 📜 GEÇMİŞ KADRO (Şık Kartlar)
+                          // 📜 GEÇMİŞ KADRO (Siyah-Beyaz & Bubble)
                           if (state.show.oldPlayersId.isNotEmpty) ...[
-                            _buildSectionHeader(
-                                context, "Geçmiş Kadro", Icons.history_edu),
+                            _buildSectionHeader(context, "Geçmiş Kadrolar",
+                                Icons.history_edu_rounded),
                             const SizedBox(height: 16),
-                            _buildCastList(
-                                context,
-                                state,
-                                state.show.oldPlayersId,
-                                true), // Grayscale & Süslü
+                            _buildBubbleCastList(
+                                context, state, state.show.oldPlayersId, true),
                             const SizedBox(height: 32),
                           ],
 
-                          // 🖼️ GALERİ (Senin Koduna Bağlandı)
+                          // 🖼️ GALERİ
                           if (state.show.photosShowId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Sahne Arkası",
-                                Icons.photo_library_outlined),
+                                Icons.photo_camera_back_rounded),
                             const SizedBox(height: 16),
-                            // ✅ SENİN WIDGET'IN BURADA
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 20),
                               child: GallerySection(
                                   photos: state.show.photosShowId),
                             ),
-                            const SizedBox(height: 140),
-                            // Bottom bar altında kalmaması için boşluk
+                            // 🔥 BOTTOM BAR ALTINDA KALMAMASI İÇİN YETERLİ BOŞLUK
+                            const SizedBox(height: 150),
                           ],
+
+                          // Eğer galeri yoksa da boşluk bırakalım
+                          if (state.show.photosShowId.isEmpty)
+                            const SizedBox(height: 150),
                         ],
                       ),
                     ),
@@ -223,7 +229,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
               ],
             ),
 
-            // 3. FLOAT BOTTOM BAR (Süslü, Kıvırık, Shadowlu)
+            // 3. YÜZEN LÜKS BOTTOM BAR
             Positioned(
               bottom: 0,
               left: 0,
@@ -256,18 +262,25 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       flexibleSpace: isScrolled
           ? ClipRRect(
               child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                   child: Container(color: Colors.transparent)))
           : null,
       leading: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isScrolled
-                ? colors.surfaceContainerHighest
-                : Colors.black.withOpacity(0.2),
-            shape: BoxShape.circle,
-          ),
-          child: GlassmorphismBackButton()),
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isScrolled
+              ? colors.surfaceContainerHighest
+              : Colors.black.withOpacity(0.2),
+          shape: BoxShape.circle,
+        ),
+        // GlassmorphismBackButton veya IconButton
+        child: IconButton(
+          padding: EdgeInsets.zero,
+          icon: Icon(Icons.arrow_back_ios_new,
+              size: 18, color: isScrolled ? colors.onSurface : Colors.white),
+          onPressed: () => context.pop(),
+        ),
+      ),
       actions: [
         Container(
           margin: const EdgeInsets.only(right: 16),
@@ -284,18 +297,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
             icon: Icon(Icons.share_outlined,
                 size: 20, color: isScrolled ? colors.onSurface : Colors.white),
             onPressed: () {
-              // 1. Provider'dan o anki veriyi okuyoruz (Listen değil, Read)
               final currentState = ref.read(showDetailProvider(widget.showId));
-
-              // 2. Eğer veri yüklendiyse (Data durumundaysa) paylaşımı tetikle
               if (currentState.hasValue && currentState.value != null) {
                 final show = currentState.value!.show;
-
-                // Servis çağrısı:
                 TiyatrolDeeplinkService.shareShow(id: show.id, name: show.name);
-              } else
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Veriler yükleniyor...")));
+              }
             },
           ),
         ),
@@ -305,7 +311,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   Widget _buildSliverHeader(final BuildContext context, final String imageUrl) {
     return SliverAppBar(
-      expandedHeight: 460,
+      expandedHeight: 480,
       pinned: false,
       stretch: true,
       backgroundColor: context.colors.surface,
@@ -326,10 +332,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                   colors: [
                     Colors.black.withOpacity(0.4),
                     Colors.transparent,
-                    Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.6),
+                    Colors.black.withOpacity(0.2),
+                    Colors.black.withOpacity(0.7),
                   ],
-                  stops: const [0.0, 0.3, 0.7, 1.0],
+                  stops: const [0.0, 0.4, 0.8, 1.0],
                 ),
               ),
             ),
@@ -341,10 +347,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   Widget _buildCategoryPill(final BuildContext context, final String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: context.primaryColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
               color: context.primaryColor.withOpacity(0.3),
@@ -369,8 +375,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
         color: colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outline.withOpacity(0.1)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.outline.withOpacity(0.08)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -390,27 +396,25 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-              // İkon arka planı onSecondary yapıldı
-              color: context.colors.onSecondary,
-              shape: BoxShape.circle),
+              color: context.colors.onSecondary, shape: BoxShape.circle),
           child: Icon(icon, size: 18, color: context.primaryColor),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(value,
                 style: TextStyle(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                     fontSize: 14,
                     color: context.colors.onSurface)),
             Text(subtitle,
                 style: TextStyle(
                     fontSize: 10,
                     color: context.colors.onSurfaceVariant,
-                    fontWeight: FontWeight.w500)),
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       ],
@@ -423,12 +427,19 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: context.primaryColor),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: context.primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: context.primaryColor),
+          ),
+          const SizedBox(width: 12),
           Text(
             title,
             style: TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: context.colors.onSurface,
                 letterSpacing: -0.5),
@@ -438,7 +449,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  // ✅ DÜZELTME: Height 340'a çıkarıldı (37px sorunu çözüldü)
   Widget _buildEventsList(final BuildContext context, final dynamic state) {
     return SizedBox(
       height: 340,
@@ -480,7 +490,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
           } catch (_) {}
 
           return EventsCard(
-            width: 260,
+            width: 270,
             margin: const EdgeInsets.only(right: 16),
             imageUrl: state.show.imageUrl,
             showName: state.show.name,
@@ -502,72 +512,86 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  Widget _buildCastList(final BuildContext context, final dynamic state,
+  // 💎 BUBBLE CARD TASARIMI (Hata Düzeltildi)
+  Widget _buildBubbleCastList(final BuildContext context, final dynamic state,
       final List<String> playerIds, final bool isGrayscale) {
-    final List<Player> allPlayers =
-        (state.players as List).map((final e) => e as Player).toList();
+    // 🔥 FIX: Tip Güvenli Liste Dönüşümü (Cast Hatasını Çözer)
+    final List<Player> allPlayers = List<Player>.from(state.players ?? []);
     final players =
         allPlayers.where((final p) => playerIds.contains(p.id)).toList();
 
     return SizedBox(
-      height: 120,
-      child: ListView.separated(
+      height: 220,
+      child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: players.length,
-        separatorBuilder: (final _, final __) => const SizedBox(width: 16),
         itemBuilder: (final context, final index) {
           final player = players[index];
-          return GestureDetector(
-            onTap: () => context.pushNamed('playerDetail',
-                pathParameters: {'playerId': player.id}),
-            child: Column(
-              children: [
-                Container(
-                  width: 75,
-                  height: 75,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: isGrayscale
-                            ? context.colors.outline
-                            : context.primaryColor.withOpacity(0.5),
-                        width: isGrayscale ? 2 : 3),
-                    image: DecorationImage(
-                      image: NetworkImage(player.imageUrl),
-                      fit: BoxFit.cover,
-                      colorFilter: isGrayscale
-                          ? const ColorFilter.mode(
-                              Colors.grey, BlendMode.saturation)
-                          : null,
+          final fullName = "${player.firstName} ${player.lastName}";
+
+          return Container(
+            width: 125,
+            margin: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              onTap: () => context.pushNamed('playerDetail',
+                  pathParameters: {'playerId': player.id}),
+              borderRadius: BorderRadius.circular(60),
+              child: Card(
+                elevation: 4,
+                shadowColor: context.colors.shadow.withOpacity(0.3),
+                color: context.colors.surfaceContainer,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(60)),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ClipOval(
+                        child: Container(
+                          width: 115,
+                          height: 115,
+                          color: context.colors.surfaceContainerHighest,
+                          child: ColorFiltered(
+                            colorFilter: isGrayscale
+                                ? const ColorFilter.mode(
+                                    Colors.grey, BlendMode.saturation)
+                                : const ColorFilter.mode(
+                                    Colors.transparent, BlendMode.dst),
+                            child: OptimizedCachedImage(
+                              imageUrl: player.imageUrl,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black
-                              .withOpacity(isGrayscale ? 0.05 : 0.15),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5))
-                    ],
-                  ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text(
+                          fullName,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight:
+                                isGrayscale ? FontWeight.w600 : FontWeight.bold,
+                            color: isGrayscale
+                                ? context.colors.secondary
+                                : context.colors.onSurface,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: 80,
-                  child: Text(player.firstName,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight:
-                              isGrayscale ? FontWeight.w600 : FontWeight.bold,
-                          // İsim rengi secondary yapıldı
-                          color: isGrayscale
-                              ? context.colors.secondary
-                              : context.colors.onSurface)),
-                ),
-              ],
+              ),
             ),
           );
         },
@@ -575,6 +599,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
+  // 💎 YÜZEN BOTTOM BAR
   Widget _buildFloatingBottomBar(
       final BuildContext context, final dynamic state) {
     double minPrice = 0;
@@ -612,14 +637,12 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                     Text("Başlayan",
                         style: TextStyle(
                             fontSize: 11,
-                            // Başlık rengi secondary yapıldı
                             color: context.colors.secondary,
                             fontWeight: FontWeight.w600)),
                     Text("₺${minPrice.toStringAsFixed(0)}",
                         style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
-                            // Fiyat rengi onSecondary yapıldı
                             color: context.colors.onSecondary,
                             height: 1)),
                   ],
@@ -631,7 +654,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          // Gölge rengi onPrimary yapıldı
                           color: context.colors.onPrimary.withOpacity(0.4),
                           blurRadius: 15,
                           offset: const Offset(0, 5),
