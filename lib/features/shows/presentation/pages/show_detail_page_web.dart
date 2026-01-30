@@ -262,7 +262,7 @@ class _DesktopLayout extends StatelessWidget {
                   title: 'Etkinlik Takvimi',
                   icon: Icons.calendar_today_rounded),
               const SizedBox(height: 24),
-              _EventDateList(events: events), // Hata burada çözüldü
+              _EventDateList(events: events),
               const SizedBox(height: 50),
               const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
               const SizedBox(height: 24),
