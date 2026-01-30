@@ -2,10 +2,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../providers/player_provider.dart';
 
@@ -26,17 +29,15 @@ class PlayerDetailPage extends ConsumerStatefulWidget {
 }
 
 class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
-    with SingleTickerProviderStateMixin {
-  late ScrollController _scrollController;
+    with SingleTickerProviderStateMixin, GlobalScrollMixin {
   final ValueNotifier<double> _scrollOffset = ValueNotifier(0.0);
   late AnimationController _fadeController;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(() {
-      _scrollOffset.value = _scrollController.offset;
+    scrollController.addListener(() {
+      _scrollOffset.value = scrollController.offset;
     });
 
     _fadeController = AnimationController(
@@ -47,63 +48,102 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    scrollController.dispose();
     _scrollOffset.dispose();
     _fadeController.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final detailAsync = ref.watch(playerDetailProvider(widget.playerId));
     final accentColor = context.colors.primary;
 
     return BasePageWrapper(
-      showBackButton: true,
+      showBackButton: false,
       showFab: true,
-      customScrollController: _scrollController,
+      customScrollController: scrollController,
       isLoading: detailAsync.isLoading && !detailAsync.hasValue,
       shimmerSkeleton: const ArtisticPageShimmer(),
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.scaffoldBackgroundColor,
         ambientColor: accentColor.withOpacity(0.05),
-        extendBody: true,
       ),
       child: detailAsync.when(
         loading: () => const SizedBox.shrink(),
-        error: (err, stack) => _buildError(context, err.toString()),
-        data: (state) => CustomScrollView(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            _buildSliverHeader(context, state.player.imageUrl,
-                "${state.player.firstName} ${state.player.lastName}"),
-            SliverToBoxAdapter(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: context.scaffoldBackgroundColor,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(40)),
+        error: (final err, final stack) => _buildError(context, err.toString()),
+        data: (final state) => Stack(
+          children: [
+            CustomScrollView(
+              controller: scrollController,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildSliverHeader(context, state.player.imageUrl,
+                    "${state.player.firstName} ${state.player.lastName}"),
+                SliverToBoxAdapter(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: context.scaffoldBackgroundColor,
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(40)),
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(height: context.spacingLarge),
+                        _buildStatsSection(context, state),
+                        SizedBox(height: context.spacingLarge * 2),
+                        _buildContentTabs(context, state),
+                        SizedBox(height: context.spacingLarge * 3),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    SizedBox(height: context.spacingLarge),
-                    _buildStatsSection(context, state),
-                    SizedBox(height: context.spacingLarge * 2),
-                    _buildContentTabs(context, state),
-                    SizedBox(height: context.spacingLarge * 3),
-                  ],
-                ),
-              ),
+              ],
             ),
+            _buildTopBar(context),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildTopBar(final BuildContext context) {
+    final colors = context.colors;
+
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GlassmorphismBackButton(),
+          Container(
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon:
+                  Icon(Icons.share_outlined, size: 20, color: colors.onSurface),
+              onPressed: () {
+                final currentState =
+                    ref.read(playerDetailProvider(widget.playerId));
+                if (currentState.hasValue && currentState.value != null) {
+                  final player = currentState.value!.player;
+                  TiyatrolDeeplinkService.shareShow(
+                      id: player.id,
+                      name: player.firstName + " " + player.lastName);
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSliverHeader(
-      BuildContext context, String imageUrl, String name) {
+      final BuildContext context, final String imageUrl, final String name) {
     return SliverAppBar(
       expandedHeight: context.responsive(
         mobile: context.screenHeight * 0.5,
@@ -116,7 +156,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       flexibleSpace: FlexibleSpaceBar(
         background: ValueListenableBuilder<double>(
           valueListenable: _scrollOffset,
-          builder: (context, offset, child) {
+          builder: (final context, final offset, final child) {
             final blur = (offset / 50).clamp(0.0, 15.0);
             final opacity = (1 - (offset / 300)).clamp(0.0, 1.0);
 
@@ -200,7 +240,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildStatsSection(BuildContext context, PlayerDetailState state) {
+  Widget _buildStatsSection(
+      final BuildContext context, final PlayerDetailState state) {
     return Padding(
       padding: context.pagePadding,
       child: context.responsive(
@@ -210,7 +251,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildMobileStats(BuildContext context, PlayerDetailState state) {
+  Widget _buildMobileStats(
+      final BuildContext context, final PlayerDetailState state) {
     return Column(
       children: [
         Row(
@@ -252,7 +294,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildDesktopStats(BuildContext context, PlayerDetailState state) {
+  Widget _buildDesktopStats(
+      final BuildContext context, final PlayerDetailState state) {
     return Row(
       children: [
         Expanded(
@@ -287,10 +330,10 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   Widget _buildStatCard(
-    BuildContext context, {
-    required IconData icon,
-    required String value,
-    required String label,
+    final BuildContext context, {
+    required final IconData icon,
+    required final String value,
+    required final String label,
   }) {
     return Container(
       padding: EdgeInsets.all(
@@ -339,7 +382,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildContentTabs(BuildContext context, PlayerDetailState state) {
+  Widget _buildContentTabs(
+      final BuildContext context, final PlayerDetailState state) {
     return DefaultTabController(
       length: 4,
       child: Column(
@@ -390,7 +434,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildBiographyTab(BuildContext context, PlayerDetailState state) {
+  Widget _buildBiographyTab(
+      final BuildContext context, final PlayerDetailState state) {
     return SingleChildScrollView(
       padding: context.pagePadding,
       child: Column(
@@ -443,7 +488,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   }
 
   Widget _buildCollaborationsCard(
-      BuildContext context, List<String> collaborations) {
+      final BuildContext context, final List<String> collaborations) {
     return Container(
       padding: context.cardPadding,
       decoration: BoxDecoration(
@@ -472,7 +517,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           Wrap(
             spacing: context.spacing * 0.75,
             runSpacing: context.spacing * 0.75,
-            children: collaborations.map((name) {
+            children: collaborations.map((final name) {
               return Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -498,7 +543,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildActiveShowsTab(BuildContext context, PlayerDetailState state) {
+  Widget _buildActiveShowsTab(
+      final BuildContext context, final PlayerDetailState state) {
     if (state.activeShows.isEmpty) {
       return Center(
         child: Text(
@@ -517,17 +563,19 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         mainAxisSpacing: context.gridSpacing,
       ),
       itemCount: state.activeShows.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (final context, final index) {
         return _buildShowCard(context, state.activeShows[index], true);
       },
     );
   }
 
-  Widget _buildShowCard(BuildContext context, Show show, bool isActive) {
+  Widget _buildShowCard(
+      final BuildContext context, final Show show, final bool isActive) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => ShowDetailPage(showId: show.id)),
+        MaterialPageRoute(
+            builder: (final _) => ShowDetailPage(showId: show.id)),
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -603,7 +651,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildArchiveTab(BuildContext context, PlayerDetailState state) {
+  Widget _buildArchiveTab(
+      final BuildContext context, final PlayerDetailState state) {
     if (state.pastShows.isEmpty) {
       return Center(
         child: Text(
@@ -616,17 +665,18 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     return ListView.builder(
       padding: context.pagePadding,
       itemCount: state.pastShows.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (final context, final index) {
         return _buildArchiveItem(context, state.pastShows[index]);
       },
     );
   }
 
-  Widget _buildArchiveItem(BuildContext context, Show show) {
+  Widget _buildArchiveItem(final BuildContext context, final Show show) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => ShowDetailPage(showId: show.id)),
+        MaterialPageRoute(
+            builder: (final _) => ShowDetailPage(showId: show.id)),
       ),
       child: Container(
         margin: EdgeInsets.only(bottom: context.spacing),
@@ -703,7 +753,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildAchievementsTab(BuildContext context, PlayerDetailState state) {
+  Widget _buildAchievementsTab(
+      final BuildContext context, final PlayerDetailState state) {
     if (state.player.achievements.isEmpty) {
       return Center(
         child: Text(
@@ -716,7 +767,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     return ListView.builder(
       padding: context.pagePadding.copyWith(top: 24),
       itemCount: state.player.achievements.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (final context, final index) {
         final item = state.player.achievements[index];
         final isLast = index == state.player.achievements.length - 1;
 
@@ -831,7 +882,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildError(BuildContext context, String error) {
+  Widget _buildError(final BuildContext context, final String error) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -853,7 +904,7 @@ class _DashedLinePainter extends CustomPainter {
   _DashedLinePainter({required this.color});
 
   @override
-  void paint(Canvas canvas, Size size) {
+  void paint(final Canvas canvas, final Size size) {
     double dashHeight = 5, dashSpace = 3, startY = 0;
     final paint = Paint()
       ..color = color
@@ -866,5 +917,5 @@ class _DashedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(final CustomPainter oldDelegate) => false;
 }

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ticketapp/core/base/base_page_wrapper.dart';
+import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_detail_provider.dart';
-import '../../../../core/base/base_page_wrapper.dart';
+import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/widgets/gallery_section.dart';
@@ -13,7 +15,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../stages/domain/entities/stage.dart';
-import '../widgets/mobile/show_info_section.dart'; // Hikaye
+import '../widgets/mobile/show_info_section.dart';
 
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
@@ -24,15 +26,15 @@ class ShowDetailPage extends ConsumerStatefulWidget {
   ConsumerState<ShowDetailPage> createState() => _ShowDetailPageState();
 }
 
-class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
-  final ScrollController _scrollController = ScrollController();
+class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
+    with GlobalScrollMixin {
   bool _isScrolled = false;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      final isScrolledNow = _scrollController.offset > 300;
+    scrollController.addListener(() {
+      final isScrolledNow = scrollController.offset > 300;
       if (isScrolledNow != _isScrolled) {
         setState(() => _isScrolled = isScrolledNow);
       }
@@ -41,28 +43,38 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(final BuildContext context) {
     final detailAsync = ref.watch(showDetailProvider(widget.showId));
+
     final colors = context.colors;
 
-    return Scaffold(
-      backgroundColor: colors.surface,
-      extendBodyBehindAppBar: true,
-      appBar: _buildTransparentAppBar(context),
-      body: detailAsync.when(
-        loading: () => Center(
-            child: CircularProgressIndicator(color: context.primaryColor)),
+    // Home ile aynı zemin rengi
+    final surfaceColor = colors.surface;
+    final onSurfaceColor = colors.onSurface;
+    final primaryColor = context.primaryColor;
+
+    return BasePageWrapper(
+      showBackButton: false,
+      showFab: true,
+      customScrollController: scrollController,
+      isLoading: detailAsync.isLoading && !detailAsync.hasValue,
+      layoutConfig: BasePageLayoutConfig(
+        backgroundColor: surfaceColor,
+        ambientColor: primaryColor.withOpacity(0.05),
+      ),
+      child: detailAsync.when(
+        loading: () =>
+            Center(child: CircularProgressIndicator(color: primaryColor)),
         error: (final err, final stack) => Center(
             child: Text("Hata: $err", style: TextStyle(color: colors.error))),
         data: (final state) => Stack(
           children: [
             CustomScrollView(
-              controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               slivers: [
                 // 1. SİNEMATİK HEADER
@@ -72,26 +84,25 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                 SliverToBoxAdapter(
                   child: Transform.translate(
                     offset: const Offset(0, -50),
-                    // 🔥 YUKARI DAHA ÇOK ÇEKTİM
                     child: Container(
                       decoration: BoxDecoration(
-                        color: colors.surface,
-                        // 🔥 KÖŞELER İYİCE YUVARLATILDI (40px)
+                        color: surfaceColor,
                         borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(40)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.25),
+                            color: context.isDarkMode
+                                ? Colors.white.withOpacity(0.02)
+                                : Colors.black.withOpacity(0.1),
                             blurRadius: 30,
-                            spreadRadius: 2,
-                            offset: const Offset(0, -10),
+                            spreadRadius: 1,
+                            offset: const Offset(0, -5),
                           ),
                         ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Tutamaç (Handle)
                           Center(
                             child: Container(
                               margin:
@@ -99,18 +110,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                               width: 50,
                               height: 5,
                               decoration: BoxDecoration(
-                                color: colors.onSurface.withOpacity(0.15),
+                                color: onSurfaceColor.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                           ),
 
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            padding: const EdgeInsets.all(24),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Kategori ve Puan
                                 Row(
                                   children: [
                                     _buildCategoryPill(context, "TİYATRO"),
@@ -123,7 +133,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
                                             color:
-                                                Colors.amber.withOpacity(0.2)),
+                                                Colors.amber.withOpacity(0.3)),
                                       ),
                                       child: const Row(
                                         children: [
@@ -148,14 +158,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                                   style: context.textTheme.headlineMedium
                                       ?.copyWith(
                                     fontWeight: FontWeight.w900,
-                                    color: colors.onSurface,
+                                    color: onSurfaceColor,
+                                    // Tema metin rengi
                                     height: 1.1,
                                     letterSpacing: -0.5,
                                   ),
                                 ),
                                 const SizedBox(height: 24),
 
-                                // İSTATİSTİKLER
+                                // İSTATİSTİKLER (Tema uyumlu)
                                 _buildStatsRow(context),
                               ],
                             ),
@@ -183,7 +194,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                             const SizedBox(height: 32),
                           ],
 
-                          // 🎭 OYUNCULAR (Renkli & Bubble)
+                          // 🎭 OYUNCULAR
                           if (state.show.nowPlayersId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Oyuncu Kadrosu",
                                 Icons.face_retouching_natural_rounded),
@@ -193,7 +204,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                             const SizedBox(height: 32),
                           ],
 
-                          // 📜 GEÇMİŞ KADRO (Siyah-Beyaz & Bubble)
+                          // 📜 GEÇMİŞ KADRO
                           if (state.show.oldPlayersId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Geçmiş Kadrolar",
                                 Icons.history_edu_rounded),
@@ -214,11 +225,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                               child: GallerySection(
                                   photos: state.show.photosShowId),
                             ),
-                            // 🔥 BOTTOM BAR ALTINDA KALMAMASI İÇİN YETERLİ BOŞLUK
                             const SizedBox(height: 150),
                           ],
 
-                          // Eğer galeri yoksa da boşluk bırakalım
                           if (state.show.photosShowId.isEmpty)
                             const SizedBox(height: 150),
                         ],
@@ -228,6 +237,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                 ),
               ],
             ),
+
+            _buildTopBar(context),
 
             // 3. YÜZEN LÜKS BOTTOM BAR
             Positioned(
@@ -243,69 +254,44 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
   }
 
   // ---------------------------------------------------------------------------
-  // 🎨 BİLEŞENLER
+  // 🎨 BİLEŞENLER (TEMA İLE %100 UYUMLU)
   // ---------------------------------------------------------------------------
 
-  PreferredSizeWidget _buildTransparentAppBar(final BuildContext context) {
+  Widget _buildTopBar(final BuildContext context) {
     final colors = context.colors;
     final isScrolled = _isScrolled;
 
-    return AppBar(
-      systemOverlayStyle: isScrolled
-          ? (context.isDarkMode
-              ? SystemUiOverlayStyle.light
-              : SystemUiOverlayStyle.dark)
-          : SystemUiOverlayStyle.light,
-      backgroundColor:
-          isScrolled ? colors.surface.withOpacity(0.8) : Colors.transparent,
-      elevation: 0,
-      flexibleSpace: isScrolled
-          ? ClipRRect(
-              child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Container(color: Colors.transparent)))
-          : null,
-      leading: Container(
-        margin: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isScrolled
-              ? colors.surfaceContainerHighest
-              : Colors.black.withOpacity(0.2),
-          shape: BoxShape.circle,
-        ),
-        // GlassmorphismBackButton veya IconButton
-        child: IconButton(
-          padding: EdgeInsets.zero,
-          icon: Icon(Icons.arrow_back_ios_new,
-              size: 18, color: isScrolled ? colors.onSurface : Colors.white),
-          onPressed: () => context.pop(),
-        ),
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GlassmorphismBackButton(),
+          Container(
+            decoration: BoxDecoration(
+              color: isScrolled
+                  ? colors.surfaceContainerHighest
+                  : Colors.black.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: Icon(Icons.share_outlined,
+                  size: 20,
+                  color: isScrolled ? colors.onSurface : Colors.white),
+              onPressed: () {
+                final currentState =
+                    ref.read(showDetailProvider(widget.showId));
+                if (currentState.hasValue && currentState.value != null) {
+                  final show = currentState.value!.show;
+                  TiyatrolDeeplinkService.shareShow(
+                      id: show.id, name: show.name);
+                }
+              },
+            ),
+          ),
+        ],
       ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 16),
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isScrolled
-                ? colors.surfaceContainerHighest
-                : Colors.black.withOpacity(0.2),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            icon: Icon(Icons.share_outlined,
-                size: 20, color: isScrolled ? colors.onSurface : Colors.white),
-            onPressed: () {
-              final currentState = ref.read(showDetailProvider(widget.showId));
-              if (currentState.hasValue && currentState.value != null) {
-                final show = currentState.value!.show;
-                TiyatrolDeeplinkService.shareShow(id: show.id, name: show.name);
-              }
-            },
-          ),
-        ),
-      ],
     );
   }
 
@@ -315,6 +301,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       pinned: false,
       stretch: true,
       backgroundColor: context.colors.surface,
+      // Tema Rengi
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [
           StretchMode.zoomBackground,
@@ -330,10 +317,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.4),
+                    Colors.black.withOpacity(0.3),
                     Colors.transparent,
-                    Colors.black.withOpacity(0.2),
-                    Colors.black.withOpacity(0.7),
+                    Colors.black.withOpacity(0.1),
+                    Colors.black.withOpacity(0.6),
                   ],
                   stops: const [0.0, 0.4, 0.8, 1.0],
                 ),
@@ -360,8 +347,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       ),
       child: Text(
         text.toUpperCase(),
-        style: TextStyle(
-            color: context.colors.onPrimary,
+        style: const TextStyle(
+            color: Colors.white,
             fontSize: 11,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2),
@@ -374,9 +361,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
+        color: colors.surfaceContainerLow, // Tema SurfaceLow (Kart rengi)
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.outline.withOpacity(0.08)),
+        border: Border.all(color: colors.outline.withOpacity(0.1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -398,7 +385,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-              color: context.colors.onSecondary, shape: BoxShape.circle),
+            color: context.colors.onSecondary, // Tema OnSecondary
+            shape: BoxShape.circle,
+          ),
           child: Icon(icon, size: 18, color: context.primaryColor),
         ),
         const SizedBox(width: 12),
@@ -512,10 +501,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  // 💎 BUBBLE CARD TASARIMI (Hata Düzeltildi)
   Widget _buildBubbleCastList(final BuildContext context, final dynamic state,
       final List<String> playerIds, final bool isGrayscale) {
-    // 🔥 FIX: Tip Güvenli Liste Dönüşümü (Cast Hatasını Çözer)
     final List<Player> allPlayers = List<Player>.from(state.players ?? []);
     final players =
         allPlayers.where((final p) => playerIds.contains(p.id)).toList();
@@ -540,15 +527,16 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
               borderRadius: BorderRadius.circular(60),
               child: Card(
                 elevation: 4,
-                shadowColor: context.colors.shadow.withOpacity(0.3),
+                shadowColor: context.colors.shadow.withOpacity(0.1),
                 color: context.colors.surfaceContainer,
+                // Tema Surface rengi
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(60)),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(4.0),
+                      padding: const EdgeInsets.all(5.0),
                       child: ClipOval(
                         child: Container(
                           width: 115,
@@ -561,9 +549,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                                 : const ColorFilter.mode(
                                     Colors.transparent, BlendMode.dst),
                             child: OptimizedCachedImage(
-                              imageUrl: player.imageUrl,
-                              fit: BoxFit.cover,
-                            ),
+                                imageUrl: player.imageUrl, fit: BoxFit.cover),
                           ),
                         ),
                       ),
@@ -599,7 +585,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
     );
   }
 
-  // 💎 YÜZEN BOTTOM BAR
   Widget _buildFloatingBottomBar(
       final BuildContext context, final dynamic state) {
     double minPrice = 0;
@@ -607,14 +592,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
       minPrice = double.tryParse(state.events.first.price.toString()) ?? 0;
     }
 
+    // Modal Rengi
+    final barColor = context.colors.surfaceContainer.withOpacity(0.95);
+
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
       decoration: BoxDecoration(
-        color: context.colors.surfaceContainer,
+        color: barColor,
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: context.colors.shadow.withOpacity(0.25),
+            color: context.colors.shadow.withOpacity(0.2),
             blurRadius: 25,
             offset: const Offset(0, 8),
             spreadRadius: 2,
@@ -654,14 +642,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: context.colors.onPrimary.withOpacity(0.4),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
+                            color: context.colors.onPrimary.withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5)),
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () => _scrollController.animateTo(900,
+                      onPressed: () => scrollController.animateTo(900,
                           duration: const Duration(seconds: 1),
                           curve: Curves.easeInOut),
                       style: ElevatedButton.styleFrom(
