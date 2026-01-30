@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 
 class PlayerSection extends StatelessWidget {
@@ -51,19 +52,25 @@ class AnimatedPlayerCard extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) => MouseRegion(
-        cursor: SystemMouseCursors.click,
+  Widget build(final BuildContext context) {
+    final String fullName = '${player.firstName} ${player.lastName}';
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => NavigationHandler.goToPlayer(
+            context, player.id, '${player.firstName} ${player.lastName}'),
         child: Container(
           width: 150,
           decoration: BoxDecoration(
-            color: Color(0xFF1a1a2e),
+            color: const Color(0xFF1a1a2e),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Color(0xFFD4AF37).withOpacity(0.3),
+              color: const Color(0xFFD4AF37).withOpacity(0.3),
             ),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFFD4AF37).withOpacity(0.15),
+                color: const Color(0xFFD4AF37).withOpacity(0.15),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -87,7 +94,7 @@ class AnimatedPlayerCard extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.all(14),
                     child: Text(
-                      '${player.firstName}\n${player.lastName}',
+                      fullName,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -100,6 +107,7 @@ class AnimatedPlayerCard extends StatelessWidget {
                   ),
                 ],
               ),
+              // Eski oyuncu ise üzerine siyah perde ve ikon
               if (isOld)
                 Positioned.fill(
                   child: Container(
@@ -116,6 +124,7 @@ class AnimatedPlayerCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              // Sağ üst köşe dekoru
               Positioned(
                 top: 0,
                 right: 0,
@@ -127,7 +136,7 @@ class AnimatedPlayerCard extends StatelessWidget {
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                       colors: [
-                        Color(0xFFD4AF37).withOpacity(isOld ? 0.3 : 0.6),
+                        const Color(0xFFD4AF37).withOpacity(isOld ? 0.3 : 0.6),
                         Colors.transparent,
                       ],
                     ),
@@ -141,5 +150,7 @@ class AnimatedPlayerCard extends StatelessWidget {
             ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
