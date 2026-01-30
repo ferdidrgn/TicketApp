@@ -18,7 +18,6 @@ class TopHeaderWithBackButton extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    // 💡 Sadece içerik varsa çizim yap
     final bool hasTitle = title != null && title!.isNotEmpty;
     final bool hasSubtitle = subtitle != null && subtitle!.isNotEmpty;
     if (!hasTitle && !hasSubtitle && !showBackButton)
@@ -31,44 +30,71 @@ class TopHeaderWithBackButton extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 💡 Row'u CrossAxisAlignment.center yaparak tüm elemanları
+          // dikeyde tek bir çizgiye (merkeze) oturtuyoruz.
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // 1. Sol Kısım: Geri Butonu
               if (showBackButton)
-                const GlassmorphismBackButton()
-              else
-                const SizedBox(height: 44),
+                const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: GlassmorphismBackButton(),
+                ),
+
+              // 2. Orta Kısım: Başlık
+              if (hasTitle)
+                Expanded(
+                  child: ShaderMask(
+                    shaderCallback: (final Rect bounds) => LinearGradient(
+                      colors: context.appGradient(isActive: true),
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    child: Text(
+                      title!,
+                      // 💡 Center hizalamada yazının alt/üst boşlukları (leading)
+                      // dengeyi bozmaması için height: 1.0 kritik.
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'Serif',
+                        letterSpacing: -1.5,
+                        color: Colors.white,
+                        height: 1.0,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 3. Sağ Kısım: İkon
               if (rightIcon != null)
-                Icon(rightIcon,
-                    color: context.colors.primary.withOpacity(0.5), size: 28),
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Icon(
+                    rightIcon,
+                    color: context.colors.primary.withOpacity(0.5),
+                    size: 28,
+                  ),
+                ),
             ],
           ),
-          if (hasTitle) ...[
-            const SizedBox(height: 16),
-            ShaderMask(
-              shaderCallback: (final Rect bounds) => LinearGradient(
-                colors: context.appGradient(isActive: true),
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ).createShader(bounds),
+
+          // Alt Başlık (Subtitle)
+          if (hasSubtitle) ...[
+            const SizedBox(height: 12),
+            // Boşluğu biraz artırarak ferahlık sağladık
+            Padding(
+              padding: EdgeInsets.only(left: showBackButton ? 52 : 0),
               child: Text(
-                title!,
-                style: const TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w900,
-                  fontFamily: 'Serif',
-                  letterSpacing: -1.5,
-                  color: Colors.white,
+                subtitle!,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colors.onSurfaceVariant.withOpacity(0.7),
+                  fontStyle: FontStyle.italic,
+                  height: 1.2,
                 ),
               ),
             ),
-          ],
-          if (hasSubtitle) ...[
-            const SizedBox(height: 4),
-            Text(subtitle!,
-                style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colors.onSurfaceVariant.withOpacity(0.7),
-                    fontStyle: FontStyle.italic)),
           ],
         ],
       ),
