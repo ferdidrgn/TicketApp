@@ -60,7 +60,6 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 
   @override
   Widget build(final BuildContext context) {
-    // showsProvider artık isLimit parametresi bekliyor
     final showState = ref.watch(showsProvider(isLimit: false));
 
     return Container(
@@ -208,18 +207,16 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
               horizontal: context.responsive(mobile: 16.0, desktop: 80.0),
             ),
             itemCount: shows.length,
-            itemBuilder: (final context, final index) {
-              return Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: context.isMobile ? 8 : 12),
-                child: _ShowCard(
-                  imageUrl: shows[index].imageUrl,
-                  gameName: shows[index].name,
-                  index: index,
-                  showId: shows[index].id,
-                ),
-              );
-            },
+            itemBuilder: (final context, final index) => Padding(
+              padding:
+                  EdgeInsets.symmetric(horizontal: context.isMobile ? 8 : 12),
+              child: _ShowCard(
+                imageUrl: shows[index].imageUrl,
+                gameName: shows[index].name,
+                index: index,
+                showId: shows[index].id,
+              ),
+            ),
           ),
           if (!context.isMobile) ...[
             Positioned(
@@ -295,8 +292,8 @@ class _ShowCardState extends State<_ShowCard>
     super.dispose();
   }
 
-  void _navigateToDetails() => NavigationHandler.goToShow(
-      context, widget.showId, widget.gameName);
+  void _navigateToDetails() =>
+      NavigationHandler.goToShow(context, widget.showId, widget.gameName);
 
   @override
   Widget build(final BuildContext context) {
