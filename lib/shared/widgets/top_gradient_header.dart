@@ -16,7 +16,7 @@ class TopGradientHeader extends StatelessWidget {
         child: Text(
           title,
           style: const TextStyle(
-            fontSize: 42,
+            fontSize: 40,
             fontWeight: FontWeight.w900,
             fontFamily: 'Serif',
             letterSpacing: -1.5,

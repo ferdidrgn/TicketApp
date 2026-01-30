@@ -64,6 +64,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
     return BasePageWrapper(
         showBackButton: true,
         showFab: true,
+        title: "Sanat Serüveni",
         isLoading: searchState.isLoading,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
@@ -76,21 +77,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           slivers: [
             // Üst boşluk (Geri butonu ve Header için)
             SliverToBoxAdapter(
-                child:
-                    SizedBox(height: MediaQuery.of(context).padding.top + 60)),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Column(
-                  children: [
-                    const TopGradientHeader(title: "Sanat Serüveni"),
-                    const SizedBox(height: 10),
-                    _buildIntegratedSearchField(context),
-                  ],
-                ),
-              ),
-            ),
+                child: SizedBox(height: MediaQuery.of(context).padding.top)),
 
             // Filtreler (Pinned Header)
             SliverPersistentHeader(
@@ -102,7 +89,12 @@ class _SearchPageState extends ConsumerState<SearchPage>
                     child: Container(
                       color: context.colors.surface.withOpacity(0.7),
                       alignment: Alignment.center,
-                      child: _buildFilterTabs(selectedFilter),
+                      child: Column(
+                        children: [
+                          _buildIntegratedSearchField(context),
+                          _buildFilterTabs(selectedFilter),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -447,10 +439,10 @@ class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
   _SliverFilterDelegate({required this.child});
 
   @override
-  double get minExtent => 65;
+  double get minExtent => 110;
 
   @override
-  double get maxExtent => 65;
+  double get maxExtent => 110;
 
   @override
   Widget build(

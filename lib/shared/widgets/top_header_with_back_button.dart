@@ -45,9 +45,23 @@ class TopHeaderWithBackButton extends StatelessWidget {
           ),
           if (hasTitle) ...[
             const SizedBox(height: 16),
-            Text(title!,
-                style: context.textTheme.headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1)),
+            ShaderMask(
+              shaderCallback: (final Rect bounds) => LinearGradient(
+                colors: context.appGradient(isActive: true),
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: Text(
+                title!,
+                style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Serif',
+                  letterSpacing: -1.5,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ],
           if (hasSubtitle) ...[
             const SizedBox(height: 4),
