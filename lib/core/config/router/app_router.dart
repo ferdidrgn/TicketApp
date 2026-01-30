@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
 import 'package:ticketapp/features/home/presentation/pages/wrapper/app_home_page.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
+import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
 import 'package:ticketapp/features/teams/presentation/pages/team_details_mobile.dart';
 import '../../../features/appTools/presentation/pages/contracts.dart';
@@ -21,7 +22,6 @@ import '../../../features/onboarding/presentation/pages/onboarding_container.dar
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
-import '../../../features/shows/presentation/pages/show_detail_page.dart';
 import '../../../features/tickets/presentation/pages/my_ticket_page.dart';
 import '../../../features/users/presentation/pages/profile_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';

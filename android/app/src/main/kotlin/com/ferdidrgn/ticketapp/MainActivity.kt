@@ -6,7 +6,7 @@ import androidx.core.view.WindowCompat
 
 class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Flutter yerleşmeden önce ekran ayarını yap
+        // Alttaki satır "Edge-to-Edge" modunu aktif eder ve o uyarıyı kaldırır
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
     }
