@@ -8,7 +8,6 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
-import '../../../../shared/widgets/top_gradient_header.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/widgets/players_hero_card.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
