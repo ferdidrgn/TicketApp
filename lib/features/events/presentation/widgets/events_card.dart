@@ -1,3 +1,4 @@
+import 'dart:ui'; // Glassmorphism için gerekli
 import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -6,7 +7,7 @@ class EventsCard extends StatelessWidget {
   final String imageUrl;
   final String showName;
   final String category;
-  final String fullDateString; // Örn: "15 Eylül Pazar"
+  final String fullDateString; // Örn: "15 Eyl"
   final String timeString; // Örn: "20:30"
   final String stage;
   final double price;
@@ -30,100 +31,158 @@ class EventsCard extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    // Tema renklerini çekelim (Material 3 uyumlu)
+    final colors = context.colors;
+
     return Container(
-      width: width ?? 260,
-      margin: margin ?? const EdgeInsets.only(right: 16, bottom: 10),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+      width: width ?? 280,
+      margin: margin ?? const EdgeInsets.only(right: 20, bottom: 20),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: colors.surfaceContainer, // M3 Surface rengi
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              // Derinlik veren yumuşak gölge
+              BoxShadow(
+                color: colors.shadow.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+                spreadRadius: -5,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🖼️ RESİM VE TARİH ROZETİ
+              // 🖼️ 1. GÖRSEL ALANI (Parallax Etkisi İçin Hazırlık)
               Stack(
                 children: [
+                  // Ana Resim
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24), bottom: Radius.circular(0)),
-                    child: OptimizedCachedImage(
-                      imageUrl: imageUrl,
+                    borderRadius: const BorderRadius.all(Radius.circular(24)),
+                    child: Container(
+                      height: 200, // Daha yüksek, daha etkileyici
                       width: double.infinity,
-                      height: 160,
-                      fit: BoxFit.cover,
+                      foregroundDecoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.2), // Hafif karartma
+                            Colors.black.withOpacity(0.8), // Alt kısım koyu
+                          ],
+                          stops: const [0.5, 0.7, 1.0],
+                        ),
+                      ),
+                      child: OptimizedCachedImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
-                  // Kategori Etiketi (Sağ Üst)
+
+                  // ✨ Kategori Rozeti (Glassmorphism)
                   Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white24, width: 0.5),
-                      ),
-                      child: Text(
-                        category.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                    top: 16,
+                    left: 16,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: colors.primary.withOpacity(0.8),
+                            border: Border.all(
+                                color: Colors.white.withOpacity(0.2)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            category.toUpperCase(),
+                            style: context.textTheme.labelSmall?.copyWith(
+                              color: colors.onPrimary,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  // Tarih Rozeti (Sol Üst)
+
+                  // ⏰ Tarih Kartı (Sağ Üst - Takvim Yaprağı Şeklinde)
                   Positioned(
-                    top: 12,
-                    left: 12,
+                    top: 16,
+                    right: 16,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
+                        color: colors.surfaceBright,
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withOpacity(0.2),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
-                          ),
+                          )
                         ],
                       ),
                       child: Column(
                         children: [
                           Text(
-                            timeString, // Saat
-                            style: TextStyle(
-                              fontSize: 14,
+                            fullDateString.split(' ')[0], // Gün (15)
+                            style: context.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w900,
-                              color: context.primaryColor,
+                              color: colors.primary,
+                              height: 1.0,
                             ),
                           ),
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 2),
-                            height: 2,
-                            width: 20,
-                            color: Colors.grey.shade200,
+                          Text(
+                            fullDateString.split(' ').length > 1
+                                ? fullDateString
+                                    .split(' ')[1]
+                                    .substring(0, 3)
+                                    .toUpperCase()
+                                : "", // Ay (EYL)
+                            style: context.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colors.onSurfaceVariant,
+                            ),
                           ),
-                          const Icon(Icons.access_time_rounded,
-                              size: 12, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 🏷️ Fiyat Etiketi (Resmin Sağ Alt Köşesi)
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: colors.tertiaryContainer,
+                        // Dikkat çekici 3. renk
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.confirmation_number_outlined,
+                              size: 14, color: colors.onTertiaryContainer),
+                          const SizedBox(width: 4),
+                          Text(
+                            '₺${price.toStringAsFixed(0)}',
+                            style: context.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: colors.onTertiaryContainer,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -131,106 +190,81 @@ class EventsCard extends StatelessWidget {
                 ],
               ),
 
-              // 📝 İÇERİK
+              // 📝 2. BİLGİ ALANI
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Başlık
                     Text(
                       showName,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black87,
+                      style: context.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900, // Ultra Bold
+                        height: 1.1,
+                        color: colors.onSurface,
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
-
-                    // Sahne Bilgisi
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_rounded,
-                            size: 16, color: Colors.grey.shade400),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            stage,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    // Kesikli Çizgi (Bilet Havası)
-                    Row(
-                      children: List.generate(
-                          15,
-                          (final index) => Expanded(
-                                child: Container(
-                                  color: index % 2 == 0
-                                      ? Colors.transparent
-                                      : Colors.grey.shade300,
-                                  height: 1,
-                                ),
-                              )),
-                    ),
                     const SizedBox(height: 12),
 
-                    // Alt Kısım: Tarih ve Fiyat Butonu
+                    // Sahne ve Saat Bilgisi (İkonlu Satır)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Tam Tarih Yazısı
+                        // Sahne Bilgisi
                         Expanded(
                           child: Row(
                             children: [
-                              Icon(Icons.calendar_month_rounded,
-                                  size: 16, color: context.primaryColor),
-                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: colors.secondaryContainer
+                                      .withOpacity(0.3),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.location_on_rounded,
+                                    size: 14, color: colors.primary),
+                              ),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  fullDateString,
+                                  stage,
+                                  style: context.textTheme.bodyMedium?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black54,
-                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
 
-                        // Fiyat Hapı
+                        // Dikey Ayırıcı
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: context.primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '₺${price.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: context.primaryColor,
+                          height: 20,
+                          width: 1,
+                          color: colors.outlineVariant,
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+
+                        // Saat Bilgisi
+                        Row(
+                          children: [
+                            Icon(Icons.access_time_filled_rounded,
+                                size: 16, color: colors.secondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              timeString,
+                              style: context.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: colors.secondary,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
