@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../navigation/widgets/nav_handler.dart';
 
 /// 🎨 Glassmorphism Back Button Widget
@@ -57,62 +58,69 @@ class _GlassmorphismBackButtonState extends State<GlassmorphismBackButton>
   void _handleTapCancel() => _controller.reverse();
 
   @override
-  Widget build(final BuildContext context) => MouseRegion(
-        onEnter: (final _) => setState(() => _isHovered = true),
-        onExit: (final _) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTapDown: _handleTapDown,
-          onTapUp: _handleTapUp,
-          onTapCancel: _handleTapCancel,
-          onTap: () {
-            // Custom callback varsa onu çalıştır, yoksa NavigationHandler kullan
-            if (widget.onPressed != null)
-              widget.onPressed!();
-            else
-              NavigationHandler.smartGoBack(context);
-          },
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Container(
-              width: widget.size,
-              height: widget.size,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(widget.size / 4),
-                border: widget.showBorder
-                    ? Border.all(
-                        color: Colors.white.withOpacity(0.2), width: 1.5)
-                    : null,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(widget.size / 4),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          (widget.backgroundColor ?? Colors.white)
-                              .withOpacity(_isHovered ? 0.25 : 0.15),
-                          (widget.backgroundColor ?? Colors.white)
-                              .withOpacity(_isHovered ? 0.15 : 0.05),
-                        ],
-                      ),
+  Widget build(final BuildContext context) {
+    final bool isDark = context.isDarkMode;
+
+    // 🎨 Light temada ikon ve borderlar için antrasit/siyah, Dark temada beyaz
+    final Color baseColor =
+        isDark ? AppDarkColors.onSurface : AppLightColors.textPrimary;
+
+    // 🍷 Light temada cam efekti senin kırmızı (primary) tonundan, Dark'ta gri tondan beslensin
+    final Color glassColor =
+        isDark ? AppDarkColors.secondary : AppLightColors.primary;
+
+    return MouseRegion(
+      onEnter: (final _) => setState(() => _isHovered = true),
+      onExit: (final _) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        onTap: () {
+          // Custom callback varsa onu çalıştır, yoksa NavigationHandler kullan
+          if (widget.onPressed != null)
+            widget.onPressed!();
+          else
+            NavigationHandler.smartGoBack(context);
+        },
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(widget.size / 4),
+              border: widget.showBorder
+                  ? Border.all(color: baseColor.withOpacity(0.2), width: 1.5)
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(widget.size / 4),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        (widget.backgroundColor ?? glassColor)
+                            .withOpacity(_isHovered ? 0.25 : 0.15),
+                        (widget.backgroundColor ?? glassColor)
+                            .withOpacity(_isHovered ? 0.15 : 0.05),
+                      ],
                     ),
-                    child: Center(
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: widget.iconColor ?? Colors.white,
-                        size: widget.size * 0.5,
-                      ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: widget.iconColor ?? baseColor,
+                      size: widget.size * 0.5,
                     ),
                   ),
                 ),
@@ -120,7 +128,9 @@ class _GlassmorphismBackButtonState extends State<GlassmorphismBackButton>
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 /// 🎨 Glassmorphism Icon Button (Genel Amaçlı)
@@ -173,58 +183,65 @@ class _GlassmorphismIconButtonState extends State<GlassmorphismIconButton>
   }
 
   @override
-  Widget build(final BuildContext context) => MouseRegion(
-        onEnter: (final _) => setState(() => _isHovered = true),
-        onExit: (final _) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTapDown: (final _) => _controller.forward(),
-          onTapUp: (final _) => _controller.reverse(),
-          onTapCancel: () => _controller.reverse(),
-          onTap: widget.onPressed,
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Container(
-              width: widget.size,
-              height: widget.size,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(widget.size / 4),
-                border: widget.showBorder
-                    ? Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1.5,
-                      )
-                    : null,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(widget.size / 4),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          (widget.backgroundColor ?? Colors.white)
-                              .withOpacity(_isHovered ? 0.25 : 0.15),
-                          (widget.backgroundColor ?? Colors.white)
-                              .withOpacity(_isHovered ? 0.15 : 0.05),
-                        ],
-                      ),
+  Widget build(final BuildContext context) {
+    final bool isDark = context.isDarkMode;
+
+    // 🎨 Light temada ikon ve borderlar için antrasit/siyah, Dark temada beyaz
+    final Color baseColor =
+        isDark ? AppDarkColors.onSurface : AppLightColors.textPrimary;
+
+    // 🍷 Light temada cam efekti senin kırmızı (primary) tonundan, Dark'ta gri tondan beslensin
+    final Color glassColor =
+        isDark ? AppDarkColors.secondary : AppLightColors.primary;
+
+    return MouseRegion(
+      onEnter: (final _) => setState(() => _isHovered = true),
+      onExit: (final _) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: (final _) => _controller.forward(),
+        onTapUp: (final _) => _controller.reverse(),
+        onTapCancel: () => _controller.reverse(),
+        onTap: widget.onPressed,
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(widget.size / 4),
+              border: widget.showBorder
+                  ? Border.all(color: baseColor.withOpacity(0.2), width: 1.5)
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(widget.size / 4),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        (widget.backgroundColor ?? glassColor)
+                            .withOpacity(_isHovered ? 0.25 : 0.15),
+                        (widget.backgroundColor ?? glassColor)
+                            .withOpacity(_isHovered ? 0.15 : 0.05),
+                      ],
                     ),
-                    child: Center(
-                      child: Icon(
-                        widget.icon,
-                        color: widget.iconColor ?? Colors.white,
-                        size: widget.size * 0.5,
-                      ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: widget.iconColor ?? baseColor,
+                      size: widget.size * 0.5,
                     ),
                   ),
                 ),
@@ -232,7 +249,9 @@ class _GlassmorphismIconButtonState extends State<GlassmorphismIconButton>
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 /// 🎨 Glassmorphism App Bar (Tam Ekran Header)
