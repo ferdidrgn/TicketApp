@@ -1,23 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
-import 'package:ticketapp/core/util/global_scroll_mixin.dart';
-import 'package:ticketapp/features/shows/domain/entities/show.dart';
-import 'package:ticketapp/features/shows/presentation/pages/show_detail_page_mobil.dart';
+import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/base/base_page_wrapper.dart';
-import '../../../../core/services/deeplink/deeplink_service.dart';
-import '../../../../shared/widgets/background/shimmer_components.dart';
-import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
-import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../shows/domain/entities/show.dart';
 import '../providers/player_provider.dart';
-
-/// 🎭 PLAYER DETAIL PAGE
-///
-/// Hybrid system ile:
-/// - Dinamik achievements
-/// - Dinamik collaborations
-/// - Smooth scroll
+import '../../../../core/services/deeplink/deeplink_service.dart';
 
 class PlayerDetailPage extends ConsumerStatefulWidget {
   final String playerId;
@@ -29,408 +19,287 @@ class PlayerDetailPage extends ConsumerStatefulWidget {
 }
 
 class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
-    with SingleTickerProviderStateMixin, GlobalScrollMixin {
-  final ValueNotifier<double> _scrollOffset = ValueNotifier(0.0);
-  late AnimationController _fadeController;
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  final ScrollController _scrollController = ScrollController();
+  bool _isScrolled = false;
 
   @override
   void initState() {
     super.initState();
-    scrollController.addListener(() {
-      _scrollOffset.value = scrollController.offset;
-    });
-
-    _fadeController = AnimationController(
+    _scrollController.addListener(_onScroll);
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..forward();
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOutExpo),
+    );
+    _animationController.forward();
+  }
+
+  void _onScroll() {
+    if (mounted) {
+      final isScrolledNow = _scrollController.offset > 240;
+      if (_isScrolled != isScrolledNow) setState(() => _isScrolled = isScrolledNow);
+    }
   }
 
   @override
   void dispose() {
-    scrollController.dispose();
-    _scrollOffset.dispose();
-    _fadeController.dispose();
+    _animationController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(final BuildContext context) {
-    final detailAsync = ref.watch(playerDetailProvider(widget.playerId));
-    final accentColor = context.colors.primary;
+    final playerAsync = ref.watch(playerDetailProvider(widget.playerId));
+    final colors = context.colors;
 
     return BasePageWrapper(
       showBackButton: false,
       showFab: true,
-      customScrollController: scrollController,
-      isLoading: detailAsync.isLoading && !detailAsync.hasValue,
-      shimmerSkeleton: const ArtisticPageShimmer(),
       layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.scaffoldBackgroundColor,
-        ambientColor: accentColor.withOpacity(0.05),
+        backgroundColor: colors.surface,
+        ambientColor: colors.primary.withOpacity(0.02),
       ),
-      child: detailAsync.when(
-        loading: () => const SizedBox.shrink(),
-        error: (final err, final stack) => _buildError(context, err.toString()),
+      child: playerAsync.when(
+        loading: () => Center(child: CircularProgressIndicator(color: colors.primary, strokeWidth: 2)),
+        error: (final err, final stack) => _buildErrorState(context, err),
         data: (final state) => Stack(
           children: [
             CustomScrollView(
-              controller: scrollController,
+              controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               slivers: [
-                _buildSliverHeader(context, state.player.imageUrl,
-                    "${state.player.firstName} ${state.player.lastName}"),
+                _buildArtisticHeader(context, state),
                 SliverToBoxAdapter(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: context.scaffoldBackgroundColor,
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(40)),
-                    ),
-                    child: Column(
-                      children: [
-                        SizedBox(height: context.spacingLarge),
-                        _buildStatsSection(context, state),
-                        SizedBox(height: context.spacingLarge * 2),
-                        _buildContentTabs(context, state),
-                        SizedBox(height: context.spacingLarge * 3),
-                      ],
-                    ),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: _buildEliteContentBody(context, state),
                   ),
                 ),
               ],
             ),
-            _buildTopBar(context),
+            _buildGlassTopBar(context, state),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTopBar(final BuildContext context) {
-    final colors = context.colors;
-
-    return Padding(
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GlassmorphismBackButton(),
-          Container(
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              shape: BoxShape.circle,
+  // --- 🎨 ARTISTIC HEADER (DİJİTAL SERGİ GÖRÜNÜMÜ) ---
+  Widget _buildArtisticHeader(final BuildContext context, final dynamic state) {
+    return SliverAppBar(
+      expandedHeight: context.screenHeight * 0.6,
+      pinned: true,
+      stretch: true,
+      backgroundColor: context.colors.surface,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Hero(
+              tag: 'player_${widget.playerId}',
+              child: OptimizedCachedImage(
+                imageUrl: state.player.imageUrl ?? '',
+                fit: BoxFit.cover,
+              ),
             ),
-            child: Container(
+            // Ultra-modern gradient overlay
+            Container(
               decoration: BoxDecoration(
-                  color: colors.surfaceContainerHighest,
-                  shape: BoxShape.circle),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: Icon(Icons.share_outlined,
-                    size: 20, color: colors.onSurface),
-                onPressed: () {
-                  final currentState =
-                      ref.read(playerDetailProvider(widget.playerId));
-                  if (currentState.hasValue && currentState.value != null) {
-                    final player = currentState.value!.player;
-                    TiyatrolDeeplinkService.shareShow(
-                        id: player.id,
-                        name: '${player.firstName} ${player.lastName}');
-                  }
-                },
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.5),
+                    Colors.transparent,
+                    Colors.transparent,
+                    context.colors.surface.withOpacity(0.8),
+                    context.colors.surface,
+                  ],
+                  stops: const [0.0, 0.3, 0.6, 0.9, 1.0],
+                ),
+              ),
+            ),
+            // Sanatsal İsim Katmanı
+            Positioned(
+              bottom: 60,
+              left: 24,
+              right: 24,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white.withOpacity(0.5)),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Text("U S T A   S A N A T Ç I",
+                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 3)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "${state.player.firstName}\n${state.player.lastName}".toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 52,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      height: 0.85,
+                      letterSpacing: -2.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- 💎 GLASSMORPHISM TOP BAR ---
+  Widget _buildGlassTopBar(final BuildContext context, final dynamic state) {
+    final colors = context.colors;
+    return Positioned(
+      top: 0, left: 0, right: 0,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: _isScrolled ? 20 : 0, sigmaY: _isScrolled ? 20 : 0),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
+            color: _isScrolled ? colors.surface.withOpacity(0.7) : Colors.transparent,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _artisticIconBtn(Icons.arrow_back_ios_new_rounded, () => context.pop()),
+                  AnimatedOpacity(
+                    opacity: _isScrolled ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Text("${state.player.firstName} ${state.player.lastName}",
+                        style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  ),
+                  _artisticIconBtn(Icons.share_outlined, () {
+                    TiyatrolDeeplinkService.shareActor(
+                      id: state.player.id,
+                      name: '${state.player.firstName} ${state.player.lastName}',
+                    );
+                  }),
+                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSliverHeader(
-      final BuildContext context, final String imageUrl, final String name) {
-    return SliverAppBar(
-      expandedHeight: context.responsive(
-        mobile: context.screenHeight * 0.5,
-        tablet: context.screenHeight * 0.55,
-        desktop: context.screenHeight * 0.6,
-      ),
-      pinned: false,
-      stretch: true,
-      automaticallyImplyLeading: false,
-      flexibleSpace: FlexibleSpaceBar(
-        background: ValueListenableBuilder<double>(
-          valueListenable: _scrollOffset,
-          builder: (final context, final offset, final child) {
-            final blur = (offset / 50).clamp(0.0, 15.0);
-            final opacity = (1 - (offset / 300)).clamp(0.0, 1.0);
-
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover),
-                if (blur > 0)
-                  BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                    child: Container(color: Colors.black.withOpacity(0.2)),
-                  ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        context.scaffoldBackgroundColor.withOpacity(0.0),
-                        context.scaffoldBackgroundColor.withOpacity(0.5),
-                        context.scaffoldBackgroundColor.withOpacity(0.9),
-                        context.scaffoldBackgroundColor,
-                      ],
-                      stops: const [0.0, 0.4, 0.7, 0.85, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: context.spacingLarge,
-                  left: context.pagePadding.left,
-                  right: context.pagePadding.right,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: context.colors.primary.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: context.colors.primary.withOpacity(0.5)),
-                          ),
-                          child: Text(
-                            "SANATIN MİRASI",
-                            style: TextStyle(
-                              color: context.colors.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: context.spacing),
-                        Text(
-                          name.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: context.responsive(
-                                mobile: 32.0, tablet: 40.0, desktop: 48.0),
-                            fontWeight: FontWeight.w900,
-                            height: 1.0,
-                            letterSpacing: -1,
-                            color: Colors.white,
-                            shadows: const [
-                              Shadow(color: Colors.black87, blurRadius: 30),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
         ),
       ),
     );
   }
 
-  Widget _buildStatsSection(
-      final BuildContext context, final PlayerDetailState state) {
-    return Padding(
-      padding: context.pagePadding,
-      child: context.responsive(
-        mobile: _buildMobileStats(context, state),
-        desktop: _buildDesktopStats(context, state),
+  Widget _artisticIconBtn(final IconData icon, final VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _isScrolled ? context.colors.onSurface.withOpacity(0.05) : Colors.black26,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: _isScrolled ? context.colors.onSurface : Colors.white, size: 20),
       ),
     );
   }
 
-  Widget _buildMobileStats(
-      final BuildContext context, final PlayerDetailState state) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(context,
-                  icon: Icons.theater_comedy,
-                  value: "${state.activeShows.length}",
-                  label: "Aktif Oyun"),
-            ),
-            SizedBox(width: context.spacing),
-            Expanded(
-              child: _buildStatCard(context,
-                  icon: Icons.history_edu,
-                  value: "${state.pastShows.length}",
-                  label: "Geçmiş"),
-            ),
-          ],
-        ),
-        SizedBox(height: context.spacing),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(context,
-                  icon: Icons.people_outline,
-                  value: "${state.player.collaborations.length}",
-                  label: "İşbirliği"),
-            ),
-            SizedBox(width: context.spacing),
-            Expanded(
-              child: _buildStatCard(context,
-                  icon: Icons.emoji_events,
-                  value: "${state.player.achievements.length}",
-                  label: "Başarı"),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+  // --- 🧬 ELITE CONTENT BODY ---
+  Widget _buildEliteContentBody(final BuildContext context, final dynamic state) {
+    final List<Show> activeShows = List<Show>.from(state.activeShows ?? []);
+    final List<Show> pastShows = List<Show>.from(state.pastShows ?? []);
+    final List<dynamic> achievements = state.player.achievements ?? [];
+    final List<String> collaborations = List<String>.from(state.player.collaborations ?? []);
 
-  Widget _buildDesktopStats(
-      final BuildContext context, final PlayerDetailState state) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(context,
-              icon: Icons.theater_comedy,
-              value: "${state.activeShows.length}",
-              label: "Aktif"),
-        ),
-        SizedBox(width: context.spacing),
-        Expanded(
-          child: _buildStatCard(context,
-              icon: Icons.history_edu,
-              value: "${state.pastShows.length}",
-              label: "Geçmiş"),
-        ),
-        SizedBox(width: context.spacing),
-        Expanded(
-          child: _buildStatCard(context,
-              icon: Icons.people_outline,
-              value: "${state.player.collaborations.length}",
-              label: "İşbirliği"),
-        ),
-        SizedBox(width: context.spacing),
-        Expanded(
-          child: _buildStatCard(context,
-              icon: Icons.emoji_events,
-              value: "${state.player.achievements.length}",
-              label: "Başarı"),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(
-    final BuildContext context, {
-    required final IconData icon,
-    required final String value,
-    required final String label,
-  }) {
     return Container(
-      padding: EdgeInsets.all(
-        context.responsive(mobile: 16.0, tablet: 20.0, desktop: 24.0),
-      ),
-      decoration: BoxDecoration(
-        color: context.cardColor,
-        borderRadius: BorderRadius.circular(context.borderRadius(0.75)),
-        border: Border.all(color: context.colors.primary.withOpacity(0.2)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            context.colors.primary.withOpacity(0.05),
-            Colors.transparent,
-          ],
-        ),
-      ),
+      decoration: BoxDecoration(color: context.colors.surface),
       child: Column(
         children: [
-          Icon(icon,
-              color: context.colors.primary.withOpacity(0.7),
-              size: context.responsive(mobile: 28.0, desktop: 36.0)),
-          SizedBox(height: context.spacing * 0.5),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 28.0, desktop: 36.0),
-              fontWeight: FontWeight.w900,
-              color: context.colors.onSurface,
-              letterSpacing: -1,
-            ),
-          ),
-          SizedBox(height: context.spacing * 0.25),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: context.responsive(mobile: 11.0, desktop: 13.0),
-              fontWeight: FontWeight.bold,
-              color: context.colors.primary,
-              letterSpacing: 1,
-            ),
-          ),
+          _buildPremiumStatsGrid(activeShows.length, pastShows.length, achievements.length),
+          const SizedBox(height: 48),
+          _buildEliteModernTabs(activeShows, pastShows, achievements, collaborations, state.player.bio),
+          const SizedBox(height: 120),
         ],
       ),
     );
   }
 
-  Widget _buildContentTabs(
-      final BuildContext context, final PlayerDetailState state) {
+  Widget _buildPremiumStatsGrid(final int active, final int past, final int awards) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          _premiumStatCard("AKTİF", active.toString(), context.colors.primary),
+          const SizedBox(width: 16),
+          _premiumStatCard("ARŞİV", past.toString(), context.colors.secondary),
+          const SizedBox(width: 16),
+          _premiumStatCard("ÖDÜL", awards.toString(), Colors.amber[700]!),
+        ],
+      ),
+    );
+  }
+
+  Widget _premiumStatCard(final String label, final String value, final Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          color: color.withOpacity(0.05),
+          border: Border.all(color: color.withOpacity(0.1)),
+        ),
+        child: Column(
+          children: [
+            Text(value, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: color, letterSpacing: -1)),
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color.withOpacity(0.6), letterSpacing: 1.5)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEliteModernTabs(final List<Show> active, final List<Show> past, final List<dynamic> awards, final List<String> collabs, final String bio) {
     return DefaultTabController(
       length: 4,
       child: Column(
         children: [
-          Padding(
-            padding: context.paddingHorizontal,
-            child: Container(
-              decoration: BoxDecoration(
-                color: context.cardColor,
-                borderRadius: BorderRadius.circular(context.borderRadius()),
-                border:
-                    Border.all(color: context.colors.primary.withOpacity(0.2)),
-              ),
-              child: TabBar(
-                labelColor: context.colors.primary,
-                unselectedLabelColor: context.colors.onSurface.withOpacity(0.6),
-                indicator: BoxDecoration(
-                  color: context.colors.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(context.borderRadius()),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: "BİYOGRAFİ"),
-                  Tab(text: "OYUNLAR"),
-                  Tab(text: "ARŞİV"),
-                  Tab(text: "BAŞARILAR"),
-                ],
-              ),
+          TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            labelColor: context.colors.onSurface,
+            unselectedLabelColor: context.colors.onSurface.withOpacity(0.3),
+            indicator: UnderlineTabIndicator(
+              borderSide: BorderSide(width: 4, color: context.colors.primary),
+              insets: const EdgeInsets.symmetric(horizontal: 16),
             ),
+            dividerColor: Colors.transparent,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5),
+            tabs: const [Tab(text: "Hikaye"), Tab(text: "Sahnede"), Tab(text: "Geçmiş"), Tab(text: "Başarılar")],
           ),
-          SizedBox(height: context.spacingLarge),
+          const SizedBox(height: 32),
           SizedBox(
-            height: context.responsive(
-                mobile: 600.0, tablet: 700.0, desktop: 800.0),
+            height: 650,
             child: TabBarView(
-              physics: const BouncingScrollPhysics(),
               children: [
-                _buildBiographyTab(context, state),
-                _buildActiveShowsTab(context, state),
-                _buildArchiveTab(context, state),
-                _buildAchievementsTab(context, state),
+                _eliteBioTab(bio, collabs),
+                _eliteShowsTab(active, "Şu an sahnede bir oyunu bulunmuyor."),
+                _eliteShowsTab(past, "Arşiv henüz güncellenmemiş."),
+                _eliteTimelineTab(awards),
               ],
             ),
           ),
@@ -439,443 +308,114 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildBiographyTab(
-      final BuildContext context, final PlayerDetailState state) {
+  // --- 🖋️ TAB: BİO & COLLABS ---
+  Widget _eliteBioTab(final String bio, final List<String> collabs) {
     return SingleChildScrollView(
-      padding: context.pagePadding,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: context.cardPadding,
-            decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(context.borderRadius()),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: context.colors.primary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    "BİYOGRAFİ",
-                    style: TextStyle(
-                      color: context.colors.primary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.spacing),
-                Text(
-                  state.player.bio,
-                  style: TextStyle(
-                    fontSize: context.responsive(mobile: 15.0, desktop: 17.0),
-                    height: 1.8,
-                    color: context.colors.onSurface.withOpacity(0.8),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: context.spacingLarge),
-          if (state.player.collaborations.isNotEmpty)
-            _buildCollaborationsCard(context, state.player.collaborations),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCollaborationsCard(
-      final BuildContext context, final List<String> collaborations) {
-    return Container(
-      padding: context.cardPadding,
-      decoration: BoxDecoration(
-        color: context.cardColor,
-        borderRadius: BorderRadius.circular(context.borderRadius()),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.people_outline,
-                  color: context.colors.primary, size: 20),
-              SizedBox(width: context.spacing * 0.5),
-              Text(
-                "İŞBİRLİKLERİ",
-                style: TextStyle(
-                  fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
-                  fontWeight: FontWeight.bold,
-                  color: context.colors.onSurface,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: context.spacing),
+          Text(bio, style: TextStyle(height: 2.0, fontSize: 17, color: context.colors.onSurface.withOpacity(0.7), letterSpacing: 0.2)),
+          const SizedBox(height: 48),
+          const Text("GÜÇLÜ İŞBİRLİKLERİ", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 2)),
+          const SizedBox(height: 20),
           Wrap(
-            spacing: context.spacing * 0.75,
-            runSpacing: context.spacing * 0.75,
-            children: collaborations.map((final name) {
-              return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: context.colors.primary.withOpacity(0.3)),
-                  borderRadius: BorderRadius.circular(25),
-                  color: context.colors.primary.withOpacity(0.05),
-                ),
-                child: Text(
-                  name,
-                  style: TextStyle(
-                    color: context.colors.primary.withOpacity(0.9),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              );
-            }).toList(),
+            spacing: 12,
+            runSpacing: 12,
+            children: collabs.map((final c) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: context.colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+              ),
+              child: Text(c, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+            )).toList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActiveShowsTab(
-      final BuildContext context, final PlayerDetailState state) {
-    if (state.activeShows.isEmpty) {
-      return Center(
-        child: Text(
-          "Aktif oyun bulunmuyor",
-          style: TextStyle(color: context.colors.onSurface.withOpacity(0.5)),
-        ),
-      );
-    }
-
-    return GridView.builder(
-      padding: context.pagePadding,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: context.gridColumns(3),
-        childAspectRatio: 0.7,
-        crossAxisSpacing: context.gridSpacing,
-        mainAxisSpacing: context.gridSpacing,
-      ),
-      itemCount: state.activeShows.length,
-      itemBuilder: (final context, final index) {
-        return _buildShowCard(context, state.activeShows[index], true);
-      },
-    );
-  }
-
-  Widget _buildShowCard(
-      final BuildContext context, final Show show, final bool isActive) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (final _) => ShowDetailPage(showId: show.id)),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(context.borderRadius()),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(context.borderRadius()),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              OptimizedCachedImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.8),
-                    ],
-                  ),
-                ),
-              ),
-              if (isActive)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: context.colors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      "AKTİF",
-                      style: TextStyle(
-                        color: context.colors.onPrimary,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              Positioned(
-                bottom: 12,
-                left: 12,
-                right: 12,
-                child: Text(
-                  show.name.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    letterSpacing: 0.5,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildArchiveTab(
-      final BuildContext context, final PlayerDetailState state) {
-    if (state.pastShows.isEmpty) {
-      return Center(
-        child: Text(
-          "Arşiv bulunmuyor",
-          style: TextStyle(color: context.colors.onSurface.withOpacity(0.5)),
-        ),
-      );
-    }
-
+  // --- 🎭 TAB: SHOWS ---
+  Widget _eliteShowsTab(final List<Show> shows, final String emptyMsg) {
+    if (shows.isEmpty) return Center(child: Text(emptyMsg, style: const TextStyle(fontStyle: FontStyle.italic)));
     return ListView.builder(
-      padding: context.pagePadding,
-      itemCount: state.pastShows.length,
-      itemBuilder: (final context, final index) {
-        return _buildArchiveItem(context, state.pastShows[index]);
-      },
-    );
-  }
-
-  Widget _buildArchiveItem(final BuildContext context, final Show show) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (final _) => ShowDetailPage(showId: show.id)),
-      ),
-      child: Container(
-        margin: EdgeInsets.only(bottom: context.spacing),
-        padding:
-            EdgeInsets.all(context.responsive(mobile: 12.0, desktop: 16.0)),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      itemCount: shows.length,
+      itemBuilder: (final context, final i) => Container(
+        margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
-          color: context.cardColor,
-          borderRadius: BorderRadius.circular(context.borderRadius()),
-          border: Border.all(color: context.colors.onSurface.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(24),
+          color: context.colors.surface,
+          border: Border.all(color: context.colors.outlineVariant.withOpacity(0.5)),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: context.responsive(mobile: 60.0, desktop: 80.0),
-              height: context.responsive(mobile: 85.0, desktop: 110.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(context.borderRadius(0.5)),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.2), blurRadius: 8),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(context.borderRadius(0.5)),
-                child: ColorFiltered(
-                  colorFilter:
-                      const ColorFilter.mode(Colors.grey, BlendMode.saturation),
-                  child: OptimizedCachedImage(
-                      imageUrl: show.imageUrl, fit: BoxFit.cover),
+        child: InkWell(
+          onTap: () => context.pushNamed('showDetail', pathParameters: {'showId': shows[i].id}),
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: OptimizedCachedImage(imageUrl: shows[i].imageUrl, width: 80, height: 100, fit: BoxFit.cover),
                 ),
-              ),
-            ),
-            SizedBox(width: context.spacing),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    show.name.toUpperCase(),
-                    style: TextStyle(
-                      color: context.colors.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: context.responsive(mobile: 14.0, desktop: 16.0),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  SizedBox(height: context.spacing * 0.5),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: context.colors.primary.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      "ARŞİV",
-                      style: TextStyle(
-                        color: context.colors.primary,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded,
-                size: context.responsive(mobile: 16.0, desktop: 18.0),
-                color: context.colors.primary.withOpacity(0.5)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAchievementsTab(
-      final BuildContext context, final PlayerDetailState state) {
-    if (state.player.achievements.isEmpty) {
-      return Center(
-        child: Text(
-          "Henüz başarı kaydı bulunmuyor",
-          style: TextStyle(color: context.colors.onSurface.withOpacity(0.5)),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: context.pagePadding.copyWith(top: 24),
-      itemCount: state.player.achievements.length,
-      itemBuilder: (final context, final index) {
-        final item = state.player.achievements[index];
-        final isLast = index == state.player.achievements.length - 1;
-
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 40,
-                child: Column(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        border:
-                            Border.all(color: context.colors.primary, width: 2),
-                        shape: BoxShape.circle,
-                        color: context.colors.primary.withOpacity(0.1),
-                      ),
-                      child: Center(
-                        child: Icon(Icons.theater_comedy_rounded,
-                            size: 14, color: context.colors.primary),
-                      ),
-                    ),
-                    if (!isLast)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: CustomPaint(
-                            painter: _DashedLinePainter(
-                                color: context.colors.primary.withOpacity(0.3)),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 40),
+                const SizedBox(width: 20),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            item['year'] ?? '',
-                            style: TextStyle(
-                              color: context.colors.primary,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    context.colors.primary.withOpacity(0.3),
-                                    Colors.transparent
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        (item['title'] ?? '').toUpperCase(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15,
-                          letterSpacing: 0.5,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.auto_awesome,
-                              size: 12,
-                              color: context.colors.primary.withOpacity(0.5)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              item['detail'] ?? '',
-                              style: TextStyle(
-                                color:
-                                    context.colors.onSurface.withOpacity(0.6),
-                                fontSize: 13,
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      Text(shows[i].name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5)),
+                      const SizedBox(height: 4),
+                      Text("TİYATRO PERFORMANSI", style: TextStyle(color: context.colors.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: context.colors.onSurface.withOpacity(0.3)),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- 🏆 TAB: TIMELINE ACHIEVEMENTS ---
+  Widget _eliteTimelineTab(final List<dynamic> awards) {
+    if (awards.isEmpty) return const Center(child: Text("Başarı hikayesi henüz yazılmamış."));
+    return ListView.builder(
+      padding: const EdgeInsets.all(24),
+      itemCount: awards.length,
+      itemBuilder: (final context, final i) {
+        return IntrinsicHeight(
+          child: Row(
+            children: [
+              Column(
+                children: [
+                  Container(
+                    width: 16, height: 16,
+                    decoration: BoxDecoration(color: context.colors.primary, shape: BoxShape.circle,
+                        border: Border.all(color: context.colors.primary.withOpacity(0.2), width: 4)),
+                  ),
+                  if (i != awards.length - 1) Expanded(child: Container(width: 2, color: context.colors.primary.withOpacity(0.1))),
+                ],
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(awards[i]['year'] ?? '----', style: TextStyle(fontWeight: FontWeight.w900, color: context.colors.primary, fontSize: 18)),
+                      const SizedBox(height: 4),
+                      Text(awards[i]['title'] ?? '', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.3)),
+                      if (awards[i]['detail'] != null) ...[
+                        const SizedBox(height: 8),
+                        Text(awards[i]['detail'], style: TextStyle(color: context.colors.onSurface.withOpacity(0.5), fontSize: 14)),
+                      ]
                     ],
                   ),
                 ),
@@ -887,40 +427,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _buildError(final BuildContext context, final String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 60, color: context.colors.error),
-          SizedBox(height: context.spacing * 2),
-          Text("Hata oluştu", style: context.textTheme.titleLarge),
-          SizedBox(height: context.spacing),
-          Text(error, textAlign: TextAlign.center),
-        ],
-      ),
-    );
+  Widget _buildErrorState(final BuildContext context, final Object error) {
+    return Center(child: Text("Sanatçı profili yüklenirken bir sorun oluştu.", style: TextStyle(color: context.colors.error)));
   }
-}
-
-class _DashedLinePainter extends CustomPainter {
-  final Color color;
-
-  _DashedLinePainter({required this.color});
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    double dashHeight = 5, dashSpace = 3, startY = 0;
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5;
-    while (startY < size.height) {
-      canvas.drawLine(Offset(size.width / 2, startY),
-          Offset(size.width / 2, startY + dashHeight), paint);
-      startY += dashHeight + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(final CustomPainter oldDelegate) => false;
 }
