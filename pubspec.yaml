@@ -44,7 +44,7 @@ dependencies:
   firebase_auth:
   cloud_firestore:
   firebase_storage:
-  firebase_app_check:
+  firebase_app_check: ^0.4.1+4
   firebase_crashlytics: ^5.0.6
   firebase_analytics: ^12.1.0
   firebase_messaging: ^16.1.0

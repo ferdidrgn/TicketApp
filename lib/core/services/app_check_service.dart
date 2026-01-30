@@ -1,8 +1,28 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 import '../util/platform_checker.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart';
 
 abstract final class AppCheckService {
+  static Future<void> init() async {
+    // Web kontrolü (Senin kodundaki gibi)
+    if (kIsWeb) return;
+
+    await FirebaseAppCheck.instance.activate(
+      // Eski: providerAndroid: AndroidPlayIntegrityProvider()
+      // YENİ TİP: androidProvider: AndroidProvider.playIntegrity
+      androidProvider:
+          kReleaseMode ? AndroidProvider.playIntegrity : AndroidProvider.debug,
+
+      // iOS için
+      appleProvider:
+          kReleaseMode ? AppleProvider.deviceCheck : AppleProvider.debug,
+    );
+  }
+}
+
+/*abstract final class AppCheckService {
   static Future<void> init() async {
     // Web için şu anlık boş geçiyoruz (İhtiyaç olursa ReCaptcha eklenir)
     if (PlatformChecker.isWeb)
@@ -15,4 +35,4 @@ abstract final class AppCheckService {
           kDebugMode ? AppleDebugProvider() : AppleDeviceCheckProvider(),
     );
   }
-}
+}*/

@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
+import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
@@ -27,7 +29,7 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, GlobalScrollMixin {
   late final AnimationController _heroController;
   late final AnimationController _contentController;
   late final AnimationController _floatingController;
@@ -35,7 +37,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   late final Animation<Offset> _heroSlide;
   late final Animation<double> _contentFade;
 
-  final ScrollController _scrollController = ScrollController();
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
 
   @override
@@ -70,8 +71,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     });
   }
 
-  void _initScrollListener() => _scrollController.addListener(() {
-        if (mounted) _scrollNotifier.value = _scrollController.offset;
+  void _initScrollListener() => scrollController.addListener(() {
+        if (mounted) _scrollNotifier.value = scrollController.offset;
       });
 
   @override
@@ -79,7 +80,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     _heroController.dispose();
     _contentController.dispose();
     _floatingController.dispose();
-    _scrollController.dispose();
+    scrollController.dispose();
     _scrollNotifier.dispose();
     super.dispose();
   }
@@ -90,16 +91,21 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
     if (detailAsync.hasError)
       return GlobalErrorWidget(
-        message: detailAsync.error.toString(),
-        onRetry: () => ref.invalidate(showDetailProvider(widget.showId)),
-      );
+          message: detailAsync.error.toString(),
+          onRetry: () => ref.invalidate(showDetailProvider(widget.showId)));
 
     return SplashDataGuard(
       isLoading: detailAsync.isLoading,
       loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0a0a1a),
-        body: detailAsync.when(
+      child: BasePageWrapper(
+        showBackButton: true,
+        showFab: true,
+        customScrollController: scrollController,
+        layoutConfig: BasePageLayoutConfig(
+          backgroundColor: const Color(0xFF0a0a1a),
+          ambientColor: context.primaryColor.withOpacity(0.05),
+        ),
+        child: detailAsync.when(
           loading: () => const SizedBox.shrink(),
           error: (final err, final stack) => const SizedBox.shrink(),
           data: (final state) {
@@ -123,7 +129,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       children: [
         _BackgroundParticles(animation: _floatingController),
         CustomScrollView(
-          controller: _scrollController,
+          controller: scrollController,
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
