@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
@@ -28,22 +27,39 @@ class ShowDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
-    with GlobalScrollMixin {
+    with SingleTickerProviderStateMixin, GlobalScrollMixin {
   bool _isScrolled = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    // Scroll listener
     scrollController.addListener(() {
-      final isScrolledNow = scrollController.offset > 300;
-      if (isScrolledNow != _isScrolled) {
+      final isScrolledNow = scrollController.offset > 250;
+      if (isScrolledNow != _isScrolled)
         setState(() => _isScrolled = isScrolledNow);
-      }
     });
+
+    // Animations
+    _animationController = AnimationController(
+        duration: const Duration(milliseconds: 800), vsync: this);
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
+    _animationController.forward();
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     scrollController.dispose();
     super.dispose();
   }
@@ -51,52 +67,82 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   @override
   Widget build(final BuildContext context) {
     final detailAsync = ref.watch(showDetailProvider(widget.showId));
-
     final colors = context.colors;
-
-    // Home ile aynı zemin rengi
-    final surfaceColor = colors.surface;
-    final onSurfaceColor = colors.onSurface;
-    final primaryColor = context.primaryColor;
+    final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
       showBackButton: false,
-      showFab: true,
+      showFab: !isLargeScreen,
       customScrollController: scrollController,
       isLoading: detailAsync.isLoading && !detailAsync.hasValue,
       layoutConfig: BasePageLayoutConfig(
-        backgroundColor: surfaceColor,
-        ambientColor: primaryColor.withOpacity(0.05),
+        backgroundColor: colors.surface,
+        ambientColor: colors.primary.withOpacity(0.04),
       ),
       child: detailAsync.when(
-        loading: () =>
-            Center(child: CircularProgressIndicator(color: primaryColor)),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: colors.primary),
+        ),
         error: (final err, final stack) => Center(
-            child: Text("Hata: $err", style: TextStyle(color: colors.error))),
-        data: (final state) => Stack(
-          children: [
-            CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // 1. SİNEMATİK HEADER
-                _buildSliverHeader(context, state.show.imageUrl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline_rounded, size: 64, color: colors.error),
+              const SizedBox(height: 16),
+              Text("Bir hata oluştu",
+                  style: context.textTheme.titleLarge?.copyWith(
+                    color: colors.error,
+                    fontWeight: FontWeight.bold,
+                  )),
+              const SizedBox(height: 8),
+              Text("$err",
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  )),
+            ],
+          ),
+        ),
+        data: (final state) => isLargeScreen
+            ? _buildWebLayout(context, state)
+            : _buildMobileLayout(context, state),
+      ),
+    );
+  }
 
-                // 2. İÇERİK GÖVDESİ (MODAL GÖRÜNÜMÜ)
-                SliverToBoxAdapter(
+  // ═══════════════════════════════════════════════════════════════
+  // MOBILE LAYOUT
+  // ═══════════════════════════════════════════════════════════════
+  Widget _buildMobileLayout(final BuildContext context, final dynamic state) {
+    final colors = context.colors;
+
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Hero Header
+            _buildMobileSliverHeader(context, state.show.imageUrl),
+
+            // Content Body
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
                   child: Transform.translate(
-                    offset: const Offset(0, -50),
+                    offset: const Offset(0, -40),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: surfaceColor,
+                        color: colors.surface,
                         borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(40)),
+                          top: Radius.circular(32),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: context.isDarkMode
-                                ? Colors.white.withOpacity(0.02)
-                                : Colors.black.withOpacity(0.1),
-                            blurRadius: 30,
-                            spreadRadius: 1,
+                            color: colors.shadow.withOpacity(0.08),
+                            blurRadius: 20,
                             offset: const Offset(0, -5),
                           ),
                         ],
@@ -104,134 +150,88 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Drag Handle
                           Center(
                             child: Container(
-                              margin:
-                                  const EdgeInsets.only(top: 16, bottom: 20),
-                              width: 50,
-                              height: 5,
+                              margin: const EdgeInsets.only(top: 12, bottom: 8),
+                              width: 40,
+                              height: 4,
                               decoration: BoxDecoration(
-                                color: onSurfaceColor.withOpacity(0.15),
+                                color: colors.onSurfaceVariant.withOpacity(0.3),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                           ),
 
-                          Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    _buildCategoryPill(context, "TİYATRO"),
-                                    const SizedBox(width: 12),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.amber.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                            color:
-                                                Colors.amber.withOpacity(0.3)),
-                                      ),
-                                      child: const Row(
-                                        children: [
-                                          Icon(Icons.star_rounded,
-                                              color: Colors.amber, size: 18),
-                                          SizedBox(width: 4),
-                                          Text("9.8",
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.w900,
-                                                  color: Colors.amber,
-                                                  fontSize: 13)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
+                          const SizedBox(height: 8),
 
-                                // BAŞLIK
-                                Text(
-                                  state.show.name,
-                                  style: context.textTheme.headlineMedium
-                                      ?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: onSurfaceColor,
-                                    // Tema metin rengi
-                                    height: 1.1,
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
+                          // Header Section
+                          _buildMobileHeaderSection(context, state),
 
-                                // İSTATİSTİKLER (Tema uyumlu)
-                                _buildStatsRow(context),
-                              ],
-                            ),
-                          ),
+                          // Quick Stats
+                          _buildMobileQuickStats(context, state),
 
                           const SizedBox(height: 32),
 
-                          // 📖 HİKAYE
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: ShowInfoSection(
-                              title: "Hikaye",
-                              description: state.show.description,
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // 🎫 ETKİNLİKLER
-                          if (state.events.isNotEmpty) ...[
-                            _buildSectionHeader(context, "Biletler & Tarihler",
-                                Icons.calendar_month_rounded),
+                          // Description
+                          if (state.show.description.isNotEmpty) ...[
+                            _buildSectionHeader(
+                                context, "Hikaye", Icons.auto_stories_rounded),
                             const SizedBox(height: 16),
-                            _buildEventsList(context, state),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
+                              child: ShowInfoSection(
+                                title: "",
+                                description: state.show.description,
+                              ),
+                            ),
                             const SizedBox(height: 32),
                           ],
 
-                          // 🎭 OYUNCULAR
+                          // Events
+                          if (state.events.isNotEmpty) ...[
+                            _buildSectionHeader(context, "Seanslar & Biletler",
+                                Icons.event_rounded),
+                            const SizedBox(height: 16),
+                            _buildMobileEventsList(context, state),
+                            const SizedBox(height: 32),
+                          ],
+
+                          // Current Cast
                           if (state.show.nowPlayersId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Oyuncu Kadrosu",
-                                Icons.face_retouching_natural_rounded),
+                                Icons.people_rounded),
                             const SizedBox(height: 16),
                             PlayersBubbleCard(
                               players: (state.players as List<Player>)
                                   .where((final p) =>
                                       state.show.nowPlayersId.contains(p.id))
                                   .toList(),
-                              isGrayscale: false, // Renkli
+                              isGrayscale: false,
                             ),
                             const SizedBox(height: 32),
                           ],
 
-                          // 📜 GEÇMİŞ KADRO
+                          // Past Cast
                           if (state.show.oldPlayersId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Geçmiş Kadrolar",
-                                Icons.history_edu_rounded),
+                                Icons.history_rounded),
                             const SizedBox(height: 16),
-
-                            // 👇 BURASI DEĞİŞTİ: ARTIK HAZIR WIDGET'I ÇAĞIRIYORUZ
                             PlayersBubbleCard(
                               players: (state.players as List<Player>)
                                   .where((final p) =>
                                       state.show.oldPlayersId.contains(p.id))
                                   .toList(),
-                              isGrayscale: true, // Siyah-Beyaz
+                              isGrayscale: true,
                             ),
-
                             const SizedBox(height: 32),
                           ],
 
-                          // 🖼️ GALERİ
+                          // Gallery
                           if (state.show.photosShowId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Sahne Arkası",
-                                Icons.photo_camera_back_rounded),
+                                Icons.photo_library_rounded),
                             const SizedBox(height: 16),
                             Padding(
                               padding:
@@ -239,104 +239,73 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                               child: GallerySection(
                                   photos: state.show.photosShowId),
                             ),
-                            const SizedBox(height: 150),
                           ],
 
-                          if (state.show.photosShowId.isEmpty)
-                            const SizedBox(height: 150),
+                          const SizedBox(height: 120),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-
-            _buildTopBar(context),
-
-            // 3. YÜZEN LÜKS BOTTOM BAR
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _buildFloatingBottomBar(context, state),
+              ),
             ),
           ],
         ),
-      ),
+
+        // Top Bar
+        _buildMobileTopBar(context),
+
+        // Floating Bottom Bar
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: _buildFloatingBottomBar(context, state),
+        ),
+      ],
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 🎨 BİLEŞENLER (TEMA İLE %100 UYUMLU)
-  // ---------------------------------------------------------------------------
-
-  Widget _buildTopBar(final BuildContext context) {
+  Widget _buildMobileSliverHeader(
+      final BuildContext context, final String imageUrl) {
     final colors = context.colors;
-    final isScrolled = _isScrolled;
 
-    return Padding(
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GlassmorphismBackButton(),
-          Container(
-            decoration: BoxDecoration(
-              color: isScrolled
-                  ? colors.surfaceContainerHighest
-                  : Colors.black.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: Icon(Icons.share_outlined,
-                  size: 20,
-                  color: isScrolled ? colors.onSurface : Colors.white),
-              onPressed: () {
-                final currentState =
-                    ref.read(showDetailProvider(widget.showId));
-                if (currentState.hasValue && currentState.value != null) {
-                  final show = currentState.value!.show;
-                  TiyatrolDeeplinkService.shareShow(
-                      id: show.id, name: show.name);
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSliverHeader(final BuildContext context, final String imageUrl) {
     return SliverAppBar(
-      expandedHeight: 480,
+      expandedHeight: 420,
       pinned: false,
       stretch: true,
-      backgroundColor: context.colors.surface,
-      // Tema Rengi
+      backgroundColor: colors.surface,
+      automaticallyImplyLeading: false,
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [
           StretchMode.zoomBackground,
-          StretchMode.blurBackground
+          StretchMode.blurBackground,
         ],
         background: Stack(
           fit: StackFit.expand,
           children: [
-            OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover),
+            // Image
+            Hero(
+              tag: 'show_${widget.showId}',
+              child: OptimizedCachedImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+              ),
+            ),
+            // Gradient Overlay
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.3),
+                    Colors.black.withOpacity(0.2),
                     Colors.transparent,
-                    Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.6),
+                    Colors.transparent,
+                    colors.surface.withOpacity(0.3),
+                    colors.surface.withOpacity(0.8),
                   ],
-                  stops: const [0.0, 0.4, 0.8, 1.0],
+                  stops: const [0.0, 0.3, 0.6, 0.85, 1.0],
                 ),
               ),
             ),
@@ -346,137 +315,858 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     );
   }
 
-  Widget _buildCategoryPill(final BuildContext context, final String text) {
+  Widget _buildMobileTopBar(final BuildContext context) {
+    final colors = context.colors;
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const GlassmorphismBackButton(),
+              Row(
+                children: [
+                  // Favorite Button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _isScrolled
+                          ? colors.surfaceContainerHighest.withOpacity(0.95)
+                          : Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _isScrolled
+                            ? colors.outline.withOpacity(0.1)
+                            : Colors.white.withOpacity(0.2),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.favorite_border_rounded,
+                        size: 22,
+                        color: _isScrolled ? colors.primary : Colors.white,
+                      ),
+                      onPressed: () {},
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Share Button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _isScrolled
+                          ? colors.surfaceContainerHighest.withOpacity(0.95)
+                          : Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _isScrolled
+                            ? colors.outline.withOpacity(0.1)
+                            : Colors.white.withOpacity(0.2),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.share_rounded,
+                        size: 22,
+                        color: _isScrolled ? colors.onSurface : Colors.white,
+                      ),
+                      onPressed: () {
+                        final currentState =
+                            ref.read(showDetailProvider(widget.showId));
+                        if (currentState.hasValue &&
+                            currentState.value != null) {
+                          final show = currentState.value!.show;
+                          TiyatrolDeeplinkService.shareShow(
+                              id: show.id, name: show.name);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileHeaderSection(
+      final BuildContext context, final dynamic state) {
+    final colors = context.colors;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Category & Rating
+          Row(
+            children: [
+              // Category Chip
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: colors.primary.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.theater_comedy_rounded,
+                      size: 16,
+                      color: colors.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      "TİYATRO",
+                      style: TextStyle(
+                        color: colors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Rating Badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: colors.tertiaryContainer,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: colors.tertiary.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star_rounded, color: colors.tertiary, size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      "4.8",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: colors.tertiary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Title
+          Text(
+            state.show.name,
+            style: context.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colors.onSurface,
+              height: 1.2,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileQuickStats(
+      final BuildContext context, final dynamic state) {
+    final colors = context.colors;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: context.primaryColor,
-        borderRadius: BorderRadius.circular(12),
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colors.outlineVariant.withOpacity(0.5),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-              color: context.primaryColor.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4)),
+            color: colors.shadow.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      child: Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2),
-      ),
-    );
-  }
-
-  Widget _buildStatsRow(final BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerLow, // Tema SurfaceLow (Kart rengi)
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.outline.withOpacity(0.1)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          _buildStat(context, Icons.schedule, "120", "Dakika"),
-          Container(width: 1, height: 24, color: colors.outlineVariant),
-          _buildStat(context, Icons.explicit, "13+", "Yaş Sınırı"),
-          Container(width: 1, height: 24, color: colors.outlineVariant),
-          _buildStat(context, Icons.translate, "Türkçe", "Altyazısız"),
+          _buildStatRow(
+            context,
+            Icons.access_time_rounded,
+            "Süre",
+            "120 dakika",
+          ),
+          const SizedBox(height: 16),
+          Divider(
+            color: colors.outlineVariant.withOpacity(0.3),
+            height: 1,
+          ),
+          const SizedBox(height: 16),
+          _buildStatRow(
+            context,
+            Icons.language_rounded,
+            "Dil",
+            "Türkçe",
+          ),
+          const SizedBox(height: 16),
+          Divider(
+            color: colors.outlineVariant.withOpacity(0.3),
+            height: 1,
+          ),
+          const SizedBox(height: 16),
+          _buildStatRow(
+            context,
+            Icons.child_care_rounded,
+            "Yaş Sınırı",
+            "13+",
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStat(final BuildContext context, final IconData icon,
-      final String value, final String subtitle) {
+  Widget _buildStatRow(
+    final BuildContext context,
+    final IconData icon,
+    final String label,
+    final String value,
+  ) {
+    final colors = context.colors;
+
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: context.colors.onSecondary, // Tema OnSecondary
-            shape: BoxShape.circle,
+            color: colors.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, size: 18, color: context.primaryColor),
+          child: Icon(
+            icon,
+            size: 20,
+            color: colors.primary,
+          ),
         ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value,
-                style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
-                    color: context.colors.onSurface)),
-            Text(subtitle,
-                style: TextStyle(
-                    fontSize: 10,
-                    color: context.colors.onSurfaceVariant,
-                    fontWeight: FontWeight.w600)),
-          ],
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: context.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: context.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
   Widget _buildSectionHeader(
-      final BuildContext context, final String title, final IconData icon) {
+    final BuildContext context,
+    final String title,
+    final IconData icon,
+  ) {
+    final colors = context.colors;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: context.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 20, color: context.primaryColor),
+            child: Icon(icon, size: 20, color: colors.primary),
           ),
           const SizedBox(width: 12),
           Text(
             title,
-            style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: context.colors.onSurface,
-                letterSpacing: -0.5),
+            style: context.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colors.onSurface,
+              letterSpacing: -0.3,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEventsList(final BuildContext context, final dynamic state) {
-    return SizedBox(
-      height: 340,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-        scrollDirection: Axis.horizontal,
+  Widget _buildMobileEventsList(
+          final BuildContext context, final dynamic state) =>
+      SizedBox(
+        height: 340,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: state.events.length,
+          itemBuilder: (final context, final index) {
+            final event = state.events[index];
+            final stage = state.stages.firstWhere(
+              (final s) => s.id == event.stageId,
+              orElse: () => Stage(
+                id: "",
+                name: "Sahne",
+                address: "",
+                imageUrl: "",
+                capacity: "",
+                description: "",
+                communication: "",
+                locationLat: 0,
+                locationLng: 0,
+                createdAt: "",
+                updatedAt: "",
+                showsId: [],
+              ),
+            );
+
+            String dateText = event.date;
+            String timeText = "--:--";
+            try {
+              if (event.date.contains(',')) {
+                final parts = event.date.split(',');
+                final dParts = parts[0].split('.');
+                if (dParts.length == 3) {
+                  dateText =
+                      "${dParts[0]} ${_getMonthName(int.tryParse(dParts[1]) ?? 1)}";
+                  timeText = parts.length > 1 ? parts[1] : "";
+                }
+              }
+            } catch (_) {}
+
+            return EventsCard(
+              width: 270,
+              margin: const EdgeInsets.only(right: 16),
+              imageUrl: state.show.imageUrl,
+              showName: state.show.name,
+              category: "TİYATRO",
+              fullDateString: dateText,
+              timeString: timeText,
+              stage: stage.name,
+              price: double.tryParse(event.price.toString()) ?? 0.0,
+              onTap: () {
+                final userId =
+                    ref.read(currentUserProvider).value?.uid ?? "guest";
+                context.pushNamed('seatSelection', pathParameters: {
+                  'slugWithId': '${widget.showId}-${event.id}-$userId'
+                });
+              },
+            );
+          },
+        ),
+      );
+
+  Widget _buildFloatingBottomBar(
+      final BuildContext context, final dynamic state) {
+    final colors = context.colors;
+    double minPrice = 0;
+    if (state.events.isNotEmpty)
+      minPrice = double.tryParse(state.events.first.price.toString()) ?? 0;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            colors.surfaceContainer.withOpacity(0.98),
+            colors.surfaceContainerHighest.withOpacity(0.95),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow.withOpacity(0.15),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+        ],
+        border: Border.all(
+          color: colors.outlineVariant.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Price Section
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colors.primaryContainer.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Başlayan",
+                        style: context.textTheme.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "₺${minPrice.toStringAsFixed(0)}",
+                        style: context.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colors.primary,
+                          height: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Button
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.primary.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () => scrollController.animateTo(
+                        800,
+                        duration: const Duration(milliseconds: 800),
+                        curve: Curves.easeInOutCubic,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Bilet Al",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(Icons.arrow_forward_rounded, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // WEB/TABLET LAYOUT
+  // ═══════════════════════════════════════════════════════════════
+  Widget _buildWebLayout(final BuildContext context, final dynamic state) =>
+      SingleChildScrollView(
+        controller: scrollController,
         physics: const BouncingScrollPhysics(),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildWebHeader(context, state),
+                    const SizedBox(height: 48),
+                    _buildWebContent(context, state),
+                    const SizedBox(height: 60),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildWebHeader(final BuildContext context, final dynamic state) {
+    final colors = context.colors;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Image
+        Expanded(
+          flex: 2,
+          child: Hero(
+            tag: 'show_${widget.showId}',
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.shadow.withOpacity(0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: AspectRatio(
+                  aspectRatio: 2 / 3,
+                  child: OptimizedCachedImage(
+                    imageUrl: state.show.imageUrl,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 48),
+        // Info
+        Expanded(
+          flex: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Category & Rating
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer,
+                      borderRadius: BorderRadius.circular(24),
+                      border:
+                          Border.all(color: colors.primary.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.theater_comedy_rounded,
+                            size: 20, color: colors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          "TİYATRO",
+                          style: context.textTheme.titleSmall?.copyWith(
+                            color: colors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: colors.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.star_rounded,
+                            size: 22, color: colors.tertiary),
+                        const SizedBox(width: 6),
+                        Text(
+                          "4.8",
+                          style: context.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colors.tertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // Title
+              Text(
+                state.show.name,
+                style: context.textTheme.displayMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  height: 1.1,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Description
+              Text(
+                state.show.description,
+                style: context.textTheme.bodyLarge?.copyWith(
+                  height: 1.6,
+                  color: colors.onSurfaceVariant,
+                ),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 32),
+              // Stats
+              _buildWebQuickStats(context, state),
+              const SizedBox(height: 32),
+              // CTA Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => scrollController.animateTo(
+                    800,
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeInOutCubic,
+                  ),
+                  icon: const Icon(Icons.confirmation_number_rounded),
+                  label: const Text(
+                    "Bilet Al",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWebQuickStats(final BuildContext context, final dynamic state) {
+    final colors = context.colors;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildWebStatItem(
+              context,
+              Icons.access_time_rounded,
+              "Süre",
+              "120 dk",
+            ),
+          ),
+          Expanded(
+            child: _buildWebStatItem(
+              context,
+              Icons.language_rounded,
+              "Dil",
+              "Türkçe",
+            ),
+          ),
+          Expanded(
+            child: _buildWebStatItem(
+              context,
+              Icons.child_care_rounded,
+              "Yaş",
+              "13+",
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebStatItem(
+    final BuildContext context,
+    final IconData icon,
+    final String label,
+    final String value,
+  ) {
+    final colors = context.colors;
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: colors.primaryContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, size: 24, color: colors.primary),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          label,
+          style: context.textTheme.labelMedium
+              ?.copyWith(color: colors.onSurfaceVariant),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: context.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWebContent(final BuildContext context, final dynamic state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Events
+        if (state.events.isNotEmpty) ...[
+          _buildSectionHeader(
+            context,
+            "Seanslar & Biletler",
+            Icons.event_rounded,
+          ),
+          const SizedBox(height: 24),
+          _buildWebEventsList(context, state),
+          const SizedBox(height: 48),
+        ],
+
+        // Cast
+        if (state.show.nowPlayersId.isNotEmpty) ...[
+          _buildSectionHeader(
+            context,
+            "Oyuncu Kadrosu",
+            Icons.people_rounded,
+          ),
+          const SizedBox(height: 24),
+          PlayersBubbleCard(
+            players: (state.players as List<Player>)
+                .where((final p) => state.show.nowPlayersId.contains(p.id))
+                .toList(),
+            isGrayscale: false,
+          ),
+          const SizedBox(height: 48),
+        ],
+
+        // Gallery
+        if (state.show.photosShowId.isNotEmpty) ...[
+          _buildSectionHeader(
+            context,
+            "Sahne Arkası",
+            Icons.photo_library_rounded,
+          ),
+          const SizedBox(height: 24),
+          GallerySection(photos: state.show.photosShowId),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildWebEventsList(final BuildContext context, final dynamic state) =>
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 24,
+          mainAxisSpacing: 24,
+          childAspectRatio: 1.5,
+        ),
         itemCount: state.events.length,
         itemBuilder: (final context, final index) {
           final event = state.events[index];
           final stage = state.stages.firstWhere(
-              (final s) => s.id == event.stageId,
-              orElse: () => Stage(
-                  id: "",
-                  name: "Sahne",
-                  address: "",
-                  imageUrl: "",
-                  capacity: "",
-                  description: "",
-                  communication: "",
-                  locationLat: 0,
-                  locationLng: 0,
-                  createdAt: "",
-                  updatedAt: "",
-                  showsId: []));
+            (final s) => s.id == event.stageId,
+            orElse: () => Stage(
+              id: "",
+              name: "Sahne",
+              address: "",
+              imageUrl: "",
+              capacity: "",
+              description: "",
+              communication: "",
+              locationLat: 0,
+              locationLng: 0,
+              createdAt: "",
+              updatedAt: "",
+              showsId: [],
+            ),
+          );
 
           String dateText = event.date;
           String timeText = "--:--";
@@ -493,8 +1183,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           } catch (_) {}
 
           return EventsCard(
-            width: 270,
-            margin: const EdgeInsets.only(right: 16),
             imageUrl: state.show.imageUrl,
             showName: state.show.name,
             category: "TİYATRO",
@@ -511,188 +1199,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             },
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildBubbleCastList(final BuildContext context, final dynamic state,
-      final List<String> playerIds, final bool isGrayscale) {
-    final List<Player> allPlayers = List<Player>.from(state.players ?? []);
-    final players =
-        allPlayers.where((final p) => playerIds.contains(p.id)).toList();
-
-    return SizedBox(
-      height: 220,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: players.length,
-        itemBuilder: (final context, final index) {
-          final player = players[index];
-          final fullName = "${player.firstName} ${player.lastName}";
-
-          return Container(
-            width: 125,
-            margin: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () => context.pushNamed('playerDetail',
-                  pathParameters: {'playerId': player.id}),
-              borderRadius: BorderRadius.circular(60),
-              child: Card(
-                elevation: 4,
-                shadowColor: context.colors.shadow.withOpacity(0.1),
-                color: context.colors.surfaceContainer,
-                // Tema Surface rengi
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(60)),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: ClipOval(
-                        child: Container(
-                          width: 115,
-                          height: 115,
-                          color: context.colors.surfaceContainerHighest,
-                          child: ColorFiltered(
-                            colorFilter: isGrayscale
-                                ? const ColorFilter.mode(
-                                    Colors.grey, BlendMode.saturation)
-                                : const ColorFilter.mode(
-                                    Colors.transparent, BlendMode.dst),
-                            child: OptimizedCachedImage(
-                                imageUrl: player.imageUrl, fit: BoxFit.cover),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(
-                          fullName,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight:
-                                isGrayscale ? FontWeight.w600 : FontWeight.bold,
-                            color: isGrayscale
-                                ? context.colors.secondary
-                                : context.colors.onSurface,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFloatingBottomBar(
-      final BuildContext context, final dynamic state) {
-    double minPrice = 0;
-    if (state.events.isNotEmpty) {
-      minPrice = double.tryParse(state.events.first.price.toString()) ?? 0;
-    }
-
-    // Modal Rengi
-    final barColor = context.colors.surfaceContainer.withOpacity(0.95);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-      decoration: BoxDecoration(
-        color: barColor,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: context.colors.shadow.withOpacity(0.2),
-            blurRadius: 25,
-            offset: const Offset(0, 8),
-            spreadRadius: 2,
-          ),
-        ],
-        border: Border.all(color: context.colors.onSurface.withOpacity(0.05)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text("Başlayan",
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: context.colors.secondary,
-                            fontWeight: FontWeight.w600)),
-                    Text("₺${minPrice.toStringAsFixed(0)}",
-                        style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: context.colors.onSecondary,
-                            height: 1)),
-                  ],
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                            color: context.colors.onPrimary.withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5)),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () => scrollController.animateTo(900,
-                          duration: const Duration(seconds: 1),
-                          curve: Curves.easeInOut),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.primaryColor,
-                        foregroundColor: context.colors.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        elevation: 0,
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text("Bilet Al",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800, fontSize: 18)),
-                          SizedBox(width: 8),
-                          Icon(Icons.confirmation_number_rounded, size: 22)
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+      );
 
   String _getMonthName(final int monthIndex) {
     const months = [
