@@ -24,223 +24,205 @@ class StageDetailPage extends ConsumerStatefulWidget {
 class _StageDetailPageState extends ConsumerState<StageDetailPage>
     with GlobalScrollMixin {
   @override
-  void onLoadMore() {} // Mixin gereksinimi
+  void onLoadMore() {}
 
   @override
   Widget build(final BuildContext context) {
     final detailAsync = ref.watch(stageDetailProvider(widget.stageId));
+    final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
       showBackButton: true,
       showFab: true,
+      // 🎯 MERKEZİ HEADER: Başlık ve alt başlık artık sistemden geliyor
+      title: detailAsync.value?.stage.name.toUpperCase() ?? 'SAHNE DETAYI',
+      subtitle: 'Şehrin en iyi sahnelerini keşfedin...',
+      rightIcon: Icons.stadium_rounded,
       customScrollController: scrollController,
       isLoading: detailAsync.isLoading,
       layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.scaffoldBackgroundColor,
-        safeAreaTop: false, // Görselin yukarı sızması için
+        backgroundColor: context.colors.surface,
+        ambientColor: context.colors.primary.withOpacity(0.05),
+        safeAreaTop: true, // Header'ın status bar altında kalmaması için true
       ),
       child: detailAsync.when(
-        loading: () => const SizedBox.shrink(),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (final err, final _) =>
             Center(child: Text('Veri yüklenemedi: $err')),
-        data: (final state) => _buildSliverContent(context, state),
-      ),
-    );
-  }
+        data: (final state) => Center(
+          child: ConstrainedBox(
+            constraints:
+                BoxConstraints(maxWidth: isLargeScreen ? 800 : double.infinity),
+            child: CustomScrollView(
+              controller: scrollController,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverPadding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      _buildStageImage(state.stage.imageUrl),
+                      const SizedBox(height: 32),
 
-  Widget _buildSliverContent(
-      final BuildContext context, final StageDetailState state) {
-    return CustomScrollView(
-      controller: scrollController,
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        // Geri butonu için üstten boşluk bırakıyoruz
-        SliverToBoxAdapter(
-            child: SizedBox(height: MediaQuery.of(context).padding.top + 70)),
+                      // 📖 MEKAN HİKAYESİ
+                      _buildSectionLabel(
+                          context, 'HAKKINDA', Icons.info_outline_rounded),
+                      const SizedBox(height: 12),
+                      _buildStageInfo(state.stage.description),
+                      const SizedBox(height: 40),
 
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              children: [
-                _buildStageImage(state.stage.imageUrl),
-                const SizedBox(height: 24),
-                _buildStageTitle(state.stage.name),
-                const SizedBox(height: 24),
+                      // 🎬 ETKİNLİKLER
+                      if (state.shows.isNotEmpty) ...[
+                        _buildSectionLabel(context, 'SAHNELENEN ESERLER',
+                            Icons.event_seat_rounded),
+                        const SizedBox(height: 16),
+                        _buildShowList(state.shows),
+                        const SizedBox(height: 40),
+                      ],
 
-                // Detay İçeriği
-                _buildStageInfo(state.stage.description),
-                const SizedBox(height: 16),
+                      // 📍 KONUM VE ADRES
+                      _buildSectionLabel(
+                          context, 'LOKASYON', Icons.map_outlined),
+                      const SizedBox(height: 16),
+                      _buildStageMap(
+                          state.stage.locationLat, state.stage.locationLng),
+                      const SizedBox(height: 24),
+                      _buildAddressSection(context, state.stage.address,
+                          state.stage.communication),
 
-                if (state.shows.isNotEmpty) ...[
-                  _buildSectionLabel(
-                      context, 'Eşleşen Etkinlikler', Icons.event_seat_rounded),
-                  const SizedBox(height: 16),
-                  _buildShowList(state.shows),
-                  const SizedBox(height: 24),
-                ],
-
-                _buildSectionLabel(context, 'Konum', Icons.map_outlined),
-                const SizedBox(height: 16),
-                _buildStageMap(
-                    state.stage.locationLat, state.stage.locationLng),
-                const SizedBox(height: 16),
-
-                _buildStageAddress(
-                    context, state.stage.address, state.stage.communication),
-                const SizedBox(height: 120), // FAB payı
+                      const SizedBox(height: 120),
+                    ]),
+                  ),
+                ),
               ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildSectionLabel(
-      final BuildContext context, final String title, final IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, color: context.primaryColor, size: 20),
-        const SizedBox(width: 8),
-        Text(
-          title.toUpperCase(),
-          style: context.textTheme.labelLarge?.copyWith(
-            color: context.primaryColor,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+  // --- UI BİLEŞENLERİ ---
+
+  Widget _buildStageImage(final String imageUrl) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10)),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: CachedNetworkImage(
+            imageUrl: imageUrl,
+            height: 400,
+            fit: BoxFit.cover,
+            placeholder: (final _, final __) => const ShimmerLoading(),
           ),
         ),
-      ],
-    );
-  }
+      );
 
-  Widget _buildStageImage(final String imageUrl) => AspectRatio(
-        aspectRatio: 3 / 3.5,
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.8),
-                blurRadius: 5,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (final context, final url) => const ShimmerLoading(),
-              errorWidget: (final context, final url, final error) =>
-                  const Icon(Icons.error),
+  Widget _buildStageInfo(final String description) => Text(
+        description,
+        style: const TextStyle(
+            fontSize: 16, height: 1.6, fontWeight: FontWeight.w400),
+      );
+
+  Widget _buildShowList(final List<Show> shows) => SizedBox(
+        height: 220,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: shows.length,
+          itemBuilder: (final context, final index) => Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: ShowCard(
+              imageUrl: shows[index].imageUrl,
+              gameName: shows[index].name,
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (final _) =>
+                          ShowDetailPage(showId: shows[index].id))),
             ),
           ),
         ),
       );
 
-  Widget _buildStageTitle(final String name) => Text(
-        name,
-        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-        textAlign: TextAlign.center,
-      );
-
-  Widget _buildStageInfo(final String description) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          description,
-          style: const TextStyle(
-              fontSize: 16, height: 1.1, fontWeight: FontWeight.w300),
-        ),
-      );
-
-  Widget _buildShowList(final List<Show> shows) => SizedBox(
-        height: 200,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: shows.length,
-          itemBuilder: (final context, final index) =>
-              _buildEventCard(context, shows[index]),
-        ),
-      );
-
-  Widget _buildEventCard(final BuildContext context, final Show show) =>
-      GestureDetector(
-        child: ShowCard(
-          imageUrl: show.imageUrl,
-          gameName: show.name,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (final context) => ShowDetailPage(showId: show.id),
-              ),
-            );
-          },
-        ),
-      );
-
   Widget _buildStageMap(final double lat, final double lng) {
-    // Koordinatlar geçersizse (0,0 geliyorsa) haritayı hiç gösterme
     if (lat == 0 && lng == 0) return const SizedBox.shrink();
-
     final LatLng position = LatLng(lat, lng);
-    return SizedBox(
-      height: 250, // Biraz daha belirgin yükseklik
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: GoogleMap(
-            // Harita tipini belirleyebiliriz
-            mapType: MapType.normal,
-            // Zoom ve kaydırma kontrollerini Sliver içinde çakışmaması için optimize edelim
-            zoomControlsEnabled: false,
-            myLocationButtonEnabled: false,
-            // Sliver Scroll ile haritanın kendi scroll'unun çakışmasını önlemek için:
-            gestureRecognizers: const {},
-            initialCameraPosition: CameraPosition(target: position, zoom: 15),
-            markers: {
-              Marker(
-                markerId: const MarkerId('stage-location'),
-                position: position,
-                infoWindow: const InfoWindow(title: "Mekan Konumu"),
-              ),
-            },
-          ),
+    return Container(
+      height: 250,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: GoogleMap(
+          initialCameraPosition: CameraPosition(target: position, zoom: 15),
+          markers: {
+            Marker(markerId: const MarkerId('stage'), position: position)
+          },
+          zoomControlsEnabled: false,
+          scrollGesturesEnabled: false, // Sayfa scroll'u ile çakışmaması için
         ),
       ),
     );
   }
 
-  Widget _buildStageAddress(final BuildContext context, final String address,
+  Widget _buildAddressSection(final BuildContext context, final String address,
           final String communication) =>
-      Row(
+      Column(
         children: [
-          _buildInfoSection('Adres', address),
-          const SizedBox(width: 16),
-          _buildInfoSection('İletişim Bilgileri', communication),
+          _buildInfoTile(
+              context, Icons.location_on_rounded, 'Açık Adres', address),
+          const SizedBox(height: 16),
+          _buildInfoTile(
+              context, Icons.phone_in_talk_rounded, 'İletişim', communication),
         ],
       );
 
-  Widget _buildInfoSection(final String title, final String content) =>
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionHeader(title: title, fontSize: 20),
-            Text(
-              content,
-              style: const TextStyle(
-                  fontSize: 16, height: 1.1, fontWeight: FontWeight.w300),
+  Widget _buildInfoTile(final BuildContext context, final IconData icon,
+          final String title, final String content) =>
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: context.colors.primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 4),
+                Text(content,
+                    style: TextStyle(
+                        color: context.colors.onSurfaceVariant,
+                        fontSize: 14,
+                        height: 1.4)),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
+      );
+
+  Widget _buildSectionLabel(final BuildContext context, final String title,
+          final IconData icon) =>
+      Row(
+        children: [
+          Icon(icon, color: context.colors.primary, size: 22),
+          const SizedBox(width: 12),
+          Text(title,
+              style: context.textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 2)),
+        ],
       );
 }
