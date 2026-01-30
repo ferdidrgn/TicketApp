@@ -40,7 +40,7 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
     if (!_isControllerInitialized) {
       _pageController = PageController(
         viewportFraction:
-            context.responsive(mobile: 0.9, tablet: 0.85, desktop: 0.7),
+            context.responsive(mobile: 0.85, tablet: 0.75, desktop: 0.6),
         initialPage: widget.initialIndex,
       );
       _isControllerInitialized = true;
@@ -56,21 +56,36 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
   @override
   Widget build(final BuildContext context) {
     final campaignsAsync = ref.watch(campaignsProvider);
+    final bool isLargeScreen = context.isTablet || context.isDesktop;
 
-    // Geri butonunun gözükmesi için BasePageWrapper'ı ana döndürücü yapıyoruz
     return BasePageWrapper(
+      // 🎯 Merkezi Header Yönetimi
+      title: "AVANTAJLAR",
+      subtitle: "Sanat dolu fırsatları keşfet...",
       showBackButton: true,
+      rightIcon: Icons.support_agent_rounded,
+      // 💡 Yardım ikonu artık header'da
       showFab: true,
       customScrollController: scrollController,
       layoutConfig: BasePageLayoutConfig(
-          backgroundColor: context.scaffoldBackgroundColor),
+        backgroundColor: context.colors.surface,
+        safeAreaTop: true,
+      ),
       child: campaignsAsync.when(
         loading: () =>
             const Center(child: ShimmerLoading(height: 500, width: 350)),
         error: (final err, final _) => Center(child: Text("Hata: $err")),
         data: (final campaigns) {
           if (campaigns.isEmpty) return _buildEmptyState();
-          return _buildBody(context, campaigns);
+
+          // 🖥️ Web'de içeriği ortalamak için kısıt koyuyoruz
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxWidth: isLargeScreen ? 1000 : double.infinity),
+              child: _buildBody(context, campaigns),
+            ),
+          );
         },
       ),
     );
@@ -80,46 +95,40 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
       final BuildContext context, final List<Campaign> campaigns) {
     final currentCampaign = campaigns[_currentPage];
 
-    return SingleChildScrollView(
+    return ListView(
+      // 💡 ListView kullanarak scrollController'ı buraya bağlıyoruz
       controller: scrollController,
-      child: SafeArea(
-        child: Column(
+      physics: const BouncingScrollPhysics(),
+      children: [
+        // 1. HERO SECTION (Pager Area)
+        Stack(
           children: [
-            // 1. HERO SECTION (Görsel Alanı)
-            Stack(
+            _buildBackgroundGradientEffect(),
+            Column(
               children: [
-                _buildBackgroundGradientEffect(),
                 SizedBox(
-                  height: context.hp(80),
+                  height: context.hp(65),
+                  // 💡 Header geldiği için yüksekliği biraz daralttık
                   child: _buildCampaignPager(campaigns),
                 ),
                 _buildCampaignInfoOverlay(currentCampaign, campaigns.length),
-
-                // Sağ üst yardım ikonu (Sol üstte BasePageWrapper'ın geri butonu var)
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,
-                  right: 16,
-                  child: _buildActionButton(
-                    icon: Icons.support_agent_rounded,
-                    onTap: () => TiyatrolCommunicationActions.contactWhatsApp(),
-                  ),
-                ),
               ],
             ),
-
-            // 2. DYNAMIC CONTENT SECTION (İkonlarla Desteklenmiş Detaylar)
-            _buildDetailedContent(context, currentCampaign),
           ],
         ),
-      ),
+
+        // 2. DYNAMIC CONTENT SECTION
+        _buildDetailedContent(context, currentCampaign),
+      ],
     );
   }
+
+  // --- İyileştirilmiş UI Bileşenleri ---
 
   Widget _buildDetailedContent(
       final BuildContext context, final Campaign campaign) {
     return Container(
-      padding: context.sectionPadding,
-      color: context.colors.surface,
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -132,7 +141,7 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
           ),
           const SizedBox(height: 32),
 
-          // İkonlu Bilgi Kartları
+          // İkonlu Bilgi Kartları (Responsive Düzen)
           Row(
             children: [
               _buildInfoChip(Icons.confirmation_num_outlined, "Hızlı Bilet"),
@@ -150,49 +159,132 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
             style: context.textTheme.bodySmall
                 ?.copyWith(color: context.colors.onSurfaceVariant),
           ),
-          const SizedBox(height: 100), // Scroll payı
+          const SizedBox(height: 80),
         ],
       ),
     );
   }
 
-  // --- UI YARDIMCILARI ---
-
-  Widget _buildSectionHeader(final IconData icon, final String title) {
-    return Row(
-      children: [
-        Icon(icon, color: context.primaryColor, size: 20),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: context.textTheme.titleSmall?.copyWith(
-            color: context.primaryColor,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.1,
-          ),
+  Widget _buildCampaignInfoOverlay(final Campaign campaign, final int total) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          children: [
+            DotsIndicator(
+              itemCount: total,
+              currentIndex: _currentPage,
+              onPageSelected: (final page) => _pageController.animateToPage(
+                  page,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOut),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              campaign.title.toUpperCase(),
+              style: context.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 1),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            _buildActionButtons(campaign),
+          ],
         ),
-      ],
-    );
-  }
+      );
+
+  Widget _buildActionButtons(Campaign campaign) => Row(
+        children: [
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => NavigationHandler.globalGoTo(campaign.url),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.primaryColor,
+                foregroundColor: context.colors.onPrimary,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 8,
+                shadowColor: context.primaryColor.withOpacity(0.4),
+              ),
+              child: const Text("ŞİMDİ İNCELE",
+                  style:
+                      TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+            ),
+          ),
+          const SizedBox(width: 16),
+          _buildShareButton(campaign),
+        ],
+      );
+
+  Widget _buildShareButton(Campaign campaign) => GestureDetector(
+        onTap: () => TiyatrolDeeplinkService.shareShow(
+            id: campaign.id, name: campaign.title),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: context.colors.surfaceVariant.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.colors.outlineVariant),
+          ),
+          child: Icon(Icons.share_outlined,
+              color: context.colors.onSurface, size: 24),
+        ),
+      );
+
+  // ... (Diğer _build metodların olan _buildSectionHeader, _buildInfoChip, _buildCampaignPager, _buildCampaignCard aynı kalabilir)
+
+  Widget _buildSectionHeader(final IconData icon, final String title) => Row(
+        children: [
+          Icon(icon, color: context.primaryColor, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: context.textTheme.labelSmall?.copyWith(
+              color: context.primaryColor,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+        ],
+      );
 
   Widget _buildInfoChip(final IconData icon, final String label) => Expanded(
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: context.primaryColor.withOpacity(0.1),
+                color: context.primaryColor.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: context.primaryColor, size: 24),
+              child: Icon(icon, color: context.primaryColor, size: 28),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(label,
-                style: context.textTheme.labelSmall,
+                style: context.textTheme.labelSmall
+                    ?.copyWith(fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center),
           ],
         ),
       );
+
+  Widget _buildBackgroundGradientEffect() => Positioned.fill(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment.topCenter,
+              colors: [
+                context.primaryColor.withOpacity(0.12),
+                Colors.transparent
+              ],
+              radius: 1.5,
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildEmptyState() => Center(
+      child: Text("Aktif kampanya bulunamadı.",
+          style: context.textTheme.titleMedium));
 
   Widget _buildCampaignPager(final List<Campaign> campaigns) =>
       PageView.builder(
@@ -237,103 +329,4 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
           ),
         ),
       );
-
-  Widget _buildCampaignInfoOverlay(final Campaign campaign, final int total) =>
-      Positioned(
-        bottom: 0,
-        left: 0,
-        right: 0,
-        child: Container(
-          padding: context.paddingAll,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                context.colors.surface.withOpacity(0.9),
-                context.colors.surface,
-              ],
-            ),
-          ),
-          child: Column(
-            children: [
-              DotsIndicator(
-                itemCount: total,
-                currentIndex: _currentPage,
-                onPageSelected: (final page) => _pageController.animateToPage(
-                    page,
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeInOut),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                campaign.title.toUpperCase(),
-                style: context.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w900),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () =>
-                          NavigationHandler.globalGoTo(campaign.url),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.primaryColor,
-                        foregroundColor: context.colors.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: const StadiumBorder(),
-                      ),
-                      child: const Text("ŞİMDİ İNCELE",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildActionButton(
-                    icon: Icons.share_outlined,
-                    onTap: () => TiyatrolDeeplinkService.shareShow(
-                        id: campaign.id, name: campaign.title),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-
-  Widget _buildActionButton(
-          {required final IconData icon, required final VoidCallback onTap}) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: context.colors.surface.withOpacity(0.5),
-            shape: BoxShape.circle,
-            border:
-                Border.all(color: context.colors.onSurface.withOpacity(0.1)),
-          ),
-          child: Icon(icon, color: context.colors.onSurface, size: 22),
-        ),
-      );
-
-  Widget _buildBackgroundGradientEffect() => Positioned.fill(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              colors: [
-                context.primaryColor.withOpacity(0.1),
-                Colors.transparent
-              ],
-              radius: 1.2,
-            ),
-          ),
-        ),
-      );
-
-  Widget _buildEmptyState() => Center(
-      child: Text("Aktif kampanya bulunamadı.",
-          style: context.textTheme.titleMedium));
 }
