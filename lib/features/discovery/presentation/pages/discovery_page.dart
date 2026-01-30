@@ -155,18 +155,16 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
             'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
         showName: 'Hamlet - Bir Kimlik Meselesi',
         category: 'Dram',
-        date: '15 Haziran 2024',
         stage: 'Zorlu PSM',
-        price: 240,
+        price: 240, fullDateString: '15 Haz 2026', timeString: '19:30',
       ),
       const EventsCard(
         imageUrl:
             'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
         showName: 'Cimri - Şehir Tiyatroları',
         category: 'Komedi',
-        date: '18 Haziran 2024',
         stage: 'Kadıköy Sahnesi',
-        price: 150,
+        price: 150, fullDateString: '20 Haz 2020', timeString: '20.30',
       ),
     ];
 

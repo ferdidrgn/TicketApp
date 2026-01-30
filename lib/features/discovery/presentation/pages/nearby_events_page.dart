@@ -16,7 +16,7 @@ class NearbyEventsPage extends StatelessWidget {
       'stage': 'Harbiye Muhsin Ertuğrul Sahnesi',
       'price': 180.0,
       'image':
-      'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
+          'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
     },
     {
       'name': 'Hamlet - Versus Tiyatro',
@@ -25,7 +25,7 @@ class NearbyEventsPage extends StatelessWidget {
       'stage': 'Zorlu PSM - Turkcell Sahnesi',
       'price': 250.0,
       'image':
-      'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
+          'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
     },
     {
       'name': 'Don Kişot\'um Ben',
@@ -34,7 +34,7 @@ class NearbyEventsPage extends StatelessWidget {
       'stage': 'Baba Sahne - Taksim',
       'price': 200.0,
       'image':
-      'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
+          'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
     },
     {
       'name': 'Romeo & Juliet',
@@ -43,7 +43,7 @@ class NearbyEventsPage extends StatelessWidget {
       'stage': 'İstanbul Şehir Tiyatrosu',
       'price': 150.0,
       'image':
-      'https://i.pinimg.com/originals/cd/f6/58/cdf6583da74eb1838429456c96decdb8.jpg',
+          'https://i.pinimg.com/originals/cd/f6/58/cdf6583da74eb1838429456c96decdb8.jpg',
     },
     {
       'name': 'Kral Lear',
@@ -52,7 +52,7 @@ class NearbyEventsPage extends StatelessWidget {
       'stage': 'Kadıköy Haldun Taner',
       'price': 220.0,
       'image':
-      'https://static.ticimax.cloud/cdn-cgi/image/width=1125,quality=85/43055/uploads/urunresimleri/buyuk/king-lear-17-kasim-21-kasim-2022-55a1c.jpg',
+          'https://static.ticimax.cloud/cdn-cgi/image/width=1125,quality=85/43055/uploads/urunresimleri/buyuk/king-lear-17-kasim-21-kasim-2022-55a1c.jpg',
     },
   ];
 
@@ -68,9 +68,7 @@ class NearbyEventsPage extends StatelessWidget {
       rightIcon: Icons.tune_rounded,
       showFab: true,
       layoutConfig: BasePageLayoutConfig(
-          backgroundColor: Colors.white,
-          safeAreaTop: true
-      ),
+          backgroundColor: Colors.white, safeAreaTop: true),
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -133,7 +131,8 @@ class NearbyEventsPage extends StatelessWidget {
                       imageUrl: staticEvents[index]['image'],
                       showName: staticEvents[index]['name'],
                       category: staticEvents[index]['category'],
-                      date: staticEvents[index]['date'],
+                      fullDateString: staticEvents[index]['date'],
+                      timeString: '',
                       stage: staticEvents[index]['stage'],
                       price: staticEvents[index]['price'],
                       onTap: () {
@@ -176,7 +175,7 @@ class NearbyEventsPage extends StatelessWidget {
                 childAspectRatio: 1.2,
               ),
               delegate: SliverChildBuilderDelegate(
-                    (final context, final index) => _buildVenueCard(context, index),
+                (final context, final index) => _buildVenueCard(context, index),
                 childCount: 6,
               ),
             ),
@@ -191,106 +190,107 @@ class NearbyEventsPage extends StatelessWidget {
   }
 
   Widget _buildDiscoveryBanner(final BuildContext context) => Container(
-    height: 160,
-    width: double.infinity,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(24),
-      gradient: LinearGradient(
-        colors: [
-          context.primaryColor,
-          context.primaryColor.withOpacity(0.8),
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: context.primaryColor.withOpacity(0.3),
-          blurRadius: 20,
-          offset: const Offset(0, 8),
-        ),
-      ],
-    ),
-    child: Stack(
-      children: [
-        // DEKORATİF ELEMENTLER
-        Positioned(
-          top: -20,
-          right: -20,
-          child: Icon(
-            Icons.star_rounded,
-            size: 120,
-            color: Colors.white.withOpacity(0.1),
-          ),
-        ),
-        Positioned(
-          bottom: -10,
-          left: -10,
-          child: Icon(
-            Icons.location_on_rounded,
-            size: 80,
-            color: Colors.white.withOpacity(0.1),
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Şehrin Ritmini Keşfet',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '15+ tiyatro oyunu ve 20+ konser sizi bekliyor.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.explore_rounded,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
+        height: 160,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: [
+              context.primaryColor,
+              context.primaryColor.withOpacity(0.8),
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: context.primaryColor.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+        child: Stack(
+          children: [
+            // DEKORATİF ELEMENTLER
+            Positioned(
+              top: -20,
+              right: -20,
+              child: Icon(
+                Icons.star_rounded,
+                size: 120,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+            Positioned(
+              bottom: -10,
+              left: -10,
+              child: Icon(
+                Icons.location_on_rounded,
+                size: 80,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
 
-  Widget _buildFilterChip(final String text, final bool isActive, final BuildContext context) {
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Şehrin Ritmini Keşfet',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '15+ tiyatro oyunu ve 20+ konser sizi bekliyor.',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.explore_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildFilterChip(
+      final String text, final bool isActive, final BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
