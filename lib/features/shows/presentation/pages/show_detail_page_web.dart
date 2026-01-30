@@ -102,6 +102,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         showFab: true,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
+
           backgroundColor: const Color(0xFF0a0a1a),
           ambientColor: context.primaryColor.withOpacity(0.05),
         ),
