@@ -5,6 +5,7 @@ import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_mod
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/date_formatter.dart';
+import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/top_header_with_back_button.dart';
 import '../providers/my_ticket_provider.dart';
@@ -19,7 +20,10 @@ class MyTicketPage extends ConsumerStatefulWidget {
 }
 
 class _MyTicketPageState extends ConsumerState<MyTicketPage>
-    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+    with
+        SingleTickerProviderStateMixin,
+        AutomaticKeepAliveClientMixin,
+        GlobalScrollMixin {
   late final TabController _tabController;
 
   @override
@@ -30,6 +34,9 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
   }
+
+  @override
+  void onLoadMore() => debugPrint("Daha fazla bilet yükleniyor...");
 
   @override
   void dispose() {
@@ -45,8 +52,12 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 
     return BasePageWrapper(
       showBackButton: true,
-      showFab: false,
+      showFab: true,
+      title: 'Sanat Ajandan',
+      subtitle: 'Unutulmaz anların koleksiyonu...',
+      rightIcon: Icons.theater_comedy_rounded,
       isLoading: ticketsAsync.isLoading,
+      customScrollController: scrollController,
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.colors.surface,
         ambientColor: context.colors.primary.withOpacity(0.05),
@@ -54,11 +65,6 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
       ),
       child: Column(
         children: [
-          TopHeaderWithBackButton(
-            title: 'Sanat Ajandan',
-            subtitle: 'Unutulmaz anların koleksiyonu...',
-            rightIcon: Icons.theater_comedy_rounded,
-          ),
           // Sayfa Başlığı ve Alt Başlığı
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
@@ -111,11 +117,13 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
                       _TicketList(
                         tickets: tickets.upcoming,
                         onTicketTap: _showTicketDetails,
+                        scrollController: scrollController,
                       ),
                       _TicketList(
                         tickets: tickets.past,
                         isPast: true,
                         onTicketTap: _showTicketDetails,
+                        scrollController: scrollController,
                       ),
                     ],
                   );
@@ -367,13 +375,20 @@ class _TicketList extends StatelessWidget {
   final List<DetailedTicket> tickets;
   final bool isPast;
   final Function(DetailedTicket) onTicketTap;
+  final ScrollController scrollController;
 
-  const _TicketList(
-      {required this.tickets, required this.onTicketTap, this.isPast = false});
+  const _TicketList({
+    required this.tickets,
+    required this.onTicketTap,
+    required this.scrollController,
+    this.isPast = false,
+  });
 
   @override
   Widget build(final BuildContext context) => ListView.builder(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
+        controller: scrollController,
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 120),
+        physics: const BouncingScrollPhysics(),
         itemCount: tickets.length,
         itemBuilder: (final context, final index) => _TicketCard(
           detailedTicket: tickets[index],
