@@ -124,45 +124,58 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
   // --- Widget Oluşturucular (Sınıf İçinde Olmalı) ---
 
-  Widget _buildIntegratedSearchField(final BuildContext context) => Padding(
-        padding: EdgeInsets.symmetric(
-            horizontal: context.responsive(mobile: 20.0, desktop: 150.0)),
-        child: _CustomSearchVisualShell(
-          isDark: context.isDarkMode,
-          primaryColor: context.colors.primary,
-          child: TextField(
-            controller: _textController,
-            autofocus: true,
-            onChanged: (final v) =>
-                ref.read(searchQueryProvider.notifier).update(v),
-            onSubmitted: (final _) => FocusScope.of(context).unfocus(),
-            textInputAction: TextInputAction.search,
-            style: context.textTheme.bodyLarge
-                ?.copyWith(fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              hintText: "Sanatçını veya sahneni bul...",
-              hintStyle:
-                  TextStyle(color: context.colors.onSurface.withOpacity(0.4)),
-              prefixIcon:
-                  Icon(Icons.search_rounded, color: context.colors.primary),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 15),
-            ),
-          ),
-        ),
-      );
+  Widget _buildIntegratedSearchField(final BuildContext context) {
+    final bool isLarge = context.isTablet || context.isDesktop;
+
+    return Center(
+        // ✅ İçeriği ortala
+        child: ConstrainedBox(
+            constraints:
+                BoxConstraints(maxWidth: isLarge ? 800 : double.infinity),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _CustomSearchVisualShell(
+                isDark: context.isDarkMode,
+                primaryColor: context.colors.primary,
+                child: TextField(
+                  controller: _textController,
+                  autofocus: true,
+                  onChanged: (final v) =>
+                      ref.read(searchQueryProvider.notifier).update(v),
+                  onSubmitted: (final _) => FocusScope.of(context).unfocus(),
+                  textInputAction: TextInputAction.search,
+                  style: context.textTheme.bodyLarge
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    hintText: "Sanatçını veya sahneni bul...",
+                    hintStyle: TextStyle(
+                        color: context.colors.onSurface.withOpacity(0.4)),
+                    prefixIcon: Icon(Icons.search_rounded,
+                        color: context.colors.primary),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                  ),
+                ),
+              ),
+            )));
+  }
 
   Widget _buildFilterTabs(final int selectedIndex) {
     const labels = ["Tümü", "Etkinlikler", "Oyuncular", "Mekanlar", "Ekipler"];
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: labels.length,
-      itemBuilder: (final context, final i) => ArtisticBrushChip(
-        text: labels[i],
-        isSelected: selectedIndex == i,
-        colors: _SearchStyles.filterPalettes[i],
-        onTap: () => _onSeeAll(i),
+    return Center(
+      child: SizedBox(
+        height: 50,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: labels.length,
+          itemBuilder: (final context, final i) => ArtisticBrushChip(
+            text: labels[i],
+            isSelected: selectedIndex == i,
+            colors: _SearchStyles.filterPalettes[i],
+            onTap: () => _onSeeAll(i),
+          ),
+        ),
       ),
     );
   }
