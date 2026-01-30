@@ -284,7 +284,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         background: Stack(
           fit: StackFit.expand,
           children: [
-            // Image
+            // 1. Resim (Hero)
             Hero(
               tag: 'show_${widget.showId}',
               child: OptimizedCachedImage(
@@ -292,20 +292,22 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                 fit: BoxFit.cover,
               ),
             ),
-            // Gradient Overlay
+            // 2. Sadeleştirilmiş Gradyan (Sadece yazının okunması için dipte hafif geçiş)
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.2),
+                    Colors.black.withOpacity(0.3),
+                    // Üstteki ikonlar görünsün diye hafif koyuluk
                     Colors.transparent,
+                    // Resmin ortası tamamen net
                     Colors.transparent,
-                    colors.surface.withOpacity(0.3),
-                    colors.surface.withOpacity(0.8),
+                    colors.surface,
+                    // En altta sayfa rengine yumuşak geçiş
                   ],
-                  stops: const [0.0, 0.3, 0.6, 0.85, 1.0],
+                  stops: const [0.0, 0.2, 0.8, 1.0],
                 ),
               ),
             ),
