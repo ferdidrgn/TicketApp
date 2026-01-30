@@ -136,7 +136,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                     final player = currentState.value!.player;
                     TiyatrolDeeplinkService.shareShow(
                         id: player.id,
-                        name: player.firstName + " " + player.lastName);
+                        name: '${player.firstName} ${player.lastName}');
                   }
                 },
               ),
