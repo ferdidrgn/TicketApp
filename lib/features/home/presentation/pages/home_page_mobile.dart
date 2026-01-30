@@ -32,7 +32,6 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   final ScrollController _scrollController = ScrollController();
-  double _scrollOffset = 0;
   bool _showSearchInAppBar = false;
 
   @override
@@ -48,11 +47,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _onScroll() {
-    if (mounted)
-      setState(() {
-        _scrollOffset = _scrollController.offset;
-        _showSearchInAppBar = _scrollOffset > 250;
-      });
+    if (mounted) {
+      final bool showSearch = _scrollController.offset > 250;
+      if (_showSearchInAppBar != showSearch)
+        setState(() => _showSearchInAppBar = showSearch);
+    }
   }
 
   void _openSearch() => NavigationHandler.goToSearch(context);
@@ -64,71 +63,83 @@ class _HomePageState extends ConsumerState<HomePage> {
     final stageState = ref.watch(stagesProvider(isLimit: true));
     final isLoggedIn = ref.watch(isLoggedInProvider);
     final currentUser = ref.watch(currentUserProvider).value;
+    final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     final bool isLoading =
         campaignState.isLoading || showState.isLoading || stageState.isLoading;
-
     final hasError =
         campaignState.hasError || showState.hasError || stageState.hasError;
 
     return BasePageWrapper(
       showBackButton: false,
       showFab: true,
-      appBar: _buildDynamicAppBar(),
+      customScrollController: _scrollController,
+      // 💡 Web'de AppBar sabit durabilir, Mobilde dinamik
+      appBar: isLargeScreen ? _buildWebAppBar(context) : _buildDynamicAppBar(),
       isLoading: isLoading && (campaignState.value == null),
       layoutConfig: BasePageLayoutConfig(
+        backgroundColor: context.colors.surface,
         ambientColor: context.colors.primary.withOpacity(0.05),
         extendBody: true,
       ),
       child: hasError
           ? _buildErrorWidget(context, ref)
-          : _buildActualContent(
-              context,
-              campaignState.value ?? [],
-              showState.value ?? [],
-              stageState.value ?? [],
-              isLoggedIn,
-              currentUser,
+          : Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: isLargeScreen ? 1100 : double.infinity),
+                child: _buildActualContent(
+                  context,
+                  campaignState.value ?? [],
+                  showState.value ?? [],
+                  stageState.value ?? [],
+                  isLoggedIn,
+                  currentUser,
+                ),
+              ),
             ),
     );
   }
 
+  // --- APPBAR TASARIMLARI ---
+
   PreferredSizeWidget _buildDynamicAppBar() => AppBar(
         backgroundColor: Colors.transparent,
-        elevation: 5,
-        toolbarHeight: _showSearchInAppBar ? 70 : 0,
+        elevation: 0,
+        toolbarHeight: _showSearchInAppBar ? 80 : 0,
         flexibleSpace: SafeArea(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOutCubic,
-            height: _showSearchInAppBar ? 60 : 0,
-            child: Padding(
-              padding: EdgeInsets.only(
-                  top: _showSearchInAppBar ? 8 : 0, left: 20, right: 20),
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 300),
-                opacity: _showSearchInAppBar ? 1 : 0,
-                child: AnimatedScale(
-                  duration: const Duration(milliseconds: 400),
-                  scale: _showSearchInAppBar ? 1 : 0.9,
-                  curve: Curves.easeOutBack,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _openSearch,
-                      // Direkt burada tıklama olayı
-                      borderRadius: BorderRadius.circular(24),
-                      // ArtisticSearchBar'ın border radius'u ile aynı
-                      child:
-                          CustomSearchbar(onTap: _openSearch, isCompact: true),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _showSearchInAppBar
+                ? Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: CustomSearchbar(onTap: _openSearch, isCompact: true),
+                  )
+                : const SizedBox.shrink(),
           ),
         ),
       );
+
+  PreferredSizeWidget _buildWebAppBar(final BuildContext context) => AppBar(
+        backgroundColor: context.colors.surface.withOpacity(0.8),
+        elevation: 0,
+        title: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: CustomSearchbar(onTap: _openSearch, isCompact: true),
+        ),
+        actions: [
+          IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.notifications_none_rounded)),
+          IconButton(
+              onPressed: () => NavigationHandler.goToSettings(context),
+              icon: const Icon(Icons.person_outline_rounded)),
+          const SizedBox(width: 20),
+        ],
+      );
+
+  // --- İÇERİK ---
 
   Widget _buildActualContent(
     final BuildContext context,
@@ -147,8 +158,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           const SizedBox(height: 20),
           const HeroSection(),
-          CustomSearchbar(onTap: _openSearch),
-          const SizedBox(height: 20),
+
+          // Arama Çubuğu (Üstteki Arama)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: CustomSearchbar(onTap: _openSearch),
+          ),
+
+          const SizedBox(height: 32),
+
+          // 1. Öne Çıkanlar (Story)
           SectionHeader(
               title: "Öne Çıkanlar",
               subtitle: "Vitrin",
@@ -157,29 +176,23 @@ class _HomePageState extends ConsumerState<HomePage> {
               campaigns: campaigns,
               onStoryTap: (final index) =>
                   NavigationHandler.goToCampaigns(context, index: index)),
+
           const DividerWithAccent(),
-          const SizedBox(height: 30),
-          SectionHeader(
-            title: "Kategoriler",
-            subtitle: "Sanatın Renkleri",
-            onTap: () {},
-          ),
+
+          // 2. Kategoriler
+          SectionHeader(title: "Kategoriler", subtitle: "Sanatın Renkleri"),
           const CategoryGrid(),
+
           const DividerWithAccent(),
-          const SizedBox(height: 30),
-          SectionHeader(
-            title: "Keşfet",
-            subtitle: "Sana Özel Seçkiler",
-            onTap: () {},
-          ),
+
+          // 3. Keşfet (Show Collage)
+          SectionHeader(title: "Keşfet", subtitle: "Sana Özel Seçkiler"),
           ShowCollage(shows: shows),
+
           const DividerWithAccent(),
-          const SizedBox(height: 30),
-          SectionHeader(
-            title: "Mekanlar",
-            subtitle: "Şehrin Sahneleri",
-            onTap: () {},
-          ),
+
+          // 4. Mekanlar (Carousel)
+          SectionHeader(title: "Mekanlar", subtitle: "Şehrin Sahneleri"),
           StageCarousel(
             stages: stages,
             onStageTap: (final stageId) {
@@ -187,15 +200,22 @@ class _HomePageState extends ConsumerState<HomePage> {
               NavigationHandler.goToStage(context, stage.id, stage.name);
             },
           ),
+
           const DividerWithAccent(),
-          const SizedBox(height: 30),
-          const TicketStubCard(
-            title: "Romeo & Juliet",
-            subtitle: "%20 İndirim Fırsatı",
-            imageUrl:
-                'https://img.freepik.com/premium-vector/theatre2_1189973-28.jpg?semt=ais_hybrid&w=740&q=80',
+
+          // 5. Özel Kartlar & Aksiyonlar
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: TicketStubCard(
+              title: "Romeo & Juliet",
+              subtitle: "%20 İndirim Fırsatı",
+              imageUrl:
+                  'https://img.freepik.com/premium-vector/theatre2_1189973-28.jpg?semt=ais_hybrid&w=740&q=80',
+            ),
           ),
-          const SizedBox(height: 30),
+
+          const SizedBox(height: 32),
+
           QuickActionsGrid(
             onNotificationsTap: () => NavigationHandler.goToSettings(context),
             onFavoritesTap: () => NavigationHandler.goToFavorites(context),
@@ -207,13 +227,14 @@ class _HomePageState extends ConsumerState<HomePage> {
             },
             onCalendarTap: () {},
           ),
-          const SizedBox(height: 30),
-          const TrendingNowSection(),
-          const SizedBox(height: 30),
-          const NewsletterSubscribe(),
+
           const SizedBox(height: 40),
+          const TrendingNowSection(),
+          const SizedBox(height: 40),
+          const NewsletterSubscribe(),
+          const SizedBox(height: 60),
           const BottomQuote(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -226,24 +247,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.theater_comedy_outlined,
-                size: 80,
-                color: context.colors.outline,
-              ),
+              Icon(Icons.theater_comedy_outlined,
+                  size: 80, color: context.colors.outline),
               const SizedBox(height: 24),
-              Text(
-                "Perdeler Henüz Açılmadı!",
-                textAlign: TextAlign.center,
-                style: context.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                "İnternet bağlantını kontrol edip sahneyi tekrar canlandırabilirsin.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: context.colors.onSurfaceVariant),
-              ),
+              Text("Perdeler Henüz Açılmadı!",
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: () {
@@ -251,12 +261,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ref.invalidate(showsProvider);
                   ref.invalidate(stagesProvider);
                 },
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
                 icon: const Icon(Icons.refresh),
                 label: const Text("Sahneyi Yenile"),
               ),
