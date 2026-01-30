@@ -42,7 +42,7 @@ class NearbyEventsPage extends StatelessWidget {
     return BasePageWrapper(
       title: 'YAKINLARDA NELER VAR?',
       subtitle: 'Konumunuza en yakın sahneleri keşfedin...',
-      showBackButton: true,
+      showBackButton: false,
       rightIcon: Icons.filter_list_rounded, // Filtrele butonu artık header'da
       showFab: true,
       layoutConfig: BasePageLayoutConfig(
