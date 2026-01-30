@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../events/domain/entities/event.dart';
 import '../../../../seat/presentation/pages/seat_details.dart';
 import '../../../../stages/domain/entities/stage.dart';
@@ -161,23 +162,13 @@ class AnimatedEventCard extends ConsumerWidget {
     final String? userId = ref.read(currentUserProvider).value?.id;
 
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Bilet almak için giriş yapmalısınız.")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Bilet almak için giriş yapmalısınız.")));
       return;
     }
 
     if (context.mounted)
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (final _) => SeatSelectionScreen(
-            showId: showId,
-            eventId: eventId,
-            customerId: userId,
-          ),
-        ),
-      );
+      NavigationHandler.goToSeatSelection(context, showId, eventId, userId);
   }
 }
 

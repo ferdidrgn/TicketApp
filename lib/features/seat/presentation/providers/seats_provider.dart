@@ -54,3 +54,17 @@ class EventSeatingState {
   const EventSeatingState(
       {required this.event, required this.show, required this.layout});
 }
+
+// event_seating_state.dart içine eklenebilir veya ayrı bir yardımcı sınıf
+extension EventSeatingLogic on EventSeatingState {
+  // Kullanıcının bu etkinlikte halihazırda kaç bilet/rezervasyonu var?
+  int getUserReservedOrSoldSeatCount(final String customerId) =>
+      event.seats.values.where((final seat) {
+        final status = seat['status'];
+        final cId = seat['customerId'];
+        return (status == 'reserved' || status == 'sold') && cId == customerId;
+      }).length;
+
+  bool canSelectMore(final String customerId) =>
+      getUserReservedOrSoldSeatCount(customerId) < 3;
+}

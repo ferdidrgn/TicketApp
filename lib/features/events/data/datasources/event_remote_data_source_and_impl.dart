@@ -130,37 +130,43 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<bool> attemptReservation(final String eventId, final String seatId,
       final String customerId) async {
-    _validateParams({
-      'Event ID': eventId,
-      'Seat ID': seatId,
-      'Customer ID': customerId,
-    });
-
     final ref = _eventCollection.doc(eventId);
-
     try {
       await firestore.runTransaction((final transaction) async {
         final snapshot = await transaction.get(ref);
-        if (!snapshot.exists) throw Exception('Event not found.');
+        if (!snapshot.exists) throw Exception('Etkinlik bulunamadı.');
 
         final data = snapshot.data();
-        if (data == null) throw Exception('Event data is null.');
+        final seats = Map<String, dynamic>.from(data?['seats'] ?? {});
 
-        final seat = _getSeatData(data, seatId);
-        if (seat['status'] == 'available' && seat['customerId'] == null) {
+        // 🔥 3 BİLET KONTROLÜ (DB SEVİYESİNDE)
+        int userSeatCount = 0;
+        seats.forEach((final key, final value) {
+          final seatMap = value as Map<String, dynamic>;
+          if (seatMap['customerId'] == customerId &&
+              (seatMap['status'] == 'reserved' || seatMap['status'] == 'sold'))
+            userSeatCount++;
+        });
+
+        if (userSeatCount >= 3)
+          throw Exception('Maksimum 3 bilet sınırına ulaştınız.');
+
+        final seat = seats[seatId] as Map<String, dynamic>?;
+        if (seat == null) throw Exception('Koltuk bulunamadı.');
+
+        if (seat['status'] == 'available') {
           transaction.update(ref, {
             'seats.$seatId.status': 'reserved',
             'seats.$seatId.customerId': customerId,
             'seats.$seatId.reservedAt': FieldValue.serverTimestamp(),
-            //ya da DateTime.now().toIso8601String()
           });
         } else {
-          throw Exception('Seat is not available.');
+          throw Exception('Bu koltuk artık müsait değil.');
         }
       });
       return true;
     } catch (e) {
-      print('attemptReservation failed: $e');
+      print('Reservation Error: $e');
       return false;
     }
   }

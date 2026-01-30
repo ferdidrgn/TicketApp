@@ -110,28 +110,34 @@ Future<void> purchaseAction(
   required final double totalPrice,
 }) async {
   // 1. Koltukları onayla (confirmPurchaseUseCaseProvider otomatik üretilir)
-  await ref
-      .read(confirmPurchaseUseCaseProvider)
-      .call(eventId, seatIds, customerId)
-      .getOrThrow();
 
-  // 2. Ticket nesnesi oluştur ve kaydet
-  final ticket = Ticket(
-    id: '',
-    createdAt: DateTime.now().toIso8601String(),
-    updatedAt: DateTime.now().toIso8601String(),
-    showId: showId,
-    customerId: customerId,
-    stageId: stageId,
-    eventId: eventId,
-    orderPrice: totalPrice.toStringAsFixed(2),
-    orderMethod: paymentMethod,
-    buySeats: seatIds,
-    isPast: false,
-  );
+  final paymentSuccess = true;
 
-  await ref.read(createTicketUseCaseProvider).call(ticket).getOrThrow();
+  if (paymentSuccess) {
+    final result = await ref
+        .read(confirmPurchaseUseCaseProvider)
+        .call(eventId, seatIds, customerId);
 
-  // 3. Başarılı alımdan sonra bilet listesini yenile
-  ref.invalidate(myTicketsProvider(customerId));
+    if (result.isRight()) {
+      // 2. Ticket nesnesi oluştur ve kaydet
+      final ticket = Ticket(
+        id: '',
+        createdAt: DateTime.now().toIso8601String(),
+        updatedAt: DateTime.now().toIso8601String(),
+        showId: showId,
+        customerId: customerId,
+        stageId: stageId,
+        eventId: eventId,
+        orderPrice: totalPrice.toStringAsFixed(2),
+        orderMethod: paymentMethod,
+        buySeats: seatIds,
+        isPast: false,
+      );
+
+      await ref.read(createTicketUseCaseProvider).call(ticket).getOrThrow();
+
+      // 3. Başarılı alımdan sonra bilet listesini yenile
+      ref.invalidate(myTicketsProvider(customerId));
+    }
+  }
 }

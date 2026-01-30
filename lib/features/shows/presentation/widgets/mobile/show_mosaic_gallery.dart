@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ticketapp/features/players/presentation/providers/player_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../domain/entities/show.dart';
-import '../../providers/show_provider.dart';
 
 class ShowMosaicGallery extends StatelessWidget {
   final List<Show> shows;
