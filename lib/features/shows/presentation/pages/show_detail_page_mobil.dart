@@ -14,6 +14,7 @@ import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../players/domain/entities/player.dart';
+import '../../../players/presentation/widgets/players_bubble_card.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../widgets/mobile/show_info_section.dart';
 
@@ -199,8 +200,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                             _buildSectionHeader(context, "Oyuncu Kadrosu",
                                 Icons.face_retouching_natural_rounded),
                             const SizedBox(height: 16),
-                            _buildBubbleCastList(
-                                context, state, state.show.nowPlayersId, false),
+                            PlayersBubbleCard(
+                              players: (state.players as List<Player>)
+                                  .where((final p) =>
+                                      state.show.nowPlayersId.contains(p.id))
+                                  .toList(),
+                              isGrayscale: false, // Renkli
+                            ),
                             const SizedBox(height: 32),
                           ],
 
@@ -209,8 +215,16 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                             _buildSectionHeader(context, "Geçmiş Kadrolar",
                                 Icons.history_edu_rounded),
                             const SizedBox(height: 16),
-                            _buildBubbleCastList(
-                                context, state, state.show.oldPlayersId, true),
+
+                            // 👇 BURASI DEĞİŞTİ: ARTIK HAZIR WIDGET'I ÇAĞIRIYORUZ
+                            PlayersBubbleCard(
+                              players: (state.players as List<Player>)
+                                  .where((final p) =>
+                                      state.show.oldPlayersId.contains(p.id))
+                                  .toList(),
+                              isGrayscale: true, // Siyah-Beyaz
+                            ),
+
                             const SizedBox(height: 32),
                           ],
 
