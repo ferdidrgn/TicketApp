@@ -101,12 +101,12 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
     return BasePageWrapper(
       showBackButton: true,
-      showFab: false,
+      showFab: true,
+      title: 'KİMLİK ATÖLYESİ',
+      subtitle: 'Sanatsal portreni biçimlendir...',
       isLoading: userAsync.isLoading || mutationState.isLoading,
       layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.scaffoldBackgroundColor,
-        safeAreaTop: true,
-      ),
+          backgroundColor: context.scaffoldBackgroundColor, safeAreaTop: true),
       child: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (final err, final stack) => Center(child: Text('Hata: $err')),
@@ -187,23 +187,23 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   // Başlık metinlerini düzenlemek için yardımcı metod
   Widget _buildHeaderTexts() => Column(
-    children: [
-      Text(
-        'Kimliğini Biçimlendir',
-        style: context.textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: context.colors.onSurface,
-        ),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        'Sanatçı profilini dünyaya tanıt...',
-        style: context.textTheme.bodyMedium?.copyWith(
-          color: context.colors.onSurfaceVariant,
-        ),
-      ),
-    ],
-  );
+        children: [
+          Text(
+            'Kimliğini Biçimlendir',
+            style: context.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: context.colors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sanatçı profilini dünyaya tanıt...',
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
 
   Widget _buildForm(final BuildContext context, final User? currentUser) =>
       SingleChildScrollView(
