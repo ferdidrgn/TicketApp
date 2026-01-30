@@ -1,23 +1,23 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/foundation.dart';
-import '../util/platform_checker.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'; // kReleaseMode ve kIsWeb için
 
 abstract final class AppCheckService {
   static Future<void> init() async {
-    // Web kontrolü (Senin kodundaki gibi)
+    // Web ise pas geç
     if (kIsWeb) return;
 
     await FirebaseAppCheck.instance.activate(
-      // Eski: providerAndroid: AndroidPlayIntegrityProvider()
-      // YENİ TİP: androidProvider: AndroidProvider.playIntegrity
-      androidProvider:
-          kReleaseMode ? AndroidProvider.playIntegrity : AndroidProvider.debug,
+      // 🔥 DÜZELTME BURASI:
+      // Eski: providerAndroid: AndroidPlayIntegrityProvider()  <-- BU ARTIK YOK
+      // Yeni: androidProvider: AndroidProvider.playIntegrity   <-- DOĞRUSU BU
 
-      // iOS için
-      appleProvider:
-          kReleaseMode ? AppleProvider.deviceCheck : AppleProvider.debug,
+      androidProvider: kReleaseMode
+          ? AndroidProvider.playIntegrity // Play Store (Release)
+          : AndroidProvider.debug, // Bilgisayar (Debug)
+
+      appleProvider: kReleaseMode
+          ? AppleProvider.deviceCheck // iOS Release
+          : AppleProvider.debug, // iOS Debug
     );
   }
 }
