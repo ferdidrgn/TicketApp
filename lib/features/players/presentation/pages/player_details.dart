@@ -121,20 +121,25 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               color: colors.surfaceContainerHighest,
               shape: BoxShape.circle,
             ),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon:
-                  Icon(Icons.share_outlined, size: 20, color: colors.onSurface),
-              onPressed: () {
-                final currentState =
-                    ref.read(playerDetailProvider(widget.playerId));
-                if (currentState.hasValue && currentState.value != null) {
-                  final player = currentState.value!.player;
-                  TiyatrolDeeplinkService.shareShow(
-                      id: player.id,
-                      name: player.firstName + " " + player.lastName);
-                }
-              },
+            child: Container(
+              decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest,
+                  shape: BoxShape.circle),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.share_outlined,
+                    size: 20, color: colors.onSurface),
+                onPressed: () {
+                  final currentState =
+                      ref.read(playerDetailProvider(widget.playerId));
+                  if (currentState.hasValue && currentState.value != null) {
+                    final player = currentState.value!.player;
+                    TiyatrolDeeplinkService.shareShow(
+                        id: player.id,
+                        name: player.firstName + " " + player.lastName);
+                  }
+                },
+              ),
             ),
           ),
         ],

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
-// Proje dosya yollarını kontrol et
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../events/presentation/providers/event_provider.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../tickets/presentation/providers/my_ticket_provider.dart';
 
 class SeatSelectionPage extends ConsumerStatefulWidget {
   final String showId;
@@ -31,7 +28,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
       widget.customerId == 'guest' || widget.customerId.isEmpty;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final seatsAsync = ref.watch(eventSeatsProvider(widget.eventId));
     final eventAsync = ref.watch(eventDetailProvider(widget.eventId));
     final timerStream = ref.watch(reservationTimerProvider);
@@ -40,7 +37,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
       backgroundColor: const Color(0xFF0F0F13),
       appBar: _buildAppBar(timerStream.value ?? 600),
       body: eventAsync.when(
-        data: (event) => Container(
+        data: (final event) => Container(
           decoration: const BoxDecoration(
             gradient: RadialGradient(
               center: Alignment.topCenter,
@@ -57,7 +54,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                 // 🪑 KOLTUK ALANI
                 Expanded(
                   child: seatsAsync.when(
-                    data: (seatsStatus) => _SeatLayoutBuilder(
+                    data: (final seatsStatus) => _SeatLayoutBuilder(
                       allSeatsData: event.seats,
                       liveStatus: seatsStatus,
                       processingSeats: _processingSeats,
@@ -66,7 +63,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                     ),
                     loading: () => const Center(
                         child: CircularProgressIndicator(color: Colors.cyan)),
-                    error: (e, _) => Center(
+                    error: (final e, final _) => Center(
                         child: Text("Hata: $e",
                             style: const TextStyle(color: Colors.white))),
                   ),
@@ -80,7 +77,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
         ),
         loading: () =>
             const Center(child: CircularProgressIndicator(color: Colors.cyan)),
-        error: (e, _) => Center(
+        error: (final e, final _) => Center(
             child: Text("Yüklenemedi: $e",
                 style: const TextStyle(color: Colors.white))),
       ),
@@ -89,7 +86,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   // 🔹 KOLTUK SEÇME MANTIĞI (GÜVENLİK EKLENDİ)
-  Future<void> _handleSeatTap(String seatId, String status, bool isMine) async {
+  Future<void> _handleSeatTap(
+      final String seatId, final String status, final bool isMine) async {
     // 1. GÜVENLİK KONTROLÜ: Misafir ise işlem yapma, Login'e yönlendir
     if (_isGuest) {
       _showLoginDialog();
@@ -116,11 +114,11 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   // 🔹 MİSAFİR İÇİN GİRİŞ YAP BUTONU
-  Widget _buildFab(Map<String, Map<String, dynamic>> seats) {
+  Widget _buildFab(final Map<String, Map<String, dynamic>> seats) {
     // Eğer misafirse ve bir şekilde seçim ekranındaysa, buton GİRİŞ YAP olsun
     if (_isGuest) {
       return FloatingActionButton.extended(
-        onPressed: () => context.push('/login'), // Login rotana göre düzenle
+        onPressed: () => NavigationHandler.goToLogin(context),
         backgroundColor: Colors.amber,
         label: const Text("GİRİŞ YAP",
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
@@ -130,10 +128,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
 
     // Normal kullanıcı mantığı
     final mySelectedSeats = seats.entries
-        .where((e) =>
+        .where((final e) =>
             e.value['customerId'] == widget.customerId &&
             e.value['status'] == 'reserved')
-        .map((e) => e.key)
+        .map((final e) => e.key)
         .toList();
 
     if (mySelectedSeats.isEmpty) return const SizedBox.shrink();
@@ -151,7 +149,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   void _showLoginDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (final ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
         title: const Text("Giriş Yapmalısınız",
             style: TextStyle(color: Colors.white)),
@@ -167,7 +165,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
             onPressed: () {
               Navigator.pop(ctx);
-              context.push('/login'); // Login rotana git
+              NavigationHandler.goToLogin(context);
             },
             child:
                 const Text("GİRİŞ YAP", style: TextStyle(color: Colors.black)),
@@ -180,7 +178,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   // --- DİĞER YARDIMCI METODLAR (AYNI KALDI) ---
 
   void _showPaymentModal(
-      BuildContext context, List<String> selectedSeats) async {
+      final BuildContext context, final List<String> selectedSeats) async {
     final event = await ref.read(eventDetailProvider(widget.eventId).future);
     final unitPrice = double.tryParse(event.price) ?? 0.0;
     final totalPrice = selectedSeats.length * unitPrice;
@@ -190,7 +188,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
       backgroundColor: const Color(0xFF1A1A2E),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => SafeArea(
+      builder: (final ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -224,10 +222,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   Widget _paymentOption(
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required VoidCallback onTap}) {
+      {required final IconData icon,
+      required final String title,
+      required final String subtitle,
+      required final VoidCallback onTap}) {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.all(12),
@@ -248,13 +246,18 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
     );
   }
 
-  Future<void> _processPurchase(BuildContext ctx, List<String> seats,
-      String method, double total, String stageId, String showId) async {
+  Future<void> _processPurchase(
+      final BuildContext ctx,
+      final List<String> seats,
+      final String method,
+      final double total,
+      final String stageId,
+      final String showId) async {
     Navigator.pop(ctx);
     showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) =>
+        builder: (final _) =>
             const Center(child: CircularProgressIndicator(color: Colors.cyan)));
 
     try {
@@ -273,7 +276,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
         showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => AlertDialog(
+            builder: (final context) => AlertDialog(
                   backgroundColor: const Color(0xFF1A1A2E),
                   title: const Icon(Icons.check_circle,
                       color: Colors.greenAccent, size: 60),
@@ -282,11 +285,11 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                       style: TextStyle(color: Colors.white)),
                   actions: [
                     TextButton(
-                        onPressed: () => context.go('/home'),
+                        onPressed: () => NavigationHandler.goToHome(context),
                         child: const Text("ANASAYFA")),
                     ElevatedButton(
-                        onPressed: () =>
-                            context.go('/my-tickets/${widget.customerId}'),
+                        onPressed: () => NavigationHandler.goToMyTickets(
+                            context, widget.customerId),
                         style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.cyan),
                         child: const Text("BİLETLERİM"))
@@ -303,26 +306,24 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   Widget _buildPriceCard(
-      AsyncValue<Map<String, Map<String, dynamic>>> seatsAsync,
-      String priceStr) {
+      final AsyncValue<Map<String, Map<String, dynamic>>> seatsAsync,
+      final String priceStr) {
     final seats = seatsAsync.value ?? {};
     final unitPrice = double.tryParse(priceStr) ?? 0.0;
     final mySelected = seats.entries
-        .where((e) =>
+        .where((final e) =>
             e.value['customerId'] == widget.customerId &&
             e.value['status'] == 'reserved')
-        .map((e) => e.key)
+        .map((final e) => e.key)
         .toList();
     return _BottomPriceCard(
         selectedSeats: mySelected, totalPrice: mySelected.length * unitPrice);
   }
 
-  PreferredSizeWidget _buildAppBar(int seconds) => AppBar(
+  PreferredSizeWidget _buildAppBar(final int seconds) => AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () => context.pop()),
+        leading: GlassmorphismBackButton(),
         title: const Text("Koltuk Seçimi",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
@@ -370,9 +371,9 @@ class _SeatLayoutBuilder extends StatelessWidget {
       required this.onSeatTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final Map<String, List<String>> rows = {};
-    allSeatsData.keys.forEach((seatId) {
+    allSeatsData.keys.forEach((final seatId) {
       final String rowLetter = seatId.replaceAll(RegExp(r'[0-9]'), '');
       if (!rows.containsKey(rowLetter)) rows[rowLetter] = [];
       rows[rowLetter]!.add(seatId);
@@ -385,9 +386,9 @@ class _SeatLayoutBuilder extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Column(
-          children: sortedRowKeys.map((rowKey) {
+          children: sortedRowKeys.map((final rowKey) {
             final List<String> seatsInThisRow = rows[rowKey]!;
-            seatsInThisRow.sort((a, b) {
+            seatsInThisRow.sort((final a, final b) {
               final int aNum =
                   int.tryParse(a.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
               final int bNum =
@@ -406,7 +407,7 @@ class _SeatLayoutBuilder extends StatelessWidget {
                               color: Colors.white24,
                               fontWeight: FontWeight.bold,
                               fontSize: 16))),
-                  ...seatsInThisRow.map((seatId) {
+                  ...seatsInThisRow.map((final seatId) {
                     final statusData =
                         liveStatus[seatId] ?? allSeatsData[seatId] ?? {};
                     final String status = statusData['status'] ?? 'available';
@@ -445,7 +446,7 @@ class _SeatItem extends StatelessWidget {
       required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     Color color = Colors.white.withOpacity(0.1);
     if (status == 'sold')
       color = Colors.white10;
@@ -487,7 +488,7 @@ class _SeatLegend extends StatelessWidget {
   const _SeatLegend({super.key});
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(final BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         _item(Colors.green.withOpacity(0.5), "Boş"),
@@ -496,7 +497,7 @@ class _SeatLegend extends StatelessWidget {
         _item(Colors.white10, "Satılmış")
       ]));
 
-  Widget _item(Color c, String t) => Padding(
+  Widget _item(final Color c, final String t) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(children: [
         Container(
@@ -516,7 +517,7 @@ class _BottomPriceCard extends StatelessWidget {
       {required this.selectedSeats, required this.totalPrice});
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(final BuildContext context) => Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

@@ -191,7 +191,7 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
         ),
       );
 
-  Widget _buildActionButtons(Campaign campaign) => Row(
+  Widget _buildActionButtons(final Campaign campaign) => Row(
         children: [
           Expanded(
             child: ElevatedButton(
@@ -215,7 +215,7 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
         ],
       );
 
-  Widget _buildShareButton(Campaign campaign) => GestureDetector(
+  Widget _buildShareButton(final Campaign campaign) => GestureDetector(
         onTap: () => TiyatrolDeeplinkService.shareShow(
             id: campaign.id, name: campaign.title),
         child: Container(
@@ -229,8 +229,6 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
               color: context.colors.onSurface, size: 24),
         ),
       );
-
-  // ... (Diğer _build metodların olan _buildSectionHeader, _buildInfoChip, _buildCampaignPager, _buildCampaignCard aynı kalabilir)
 
   Widget _buildSectionHeader(final IconData icon, final String title) => Row(
         children: [

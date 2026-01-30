@@ -98,7 +98,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       isLoading: detailAsync.isLoading,
       loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
       child: BasePageWrapper(
-        showBackButton: true,
+        showBackButton: false,
         showFab: true,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
@@ -164,14 +164,23 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             valueListenable: _scrollNotifier,
             builder: (final context, final offset, final _) {
               final isScrolled = offset > 100;
-              return IconButton(
-                padding: EdgeInsets.zero,
-                icon: Icon(Icons.share_outlined,
-                    size: 22,
-                    color:
-                        isScrolled ? context.colors.onSurface : Colors.white),
-                onPressed: () => TiyatrolDeeplinkService.shareShow(
-                    id: showData.id, name: showData.name),
+              return  Container(
+                decoration: BoxDecoration(
+                  color: isScrolled
+                      ? context.colors.surfaceContainerHighest
+                      : Colors.black.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child:
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(Icons.share_outlined,
+                        size: 22,
+                        color:
+                            isScrolled ? context.colors.onSurface : Colors.white),
+                    onPressed: () => TiyatrolDeeplinkService.shareShow(
+                        id: showData.id, name: showData.name),
+                  ),
               );
             },
           ),
