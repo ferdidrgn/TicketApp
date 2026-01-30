@@ -14,7 +14,6 @@ import '../../../players/domain/entities/player.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../domain/entities/show.dart';
 import '../providers/show_detail_provider.dart';
-import '../widgets/web/event_section.dart';
 import '../widgets/web/player_section.dart';
 import '../widgets/web/show_detail_hero.dart';
 
@@ -63,8 +62,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   }
 
   void _startPageAnimations() {
-    if (!mounted || _heroController.isAnimating || _heroController.isCompleted)
-      return;
+    if (!mounted) return;
     _heroController.forward();
     _floatingController.repeat(reverse: true);
     Future.delayed(const Duration(milliseconds: 400), () {
@@ -127,7 +125,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         CustomScrollView(
           controller: _scrollController,
           physics: const BouncingScrollPhysics(),
-          cacheExtent: 500,
           slivers: [
             SliverToBoxAdapter(
               child: ShowDetailHero(
@@ -151,24 +148,24 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             ),
           ],
         ),
-        Positioned(
-          top: 40,
-          left: 20,
-          child: GlassmorphismBackButton(),
-        ),
+        // Sabit Butonlar
+        Positioned(top: 40, left: 20, child: const GlassmorphismBackButton()),
         Positioned(
           top: 40,
           right: 20,
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            icon: Icon(Icons.share_outlined,
-                size: 20, color: context.colors.onSurface),
-            onPressed: () {
-              final currentState = ref.read(showDetailProvider(widget.showId));
-              if (currentState.hasValue && currentState.value != null) {
-                final show = currentState.value!.show;
-                TiyatrolDeeplinkService.shareShow(id: show.id, name: show.name);
-              }
+          child: ValueListenableBuilder<double>(
+            valueListenable: _scrollNotifier,
+            builder: (final context, final offset, final _) {
+              final isScrolled = offset > 100;
+              return IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.share_outlined,
+                    size: 22,
+                    color:
+                        isScrolled ? context.colors.onSurface : Colors.white),
+                onPressed: () => TiyatrolDeeplinkService.shareShow(
+                    id: showData.id, name: showData.name),
+              );
             },
           ),
         ),
@@ -183,16 +180,15 @@ class _MainContent extends StatelessWidget {
   final List<Player> players;
   final List<Stage> stages;
 
-  const _MainContent({
-    required this.showData,
-    required this.events,
-    required this.players,
-    required this.stages,
-  });
+  const _MainContent(
+      {required this.showData,
+      required this.events,
+      required this.players,
+      required this.stages});
 
   @override
   Widget build(final BuildContext context) => Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
       child: context.isDesktop
           ? _DesktopLayout(
               showData: showData,
@@ -212,12 +208,11 @@ class _DesktopLayout extends StatelessWidget {
   final List<Player> players;
   final List<Stage> stages;
 
-  const _DesktopLayout({
-    required this.showData,
-    required this.events,
-    required this.players,
-    required this.stages,
-  });
+  const _DesktopLayout(
+      {required this.showData,
+      required this.events,
+      required this.players,
+      required this.stages});
 
   @override
   Widget build(final BuildContext context) {
@@ -251,7 +246,7 @@ class _DesktopLayout extends StatelessWidget {
                   title: 'Etkinlik Takvimi',
                   icon: Icons.calendar_today_rounded),
               const SizedBox(height: 24),
-              EventSection(showData: showData, events: events, stages: stages),
+              _EventDateList(events: events), // Hata burada çözüldü
               const SizedBox(height: 50),
               const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
               const SizedBox(height: 24),
@@ -280,12 +275,11 @@ class _MobileLayout extends StatelessWidget {
   final List<Player> players;
   final List<Stage> stages;
 
-  const _MobileLayout({
-    required this.showData,
-    required this.events,
-    required this.players,
-    required this.stages,
-  });
+  const _MobileLayout(
+      {required this.showData,
+      required this.events,
+      required this.players,
+      required this.stages});
 
   @override
   Widget build(final BuildContext context) {
@@ -302,11 +296,9 @@ class _MobileLayout extends StatelessWidget {
         _GlassDescriptionCard(description: showData.description),
         const SizedBox(height: 40),
         const _SectionTitle(
-          title: 'Etkinlik Takvimi',
-          icon: Icons.calendar_today_rounded,
-        ),
+            title: 'Etkinlik Takvimi', icon: Icons.calendar_today_rounded),
         const SizedBox(height: 20),
-        EventSection(showData: showData, events: events, stages: stages),
+        _EventDateList(events: events),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
         const SizedBox(height: 20),
@@ -324,6 +316,123 @@ class _MobileLayout extends StatelessWidget {
   }
 }
 
+// --- TASARIM VE HATA ÇÖZÜMÜ BÖLÜMÜ ---
+
+class _EventDateList extends StatelessWidget {
+  final List<Event> events;
+
+  const _EventDateList({required this.events});
+
+  @override
+  Widget build(final BuildContext context) {
+    if (events.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: events
+          .map((final e) => _EventItemTile(rawDateString: e.date.toString()))
+          .toList(),
+    );
+  }
+}
+
+class _EventItemTile extends StatelessWidget {
+  final String rawDateString; // Örn: "15.09.2024,19:00"
+  const _EventItemTile({required this.rawDateString});
+
+  @override
+  Widget build(final BuildContext context) {
+    // ÖZEL PARSER: Görüntüdeki "15.09.2024,19:00" formatını parçalar
+    String gun = "00", ay = "Oca", saat = "00:00";
+    try {
+      final parts = rawDateString.split(',');
+      final dateParts = parts[0].split('.');
+      gun = dateParts[0];
+      ay = _getAyIsmi(int.parse(dateParts[1]));
+      if (parts.length > 1) saat = parts[1];
+    } catch (e) {
+      debugPrint("Tarih ayrıştırma hatası: $e");
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1a1a2e).withOpacity(0.8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD4AF37).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                Text(gun,
+                    style: const TextStyle(
+                        color: Color(0xFFD4AF37),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold)),
+                Text(ay,
+                    style: const TextStyle(
+                        color: Color(0xFFD4AF37), fontSize: 11)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(rawDateString.split(',')[0],
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time,
+                        color: Colors.white60, size: 14),
+                    const SizedBox(width: 4),
+                    Text(saat,
+                        style: const TextStyle(
+                            color: Colors.white60, fontSize: 14)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios,
+              color: Color(0xFFD4AF37), size: 14),
+        ],
+      ),
+    );
+  }
+
+  String _getAyIsmi(final int ay) {
+    const aylar = [
+      'Oca',
+      'Şub',
+      'Mar',
+      'Nis',
+      'May',
+      'Haz',
+      'Tem',
+      'Ağu',
+      'Eyl',
+      'Eki',
+      'Kas',
+      'Ara'
+    ];
+    return aylar[ay - 1];
+  }
+}
+
+// --- ESKİ ŞIK TASARIM BİLEŞENLERİ ---
+
 class _AnimatedPoster extends StatelessWidget {
   final String imageUrl;
 
@@ -336,21 +445,17 @@ class _AnimatedPoster extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFFD4AF37).withOpacity(0.4),
-              blurRadius: 50,
-              spreadRadius: 5,
-            ),
+                color: const Color(0xFFD4AF37).withOpacity(0.4),
+                blurRadius: 50,
+                spreadRadius: 5)
           ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: AspectRatio(
-            aspectRatio: 9 / 13,
-            child: OptimizedCachedImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-            ),
-          ),
+              aspectRatio: 9 / 13,
+              child:
+                  OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover)),
         ),
       );
 }
@@ -364,27 +469,65 @@ class _GlassDescriptionCard extends StatelessWidget {
   Widget build(final BuildContext context) => Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: Color(0xFF1a1a2e).withOpacity(0.8),
+          color: const Color(0xFF1a1a2e).withOpacity(0.8),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Color(0xFFD4AF37).withOpacity(0.3),
-          ),
+          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFFD4AF37).withOpacity(0.1),
-              blurRadius: 30,
-            ),
+                color: const Color(0xFFD4AF37).withOpacity(0.1), blurRadius: 30)
           ],
         ),
         child: Text(
           description.replaceAll('\\n', '\n'),
           style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 16,
-            height: 1.9,
-            letterSpacing: 0.3,
-          ),
+              color: Colors.white70,
+              fontSize: 16,
+              height: 1.9,
+              letterSpacing: 0.3),
         ),
+      );
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final IconData icon;
+
+  const _SectionTitle({required this.title, required this.icon});
+
+  @override
+  Widget build(final BuildContext context) => Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  colors: [Color(0xFFD4AF37), Color(0xFFF5E6A3)]),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                    color: const Color(0xFFD4AF37).withOpacity(0.4),
+                    blurRadius: 15)
+              ],
+            ),
+            child: Icon(icon, color: const Color(0xFF0a0a1a), size: 22),
+          ),
+          const SizedBox(width: 16),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [
+                    const Color(0xFFD4AF37).withOpacity(0.5),
+                    Colors.transparent
+                  ])))),
+        ],
       );
 }
 
@@ -403,84 +546,19 @@ class _BackgroundParticles extends StatelessWidget {
         final baseY = random.nextDouble() * size.height;
         return AnimatedBuilder(
           animation: animation,
-          builder: (final _, final __) {
+          builder: (final context, final _) {
             final y = baseY + math.sin(animation.value * math.pi * 2 + i) * 30;
             return Positioned(
-              left: x,
-              top: y,
-              child: Container(
-                width: 4 + random.nextDouble() * 4,
-                height: 4 + random.nextDouble() * 4,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFFD4AF37)
-                      .withOpacity(0.1 + random.nextDouble() * 0.2),
-                ),
-              ),
-            );
+                left: x,
+                top: y,
+                child: Container(
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                        shape: BoxShape.circle, color: Color(0xFFD4AF37))));
           },
         );
       }),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const _SectionTitle({required this.title, required this.icon});
-
-  @override
-  Widget build(final BuildContext context) => Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFD4AF37),
-                  Color(0xFFF5E6A3),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0xFFD4AF37).withOpacity(0.4),
-                  blurRadius: 15,
-                ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: Color(0xFF0a0a1a),
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Container(
-              height: 1,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFFD4AF37).withOpacity(0.5),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
 }
