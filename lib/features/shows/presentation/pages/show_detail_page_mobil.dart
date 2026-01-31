@@ -1,10 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_detail_provider.dart';
+import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
@@ -702,9 +702,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               onTap: () {
                 final userId =
                     ref.read(currentUserProvider).value?.uid ?? "guest";
-                context.pushNamed('seatSelection', pathParameters: {
-                  'slugWithId': '${widget.showId}-${event.id}-$userId'
-                });
+                NavigationHandler.goToSeatSelection(
+                    context, widget.showId, event.id, userId);
               },
             );
           },
@@ -1195,9 +1194,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             onTap: () {
               final userId =
                   ref.read(currentUserProvider).value?.uid ?? "guest";
-              context.pushNamed('seatSelection', pathParameters: {
-                'slugWithId': '${widget.showId}-${event.id}-$userId'
-              });
+              NavigationHandler.goToSeatSelection(
+                  context, widget.showId, event.id, userId);
             },
           );
         },
