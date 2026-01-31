@@ -98,11 +98,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       isLoading: detailAsync.isLoading,
       loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
       child: BasePageWrapper(
-        showBackButton: false,
+        showBackButton: true,
         showFab: true,
+        title: "Sanat Detayları",
+        subtitle: "Sanatın Akışı",
+        rightIcon: Icons.theaters,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
-
           backgroundColor: const Color(0xFF0a0a1a),
           ambientColor: context.primaryColor.withOpacity(0.05),
         ),
@@ -125,69 +127,56 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final List<Event> eventList,
     final List<Player> playerList,
     final List<Stage> stageList,
-  ) {
-    return Stack(
-      children: [
-        _BackgroundParticles(animation: _floatingController),
-        CustomScrollView(
-          controller: scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: ShowDetailHero(
-                showData: showData,
-                scrollNotifier: _scrollNotifier,
-                fadeAnimation: _heroFade,
-                slideAnimation: _heroSlide,
-                floatingAnimation: _floatingController,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: FadeTransition(
-                opacity: _contentFade,
-                child: _MainContent(
+  ) =>
+      Stack(
+        children: [
+          _BackgroundParticles(animation: _floatingController),
+          CustomScrollView(
+            controller: scrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: ShowDetailHero(
                   showData: showData,
-                  events: eventList,
-                  players: playerList,
-                  stages: stageList,
+                  scrollNotifier: _scrollNotifier,
+                  fadeAnimation: _heroFade,
+                  slideAnimation: _heroSlide,
+                  floatingAnimation: _floatingController,
                 ),
               ),
-            ),
-          ],
-        ),
-        // Sabit Butonlar
-        Positioned(top: 40, left: 20, child: const GlassmorphismBackButton()),
-        Positioned(
-          top: 40,
-          right: 20,
-          child: ValueListenableBuilder<double>(
-            valueListenable: _scrollNotifier,
-            builder: (final context, final offset, final _) {
-              final isScrolled = offset > 100;
-              return  Container(
-                decoration: BoxDecoration(
-                  color: isScrolled
-                      ? context.colors.surfaceContainerHighest
-                      : Colors.black.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child:
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(Icons.share_outlined,
-                        size: 22,
-                        color:
-                            isScrolled ? context.colors.onSurface : Colors.white),
-                    onPressed: () => TiyatrolDeeplinkService.shareShow(
-                        id: showData.id, name: showData.name),
+              SliverToBoxAdapter(
+                child: FadeTransition(
+                  opacity: _contentFade,
+                  child: _MainContent(
+                    showData: showData,
+                    events: eventList,
+                    players: playerList,
+                    stages: stageList,
                   ),
-              );
-            },
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
-    );
-  }
+          Positioned(
+            top: 40,
+            right: 20,
+            child: Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: context.colors.surfaceContainerHighest,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.share_outlined,
+                    size: 22, color: context.colors.onSurface),
+                onPressed: () => TiyatrolDeeplinkService.shareShow(
+                    id: showData.id, name: showData.name),
+              ),
+            ),
+          )
+        ],
+      );
 }
 
 class _MainContent extends StatelessWidget {

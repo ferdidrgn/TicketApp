@@ -1,15 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../providers/player_provider.dart';
-import '../../../../core/services/deeplink/deeplink_service.dart';
 
 class PlayerDetailPage extends ConsumerStatefulWidget {
   final String playerId;
@@ -205,7 +204,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _artisticIconBtn(Icons.queue_play_next, () => context.pop()),
+                  _artisticIconBtn(Icons.queue_play_next, () {}),
                   AnimatedOpacity(
                     opacity: _isScrolled ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
