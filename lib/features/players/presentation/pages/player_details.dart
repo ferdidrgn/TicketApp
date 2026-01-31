@@ -62,10 +62,11 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     final colors = context.colors;
 
     return BasePageWrapper(
-      showBackButton: false,
+      showBackButton: true,
       showFab: true,
       title: "Sanatçı Profili",
       subtitle: "Tragedya ve Komedya İlahlarının Elçileri",
+      rightIcon: Icons.star,
       isLoading: playerAsync.isLoading,
       customScrollController: scrollController,
       layoutConfig: BasePageLayoutConfig(
@@ -204,8 +205,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _artisticIconBtn(
-                      Icons.arrow_back_ios_new_rounded, () => context.pop()),
+                  _artisticIconBtn(Icons.queue_play_next, () => context.pop()),
                   AnimatedOpacity(
                     opacity: _isScrolled ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
