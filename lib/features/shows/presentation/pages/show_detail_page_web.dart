@@ -7,6 +7,7 @@ import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
+import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
@@ -97,10 +98,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       isLoading: detailAsync.isLoading,
       loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
       child: BasePageWrapper(
-        showBackButton: true,
+        showBackButton: false,
         showFab: true,
-        title: "Sanat Detayları",
-        subtitle: "Sanatın Akışı",
         rightIcon: Icons.theaters,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
@@ -156,6 +155,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               ),
             ],
           ),
+          // Sabit Butonlar
+          Positioned(top: 40, left: 20, child: const GlassmorphismBackButton()),
           Positioned(
             top: 40,
             right: 20,
