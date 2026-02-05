@@ -98,8 +98,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       isLoading: detailAsync.isLoading,
       loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
       child: BasePageWrapper(
-        showBackButton: false,
+        showBackButton: true,
         showFab: true,
+        title: 'Zamanın Çizgilerdeki İmzası',
+        subtitle: 'Anların altına gizlenmiş bin yıllık fısıltılar',
         rightIcon: Icons.theaters,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
@@ -156,7 +158,6 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             ],
           ),
           // Sabit Butonlar
-          Positioned(top: 40, left: 20, child: const GlassmorphismBackButton()),
           Positioned(
             top: 40,
             right: 20,

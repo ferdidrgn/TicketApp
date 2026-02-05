@@ -36,10 +36,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((final _) {
-      _router = ref.read(appRouterProvider);
-      TiyatrolDeeplinkListener.init(_router);
-    });
+    _router = ref.read(appRouterProvider);
+    TiyatrolDeeplinkListener.init(_router);
   }
 
   @override

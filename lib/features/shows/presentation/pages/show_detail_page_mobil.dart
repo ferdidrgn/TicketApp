@@ -80,9 +80,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         ambientColor: colors.primary.withOpacity(0.04),
       ),
       child: detailAsync.when(
-        loading: () => Center(
-          child: CircularProgressIndicator(color: colors.primary),
-        ),
+        loading: () =>
+            Center(child: CircularProgressIndicator(color: colors.primary)),
         error: (final err, final stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
