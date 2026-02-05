@@ -18,9 +18,7 @@ class NavigationHandler {
   static void _safeNavigate(
       final BuildContext context, final String targetPath) {
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (context.mounted) {
-        context.go(targetPath);
-      }
+      if (context.mounted) context.go(targetPath);
     });
   }
 
@@ -34,11 +32,9 @@ class NavigationHandler {
     String finalPath = baseRoute;
 
     // Eğer id ve slug varsa slug-id formatına çevir (SEO dostu)
-    if (slug != null && id != null) {
+    if (slug != null && id != null)
       finalPath += '/${slug.toSlug()}-$id';
-    } else if (id != null) {
-      finalPath += '/$id';
-    }
+    else if (id != null) finalPath += '/$id';
 
     // Geri dönüş rotasını (from) ve varsa extra parametreleri ekle
     final uri = Uri(
@@ -138,14 +134,13 @@ class NavigationHandler {
     final state = GoRouterState.of(context);
     final fromRoute = state.uri.queryParameters['from'];
 
-    if (fromRoute != null && fromRoute.isNotEmpty) {
+    if (fromRoute != null && fromRoute.isNotEmpty)
       context.go(Uri.decodeComponent(fromRoute));
-    } else {
-      if (Navigator.canPop(context)) {
+    else {
+      if (Navigator.canPop(context))
         Navigator.pop(context);
-      } else {
+      else
         context.go('/app');
-      }
     }
   }
 
