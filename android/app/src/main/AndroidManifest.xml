@@ -33,9 +33,9 @@
 
     <application
         android:name="${applicationName}"
+        android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:label="TiyatRol App"
-        android:hardwareAccelerated="true"
         android:usesCleartextTraffic="false">
 
         <!-- ✅ AdMob App ID (TEK YER) -->
@@ -75,10 +75,40 @@
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
 
+            <!-- 🚀 App Launcher Intent -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- 🔗 HTTPS Deep Links (App Links - Auto-verified) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Production Domain -->
+                <data
+                    android:host="www.tiyatrol.web.app"
+                    android:scheme="https" />
+                <data
+                    android:host="tiyatrol.web.app"
+                    android:scheme="https" />
+            </intent-filter>
+
+            <!-- 🔗 Custom URL Scheme (Fallback) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="open"
+                    android:scheme="tiyatrol" />
+            </intent-filter>
+
         </activity>
 
         <!-- Flutter embedding -->

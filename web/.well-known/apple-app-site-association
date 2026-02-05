@@ -3,9 +3,22 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAMID.com.yourdomain.ticketapp",
-        "paths": ["/product/*"]
+        "appID": "TEAM_ID.com.ferdidrgn.ticketapp",
+        "paths": [
+          "/show/*",
+          "/player/*",
+          "/stage/*",
+          "/team/*",
+          "/my-tickets/*",
+          "/discover",
+          "/nearby",
+          "/profile",
+          "*"
+        ]
       }
     ]
   }
 }
+
+NOT: TEAM_ID'yi Apple Developer hesabınızdan alın.
+Xcode -> Signing & Capabilities -> Team ID

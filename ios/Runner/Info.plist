@@ -45,5 +45,28 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+
+<!-- 🔗 Universal Links (HTTPS Deep Links) -->
+<key>com.apple.developer.associated-domains</key>
+<array>
+    <string>applinks:tiyatrol.web.app</string>
+    <string>applinks:www.tiyatrol.web.app</string>
+</array>
+
+<!-- 🔗 Custom URL Scheme (Fallback) -->
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLName</key>
+        <string>com.ferdidrgn.ticketapp</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>tiyatrol</string>
+        </array>
+    </dict>
+</array>
 </dict>
 </plist>
