@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import '../widgets/mobile_bottom_nav_bar.dart';
-import '../widgets/web_nav_bar.dart';
+import '../widgets/web_top_navigation_bar.dart';
 
+/// 🧭 Global Navigation Keys
+/// Merkezi navigator referansları - global erişim için
 abstract final class NavigationKeys {
+  // 🎯 ANA NAVIGATOR (GoRouter root)
   static final GlobalKey<NavigatorState> rootNavigator =
       GlobalKey<NavigatorState>();
 
+  // 📱 MOBILE NAV BAR (Dışardan kontrol için)
   static final GlobalKey<MobileBottomNavBarState> mobileNavKey =
       GlobalKey<MobileBottomNavBarState>();
 
-  static final homeShellKey =
-      GlobalKey<NavigatorState>(debugLabel: 'homeShell');
-  static final nearByShellKey =
-      GlobalKey<NavigatorState>(debugLabel: 'nearByShellKey');
-  static final discoveryShellKey =
-      GlobalKey<NavigatorState>(debugLabel: 'discoveryShellKey');
-  static final settingsShellKey =
-      GlobalKey<NavigatorState>(debugLabel: 'settingsShellKey');
+  // 💻 WEB NAV BAR (Dışardan kontrol için)
+  static final GlobalKey<WebTopNavigationBarState> webNavKey =
+      GlobalKey<WebTopNavigationBarState>();
 
-  /// 🔥 WEB BAR STATE’E DOĞRUDAN ERİŞİM
-  static final GlobalKey<WebBarState> webBarKey = GlobalKey<WebBarState>();
+// ℹ️ NOT: Shell navigator key'leri artık app_router.dart içinde lokal olarak tanımlanıyor
+// Bu daha temiz ve StatefulShellRoute ile uyumlu
 }

@@ -15,10 +15,10 @@ class WebTopNavigationBar extends StatefulWidget {
   const WebTopNavigationBar({super.key, required this.navigationShell});
 
   @override
-  State<WebTopNavigationBar> createState() => _WebTopNavigationBarState();
+  State<WebTopNavigationBar> createState() => WebTopNavigationBarState();
 }
 
-class _WebTopNavigationBarState extends State<WebTopNavigationBar> {
+class WebTopNavigationBarState extends State<WebTopNavigationBar> {
   int? _hoveredIndex;
 
   void _onItemTapped(final int index) {
