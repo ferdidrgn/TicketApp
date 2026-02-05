@@ -17,17 +17,53 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
   final GlobalKey<CurvedNavigationBarState> _navKey =
       GlobalKey<CurvedNavigationBarState>();
 
-  void _onItemTapped(final int index) {
-    widget.navigationShell.goBranch(index,
-        initialLocation: index == widget.navigationShell.currentIndex);
+  // 🔧 FIX: Direkt route paths tanımla
+  static const List<String> _routePaths = [
+    '/app', // 0: Ana Sayfa
+    '/discover', // 1: Keşfet
+    '/nearby', // 2: Yakındakiler
+    '/profile', // 3: Profil
+  ];
 
-    _navKey.currentState?.setPage(index);
+  // 🔧 FIX: Mevcut index'i route'dan hesapla
+  int get _currentIndex {
+    final location = GoRouterState.of(context).uri.path;
+
+    // Tam eşleşme kontrol et
+    for (int i = 0; i < _routePaths.length; i++)
+      if (location == _routePaths[i]) return i;
+
+    // Fallback: navigationShell index
+    return widget.navigationShell.currentIndex;
   }
 
-  /// 🔑 DIŞARIDAN category ile Discover’a geçiş
+  void _onItemTapped(final int index) {
+    if (index < 0 || index >= _routePaths.length) return;
+
+    // 🔧 FIX: Direkt context.go() kullan - goBranch() yerine
+    final targetPath = _routePaths[index];
+
+    // Aynı sayfadaysa refresh yap
+    if (_currentIndex == index) {
+      HapticFeedback.mediumImpact();
+      context.go(targetPath);
+    } else {
+      HapticFeedback.selectionClick();
+      context.go(targetPath);
+    }
+
+    // UI güncelleme
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      _navKey.currentState?.setPage(index);
+    });
+  }
+
+  /// 🔑 DIŞARıDAN category ile Discover'a geçiş
   void goToDiscoverWithCategory(final String category) {
-    widget.navigationShell.goBranch(1);
-    _navKey.currentState?.setPage(1);
+    context.go('/discover?category=$category');
+
+    WidgetsBinding.instance
+        .addPostFrameCallback((final _) => _navKey.currentState?.setPage(1));
   }
 
   @override
@@ -52,7 +88,6 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
           children: _pages,
         ),*/
         body: widget.navigationShell,
-
         bottomNavigationBar: SafeArea(
           top: false, // Üstten boşluk bırakma
           child: CurvedNavigationBar(
@@ -61,7 +96,8 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
             buttonBackgroundColor: vibrantColor,
             height: 60,
             key: _navKey,
-            index: widget.navigationShell.currentIndex,
+            index: _currentIndex,
+            // 🔧 FIX: Dinamik index hesaplama
             items: const [
               Icon(Icons.home, size: 30, color: Colors.white),
               Icon(Icons.event_seat_sharp, size: 30, color: Colors.white),

@@ -18,7 +18,9 @@ class NavigationHandler {
   static void _safeNavigate(
       final BuildContext context, final String targetPath) {
     WidgetsBinding.instance.addPostFrameCallback((final _) {
-      if (context.mounted) context.go(targetPath);
+      if (context.mounted) {
+        context.go(targetPath);
+      }
     });
   }
 
@@ -32,9 +34,11 @@ class NavigationHandler {
     String finalPath = baseRoute;
 
     // Eğer id ve slug varsa slug-id formatına çevir (SEO dostu)
-    if (slug != null && id != null)
+    if (slug != null && id != null) {
       finalPath += '/${slug.toSlug()}-$id';
-    else if (id != null) finalPath += '/$id';
+    } else if (id != null) {
+      finalPath += '/$id';
+    }
 
     // Geri dönüş rotasını (from) ve varsa extra parametreleri ekle
     final uri = Uri(
@@ -59,16 +63,17 @@ class NavigationHandler {
 
   static void goToSearch(final BuildContext context) => context.go('/search');
 
-  static void goToNearby(final BuildContext context) =>
-      _safeNavigate(context, _buildPath(context, '/nearby'));
+  // 🔧 FIX: Direkt go() kullanımı, initialLocation parametresi kaldırıldı
+  static void goToNearby(final BuildContext context) => context.go('/nearby');
 
-  static void goToProfile(final BuildContext context) =>
-      _safeNavigate(context, _buildPath(context, '/profile'));
+  static void goToDiscover(final BuildContext context) =>
+      context.go('/discover');
+
+  static void goToProfile(final BuildContext context) => context.go('/profile');
 
   static void goToDiscoverWithCategory(
           final BuildContext context, final String category) =>
-      _safeNavigate(
-          context, _buildPath(context, '/discover?category=$category'));
+      context.go('/discover?category=$category');
 
   static void goToShow(final BuildContext context, final String showId,
           final String showSlug) =>
@@ -119,8 +124,7 @@ class NavigationHandler {
   static void goToHelpSupport(final BuildContext context) =>
       _safeNavigate(context, _buildPath(context, '/help-support'));
 
-  static void goToCampaigns(final BuildContext context,
-          {final int? index}) =>
+  static void goToCampaigns(final BuildContext context, {final int? index}) =>
       _safeNavigate(
           context,
           _buildPath(context, '/campaign-details',
@@ -134,13 +138,14 @@ class NavigationHandler {
     final state = GoRouterState.of(context);
     final fromRoute = state.uri.queryParameters['from'];
 
-    if (fromRoute != null && fromRoute.isNotEmpty)
+    if (fromRoute != null && fromRoute.isNotEmpty) {
       context.go(Uri.decodeComponent(fromRoute));
-    else {
-      if (Navigator.canPop(context))
+    } else {
+      if (Navigator.canPop(context)) {
         Navigator.pop(context);
-      else
+      } else {
         context.go('/app');
+      }
     }
   }
 

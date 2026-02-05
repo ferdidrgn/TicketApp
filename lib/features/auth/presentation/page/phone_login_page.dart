@@ -45,16 +45,15 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (_start == 0) {
+      if (_start == 0)
         setState(() {
           _canResend = true;
           timer.cancel();
         });
-      } else {
+      else
         setState(() {
           _start--;
         });
-      }
     });
   }
 
@@ -103,24 +102,24 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
     // State Dinleyicisi: Başarılı işlemleri yakala
     ref.listen<AsyncValue<void>>(authMutationProvider,
-        (final previous, final next) {
-      next.whenOrNull(
-        error: (final error, final stack) {
-          _showSnackBar("Hata: ${error.toString()}");
-          // Hata olursa ve kod ekranındaysak belki geri atmak isteyebiliriz
-          // Ama genelde kullanıcı tekrar denesin diye kalırız.
-        },
-        data: (final _) {
-          // Eğer işlem başarılıysa ve henüz kod ekranına geçmediysek (Telefon doğrulama başarılıysa)
-          if (!_isCodeSent) {
-            _startTimer(); // Kod gönderildi, sayacı başlat ve ekranı değiştir
-          } else {
-            // Zaten kod ekranındayız ve işlem başarılı olduysa -> Login bitti
-            if (context.mounted) NavigationHandler.goToHome(context);
-          }
-        },
-      );
-    });
+            (final previous, final next) {
+          next.whenOrNull(
+            error: (final error, final stack) {
+              _showSnackBar("Hata: ${error.toString()}");
+              // Hata olursa ve kod ekranındaysak belki geri atmak isteyebiliriz
+              // Ama genelde kullanıcı tekrar denesin diye kalırız.
+            },
+            data: (final _) {
+              // Eğer işlem başarılıysa ve henüz kod ekranına geçmediysek (Telefon doğrulama başarılıysa)
+              if (!_isCodeSent) {
+                _startTimer(); // Kod gönderildi, sayacı başlat ve ekranı değiştir
+              } else {
+                // Zaten kod ekranındayız ve işlem başarılı olduysa -> Login bitti
+                if (context.mounted) NavigationHandler.goToHome(context);
+              }
+            },
+          );
+        });
 
     return BasePageWrapper(
       title: _isCodeSent ? 'DOĞRULAMA' : 'SERÜVENE KATIL',
@@ -150,7 +149,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         child: Center(
           child: ConstrainedBox(
             constraints:
-                BoxConstraints(maxWidth: isLargeScreen ? 500 : double.infinity),
+            BoxConstraints(maxWidth: isLargeScreen ? 500 : double.infinity),
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: AnimatedSwitcher(
@@ -242,7 +241,8 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     );
   }
 
-  Widget _buildIconHeader(final IconData icon) => Container(
+  Widget _buildIconHeader(final IconData icon) =>
+      Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: context.colors.primary.withOpacity(0.1),
@@ -251,15 +251,14 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         child: Icon(icon, size: 48, color: context.colors.primary),
       );
 
-  Widget _buildTextField(
-    final TextEditingController controller,
-    final String hint, {
-    required final String label,
-    final String? prefix,
-    final TextAlign textAlign = TextAlign.start,
-    final int? maxLength,
-    final bool isPhone = false,
-  }) =>
+  Widget _buildTextField(final TextEditingController controller,
+      final String hint, {
+        required final String label,
+        final String? prefix,
+        final TextAlign textAlign = TextAlign.start,
+        final int? maxLength,
+        final bool isPhone = false,
+      }) =>
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -323,7 +322,8 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         ),
       );
 
-  Widget _buildSectionTitle(final String title) => Text(
+  Widget _buildSectionTitle(final String title) =>
+      Text(
         title,
         style: context.textTheme.labelLarge
             ?.copyWith(letterSpacing: 2, fontWeight: FontWeight.w900),

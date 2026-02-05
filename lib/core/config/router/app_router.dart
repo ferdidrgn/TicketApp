@@ -1,5 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
@@ -80,8 +81,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           ),
         ),
 
-      /// 🎭 APP ROUTES (Hem mobil hem web)
-      /// Route: /app/*
+      /// 🎭 STATEFUL SHELL ROUTE - TAB NAVIGATION
       StatefulShellRoute.indexedStack(
         builder: (final context, final state, final navigationShell) {
           if (isWeb)
@@ -92,11 +92,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
             return MobileBottomNavBar(navigationShell: navigationShell);
         },
         branches: [
-          /// TAB 1: ANA SAYFA
+          /// BRANCH 0: ANA SAYFA (/app)
           StatefulShellBranch(
+            navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'shellHome'),
             routes: [
               GoRoute(
                 path: '/app',
+                name: 'home', // 🔧 Name ekle
                 pageBuilder: (final context, final state) =>
                     CustomTransitionPage(
                   key: state.pageKey,
@@ -108,17 +110,19 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
             ],
           ),
 
-          /// TAB 2: KEŞFET
+          /// BRANCH 1: KEŞFET (/discover)
           StatefulShellBranch(
+            navigatorKey:
+                GlobalKey<NavigatorState>(debugLabel: 'shellDiscover'),
             routes: [
               GoRoute(
                 path: '/discover',
+                name: 'discover', // 🔧 Name ekle
                 pageBuilder: (final context, final state) =>
                     CustomTransitionPage(
                   key: state.pageKey,
                   child: DiscoveryPage(
-                    selectedCategory: state.uri.queryParameters['category'],
-                  ),
+                      selectedCategory: state.uri.queryParameters['category']),
                   transitionsBuilder: fadeTransition,
                   transitionDuration: const Duration(milliseconds: 500),
                 ),
@@ -126,11 +130,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
             ],
           ),
 
-          /// TAB 3: YAKINDAKİLER
+          /// BRANCH 2: YAKINDAKİLER (/nearby)
           StatefulShellBranch(
+            navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'shellNearby'),
             routes: [
               GoRoute(
                 path: '/nearby',
+                name: 'nearby', // 🔧 Name ekle
                 pageBuilder: (final context, final state) =>
                     CustomTransitionPage(
                   key: state.pageKey,
@@ -142,11 +148,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
             ],
           ),
 
-          /// TAB 4: PROFİL
+          /// BRANCH 3: PROFİL (/profile)
           StatefulShellBranch(
+            navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'shellProfile'),
             routes: [
               GoRoute(
                 path: '/profile',
+                name: 'profile', // 🔧 Name ekle
                 pageBuilder: (final context, final state) =>
                     CustomTransitionPage(
                   key: state.pageKey,
@@ -160,7 +168,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         ],
       ),
 
-      /// 🔗 DETAY SAYFALARI (Hem mobil hem web için ortak)
+      /// 🔗 DETAY SAYFALARI (Shell dışında)
       GoRoute(
         path: '/show/:slugWithId',
         name: 'showDetail',
@@ -175,6 +183,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/player/:slugWithId',
+        name: 'playerDetail',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: PlayerDetailPage(
@@ -186,6 +195,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/stage/:slugWithId',
+        name: 'stageDetail',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: StageDetailPage(
@@ -197,6 +207,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/team/:slugWithId',
+        name: 'teamDetail',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: TeamDetailsPage(
@@ -208,6 +219,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/search',
+        name: 'search',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: SearchPage(),
@@ -218,6 +230,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/settings',
+        name: 'settings',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: AppSettingsPage(),
@@ -228,6 +241,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/favorites',
+        name: 'favorites',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: FavoritesPage(),
@@ -238,6 +252,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/my-tickets/:slugWithId',
+        name: 'myTickets',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: MyTicketPage(
@@ -249,6 +264,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/profile-edit/:slugWithId',
+        name: 'profileEdit',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: UserProfileEditScreen(
@@ -260,6 +276,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/contracts',
+        name: 'contracts',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: ContractsPage(),
@@ -270,6 +287,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/help-support',
+        name: 'helpSupport',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: HelpSupportPage(),
@@ -280,6 +298,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/campaign-details',
+        name: 'campaignDetails',
         pageBuilder: (final context, final state) {
           // URL'deki 'index' parametresini oku, yoksa 0 kabul et
           final indexRaw = state.uri.queryParameters['index'];
@@ -297,6 +316,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       /// 🚪 AUTH & ONBOARDING
       GoRoute(
         path: '/login',
+        name: 'login',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const LoginScreen(),
@@ -307,6 +327,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/phone-login',
+        name: 'phoneLogin',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const PhoneLogInPage(),
@@ -317,6 +338,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       GoRoute(
         path: '/onboarding',
+        name: 'onboarding',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OnboardingContainer(),
