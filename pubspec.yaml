@@ -70,6 +70,7 @@ dependencies:
   go_router:
   dynamic_color: ^1.8.1
   visibility_detector: ^0.4.0+2
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_test:
@@ -82,7 +83,6 @@ dev_dependencies:
   freezed:
   riverpod_generator: ^3.0.3
   json_serializable:
-  flutter_native_splash: ^2.4.1
 
 flutter:
   uses-material-design: true

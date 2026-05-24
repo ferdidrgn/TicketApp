@@ -90,9 +90,6 @@
 
                 <!-- Production Domain -->
                 <data
-                    android:host="www.tiyatrol.web.app"
-                    android:scheme="https" />
-                <data
                     android:host="tiyatrol.web.app"
                     android:scheme="https" />
             </intent-filter>
