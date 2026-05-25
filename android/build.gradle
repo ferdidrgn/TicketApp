@@ -4,9 +4,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.6.1' // Android Gradle Pluginugin
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20' // Kotlin Gradle Plugin
-        classpath 'com.google.gms:google-services:4.4.1' // Google Services Plugin
+        classpath 'com.android.tools.build:gradle:8.6.1'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20'
+        classpath 'com.google.gms:google-services:4.4.1'
         classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.9'
     }
 }
@@ -15,6 +15,18 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+}
+
+// 🛡️ MİMARİ MÜHÜR: Kütüphane Namespace çakışmalarını onarır
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            if (project.android.namespace == null) {
+                def safeName = project.name.replaceAll("[^a-zA-Z0-9]", "_")
+                project.android.namespace = "com.ferdidrgn.ticketapp.patched.${safeName}"
+            }
+        }
     }
 }
 

@@ -33,7 +33,7 @@ final class UserMutationProvider
   UserMutation create() => UserMutation();
 }
 
-String _$userMutationHash() => r'b59eac504729d48a44551eb1496ba81adae52761';
+String _$userMutationHash() => r'aac588fa4c6354d950fa7aecf492ea15bc32316f';
 
 abstract class _$UserMutation extends $AsyncNotifier<void> {
   FutureOr<void> build();

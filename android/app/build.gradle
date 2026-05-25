@@ -1,9 +1,8 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id 'com.google.gms.google-services'
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id 'com.google.firebase.crashlytics'
+    id "com.google.gms.google-services"
+    id "com.google.firebase.crashlytics"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -15,49 +14,80 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.ferdidrgn.ticketapp"
-    compileSdk = 36 // flutter.compileSdkVersion yerine direkt sayı
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     defaultConfig {
         applicationId = "com.ferdidrgn.ticketapp"
         minSdk = flutter.minSdkVersion
-        targetSdk = 36 // flutter.targetSdkVersion yerine
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        multiDexEnabled true
+        multiDexEnabled = true
+
+        manifestPlaceholders["networkSecurityConfig"] = "@xml/network_security_config"
+        manifestPlaceholders["allowBackup"] = "false"
+
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
+        }
     }
 
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
+            if (keystoreProperties.containsKey('keyAlias')) {
+                keyAlias = keystoreProperties['keyAlias']
+                keyPassword = keystoreProperties['keyPassword']
+                storeFile = file(keystoreProperties['storeFile'])
+                storePassword = keystoreProperties['storePassword']
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            debuggable false
-            // Crashlytics'in hata raporlarını okunabilir kılması için mapping dosyasını ister
-            firebaseCrashlytics {
-                mappingFileUploadEnabled true
-                nativeSymbolUploadEnabled true
+            signingConfig = signingConfigs.release
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            debuggable = false
+
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
             }
+
+            buildConfigField "boolean", "IS_RELEASE", "true"
+            buildConfigField "String", "BASE_URL", "\"https://tiyatrol.web.app\""
+        }
+        debug {
+            debuggable = true
+            buildConfigField "boolean", "IS_RELEASE", "false"
+            buildConfigField "String", "BASE_URL", "\"https://tiyatrol.web.app\""
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
+    lint {
+        checkReleaseBuilds = true
+        abortOnError = false
+    }
+}
+
+// 🛡️ CRASHLYTICS AYARI: Bloğu tamamen sildik, çünkü yeni plugin'ler
+// artık otomatik olarak sembolleri upload ediyor. Manuel ayara gerek yok!
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = "17"
     }
 }
 
@@ -66,18 +96,15 @@ flutter {
 }
 
 dependencies {
-    implementation 'com.android.support:multidex:1.0.3'
-
-    // 🚀 Flutter'ın native tarafta Material 3 ve AppCompat kullanabilmesi için bunlar kalmalı
-    implementation "androidx.appcompat:appcompat:1.7.0" // Versiyon güncellendi
+    implementation "com.android.support:multidex:1.0.3"
+    implementation "androidx.core:core-ktx:1.15.0"
+    implementation "androidx.appcompat:appcompat:1.7.0"
     implementation "com.google.android.material:material:1.12.0"
-    implementation "androidx.core:core-ktx:1.13.1"
 
-    // Firebase Bill of Materials (BoM) - Versiyon karmaşasını önler
-    implementation platform('com.google.firebase:firebase-bom:33.1.2')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation platform("com.google.firebase:firebase-bom:33.7.0")
+    implementation "com.google.firebase:firebase-analytics"
+    implementation "com.google.firebase:firebase-crashlytics"
 
-    // Kotlin stdlib artık çoğu zaman otomatik eklenir, manuel yazmaya gerek yok.
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20"
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.20"
 }

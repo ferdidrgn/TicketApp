@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ticketapp/features/auth/presentation/providers/auth_service.dart';
 import '../../../../core/common/enum/enums.dart';
@@ -14,7 +15,6 @@ part 'auth_mutation_provider.g.dart';
 class OtpTimer extends _$OtpTimer {
   @override
   int build() {
-    // Widget veya provider yok edildiğinde timer'ı kesin olarak durdur
     ref.onDispose(() => _timer?.cancel());
     return 0;
   }
@@ -25,11 +25,11 @@ class OtpTimer extends _$OtpTimer {
     state = seconds;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
-      // State'i her saniye bir azalt
-      if (state <= 0)
+      if (state <= 0) {
         timer.cancel();
-       else state = state - 1;
-
+      } else {
+        state = state - 1;
+      }
     });
   }
 }
@@ -51,15 +51,12 @@ class AuthMutation extends _$AuthMutation {
     });
   }
 
-  /// 🚪 Oturumu Kapat (Eksik olan metod eklendi)
+  /// 🚪 Oturumu Kapat
   Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      // 1. Firebase ve servis çıkışlarını yap
       await ref.read(signOutUseCaseProvider).call();
-      // 2. Yerel verileri temizle
       await LocalStorageService.clearAllUserData();
-      // 3. Kullanıcı bilgilerini sıfırla
       ref.invalidate(currentUserProvider);
     });
   }
@@ -103,7 +100,8 @@ class AuthMutation extends _$AuthMutation {
   }
 
   Future<void> _handlePostLogin(final String uid, final UserRole role) async {
-    final firebaseUser = ref.read(authServiceProvider).currentUser;
+    // DOĞRULAMA: Null safety hatasını aşmak için ham Firebase Auth örneği güvenle okunuyor
+    final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
 
     final existingUser =
         await ref.read(getUserByIdUseCaseProvider).call(uid).getOrThrow();

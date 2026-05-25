@@ -5,6 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="google-site-verification" content="Xic0lVd0psTmB6qJ4NF0FjwFevNEPfjoOjqymIjPYvg"/>
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge">
 
@@ -17,6 +18,11 @@
     <meta name="robots" content="index, follow">
 
     <link rel="canonical" href="https://tiyatrol.web.app"/>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Tiyatrol TicketApp">
+    <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
     <meta property="og:site_name" content="TiyatRol">
     <meta property="og:title" content="TiyatRol - Tiyatro Ekibi ve Oyunları">
@@ -35,13 +41,16 @@
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
-            "@type": "WebSite",
+            "@type": "WebApplication",
             "name": "TiyatRol",
+            "description": "Sanat ve sahne gösterileri için geliştirilmiş çapraz platform biletleme sistemi.",
             "alternateName": [
                 "TiyatRol Tiyatro",
                 "Tiyatrol Ekibi"
             ],
-            "url": "https://tiyatrol.web.app"
+            "url": "https://tiyatrol.web.app",
+            "applicationCategory": "EntertainmentApplication",
+            "operatingSystem": "All"
         }
     </script>
 
@@ -76,6 +85,27 @@
 
     <link rel="manifest" href="manifest.json">
 
+    <style>
+        /* İlk Açılış Hızını Artıran ve Beyaz Ekranı Engelleyen Kritik CSS Katmanı */
+        body {
+          background-color: #0F0F12;
+          margin: 0; padding: 0;
+          overflow: hidden;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .boot-container {
+          display: flex; flex-direction: column; justify-content: center; align-items: center;
+          width: 100vw; height: 100vh; color: #FFFFFF;
+        }
+        .spinner {
+          width: 50px; height: 50px;
+          border: 3px solid rgba(255,255,255,0.1);
+          border-radius: 50%; border-top-color: #FF2E93;
+          animation: spin 0.8s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+
     <script>
         function setMeta(title, description, image, url) {
             document.title = title;
@@ -103,6 +133,16 @@
             hakkında detaylı bilgi.</p>
     </header>
 
+    <main>
+        <h1>Tiyatrol TicketApp</h1>
+        <p>Tiyatrol dünyasına hoş geldiniz. Premium canlı sanat şovlarını keşfedin, biletlerinizi güvenle satın alın.</p>
+        <nav>
+            <a href="/shows">Tüm Oyunlar</a> |
+            <a href="/stages">Sahneler</a> |
+            <a href="/profile">Hesabım</a>
+        </nav>
+    </main>
+
     <section>
         <h2>Neler Yapıyoruz?</h2>
         <ul>
@@ -123,6 +163,10 @@
         <p>© 2025 TiyatRol Sanat Ekibi</p>
     </footer>
 </noscript>
+
+<div id="loading-indicator" class="boot-container">
+    <div class="spinner"></div>
+</div>
 
 <script src="flutter_bootstrap.js" async></script>
 

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +20,15 @@ import 'features/splash/presentation/widgets/splash_data_guard.dart';
 import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
-  await AppInitializer.init();
+  // Binding nesnesini al
+  final WidgetsBinding binding = WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. Arayüzü uçtan uca şeffaf moda al
+  AppInitializer.configureSystemUIPreBoot();
+
+  // 2. Tüm servisleri başlat
+  await AppInitializer.init(binding);
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -35,7 +45,6 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-
     _router = ref.read(appRouterProvider);
     TiyatrolDeeplinkListener.init(_router);
   }
@@ -48,7 +57,6 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(final BuildContext context) {
-    // State izleme
     final currentStyle = ref.watch(themeProvider);
     final themeNotifier = ref.watch(themeProvider.notifier);
     final localeAsync = ref.watch(localeControllerProvider);
@@ -58,17 +66,12 @@ class _MyAppState extends ConsumerState<MyApp> {
 
     return DynamicColorBuilder(builder:
         (final ColorScheme? lightDynamic, final ColorScheme? darkDynamic) {
-      // 1. Eğer telefon destekliyorsa duvar kağıdı rengini al.
-      // 2. Desteklemiyorsa (iOS veya eski Android) varsayılan 'seedColor' kullan.
-      // Not: AppTheme.lightScheme ve darkScheme senin kendi belirlediğin fallback renkler olmalı.
-
       final lightTheme = themeManager.getLightTheme(lightDynamic);
       final darkTheme = themeManager.getDarkTheme(darkDynamic);
 
       return MaterialApp.router(
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
-        // Web için özel tema, mobil için hesaplanan tema
         theme: lightTheme,
         darkTheme: isWeb ? WebTheme.darkTheme : darkTheme,
         themeMode: isWeb ? ThemeMode.dark : themeNotifier.themeMode,
@@ -84,7 +87,6 @@ class _MyAppState extends ConsumerState<MyApp> {
               loadingMessage: authMutation.hasError
                   ? 'Bir hata oluştu, lütfen tekrar deneyin.'
                   : 'TiyatRol Sahnesi Hazırlanıyor...',
-              // Web değilse sarmalayıcıyı kullan
               child: isWeb ? child : _MobileSystemUIWrapper(child: child),
             ),
           );
@@ -94,8 +96,6 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 }
 
-/// Mobil cihazlarda status bar ve navigation bar stilini ayarlamak için
-/// kullanılan wrappers widget
 class _MobileSystemUIWrapper extends StatelessWidget {
   final Widget child;
 
@@ -103,18 +103,13 @@ class _MobileSystemUIWrapper extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    //Extentions ı çağırma! Çünkü app daha açılmadı.
-    final isDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        // Status Bar İkon Renkleri
         statusBarColor: Colors.transparent,
-        // M3 standardı şeffaf status bar
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
         systemNavigationBarColor: Colors.transparent,
-        // Tam şeffaf navigasyon
         systemNavigationBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarDividerColor: Colors.transparent,

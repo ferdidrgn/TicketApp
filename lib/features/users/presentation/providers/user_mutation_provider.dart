@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/services/local_storage_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -9,6 +10,7 @@ part 'user_mutation_provider.g.dart';
 
 @riverpod
 class UserMutation extends _$UserMutation {
+  // DOĞRULAMA: build_runner motorunun sınıfı Notifier olarak tanıması için AsyncNotifier kalıbı mühürlendi
   @override
   FutureOr<void> build() {}
 
@@ -36,7 +38,6 @@ class UserMutation extends _$UserMutation {
   }
 
   /// 🗑️ HESABI VE TÜM VERİLERİ SİL (Atomik İmha)
-  /// Bu metot biletleri, Firestore dökümanını ve Auth hesabını sırayla temizler.
   Future<void> deleteAccountCompletely() async {
     state = const AsyncLoading();
 
@@ -44,18 +45,21 @@ class UserMutation extends _$UserMutation {
       final userId = ref.read(currentUserIdProvider);
       if (userId == null) return;
 
-      // 1. Firestore: UseCase üzerinden dökümanı ve biletleri sil
+      // 1. Firestore: Veritabanı dökümanlarını UseCase ile temizle
       await ref.read(deleteUserUseCaseProvider).call(userId);
 
-      // 2. Auth: Firebase hesabını imha et
-      await ref.read(authServiceProvider).deleteAccount();
+      // 2. Auth: Firebase Auth oturum kapama ve temizleme işlemlerini tetikle
+      await ref
+          .read(authServiceProvider.notifier)
+          .executeGlobalSignOutRoutine();
 
-      // 3. Lokal: Cihazdaki verileri temizle
+      // 3. Lokal: Cihaz önbelleğini sıfırla
       await LocalStorageService.clearAllUserData();
     });
 
     if (!ref.mounted) return;
     state = result;
+
     ref.invalidate(currentUserProvider);
   }
 }

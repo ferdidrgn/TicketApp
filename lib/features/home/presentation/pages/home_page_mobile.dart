@@ -49,8 +49,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   void _onScroll() {
     if (mounted) {
       final bool showSearch = _scrollController.offset > 250;
-      if (_showSearchInAppBar != showSearch)
+      if (_showSearchInAppBar != showSearch) {
         setState(() => _showSearchInAppBar = showSearch);
+      }
     }
   }
 
@@ -58,6 +59,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(final BuildContext context) {
+    // Orijinal Riverpod Sağlayıcı hatlarınız %100 aynen korunuyor
     final campaignState = ref.watch(campaignsProvider);
     final showState = ref.watch(showsProvider(isLimit: true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
@@ -88,20 +90,70 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                     maxWidth: isLargeScreen ? 1100 : double.infinity),
-                child: _buildActualContent(
-                  context,
-                  campaignState.value ?? [],
-                  showState.value ?? [],
-                  stageState.value ?? [],
-                  isLoggedIn,
-                  currentUser,
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.only(bottom: 100),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 20),
+                      const HeroSection(),
+
+                      // Arama Çubuğu (Üstteki Arama)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: CustomSearchbar(onTap: _openSearch),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // 1. Öne Çıkanlar (Story) - Performans Sınıfına Bölündü
+                      _PerformantStorySection(
+                          campaigns: campaignState.value ?? []),
+
+                      const DividerWithAccent(),
+
+                      // 2. Kategoriler - Sabit Düzen Katmanı
+                      _PerformantCategorySection(),
+
+                      const DividerWithAccent(),
+
+                      // 3. Keşfet (Show Collage)
+                      _PerformantCollageSection(shows: showState.value ?? []),
+
+                      const DividerWithAccent(),
+
+                      // 4. Mekanlar (Carousel)
+                      _PerformantStageCarouselSection(
+                          stages: stageState.value ?? []),
+
+                      const DividerWithAccent(),
+
+                      // 5. Özel Kartlar, Aksiyonlar ve Kapanış Alanı
+                      const _PerformantSpecialCardsAndActionsSection(),
+
+                      _PerformantQuickActionsGridSection(
+                        isLoggedIn: isLoggedIn,
+                        currentUser: currentUser,
+                      ),
+
+                      const SizedBox(height: 40),
+                      const TrendingNowSection(),
+                      const SizedBox(height: 40),
+                      const NewsletterSubscribe(),
+                      const SizedBox(height: 60),
+                      const BottomQuote(),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),
     );
   }
 
-  // --- APPBAR TASARIMLARI ---
+  // --- APPBAR TASARIMLARI (Birebir Aynı Tutuldu) ---
 
   PreferredSizeWidget _buildDynamicAppBar() => AppBar(
         backgroundColor: Colors.transparent,
@@ -139,107 +191,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       );
 
-  // --- İÇERİK ---
-
-  Widget _buildActualContent(
-    final BuildContext context,
-    final List<Campaign> campaigns,
-    final List<Show> shows,
-    final List<Stage> stages,
-    final bool isLoggedIn,
-    final User? currentUser,
-  ) {
-    return SingleChildScrollView(
-      controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 100),
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          const HeroSection(),
-
-          // Arama Çubuğu (Üstteki Arama)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: CustomSearchbar(onTap: _openSearch),
-          ),
-
-          const SizedBox(height: 32),
-
-          // 1. Öne Çıkanlar (Story)
-          SectionHeader(
-              title: "Öne Çıkanlar",
-              subtitle: "Vitrin",
-              onTap: () => NavigationHandler.goToCampaigns(context)),
-          StoryCircles(
-              campaigns: campaigns,
-              onStoryTap: (final index) =>
-                  NavigationHandler.goToCampaigns(context, index: index)),
-
-          const DividerWithAccent(),
-
-          // 2. Kategoriler
-          SectionHeader(title: "Kategoriler", subtitle: "Sanatın Renkleri"),
-          const CategoryGrid(),
-
-          const DividerWithAccent(),
-
-          // 3. Keşfet (Show Collage)
-          SectionHeader(title: "Keşfet", subtitle: "Sana Özel Seçkiler"),
-          ShowCollage(shows: shows),
-
-          const DividerWithAccent(),
-
-          // 4. Mekanlar (Carousel)
-          SectionHeader(title: "Mekanlar", subtitle: "Şehrin Sahneleri"),
-          StageCarousel(
-            stages: stages,
-            onStageTap: (final stageId) {
-              final stage = stages.firstWhere((final e) => e.id == stageId);
-              NavigationHandler.goToStage(context, stage.id, stage.name);
-            },
-          ),
-
-          const DividerWithAccent(),
-
-          // 5. Özel Kartlar & Aksiyonlar
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: TicketStubCard(
-              title: "Romeo & Juliet",
-              subtitle: "%20 İndirim Fırsatı",
-              imageUrl:
-                  'https://img.freepik.com/premium-vector/theatre2_1189973-28.jpg?semt=ais_hybrid&w=740&q=80',
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          QuickActionsGrid(
-            onNotificationsTap: () => NavigationHandler.goToSettings(context),
-            onFavoritesTap: () => NavigationHandler.goToFavorites(context),
-            onTicketsTap: () {
-              if (isLoggedIn && currentUser != null)
-                NavigationHandler.goToMyTickets(context, currentUser.uid);
-              else
-                NavigationHandler.goToLogin(context);
-            },
-            onCalendarTap: () {},
-          ),
-
-          const SizedBox(height: 40),
-          const TrendingNowSection(),
-          const SizedBox(height: 40),
-          const NewsletterSubscribe(),
-          const SizedBox(height: 60),
-          const BottomQuote(),
-          const SizedBox(height: 40),
-        ],
-      ),
-    );
-  }
-
   Widget _buildErrorWidget(final BuildContext context, final WidgetRef ref) =>
       Center(
         child: Padding(
@@ -268,4 +219,129 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
       );
+}
+
+// --- ARKA PLANDA HIZLANMAYI SAĞLAYAN PERFORMANS WIDGET SINIFLARI ---
+
+class _PerformantStorySection extends StatelessWidget {
+  final List<Campaign> campaigns;
+
+  const _PerformantStorySection({required this.campaigns});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+            title: "Öne Çıkanlar",
+            subtitle: "Vitrin",
+            onTap: () => NavigationHandler.goToCampaigns(context)),
+        StoryCircles(
+            campaigns: campaigns,
+            onStoryTap: (final index) =>
+                NavigationHandler.goToCampaigns(context, index: index)),
+      ],
+    );
+  }
+}
+
+class _PerformantCategorySection extends StatelessWidget {
+  const _PerformantCategorySection();
+
+  @override
+  Widget build(final BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title: "Kategoriler", subtitle: "Sanatın Renkleri"),
+        const CategoryGrid(),
+      ],
+    );
+  }
+}
+
+class _PerformantCollageSection extends StatelessWidget {
+  final List<Show> shows;
+
+  const _PerformantCollageSection({required this.shows});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title: "Keşfet", subtitle: "Sana Özel Seçkiler"),
+        ShowCollage(shows: shows),
+      ],
+    );
+  }
+}
+
+class _PerformantStageCarouselSection extends StatelessWidget {
+  final List<Stage> stages;
+
+  const _PerformantStageCarouselSection({required this.stages});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title: "Mekanlar", subtitle: "Şehrin Sahneleri"),
+        StageCarousel(
+          stages: stages,
+          onStageTap: (final stageId) {
+            final stage = stages.firstWhere((final e) => e.id == stageId);
+            NavigationHandler.goToStage(context, stage.id, stage.name);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _PerformantSpecialCardsAndActionsSection extends StatelessWidget {
+  const _PerformantSpecialCardsAndActionsSection();
+
+  @override
+  Widget build(final BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      child: TicketStubCard(
+        title: "Romeo & Juliet",
+        subtitle: "%20 İndirim Fırsatı",
+        imageUrl:
+            'https://img.freepik.com/premium-vector/theatre2_1189973-28.jpg?semt=ais_hybrid&w=740&q=80',
+      ),
+    );
+  }
+}
+
+class _PerformantQuickActionsGridSection extends StatelessWidget {
+  final bool isLoggedIn;
+  final User? currentUser;
+
+  const _PerformantQuickActionsGridSection({
+    required this.isLoggedIn,
+    required this.currentUser,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 32.0),
+      child: QuickActionsGrid(
+        onNotificationsTap: () => NavigationHandler.goToSettings(context),
+        onFavoritesTap: () => NavigationHandler.goToFavorites(context),
+        onTicketsTap: () {
+          if (isLoggedIn && currentUser != null)
+            NavigationHandler.goToMyTickets(context, currentUser?.uid ?? "");
+          else
+            NavigationHandler.goToLogin(context);
+        },
+        onCalendarTap: () {},
+      ),
+    );
+  }
 }

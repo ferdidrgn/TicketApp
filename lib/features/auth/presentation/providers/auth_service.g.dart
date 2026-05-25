@@ -9,12 +9,10 @@ part of 'auth_service.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(authService)
+@ProviderFor(AuthService)
 const authServiceProvider = AuthServiceProvider._();
 
-final class AuthServiceProvider
-    extends $FunctionalProvider<AuthService, AuthService, AuthService>
-    with $Provider<AuthService> {
+final class AuthServiceProvider extends $NotifierProvider<AuthService, User?> {
   const AuthServiceProvider._()
       : super(
           from: null,
@@ -31,21 +29,28 @@ final class AuthServiceProvider
 
   @$internal
   @override
-  $ProviderElement<AuthService> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  AuthService create(Ref ref) {
-    return authService(ref);
-  }
+  AuthService create() => AuthService();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(AuthService value) {
+  Override overrideWithValue(User? value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<AuthService>(value),
+      providerOverride: $SyncValueProvider<User?>(value),
     );
   }
 }
 
-String _$authServiceHash() => r'48ecb116fe8de9458ef92442438226b5eccbfc70';
+String _$authServiceHash() => r'daa0fd580bad8c2f5de813bc56917c95cb366fc2';
+
+abstract class _$AuthService extends $Notifier<User?> {
+  User? build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<User?, User?>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<User?, User?>, User?, Object?, Object?>;
+    element.handleValue(ref, created);
+  }
+}
