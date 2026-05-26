@@ -1,8 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/common/enum/enums.dart';
-import '../../../../core/errors/failures.dart';
 import '../../../../core/services/local_storage_service.dart';
+import '../../../users/presentation/providers/user_provider.dart';
 import '../../data/repositories/auth_repository_provider.dart';
 import '../../domain/usecases/delete_account_use_case.dart';
 import '../../domain/usecases/get_current_user_use_case_impl.dart';
@@ -13,6 +14,13 @@ import '../../domain/usecases/verify_otp_use_case_impl.dart';
 import '../../domain/usecases/verify_phone_use_case_impl.dart';
 
 part 'auth_provider.g.dart';
+
+// ─── Firebase Auth State Stream ─────────────────────────────────────────────
+final authStateProvider = StreamProvider<firebase_auth.User?>((final ref) {
+  return firebase_auth.FirebaseAuth.instance.authStateChanges();
+});
+
+// ─── Use Case Providers ──────────────────────────────────────────────────────
 
 @riverpod
 SignInWithGoogleUseCase signInWithGoogleUseCase(final Ref ref) =>
@@ -42,33 +50,35 @@ DeleteAccountUseCase deleteAccountUseCase(final Ref ref) =>
 GetCurrentUserUseCase getCurrentUserUseCase(final Ref ref) =>
     GetCurrentUserUseCaseImpl(ref.watch(authRepositoryProvider));
 
-// --- Ana Veri Kaynakları ---
+// ─── Ana Veri Kaynakları ─────────────────────────────────────────────────────
 
+/// Firebase Auth kullanıcısını döner. (Bunu ref.watch(authFirebaseUserProvider) olarak kullan)
 @riverpod
-Future<User?> currentUser(final Ref ref) async {
-  final user =
-      await ref.watch(getCurrentUserUseCaseProvider).call().getOrThrow();
-
-  // Proje kuralı: Anonim kullanıcılar 'null' kabul edilir.
-  return (user != null && user.isAnonymous) ? null : user;
+Future<firebase_auth.User?> authFirebaseUser(final Ref ref) async {
+  final authUser = ref.watch(authStateProvider).value;
+  if (authUser == null || authUser.isAnonymous) return null;
+  return authUser;
 }
 
-/// 🛡️ Kullanıcı Rolü (Admin, User, Guest vb.)
+/// 🔐 Giriş Durumu
 @riverpod
-Future<UserRole> currentUserRole(final Ref ref) async {
-  final user = await ref.watch(currentUserProvider.future);
-  if (user == null) return UserRole.guest;
-
-  // Yerel hafızadaki güncel rolü getirir.
-  return await LocalStorageService.userRole;
+bool isLoggedIn(final Ref ref) {
+  final authUser = ref.watch(authStateProvider).value;
+  return authUser != null && !authUser.isAnonymous;
 }
 
-/// 🔐 Giriş Durumu Kontrolü
-// currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
 @riverpod
-bool isLoggedIn(final Ref ref) => ref.watch(currentUserProvider).value != null;
+bool isUserPrivileged(final Ref ref) {
+  // Artık güncel profil verisini (entity.User) takip ediyoruz
+  final user = ref.watch(userProfileProvider).value;
+  if (user == null) return false;
+  return user.role == UserRole.admin || user.role == UserRole.curator;
+}
 
-/// 🆔 Kullanıcı ID (Kısa erişim için)
+/// 🆔 Kullanıcı UID'si (Bunu ref.watch(currentUserIdProvider) olarak kullan)
 @riverpod
-String? currentUserId(final Ref ref) =>
-    ref.watch(currentUserProvider).value?.uid;
+String? currentUserId(final Ref ref) {
+  final authUser = ref.watch(authStateProvider).value;
+  if (authUser == null || authUser.isAnonymous) return null;
+  return authUser.uid;
+}

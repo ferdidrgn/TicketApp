@@ -312,90 +312,59 @@ final class GetCurrentUserUseCaseProvider extends $FunctionalProvider<
 String _$getCurrentUserUseCaseHash() =>
     r'67c61ca395e32ad1db53964d25fabef2f0ae3b2d';
 
-@ProviderFor(currentUser)
-const currentUserProvider = CurrentUserProvider._();
+/// Firebase Auth kullanıcısını döner. (Bunu ref.watch(authFirebaseUserProvider) olarak kullan)
 
-final class CurrentUserProvider
-    extends $FunctionalProvider<AsyncValue<User?>, User?, FutureOr<User?>>
-    with $FutureModifier<User?>, $FutureProvider<User?> {
-  const CurrentUserProvider._()
+@ProviderFor(authFirebaseUser)
+const authFirebaseUserProvider = AuthFirebaseUserProvider._();
+
+/// Firebase Auth kullanıcısını döner. (Bunu ref.watch(authFirebaseUserProvider) olarak kullan)
+
+final class AuthFirebaseUserProvider extends $FunctionalProvider<
+        AsyncValue<firebase_auth.User?>,
+        firebase_auth.User?,
+        FutureOr<firebase_auth.User?>>
+    with
+        $FutureModifier<firebase_auth.User?>,
+        $FutureProvider<firebase_auth.User?> {
+  /// Firebase Auth kullanıcısını döner. (Bunu ref.watch(authFirebaseUserProvider) olarak kullan)
+  const AuthFirebaseUserProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
-          name: r'currentUserProvider',
+          name: r'authFirebaseUserProvider',
           isAutoDispose: true,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
 
   @override
-  String debugGetCreateSourceHash() => _$currentUserHash();
+  String debugGetCreateSourceHash() => _$authFirebaseUserHash();
 
   @$internal
   @override
-  $FutureProviderElement<User?> $createElement($ProviderPointer pointer) =>
+  $FutureProviderElement<firebase_auth.User?> $createElement(
+          $ProviderPointer pointer) =>
       $FutureProviderElement(pointer);
 
   @override
-  FutureOr<User?> create(Ref ref) {
-    return currentUser(ref);
+  FutureOr<firebase_auth.User?> create(Ref ref) {
+    return authFirebaseUser(ref);
   }
 }
 
-String _$currentUserHash() => r'5b64108d8403480cb595bbfab97a07ce0a34149e';
+String _$authFirebaseUserHash() => r'48df98de6cc53960a6e855edfbf631e4015ff0c3';
 
-/// 🛡️ Kullanıcı Rolü (Admin, User, Guest vb.)
-
-@ProviderFor(currentUserRole)
-const currentUserRoleProvider = CurrentUserRoleProvider._();
-
-/// 🛡️ Kullanıcı Rolü (Admin, User, Guest vb.)
-
-final class CurrentUserRoleProvider extends $FunctionalProvider<
-        AsyncValue<UserRole>, UserRole, FutureOr<UserRole>>
-    with $FutureModifier<UserRole>, $FutureProvider<UserRole> {
-  /// 🛡️ Kullanıcı Rolü (Admin, User, Guest vb.)
-  const CurrentUserRoleProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'currentUserRoleProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
-
-  @override
-  String debugGetCreateSourceHash() => _$currentUserRoleHash();
-
-  @$internal
-  @override
-  $FutureProviderElement<UserRole> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<UserRole> create(Ref ref) {
-    return currentUserRole(ref);
-  }
-}
-
-String _$currentUserRoleHash() => r'19d3c1a7e4066bc687461c8829208b169d856ec7';
-
-/// 🔐 Giriş Durumu Kontrolü
-// currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
+/// 🔐 Giriş Durumu
 
 @ProviderFor(isLoggedIn)
 const isLoggedInProvider = IsLoggedInProvider._();
 
-/// 🔐 Giriş Durumu Kontrolü
-// currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
+/// 🔐 Giriş Durumu
 
 final class IsLoggedInProvider extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
-  /// 🔐 Giriş Durumu Kontrolü
-// currentUser verisinin yüklenip yüklenmediğini ve null olup olmadığını kontrol eder.
+  /// 🔐 Giriş Durumu
   const IsLoggedInProvider._()
       : super(
           from: null,
@@ -429,19 +398,59 @@ final class IsLoggedInProvider extends $FunctionalProvider<bool, bool, bool>
   }
 }
 
-String _$isLoggedInHash() => r'f2e3058b69791577b053972b40b8c7bd272f0959';
+String _$isLoggedInHash() => r'dd4734d107fe5704b3643ad6018f2fa314704199';
 
-/// 🆔 Kullanıcı ID (Kısa erişim için)
+@ProviderFor(isUserPrivileged)
+const isUserPrivilegedProvider = IsUserPrivilegedProvider._();
+
+final class IsUserPrivilegedProvider
+    extends $FunctionalProvider<bool, bool, bool> with $Provider<bool> {
+  const IsUserPrivilegedProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'isUserPrivilegedProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$isUserPrivilegedHash();
+
+  @$internal
+  @override
+  $ProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  bool create(Ref ref) {
+    return isUserPrivileged(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$isUserPrivilegedHash() => r'58d75105f1d810c3fdee5c5cbf906e56b98cc2c6';
+
+/// 🆔 Kullanıcı UID'si (Bunu ref.watch(currentUserIdProvider) olarak kullan)
 
 @ProviderFor(currentUserId)
 const currentUserIdProvider = CurrentUserIdProvider._();
 
-/// 🆔 Kullanıcı ID (Kısa erişim için)
+/// 🆔 Kullanıcı UID'si (Bunu ref.watch(currentUserIdProvider) olarak kullan)
 
 final class CurrentUserIdProvider
     extends $FunctionalProvider<String?, String?, String?>
     with $Provider<String?> {
-  /// 🆔 Kullanıcı ID (Kısa erişim için)
+  /// 🆔 Kullanıcı UID'si (Bunu ref.watch(currentUserIdProvider) olarak kullan)
   const CurrentUserIdProvider._()
       : super(
           from: null,
@@ -475,4 +484,4 @@ final class CurrentUserIdProvider
   }
 }
 
-String _$currentUserIdHash() => r'37d2f04e820c481f5884543a707afdb573205cfe';
+String _$currentUserIdHash() => r'd1039a000b2d6dd9a1ddc28278c21d4977564d2d';

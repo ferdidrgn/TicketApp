@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/auth/presentation/providers/auth_provider.dart';
-import '../../features/users/presentation/providers/user_provider.dart'
-    hide currentUserProvider;
+import '../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../features/users/presentation/providers/user_provider.dart'
+    hide isUserPrivilegedProvider;
 
 class AdminGuard extends ConsumerWidget {
   final Widget child;
@@ -11,7 +11,8 @@ class AdminGuard extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final userAsync = ref.watch(currentUserProvider);
+    // 1. Profil verisini izle
+    final userAsync = ref.watch(userProfileProvider);
 
     return userAsync.when(
       loading: () =>
@@ -24,7 +25,7 @@ class AdminGuard extends ConsumerWidget {
           return _buildErrorState(context, "OTURUM GEREKLİ",
               "Lütfen giriş yapın.", Icons.lock_outline);
 
-        // 3. Yetki kontrolü (Özel selector provider'ımızı kullanıyoruz)
+        // 3. Yetki kontrolü (user_provider içindeki isUserPrivilegedProvider)
         final isPrivileged = ref.watch(isUserPrivilegedProvider);
         if (!isPrivileged)
           return _buildErrorState(context, "YETKİSİZ ERİŞİM",

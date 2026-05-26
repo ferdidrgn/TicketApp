@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:ticketapp/features/auth/presentation/providers/auth_service.dart';
 import '../../../../core/common/enum/enums.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/services/local_storage_service.dart';
@@ -57,7 +56,7 @@ class AuthMutation extends _$AuthMutation {
     state = await AsyncValue.guard(() async {
       await ref.read(signOutUseCaseProvider).call();
       await LocalStorageService.clearAllUserData();
-      ref.invalidate(currentUserProvider);
+      ref.invalidate(authFirebaseUserProvider);
     });
   }
 
@@ -69,7 +68,7 @@ class AuthMutation extends _$AuthMutation {
         .call(
           phoneNumber: phoneNumber,
           onVerificationCompleted: (final credential) {
-            ref.invalidate(currentUserProvider);
+            ref.invalidate(authFirebaseUserProvider);
           },
           onCodeSent: (final id, final token) {
             _verificationId = id;
@@ -131,6 +130,6 @@ class AuthMutation extends _$AuthMutation {
       role: role,
     );
 
-    ref.invalidate(currentUserProvider);
+    ref.invalidate(authFirebaseUserProvider);
   }
 }

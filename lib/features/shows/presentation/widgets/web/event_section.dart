@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
-import 'package:ticketapp/features/users/presentation/providers/user_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import '../../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../events/domain/entities/event.dart';
-import '../../../../seat/presentation/pages/seat_details.dart';
 import '../../../../stages/domain/entities/stage.dart';
 import '../../../domain/entities/show.dart';
 
@@ -158,12 +157,14 @@ class AnimatedEventCard extends ConsumerWidget {
 
   void _navigateToSeatSelection(
       final BuildContext context, final WidgetRef ref) {
-    // Auth sağlayıcını watch veya read ederek kullanıcıyı al
-    final String? userId = ref.read(currentUserProvider).value?.id;
+    // Auth sağlayıcısından sadece ID'yi okuyoruz
+    final String? userId = ref.read(currentUserIdProvider);
 
     if (userId == null) {
+      // Eğer kullanıcı giriş yapmadıysa
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Bilet almak için giriş yapmalısınız.")));
+      NavigationHandler.goToLogin(context); // İsterseniz doğrudan login'e yönlendirebilirsiniz
       return;
     }
 

@@ -10,11 +10,14 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart'
+    show currentUserIdProvider;
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/widgets/players_bubble_card.dart';
 import '../../../stages/domain/entities/stage.dart';
+import '../../../users/presentation/providers/user_provider.dart'
+    show userProfileProvider;
 import '../widgets/mobile/show_info_section.dart';
 
 class ShowDetailPage extends ConsumerStatefulWidget {
@@ -699,8 +702,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               stage: stage.name,
               price: double.tryParse(event.price.toString()) ?? 0.0,
               onTap: () {
-                final userId =
-                    ref.read(currentUserProvider).value?.uid ?? "guest";
+                // Auth'dan gelen UID'yi doğrudan alıyoruz
+                final userId = ref.read(currentUserIdProvider) ?? "guest";
                 NavigationHandler.goToSeatSelection(
                     context, widget.showId, event.id, userId);
               },
@@ -1191,8 +1194,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             stage: stage.name,
             price: double.tryParse(event.price.toString()) ?? 0.0,
             onTap: () {
-              final userId =
-                  ref.read(currentUserProvider).value?.uid ?? "guest";
+              // Auth'dan gelen UID'yi doğrudan alıyoruz
+              final userId = ref.read(currentUserIdProvider) ?? "guest";
               NavigationHandler.goToSeatSelection(
                   context, widget.showId, event.id, userId);
             },

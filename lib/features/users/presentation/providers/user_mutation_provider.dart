@@ -4,17 +4,16 @@ import '../../../../core/services/local_storage_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/presentation/providers/auth_service.dart';
 import '../../domain/entities/user.dart' as entity;
-import 'user_provider.dart' hide currentUserProvider;
+import 'user_provider.dart';
 
 part 'user_mutation_provider.g.dart';
 
 @riverpod
 class UserMutation extends _$UserMutation {
-  // DOĞRULAMA: build_runner motorunun sınıfı Notifier olarak tanıması için AsyncNotifier kalıbı mühürlendi
   @override
   FutureOr<void> build() {}
 
-  /// 💾 PROFİL GÜNCELLEME (İsim, Şehir, Fotoğraf vb.)
+  /// 💾 PROFİL GÜNCELLEME
   Future<void> save(final entity.User user, final String photoUrl,
       {final bool isUpdate = false}) async {
     state = const AsyncLoading();
@@ -34,32 +33,35 @@ class UserMutation extends _$UserMutation {
     if (!ref.mounted) return;
     state = result;
 
-    ref.invalidate(currentUserProvider);
+    // GÜNCELLEME: Artık userProfileProvider'ı invalidate ediyoruz
+    ref.invalidate(userProfileProvider);
   }
 
-  /// 🗑️ HESABI VE TÜM VERİLERİ SİL (Atomik İmha)
+  /// 🗑️ HESABI VE TÜM VERİLERİ SİL
   Future<void> deleteAccountCompletely() async {
     state = const AsyncLoading();
 
     final result = await AsyncValue.guard(() async {
+      // Auth'dan gelen UID'yi al
       final userId = ref.read(currentUserIdProvider);
       if (userId == null) return;
 
-      // 1. Firestore: Veritabanı dökümanlarını UseCase ile temizle
+      // 1. Firestore temizliği
       await ref.read(deleteUserUseCaseProvider).call(userId);
 
-      // 2. Auth: Firebase Auth oturum kapama ve temizleme işlemlerini tetikle
+      // 2. Auth oturum kapatma
       await ref
           .read(authServiceProvider.notifier)
           .executeGlobalSignOutRoutine();
 
-      // 3. Lokal: Cihaz önbelleğini sıfırla
+      // 3. Lokal temizlik
       await LocalStorageService.clearAllUserData();
     });
 
     if (!ref.mounted) return;
     state = result;
 
-    ref.invalidate(currentUserProvider);
+    // GÜNCELLEME: Profil verisini tamamen sıfırlıyoruz
+    ref.invalidate(userProfileProvider);
   }
 }

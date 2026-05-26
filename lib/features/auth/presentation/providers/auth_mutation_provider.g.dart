@@ -79,7 +79,7 @@ final class AuthMutationProvider
   AuthMutation create() => AuthMutation();
 }
 
-String _$authMutationHash() => r'be08903cfd4abd78c10abb2fa5b86cb41e0ef886';
+String _$authMutationHash() => r'02c9274bbe2cd97767f2a25b163564d893fa4a84';
 
 abstract class _$AuthMutation extends $AsyncNotifier<void> {
   FutureOr<void> build();

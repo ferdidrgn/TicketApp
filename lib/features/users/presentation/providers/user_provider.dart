@@ -22,15 +22,14 @@ GetUserByIdUseCase getUserByIdUseCase(final Ref ref) =>
 DeleteUserUseCase deleteUserUseCase(final Ref ref) =>
     DeleteUserUseCaseImpl(ref.watch(userRepositoryProvider));
 
-/// 🔥 Uygulamanın en kritik provider'ı. Auth UID'sini izler ve
-/// Firestore dökümanını (entity.User) asenkron döndürür.
+/// 🔥 Profil sayfası için kullanılan ana provider.
+/// Auth ID'sini izler ve Firestore'dan kullanıcı verisini getirir.
 @riverpod
-Future<entity.User?> currentUser(final Ref ref) async {
+Future<entity.User?> userProfile(final Ref ref) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return null;
 
-  // Firestore dökümanını UseCase üzerinden çekiyoruz
-  return await ref.watch(getUserByIdUseCaseProvider).call(userId).getOrThrow();
+  return await ref.read(getUserByIdUseCaseProvider).call(userId).getOrThrow();
 }
 
 /// 🆔 Verilen UID'ye göre kullanıcı dökümanını asenkron getirir.
@@ -41,10 +40,10 @@ Future<entity.User?> userById(final Ref ref, final String uid) async {
   return await ref.watch(getUserByIdUseCaseProvider).call(uid).getOrThrow();
 }
 
-/// Kullanıcının Admin veya Küratör olup olmadığını kontrol eder.
+/// Admin/Küratör kontrolü
 @riverpod
 bool isUserPrivileged(final Ref ref) {
-  final user = ref.watch(currentUserProvider).value;
+  final user = ref.watch(userProfileProvider).value;
   if (user == null) return false;
   return user.role == UserRole.admin || user.role == UserRole.curator;
 }
@@ -52,4 +51,4 @@ bool isUserPrivileged(final Ref ref) {
 /// Kullanıcının toplam bilet sayısını döner.
 @riverpod
 int userTicketCount(final Ref ref) =>
-    ref.watch(currentUserProvider).value?.ticketsId.length ?? 0;
+    ref.watch(userProfileProvider).value?.ticketsId.length ?? 0;

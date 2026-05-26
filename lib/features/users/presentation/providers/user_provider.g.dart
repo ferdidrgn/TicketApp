@@ -136,33 +136,33 @@ final class DeleteUserUseCaseProvider extends $FunctionalProvider<
 
 String _$deleteUserUseCaseHash() => r'a8e29c52a73c5a6d0c8bfc12f489a552afc15d87';
 
-/// 🔥 Uygulamanın en kritik provider'ı. Auth UID'sini izler ve
-/// Firestore dökümanını (entity.User) asenkron döndürür.
+/// 🔥 Profil sayfası için kullanılan ana provider.
+/// Auth ID'sini izler ve Firestore'dan kullanıcı verisini getirir.
 
-@ProviderFor(currentUser)
-const currentUserProvider = CurrentUserProvider._();
+@ProviderFor(userProfile)
+const userProfileProvider = UserProfileProvider._();
 
-/// 🔥 Uygulamanın en kritik provider'ı. Auth UID'sini izler ve
-/// Firestore dökümanını (entity.User) asenkron döndürür.
+/// 🔥 Profil sayfası için kullanılan ana provider.
+/// Auth ID'sini izler ve Firestore'dan kullanıcı verisini getirir.
 
-final class CurrentUserProvider extends $FunctionalProvider<
+final class UserProfileProvider extends $FunctionalProvider<
         AsyncValue<entity.User?>, entity.User?, FutureOr<entity.User?>>
     with $FutureModifier<entity.User?>, $FutureProvider<entity.User?> {
-  /// 🔥 Uygulamanın en kritik provider'ı. Auth UID'sini izler ve
-  /// Firestore dökümanını (entity.User) asenkron döndürür.
-  const CurrentUserProvider._()
+  /// 🔥 Profil sayfası için kullanılan ana provider.
+  /// Auth ID'sini izler ve Firestore'dan kullanıcı verisini getirir.
+  const UserProfileProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
-          name: r'currentUserProvider',
+          name: r'userProfileProvider',
           isAutoDispose: true,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
 
   @override
-  String debugGetCreateSourceHash() => _$currentUserHash();
+  String debugGetCreateSourceHash() => _$userProfileHash();
 
   @$internal
   @override
@@ -172,11 +172,11 @@ final class CurrentUserProvider extends $FunctionalProvider<
 
   @override
   FutureOr<entity.User?> create(Ref ref) {
-    return currentUser(ref);
+    return userProfile(ref);
   }
 }
 
-String _$currentUserHash() => r'792aa23a940977e131300a3c158d3a23c12d96b7';
+String _$userProfileHash() => r'd03982487315e9c6adfb0810bf6245a5b1828520';
 
 /// 🆔 Verilen UID'ye göre kullanıcı dökümanını asenkron getirir.
 /// UI'da bilet sahibi veya admin paneli gibi yerlerde kullanılır.
@@ -266,16 +266,16 @@ final class UserByIdFamily extends $Family
   String toString() => r'userByIdProvider';
 }
 
-/// Kullanıcının Admin veya Küratör olup olmadığını kontrol eder.
+/// Admin/Küratör kontrolü
 
 @ProviderFor(isUserPrivileged)
 const isUserPrivilegedProvider = IsUserPrivilegedProvider._();
 
-/// Kullanıcının Admin veya Küratör olup olmadığını kontrol eder.
+/// Admin/Küratör kontrolü
 
 final class IsUserPrivilegedProvider
     extends $FunctionalProvider<bool, bool, bool> with $Provider<bool> {
-  /// Kullanıcının Admin veya Küratör olup olmadığını kontrol eder.
+  /// Admin/Küratör kontrolü
   const IsUserPrivilegedProvider._()
       : super(
           from: null,
@@ -309,7 +309,7 @@ final class IsUserPrivilegedProvider
   }
 }
 
-String _$isUserPrivilegedHash() => r'cdc0ae68b3f0c49281533883cbdec985131c1842';
+String _$isUserPrivilegedHash() => r'58d75105f1d810c3fdee5c5cbf906e56b98cc2c6';
 
 /// Kullanıcının toplam bilet sayısını döner.
 
@@ -354,4 +354,4 @@ final class UserTicketCountProvider extends $FunctionalProvider<int, int, int>
   }
 }
 
-String _$userTicketCountHash() => r'ab46631a3448354e184c868be7d46de980257583';
+String _$userTicketCountHash() => r'6dbb2b39cad95cc6f5d7c31c1af02dac2a36c888';

@@ -91,7 +91,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   @override
   Widget build(final BuildContext context) {
-    final userAsync = ref.watch(currentUserProvider);
+    final userAsync = ref.watch(userProfileProvider);
     // Mutation durumunu takip et (Loading vs.)
     final mutationState = ref.watch(userMutationProvider);
 
@@ -300,7 +300,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final currentUser = ref.read(currentUserProvider).value;
+    final currentUser = ref.read(userProfileProvider).value;
     if (currentUser == null) return;
 
     // 1. Yeni veriyi hazırla

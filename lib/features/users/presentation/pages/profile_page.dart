@@ -42,19 +42,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   @override
   Widget build(final BuildContext context) {
-    final currentUserAsync = ref.watch(currentUserProvider);
+    final userProfileAsync = ref.watch(userProfileProvider);
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
         showBackButton: false,
         showFab: true,
         rightIcon: Icons.auto_awesome,
-        isLoading: currentUserAsync.isLoading,
+        isLoading: userProfileAsync.isLoading,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
             backgroundColor: context.colors.surface,
             ambientColor: Colors.black.withOpacity(0.05)),
-        child: currentUserAsync.when(
+        child: userProfileAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (final err, final stack) =>
                 Center(child: Text("Hata: $err")),
