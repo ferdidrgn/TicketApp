@@ -5,7 +5,7 @@ import '../../common/extentions/reg_exp_extentions.dart';
 final class TiyatrolDeeplinkService {
   TiyatrolDeeplinkService._();
 
-  static const String _baseUrl = "https://www.tiyatrol.web.app";
+  static const String _baseUrl = "https://tiyatrol.web.app";
 
   /// 🛠 URL Oluşturucu (Slug-ID yapısı)
   static String _createUrl(
@@ -22,12 +22,19 @@ final class TiyatrolDeeplinkService {
         "TiyatRol - $name oyununu kaçırma! 🎭\nDetaylar ve Bilet: $url");
   }
 
-  /// 👤 Oyuncu/Ekip Paylaşımı
+  /// 👤 Oyuncu Paylaşımı
   static Future<void> shareActor(
       {required final String id, required final String name}) async {
-    final url = _createUrl("team", name, id);
+    final url = _createUrl("player", name, id);
     await Share.share(
         "Ekibimizin yetenekli ismi $name hakkında her şey burada: $url");
+  }
+
+  /// 👤 Oyuncu Paylaşımı
+  static Future<void> shareTeam(
+      {required final String id, required final String name}) async {
+    final url = _createUrl("team", name, id);
+    await Share.share("Ekibimiz $name hakkında her şey burada: $url");
   }
 
   /// 🎟 Bilet Paylaşımı
