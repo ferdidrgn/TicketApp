@@ -205,12 +205,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }) =>
       Opacity(
         opacity: isLocked ? 0.5 : 1.0,
-        child: GestureDetector(
-          onTap: isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: _neuBox(borderRadius: 24),
-            child: Row(
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap:
+                isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: _neuBox(borderRadius: 24),
+              child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -244,6 +249,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     size: 24,
                     color: color.withOpacity(0.8)),
               ],
+              ),
             ),
           ),
         ),

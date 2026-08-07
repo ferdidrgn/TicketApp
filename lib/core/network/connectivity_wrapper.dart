@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:ticketapp/l10n/app_localizations.dart';import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'connectivity_provider.dart';
 
@@ -68,123 +68,127 @@ class _OfflineScreenState extends State<_OfflineScreen>
   }
 
   @override
-  Widget build(final BuildContext context) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          body: Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF1a1a2e),
-                  Color(0xFF16213e),
-                  Color(0xFF0f0f23),
-                ],
+  Widget build(final BuildContext context) =>
+      MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            body: Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF1a1a2e),
+                    Color(0xFF16213e),
+                    Color(0xFF0f0f23),
+                  ],
+                ),
               ),
-            ),
-            child: SafeArea(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Animated Icon
-                      AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (final context, final child) {
-                          return Transform.scale(
-                            scale: _pulseAnimation.value,
-                            child: Container(
-                              padding: const EdgeInsets.all(32),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.red.shade900.withOpacity(0.3),
-                                border: Border.all(
-                                  color: Colors.red.shade400,
-                                  width: 3,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.red.shade400.withOpacity(0.3),
-                                    blurRadius: 30,
-                                    spreadRadius: 5,
+              child: SafeArea(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Animated Icon
+                        AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (final context, final child) {
+                            return Transform.scale(
+                              scale: _pulseAnimation.value,
+                              child: Container(
+                                padding: const EdgeInsets.all(32),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.red.shade900.withOpacity(0.3),
+                                  border: Border.all(
+                                    color: Colors.red.shade400,
+                                    width: 3,
                                   ),
-                                ],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.red.shade400.withOpacity(
+                                          0.3),
+                                      blurRadius: 30,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.wifi_off_rounded,
+                                  size: 80,
+                                  color: Colors.red.shade300,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.wifi_off_rounded,
-                                size: 80,
-                                color: Colors.red.shade300,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 48),
-
-                      // Başlık
-                      const Text(
-                        'Bağlantı Kesildi',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1,
+                            );
+                          },
                         ),
-                      ),
 
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 48),
 
-                      // Alt mesaj
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 48),
-                        child: Text(
-                          'İnternet bağlantınız yok.\nBağlantı sağlandığında otomatik olarak devam edeceksiniz.',
-                          textAlign: TextAlign.center,
+                        // Başlık
+                        const Text(
+                          'Bağlantı Kesildi',
                           style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade400,
-                            height: 1.5,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1,
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 48),
+                        const SizedBox(height: 16),
 
-                      // Loading indicator
-                      SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.red.shade400,
+                        // Alt mesaj
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 48),
+                          child: Text(
+                            'İnternet bağlantınız yok.\nBağlantı sağlandığında otomatik olarak devam edeceksiniz.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade400,
+                              height: 1.5,
+                            ),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 48),
 
-                      Text(
-                        'Bağlantı bekleniyor...',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                          fontStyle: FontStyle.italic,
+                        // Loading indicator
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.red.shade400,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+
+                        const SizedBox(height: 16),
+
+                        Text(
+                          'Bağlantı bekleniyor...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales
       );
 }

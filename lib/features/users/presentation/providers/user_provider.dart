@@ -1,5 +1,4 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../core/common/enum/enums.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/repositories/user_repository_provider.dart';
@@ -40,13 +39,11 @@ Future<entity.User?> userById(final Ref ref, final String uid) async {
   return await ref.watch(getUserByIdUseCaseProvider).call(uid).getOrThrow();
 }
 
-/// Admin/Küratör kontrolü
-@riverpod
-bool isUserPrivileged(final Ref ref) {
-  final user = ref.watch(userProfileProvider).value;
-  if (user == null) return false;
-  return user.role == UserRole.admin || user.role == UserRole.curator;
-}
+// NOT: isUserPrivileged provider'ı burada TEKRAR tanımlanmıştı.
+// Gerçek/kullanılan tanım auth_provider.dart içinde bulunuyor
+// (admin_guard.dart oradan import ediyor). Aynı isimde iki farklı
+// provider'ın var olması kafa karıştırıcı ve hataya açık olduğundan
+// buradaki kopya kaldırıldı.
 
 /// Kullanıcının toplam bilet sayısını döner.
 @riverpod

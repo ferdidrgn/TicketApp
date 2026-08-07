@@ -32,13 +32,41 @@ import '../../../shared/navigation/widgets/web_top_navigation_bar.dart';
 import '../../errors/not_found_page.dart';
 import 'page_transitions.dart';
 
+// 🔑 KRİTİK DÜZELTME:
+// Shell branch'lerin navigatorKey'leri önceden Provider builder'ının İÇİNDE
+// oluşturuluyordu. appRouterProvider her rebuild olduğunda (ör. login/logout)
+// bu key'ler de sıfırdan üretiliyor, bu da GoRouter'ın ve altındaki tüm
+// Navigator/State ağacının komple yıkılıp yeniden kurulmasına yol açıyordu.
+// Sonuç: login olduktan hemen sonra Profil sayfası hâlâ "giriş yapılmamış"
+// gibi görünüyor, butonlara basınca login ekranı geliyordu çünkü sayfa
+// yarım kalmış bir yeniden inşa (rebuild) sürecinde donuyordu.
+// Artık bu key'ler modül seviyesinde SABİT (tek seferlik) oluşturuluyor.
+final GlobalKey<NavigatorState> _shellHomeKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellHome');
+final GlobalKey<NavigatorState> _shellDiscoverKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellDiscover');
+final GlobalKey<NavigatorState> _shellNearbyKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellNearby');
+final GlobalKey<NavigatorState> _shellProfileKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellProfile');
+
 final appRouterProvider = Provider<GoRouter>((final ref) {
-  final isLoggedIn = ref.watch(isLoggedInProvider);
-  final authNotifier = ValueNotifier(isLoggedIn);
+  // 🔑 KRİTİK DÜZELTME:
+  // Burada artık `ref.watch(isLoggedInProvider)` KULLANILMIYOR.
+  // watch() kullanmak, login durumu her değiştiğinde bu Provider'ın (ve
+  // dolayısıyla GoRouter'ın) baştan yaratılmasına sebep oluyordu - bu da
+  // navigasyon geçmişini ve ekran state'lerini sıfırlıyordu.
+  // Sadece ref.read ile başlangıç değeri okunuyor; sonraki güncellemeler
+  // aşağıdaki ref.listen + ValueNotifier (refreshListenable) üzerinden
+  // GoRouter'a iletiliyor. Böylece GoRouter nesnesi HİÇ yeniden yaratılmıyor,
+  // sadece `redirect` fonksiyonu yeniden değerlendiriliyor.
+  final authNotifier = ValueNotifier(ref.read(isLoggedInProvider));
 
   ref.listen(isLoggedInProvider, (final _, final next) {
     authNotifier.value = next;
   });
+
+  ref.onDispose(authNotifier.dispose);
 
   final isWeb = kIsWeb;
 
@@ -51,7 +79,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       SeoRouteObserver(),
     ],
     redirect: (final context, final state) {
-      final loggedIn = isLoggedIn;
+      // 🔑 Her redirect çağrısında GÜNCEL login durumu okunuyor
+      // (artık asla "donmuş"/bayat bir değer değil).
+      final loggedIn = authNotifier.value;
       final path = state.uri.path;
 
       // Korumalı sayfalar
@@ -94,7 +124,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         branches: [
           /// BRANCH 0: ANA SAYFA (/app)
           StatefulShellBranch(
-            navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'shellHome'),
+            navigatorKey: _shellHomeKey,
             routes: [
               GoRoute(
                 path: '/app',
@@ -112,8 +142,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
           /// BRANCH 1: KEŞFET (/discover)
           StatefulShellBranch(
-            navigatorKey:
-                GlobalKey<NavigatorState>(debugLabel: 'shellDiscover'),
+            navigatorKey: _shellDiscoverKey,
             routes: [
               GoRoute(
                 path: '/discover',
@@ -132,7 +161,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
           /// BRANCH 2: YAKINDAKİLER (/nearby)
           StatefulShellBranch(
-            navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'shellNearby'),
+            navigatorKey: _shellNearbyKey,
             routes: [
               GoRoute(
                 path: '/nearby',
@@ -150,7 +179,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
           /// BRANCH 3: PROFİL (/profile)
           StatefulShellBranch(
-            navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'shellProfile'),
+            navigatorKey: _shellProfileKey,
             routes: [
               GoRoute(
                 path: '/profile',

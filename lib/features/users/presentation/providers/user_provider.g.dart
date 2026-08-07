@@ -266,51 +266,6 @@ final class UserByIdFamily extends $Family
   String toString() => r'userByIdProvider';
 }
 
-/// Admin/Küratör kontrolü
-
-@ProviderFor(isUserPrivileged)
-const isUserPrivilegedProvider = IsUserPrivilegedProvider._();
-
-/// Admin/Küratör kontrolü
-
-final class IsUserPrivilegedProvider
-    extends $FunctionalProvider<bool, bool, bool> with $Provider<bool> {
-  /// Admin/Küratör kontrolü
-  const IsUserPrivilegedProvider._()
-      : super(
-          from: null,
-          argument: null,
-          retry: null,
-          name: r'isUserPrivilegedProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
-
-  @override
-  String debugGetCreateSourceHash() => _$isUserPrivilegedHash();
-
-  @$internal
-  @override
-  $ProviderElement<bool> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  bool create(Ref ref) {
-    return isUserPrivileged(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(bool value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<bool>(value),
-    );
-  }
-}
-
-String _$isUserPrivilegedHash() => r'58d75105f1d810c3fdee5c5cbf906e56b98cc2c6';
-
 /// Kullanıcının toplam bilet sayısını döner.
 
 @ProviderFor(userTicketCount)
