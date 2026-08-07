@@ -28,6 +28,43 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
       widget.customerId == 'guest' || widget.customerId.isEmpty;
 
   @override
+  void dispose() {
+    // 🔥 EKSİK OLAN KOLTUK SERBEST BIRAKMA:
+    // Kullanıcı ödemeyi tamamlamadan bu ekrandan çıkarsa (geri tuşu, uygulamayı
+    // kapatma, başka bir sekmeye geçme vb.), önceden 'reserved' koltuklar
+    // SONSUZA KADAR kilitli kalıyordu — hiçbir yerde bu ekrandan çıkışta
+    // otomatik bir "serbest bırak" çağrısı yoktu ve backend'de de süre
+    // dolumu (TTL) mekanizması bulunmuyor. Bu, gerçek koltukların satışa
+    // kapanmasına yol açan ciddi bir envanter kilitlenmesi hatasıydı.
+    // Not: Bu sadece normal (dispose çağrılan) çıkışları kapsar; uygulama
+    // çökmesi veya sekmenin aniden kapatılması gibi durumlar için hâlâ
+    // sunucu tarafında bir TTL/temizlik mekanizması (örn. reservedAt alanına
+    // bakan zamanlanmış bir Cloud Function) eklenmesi gerekiyor.
+    if (!_isGuest) {
+      try {
+        final seats = ref.read(eventSeatsProvider(widget.eventId)).value ?? {};
+        for (final entry in seats.entries) {
+          if (entry.value['status'] == 'reserved' &&
+              entry.value['customerId'] == widget.customerId) {
+            ref
+                .read(toggleSeatSelectionProvider(
+              eventId: widget.eventId,
+              seatId: entry.key,
+              customerId: widget.customerId,
+              isAdding: false,
+            ).future)
+                .catchError((final _) {});
+          }
+        }
+      } catch (_) {
+        // Dispose sırasında provider erişimi güvenli değilse sessizce geç;
+        // koltuk her hâlükârda ana asenkron akış tamamlanınca serbest kalır.
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(final BuildContext context) {
     final seatsAsync = ref.watch(eventSeatsProvider(widget.eventId));
     final eventAsync = ref.watch(eventDetailProvider(widget.eventId));

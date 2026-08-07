@@ -130,6 +130,17 @@ class AuthMutation extends _$AuthMutation {
       role: role,
     );
 
+    // 🔥 KRİTİK DÜZELTME:
+    // authStateChanges() Firestore yazma işlemi TAMAMLANMADAN ÖNCE tetiklenebiliyor.
+    // Bu durumda userProfileProvider, Firestore'da henüz oluşturulmamış bir
+    // dökümanı sorguluyor ve `null` dönüyor. Sonuç: Profil sayfası kullanıcı
+    // giriş yapmış olsa bile "giriş yapılmamış" gibi görünüyordu.
+    // authFirebaseUserProvider'ı invalidate etmek yetersizdi çünkü profil
+    // sayfası aslında userProfileProvider'ı dinliyor (o da currentUserIdProvider'ı
+    // dinliyor, authFirebaseUserProvider'ı değil). Firestore yazma işlemi
+    // tamamlandıktan SONRA, doğru provider'ı invalidate ediyoruz ki sayfa
+    // güncel kullanıcı verisiyle anında yeniden çekilsin.
     ref.invalidate(authFirebaseUserProvider);
+    ref.invalidate(userProfileProvider);
   }
 }

@@ -166,8 +166,15 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       });
       return true;
     } catch (e) {
+      // 🔥 DÜZELTME: "Maksimum 3 bilet sınırına ulaştınız." veya "Bu koltuk
+      // artık müsait değil." gibi anlamlı hatalar önceden burada yutulup
+      // sadece konsola print ediliyordu; kullanıcıya `false` dönüyordu ve
+      // seat_details.dart bu dönüş değerini hiç kontrol etmiyordu — yani
+      // kullanıcı koltuğa dokunuyor, hiçbir şey olmuyor, NEDEN olmadığını
+      // asla göremiyordu. Artık hata yukarı fırlatılıyor ki UI'daki
+      // try/catch gerçek nedeni SnackBar ile gösterebilsin.
       print('Reservation Error: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -200,7 +207,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       return true;
     } catch (e) {
       print('releaseReservation failed: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -211,23 +218,54 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     if (seatIds.isEmpty) throw Exception('Seat IDs cannot be empty.');
 
     final ref = _eventCollection.doc(eventId);
-    final batch = firestore.batch();
-
-    for (final id in seatIds) {
-      batch.update(ref, {
-        'seats.$id.status': 'sold',
-        'seats.$id.customerId': customerId,
-        'seats.$id.reservedAt': FieldValue.serverTimestamp(),
-        //ya da DateTime.now().toIso8601String()
-      });
-    }
 
     try {
-      await batch.commit();
+      // 🔥 GÜVENLİK DÜZELTMESİ:
+      // Önceki implementasyon, hangi koltukların gerçekten bu müşteri
+      // tarafından 'reserved' durumunda olduğunu HİÇ KONTROL ETMEDEN
+      // doğrudan 'sold' olarak yazıyordu (basit bir batch update).
+      // Bu; (a) başka bir kullanıcının koltuğunun üzerine yazılabilmesine,
+      // (b) süresi dolmuş/serbest kalmış bir koltuğun yine de "satılmış"
+      // gibi işaretlenebilmesine, (c) client tarafından gönderilen seatId
+      // listesine sunucu tarafında hiçbir doğrulama yapılmadan güvenilmesine
+      // açık kapı bırakıyordu. Artık tek bir transaction içinde önce her
+      // koltuğun durumu okunuyor, sadece bu müşteri tarafından 'reserved'
+      // durumundaki koltuklar 'sold' yapılıyor; aksi halde işlem tamamen
+      // geri alınıp (atomik) anlamlı bir hata fırlatılıyor.
+      await firestore.runTransaction((final transaction) async {
+        final snapshot = await transaction.get(ref);
+        if (!snapshot.exists) throw Exception('Etkinlik bulunamadı.');
+
+        final data = snapshot.data();
+        final seats = Map<String, dynamic>.from(data?['seats'] ?? {});
+
+        final List<String> invalidSeats = [];
+        for (final id in seatIds) {
+          final seat = seats[id] as Map<String, dynamic>?;
+          final bool isMineAndReserved = seat != null &&
+              seat['status'] == 'reserved' &&
+              seat['customerId'] == customerId;
+          if (!isMineAndReserved) invalidSeats.add(id);
+        }
+
+        if (invalidSeats.isNotEmpty)
+          throw Exception(
+              'Şu koltuklar artık sizin rezervasyonunuzda değil (süresi dolmuş '
+              'veya başka biri tarafından alınmış olabilir): '
+              '${invalidSeats.join(", ")}');
+
+        for (final id in seatIds) {
+          transaction.update(ref, {
+            'seats.$id.status': 'sold',
+            'seats.$id.customerId': customerId,
+            'seats.$id.soldAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
       return true;
     } catch (e) {
       print('confirmPurchase failed: $e');
-      return false;
+      rethrow;
     }
   }
 }

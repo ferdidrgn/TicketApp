@@ -109,35 +109,49 @@ Future<void> purchaseAction(
   required final String paymentMethod,
   required final double totalPrice,
 }) async {
-  // 1. Koltukları onayla (confirmPurchaseUseCaseProvider otomatik üretilir)
+  // ⚠️ ÖDEME ENTEGRASYONU HENÜZ YOK:
+  // `paymentSuccess` sabit `true` — gerçek bir ödeme sağlayıcısına
+  // (iyzico/Stripe/PayTR vb.) bağlanana kadar bu akış parayı GERÇEKTEN
+  // tahsil etmiyor, sadece Firestore'da koltuğu "sold" yapıyor. Kredi kartı
+  // seçeneği canlıya çıkmadan önce bu kesinlikle gerçek bir ödeme SDK'sına
+  // bağlanmalı.
+  const paymentSuccess = true;
 
-  final paymentSuccess = true;
+  if (!paymentSuccess) throw Exception('Ödeme başarısız oldu.');
 
-  if (paymentSuccess) {
-    final result = await ref
-        .read(confirmPurchaseUseCaseProvider)
-        .call(eventId, seatIds, customerId);
+  // 1. Koltukları onayla — confirmPurchase artık transaction içinde,
+  // her koltuğun GERÇEKTEN bu müşteri tarafından 'reserved' durumda
+  // olduğunu doğruluyor (bkz. event_remote_data_source_and_impl.dart).
+  final result = await ref
+      .read(confirmPurchaseUseCaseProvider)
+      .call(eventId, seatIds, customerId);
 
-    if (result.isRight()) {
-      // 2. Ticket nesnesi oluştur ve kaydet
-      final ticket = Ticket(
-        id: '',
-        createdAt: DateTime.now().toIso8601String(),
-        updatedAt: DateTime.now().toIso8601String(),
-        showId: showId,
-        customerId: customerId,
-        stageId: stageId,
-        eventId: eventId,
-        orderPrice: totalPrice.toStringAsFixed(2),
-        orderMethod: paymentMethod,
-        buySeats: seatIds,
-        isPast: false,
-      );
+  // 🔥 KRİTİK DÜZELTME: Önceden `result.isLeft()` (yani confirmPurchase
+  // başarısız) durumunda hiçbir şey yapılmadan fonksiyon sessizce bitiyordu.
+  // UI tarafı (seat_details.dart _processPurchase) hata fırlatılmadığı için
+  // bunu "başarılı" sanıp kullanıcıya "Biletleriniz başarıyla oluşturuldu!"
+  // gösteriyordu — oysa hiçbir bilet oluşturulmamıştı ve koltuk hâlâ
+  // rezervasyonda/başkasına satılmış olabilirdi. Artık başarısızlık durumunda
+  // anlamlı bir hata fırlatılıyor ki kullanıcı gerçek durumu görsün.
+  result.getOrThrow();
 
-      await ref.read(createTicketUseCaseProvider).call(ticket).getOrThrow();
+  // 2. Ticket nesnesi oluştur ve kaydet
+  final ticket = Ticket(
+    id: '',
+    createdAt: DateTime.now().toIso8601String(),
+    updatedAt: DateTime.now().toIso8601String(),
+    showId: showId,
+    customerId: customerId,
+    stageId: stageId,
+    eventId: eventId,
+    orderPrice: totalPrice.toStringAsFixed(2),
+    orderMethod: paymentMethod,
+    buySeats: seatIds,
+    isPast: false,
+  );
 
-      // 3. Başarılı alımdan sonra bilet listesini yenile
-      ref.invalidate(myTicketsProvider(customerId));
-    }
-  }
+  await ref.read(createTicketUseCaseProvider).call(ticket).getOrThrow();
+
+  // 3. Başarılı alımdan sonra bilet listesini yenile
+  ref.invalidate(myTicketsProvider(customerId));
 }
