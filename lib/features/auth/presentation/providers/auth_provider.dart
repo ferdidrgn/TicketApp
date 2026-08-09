@@ -16,8 +16,18 @@ import '../../domain/usecases/verify_phone_use_case_impl.dart';
 part 'auth_provider.g.dart';
 
 // ─── Firebase Auth State Stream ─────────────────────────────────────────────
+// 🔥 KRİTİK DÜZELTME: `authStateChanges()` YALNIZCA kullanıcı tamamen
+// sign-in/sign-out olduğunda tetiklenir. Misafir (anonim) kullanıcı Google/
+// telefon ile "linkWithCredential" yaptığında UID DEĞİŞMEZ, dolayısıyla bu
+// stream YENİ BİR OLAY YAYINLAMAZ ve `isAnonymous` bayrağı eski (true)
+// değerinde donup kalır. Bu da profil sayfasının, kullanıcı giriş yapmış
+// olsa bile "giriş yapılmamış" gibi davranmasına ve butonların tekrar
+// login ekranına yönlendirmesine sebep oluyordu.
+// `userChanges()` ise sign-in/sign-out'a EK OLARAK linkWithCredential,
+// reload(), updateProfile() ve token yenileme gibi durumlarda da yeni bir
+// değer yayınlar; bu yüzden gerçek "giriş durumu" kaynağı olarak kullanılmalı.
 final authStateProvider = StreamProvider<firebase_auth.User?>((final ref) {
-  return firebase_auth.FirebaseAuth.instance.authStateChanges();
+  return firebase_auth.FirebaseAuth.instance.userChanges();
 });
 
 // ─── Use Case Providers ──────────────────────────────────────────────────────

@@ -71,12 +71,25 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   Future<List<ShowModel>> getShowsByIds(final List<String> showIds) async {
     if (showIds.isEmpty) return [];
     try {
-      // Firestore 'whereIn' en fazla 10 eleman alır.
-      // Eğer showIds > 10 ise chunk logic gerekir. Şimdilik basit tutuyoruz.
-      final snapshot = await _showCollection
-          .where(FieldPath.documentId, whereIn: showIds)
-          .get();
-      return _mapSnapshot(snapshot);
+      // 🔥 DÜZELTME: Firestore 'whereIn' sorgusu en fazla 30 eleman alır.
+      // Bir oyuncunun/mekanın 30'dan fazla eski/aktif gösterisi olduğunda
+      // eski kod tek seferde whereIn'e >30 ID gönderip Firestore'un
+      // invalid-argument hatası fırlatmasına ve tüm sayfanın kilitlenmesine
+      // sebep oluyordu. Artık ID listesi 30'luk parçalara bölünüp paralel
+      // çekiliyor, tekil bir parçanın (veya tamamının) başarısız olması
+      // diğer parçaları etkilemez.
+      const chunkSize = 30;
+      final uniqueIds = showIds.toSet().toList();
+      final chunks = <List<String>>[
+        for (var i = 0; i < uniqueIds.length; i += chunkSize)
+          uniqueIds.sublist(
+              i, i + chunkSize > uniqueIds.length ? uniqueIds.length : i + chunkSize),
+      ];
+
+      final snapshots = await Future.wait(chunks.map((final chunk) =>
+          _showCollection.where(FieldPath.documentId, whereIn: chunk).get()));
+
+      return snapshots.expand(_mapSnapshot).toList();
     } catch (e) {
       throw Exception('Fetch shows by IDs failed: $e');
     }

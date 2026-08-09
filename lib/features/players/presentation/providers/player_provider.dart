@@ -51,29 +51,53 @@ Future<Player?> playerById(final Ref ref, final String id) async {
 }
 
 /// 🔥 OYUNCU DETAY VE GÖSTERİLERİNİ BİRLEŞTİREN ANA PROVIDER
+///
+/// ⚠️ ÖNEMLİ: nowShowsId / oldShowsId listelerinden biri boşsa (veya o
+/// listedeki gösteriler artık Firestore'da yoksa / çekilirken hata verirse)
+/// sayfanın TAMAMI kilitlenmemeli. Bu yüzden aktif ve geçmiş gösteriler
+/// birbirinden BAĞIMSIZ ve hataya karşı toleranslı şekilde çekilir; biri
+/// başarısız olsa bile diğeri ve oyuncunun kendi bilgileri (bio, ödüller vb.)
+/// normal şekilde gösterilir. Boş/başarısız taraf sadece "gösteri yok"
+/// mesajıyla boş liste döner.
 @riverpod
 Future<PlayerDetailState> playerDetail(
     final Ref ref, final String playerId) async {
-  // 1. Oyuncuyu getir
+  // 1. Oyuncuyu getir (bu kısım gerçekten kritik; oyuncu yoksa sayfa
+  // zaten anlamsız olur, o yüzden burada hata fırlatmak doğru).
   final player = await ref.watch(playerByIdProvider(playerId).future);
   if (player == null) throw Exception('Oyuncu bulunamadı');
 
-  // 2. Tüm gösteri ID'lerini birleştir
-  final allShowIds = [...player.nowShowsId, ...player.oldShowsId];
+  // 2. Aktif ve geçmiş gösterileri BİRBİRİNDEN AYRI ve hataya toleranslı
+  // şekilde çek. Böylece örneğin oldShowsId boşsa/hatalıysa sadece
+  // "Arşiv henüz güncellenmemiş." mesajı gösterilir, tüm sayfa kilitlenmez.
+  final results = await Future.wait([
+    _safeFetchShows(ref, player.nowShowsId),
+    _safeFetchShows(ref, player.oldShowsId),
+  ]);
 
-  // 3. Gösterileri çek
-  final shows = allShowIds.isNotEmpty
-      ? await ref.watch(showsByIdsProvider(allShowIds).future)
-      : <Show>[];
-
-  // 4. 🔥 UI'ın beklediği ayrıştırılmış state'i döndür
+  // 3. 🔥 UI'ın beklediği ayrıştırılmış state'i döndür
   return PlayerDetailState(
     player: player,
-    activeShows:
-        shows.where((final s) => player.nowShowsId.contains(s.id)).toList(),
-    pastShows:
-        shows.where((final s) => player.oldShowsId.contains(s.id)).toList(),
+    activeShows: results[0],
+    pastShows: results[1],
   );
+}
+
+/// Verilen gösteri ID listesini çeker. Liste boşsa ya da çekim sırasında
+/// herhangi bir hata (network, Firestore whereIn limiti, silinmiş döküman
+/// vb.) oluşursa sayfanın tamamını çökertmek yerine sessizce boş liste
+/// döner; ilgili sekme "gösteri yok" durumunu gösterir.
+Future<List<Show>> _safeFetchShows(
+    final Ref ref, final List<String> showIds) async {
+  if (showIds.isEmpty) return <Show>[];
+  try {
+    final shows = await ref.watch(showsByIdsProvider(showIds).future);
+    return shows.where((final s) => showIds.contains(s.id)).toList();
+  } catch (_) {
+    // Kasıtlı olarak yutuluyor: bir kategori gösterisi çekilemese bile
+    // oyuncu detay sayfasının geri kalanı çalışmaya devam etmeli.
+    return <Show>[];
+  }
 }
 
 // ==============================================================================

@@ -130,17 +130,23 @@ class AuthMutation extends _$AuthMutation {
       role: role,
     );
 
-    // 🔥 KRİTİK DÜZELTME:
-    // authStateChanges() Firestore yazma işlemi TAMAMLANMADAN ÖNCE tetiklenebiliyor.
-    // Bu durumda userProfileProvider, Firestore'da henüz oluşturulmamış bir
-    // dökümanı sorguluyor ve `null` dönüyor. Sonuç: Profil sayfası kullanıcı
-    // giriş yapmış olsa bile "giriş yapılmamış" gibi görünüyordu.
-    // authFirebaseUserProvider'ı invalidate etmek yetersizdi çünkü profil
-    // sayfası aslında userProfileProvider'ı dinliyor (o da currentUserIdProvider'ı
-    // dinliyor, authFirebaseUserProvider'ı değil). Firestore yazma işlemi
-    // tamamlandıktan SONRA, doğru provider'ı invalidate ediyoruz ki sayfa
-    // güncel kullanıcı verisiyle anında yeniden çekilsin.
+    // 🔥 KRİTİK DÜZELTME (devam):
+    // Önceki yama sadece authFirebaseUserProvider ve userProfileProvider'ı
+    // invalidate ediyordu. Ama userProfileProvider aslında currentUserIdProvider'ı
+    // izliyor (authFirebaseUserProvider'ı DEĞİL) — ve currentUserIdProvider /
+    // isLoggedInProvider kendi kaynağı olan authStateProvider stream'i yeni bir
+    // değer yayınlamadığı sürece ESKİ (cache'lenmiş) değerini döndürmeye devam
+    // ediyordu. Misafirden Google/telefon hesabına "linkWithCredential" ile
+    // geçişte UID değişmediği için stream'in yeni olay yayınlamaması sık
+    // görülen bir durumdu; sonuç olarak profil sayfası ve tüm login-gated
+    // UI'lar giriş yapılmış olsa bile "giriş yapılmamamış" gibi davranıp
+    // butonlara basınca yeniden login ekranına yönlendiriyordu.
+    // Artık asıl kaynak (currentUserIdProvider / isLoggedInProvider) da
+    // doğrudan invalidate ediliyor ki sayfa hemen doğru durumla yeniden çekilsin.
+    ref.invalidate(authStateProvider);
     ref.invalidate(authFirebaseUserProvider);
+    ref.invalidate(currentUserIdProvider);
+    ref.invalidate(isLoggedInProvider);
     ref.invalidate(userProfileProvider);
   }
 }
