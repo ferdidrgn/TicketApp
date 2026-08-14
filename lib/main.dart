@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ import 'core/config/router/app_router.dart';
 import 'core/localization/locale_provider.dart';
 import 'core/network/connectivity_wrapper.dart';
 import 'core/services/deeplink/deeplink_listener_service.dart';
+import 'core/services/fcm_manager_service.dart';
 import 'core/theme/theme_manager.dart';
 import 'core/theme/theme_notifier.dart';
 import 'core/theme/web_theme.dart';
@@ -28,6 +30,12 @@ Future<void> main() async {
 
   // 2. Tüm servisleri başlat
   await AppInitializer.init(binding);
+
+  // 3. Uygulama tamamen kapalıyken/arka plandayken gelen push bildirimlerini
+  // yakalayacak handler'ı kaydet (Firebase.initializeApp() sonrası olmalı).
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -47,6 +55,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     super.initState();
     _router = ref.read(appRouterProvider);
     TiyatrolDeeplinkListener.init(_router);
+    FCMManager.instance.init(_router);
   }
 
   @override

@@ -55,6 +55,17 @@
             android:name="android.window.setDecorFitsSystemWindows"
             android:value="false" />
 
+        <!-- 🔔 Push Bildirimleri: uygulama açıkken FCM mesajları için varsayılan
+             bildirim kanalı ve ikonu (fcm_manager_service.dart bu kanalı da
+             kendi oluşturuyor; burası uygulama arka plandayken/kapalıyken
+             sistemin doğru kanal+ikonu kullanması için gerekli). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="high_importance_channel" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
         <!-- ================= Main Activity ================= -->
 
         <activity

@@ -117,6 +117,9 @@ class NavigationHandler {
   static void goToSettings(final BuildContext context) =>
       _safeNavigate(context, _buildPath(context, '/settings'));
 
+  static void goToNotifications(final BuildContext context) =>
+      _safeNavigate(context, _buildPath(context, '/notifications'));
+
   static void goToHelpSupport(final BuildContext context) =>
       _safeNavigate(context, _buildPath(context, '/help-support'));
 

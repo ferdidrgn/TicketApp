@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ticketapp/core/services/deeplink/deeplink_service.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
 
-class AppSettingsPage extends StatelessWidget {
+class AppSettingsPage extends ConsumerWidget {
   const AppSettingsPage({super.key});
 
   Future<void> _handlePermission(final Permission permission) async {
@@ -20,9 +23,10 @@ class AppSettingsPage extends StatelessWidget {
       subject: 'Sanat Serüveni');
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = context.theme;
     final colors = context.colors;
+    final unreadCount = ref.watch(unreadNotificationCountProvider);
 
     return BasePageWrapper(
       // 🎯 Header Parametreleri (Artık Wrapper tarafından otomatik yönetiliyor)
@@ -46,6 +50,22 @@ class AppSettingsPage extends StatelessWidget {
             author: "Pablo Picasso",
             imageUrl:
                 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
+          ),
+
+          const SizedBox(height: 32),
+          _buildSectionTitle(context, 'BİLDİRİMLER'),
+          const SizedBox(height: 16),
+
+          _buildAtelierTile(
+            context,
+            title: 'Bildirim Merkezi',
+            subtitle: unreadCount > 0
+                ? '$unreadCount okunmamış bildirimin var'
+                : 'Kampanya, oyun ve bilet güncellemelerin burada.',
+            icon: Icons.notifications_rounded,
+            color: colors.tertiary,
+            badgeCount: unreadCount,
+            onTap: () => NavigationHandler.goToNotifications(context),
           ),
 
           const SizedBox(height: 32),
@@ -115,6 +135,7 @@ class AppSettingsPage extends StatelessWidget {
     required final IconData icon,
     required final Color color,
     required final VoidCallback onTap,
+    final int badgeCount = 0,
   }) {
     final colors = context.colors;
     return GestureDetector(
@@ -169,6 +190,23 @@ class AppSettingsPage extends StatelessWidget {
                   ],
                 ),
               ),
+              if (badgeCount > 0)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    badgeCount > 99 ? '99+' : '$badgeCount',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800),
+                  ),
+                ),
               Icon(Icons.chevron_right_rounded, color: colors.outline),
               const SizedBox(width: 12),
             ],
