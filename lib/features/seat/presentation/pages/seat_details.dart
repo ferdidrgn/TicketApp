@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../events/presentation/providers/event_provider.dart';
+import '../../../tickets/presentation/providers/my_ticket_provider.dart';
+import '../widgets/purchase_success_dialog.dart';
 
 class SeatSelectionPage extends ConsumerStatefulWidget {
   final String showId;
@@ -310,28 +312,43 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
 
       if (mounted) {
         Navigator.pop(context);
-        showDialog(
+
+        // Yeni oluşturulan bileti bul (purchaseAction zaten myTicketsProvider'ı
+        // invalidate ediyor, bu yüzden burada güncel liste gelir). Bulunamazsa
+        // (ör. ağ gecikmesi) dialog yine de "BİLETİ GÖR" butonu olmadan gösterilir.
+        DetailedTicket? newTicket;
+        try {
+          final tickets =
+              await ref.read(myTicketsProvider(widget.customerId).future);
+          for (final t in tickets) {
+            if (t.ticket.eventId != widget.eventId) continue;
+            if (newTicket == null) {
+              newTicket = t;
+              continue;
+            }
+            final current = DateTime.tryParse(t.ticket.createdAt);
+            final best = DateTime.tryParse(newTicket.ticket.createdAt);
+            if (current != null && (best == null || current.isAfter(best))) {
+              newTicket = t;
+            }
+          }
+        } catch (_) {
+          // Bilet detayını önceden gösteremezsek bile satın alma başarılı
+          // olduğu için akışı kesmiyoruz.
+        }
+
+        if (mounted) {
+          showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (final context) => AlertDialog(
-                  backgroundColor: const Color(0xFF1A1A2E),
-                  title: const Icon(Icons.check_circle,
-                      color: Colors.greenAccent, size: 60),
-                  content: const Text("Biletleriniz başarıyla oluşturuldu!",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white)),
-                  actions: [
-                    TextButton(
-                        onPressed: () => NavigationHandler.goToHome(context),
-                        child: const Text("ANASAYFA")),
-                    ElevatedButton(
-                        onPressed: () => NavigationHandler.goToMyTickets(
-                            context, widget.customerId),
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.cyan),
-                        child: const Text("BİLETLERİM"))
-                  ],
-                ));
+            builder: (final _) => PurchaseSuccessDialog(
+              ticket: newTicket,
+              customerId: widget.customerId,
+              seatCount: seats.length,
+              totalPrice: total,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
