@@ -13,9 +13,11 @@ import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../auth/presentation/providers/auth_provider.dart'
     show currentUserIdProvider;
 import '../../../events/presentation/widgets/events_card.dart';
+import '../../../favorite/presentation/widgets/favorite_toggle_button.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/widgets/players_bubble_card.dart';
 import '../../../stages/domain/entities/stage.dart';
+import '../../../users/domain/entities/favorite_type.dart';
 import '../../../users/presentation/providers/user_provider.dart'
     show userProfileProvider;
 import '../widgets/mobile/show_info_section.dart';
@@ -355,14 +357,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                         ),
                       ],
                     ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        Icons.favorite_border_rounded,
-                        size: 22,
-                        color: _isScrolled ? colors.primary : Colors.white,
-                      ),
-                      onPressed: () {},
+                    child: FavoriteToggleButton(
+                      itemId: widget.showId,
+                      type: FavoriteType.show,
+                      inactiveColor: _isScrolled ? colors.primary : Colors.white,
                     ),
                   ),
                   const SizedBox(width: 8),

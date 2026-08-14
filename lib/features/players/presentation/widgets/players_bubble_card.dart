@@ -3,6 +3,8 @@ import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../favorite/presentation/widgets/favorite_toggle_button.dart';
+import '../../../users/domain/entities/favorite_type.dart';
 
 class PlayersBubbleCard extends StatelessWidget {
   final List<Player> players;
@@ -49,24 +51,44 @@ class PlayersBubbleCard extends StatelessWidget {
                     // YUVARLAK RESİM
                     Padding(
                       padding: const EdgeInsets.all(5.0),
-                      child: ClipOval(
-                        child: Container(
-                          width: 115,
-                          height: 115,
-                          color: context.colors.surfaceContainerHighest,
-                          child: ColorFiltered(
-                            // Eski oyuncular için Siyah/Beyaz filtre
-                            colorFilter: isGrayscale
-                                ? const ColorFilter.mode(
-                                    Colors.grey, BlendMode.saturation)
-                                : const ColorFilter.mode(
-                                    Colors.transparent, BlendMode.dst),
-                            child: OptimizedCachedImage(
-                              imageUrl: player.imageUrl,
-                              fit: BoxFit.cover,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipOval(
+                            child: Container(
+                              width: 115,
+                              height: 115,
+                              color: context.colors.surfaceContainerHighest,
+                              child: ColorFiltered(
+                                // Eski oyuncular için Siyah/Beyaz filtre
+                                colorFilter: isGrayscale
+                                    ? const ColorFilter.mode(
+                                        Colors.grey, BlendMode.saturation)
+                                    : const ColorFilter.mode(
+                                        Colors.transparent, BlendMode.dst),
+                                child: OptimizedCachedImage(
+                                  imageUrl: player.imageUrl,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.4),
+                                shape: BoxShape.circle,
+                              ),
+                              child: FavoriteToggleButton(
+                                itemId: player.id,
+                                type: FavoriteType.player,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),

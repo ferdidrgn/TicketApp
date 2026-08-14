@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
+import '../../domain/entities/favorite_type.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../datasources/user_remote_data_source_and_impl.dart';
@@ -29,4 +30,10 @@ class UserRepositoryImpl extends BaseRepository implements UserRepository {
   @override
   Future<Either<Failure, bool>> deleteUser(final String userId) =>
       execute(() async => remoteDataSource.deleteUser(userId));
+
+  @override
+  Future<Either<Failure, bool>> setFavorite(final String userId,
+          final String itemId, final FavoriteType type, final bool shouldBeFavorite) =>
+      execute(() async => remoteDataSource.setFavorite(
+          userId, itemId, type.fieldName, shouldBeFavorite));
 }

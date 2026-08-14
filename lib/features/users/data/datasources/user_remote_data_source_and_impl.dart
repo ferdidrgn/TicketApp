@@ -8,6 +8,9 @@ abstract class UserRemoteDataSource {
   Future<UserModel?> getUserById(final String userId);
 
   Future<bool> deleteUser(final String userId);
+
+  Future<bool> setFavorite(final String userId, final String itemId,
+      final String fieldName, final bool shouldBeFavorite);
 }
 
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
@@ -83,6 +86,24 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       return true;
     } catch (e) {
       throw Exception('Failed to delete user: $e');
+    }
+  }
+
+  @override
+  Future<bool> setFavorite(final String userId, final String itemId,
+      final String fieldName, final bool shouldBeFavorite) async {
+    if (userId.isEmpty || itemId.isEmpty)
+      throw Exception('User ID / Item ID cannot be empty');
+
+    try {
+      await _firestore.collection(_collection).doc(userId).update({
+        fieldName: shouldBeFavorite
+            ? FieldValue.arrayUnion([itemId])
+            : FieldValue.arrayRemove([itemId]),
+      });
+      return true;
+    } catch (e) {
+      throw Exception('Failed to update favorite: $e');
     }
   }
 }

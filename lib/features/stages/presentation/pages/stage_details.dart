@@ -7,9 +7,11 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../../favorite/presentation/widgets/favorite_toggle_button.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
+import '../../../users/domain/entities/favorite_type.dart';
 import '../providers/stage_detail_provider.dart';
 
 class StageDetailPage extends ConsumerStatefulWidget {
@@ -62,7 +64,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildStageImage(state.stage.imageUrl),
+                      _buildStageImage(state.stage.imageUrl, widget.stageId),
                       const SizedBox(height: 32),
 
                       // 📖 MEKAN HİKAYESİ
@@ -105,7 +107,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
 
   // --- UI BİLEŞENLERİ ---
 
-  Widget _buildStageImage(final String imageUrl) => Container(
+  Widget _buildStageImage(final String imageUrl, final String stageId) => Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
@@ -117,11 +119,30 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
-          child: CachedNetworkImage(
-            imageUrl: imageUrl,
-            height: 400,
-            fit: BoxFit.cover,
-            placeholder: (final _, final __) => const ShimmerLoading(),
+          child: Stack(
+            children: [
+              CachedNetworkImage(
+                imageUrl: imageUrl,
+                height: 400,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (final _, final __) => const ShimmerLoading(),
+              ),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: FavoriteToggleButton(
+                    itemId: stageId,
+                    type: FavoriteType.stage,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       );

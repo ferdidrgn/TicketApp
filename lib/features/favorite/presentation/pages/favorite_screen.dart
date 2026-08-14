@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
+import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
+import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
+import '../../../users/domain/entities/favorite_type.dart';
+import '../providers/favorite_provider.dart';
+import '../widgets/favorite_toggle_button.dart';
 
-class FavoritesPage extends StatefulWidget {
+class FavoritesPage extends ConsumerStatefulWidget {
   const FavoritesPage({super.key});
 
   @override
-  State<FavoritesPage> createState() => _FavoritesPageState();
+  ConsumerState<FavoritesPage> createState() => _FavoritesPageState();
 }
 
-class _FavoritesPageState extends State<FavoritesPage>
+class _FavoritesPageState extends ConsumerState<FavoritesPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
@@ -34,6 +41,7 @@ class _FavoritesPageState extends State<FavoritesPage>
   @override
   Widget build(final BuildContext context) {
     final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final favoritesAsync = ref.watch(myFavoritesProvider);
 
     return DefaultTabController(
       length: 3,
@@ -42,117 +50,291 @@ class _FavoritesPageState extends State<FavoritesPage>
         subtitle: 'Kalbinde yer eden tüm sahneler...',
         showBackButton: true,
         rightIcon: Icons.favorite_rounded,
+        isLoading: favoritesAsync.isLoading,
         layoutConfig: BasePageLayoutConfig(
           backgroundColor: context.colors.surface,
           safeAreaTop: true,
         ),
+        onRefresh: () => ref.invalidate(myFavoritesProvider),
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
                 maxWidth: isLargeScreen ? 1200 : double.infinity),
-            child: Column(
-              children: [
-                // 1. MODERNIZE EDILMIŞ TAB SEÇİCİ
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: _FavoriteTabSelector(controller: _tabController),
-                ),
-
-                // 2. RESPONSIVE GRID ALANI
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildResponsiveGrid(context, type: 'shows'),
-                      _buildResponsiveGrid(context, type: 'stages'),
-                      _buildResponsiveGrid(context, type: 'players'),
-                    ],
+            child: favoritesAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (final err, final _) => _ErrorState(
+                onRetry: () => ref.invalidate(myFavoritesProvider),
+              ),
+              data: (final favorites) => Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
+                    child: _FavoriteTabSelector(
+                      controller: _tabController,
+                      showCount: favorites.shows.length,
+                      stageCount: favorites.stages.length,
+                      playerCount: favorites.players.length,
+                    ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _ShowsGrid(shows: favorites.shows),
+                        _StagesGrid(stages: favorites.stages),
+                        _PlayersGrid(players: favorites.players),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  // --- MERKEZİ RESPONSIVE GRID YÖNETİMİ ---
-  Widget _buildResponsiveGrid(final BuildContext context,
-      {required final String type}) {
-    // 💡 Ekran genişliğine göre sütun sayısı: Mobil 2, Tablet 3, Web 4-5
-    final int crossAxisCount =
-        context.responsive(mobile: 2, tablet: 3, desktop: 4);
-    final double aspectRatio = type == 'shows' ? 0.75 : 1.1;
+int _gridCrossAxisCount(final BuildContext context) =>
+    context.responsive(mobile: 2, tablet: 3, desktop: 4);
+
+class _ShowsGrid extends StatelessWidget {
+  final List<Show> shows;
+  const _ShowsGrid({required this.shows});
+
+  @override
+  Widget build(final BuildContext context) {
+    if (shows.isEmpty) {
+      return const _EmptyState(
+        icon: Icons.theater_comedy_rounded,
+        message: 'Henüz favori oyunun yok.\nBeğendiğin oyunları kalbe dokunarak ekleyebilirsin.',
+      );
+    }
 
     return GridView.builder(
       padding: const EdgeInsets.all(24),
       physics: const BouncingScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
+        crossAxisCount: _gridCrossAxisCount(context),
         mainAxisSpacing: 20,
         crossAxisSpacing: 20,
-        childAspectRatio: aspectRatio,
+        childAspectRatio: 0.75,
       ),
-      itemCount: 8,
-      // Dinamik veri gelecek
+      itemCount: shows.length,
       itemBuilder: (final context, final index) {
-        if (type == 'shows') return _buildShowItem(context, index);
-        if (type == 'stages') return _buildStageItem(context, index);
-        return _buildPlayerItem(context, index);
+        final show = shows[index];
+        return Stack(
+          children: [
+            ShowCard(
+              imageUrl: show.imageUrl,
+              gameName: show.name,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (final _) => ShowDetailPage(showId: show.id)));
+              },
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.35),
+                  shape: BoxShape.circle,
+                ),
+                child: FavoriteToggleButton(
+                    itemId: show.id, type: FavoriteType.show, size: 18),
+              ),
+            ),
+          ],
+        );
       },
     );
   }
+}
 
-  Widget _buildShowItem(final BuildContext context, final int index) =>
-      ShowCard(
-        imageUrl:
-            'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
-        gameName: 'Favori Oyun $index',
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (final _) => const ShowDetailPage(showId: '0')));
-        },
+class _StagesGrid extends StatelessWidget {
+  final List<Stage> stages;
+  const _StagesGrid({required this.stages});
+
+  @override
+  Widget build(final BuildContext context) {
+    if (stages.isEmpty) {
+      return const _EmptyState(
+        icon: Icons.stadium_rounded,
+        message: 'Henüz favori sahnen yok.\nSahne detayındaki kalbe dokunarak ekleyebilirsin.',
       );
+    }
 
-  Widget _buildStageItem(final BuildContext context, final int index) =>
-      CustomStageCard(
-        text: 'Sahne $index',
-        imageUrl:
-            'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (final _) => const StageDetailPage(stageId: '0')));
-        },
+    return GridView.builder(
+      padding: const EdgeInsets.all(24),
+      physics: const BouncingScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: _gridCrossAxisCount(context),
+        mainAxisSpacing: 20,
+        crossAxisSpacing: 20,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: stages.length,
+      itemBuilder: (final context, final index) {
+        final stage = stages[index];
+        return Stack(
+          children: [
+            CustomStageCard(
+              text: stage.name,
+              imageUrl: stage.imageUrl,
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (final _) =>
+                            StageDetailPage(stageId: stage.id)));
+              },
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.35),
+                  shape: BoxShape.circle,
+                ),
+                child: FavoriteToggleButton(
+                    itemId: stage.id, type: FavoriteType.stage, size: 18),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PlayersGrid extends StatelessWidget {
+  final List<Player> players;
+  const _PlayersGrid({required this.players});
+
+  @override
+  Widget build(final BuildContext context) {
+    if (players.isEmpty) {
+      return const _EmptyState(
+        icon: Icons.people_alt_rounded,
+        message: 'Henüz favori sanatçın yok.\nOyuncu kadrosundaki kalbe dokunarak ekleyebilirsin.',
       );
+    }
 
-  Widget _buildPlayerItem(final BuildContext context, final int index) =>
-      CustomStageCard(
-        text: 'Sanatçı $index',
-        imageUrl:
-            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-cV2ZIk5Wi_uoyY1PdDVM2vFzuSMQATw7iw&s',
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (final _) => const PlayerDetailPage(playerId: "0")));
-        },
+    return GridView.builder(
+      padding: const EdgeInsets.all(24),
+      physics: const BouncingScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: _gridCrossAxisCount(context),
+        mainAxisSpacing: 20,
+        crossAxisSpacing: 20,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: players.length,
+      itemBuilder: (final context, final index) {
+        final player = players[index];
+        final fullName = '${player.firstName} ${player.lastName}';
+        return Stack(
+          children: [
+            CustomStageCard(
+              text: fullName,
+              imageUrl: player.imageUrl,
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (final _) => PlayerDetailPage(
+                            playerId: player.id)));
+              },
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.35),
+                  shape: BoxShape.circle,
+                ),
+                child: FavoriteToggleButton(
+                    itemId: player.id, type: FavoriteType.player, size: 18),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  const _EmptyState({required this.icon, required this.message});
+
+  @override
+  Widget build(final BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 56, color: context.colors.outline),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.colors.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _ErrorState extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ErrorState({required this.onRetry});
+
+  @override
+  Widget build(final BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline_rounded,
+                  size: 56, color: context.colors.error),
+              const SizedBox(height: 16),
+              const Text('Favoriler yüklenemedi.', textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onRetry, child: const Text('Tekrar dene')),
+            ],
+          ),
+        ),
       );
 }
 
 // --- TAB SEÇİCİ BİLEŞENİ ---
 class _FavoriteTabSelector extends StatelessWidget {
   final TabController controller;
+  final int showCount;
+  final int stageCount;
+  final int playerCount;
 
-  const _FavoriteTabSelector({required this.controller});
+  const _FavoriteTabSelector({
+    required this.controller,
+    required this.showCount,
+    required this.stageCount,
+    required this.playerCount,
+  });
 
   @override
   Widget build(final BuildContext context) {
@@ -192,10 +374,10 @@ class _FavoriteTabSelector extends StatelessWidget {
         unselectedLabelStyle:
             const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         indicatorSize: TabBarIndicatorSize.tab,
-        tabs: const [
-          Tab(text: "Oyunlar"),
-          Tab(text: "Sahneler"),
-          Tab(text: "Sanatçılar"),
+        tabs: [
+          Tab(text: 'Oyunlar${showCount > 0 ? ' ($showCount)' : ''}'),
+          Tab(text: 'Sahneler${stageCount > 0 ? ' ($stageCount)' : ''}'),
+          Tab(text: 'Sanatçılar${playerCount > 0 ? ' ($playerCount)' : ''}'),
         ],
       ),
     );
