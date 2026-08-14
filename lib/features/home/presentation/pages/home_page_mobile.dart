@@ -15,6 +15,7 @@ import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../widgets/mobile/category_grid.dart';
+import '../widgets/mobile/home_dashboard_extras.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
 import '../widgets/mobile/show_collage.dart';
 import '../widgets/mobile/stage_carousel.dart';
@@ -140,6 +141,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                       const SizedBox(height: 60),
                       const BottomQuote(),
                       const SizedBox(height: 40),
+
+                      // 🆕 EK DASHBOARD WIDGET'LARI (home içeriğinin ALTINA
+                      // eklendi; yukarıdaki hiçbir bileşen değiştirilmedi).
+                      // Giriş yapılmamışsa veya veri yoksa hiçbir şey render
+                      // etmezler.
+                      const UpcomingTicketDashboardCard(),
+                      const SizedBox(height: 32),
+                      const FavoritesDashboardRow(),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
@@ -177,7 +187,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         actions: [
           IconButton(
-              onPressed: () {},
+              onPressed: () => NavigationHandler.goToNotifications(context),
               icon: const Icon(Icons.notifications_none_rounded)),
           IconButton(
               onPressed: () => NavigationHandler.goToSettings(context),
@@ -310,7 +320,7 @@ class _PerformantQuickActionsGridSection extends ConsumerWidget {
   Widget build(final BuildContext context, final WidgetRef ref) => Padding(
         padding: const EdgeInsets.only(top: 32.0),
         child: QuickActionsGrid(
-          onNotificationsTap: () => NavigationHandler.goToSettings(context),
+          onNotificationsTap: () => NavigationHandler.goToNotifications(context),
           onFavoritesTap: () => NavigationHandler.goToFavorites(context),
           onTicketsTap: () {
             if (ref.read(isLoggedInProvider)) {
