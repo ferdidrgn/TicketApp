@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/shared/widgets/section_header.dart';
+import '../../../../core/util/date_formatter.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../events/presentation/widgets/events_card.dart';
+import '../../../shows/domain/entities/show.dart';
+import '../providers/discovery_provider.dart';
 
 class DiscoveryPage extends ConsumerStatefulWidget {
   final String? selectedCategory;
@@ -15,26 +19,18 @@ class DiscoveryPage extends ConsumerStatefulWidget {
 }
 
 class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
-  final List<Map<String, dynamic>> trendingShows = [
-    {
-      'name': 'Gözlerimi Kaparım Vazifemi Yaparım',
-      'category': 'Tiyatro',
-      'image':
-          'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
-      'tag': 'YENİ',
-    },
-    {
-      'name': 'Kadınlık Bizde Kalsın',
-      'category': 'Müzikal',
-      'image':
-          'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
-      'tag': 'TREND',
-    },
-  ];
-
   @override
   Widget build(final BuildContext context) {
     final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final eventsAsync = ref.watch(upcomingEventsProvider);
+
+    final filteredEvents = eventsAsync.value == null
+        ? const <DiscoverEvent>[]
+        : widget.selectedCategory == null
+            ? eventsAsync.value!
+            : eventsAsync.value!
+                .where((final e) => e.show.category == widget.selectedCategory)
+                .toList();
 
     return BasePageWrapper(
       title: widget.selectedCategory ?? 'İlhamını Bul',
@@ -43,88 +39,95 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           : 'Küratörlerin hazırladığı özel seçkiler',
       showBackButton: false,
       showFab: true,
+      isLoading: eventsAsync.isLoading,
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: context.colors.surface,
         safeAreaTop: true,
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints:
-              BoxConstraints(maxWidth: isLargeScreen ? 1200 : double.infinity),
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              // 1. ÖNE ÇIKAN BAŞYAPITLAR
-              const SectionHeader(
-                  title: 'Haftanın Başyapıtları', subtitle: 'Seçkiler'),
-              const SizedBox(height: 16),
-              _buildTrendingSlider(),
-
-              const SizedBox(height: 40),
-
-              // 2. KEŞİF LİSTESİ BAŞLIĞI
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const SectionHeader(title: 'Tümünü Keşfet'),
-                  _buildFilterButton(),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 3. EVENT LIST (Responsive Grid veya List)
-              _buildResponsiveEventList(isLargeScreen),
-
-              const SizedBox(height: 100),
-            ],
+      onRefresh: () => ref.invalidate(upcomingEventsProvider),
+      child: eventsAsync.when(
+        loading: () => const SizedBox.shrink(),
+        error: (final err, final _) => _buildErrorState(context),
+        data: (final _) => Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxWidth: isLargeScreen ? 1200 : double.infinity),
+            child: filteredEvents.isEmpty
+                ? _buildEmptyState(context)
+                : ListView(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      const SectionHeader(
+                          title: 'Haftanın Başyapıtları', subtitle: 'Seçkiler'),
+                      const SizedBox(height: 16),
+                      _buildTrendingSlider(context, filteredEvents.take(6).toList()),
+                      const SizedBox(height: 40),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const SectionHeader(title: 'Tümünü Keşfet'),
+                          _buildFilterButton(context),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildResponsiveEventList(isLargeScreen, filteredEvents),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTrendingSlider() {
+  Widget _buildTrendingSlider(
+      final BuildContext context, final List<DiscoverEvent> events) {
     return SizedBox(
       height: 240,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: trendingShows.length,
+        itemCount: events.length,
         itemBuilder: (final context, final index) {
-          final show = trendingShows[index];
-          return Container(
-            width: 320,
-            margin: const EdgeInsets.only(right: 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                    color: context.colors.shadow.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10))
-              ],
-              image: DecorationImage(
-                image: NetworkImage(show['image']),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                    Colors.black.withOpacity(0.3), BlendMode.darken),
+          final item = events[index];
+          return GestureDetector(
+            onTap: () =>
+                NavigationHandler.goToShow(context, item.show.id, item.show.name),
+            child: Container(
+              width: 320,
+              margin: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                      color: context.colors.shadow.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10))
+                ],
+                image: DecorationImage(
+                  image: NetworkImage(item.show.imageUrl),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(
+                      Colors.black.withOpacity(0.3), BlendMode.darken),
+                ),
               ),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 16,
-                  left: 16,
-                  child: _buildTag(show['tag']),
-                ),
-                Positioned(
-                  bottom: 24,
-                  left: 20,
-                  right: 20,
-                  child: _buildShowInfo(show),
-                ),
-              ],
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: _buildTag(context, index == 0 ? 'YENİ' : 'YAKINDA'),
+                  ),
+                  Positioned(
+                    bottom: 24,
+                    left: 20,
+                    right: 20,
+                    child: _buildShowInfo(context, item.show),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -132,8 +135,22 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     );
   }
 
-  Widget _buildResponsiveEventList(final bool isLargeScreen) {
-    // Web'de 2'li grid, mobilde alt alta liste
+  Widget _buildResponsiveEventList(
+      final bool isLargeScreen, final List<DiscoverEvent> events) {
+    final cards = events
+        .map((final item) => EventsCard(
+              imageUrl: item.show.imageUrl,
+              showName: item.show.name,
+              category: item.show.category,
+              stage: item.stage?.name ?? '',
+              price: item.price,
+              fullDateString: _dateOf(item),
+              timeString: _timeOf(item),
+              onTap: () => NavigationHandler.goToShow(
+                  context, item.show.id, item.show.name),
+            ))
+        .toList();
+
     if (isLargeScreen) {
       return GridView.count(
         shrinkWrap: true,
@@ -142,43 +159,27 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         mainAxisSpacing: 20,
         crossAxisSpacing: 20,
         childAspectRatio: 2.5,
-        children: _getStaticEvents(),
+        children: cards,
       );
     }
-    return Column(children: _getStaticEvents(spacing: 16));
+    return Column(
+      children: cards
+          .expand((final c) => [c, const SizedBox(height: 16)])
+          .toList(),
+    );
   }
 
-  List<Widget> _getStaticEvents({final double spacing = 0}) {
-    final events = [
-      const EventsCard(
-        imageUrl:
-            'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
-        showName: 'Hamlet - Bir Kimlik Meselesi',
-        category: 'Dram',
-        stage: 'Zorlu PSM',
-        price: 240, fullDateString: '15 Haz 2026', timeString: '19:30',
-      ),
-      const EventsCard(
-        imageUrl:
-            'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
-        showName: 'Cimri - Şehir Tiyatroları',
-        category: 'Komedi',
-        stage: 'Kadıköy Sahnesi',
-        price: 150, fullDateString: '20 Haz 2020', timeString: '20.30',
-      ),
-    ];
+  String _dateOf(final DiscoverEvent item) => DateFormatter.parseFormattedDateTime(
+      item.event.date,
+      formatWithMonthName: true)['date'] ?? '';
 
-    if (spacing > 0) {
-      return events
-          .expand((final e) => [e, SizedBox(height: spacing)])
-          .toList();
-    }
-    return events;
-  }
+  String _timeOf(final DiscoverEvent item) => DateFormatter.parseFormattedDateTime(
+      item.event.date,
+      formatWithMonthName: true)['time'] ?? '';
 
   // --- KÜÇÜK UI BİLEŞENLERİ ---
 
-  Widget _buildTag(final String tag) => Container(
+  Widget _buildTag(final BuildContext context, final String tag) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: context.colors.primary,
@@ -192,17 +193,17 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                 letterSpacing: 1)),
       );
 
-  Widget _buildShowInfo(final Map<String, dynamic> show) => Column(
+  Widget _buildShowInfo(final BuildContext context, final Show show) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(show['category'].toUpperCase(),
+          Text(show.category.toUpperCase(),
               style: TextStyle(
                   color: context.colors.primary,
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 2)),
           const SizedBox(height: 4),
-          Text(show['name'],
+          Text(show.name,
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -211,7 +212,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         ],
       );
 
-  Widget _buildFilterButton() => Container(
+  Widget _buildFilterButton(final BuildContext context) => Container(
         decoration: BoxDecoration(
           color: context.colors.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
@@ -223,6 +224,47 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
           label: Text('Filtrele',
               style: TextStyle(
                   color: context.colors.primary, fontWeight: FontWeight.bold)),
+        ),
+      );
+
+  Widget _buildEmptyState(final BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.explore_off_rounded,
+                  size: 56, color: context.colors.outline),
+              const SizedBox(height: 16),
+              Text(
+                widget.selectedCategory == null
+                    ? 'Şu anda yaklaşan bir etkinlik yok.'
+                    : '"${widget.selectedCategory}" kategorisinde yaklaşan etkinlik yok.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.colors.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildErrorState(final BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline_rounded,
+                  size: 56, color: context.colors.error),
+              const SizedBox(height: 16),
+              const Text('Etkinlikler yüklenemedi.', textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => ref.invalidate(upcomingEventsProvider),
+                child: const Text('Tekrar dene'),
+              ),
+            ],
+          ),
         ),
       );
 }
