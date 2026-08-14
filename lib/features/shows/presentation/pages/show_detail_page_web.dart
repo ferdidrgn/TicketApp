@@ -12,8 +12,10 @@ import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../events/domain/entities/event.dart';
+import '../../../favorite/presentation/widgets/favorite_toggle_button.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../stages/domain/entities/stage.dart';
+import '../../../users/domain/entities/favorite_type.dart';
 import '../../domain/entities/show.dart';
 import '../providers/show_detail_provider.dart';
 import '../widgets/web/player_section.dart';
@@ -161,19 +163,36 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           Positioned(
             top: 40,
             right: 20,
-            child: Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: context.colors.surfaceContainerHighest,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: Icon(Icons.share_outlined,
-                    size: 22, color: context.colors.onSurface),
-                onPressed: () => TiyatrolDeeplinkService.shareShow(
-                    id: showData.id, name: showData.name),
-              ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: context.colors.surfaceContainerHighest,
+                    shape: BoxShape.circle,
+                  ),
+                  child: FavoriteToggleButton(
+                    itemId: showData.id,
+                    type: FavoriteType.show,
+                    inactiveColor: context.colors.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: context.colors.surfaceContainerHighest,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(Icons.share_outlined,
+                        size: 22, color: context.colors.onSurface),
+                    onPressed: () => TiyatrolDeeplinkService.shareShow(
+                        id: showData.id, name: showData.name),
+                  ),
+                ),
+              ],
             ),
           )
         ],

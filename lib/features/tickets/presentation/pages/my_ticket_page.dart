@@ -48,6 +48,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
     super.build(context);
 
     final ticketsAsync = ref.watch(myTicketsProvider(widget.userId));
+    final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
       showBackButton: true,
@@ -62,7 +63,10 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
         ambientColor: context.colors.primary.withOpacity(0.05),
         safeAreaTop: true,
       ),
-      child: Column(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: isLargeScreen ? 900 : double.infinity),
+          child: Column(
         children: [
           // Sayfa Başlığı ve Alt Başlığı
           Padding(
@@ -131,6 +135,8 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }
