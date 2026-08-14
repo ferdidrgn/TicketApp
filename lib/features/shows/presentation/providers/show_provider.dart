@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
 import '../../data/repositories/show_repository_provider.dart';
 import '../../domain/entities/show.dart';
 import '../../domain/usecases/add_show_use_case_impl.dart';

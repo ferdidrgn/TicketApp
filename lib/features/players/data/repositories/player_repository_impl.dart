@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
 import '../../domain/entities/player.dart';
 import '../../domain/repositories/player_repository.dart';

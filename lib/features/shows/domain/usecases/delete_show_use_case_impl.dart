@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
 import '../repositories/show_repository.dart';
 
 abstract class DeleteShowUseCase {

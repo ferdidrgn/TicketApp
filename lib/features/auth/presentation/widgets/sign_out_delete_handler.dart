@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
-import '../../../../../../shared/widgets/custom_pop_up.dart';
+import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../users/presentation/providers/user_mutation_provider.dart';
 import '../providers/storage_service.dart';
 

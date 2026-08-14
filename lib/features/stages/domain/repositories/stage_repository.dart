@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
 import '../../domain/entities/stage.dart';
 
 abstract class StageRepository {

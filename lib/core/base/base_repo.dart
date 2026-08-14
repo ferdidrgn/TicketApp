@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../errors/failures.dart';
 
 abstract class BaseRepository {
   /// Internet kontrolü YOK - sadece try/catch

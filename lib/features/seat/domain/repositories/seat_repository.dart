@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
 
 abstract class SeatRepository {
   /// Sahne ID'sine göre koltuk planını (Layout) getirir.
