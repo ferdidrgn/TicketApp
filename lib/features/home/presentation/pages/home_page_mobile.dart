@@ -23,6 +23,7 @@ import '../widgets/mobile/stroy_circles.dart';
 import '../widgets/mobile/subsrice_widget.dart';
 import '../widgets/mobile/ticket_stub_card.dart';
 import '../widgets/mobile/trending_widgets.dart';
+import '../widgets/web/app_home_web_body.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -85,10 +86,20 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       child: hasError
           ? _buildErrorWidget(context, ref)
-          : Center(
+          : isLargeScreen
+              ? SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  child: AppHomeWebBody(
+                    campaigns: campaignState.value ?? [],
+                    shows: showState.value ?? [],
+                    stages: stageState.value ?? [],
+                    onOpenSearch: _openSearch,
+                  ),
+                )
+              : Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                    maxWidth: isLargeScreen ? 1100 : double.infinity),
+                constraints: const BoxConstraints(maxWidth: double.infinity),
                 child: SingleChildScrollView(
                   controller: _scrollController,
                   padding: const EdgeInsets.only(bottom: 100),
