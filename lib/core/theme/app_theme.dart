@@ -26,13 +26,16 @@ mixin AppTheme {
         kIsWeb ? AppTextStyles.webTextTheme : AppTextStyles.mobileTextTheme;
 
     // 2. Ham text temasını, gelen renk paketine (colors) göre boya!
-    // Bu sayede "Monet" rengi neyse, yazılar da o tonda olur.
+    // NOT: fontFamily kasıtlı olarak override edilmiyor — her TextStyle
+    // zaten GoogleFonts.plusJakartaSansTextTheme() tarafından doğru
+    // fontFamily/font dosyası referansıyla geliyor; burada tekrar
+    // string ile ezmek yanlışlıkla eşleşmeyen bir isimle sistem fontuna
+    // sessizce geri düşme riski taşır (eskiden 'PlayfairDisplay' ile
+    // yaşanan tam olarak buydu).
     final TextTheme coloredTextTheme = baseTextTheme.apply(
       bodyColor: colors.onSurface,
       displayColor: colors.onSurface,
       decorationColor: colors.onSurface,
-      // Eğer tüm metinlerde zorunlu font kullanmak isterseniz:
-      fontFamily: AppTextStyles.fontFamily,
     );
 
     // Arka plan rengi: Override varsa onu kullan, yoksa standart surface
@@ -47,8 +50,6 @@ mixin AppTheme {
 
       // Boyanmış text temasını içeri alıyoruz
       textTheme: coloredTextTheme,
-      fontFamily: AppTextStyles.fontFamily,
-      // Global font tanımı
 
       // Bileşen Temaları (Artık 'colors' değişkenini kullanıyorlar)
       appBarTheme: _appBarTheme(
@@ -134,23 +135,26 @@ mixin AppTheme {
             : SystemUiOverlayStyle.light,
       );
 
+  // 🎯 BENTO KART: Elevation/gölge yerine düz zemin + mikro kenarlık
+  // (Border.all(color: Colors.white.withOpacity(0.08)) diliyle birebir).
   static CardThemeData _cardTheme(
       {required final ColorScheme colors, required final Color bgColor}) {
-    // Atmosferik modda kartlar, arka plandan biraz daha açık (aydınlık) olmalı
-    final cardColor = HSLColor.fromColor(bgColor)
-        .withLightness(
-            (HSLColor.fromColor(bgColor).lightness + 0.05).clamp(0.0, 1.0))
-        .toColor();
+    final cardColor = colors.brightness == Brightness.dark
+        ? BentoColors.card
+        : colors.surfaceContainerHighest;
     return CardThemeData(
-      // M3'te surfaceContainerHighest önerilir, yoksa surface kullanır
-      color: colors.brightness == Brightness.dark
-          ? cardColor
-          : colors.surfaceContainerHighest,
-      elevation: 2,
-      shadowColor: colors.shadow.withOpacity(0.35),
+      color: cardColor,
+      elevation: 0,
+      shadowColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16))),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        side: BorderSide(
+          color: colors.brightness == Brightness.dark
+              ? BentoColors.microBorder
+              : colors.outlineVariant,
+        ),
+      ),
       margin: EdgeInsets.zero,
     );
   }
@@ -167,7 +171,7 @@ mixin AppTheme {
           textStyle: textStyle,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       );
 
@@ -177,11 +181,15 @@ mixin AppTheme {
   }) =>
       OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: colors.primary,
+          foregroundColor: colors.onSurface,
           textStyle: textStyle,
-          side: BorderSide(color: colors.primary), // Outline rengi primary
+          side: BorderSide(
+            color: colors.brightness == Brightness.dark
+                ? BentoColors.microBorderStrong
+                : colors.outline,
+          ),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       );
 
@@ -194,6 +202,8 @@ mixin AppTheme {
           foregroundColor: colors.primary,
           textStyle: textStyle,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
 
@@ -201,24 +211,33 @@ mixin AppTheme {
           {required final ColorScheme colors}) =>
       InputDecorationTheme(
         filled: true,
-        // Hafif opaklık vererek arka plandan ayırıyoruz
-        fillColor: colors.surfaceContainerHighest.withOpacity(0.5),
+        fillColor: colors.brightness == Brightness.dark
+            ? BentoColors.card
+            : colors.surfaceContainerHighest.withOpacity(0.6),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: colors.outline),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: colors.brightness == Brightness.dark
+                ? BentoColors.microBorder
+                : colors.outline,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: colors.outline),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: colors.brightness == Brightness.dark
+                ? BentoColors.microBorder
+                : colors.outline,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: colors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: colors.error),
         ),
         hintStyle: TextStyle(color: colors.onSurfaceVariant),

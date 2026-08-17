@@ -75,6 +75,12 @@ dependencies:
   flutter_native_splash: ^2.4.7
   google_fonts: ^8.2.1
 
+  # Tasarım Sistemi 2.0 (Bento / Glassmorphism)
+  flutter_animate: ^4.5.2
+  gap: ^3.0.1
+  lucide_icons_flutter: ^3.1.15
+  fl_chart: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

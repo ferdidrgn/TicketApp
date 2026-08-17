@@ -1,35 +1,50 @@
 import 'package:flutter/material.dart';
 import '../common/extentions/app_context_ui_extension.dart';
 
-/// WEB UYGULAMASI RENKLERİ
-class WebColors {
-  // Ana Renkler
-  static const Color primaryGold = Color(0xFFD4AF37);
-  static const Color primaryGoldDark = Color(0xFFB8941F);
-  static const Color primaryGoldLight = Color(0xFFE6C158);
+/// ══════════════════════════════════════════════════════════════════════
+/// TASARIM SİSTEMİ 2.0 — Slate/Zinc tabanlı derin dark mod + Indigo/Emerald
+/// aksan. `WebColors` ve `AppLightColors`/`AppDarkColors` isimleri (geriye
+/// dönük uyumluluk ve tek noktadan değişim için) korundu, ama TÜM değerler
+/// yeni tasarım diline göre baştan tanımlandı. Bu sayede bu sabitleri
+/// referans alan onlarca ekran, dosyalar tek tek düzenlenmeden otomatik
+/// olarak yeni palete geçer.
+/// ══════════════════════════════════════════════════════════════════════
 
-  // Arkaplan Renkleri - Güncellendi
-  static const Color darkBlueBackground = Color(0xFF0A1628);
-  static const Color darkBlueSurface = Color(0xFF0F1F35);
-  static const Color darkBlueAccent = Color(0xFF1A2940);
+/// WEB UYGULAMASI RENKLERİ (Slate/Zinc + Indigo)
+class WebColors {
+  // Ana Aksan (eskiden "Gold" — artık Elektrik Indigo)
+  static const Color primaryGold = Color(0xFF6366F1); // Indigo 500
+  static const Color primaryGoldDark = Color(0xFF4F46E5); // Indigo 600
+  static const Color primaryGoldLight = Color(0xFF818CF8); // Indigo 400
+
+  // İkincil Aksan
+  static const Color accentEmerald = Color(0xFF10B981);
+
+  // Arkaplan Katmanları (Zinc/Slate)
+  static const Color darkBlueBackground = Color(0xFF09090B); // Canvas
+  static const Color darkBlueSurface = Color(0xFF18181B); // Kart
+  static const Color darkBlueAccent = Color(0xFF27272A); // Highlight yüzey
 
   // Ekstra Arkaplan Tonları
-  static const Color veryDarkBlue = Color(0xFF050B15); // En koyu ton
-  static const Color mediumDarkBlue = Color(0xFF152238); // Orta ton
+  static const Color veryDarkBlue = Color(0xFF000000);
+  static const Color mediumDarkBlue = Color(0xFF141417);
 
   // Metin Renkleri
   static const Color whiteText = Colors.white;
-  static const Color lightWhite = Color(0xFFEDEDED);
-  static const Color textSecondary = Color(0xFFB0B0B0);
-  static const Color textTertiary = Color(0xFF808080); // Ek ton
+  static const Color lightWhite = Color(0xFFF4F4F5);
+  static const Color textSecondary = Color(0xFFA1A1AA); // Zinc 400
+  static const Color textTertiary = Color(0xFF71717A); // Zinc 500
 
   // Aksan Renkler
-  static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFF9800);
-  static const Color error = Color(0xFFF44336);
-  static const Color info = Color(0xFF2196F3);
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color error = Color(0xFFEF4444);
+  static const Color info = Color(0xFF3B82F6);
 
-  // Gradient'ler - Güncellendi
+  // Mikro Kenarlık (Bento kartlar için)
+  static const Color microBorder = Color(0x14FFFFFF); // ~%8 beyaz
+
+  // Gradient'ler
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -47,7 +62,6 @@ class WebColors {
     colors: [primaryGoldLight, primaryGold, primaryGoldDark],
   );
 
-  // Altın Buton Gradient
   static const LinearGradient goldButtonGradient = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
@@ -62,50 +76,64 @@ class WebColors {
   );
 }
 
-/// MOBIL UYGULAMA - AÇIK TEMA RENKLERİ
+/// MOBIL UYGULAMA - AÇIK TEMA RENKLERİ (Slate + Indigo)
 class AppLightColors {
-  static const Color primary = Color(0xFFDC2626); // Kırmızı
-  static const Color primaryVariant = Color(0xFFB91C1C);
-  static const Color secondary = Color(0xFFFECACA);
-  static const Color secondaryVariant = Color(0xFFFCA5A5);
+  static const Color primary = Color(0xFF6366F1); // Indigo 500
+  static const Color primaryVariant = Color(0xFF4F46E5); // Indigo 600
+  static const Color secondary = Color(0xFFE0E7FF); // Indigo 100
+  static const Color secondaryVariant = Color(0xFFC7D2FE); // Indigo 200
 
-  static const Color surface = Color(0xFFF8FAFC);
-  static const Color error = Color(0xFFDC2626);
+  static const Color surface = Color(0xFFFAFAFA); // Zinc 50
+  static const Color error = Color(0xFFEF4444);
 
   static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color onSecondary = Color(0xFF000000);
-  static const Color onSurface = Color(0xFF000000);
-  static const Color onError = Color(0xFF731818);
+  static const Color onSecondary = Color(0xFF3730A3);
+  static const Color onSurface = Color(0xFF18181B);
+  static const Color onError = Color(0xFFFFFFFF);
 
-  static const Color textPrimary = Color(0xFF000000);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color textDisabled = Color(0xFF94A3B8);
+  static const Color textPrimary = Color(0xFF18181B);
+  static const Color textSecondary = Color(0xFF71717A);
+  static const Color textDisabled = Color(0xFFA1A1AA);
 
-  static const Color border = Color(0xFFE2E8F0);
-  static const Color divider = Color(0xFFF1F5F9);
+  static const Color border = Color(0xFFE4E4E7);
+  static const Color divider = Color(0xFFF4F4F5);
 }
 
-/// MOBIL UYGULAMA - KARANLIK TEMA RENKLERİ
+/// MOBIL UYGULAMA - KARANLIK TEMA RENKLERİ (Zinc canvas + Indigo aksan)
 class AppDarkColors {
-  static const Color primary = Color(0xFF343541);
-  static const Color primaryVariant = Color(0xFF3C3E4A);
-  static const Color secondary = Color(0xFF444653);
-  static const Color secondaryVariant = Color(0xFF565864);
+  static const Color primary = Color(0xFF6366F1); // Indigo 500
+  static const Color primaryVariant = Color(0xFF818CF8); // Indigo 400
+  static const Color secondary = Color(0xFF27272A); // Zinc 800
+  static const Color secondaryVariant = Color(0xFF3F3F46); // Zinc 700
 
-  static const Color surface = Color(0xFF2D2D2D);
-  static const Color error = Color(0xFFCF6679);
+  static const Color surface = Color(0xFF18181B); // Zinc 900
+  static const Color error = Color(0xFFF87171);
 
-  static const Color onPrimary = Color(0xFF1A1A1A);
+  static const Color onPrimary = Color(0xFFFFFFFF);
   static const Color onSecondary = Color(0xFFFFFFFF);
-  static const Color onSurface = Color(0xFFFFFFFF);
+  static const Color onSurface = Color(0xFFFAFAFA);
   static const Color onError = Color(0xFF000000);
 
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFB0B0B0);
-  static const Color textDisabled = Color(0xFF666666);
+  static const Color textPrimary = Color(0xFFFAFAFA);
+  static const Color textSecondary = Color(0xFFA1A1AA); // Zinc 400
+  static const Color textDisabled = Color(0xFF52525B); // Zinc 600
 
-  static const Color border = Color(0xFF000000);
-  static const Color divider = Color(0xFF000000);
+  static const Color border = Color(0x14FFFFFF); // ~%8 beyaz mikro kenarlık
+  static const Color divider = Color(0x0FFFFFFF);
+}
+
+/// Canvas/kart/highlight katman renkleri — Bento bileşenlerinde doğrudan
+/// kullanılan, tema seed'inden bağımsız sabit tonlar.
+abstract final class BentoColors {
+  static const Color canvas = Color(0xFF09090B);
+  static const Color card = Color(0xFF18181B);
+  static const Color highlight = Color(0xFF27272A);
+  static const Color indigo = Color(0xFF6366F1);
+  static const Color indigoDark = Color(0xFF4F46E5);
+  static const Color indigoLight = Color(0xFF818CF8);
+  static const Color emerald = Color(0xFF10B981);
+  static const Color microBorder = Color(0x14FFFFFF);
+  static const Color microBorderStrong = Color(0x26FFFFFF); // ~%15 beyaz
 }
 
 List<Color> gradientColors(final BuildContext context, final isTrue) => isTrue
