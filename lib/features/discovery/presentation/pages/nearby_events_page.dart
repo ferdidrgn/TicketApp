@@ -26,14 +26,17 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
     final bool isLargeScreen = context.isTablet || context.isDesktop;
     final double cardWidth = isLargeScreen ? 400 : context.screenWidth - 48;
 
-    final eventsAsync = ref.watch(upcomingEventsProvider);
+    final eventsAsync = ref.watch(nearbySortedEventsProvider);
     final stagesAsync = ref.watch(popularStagesProvider);
+    final hasLocation = ref.watch(currentPositionProvider).value != null;
 
     final events = _applyFilter(eventsAsync.value ?? const []);
 
     return BasePageWrapper(
       title: 'YAKININIZDAKİ ETKİNLİKLER',
-      subtitle: 'Bu hafta sahnelerde neler var?',
+      subtitle: hasLocation
+          ? 'Konumuna en yakın etkinlikler'
+          : 'Şehrine göre önerilen etkinlikler',
       showBackButton: false,
       rightIcon: Icons.tune_rounded,
       showFab: true,
@@ -41,7 +44,8 @@ class _NearbyEventsPageState extends ConsumerState<NearbyEventsPage> {
       layoutConfig: BasePageLayoutConfig(
           backgroundColor: context.colors.surface, safeAreaTop: true),
       onRefresh: () {
-        ref.invalidate(upcomingEventsProvider);
+        ref.invalidate(currentPositionProvider);
+        ref.invalidate(nearbySortedEventsProvider);
         ref.invalidate(popularStagesProvider);
       },
       child: CustomScrollView(

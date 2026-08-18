@@ -74,5 +74,9 @@
 <array>
     <string>remote-notification</string>
 </array>
+
+<!-- 📍 Konum (yakınındaki etkinlikleri sıralamak için) -->
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Yakınındaki etkinlikleri ve sahneleri sana göstermek için konumunu kullanmak istiyoruz.</string>
 </dict>
 </plist>

@@ -57,6 +57,7 @@ dependencies:
   google_mobile_ads:
 
   app_links: ^6.1.1
+  geolocator: ^14.0.3
 
   # UI Components
   curved_navigation_bar:
