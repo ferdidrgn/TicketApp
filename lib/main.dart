@@ -67,7 +67,6 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   Widget build(final BuildContext context) {
     final currentStyle = ref.watch(themeProvider);
-    final themeNotifier = ref.watch(themeProvider.notifier);
     final localeAsync = ref.watch(localeControllerProvider);
     final authMutation = ref.watch(authMutationProvider);
     final isWeb = PlatformChecker.isWeb;
@@ -83,7 +82,14 @@ class _MyAppState extends ConsumerState<MyApp> {
         title: AppConstants.appName,
         theme: lightTheme,
         darkTheme: isWeb ? WebTheme.darkTheme : darkTheme,
-        themeMode: isWeb ? ThemeMode.dark : themeNotifier.themeMode,
+        // 🔧 FIX: Tasarım Sistemi 2.0 (Bento/Slate/Zinc) baştan sona SADECE
+        // koyu tema için tasarlandı. Önceden mobilde `themeNotifier.themeMode`
+        // (varsayılan: ThemeMode.system) kullanılıyordu — cihazın sistem
+        // teması açık modda olduğunda uygulama, bu koyu-mod-özel tasarımla
+        // hiç uyuşmayan bir açık temaya düşüyor ve ekranlar "bozuk/görünmez"
+        // hissi veriyordu (bottom nav sekmeleri dahil). Web zaten hep
+        // ThemeMode.dark kullanıyordu; artık mobil de aynısını yapıyor.
+        themeMode: ThemeMode.dark,
         locale: localeAsync.value ?? const Locale('tr'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

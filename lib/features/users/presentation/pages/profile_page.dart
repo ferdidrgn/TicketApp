@@ -6,7 +6,6 @@ import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
-import '../../../../shared/widgets/card/theme_selector_card.dart';
 import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
 import '../../../users/domain/entities/user.dart' as entity;
 import '../providers/user_provider.dart';
@@ -84,8 +83,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 const SizedBox(height: 40),
 
                                 _buildSectionLabel("ATMOSFER VE TEKNİK"),
-                                const ThemeSelectorCard(),
-                                const SizedBox(height: 16),
                                 _buildSculptedTile(
                                   icon: Icons.settings_suggest_rounded,
                                   title: 'Atölye Ayarları',

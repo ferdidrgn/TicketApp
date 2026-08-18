@@ -8,7 +8,6 @@ import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/package_info_provider.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
-import '../../../../shared/widgets/card/theme_selector_card.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 
@@ -58,11 +57,6 @@ class AppSettingsPage extends ConsumerWidget {
                 imageUrl:
                     'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
               ),
-
-              const SizedBox(height: 32),
-              _buildSectionTitle(context, 'GÖRÜNÜM'),
-              const SizedBox(height: 16),
-              const ThemeSelectorCard(),
 
               const SizedBox(height: 32),
               _buildSectionTitle(context, 'BİLDİRİMLER'),
