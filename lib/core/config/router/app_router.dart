@@ -21,6 +21,7 @@ import '../../../features/favorite/presentation/pages/favorite_screen.dart';
 import '../../../features/home/presentation/pages/home_page_mobile.dart';
 import '../../../features/notifications/presentation/pages/notification_center_page.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
+import '../../services/onboarding_service.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
@@ -73,7 +74,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
   return GoRouter(
     navigatorKey: NavigationKeys.rootNavigator,
-    initialLocation: isWeb ? '/' : '/app',
+    initialLocation: isWeb
+        ? '/'
+        : (OnboardingService.hasSeenOnboarding ? '/app' : '/onboarding'),
     refreshListenable: authNotifier,
     observers: [
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
@@ -84,6 +87,14 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       // (artık asla "donmuş"/bayat bir değer değil).
       final loggedIn = authNotifier.value;
       final path = state.uri.path;
+
+      // 🎬 Mobilde onboarding'i hiç görmemiş kullanıcı, deep-link ile bile
+      // olsa başka bir yere gidemez — önce onboarding tamamlanmalı.
+      if (!isWeb &&
+          !OnboardingService.hasSeenOnboarding &&
+          path != '/onboarding') {
+        return '/onboarding';
+      }
 
       // Korumalı sayfalar
       final protectedRoutes = ['/favorites', '/my-tickets'];

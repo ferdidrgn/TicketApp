@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import '../ads/ads_manager.dart';
 import '../services/app_check_service.dart';
+import '../services/onboarding_service.dart';
 import '../services/remote_config_service.dart';
 import '../util/date_formatter.dart';
 import '../util/platform_checker.dart';
@@ -21,6 +22,7 @@ abstract final class AppInitializer {
 
     // 2. Yerel Veri ve Servis Başlatma
     await DateFormatter.initializeLocale();
+    await OnboardingService.loadState();
     await _initFirebase();
 
     await Future.wait([
