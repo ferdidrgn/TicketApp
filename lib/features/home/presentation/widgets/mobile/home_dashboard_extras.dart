@@ -192,7 +192,16 @@ class NearbyEventsDashboardSection extends ConsumerWidget {
     if (events.isEmpty) return const SizedBox.shrink();
 
     final hasLocation = ref.watch(currentPositionProvider).value != null;
-    final top10 = events.take(10).toList();
+    // upcomingEventsProvider, tarihi parse edilemeyen etkinlikleri Keşfet/
+    // Yakındakiler sayfalarında göstermek için listede tutuyor. Anasayfada
+    // ise kullanıcı açıkça "takvimi yoksa anasayfada gösterme" istediği
+    // için burada ek bir tarih filtresi uyguluyoruz — diğer sayfalar
+    // etkilenmiyor.
+    final withDate = events
+        .where((final e) => DateFormatter.parseDateString(e.event.date) != null)
+        .toList();
+    if (withDate.isEmpty) return const SizedBox.shrink();
+    final top10 = withDate.take(10).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
