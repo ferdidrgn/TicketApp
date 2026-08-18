@@ -1,29 +1,28 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../shared/widgets/bento/bento_primitives.dart';
+import '../../../../core/util/decorative_elements.dart';
+import '../../../../shared/widgets/custom_search_bar.dart';
+import '../../../../shared/widgets/section_header.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
-import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
-import '../widgets/mobile/home_dashboard_extras.dart';
-import '../widgets/web/app_home_web_body.dart';
+import '../widgets/mobile/category_grid.dart';
+import '../widgets/mobile/quick_actions_grid.dart';
+import '../widgets/mobile/show_collage.dart';
+import '../widgets/mobile/stage_carousel.dart';
+import '../widgets/mobile/stroy_circles.dart';
+import '../widgets/mobile/subsrice_widget.dart';
+import '../widgets/mobile/ticket_stub_card.dart';
+import '../widgets/mobile/trending_widgets.dart';
 
-/// 🧩 TASARIM SİSTEMİ 2.0 — Home (mobil).
-/// Eski dar tek-sütun mobil bileşen ağacı (HeroSection/StoryCircles/
-/// CategoryGrid/ShowCollage/StageCarousel/TicketStubCard/QuickActionsGrid/
-/// TrendingNowSection/NewsletterSubscribe/BottomQuote) tamamen kaldırıldı.
-/// Veri katmanı (campaignsProvider/showsProvider/stagesProvider) birebir
-/// korundu — sadece UI sıfırdan Bento-grid diliyle kuruldu.
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -33,6 +32,13 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   final ScrollController _scrollController = ScrollController();
+  bool _showSearchInAppBar = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
@@ -40,10 +46,20 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
+  void _onScroll() {
+    if (mounted) {
+      final bool showSearch = _scrollController.offset > 250;
+      if (_showSearchInAppBar != showSearch) {
+        setState(() => _showSearchInAppBar = showSearch);
+      }
+    }
+  }
+
   void _openSearch() => NavigationHandler.goToSearch(context);
 
   @override
   Widget build(final BuildContext context) {
+    // Orijinal Riverpod Sağlayıcı hatlarınız %100 aynen korunuyor
     final campaignState = ref.watch(campaignsProvider);
     final showState = ref.watch(showsProvider(isLimit: true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
@@ -56,52 +72,118 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return BasePageWrapper(
       showBackButton: false,
-      showFab: false,
+      showFab: true,
       customScrollController: _scrollController,
-      appBar: isLargeScreen ? _buildWebAppBar(context) : null,
+      // 💡 Web'de AppBar sabit durabilir, Mobilde dinamik
+      appBar: isLargeScreen ? _buildWebAppBar(context) : _buildDynamicAppBar(),
       isLoading: isLoading && (campaignState.value == null),
-      layoutConfig: const BasePageLayoutConfig(
-        backgroundColor: BentoColors.canvas,
+      layoutConfig: BasePageLayoutConfig(
+        backgroundColor: context.colors.surface,
+        ambientColor: context.colors.primary.withOpacity(0.05),
         extendBody: true,
-        safeAreaTop: false,
       ),
       child: hasError
           ? _buildErrorWidget(context, ref)
-          : isLargeScreen
-              ? SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  child: AppHomeWebBody(
-                    campaigns: campaignState.value ?? [],
-                    shows: showState.value ?? [],
-                    stages: stageState.value ?? [],
-                    onOpenSearch: _openSearch,
-                  ),
-                )
-              : _MobileBentoBody(
-                  scrollController: _scrollController,
-                  campaigns: campaignState.value ?? const [],
-                  shows: showState.value ?? const [],
-                  stages: stageState.value ?? const [],
-                  onOpenSearch: _openSearch,
+          : Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxWidth: isLargeScreen ? 1100 : double.infinity),
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            padding: const EdgeInsets.only(bottom: 100),
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                const HeroSection(),
+
+                // Arama Çubuğu (Üstteki Arama)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: CustomSearchbar(onTap: _openSearch),
                 ),
+
+                const SizedBox(height: 32),
+
+                // 1. Öne Çıkanlar (Story) - Performans Sınıfına Bölündü
+                _PerformantStorySection(
+                    campaigns: campaignState.value ?? []),
+
+                const DividerWithAccent(),
+
+                // 2. Kategoriler - Sabit Düzen Katmanı
+                _PerformantCategorySection(),
+
+                const DividerWithAccent(),
+
+                // 3. Keşfet (Show Collage)
+                _PerformantCollageSection(shows: showState.value ?? []),
+
+                const DividerWithAccent(),
+
+                // 4. Mekanlar (Carousel)
+                _PerformantStageCarouselSection(
+                    stages: stageState.value ?? []),
+
+                const DividerWithAccent(),
+
+                // 5. Özel Kartlar, Aksiyonlar ve Kapanış Alanı
+                const _PerformantSpecialCardsAndActionsSection(),
+
+                _PerformantQuickActionsGridSection(),
+
+                const SizedBox(height: 40),
+                const TrendingNowSection(),
+                const SizedBox(height: 40),
+                const NewsletterSubscribe(),
+                const SizedBox(height: 60),
+                const BottomQuote(),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  PreferredSizeWidget _buildWebAppBar(final BuildContext context) => AppBar(
-        backgroundColor: BentoColors.canvas.withOpacity(0.85),
+  // --- APPBAR TASARIMLARI (Birebir Aynı Tutuldu) ---
+
+  PreferredSizeWidget _buildDynamicAppBar() =>
+      AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: _showSearchInAppBar ? 80 : 0,
+        flexibleSpace: SafeArea(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _showSearchInAppBar
+                ? Container(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: CustomSearchbar(onTap: _openSearch, isCompact: true),
+            )
+                : const SizedBox.shrink(),
+          ),
+        ),
+      );
+
+  PreferredSizeWidget _buildWebAppBar(final BuildContext context) =>
+      AppBar(
+        backgroundColor: context.colors.surface.withOpacity(0.8),
         elevation: 0,
         title: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-          child: _SearchField(onTap: _openSearch, compact: true),
+          child: CustomSearchbar(onTap: _openSearch, isCompact: true),
         ),
         actions: [
           IconButton(
-              onPressed: () => NavigationHandler.goToNotifications(context),
-              icon: const Icon(LucideIcons.bell, color: Colors.white70)),
+              onPressed: () {},
+              icon: const Icon(Icons.notifications_none_rounded)),
           IconButton(
               onPressed: () => NavigationHandler.goToSettings(context),
-              icon: const Icon(LucideIcons.user, color: Colors.white70)),
+              icon: const Icon(Icons.person_outline_rounded)),
           const SizedBox(width: 20),
         ],
       );
@@ -110,580 +192,142 @@ class _HomePageState extends ConsumerState<HomePage> {
       Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
-          child: BentoErrorState(
-            message: 'Sahne şu an yüklenemedi. Bağlantını kontrol edip tekrar dene.',
-            onRetry: () {
-              ref.invalidate(campaignsProvider);
-              ref.invalidate(showsProvider);
-              ref.invalidate(stagesProvider);
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.theater_comedy_outlined,
+                  size: 80, color: context.colors.outline),
+              const SizedBox(height: 24),
+              Text("Perdeler Henüz Açılmadı!",
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () {
+                  ref.invalidate(campaignsProvider);
+                  ref.invalidate(showsProvider);
+                  ref.invalidate(stagesProvider);
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text("Sahneyi Yenile"),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+// --- ARKA PLANDA HIZLANMAYI SAĞLAYAN PERFORMANS WIDGET SINIFLARI ---
+
+class _PerformantStorySection extends StatelessWidget {
+  final List<Campaign> campaigns;
+
+  const _PerformantStorySection({required this.campaigns});
+
+  @override
+  Widget build(final BuildContext context) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+              title: "Öne Çıkanlar",
+              subtitle: "Vitrin",
+              onTap: () => NavigationHandler.goToCampaigns(context)),
+          StoryCircles(
+              campaigns: campaigns,
+              onStoryTap: (final index) =>
+                  NavigationHandler.goToCampaigns(context, index: index)),
+        ],
+      );
+}
+
+class _PerformantCategorySection extends StatelessWidget {
+  const _PerformantCategorySection();
+
+  @override
+  Widget build(final BuildContext context) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(title: "Kategoriler", subtitle: "Sanatın Renkleri"),
+          const CategoryGrid(),
+        ],
+      );
+}
+
+class _PerformantCollageSection extends StatelessWidget {
+  final List<Show> shows;
+
+  const _PerformantCollageSection({required this.shows});
+
+  @override
+  Widget build(final BuildContext context) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(title: "Keşfet", subtitle: "Sana Özel Seçkiler"),
+          ShowCollage(shows: shows),
+        ],
+      );
+}
+
+class _PerformantStageCarouselSection extends StatelessWidget {
+  final List<Stage> stages;
+
+  const _PerformantStageCarouselSection({required this.stages});
+
+  @override
+  Widget build(final BuildContext context) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(title: "Mekanlar", subtitle: "Şehrin Sahneleri"),
+          StageCarousel(
+            stages: stages,
+            onStageTap: (final stageId) {
+              final stage = stages.firstWhere((final e) => e.id == stageId);
+              NavigationHandler.goToStage(context, stage.id, stage.name);
             },
           ),
-        ),
-      );
-}
-
-// ══════════════════════════════════════════════════════════════
-// MOBİL GÖVDE — SliverAppBar + Bento-grid CustomScrollView
-// ══════════════════════════════════════════════════════════════
-class _MobileBentoBody extends ConsumerWidget {
-  final ScrollController scrollController;
-  final List<Campaign> campaigns;
-  final List<Show> shows;
-  final List<Stage> stages;
-  final VoidCallback onOpenSearch;
-
-  const _MobileBentoBody({
-    required this.scrollController,
-    required this.campaigns,
-    required this.shows,
-    required this.stages,
-    required this.onOpenSearch,
-  });
-
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final unread = ref.watch(unreadNotificationCountProvider);
-
-    return CustomScrollView(
-      controller: scrollController,
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverAppBar(
-          floating: true,
-          snap: true,
-          backgroundColor: BentoColors.canvas,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          toolbarHeight: 72,
-          flexibleSpace: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('TiyatRol',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.4)),
-                        const Text('Sahnedeki hikayeni keşfet',
-                            style: TextStyle(
-                                color: Color(0xFFA1A1AA), fontSize: 11.5)),
-                      ],
-                    ),
-                  ),
-                  _IconGhostButton(
-                    icon: LucideIcons.bell,
-                    badgeCount: unread,
-                    onTap: () => NavigationHandler.goToNotifications(context),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              _SearchField(onTap: onOpenSearch),
-              const SizedBox(height: 20),
-              FadeInUp(child: _HeroBento(campaigns: campaigns, shows: shows)),
-              const SizedBox(height: 20),
-              const FadeInUp(
-                  delay: Duration(milliseconds: 80),
-                  child: _QuickActionsBentoRow()),
-              if (shows.isNotEmpty) ...[
-                const SizedBox(height: 32),
-                FadeInUp(
-                  delay: const Duration(milliseconds: 120),
-                  child: _CategoryChipsRow(shows: shows),
-                ),
-              ],
-              const SizedBox(height: 32),
-              FadeInUp(
-                delay: const Duration(milliseconds: 160),
-                child: BentoSectionHeader(
-                  title: 'Öne Çıkan Oyunlar',
-                  subtitle: 'Sana özel seçkiler',
-                  icon: LucideIcons.sparkles,
-                  onActionTap: () => NavigationHandler.goToDiscover(context),
-                ),
-              ),
-              const SizedBox(height: 16),
-              FadeInUp(
-                delay: const Duration(milliseconds: 200),
-                child: _FeaturedShowsBento(shows: shows),
-              ),
-              const SizedBox(height: 32),
-              FadeInUp(
-                delay: const Duration(milliseconds: 240),
-                child: BentoSectionHeader(
-                  title: 'Mekanlar',
-                  subtitle: 'Şehrin sahneleri',
-                  icon: LucideIcons.mapPin,
-                ),
-              ),
-              const SizedBox(height: 16),
-              FadeInUp(
-                delay: const Duration(milliseconds: 280),
-                child: _StagesBentoRow(stages: stages),
-              ),
-              const SizedBox(height: 32),
-              const FadeInUp(
-                delay: Duration(milliseconds: 320),
-                child: UpcomingTicketDashboardCard(),
-              ),
-              const SizedBox(height: 20),
-              const FadeInUp(
-                delay: Duration(milliseconds: 360),
-                child: FavoritesDashboardRow(),
-              ),
-            ]),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// ARAMA ALANI
-// ══════════════════════════════════════════════════════════════
-class _SearchField extends StatelessWidget {
-  final VoidCallback onTap;
-  final bool compact;
-  const _SearchField({required this.onTap, this.compact = false});
-
-  @override
-  Widget build(final BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          height: compact ? 44 : 52,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: BentoColors.card,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: BentoColors.microBorder),
-          ),
-          child: Row(
-            children: [
-              const Icon(LucideIcons.search, size: 18, color: Color(0xFF71717A)),
-              const SizedBox(width: 12),
-              Text('Oyun, sahne veya sanatçı ara...',
-                  style: TextStyle(
-                      color: const Color(0xFF71717A),
-                      fontSize: compact ? 13 : 14)),
-            ],
-          ),
-        ),
-      );
-}
-
-// ══════════════════════════════════════════════════════════════
-// HERO BENTO KARTI
-// ══════════════════════════════════════════════════════════════
-class _HeroBento extends StatelessWidget {
-  final List<Campaign> campaigns;
-  final List<Show> shows;
-  const _HeroBento({required this.campaigns, required this.shows});
-
-  @override
-  Widget build(final BuildContext context) {
-    final Campaign? campaign = campaigns.isNotEmpty ? campaigns.first : null;
-    final Show? show = shows.isNotEmpty ? shows.first : null;
-    final String imageUrl = campaign?.imageUrl ?? show?.imageUrl ?? '';
-    final String title = campaign?.title ?? show?.name ?? 'TiyatRol Sahnesi';
-
-    return GestureDetector(
-      onTap: () {
-        if (show != null) NavigationHandler.goToShow(context, show.id, show.name);
-      },
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: BentoColors.microBorder),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (imageUrl.isNotEmpty)
-                CachedNetworkImage(imageUrl: imageUrl, fit: BoxFit.cover)
-              else
-                Container(color: BentoColors.card),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      BentoColors.canvas.withOpacity(0.92),
-                    ],
-                    stops: const [0.3, 1.0],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 20,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const BentoBadge(
-                        label: 'SAHNEDE ŞİMDİ', icon: LucideIcons.flame),
-                    const SizedBox(height: 10),
-                    Text(title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            height: 1.1)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// HIZLI AKSİYONLAR
-// ══════════════════════════════════════════════════════════════
-class _QuickActionsBentoRow extends ConsumerWidget {
-  const _QuickActionsBentoRow();
-
-  @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final items = <_QuickAction>[
-      _QuickAction(LucideIcons.compass, 'Keşfet',
-          () => NavigationHandler.goToDiscover(context)),
-      _QuickAction(LucideIcons.mapPin, 'Yakınımda',
-          () => NavigationHandler.goToNearby(context)),
-      _QuickAction(LucideIcons.heart, 'Favoriler',
-          () => NavigationHandler.goToFavorites(context)),
-      _QuickAction(LucideIcons.ticket, 'Biletlerim', () {
-        if (ref.read(isLoggedInProvider)) {
-          final uid = ref.read(currentUserIdProvider);
-          NavigationHandler.goToMyTickets(context, uid ?? '');
-        } else {
-          NavigationHandler.goToLogin(context);
-        }
-      }),
-    ];
-
-    return Row(
-      children: items
-          .map((final item) => Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: BentoCard(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    radius: 18,
-                    onTap: item.onTap,
-                    child: Column(
-                      children: [
-                        Icon(item.icon, size: 20, color: BentoColors.indigoLight),
-                        const SizedBox(height: 8),
-                        Text(item.label,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  ),
-                ),
-              ))
-          .toList(),
-    );
-  }
-}
-
-class _QuickAction {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  _QuickAction(this.icon, this.label, this.onTap);
-}
-
-// ══════════════════════════════════════════════════════════════
-// KATEGORİ ÇİPLERİ
-// ══════════════════════════════════════════════════════════════
-class _CategoryChipsRow extends StatelessWidget {
-  final List<Show> shows;
-  const _CategoryChipsRow({required this.shows});
-
-  @override
-  Widget build(final BuildContext context) {
-    final categories = shows
-        .map((final s) => s.category)
-        .where((final c) => c.trim().isNotEmpty)
-        .toSet()
-        .toList();
-    if (categories.isEmpty) return const SizedBox.shrink();
-
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (final _, final __) => const SizedBox(width: 8),
-        itemBuilder: (final context, final index) {
-          final c = categories[index];
-          return InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: () => NavigationHandler.goToDiscoverWithCategory(context, c),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: BentoColors.card,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: BentoColors.microBorder),
-              ),
-              child: Text(c,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600)),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// ÖNE ÇIKAN OYUNLAR — Bento grid (ilk kart büyük, gerisi 2 sütun)
-// ══════════════════════════════════════════════════════════════
-class _FeaturedShowsBento extends StatelessWidget {
-  final List<Show> shows;
-  const _FeaturedShowsBento({required this.shows});
-
-  @override
-  Widget build(final BuildContext context) {
-    if (shows.isEmpty) {
-      return const BentoEmptyState(
-          icon: LucideIcons.theater, title: 'Henüz gösteri eklenmemiş.');
-    }
-
-    final rest = shows.skip(1).take(4).toList();
-
-    return Column(
-      children: [
-        _ShowTile(show: shows.first, height: 220),
-        if (rest.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.78,
-            ),
-            itemCount: rest.length,
-            itemBuilder: (final context, final index) =>
-                _ShowTile(show: rest[index], height: null),
-          ),
         ],
-      ],
-    );
-  }
+      );
 }
 
-class _ShowTile extends StatelessWidget {
-  final Show show;
-  final double? height;
-  const _ShowTile({required this.show, required this.height});
+class _PerformantSpecialCardsAndActionsSection extends StatelessWidget {
+  const _PerformantSpecialCardsAndActionsSection();
 
   @override
-  Widget build(final BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => NavigationHandler.goToShow(context, show.id, show.name),
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: BentoColors.microBorder),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedNetworkImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withOpacity(0.88)],
-                      stops: const [0.35, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 12,
-                  right: 12,
-                  bottom: 12,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(show.category.toUpperCase(),
-                          style: const TextStyle(
-                              color: BentoColors.indigoLight,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1)),
-                      const SizedBox(height: 2),
-                      Text(show.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
-                              height: 1.15)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget build(final BuildContext context) =>
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: TicketStubCard(
+          title: "Romeo & Juliet",
+          subtitle: "%20 İndirim Fırsatı",
+          imageUrl:
+          'https://img.freepik.com/premium-vector/theatre2_1189973-28.jpg?semt=ais_hybrid&w=740&q=80',
         ),
       );
 }
 
-// ══════════════════════════════════════════════════════════════
-// MEKANLAR
-// ══════════════════════════════════════════════════════════════
-class _StagesBentoRow extends StatelessWidget {
-  final List<Stage> stages;
-  const _StagesBentoRow({required this.stages});
+class _PerformantQuickActionsGridSection extends ConsumerWidget {
+  const _PerformantQuickActionsGridSection();
 
   @override
-  Widget build(final BuildContext context) {
-    if (stages.isEmpty) {
-      return const BentoEmptyState(
-          icon: LucideIcons.building2, title: 'Henüz sahne eklenmemiş.');
-    }
-
-    return SizedBox(
-      height: 132,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: stages.length,
-        separatorBuilder: (final _, final __) => const SizedBox(width: 12),
-        itemBuilder: (final context, final index) {
-          final stage = stages[index];
-          return InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () =>
-                NavigationHandler.goToStage(context, stage.id, stage.name),
-            child: Container(
-              width: 150,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: BentoColors.card,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: BentoColors.microBorder),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: SizedBox(
-                      height: 64,
-                      width: double.infinity,
-                      child: CachedNetworkImage(
-                          imageUrl: stage.imageUrl, fit: BoxFit.cover),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(stage.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700)),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// KÜÇÜK YARDIMCI: rozetli ikon butonu
-// ══════════════════════════════════════════════════════════════
-class _IconGhostButton extends StatelessWidget {
-  final IconData icon;
-  final int badgeCount;
-  final VoidCallback onTap;
-
-  const _IconGhostButton(
-      {required this.icon, required this.onTap, this.badgeCount = 0});
-
-  @override
-  Widget build(final BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: BentoColors.card,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: BentoColors.microBorder),
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(icon, size: 19, color: Colors.white),
-              if (badgeCount > 0)
-                Positioned(
-                  top: -4,
-                  right: -6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(badgeCount > 9 ? '9+' : '$badgeCount',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800)),
-                  ),
-                ),
-            ],
-          ),
+  Widget build(final BuildContext context, final WidgetRef ref) =>
+      Padding(
+        padding: const EdgeInsets.only(top: 32.0),
+        child: QuickActionsGrid(
+          onNotificationsTap: () => NavigationHandler.goToSettings(context),
+          onFavoritesTap: () => NavigationHandler.goToFavorites(context),
+          onTicketsTap: () {
+            if (ref.read(isLoggedInProvider)) {
+              final uid = ref.read(currentUserIdProvider);
+              NavigationHandler.goToMyTickets(context, uid ?? "");
+            } else
+              NavigationHandler.goToLogin(context);
+          },
+          onCalendarTap: () {},
         ),
       );
 }
