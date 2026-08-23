@@ -1,6 +1,8 @@
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../common/constants/app_constants.dart';
 import '../../common/extentions/reg_exp_extentions.dart';
+import '../../util/platform_checker.dart';
 
 final class TiyatrolDeeplinkService {
   TiyatrolDeeplinkService._();
@@ -51,5 +53,18 @@ final class TiyatrolDeeplinkService {
         "🍎 iOS: ${AppConstants.appStoreUrl}";
 
     await Share.share(message);
+  }
+
+  /// ⭐ Uygulamayı Puanla — platforma göre doğrudan Play Store/App Store
+  /// sayfasını açar (paylaşım menüsüyle karıştırılmasın diye ayrı bir
+  /// aksiyon). Store sayfası açılamazsa (ör. mağaza uygulaması yoksa)
+  /// paylaşım akışına düşer.
+  static Future<void> rateApp() async {
+    final storeUrl =
+        PlatformChecker.isIOS ? AppConstants.appStoreUrl : AppConstants.playStoreUrl;
+    final uri = Uri.parse(storeUrl);
+    final launched = await canLaunchUrl(uri) &&
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) await shareApp();
   }
 }

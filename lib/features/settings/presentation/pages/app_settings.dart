@@ -126,7 +126,7 @@ class AppSettingsPage extends ConsumerWidget {
                 desc: 'Bu koleksiyonu yıldızlarla parlat.',
                 icon: Icons.auto_awesome_rounded,
                 gradient: [colors.primary, colors.primaryContainer],
-                onTap: () => TiyatrolDeeplinkService.shareApp(),
+                onTap: () => TiyatrolDeeplinkService.rateApp(),
               ),
               const SizedBox(height: 16),
               _buildCreativeAction(
