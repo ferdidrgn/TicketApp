@@ -340,7 +340,7 @@ class _PerformantQuickActionsGridSection extends ConsumerWidget {
             } else
               NavigationHandler.goToLogin(context);
           },
-          onCalendarTap: () {},
+          onCalendarTap: () => NavigationHandler.goToDiscover(context),
         ),
       );
 }

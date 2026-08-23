@@ -19,6 +19,22 @@ class DiscoveryPage extends ConsumerStatefulWidget {
 }
 
 class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
+  String? _activeCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeCategory = widget.selectedCategory;
+  }
+
+  @override
+  void didUpdateWidget(covariant final DiscoveryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedCategory != widget.selectedCategory) {
+      _activeCategory = widget.selectedCategory;
+    }
+  }
+
   @override
   Widget build(final BuildContext context) {
     final bool isLargeScreen = context.isTablet || context.isDesktop;
@@ -26,16 +42,16 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
     final filteredEvents = eventsAsync.value == null
         ? const <DiscoverEvent>[]
-        : widget.selectedCategory == null
+        : _activeCategory == null
             ? eventsAsync.value!
             : eventsAsync.value!
-                .where((final e) => e.show.category == widget.selectedCategory)
+                .where((final e) => e.show.category == _activeCategory)
                 .toList();
 
     return BasePageWrapper(
-      title: widget.selectedCategory ?? 'İlhamını Bul',
-      subtitle: widget.selectedCategory != null
-          ? '${widget.selectedCategory} kategorisindeki etkinlikler'
+      title: _activeCategory ?? 'İlhamını Bul',
+      subtitle: _activeCategory != null
+          ? '$_activeCategory kategorisindeki etkinlikler'
           : 'Küratörlerin hazırladığı özel seçkiler',
       showBackButton: false,
       showFab: true,
@@ -68,7 +84,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const SectionHeader(title: 'Tümünü Keşfet'),
-                          _buildFilterButton(context),
+                          _buildFilterButton(context, eventsAsync.value ?? const []),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -212,20 +228,90 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         ],
       );
 
-  Widget _buildFilterButton(final BuildContext context) => Container(
+  Widget _buildFilterButton(
+          final BuildContext context, final List<DiscoverEvent> events) =>
+      Container(
         decoration: BoxDecoration(
           color: context.colors.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: TextButton.icon(
-          onPressed: () {},
-          icon:
-              Icon(Icons.tune_rounded, size: 18, color: context.colors.primary),
-          label: Text('Filtrele',
+          onPressed: () => _openCategoryFilterSheet(context, events),
+          icon: Icon(
+              _activeCategory != null
+                  ? Icons.filter_alt_rounded
+                  : Icons.tune_rounded,
+              size: 18,
+              color: context.colors.primary),
+          label: Text(_activeCategory ?? 'Filtrele',
               style: TextStyle(
                   color: context.colors.primary, fontWeight: FontWeight.bold)),
         ),
       );
+
+  void _openCategoryFilterSheet(
+      final BuildContext context, final List<DiscoverEvent> events) {
+    final categories = events
+        .map((final e) => e.show.category)
+        .where((final c) => c.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (final sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Kategoriye Göre Filtrele',
+                  style: context.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              if (categories.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text('Şu an filtrelenecek kategori yok.',
+                      style: TextStyle(color: context.colors.onSurfaceVariant)),
+                )
+              else
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Tümü'),
+                      selected: _activeCategory == null,
+                      onSelected: (final _) {
+                        setState(() => _activeCategory = null);
+                        Navigator.pop(sheetContext);
+                      },
+                    ),
+                    for (final category in categories)
+                      ChoiceChip(
+                        label: Text(category),
+                        selected: _activeCategory == category,
+                        onSelected: (final _) {
+                          setState(() => _activeCategory = category);
+                          Navigator.pop(sheetContext);
+                        },
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildEmptyState(final BuildContext context) => Center(
         child: Padding(
@@ -237,9 +323,9 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                   size: 56, color: context.colors.outline),
               const SizedBox(height: 16),
               Text(
-                widget.selectedCategory == null
+                _activeCategory == null
                     ? 'Şu anda yaklaşan bir etkinlik yok.'
-                    : '"${widget.selectedCategory}" kategorisinde yaklaşan etkinlik yok.',
+                    : '"$_activeCategory" kategorisinde yaklaşan etkinlik yok.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.colors.onSurfaceVariant),
               ),

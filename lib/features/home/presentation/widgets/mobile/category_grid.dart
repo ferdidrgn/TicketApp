@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../../shared/navigation/widgets/nav_handler.dart';
 
 class CategoryGrid extends StatelessWidget {
   const CategoryGrid({super.key});
@@ -63,41 +65,48 @@ class _CategoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 65,
-          height: 65,
-          decoration: BoxDecoration(
-            color: category.color.withOpacity(0.6),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(30),
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(15),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: category.color.withOpacity(0.4),
-                blurRadius: 10,
-                offset: const Offset(2, 4),
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        NavigationHandler.goToDiscoverWithCategory(context, category.label);
+      },
+      child: Column(
+        children: [
+          Container(
+            width: 65,
+            height: 65,
+            decoration: BoxDecoration(
+              color: category.color.withOpacity(0.6),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(30),
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(15),
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: category.color.withOpacity(0.4),
+                  blurRadius: 10,
+                  offset: const Offset(2, 4),
+                ),
+              ],
+            ),
+            child: Icon(
+              category.icon,
+              color: Colors.black87,
+              size: 28,
+            ),
           ),
-          child: Icon(
-            category.icon,
-            color: Colors.black87,
-            size: 28,
+          const SizedBox(height: 8),
+          Text(
+            category.label,
+            style: context.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          category.label,
-          style: context.textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
