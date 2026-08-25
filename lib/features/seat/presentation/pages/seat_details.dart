@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../events/presentation/providers/event_provider.dart';
+import '../../../payments/data/services/payment_gateway_service.dart';
+import '../../../payments/presentation/providers/payment_status_provider.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../widgets/purchase_success_dialog.dart';
 
@@ -242,10 +245,24 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
               const SizedBox(height: 20),
               _paymentOption(
                   icon: Icons.credit_card,
-                  title: "Kredi / Banka Kartı",
-                  subtitle: "Anında Onay",
-                  onTap: () => _processPurchase(ctx, selectedSeats, "card",
-                      totalPrice, event.stageId, event.showId)),
+                  title: "iyzico ile Öde",
+                  subtitle: "Kredi / Banka Kartı",
+                  onTap: () => _processGatewayPurchase(ctx, selectedSeats,
+                      PaymentGatewayProvider.iyzico, totalPrice)),
+              const SizedBox(height: 12),
+              _paymentOption(
+                  icon: Icons.credit_card,
+                  title: "PayTR ile Öde",
+                  subtitle: "Kredi / Banka Kartı",
+                  onTap: () => _processGatewayPurchase(ctx, selectedSeats,
+                      PaymentGatewayProvider.paytr, totalPrice)),
+              const SizedBox(height: 12),
+              _paymentOption(
+                  icon: Icons.credit_card,
+                  title: "Stripe ile Öde",
+                  subtitle: "Uluslararası Kart",
+                  onTap: () => _processGatewayPurchase(ctx, selectedSeats,
+                      PaymentGatewayProvider.stripe, totalPrice)),
               const SizedBox(height: 12),
               _paymentOption(
                   icon: Icons.account_balance,
@@ -312,43 +329,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
 
       if (mounted) {
         Navigator.pop(context);
-
-        // Yeni oluşturulan bileti bul (purchaseAction zaten myTicketsProvider'ı
-        // invalidate ediyor, bu yüzden burada güncel liste gelir). Bulunamazsa
-        // (ör. ağ gecikmesi) dialog yine de "BİLETİ GÖR" butonu olmadan gösterilir.
-        DetailedTicket? newTicket;
-        try {
-          final tickets =
-              await ref.read(myTicketsProvider(widget.customerId).future);
-          for (final t in tickets) {
-            if (t.ticket.eventId != widget.eventId) continue;
-            if (newTicket == null) {
-              newTicket = t;
-              continue;
-            }
-            final current = DateTime.tryParse(t.ticket.createdAt);
-            final best = DateTime.tryParse(newTicket.ticket.createdAt);
-            if (current != null && (best == null || current.isAfter(best))) {
-              newTicket = t;
-            }
-          }
-        } catch (_) {
-          // Bilet detayını önceden gösteremezsek bile satın alma başarılı
-          // olduğu için akışı kesmiyoruz.
-        }
-
-        if (mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (final _) => PurchaseSuccessDialog(
-              ticket: newTicket,
-              customerId: widget.customerId,
-              seatCount: seats.length,
-              totalPrice: total,
-            ),
-          );
-        }
+        await _showPurchaseSuccessAfterLookup(seats: seats, total: total);
       }
     } catch (e) {
       if (mounted) {
@@ -356,6 +337,143 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Hata: $e"), backgroundColor: Colors.red));
       }
+    }
+  }
+
+  /// `card`/iban akışı başarıyla bitince en son oluşturulan bileti bulup
+  /// başarı diyalogunu gösterir. Hem manuel (iban) hem de gerçek ödeme
+  /// sağlayıcısı (kart) akışı tarafından ortak kullanılır.
+  Future<void> _showPurchaseSuccessAfterLookup(
+      {required final List<String> seats, required final double total}) async {
+    // Yeni oluşturulan bileti bul. Bulunamazsa (ör. ağ gecikmesi) dialog
+    // yine de "BİLETİ GÖR" butonu olmadan gösterilir.
+    DetailedTicket? newTicket;
+    try {
+      final tickets =
+          await ref.read(myTicketsProvider(widget.customerId).future);
+      for (final t in tickets) {
+        if (t.ticket.eventId != widget.eventId) continue;
+        if (newTicket == null) {
+          newTicket = t;
+          continue;
+        }
+        final current = DateTime.tryParse(t.ticket.createdAt);
+        final best = DateTime.tryParse(newTicket.ticket.createdAt);
+        if (current != null && (best == null || current.isAfter(best))) {
+          newTicket = t;
+        }
+      }
+    } catch (_) {
+      // Bilet detayını önceden gösteremezsek bile satın alma başarılı
+      // olduğu için akışı kesmiyoruz.
+    }
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (final _) => PurchaseSuccessDialog(
+          ticket: newTicket,
+          customerId: widget.customerId,
+          seatCount: seats.length,
+          totalPrice: total,
+        ),
+      );
+    }
+  }
+
+  /// 💳 GERÇEK ÖDEME AKIŞI (iyzico/PayTR/Stripe):
+  /// 1) Sunucuda (Cloud Functions) bir ödeme oturumu oluşturulur — tutar ve
+  ///    koltuk rezervasyonu orada doğrulanır, client'a güvenilmez.
+  /// 2) Sağlayıcının barındırılan ödeme sayfası harici tarayıcıda açılır.
+  /// 3) `Payment/{paymentId}` Firestore dökümanı dinlenir; sağlayıcının
+  ///    webhook'u ödemeyi doğrulayıp 'paid' yaptığında bilet SUNUCU
+  ///    tarafında zaten oluşturulmuş olur (bkz. functions/payments/index.js
+  ///    finalizePayment) — burada sadece güncel listeyi yeniden çekiyoruz.
+  Future<void> _processGatewayPurchase(
+      final BuildContext ctx,
+      final List<String> seats,
+      final PaymentGatewayProvider provider,
+      final double total) async {
+    Navigator.pop(ctx);
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (final _) =>
+            const Center(child: CircularProgressIndicator(color: Colors.cyan)));
+
+    final PaymentSession session;
+    try {
+      session = await PaymentGatewayService.createSession(
+        provider: provider,
+        eventId: widget.eventId,
+        seatIds: seats,
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("$e"), backgroundColor: Colors.red));
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context); // Yükleniyor dialogunu kapat
+
+    final launched = await launchUrl(Uri.parse(session.checkoutUrl),
+        mode: LaunchMode.externalApplication);
+    if (!launched) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Ödeme sayfası açılamadı."),
+            backgroundColor: Colors.red));
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (final dialogCtx) => Consumer(
+        builder: (final _, final consumerRef, final __) {
+          final data =
+              consumerRef.watch(paymentStatusStreamProvider(session.paymentId)).value;
+          final status = data?['status'] as String?;
+          if (status == 'paid' || status == 'failed') {
+            WidgetsBinding.instance.addPostFrameCallback((final _) {
+              if (Navigator.canPop(dialogCtx)) Navigator.pop(dialogCtx, status);
+            });
+          }
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1A1A2E),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: Colors.cyan),
+                const SizedBox(height: 16),
+                Text(
+                  status == 'failed'
+                      ? (data?['failureReason'] as String? ?? 'Ödeme başarısız.')
+                      : 'Ödemeni tamamladıktan sonra buraya otomatik döneceğiz...',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    if (!mounted) return;
+    if (result == 'paid') {
+      ref.invalidate(myTicketsProvider(widget.customerId));
+      await _showPurchaseSuccessAfterLookup(seats: seats, total: total);
+    } else if (result == 'failed') {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Ödeme tamamlanamadı."), backgroundColor: Colors.red));
     }
   }
 

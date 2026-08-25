@@ -23,6 +23,17 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 initializeApp();
 
+// 💳 Ödeme sağlayıcı entegrasyonları (iyzico/PayTR/Stripe) — bkz.
+// functions/payments/index.js. Gerçek API anahtarları eklenip
+// `firebase functions:secrets:set` ile tanımlanana kadar bu fonksiyonlar
+// 'PAYMENT_PROVIDER_NOT_CONFIGURED' hatası döner, deploy'u bozmaz.
+const payments = require('./payments');
+exports.createPaymentSession = payments.createPaymentSession;
+exports.iyzicoWebhook = payments.iyzicoWebhook;
+exports.paytrWebhook = payments.paytrWebhook;
+exports.stripeWebhook = payments.stripeWebhook;
+exports.paymentLanding = payments.paymentLanding;
+
 const ALL_USERS_TOPIC = 'all_users';
 const NOTIFICATION_COLLECTION = 'Notification';
 
