@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../events/presentation/providers/event_provider.dart';
@@ -76,7 +77,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
     final timerStream = ref.watch(reservationTimerProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F13),
+      backgroundColor: BentoColors.canvas,
       appBar: _buildAppBar(timerStream.value ?? 600),
       body: eventAsync.when(
         data: (final event) => Container(
@@ -84,7 +85,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             gradient: RadialGradient(
               center: Alignment.topCenter,
               radius: 1.5,
-              colors: [Color(0xFF1A1A2E), Color(0xFF0A0A12)],
+              colors: [BentoColors.card, BentoColors.canvas],
             ),
           ),
           child: SafeArea(
@@ -104,7 +105,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                       onSeatTap: _handleSeatTap, // Tıklama fonksiyonu
                     ),
                     loading: () => const Center(
-                        child: CircularProgressIndicator(color: Colors.cyan)),
+                        child: CircularProgressIndicator(color: BentoColors.indigoLight)),
                     error: (final e, final _) => Center(
                         child: Text("Hata: $e",
                             style: const TextStyle(color: Colors.white))),
@@ -118,7 +119,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
           ),
         ),
         loading: () =>
-            const Center(child: CircularProgressIndicator(color: Colors.cyan)),
+            const Center(child: CircularProgressIndicator(color: BentoColors.indigoLight)),
         error: (final e, final _) => Center(
             child: Text("Yüklenemedi: $e",
                 style: const TextStyle(color: Colors.white))),
@@ -192,7 +193,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
     showDialog(
       context: context,
       builder: (final ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: BentoColors.card,
         title: const Text("Giriş Yapmalısınız",
             style: TextStyle(color: Colors.white)),
         content: const Text(
@@ -204,7 +205,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
               child:
                   const Text("İptal", style: TextStyle(color: Colors.white38))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+            style: ElevatedButton.styleFrom(backgroundColor: BentoColors.indigoLight),
             onPressed: () {
               Navigator.pop(ctx);
               NavigationHandler.goToLogin(context);
@@ -227,7 +228,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: BentoColors.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (final ctx) => SafeArea(
@@ -290,8 +291,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
       leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-              color: Colors.cyan.withOpacity(0.2), shape: BoxShape.circle),
-          child: Icon(icon, color: Colors.cyan)),
+              color: BentoColors.indigoLight.withOpacity(0.2), shape: BoxShape.circle),
+          child: Icon(icon, color: BentoColors.indigoLight)),
       title: Text(title,
           style: const TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold)),
@@ -314,7 +315,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
         context: context,
         barrierDismissible: false,
         builder: (final _) =>
-            const Center(child: CircularProgressIndicator(color: Colors.cyan)));
+            const Center(child: CircularProgressIndicator(color: BentoColors.indigoLight)));
 
     try {
       await ref.read(purchaseActionProvider(
@@ -400,7 +401,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
         context: context,
         barrierDismissible: false,
         builder: (final _) =>
-            const Center(child: CircularProgressIndicator(color: Colors.cyan)));
+            const Center(child: CircularProgressIndicator(color: BentoColors.indigoLight)));
 
     final PaymentSession session;
     try {
@@ -447,11 +448,11 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             });
           }
           return AlertDialog(
-            backgroundColor: const Color(0xFF1A1A2E),
+            backgroundColor: BentoColors.card,
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(color: Colors.cyan),
+                const CircularProgressIndicator(color: BentoColors.indigoLight),
                 const SizedBox(height: 16),
                 Text(
                   status == 'failed'
@@ -505,7 +506,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                   child: Text(
                       "${(seconds / 60).floor()}:${(seconds % 60).toString().padLeft(2, '0')}",
                       style: const TextStyle(
-                          color: Colors.cyan, fontWeight: FontWeight.bold))))
+                          color: BentoColors.indigoLight, fontWeight: FontWeight.bold))))
         ],
       );
 
@@ -514,8 +515,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
         Container(
             width: 200,
             height: 3,
-            decoration: BoxDecoration(color: Colors.cyan, boxShadow: [
-              BoxShadow(color: Colors.cyan.withOpacity(0.5), blurRadius: 10)
+            decoration: BoxDecoration(color: BentoColors.indigoLight, boxShadow: [
+              BoxShadow(color: BentoColors.indigoLight.withOpacity(0.5), blurRadius: 10)
             ])),
         const SizedBox(height: 8),
         const Text("S A H N E",
