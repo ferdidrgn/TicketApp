@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_modal.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 import '../providers/my_ticket_provider.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {
@@ -59,8 +61,8 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
       isLoading: ticketsAsync.isLoading,
       customScrollController: scrollController,
       layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
-        ambientColor: context.colors.primary.withOpacity(0.05),
+        backgroundColor: BentoColors.canvas,
+        ambientColor: BentoColors.indigo.withOpacity(0.05),
         safeAreaTop: true,
       ),
       child: Center(
@@ -109,8 +111,16 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
                   itemCount: 3,
                   itemBuilder: (final _, final __) => const ShimmerCard(),
                 ),
-                error: (final err, final stack) =>
-                    Center(child: Text('Hata: $err')),
+                error: (final err, final stack) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: BentoErrorState(
+                      message: 'Biletler yüklenemedi.',
+                      onRetry: () =>
+                          ref.invalidate(myTicketsProvider(widget.userId)),
+                    ),
+                  ),
+                ),
                 data: (final tickets) {
                   if (tickets.isEmpty) return const _EmptyState();
 
@@ -171,8 +181,9 @@ class _TicketCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: colors.surface,
+        color: BentoColors.card,
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: BentoColors.microBorder),
         boxShadow: [
           BoxShadow(
             color: colors.primary.withOpacity(0.06),
@@ -294,32 +305,31 @@ class _TabSelector extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    final themeColors = context.colors;
     return Container(
       height: 58,
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: themeColors.surfaceVariant.withOpacity(0.5),
+        color: BentoColors.highlight,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: themeColors.outlineVariant.withOpacity(0.3)),
+        border: Border.all(color: BentoColors.microBorder),
       ),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [themeColors.primary, themeColors.primaryContainer],
+          gradient: const LinearGradient(
+            colors: [BentoColors.indigo, BentoColors.indigoDark],
           ),
           boxShadow: [
             BoxShadow(
-              color: themeColors.primary.withOpacity(0.3),
+              color: BentoColors.indigo.withOpacity(0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        labelColor: themeColors.onPrimary,
-        unselectedLabelColor: themeColors.onSurfaceVariant,
+        labelColor: Colors.white,
+        unselectedLabelColor: const Color(0xFFA1A1AA),
         labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
         unselectedLabelStyle:
             const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
@@ -395,10 +405,13 @@ class _TicketList extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 120),
         physics: const BouncingScrollPhysics(),
         itemCount: tickets.length,
-        itemBuilder: (final context, final index) => _TicketCard(
-          detailedTicket: tickets[index],
-          isPast: isPast,
-          onTap: () => onTicketTap(tickets[index]),
+        itemBuilder: (final context, final index) => FadeInUp(
+          delay: Duration(milliseconds: 50 * index),
+          child: _TicketCard(
+            detailedTicket: tickets[index],
+            isPast: isPast,
+            onTap: () => onTicketTap(tickets[index]),
+          ),
         ),
       );
 }
@@ -408,15 +421,13 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.palette_outlined,
-                size: 60, color: context.colors.outline),
-            const SizedBox(height: 16),
-            const Text("Sahne henüz boş...",
-                style: TextStyle(fontWeight: FontWeight.w600)),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: BentoEmptyState(
+            icon: Icons.confirmation_number_outlined,
+            title: 'Sahne henüz boş',
+            message: 'Bilet aldığında burada görünecek.',
+          ),
         ),
       );
 }

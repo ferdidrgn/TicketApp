@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/app_notification.dart';
 import '../providers/notification_provider.dart';
@@ -21,8 +23,8 @@ class NotificationCenterPage extends ConsumerWidget {
       showBackButton: true,
       rightIcon: Icons.notifications_rounded,
       isLoading: notificationsAsync.isLoading,
-      layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
+      layoutConfig: const BasePageLayoutConfig(
+        backgroundColor: BentoColors.canvas,
         safeAreaTop: true,
       ),
       onRefresh: () => ref.invalidate(notificationsStreamProvider),
@@ -42,8 +44,11 @@ class NotificationCenterPage extends ConsumerWidget {
                     itemCount: notifications.length,
                     separatorBuilder: (final _, final __) =>
                         const SizedBox(height: 12),
-                    itemBuilder: (final context, final index) =>
-                        _NotificationTile(notification: notifications[index]),
+                    itemBuilder: (final context, final index) => FadeInUp(
+                      delay: Duration(milliseconds: 40 * index),
+                      child:
+                          _NotificationTile(notification: notifications[index]),
+                    ),
                   ),
           ),
         ),
@@ -67,14 +72,12 @@ class _NotificationTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isUnread
-              ? context.colors.primary.withOpacity(0.06)
-              : context.colors.surfaceContainer,
+          color: isUnread ? BentoColors.indigo.withOpacity(0.10) : BentoColors.card,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isUnread
-                ? context.colors.primary.withOpacity(0.25)
-                : context.colors.outlineVariant.withOpacity(0.4),
+                ? BentoColors.indigo.withOpacity(0.35)
+                : BentoColors.microBorder,
           ),
         ),
         child: Row(
@@ -84,11 +87,11 @@ class _NotificationTile extends ConsumerWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: context.colors.primary.withOpacity(0.12),
+                color: BentoColors.indigo.withOpacity(0.14),
                 shape: BoxShape.circle,
               ),
               child: Icon(_iconFor(notification.type),
-                  color: context.colors.primary, size: 22),
+                  color: BentoColors.indigoLight, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -100,20 +103,20 @@ class _NotificationTile extends ConsumerWidget {
                     style: TextStyle(
                       fontWeight: isUnread ? FontWeight.w800 : FontWeight.w600,
                       fontSize: 15,
-                      color: context.colors.onSurface,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     notification.body,
-                    style: TextStyle(
-                        fontSize: 13, color: context.colors.onSurfaceVariant),
+                    style: const TextStyle(
+                        fontSize: 13, color: Color(0xFFA1A1AA)),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _relativeTime(notification.createdAt),
-                    style: TextStyle(
-                        fontSize: 11, color: context.colors.onSurfaceVariant),
+                    style: const TextStyle(
+                        fontSize: 11, color: Color(0xFF71717A)),
                   ),
                 ],
               ),
@@ -123,8 +126,8 @@ class _NotificationTile extends ConsumerWidget {
                 margin: const EdgeInsets.only(left: 8, top: 4),
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(
-                  color: context.colors.primary,
+                decoration: const BoxDecoration(
+                  color: BentoColors.indigo,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -172,15 +175,10 @@ class _EmptyState extends StatelessWidget {
   Widget build(final BuildContext context) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.notifications_off_rounded,
-                  size: 56, color: context.colors.outline),
-              const SizedBox(height: 16),
-              Text('Henüz bir bildirimin yok.',
-                  style: TextStyle(color: context.colors.onSurfaceVariant)),
-            ],
+          child: BentoEmptyState(
+            icon: Icons.notifications_off_rounded,
+            title: 'Henüz bildirim yok',
+            message: 'Kampanya ve bilet güncellemeleri burada görünecek.',
           ),
         ),
       );
@@ -194,17 +192,8 @@ class _ErrorState extends StatelessWidget {
   Widget build(final BuildContext context) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline_rounded,
-                  size: 56, color: context.colors.error),
-              const SizedBox(height: 16),
-              const Text('Bildirimler yüklenemedi.', textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton(onPressed: onRetry, child: const Text('Tekrar dene')),
-            ],
-          ),
+          child: BentoErrorState(
+              message: 'Bildirimler yüklenemedi.', onRetry: onRetry),
         ),
       );
 }

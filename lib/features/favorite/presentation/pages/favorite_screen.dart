@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/shared/widgets/bento/bento_primitives.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/pages/player_details.dart';
 import '../../../shows/domain/entities/show.dart';
@@ -51,8 +53,8 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage>
         showBackButton: true,
         rightIcon: Icons.favorite_rounded,
         isLoading: favoritesAsync.isLoading,
-        layoutConfig: BasePageLayoutConfig(
-          backgroundColor: context.colors.surface,
+        layoutConfig: const BasePageLayoutConfig(
+          backgroundColor: BentoColors.canvas,
           safeAreaTop: true,
         ),
         onRefresh: () => ref.invalidate(myFavoritesProvider),
@@ -125,32 +127,35 @@ class _ShowsGrid extends StatelessWidget {
       itemCount: shows.length,
       itemBuilder: (final context, final index) {
         final show = shows[index];
-        return Stack(
-          children: [
-            ShowCard(
-              imageUrl: show.imageUrl,
-              gameName: show.name,
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (final _) => ShowDetailPage(showId: show.id)));
-              },
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
-                  shape: BoxShape.circle,
-                ),
-                child: FavoriteToggleButton(
-                    itemId: show.id, type: FavoriteType.show, size: 18),
+        return FadeInUp(
+          delay: Duration(milliseconds: 40 * index),
+          child: Stack(
+            children: [
+              ShowCard(
+                imageUrl: show.imageUrl,
+                gameName: show.name,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (final _) => ShowDetailPage(showId: show.id)));
+                },
               ),
-            ),
-          ],
+              Positioned(
+                top: 8,
+                right: 8,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: FavoriteToggleButton(
+                      itemId: show.id, type: FavoriteType.show, size: 18),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -182,33 +187,36 @@ class _StagesGrid extends StatelessWidget {
       itemCount: stages.length,
       itemBuilder: (final context, final index) {
         final stage = stages[index];
-        return Stack(
-          children: [
-            CustomStageCard(
-              text: stage.name,
-              imageUrl: stage.imageUrl,
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (final _) =>
-                            StageDetailPage(stageId: stage.id)));
-              },
-            ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
-                  shape: BoxShape.circle,
-                ),
-                child: FavoriteToggleButton(
-                    itemId: stage.id, type: FavoriteType.stage, size: 18),
+        return FadeInUp(
+          delay: Duration(milliseconds: 40 * index),
+          child: Stack(
+            children: [
+              CustomStageCard(
+                text: stage.name,
+                imageUrl: stage.imageUrl,
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (final _) =>
+                              StageDetailPage(stageId: stage.id)));
+                },
               ),
-            ),
-          ],
+              Positioned(
+                top: 0,
+                right: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: FavoriteToggleButton(
+                      itemId: stage.id, type: FavoriteType.stage, size: 18),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -241,33 +249,36 @@ class _PlayersGrid extends StatelessWidget {
       itemBuilder: (final context, final index) {
         final player = players[index];
         final fullName = '${player.firstName} ${player.lastName}';
-        return Stack(
-          children: [
-            CustomStageCard(
-              text: fullName,
-              imageUrl: player.imageUrl,
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (final _) => PlayerDetailPage(
-                            playerId: player.id)));
-              },
-            ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
-                  shape: BoxShape.circle,
-                ),
-                child: FavoriteToggleButton(
-                    itemId: player.id, type: FavoriteType.player, size: 18),
+        return FadeInUp(
+          delay: Duration(milliseconds: 40 * index),
+          child: Stack(
+            children: [
+              CustomStageCard(
+                text: fullName,
+                imageUrl: player.imageUrl,
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (final _) => PlayerDetailPage(
+                              playerId: player.id)));
+                },
               ),
-            ),
-          ],
+              Positioned(
+                top: 0,
+                right: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: FavoriteToggleButton(
+                      itemId: player.id, type: FavoriteType.player, size: 18),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -283,18 +294,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(final BuildContext context) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 56, color: context.colors.outline),
-              const SizedBox(height: 16),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: context.colors.onSurfaceVariant),
-              ),
-            ],
-          ),
+          child: BentoEmptyState(icon: icon, title: 'Henüz boş', message: message),
         ),
       );
 }
@@ -307,17 +307,8 @@ class _ErrorState extends StatelessWidget {
   Widget build(final BuildContext context) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline_rounded,
-                  size: 56, color: context.colors.error),
-              const SizedBox(height: 16),
-              const Text('Favoriler yüklenemedi.', textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton(onPressed: onRetry, child: const Text('Tekrar dene')),
-            ],
-          ),
+          child: BentoErrorState(
+              message: 'Favoriler yüklenemedi.', onRetry: onRetry),
         ),
       );
 }
@@ -342,33 +333,29 @@ class _FavoriteTabSelector extends StatelessWidget {
       height: 54,
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: context.colors.surfaceVariant.withOpacity(0.3),
+        color: BentoColors.highlight,
         borderRadius: BorderRadius.circular(18),
-        border:
-            Border.all(color: context.colors.outlineVariant.withOpacity(0.5)),
+        border: Border.all(color: BentoColors.microBorder),
       ),
       child: TabBar(
         controller: controller,
         dividerColor: Colors.transparent,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          gradient: LinearGradient(
-            colors: [
-              context.colors.primary,
-              context.colors.primary.withOpacity(0.8)
-            ],
+          gradient: const LinearGradient(
+            colors: [BentoColors.indigo, BentoColors.indigoDark],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-                color: context.colors.primary.withOpacity(0.3),
+                color: BentoColors.indigo.withOpacity(0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 4)),
           ],
         ),
-        labelColor: context.colors.onPrimary,
-        unselectedLabelColor: context.colors.onSurfaceVariant,
+        labelColor: Colors.white,
+        unselectedLabelColor: const Color(0xFFA1A1AA),
         labelStyle: const TextStyle(
             fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
         unselectedLabelStyle:
