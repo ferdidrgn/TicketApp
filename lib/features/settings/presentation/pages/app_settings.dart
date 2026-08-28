@@ -7,6 +7,7 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/package_info_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
@@ -38,8 +39,8 @@ class AppSettingsPage extends ConsumerWidget {
       rightIcon: Icons.handyman_rounded,
       showBackButton: true,
       showFab: false,
-      layoutConfig: BasePageLayoutConfig(
-        backgroundColor: colors.surface,
+      layoutConfig: const BasePageLayoutConfig(
+        backgroundColor: BentoColors.canvas,
         safeAreaTop: true,
       ),
       // 💡 İçerik artık doğrudan ListView veya SingleChildScrollView olabilir
@@ -175,9 +176,9 @@ class AppSettingsPage extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: colors.surface,
+        color: BentoColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
+        border: Border.all(color: BentoColors.microBorder),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.05),
