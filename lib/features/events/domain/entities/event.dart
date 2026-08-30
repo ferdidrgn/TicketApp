@@ -16,6 +16,14 @@ class Event extends Equatable {
     required this.seats,
   });
 
+  /// Küratör fiyatı "0" (veya parse edilemeyen bir değer değilse ve <= 0)
+  /// olarak ayarlamışsa etkinlik ücretsiz sayılır — ayrı bir Firestore
+  /// alanı gerekmez, mevcut `price` alanı yeterli.
+  bool get isFree {
+    final parsed = double.tryParse(price);
+    return parsed != null && parsed <= 0;
+  }
+
   @override
   List<Object?> get props => [id, stageId, showId, date, price, seats];
 }

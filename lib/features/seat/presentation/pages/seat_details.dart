@@ -5,6 +5,7 @@ import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../events/presentation/providers/event_provider.dart';
+import '../../../payments/data/services/free_ticket_service.dart';
 import '../../../payments/data/services/payment_gateway_service.dart';
 import '../../../payments/presentation/providers/payment_status_provider.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
@@ -124,7 +125,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             child: Text("Yüklenemedi: $e",
                 style: const TextStyle(color: Colors.white))),
       ),
-      floatingActionButton: _buildFab(seatsAsync.value ?? {}),
+      floatingActionButton:
+          _buildFab(seatsAsync.value ?? {}, eventAsync.value?.isFree ?? false),
     );
   }
 
@@ -157,7 +159,8 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   }
 
   // 🔹 MİSAFİR İÇİN GİRİŞ YAP BUTONU
-  Widget _buildFab(final Map<String, Map<String, dynamic>> seats) {
+  Widget _buildFab(
+      final Map<String, Map<String, dynamic>> seats, final bool isFree) {
     // Eğer misafirse ve bir şekilde seçim ekranındaysa, buton GİRİŞ YAP olsun
     if (_isGuest) {
       return FloatingActionButton.extended(
@@ -179,6 +182,17 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
 
     if (mySelectedSeats.isEmpty) return const SizedBox.shrink();
 
+    // 🎁 Ücretsiz etkinlik: ödeme adımı tamamen atlanır, doğrudan talep edilir.
+    if (isFree) {
+      return FloatingActionButton.extended(
+        onPressed: () => _claimFreeTicket(context, mySelectedSeats),
+        backgroundColor: BentoColors.emerald,
+        label: const Text("ÜCRETSİZ BİLETİNİ AL",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 18),
+      );
+    }
+
     return FloatingActionButton.extended(
       onPressed: () => _showPaymentModal(context, mySelectedSeats),
       backgroundColor: Colors.white,
@@ -186,6 +200,37 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       icon: const Icon(Icons.credit_card, color: Colors.black, size: 16),
     );
+  }
+
+  /// 🎁 ÜCRETSİZ BİLET TALEBİ:
+  /// Ödeme sağlayıcısı yok — sunucu (functions/freeTickets/index.js)
+  /// etkinliğin gerçekten ücretsiz olduğunu ve koltukların bu kullanıcı
+  /// tarafından rezerve edildiğini doğrular, bileti oluşturur ve kullanıcının
+  /// profilindeki telefon numarasına SMS ile bilgi gönderir. "Etkinlik
+  /// başına en fazla 3" kuralı ayrıca kontrol edilmiyor çünkü koltuk
+  /// rezervasyon adımı (attemptReservation) bunu zaten uyguluyor.
+  Future<void> _claimFreeTicket(
+      final BuildContext ctx, final List<String> seats) async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (final _) => const Center(
+            child: CircularProgressIndicator(color: BentoColors.emerald)));
+
+    try {
+      await FreeTicketService.claim(eventId: widget.eventId, seatIds: seats);
+      if (mounted) {
+        Navigator.pop(context);
+        ref.invalidate(myTicketsProvider(widget.customerId));
+        await _showPurchaseSuccessAfterLookup(seats: seats, total: 0);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("$e"), backgroundColor: Colors.red));
+      }
+    }
   }
 
   // 🔹 MİSAFİR UYARI DİYALOGU

@@ -208,11 +208,21 @@ class _TicketCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(detailedTicket.show?.name ?? 'Sanat Eseri',
-                          style: context.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color:
-                                  isPast ? colors.outline : colors.onSurface)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                                detailedTicket.show?.name ?? 'Sanat Eseri',
+                                style: context.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: isPast
+                                        ? colors.outline
+                                        : colors.onSurface)),
+                          ),
+                          if (detailedTicket.ticket.orderMethod == 'free')
+                            const _FreeTicketBadge(),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       _ArtInfoLine(
                           icon: Icons.castle_rounded,
@@ -241,6 +251,26 @@ class _TicketCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FreeTicketBadge extends StatelessWidget {
+  const _FreeTicketBadge();
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: BentoColors.emerald.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: BentoColors.emerald.withOpacity(0.4)),
+        ),
+        child: const Text('ÜCRETSİZ',
+            style: TextStyle(
+                color: BentoColors.emerald,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5)),
+      );
 }
 
 class _ArtDateSidebar extends StatelessWidget {

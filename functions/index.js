@@ -34,6 +34,12 @@ exports.paytrWebhook = payments.paytrWebhook;
 exports.stripeWebhook = payments.stripeWebhook;
 exports.paymentLanding = payments.paymentLanding;
 
+// 🎁 Ücretsiz etkinlik bilet talebi (bkz. functions/freeTickets/index.js).
+// SMS için Twilio'nun resmi "Trigger SMS" Firebase Extension'ının
+// varsayılan `messages` koleksiyonunu kullanıyor.
+const freeTickets = require('./freeTickets');
+exports.claimFreeTicket = freeTickets.claimFreeTicket;
+
 const ALL_USERS_TOPIC = 'all_users';
 const NOTIFICATION_COLLECTION = 'Notification';
 
