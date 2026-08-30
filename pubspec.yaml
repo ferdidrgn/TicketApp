@@ -37,7 +37,6 @@ dependencies:
   video_player: ^2.7.0
   audioplayers: ^6.0.0
   image_picker:
-  file_picker:
 
   # Firebase
   firebase_core: ^4.3.0
@@ -65,7 +64,6 @@ dependencies:
   permission_handler:
   simple_html_css:
   universal_html: ^2.2.4
-  pinput:
   qr_flutter:
   shimmer: ^3.0.0
   url_launcher:
@@ -79,9 +77,6 @@ dependencies:
 
   # Tasarım Sistemi 2.0 (Bento / Glassmorphism)
   flutter_animate: ^4.5.2
-  gap: ^3.0.1
-  lucide_icons_flutter: ^3.1.15
-  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -89,9 +84,7 @@ dev_dependencies:
 
   # Generators
   flutter_lints:
-  injectable_generator:
   build_runner: ^2.10.4
-  freezed:
   riverpod_generator: ^3.0.3
   json_serializable:
 
