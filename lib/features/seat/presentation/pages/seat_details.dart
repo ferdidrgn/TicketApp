@@ -218,11 +218,22 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             child: CircularProgressIndicator(color: BentoColors.emerald)));
 
     try {
-      await FreeTicketService.claim(eventId: widget.eventId, seatIds: seats);
+      final result = await FreeTicketService.claim(
+          eventId: widget.eventId, seatIds: seats);
       if (mounted) {
         Navigator.pop(context);
         ref.invalidate(myTicketsProvider(widget.customerId));
         await _showPurchaseSuccessAfterLookup(seats: seats, total: 0);
+        if (!result.smsSent && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                "Biletin hazır! SMS gönderemedik çünkü hesabında doğrulanmış "
+                "bir telefon numarası yok — profilinden telefonunu OTP ile "
+                "doğrulayabilirsin."),
+            backgroundColor: BentoColors.highlight,
+            duration: Duration(seconds: 5),
+          ));
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -12,11 +12,24 @@
  * etkinlikte en fazla 3 koltuk rezerve edebilir" kısıtı var; bu fonksiyon
  * sadece GERÇEKTEN rezerve edilmiş koltukları bilete çevirir.
  *
+ * 🔒 GÜVENLİK — DOĞRULANMIŞ KİMLİK ZORUNLULUĞU:
+ * SMS, kullanıcının Firestore'daki serbest metin `phoneNumber` alanına
+ * DEĞİL, Firebase Auth'un kendi ID token'ındaki `phone_number` alanına
+ * gönderilir. Bu alan SADECE gerçek bir OTP doğrulaması (Phone Auth ile
+ * giriş/linkleme) sonrası dolar — yani kullanıcı Firestore'daki profilini
+ * değiştirerek başka birinin numarasına SMS gönderilmesini SAĞLAYAMAZ.
+ * Ayrıca hesabın en az bir kanaldan (doğrulanmış telefon VEYA Google ile
+ * doğrulanmış e-posta) kimlik doğrulaması yapmış olması şart koşulur —
+ * bu, tek kullanımlık/sahte hesapların ücretsiz bilet "farm"lamasını
+ * zorlaştırır.
+ *
  * SMS: Twilio'nun resmi "Trigger SMS" Firebase Extension'ının varsayılan
  * koleksiyon adını (`messages`) kullanıyoruz. ⚠️ Farklı bir SMS extension'ı
  * veya farklı bir koleksiyon adı kullanıyorsanız SMS_TRIGGER_COLLECTION'ı
  * güncelleyin. Extension kurulu/doğru yapılandırılmış değilse bile bilet
  * oluşturma işlemi BAŞARISIZ OLMAZ — SMS ayrı, best-effort bir adımdır.
+ * Doğrulanmış telefonu olmayan (sadece e-posta ile doğrulanmış) kullanıcılar
+ * yine de ücretsiz bileti alır, sadece SMS gönderilmez.
  */
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
@@ -25,24 +38,25 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const EVENT_COLLECTION = 'Event';
 const SHOW_COLLECTION = 'Show';
 const TICKET_COLLECTION = 'Ticket';
-const USER_COLLECTION = 'User';
 const SMS_TRIGGER_COLLECTION = 'messages';
-
-/** Türkiye numaralarını E.164 formatına ("+90...") normalize eder. */
-function normalizeTrPhone(raw) {
-  if (!raw) return null;
-  const digits = raw.replace(/[^\d+]/g, '');
-  if (!digits) return null;
-  if (digits.startsWith('+')) return digits;
-  if (digits.startsWith('90')) return `+${digits}`;
-  if (digits.startsWith('0')) return `+90${digits.slice(1)}`;
-  return `+90${digits}`;
-}
 
 exports.claimFreeTicket = onCall(async (request) => {
   const auth = request.auth;
   if (!auth) throw new HttpsError('unauthenticated', 'Bu işlem için giriş yapmalısınız.');
   const customerId = auth.uid;
+
+  // 🔒 Bu kullanıcının en az bir kanaldan GERÇEKTEN doğrulanmış olduğundan
+  // emin ol — Firebase Auth ID token'ındaki bu alanlar client tarafından
+  // taklit edilemez (Firebase Admin SDK tarafından imza doğrulanır).
+  const verifiedPhone = auth.token.phone_number || null; // Sadece OTP ile doğrulanmışsa dolu.
+  const isEmailVerified = auth.token.email_verified === true; // Google ile girişte otomatik true.
+  if (!verifiedPhone && !isEmailVerified) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Ücretsiz bilet alabilmek için hesabının telefon (OTP ile) veya ' +
+      'Google e-postası ile doğrulanmış olması gerekiyor.',
+    );
+  }
 
   const { eventId, seatIds } = request.data || {};
   if (!eventId || !Array.isArray(seatIds) || seatIds.length === 0) {
@@ -61,17 +75,6 @@ exports.claimFreeTicket = onCall(async (request) => {
   const isFree = Number.isFinite(price) && price <= 0;
   if (!isFree) {
     throw new HttpsError('failed-precondition', 'Bu etkinlik ücretsiz değil.');
-  }
-
-  const userSnap = await db.collection(USER_COLLECTION).doc(customerId).get();
-  const userData = userSnap.exists ? userSnap.data() : null;
-  const phone = normalizeTrPhone(userData?.phoneNumber) || normalizeTrPhone(auth.token.phone_number);
-  if (!phone) {
-    throw new HttpsError(
-      'failed-precondition',
-      'Ücretsiz bilet alabilmek için profilinde bir telefon numarası olmalı. ' +
-      'Lütfen önce profilini güncelle.',
-    );
   }
 
   let ticketId;
@@ -118,21 +121,26 @@ exports.claimFreeTicket = onCall(async (request) => {
     });
   });
 
-  // 📲 SMS bildirimi — best-effort, bilet oluşturma başarısını ETKİLEMEZ.
-  try {
-    const showSnap = eventData.showId
-        ? await db.collection(SHOW_COLLECTION).doc(eventData.showId).get()
-        : null;
-    const showName = showSnap && showSnap.exists ? (showSnap.data().name || 'Etkinlik') : 'Etkinlik';
-    await db.collection(SMS_TRIGGER_COLLECTION).add({
-      to: phone,
-      body:
-          `TiyatRol: "${showName}" için ${seatIds.length} adet ücretsiz biletin hazır! ` +
-          'Biletlerim sayfasından görüntüleyebilirsin.',
-    });
-  } catch (err) {
-    console.error('Ücretsiz bilet SMS tetikleme başarısız (bilet yine de oluşturuldu):', err);
+  // 📲 SMS bildirimi — SADECE gerçekten OTP ile doğrulanmış bir telefon
+  // varsa gönderilir; best-effort, bilet oluşturma başarısını ETKİLEMEZ.
+  let smsSent = false;
+  if (verifiedPhone) {
+    try {
+      const showSnap = eventData.showId
+          ? await db.collection(SHOW_COLLECTION).doc(eventData.showId).get()
+          : null;
+      const showName = showSnap && showSnap.exists ? (showSnap.data().name || 'Etkinlik') : 'Etkinlik';
+      await db.collection(SMS_TRIGGER_COLLECTION).add({
+        to: verifiedPhone,
+        body:
+            `TiyatRol: "${showName}" için ${seatIds.length} adet ücretsiz biletin hazır! ` +
+            'Biletlerim sayfasından görüntüleyebilirsin.',
+      });
+      smsSent = true;
+    } catch (err) {
+      console.error('Ücretsiz bilet SMS tetikleme başarısız (bilet yine de oluşturuldu):', err);
+    }
   }
 
-  return { ticketId };
+  return { ticketId, smsSent };
 });
