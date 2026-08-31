@@ -11,6 +11,8 @@ import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard
 import 'package:ticketapp/features/teams/presentation/pages/team_card_web.dart';
 import 'package:ticketapp/shared/widgets/background/shimmer_components.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../about/presentation/widgets/about_cart_web.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -217,34 +219,22 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: context.isDarkMode ? const Color(0xFF0F0F0F) : Colors.white,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.theater_comedy, size: 120, color: Colors.redAccent),
-          const SizedBox(height: 40),
-          Text(
-            "Sahne Hazırlanamadı!",
-            style: context.textTheme.displaySmall
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-              "Işıklar ve dekorlar yüklenirken bir sorun oluştu. Lütfen tekrar deneyin."),
-          const SizedBox(height: 40),
-          ElevatedButton(
-              onPressed: () {
-                // Provider'ları invalidate ederek veriyi tekrar çektiriyoruz
+      color: BentoColors.canvas,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: BentoErrorState(
+              message:
+                  'Işıklar ve dekorlar yüklenirken bir sorun oluştu. Lütfen tekrar deneyin.',
+              onRetry: () {
                 ref.invalidate(homeAssetsProvider);
                 ref.invalidate(showsProvider);
               },
-              style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                  backgroundColor: Colors.redAccent),
-              child: const Text("SAHNEYİ YENİLE",
-                  style: TextStyle(color: Colors.white))),
-        ],
+            ),
+          ),
+        ),
       ),
     );
   }
