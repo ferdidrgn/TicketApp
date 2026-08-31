@@ -6,6 +6,7 @@ import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../providers/player_provider.dart';
@@ -204,7 +205,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _artisticIconBtn(Icons.queue_play_next, () {}),
+                  const SizedBox(width: 44), // Paylaş ikonuyla simetri için
                   AnimatedOpacity(
                     opacity: _isScrolled ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
@@ -543,7 +544,13 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
 
   Widget _buildErrorState(final BuildContext context, final Object error) {
     return Center(
-        child: Text("Sanatçı profili yüklenirken bir sorun oluştu.",
-            style: TextStyle(color: context.colors.error)));
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: BentoErrorState(
+          message: 'Sanatçı profili yüklenirken bir sorun oluştu.',
+          onRetry: () => ref.invalidate(playerDetailProvider(widget.playerId)),
+        ),
+      ),
+    );
   }
 }
