@@ -5,6 +5,7 @@ import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_pro
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 
 class PhoneLogInPage extends ConsumerStatefulWidget {
@@ -131,8 +132,8 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       // BasePageWrapper'ın onBack parametresi varsa oraya bağlayın, yoksa WillPopScope kullanın
       showFab: false,
       isOverlayLoading: authMutation.isLoading,
-      layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
+      layoutConfig: const BasePageLayoutConfig(
+        backgroundColor: BentoColors.canvas,
         safeAreaTop: true,
       ),
       child: PopScope(
