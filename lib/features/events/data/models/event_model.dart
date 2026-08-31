@@ -6,6 +6,7 @@ class EventModel {
   final String? date;
   final String? price;
   final Map<String, dynamic>? seats;
+  final List<String>? sponsors;
 
   const EventModel({
     this.id,
@@ -14,6 +15,7 @@ class EventModel {
     this.date,
     this.price,
     this.seats,
+    this.sponsors,
   });
 
   factory EventModel.fromFirestore(final Map<String, dynamic> data) =>
@@ -23,6 +25,7 @@ class EventModel {
         showId: data['showId'] as String?,
         price: data['price'] as String?,
         seats: data['seats'] as Map<String, dynamic>?,
+        sponsors: (data['sponsors'] as List?)?.map((final e) => e.toString()).toList(),
         // Firestore Timestamp kontrolü (Eğer tarih Timestamp gelirse)
         date: data['date'] is Timestamp
             ? (data['date'] as Timestamp).toDate().toIso8601String()
@@ -36,5 +39,6 @@ class EventModel {
         'date': date,
         'price': price,
         'seats': seats,
+        'sponsors': sponsors,
       };
 }

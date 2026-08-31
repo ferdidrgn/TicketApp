@@ -6,6 +6,7 @@ class Event extends Equatable {
   final String date;
   final String price;
   final Map<String, dynamic> seats;
+  final List<String> sponsors;
 
   const Event({
     required this.id,
@@ -14,6 +15,7 @@ class Event extends Equatable {
     required this.date,
     required this.price,
     required this.seats,
+    this.sponsors = const [],
   });
 
   /// Küratör fiyatı "0" (veya parse edilemeyen bir değer değilse ve <= 0)
@@ -25,5 +27,6 @@ class Event extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, stageId, showId, date, price, seats];
+  List<Object?> get props =>
+      [id, stageId, showId, date, price, seats, sponsors];
 }

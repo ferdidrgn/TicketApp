@@ -9,6 +9,7 @@ extension EventModelMapper on EventModel {
         date: date ?? 'Tarih bulunamadı',
         price: price ?? '0',
         seats: seats ?? {},
+        sponsors: sponsors ?? const [],
       );
 }
 
@@ -20,5 +21,6 @@ extension EventEntityMapper on Event {
         date: date,
         price: price,
         seats: seats,
+        sponsors: sponsors,
       );
 }

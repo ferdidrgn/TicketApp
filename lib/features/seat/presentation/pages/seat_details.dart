@@ -114,6 +114,10 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                 ),
 
                 _buildPriceCard(seatsAsync, event.price),
+                if (event.isFree) ...[
+                  const SizedBox(height: 16),
+                  _SponsorsSection(sponsors: event.sponsors),
+                ],
                 const SizedBox(height: 20),
               ],
             ),
@@ -712,6 +716,74 @@ class _SeatItem extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 🎗️ SPONSORLAR — sadece ücretsiz etkinliklerde, satın alma alanının
+/// altında gösterilir. Veri boş olsa bile bölüm YİNE DE render edilir
+/// (bilerek) — böylece birisi görüp "ben sponsor olayım" diyebilir.
+/// Sponsor eklemek/kaldırmak küratörün Firestore'daki Event.sponsors
+/// (List<String>) alanını düzenlemesiyle olur, ayrı bir panel gerekmez.
+class _SponsorsSection extends StatelessWidget {
+  final List<String> sponsors;
+  const _SponsorsSection({required this.sponsors});
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: BentoColors.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: BentoColors.microBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.volunteer_activism_rounded,
+                    color: BentoColors.emerald, size: 20),
+                SizedBox(width: 8),
+                Text('Sponsorlar',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (sponsors.isEmpty)
+              const Text(
+                'Bu gösterim henüz bir sponsor tarafından desteklenmiyor. '
+                'Bu ücretsiz etkinliği desteklemek ister misin? Bize ulaş.',
+                style: TextStyle(
+                    color: Color(0xFFA1A1AA), fontSize: 13, height: 1.5),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: sponsors
+                    .map((final s) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: BentoColors.emerald.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                                color: BentoColors.emerald.withOpacity(0.3)),
+                          ),
+                          child: Text(s,
+                              style: const TextStyle(
+                                  color: BentoColors.emerald,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13)),
+                        ))
+                    .toList(),
+              ),
+          ],
+        ),
+      );
 }
 
 class _SeatLegend extends StatelessWidget {
