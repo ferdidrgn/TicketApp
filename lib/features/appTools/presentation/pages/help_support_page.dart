@@ -1,30 +1,65 @@
 import 'package:flutter/material.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 
-class HelpSupportPage extends StatelessWidget {
+const _kFaqItems = [
+  (
+    'Biletimi nasıl bulabilirim?',
+    'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'
+  ),
+  (
+    'Sanatçı profili nasıl açılır?',
+    'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'
+  ),
+  (
+    'Ücretsiz bilet nasıl alırım?',
+    'Ücretsiz olarak işaretlenmiş etkinliklerde koltuk seçimi sonrası "Ücretsiz '
+        'Biletini Al" butonu çıkar — ödeme adımı olmadan biletin oluşur.'
+  ),
+  (
+    'Ödeme yaparken sorun yaşıyorum, ne yapmalıyım?',
+    'Kart bilgilerini kontrol et ve farklı bir ödeme yöntemi (iyzico/PayTR/'
+        'Stripe) dene. Sorun devam ederse bir süre sonra tekrar dene.'
+  ),
+];
+
+class HelpSupportPage extends StatefulWidget {
   const HelpSupportPage({super.key});
 
   @override
+  State<HelpSupportPage> createState() => _HelpSupportPageState();
+}
+
+class _HelpSupportPageState extends State<HelpSupportPage> {
+  String _query = '';
+
+  @override
   Widget build(final BuildContext context) {
-    // 💡 Senin responsive utils uzantılarını kullanarak web/tablet kontrolü yapıyoruz
     final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final q = _query.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? _kFaqItems
+        : _kFaqItems
+            .where((final item) =>
+                item.$1.toLowerCase().contains(q) ||
+                item.$2.toLowerCase().contains(q))
+            .toList();
 
     return BasePageWrapper(
       showBackButton: true,
       showFab: false,
-      layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
+      layoutConfig: const BasePageLayoutConfig(
+        backgroundColor: BentoColors.canvas,
         safeAreaTop: true,
       ),
       title: 'DANIŞMA MASASI',
       subtitle: 'Serüveninde sana rehberlik edelim...',
       rightIcon: Icons.support_agent_rounded,
       child: Center(
-        // ✅ Web'de içeriği ortalamak için
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            // ✅ Web'de 800px genişliği geçmemesi için kısıt koyuyoruz
             maxWidth: isLargeScreen ? 800 : double.infinity,
           ),
           child: ListView(
@@ -33,14 +68,19 @@ class HelpSupportPage extends StatelessWidget {
             children: [
               _buildSearchBox(context),
               const SizedBox(height: 32),
-              _buildSupportActions(context),
-              const SizedBox(height: 48),
-              _buildSectionTitle(context, 'SIKÇA SORULANLAR'),
+              const BentoSectionHeader(
+                  title: 'Sıkça Sorulanlar',
+                  icon: Icons.help_outline_rounded),
               const SizedBox(height: 16),
-              _buildFaqItem(context, 'Biletimi nasıl bulabilirim?',
-                  'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
-              _buildFaqItem(context, 'Sanatçı profili nasıl açılır?',
-                  'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
+              if (filtered.isEmpty)
+                const BentoEmptyState(
+                  icon: Icons.search_off_rounded,
+                  title: 'Sonuç bulunamadı',
+                  message: 'Farklı bir kelimeyle tekrar dene.',
+                )
+              else
+                for (final item in filtered)
+                  _buildFaqItem(context, item.$1, item.$2),
               const SizedBox(height: 40),
             ],
           ),
@@ -49,54 +89,23 @@ class HelpSupportPage extends StatelessWidget {
     );
   }
 
-  // Arama Kutusu (Modern & Keskin Border)
+  // Arama Kutusu — artık gerçekten SSS listesini filtreliyor.
   Widget _buildSearchBox(final BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: context.colors.surfaceVariant.withOpacity(0.5),
+          color: BentoColors.highlight,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: context.colors.outlineVariant),
+          border: Border.all(color: BentoColors.microBorder),
         ),
-        child: const TextField(
-          decoration: InputDecoration(
+        child: TextField(
+          onChanged: (final v) => setState(() => _query = v),
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
             hintText: 'Sorunun cevabını burada ara...',
+            hintStyle: TextStyle(color: Color(0xFF71717A)),
             border: InputBorder.none,
-            icon: Icon(Icons.search),
+            icon: Icon(Icons.search, color: Color(0xFFA1A1AA)),
           ),
-        ),
-      );
-
-  // İletişim Kartları (Hızlı Aksiyon)
-  Widget _buildSupportActions(final BuildContext context) => Row(
-        children: [
-          Expanded(
-              child: _buildActionCard(context, Icons.chat_bubble_outline,
-                  'Canlı Destek', 'Küratörle Konuş')),
-          const SizedBox(width: 16),
-          Expanded(
-              child: _buildActionCard(
-                  context, Icons.mail_outline, 'E-posta', 'Mektup Gönder')),
-        ],
-      );
-
-  Widget _buildActionCard(final BuildContext context, final IconData icon,
-          final String title, final String sub) =>
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: context.colors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: context.colors.primary.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: context.colors.primary, size: 32),
-            const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(sub,
-                style: TextStyle(
-                    fontSize: 10, color: context.colors.onSurfaceVariant)),
-          ],
         ),
       );
 
@@ -108,20 +117,20 @@ class HelpSupportPage extends StatelessWidget {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: EdgeInsets.zero,
+          iconColor: BentoColors.indigoLight,
+          collapsedIconColor: const Color(0xFFA1A1AA),
           title: Text(question,
-              style:
-                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white)),
           children: [
             Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(answer,
-                    style: TextStyle(color: context.colors.onSurfaceVariant)))
+                    style: const TextStyle(
+                        color: Color(0xFFA1A1AA), height: 1.5)))
           ],
         ),
       );
-
-  Widget _buildSectionTitle(final BuildContext context, final String title) =>
-      Text(title,
-          style: context.textTheme.labelSmall
-              ?.copyWith(letterSpacing: 2, fontWeight: FontWeight.w900));
 }
