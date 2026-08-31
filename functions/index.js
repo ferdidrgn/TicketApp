@@ -45,6 +45,11 @@ exports.claimFreeTicket = freeTickets.claimFreeTicket;
 const tickets = require('./tickets');
 exports.validateTicket = tickets.validateTicket;
 
+// 🧹 Süresi dolmuş koltuk rezervasyonlarını serbest bırakan zamanlanmış
+// görev (bkz. functions/seatCleanup/index.js).
+const seatCleanup = require('./seatCleanup');
+exports.releaseExpiredReservations = seatCleanup.releaseExpiredReservations;
+
 const ALL_USERS_TOPIC = 'all_users';
 const NOTIFICATION_COLLECTION = 'Notification';
 
