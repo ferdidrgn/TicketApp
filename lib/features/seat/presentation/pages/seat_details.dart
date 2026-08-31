@@ -320,13 +320,14 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                   subtitle: "Uluslararası Kart",
                   onTap: () => _processGatewayPurchase(ctx, selectedSeats,
                       PaymentGatewayProvider.stripe, totalPrice)),
-              const SizedBox(height: 12),
-              _paymentOption(
-                  icon: Icons.account_balance,
-                  title: "Havale / EFT",
-                  subtitle: "IBAN ile ödeme",
-                  onTap: () => _processPurchase(ctx, selectedSeats, "iban",
-                      totalPrice, event.stageId, event.showId)),
+              // 🔒 GÜVENLİK: "Havale/EFT" seçeneği KALDIRILDI. Önceden bu
+              // seçenek, gerçek bir ödeme doğrulaması olmadan biletin anında
+              // "sold" olarak işaretlenmesine izin veriyordu — yani biri
+              // hiç para göndermeden "Havale" deyip bilet alabiliyordu.
+              // Ücretli etkinliklerde artık sadece sunucu-doğrulamalı kart
+              // sağlayıcıları (iyzico/PayTR/Stripe) var. Ücretsiz
+              // etkinliklerde ayrıca "ÜCRETSİZ BİLETİNİ AL" akışı var (bkz.
+              // _claimFreeTicket) — bu, IBAN'a hiç dokunmuyor.
             ],
           ),
         ),
