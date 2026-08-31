@@ -16,6 +16,7 @@ class ShowModel {
   final List<String>? oldPlayersId;
   final List<String>? eventsId;
   final List<String>? photosShowId;
+  final String? trailerYoutubeId;
 
   const ShowModel({
     this.id,
@@ -34,6 +35,7 @@ class ShowModel {
     this.oldPlayersId,
     this.eventsId,
     this.photosShowId,
+    this.trailerYoutubeId,
   });
 
   /// 🔥 Firestore'dan güvenli okuma
@@ -67,6 +69,7 @@ class ShowModel {
         photosShowId: (data['photosShowId'] as List?)
             ?.map((final e) => e.toString())
             .toList(),
+        trailerYoutubeId: data['trailerYoutubeId'] as String?,
       );
 
   /// 🔥 Firestore'a yazma
@@ -87,5 +90,6 @@ class ShowModel {
         'nowPlayersId': nowPlayersId,
         'oldPlayersId': oldPlayersId,
         'photosShowId': photosShowId,
+        'trailerYoutubeId': trailerYoutubeId,
       };
 }

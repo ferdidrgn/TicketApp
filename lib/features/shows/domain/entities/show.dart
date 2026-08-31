@@ -21,6 +21,11 @@ class Show extends Equatable {
   final List<String> oldPlayersId;
   final List<String> photosShowId;
 
+  /// 🎬 Fragman/tanıtım videosu için YouTube video ID'si (ör. "dQw4w9WgXcQ").
+  /// Küratör tarafından opsiyonel olarak eklenir; boşsa web ana sayfasındaki
+  /// "Fragmanlar" bölümünde bu gösteri hiç görünmez.
+  final String? trailerYoutubeId;
+
   const Show({
     required this.id,
     required this.createdAt,
@@ -38,6 +43,7 @@ class Show extends Equatable {
     required this.nowPlayersId,
     required this.oldPlayersId,
     required this.photosShowId,
+    this.trailerYoutubeId,
   });
 
   @override
@@ -58,5 +64,6 @@ class Show extends Equatable {
         nowPlayersId,
         oldPlayersId,
         photosShowId,
+        trailerYoutubeId,
       ];
 }

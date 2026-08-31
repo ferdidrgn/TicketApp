@@ -37,6 +37,7 @@ dependencies:
   video_player: ^2.7.0
   audioplayers: ^6.0.0
   image_picker:
+  youtube_player_iframe: ^6.0.2
 
   # Firebase
   firebase_core: ^4.3.0

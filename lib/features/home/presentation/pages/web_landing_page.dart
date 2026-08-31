@@ -3,19 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/audio/audio_highlight_card.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 import '../../../../shared/widgets/footers/footer.dart';
+import '../../../players/domain/entities/player.dart';
+import '../../../players/presentation/providers/player_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import '../../domain/entities/audio_highlight.dart';
+import '../providers/audio_highlight_provider.dart';
+import '../widgets/web/landing/landing_cast_section.dart';
+import '../widgets/web/landing/landing_mystery_section.dart';
+import '../widgets/web/landing/landing_trailers_section.dart';
 import '../widgets/web/theater_section_divider.dart';
 
 /// 🎭 GERÇEK TANITIM (LANDING) SAYFASI — Web'in `/` adresi.
 ///
-/// Öncesinde `/` adresi doğrudan uygulamanın kendisini (HomePage) gösteriyordu
-/// — yeni ziyaretçi için "TiyatRol nedir" diye anlatan hiçbir şey yoktu.
-/// Bu sayfa TAMAMEN AYRI: marka/atmosfer ağırlıklı bir tanıtım sayfası,
-/// gerçek uygulama deneyimi "Uygulamaya Gir" CTA'sının arkasında (`/app`).
-/// Uygulamanın kendisine (mobil dahil) HİÇBİR ŞEKİLDE dokunmuyor.
+/// Marka/atmosfer ağırlıklı, çok bölümlü bir "büyüleyici deneyim" sayfası:
+/// hero, değer önerileri, öne çıkan oyunlar (3D hover), fragmanlar
+/// (YouTube), perde arkası sürpriz kartları, oyuncu kadrosu, sesli deneyim
+/// (monolog/tirat kayıtları), gerçek oyuncu alıntısı ve istatistikler.
+/// Her bölüm GERÇEK Firestore verisine bağlıdır — veri yoksa bölüm
+/// sessizce gizlenir, asla uydurma içerik gösterilmez. Uygulamanın kendisine
+/// (mobil dahil) hiçbir şekilde dokunmuyor; gerçek deneyim "Uygulamaya Gir"
+/// CTA'sının arkasında (`/app`).
 class WebLandingPage extends ConsumerWidget {
   const WebLandingPage({super.key});
 
@@ -23,10 +35,12 @@ class WebLandingPage extends ConsumerWidget {
   Widget build(final BuildContext context, final WidgetRef ref) {
     final showsAsync = ref.watch(showsProvider(isLimit: true));
     final stagesAsync = ref.watch(stagesProvider(isLimit: true));
+    final audioAsync = ref.watch(audioHighlightsProvider);
     final width = MediaQuery.of(context).size.width;
     final bool isLarge = width > 900;
     final double hPad = width > 1400 ? 100 : (width > 900 ? 60 : 24);
     final shows = showsAsync.value ?? const <Show>[];
+    final audioHighlights = audioAsync.value ?? const <AudioHighlight>[];
 
     return Scaffold(
       backgroundColor: WebColors.darkBlueBackground,
@@ -35,19 +49,51 @@ class WebLandingPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _LandingNavBar(hPad: hPad),
-            _LandingHero(hPad: hPad, isLarge: isLarge, heroShow: shows.isNotEmpty ? shows.first : null),
+            _LandingHero(
+                hPad: hPad,
+                isLarge: isLarge,
+                heroShow: shows.isNotEmpty ? shows.first : null),
             const TheaterSectionDivider(style: DividerStyle.iconCenter, height: 90),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: hPad),
               child: _ValueProps(isLarge: isLarge),
             ),
-            const SizedBox(height: 72),
+            const SizedBox(height: 80),
             if (shows.isNotEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: hPad),
                 child: _FeaturedShows(shows: shows),
               ),
-            const SizedBox(height: 72),
+            const SizedBox(height: 80),
+            if (shows.any((final s) =>
+                s.trailerYoutubeId != null && s.trailerYoutubeId!.trim().isNotEmpty)) ...[
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPad),
+                child: LandingTrailersSection(shows: shows),
+              ),
+              const SizedBox(height: 80),
+            ],
+            if (shows.isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPad),
+                child: LandingMysterySection(shows: shows),
+              ),
+              const SizedBox(height: 80),
+            ],
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: hPad),
+              child: const LandingCastSection(),
+            ),
+            const SizedBox(height: 80),
+            if (audioHighlights.isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPad),
+                child: _AudioHighlightsSection(highlights: audioHighlights),
+              ),
+              const SizedBox(height: 80),
+            ],
+            const _PullQuoteSection(),
+            const SizedBox(height: 80),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: hPad),
               child: _StatsBar(
@@ -111,9 +157,9 @@ class _LandingNavBar extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════
-// HERO
+// HERO — hafif imleç-parallax + yüzen bilgi rozetleri
 // ══════════════════════════════════════════════════════════════
-class _LandingHero extends StatelessWidget {
+class _LandingHero extends StatefulWidget {
   final double hPad;
   final bool isLarge;
   final Show? heroShow;
@@ -122,117 +168,232 @@ class _LandingHero extends StatelessWidget {
       {required this.hPad, required this.isLarge, required this.heroShow});
 
   @override
-  Widget build(final BuildContext context) => Stack(
-        children: [
-          if (heroShow != null)
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.22,
-                child: CachedNetworkImage(
-                    imageUrl: heroShow!.imageUrl, fit: BoxFit.cover),
-              ),
-            ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    WebColors.darkBlueBackground.withOpacity(0.3),
-                    WebColors.darkBlueBackground,
-                  ],
+  State<_LandingHero> createState() => _LandingHeroState();
+}
+
+class _LandingHeroState extends State<_LandingHero> {
+  Offset _parallax = Offset.zero;
+
+  // Sabit referans boyutlar kullanılıyor: hero'nun yüksekliği bir
+  // ScrollView içinde sınırsız (infinity) olabildiğinden gerçek widget
+  // boyutuna değil, tipik bir hero alanına göre normalize ediyoruz — efekt
+  // zaten çok hafif/kozmetik olduğu için bu yeterli.
+  void _onHover(final PointerEvent event, final double width) {
+    if (!widget.isLarge) return;
+    final dx = (event.localPosition.dx / width - 0.5) * 2;
+    final dy =
+        ((event.localPosition.dy / 640 - 0.5) * 2).clamp(-1.0, 1.0).toDouble();
+    setState(() => _parallax = Offset(dx * 14, dy * 10));
+  }
+
+  @override
+  Widget build(final BuildContext context) => LayoutBuilder(
+        builder: (final context, final constraints) => MouseRegion(
+          onHover: (final e) => _onHover(e, constraints.maxWidth),
+          onExit: (final _) => setState(() => _parallax = Offset.zero),
+          child: Stack(
+            children: [
+              if (widget.heroShow != null)
+                Positioned.fill(
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOut,
+                    offset: Offset(_parallax.dx / 400, _parallax.dy / 400),
+                    child: Opacity(
+                      opacity: 0.22,
+                      child: CachedNetworkImage(
+                          imageUrl: widget.heroShow!.imageUrl, fit: BoxFit.cover),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(hPad, 64, hPad, 88),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              Positioned.fill(
+                child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: WebColors.primaryGold.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                        color: WebColors.primaryGold.withOpacity(0.35)),
-                  ),
-                  child: const Text('TÜRKİYE\'NİN SAHNE PLATFORMU',
-                      style: TextStyle(
-                          color: WebColors.primaryGoldLight,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2)),
-                ),
-                const SizedBox(height: 28),
-                Text(
-                  'Sanat Seni Bekliyor',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: isLarge ? 64 : 40,
-                    fontWeight: FontWeight.w900,
-                    height: 1.05,
-                    letterSpacing: -1.5,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        WebColors.darkBlueBackground.withOpacity(0.3),
+                        WebColors.darkBlueBackground,
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 620),
-                  child: Text(
-                    'Tiyatro, konser ve etkinlikleri keşfet; koltuğunu seç, '
-                    'biletini saniyeler içinde al. Türkiye\'nin en kapsamlı '
-                    'sahne sanatları platformu TiyatRol\'de.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: isLarge ? 17 : 15,
-                        height: 1.6),
-                  ),
-                ),
-                const SizedBox(height: 36),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 16,
-                  runSpacing: 16,
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(widget.hPad, 64, widget.hPad, 88),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: () => NavigationHandler.goToApp(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: WebColors.primaryGold,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 20),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: WebColors.primaryGold.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                            color: WebColors.primaryGold.withOpacity(0.35)),
                       ),
-                      child: const Text('ETKİNLİKLERİ KEŞFET',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 14)),
-                    ),
-                    OutlinedButton(
-                      onPressed: () => NavigationHandler.goToApp(context),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white38),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 28, vertical: 20),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _LivePulseDot(),
+                          const SizedBox(width: 8),
+                          const Text('TÜRKİYE\'NİN SAHNE PLATFORMU',
+                              style: TextStyle(
+                                  color: WebColors.primaryGoldLight,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 2)),
+                        ],
                       ),
-                      child: const Text('NASIL ÇALIŞIR?',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
+                    const SizedBox(height: 28),
+                    Text(
+                      'Sanat Seni Bekliyor',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: widget.isLarge ? 64 : 40,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                        letterSpacing: -1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 620),
+                      child: Text(
+                        'Tiyatro, konser ve etkinlikleri keşfet; koltuğunu seç, '
+                        'biletini saniyeler içinde al. Fragmanları izle, sahne '
+                        'kadrosuyla tanış, perde arkasındaki sürprizleri keşfet.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: widget.isLarge ? 17 : 15,
+                            height: 1.6),
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => NavigationHandler.goToApp(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: WebColors.primaryGold,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 32, vertical: 20),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: const Text('ETKİNLİKLERİ KEŞFET',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14)),
+                        ),
+                        OutlinedButton(
+                          onPressed: () => NavigationHandler.goToApp(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white38),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 28, vertical: 20),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: const Text('NASIL ÇALIŞIR?',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                    if (widget.heroShow != null) ...[
+                      const SizedBox(height: 48),
+                      _HeroFloatingBadge(show: widget.heroShow!),
+                    ],
                   ],
                 ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _LivePulseDot extends StatefulWidget {
+  @override
+  State<_LivePulseDot> createState() => _LivePulseDotState();
+}
+
+class _LivePulseDotState extends State<_LivePulseDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => FadeTransition(
+        opacity: Tween(begin: 0.35, end: 1.0).animate(_controller),
+        child: Container(
+          width: 7,
+          height: 7,
+          decoration: const BoxDecoration(
+              color: WebColors.accentEmerald, shape: BoxShape.circle),
+        ),
+      );
+}
+
+class _HeroFloatingBadge extends StatelessWidget {
+  final Show show;
+  const _HeroFloatingBadge({required this.show});
+
+  @override
+  Widget build(final BuildContext context) => GlassCard(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        radius: 18,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: CachedNetworkImage(
+                    imageUrl: show.imageUrl, fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('ŞU AN SAHNEDE',
+                    style: TextStyle(
+                        color: WebColors.primaryGoldLight,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1)),
+                const SizedBox(height: 2),
+                Text(show.name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       );
 }
 
@@ -311,7 +472,7 @@ class _ValueProps extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════
-// ÖNE ÇIKAN OYUNLAR
+// ÖNE ÇIKAN OYUNLAR — 3D imleç-tilt kartlar
 // ══════════════════════════════════════════════════════════════
 class _FeaturedShows extends StatelessWidget {
   final List<Show> shows;
@@ -342,7 +503,7 @@ class _FeaturedShows extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         SizedBox(
-          height: 300,
+          height: 320,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: preview.length,
@@ -356,71 +517,228 @@ class _FeaturedShows extends StatelessWidget {
   }
 }
 
-class _FeaturedShowTile extends StatelessWidget {
+class _FeaturedShowTile extends StatefulWidget {
   final Show show;
   const _FeaturedShowTile({required this.show});
 
   @override
-  Widget build(final BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => NavigationHandler.goToApp(context),
-        child: Container(
-          width: 220,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8)),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedNetworkImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
-                      stops: const [0.4, 1.0],
+  State<_FeaturedShowTile> createState() => _FeaturedShowTileState();
+}
+
+class _FeaturedShowTileState extends State<_FeaturedShowTile> {
+  static const double _w = 220, _h = 300;
+  double _rotX = 0, _rotY = 0;
+  bool _hovering = false;
+
+  void _onHover(final PointerEvent e) {
+    final dx = (e.localPosition.dx / _w - 0.5) * 2;
+    final dy = (e.localPosition.dy / _h - 0.5) * 2;
+    setState(() {
+      _rotY = dx * 0.12;
+      _rotX = -dy * 0.12;
+    });
+  }
+
+  void _reset() => setState(() {
+        _hovering = false;
+        _rotX = 0;
+        _rotY = 0;
+      });
+
+  @override
+  Widget build(final BuildContext context) => MouseRegion(
+        onEnter: (final _) => setState(() => _hovering = true),
+        onExit: (final _) => _reset(),
+        onHover: _onHover,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => NavigationHandler.goToApp(context),
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0015)
+              ..rotateX(_rotX)
+              ..rotateY(_rotY)
+              ..scale(_hovering ? 1.05 : 1.0),
+            child: Container(
+              width: _w,
+              height: _h,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: _hovering
+                        ? WebColors.primaryGold.withOpacity(0.35)
+                        : Colors.black.withOpacity(0.35),
+                    blurRadius: _hovering ? 28 : 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CachedNetworkImage(
+                        imageUrl: widget.show.imageUrl, fit: BoxFit.cover),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.9)
+                          ],
+                          stops: const [0.4, 1.0],
+                        ),
+                      ),
                     ),
-                  ),
+                    if (widget.show.trailerYoutubeId != null &&
+                        widget.show.trailerYoutubeId!.trim().isNotEmpty)
+                      const Positioned(
+                        top: 14,
+                        right: 14,
+                        child: Icon(Icons.play_circle_fill_rounded,
+                            color: Colors.white, size: 22),
+                      ),
+                    Positioned(
+                      left: 14,
+                      right: 14,
+                      bottom: 14,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.show.category.toUpperCase(),
+                              style: const TextStyle(
+                                  color: WebColors.primaryGoldLight,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.5)),
+                          const SizedBox(height: 4),
+                          Text(widget.show.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.2)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Positioned(
-                  left: 14,
-                  right: 14,
-                  bottom: 14,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(show.category.toUpperCase(),
-                          style: const TextStyle(
-                              color: WebColors.primaryGoldLight,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.5)),
-                      const SizedBox(height: 4),
-                      Text(show.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              height: 1.2)),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       );
+}
+
+// ══════════════════════════════════════════════════════════════
+// SESLİ DENEYİM — monolog/tirat kayıtları
+// ══════════════════════════════════════════════════════════════
+class _AudioHighlightsSection extends StatelessWidget {
+  final List<AudioHighlight> highlights;
+  const _AudioHighlightsSection({required this.highlights});
+
+  @override
+  Widget build(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: WebColors.primaryGold.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.graphic_eq_rounded,
+                    color: WebColors.primaryGoldLight, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text('Sesli Deneyim',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text('Sahneye çıkmadan bir monoloğa kulak ver.',
+              style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13.5)),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 168,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: highlights.length,
+              separatorBuilder: (final _, final __) => const SizedBox(width: 18),
+              itemBuilder: (final context, final i) =>
+                  AudioHighlightCard(highlight: highlights[i]),
+            ),
+          ),
+        ],
+      );
+}
+
+// ══════════════════════════════════════════════════════════════
+// GERÇEK OYUNCU ALINTISI
+// ══════════════════════════════════════════════════════════════
+class _PullQuoteSection extends ConsumerWidget {
+  const _PullQuoteSection();
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final playersAsync = ref.watch(playersProvider(isLimit: true));
+    final players = playersAsync.value ?? const <Player>[];
+    final withQuote =
+        players.where((final p) => p.quote.trim().isNotEmpty).toList();
+    if (withQuote.isEmpty) return const SizedBox.shrink();
+
+    final player = withQuote.first;
+    final width = MediaQuery.of(context).size.width;
+
+    return Container(
+      width: double.infinity,
+      color: WebColors.darkBlueSurface,
+      padding: EdgeInsets.symmetric(
+          vertical: 64, horizontal: width > 900 ? 100 : 24),
+      child: Column(
+        children: [
+          const Icon(Icons.format_quote_rounded,
+              color: WebColors.primaryGold, size: 36),
+          const SizedBox(height: 20),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Text(
+              '"${player.quote.trim()}"',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  height: 1.5,
+                  letterSpacing: -0.3),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('${player.firstName} ${player.lastName}',
+              style: const TextStyle(
+                  color: WebColors.primaryGoldLight,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
