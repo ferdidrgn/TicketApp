@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 import '../../../../shared/widgets/custom_description_card.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
@@ -40,8 +42,17 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
           ambientColor: context.colors.primary.withOpacity(0.05),
           safeAreaTop: true),
       child: teamDetailAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (final err, final _) => Center(child: Text("Hata: $err")),
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: BentoColors.indigoLight)),
+        error: (final err, final _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: BentoErrorState(
+              message: 'Ekip bilgisi yüklenemedi.',
+              onRetry: () => ref.invalidate(teamDetailProvider(widget.teamId)),
+            ),
+          ),
+        ),
         data: (final state) => CustomScrollView(
           controller: scrollController,
           physics: const BouncingScrollPhysics(),
@@ -154,40 +165,6 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
             ],
           ),
         ),
-      );
-
-  Widget _buildTeamHeadline(final BuildContext context, final String name) =>
-      Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: context.colors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border:
-                  Border.all(color: context.colors.primary.withOpacity(0.2)),
-            ),
-            child: Text(
-              "PROFESYONEL EKİP",
-              style: TextStyle(
-                color: context.colors.primary,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            name.toUpperCase(),
-            textAlign: TextAlign.center,
-            style: context.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              fontSize: 32,
-              letterSpacing: -1,
-            ),
-          ),
-        ],
       );
 
   Widget _buildSectionHeader(final BuildContext context, final String title,

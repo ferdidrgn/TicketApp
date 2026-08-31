@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
-import '../../../../shared/widgets/section_header.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 import '../../../favorite/presentation/widgets/favorite_toggle_button.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
@@ -43,14 +44,22 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
       customScrollController: scrollController,
       isLoading: detailAsync.isLoading,
       layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
-        ambientColor: context.colors.primary.withOpacity(0.05),
+        backgroundColor: BentoColors.canvas,
+        ambientColor: BentoColors.indigo.withOpacity(0.05),
         safeAreaTop: true, // Header'ın status bar altında kalmaması için true
       ),
       child: detailAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (final err, final _) =>
-            Center(child: Text('Veri yüklenemedi: $err')),
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: BentoColors.indigoLight)),
+        error: (final err, final _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: BentoErrorState(
+              message: 'Sahne bilgisi yüklenemedi.',
+              onRetry: () => ref.invalidate(stageDetailProvider(widget.stageId)),
+            ),
+          ),
+        ),
         data: (final state) => Center(
           child: ConstrainedBox(
             constraints:
@@ -68,24 +77,25 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
                       const SizedBox(height: 32),
 
                       // 📖 MEKAN HİKAYESİ
-                      _buildSectionLabel(
-                          context, 'HAKKINDA', Icons.info_outline_rounded),
+                      const BentoSectionHeader(
+                          title: 'Hakkında', icon: Icons.info_outline_rounded),
                       const SizedBox(height: 12),
                       _buildStageInfo(state.stage.description),
                       const SizedBox(height: 40),
 
                       // 🎬 ETKİNLİKLER
                       if (state.shows.isNotEmpty) ...[
-                        _buildSectionLabel(context, 'SAHNELENEN ESERLER',
-                            Icons.event_seat_rounded),
+                        const BentoSectionHeader(
+                            title: 'Sahnelenen Eserler',
+                            icon: Icons.event_seat_rounded),
                         const SizedBox(height: 16),
                         _buildShowList(state.shows),
                         const SizedBox(height: 40),
                       ],
 
                       // 📍 KONUM VE ADRES
-                      _buildSectionLabel(
-                          context, 'LOKASYON', Icons.map_outlined),
+                      const BentoSectionHeader(
+                          title: 'Lokasyon', icon: Icons.map_outlined),
                       const SizedBox(height: 16),
                       _buildStageMap(
                           state.stage.locationLat, state.stage.locationLng),
@@ -150,7 +160,10 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
   Widget _buildStageInfo(final String description) => Text(
         description,
         style: const TextStyle(
-            fontSize: 16, height: 1.6, fontWeight: FontWeight.w400),
+            fontSize: 15,
+            height: 1.6,
+            fontWeight: FontWeight.w400,
+            color: Color(0xFFD4D4D8)),
       );
 
   Widget _buildShowList(final List<Show> shows) => SizedBox(
@@ -161,14 +174,17 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
           itemCount: shows.length,
           itemBuilder: (final context, final index) => Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: ShowCard(
-              imageUrl: shows[index].imageUrl,
-              gameName: shows[index].name,
-              onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (final _) =>
-                          ShowDetailPage(showId: shows[index].id))),
+            child: FadeInUp(
+              delay: Duration(milliseconds: 60 * index),
+              child: ShowCard(
+                imageUrl: shows[index].imageUrl,
+                gameName: shows[index].name,
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (final _) =>
+                            ShowDetailPage(showId: shows[index].id))),
+              ),
             ),
           ),
         ),
@@ -181,7 +197,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
       height: 250,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(color: BentoColors.microBorder),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
@@ -199,14 +215,16 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
 
   Widget _buildAddressSection(final BuildContext context, final String address,
           final String communication) =>
-      Column(
-        children: [
-          _buildInfoTile(
-              context, Icons.location_on_rounded, 'Açık Adres', address),
-          const SizedBox(height: 16),
-          _buildInfoTile(
-              context, Icons.phone_in_talk_rounded, 'İletişim', communication),
-        ],
+      BentoCard(
+        child: Column(
+          children: [
+            _buildInfoTile(
+                context, Icons.location_on_rounded, 'Açık Adres', address),
+            const SizedBox(height: 16),
+            _buildInfoTile(context, Icons.phone_in_talk_rounded, 'İletişim',
+                communication),
+          ],
+        ),
       );
 
   Widget _buildInfoTile(final BuildContext context, final IconData icon,
@@ -214,7 +232,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: context.colors.primary, size: 20),
+          Icon(icon, color: BentoColors.indigoLight, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -222,28 +240,16 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
               children: [
                 Text(title,
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14)),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14)),
                 const SizedBox(height: 4),
                 Text(content,
-                    style: TextStyle(
-                        color: context.colors.onSurfaceVariant,
-                        fontSize: 14,
-                        height: 1.4)),
+                    style: const TextStyle(
+                        color: Color(0xFFA1A1AA), fontSize: 14, height: 1.4)),
               ],
             ),
           ),
-        ],
-      );
-
-  Widget _buildSectionLabel(final BuildContext context, final String title,
-          final IconData icon) =>
-      Row(
-        children: [
-          Icon(icon, color: context.colors.primary, size: 22),
-          const SizedBox(width: 12),
-          Text(title,
-              style: context.textTheme.labelLarge
-                  ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 2)),
         ],
       );
 }
