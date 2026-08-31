@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
-import 'package:ticketapp/features/home/presentation/pages/wrapper/app_home_page.dart';
+import 'package:ticketapp/features/home/presentation/pages/web_landing_page.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
@@ -117,7 +117,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           path: '/',
           pageBuilder: (final context, final state) => CustomTransitionPage(
             key: state.pageKey,
-            child: const AppHomePage(),
+            child: const WebLandingPage(),
             transitionsBuilder: fadeTransition,
             transitionDuration: const Duration(milliseconds: 500),
           ),

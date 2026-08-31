@@ -53,7 +53,7 @@ class Footer extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '© 2025 TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır. - Ferdi Durgun',
+                '© ${DateTime.now().year} TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır.',
                 style: TextStyle(
                     color: Colors.white70, fontSize: context.captionSize),
               ),
@@ -88,48 +88,17 @@ class Footer extends StatelessWidget {
               Text(
                 'İletişim',
                 style: TextStyle(
-                  color: Colors.amberAccent,
+                  color: WebColors.primaryGoldLight,
                   fontWeight: FontWeight.bold,
                   fontSize: context.bodySize + 2,
                 ),
               ),
               const SizedBox(height: 10),
-              _contactRow(context, 'E-posta:', '----@----.com'),
-              _contactRow(context, 'Telefon:', '+90 -----'),
               _contactRow(context, 'Adres:', 'Ataşehir, İSTANBUL, Türkiye'),
             ],
           ),
         ),
 
-        // 4. Sosyal Medya
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Bizi Takip Edin',
-                style: TextStyle(
-                  color: Colors.amberAccent,
-                  fontWeight: FontWeight.bold,
-                  fontSize: context.bodySize + 2,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _socialIcon(context, Icons.facebook),
-                  _socialIcon(context, Icons.access_alarm),
-                  // Örnek icon, değiştirebilirsiniz
-                  _socialIcon(context, Icons.theater_comedy),
-                  _socialIcon(context, Icons.youtube_searched_for),
-                ],
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -149,7 +118,7 @@ class Footer extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '© 2025 TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır.',
+          '© ${DateTime.now().year} TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır.',
           style:
               TextStyle(color: Colors.white70, fontSize: context.captionSize),
         ),
@@ -166,38 +135,6 @@ class Footer extends StatelessWidget {
                     color: Colors.white70, fontSize: context.bodySize),
               ),
             ),
-          ],
-        ),
-        const Divider(color: Colors.white24, height: 30),
-        Text(
-          'İletişim',
-          style: TextStyle(
-            color: Colors.amberAccent,
-            fontWeight: FontWeight.bold,
-            fontSize: context.bodySize + 1,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _contactRow(context, 'E-posta:', '----@----.com'),
-        _contactRow(context, 'Telefon:', '+90 -----'),
-        const Divider(color: Colors.white24, height: 30),
-        Text(
-          'Bizi Takip Edin',
-          style: TextStyle(
-            color: Colors.amberAccent,
-            fontWeight: FontWeight.bold,
-            fontSize: context.bodySize + 1,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            _socialIcon(context, Icons.facebook),
-            const SizedBox(width: 12),
-            _socialIcon(context, Icons.theater_comedy_rounded),
-            const SizedBox(width: 12),
-            _socialIcon(context, Icons.youtube_searched_for),
           ],
         ),
       ],
@@ -219,17 +156,6 @@ class Footer extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _socialIcon(final BuildContext context, final IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.amberAccent.withOpacity(0.15),
-        shape: BoxShape.circle,
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Icon(icon, color: Colors.amberAccent, size: context.iconSmall),
     );
   }
 }
