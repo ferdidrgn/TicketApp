@@ -189,13 +189,19 @@ class LoginScreen extends ConsumerWidget {
       );
 
   Widget _buildFooterText(final BuildContext context) => Center(
-        child: Opacity(
-          opacity: 0.5,
-          child: Text(
-            'KOLEKSİYONA KATILARAK ŞARTLARI KABUL EDERSİNİZ',
-            textAlign: TextAlign.center,
-            style: context.textTheme.labelSmall?.copyWith(
-                color: Colors.white, letterSpacing: 1.2, fontSize: 9),
+        child: InkWell(
+          onTap: () => NavigationHandler.goToContracts(context),
+          child: Opacity(
+            opacity: 0.6,
+            child: Text(
+              'KOLEKSİYONA KATILARAK ŞARTLARI KABUL EDERSİNİZ',
+              textAlign: TextAlign.center,
+              style: context.textTheme.labelSmall?.copyWith(
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                  fontSize: 9,
+                  decoration: TextDecoration.underline),
+            ),
           ),
         ),
       );
