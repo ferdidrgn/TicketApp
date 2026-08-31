@@ -123,6 +123,9 @@ class NavigationHandler {
   static void goToHelpSupport(final BuildContext context) =>
       _safeNavigate(context, _buildPath(context, '/help-support'));
 
+  static void goToTicketScanner(final BuildContext context) =>
+      _safeNavigate(context, _buildPath(context, '/ticket-scanner'));
+
   static void goToCampaigns(final BuildContext context, {final int? index}) =>
       _safeNavigate(
           context,

@@ -26,6 +26,7 @@ import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
 import '../../../features/settings/presentation/pages/app_settings.dart';
 import '../../../features/tickets/presentation/pages/my_ticket_page.dart';
+import '../../../features/tickets/presentation/pages/ticket_scanner_page.dart';
 import '../../../features/users/presentation/pages/profile_page.dart';
 import '../../../features/users/presentation/pages/user_profile_edit.dart';
 import '../../../shared/navigation/providers/navigation_keys.dart';
@@ -286,6 +287,17 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const NotificationCenterPage(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/ticket-scanner',
+        name: 'ticketScanner',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const TicketScannerPage(),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),

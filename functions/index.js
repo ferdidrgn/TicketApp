@@ -40,6 +40,11 @@ exports.paymentLanding = payments.paymentLanding;
 const freeTickets = require('./freeTickets');
 exports.claimFreeTicket = freeTickets.claimFreeTicket;
 
+// 🎫 Kapıda bilet doğrulama / QR tarama (bkz. functions/tickets/index.js).
+// Sadece admin/curator rolündeki hesaplar çağırabilir.
+const tickets = require('./tickets');
+exports.validateTicket = tickets.validateTicket;
+
 const ALL_USERS_TOPIC = 'all_users';
 const NOTIFICATION_COLLECTION = 'Notification';
 

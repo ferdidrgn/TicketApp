@@ -78,5 +78,8 @@
 <!-- 📍 Konum (yakınındaki etkinlikleri sıralamak için) -->
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>Yakınındaki etkinlikleri ve sahneleri sana göstermek için konumunu kullanmak istiyoruz.</string>
+<!-- 📷 Kamera (kapıda bilet QR kodunu okutmak için, sadece yetkili ekip üyeleri) -->
+<key>NSCameraUsageDescription</key>
+<string>Bilet QR kodunu okutup doğrulayabilmek için kameranı kullanmak istiyoruz.</string>
 </dict>
 </plist>

@@ -10,6 +10,7 @@ import '../../../../core/services/package_info_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 
 class AppSettingsPage extends ConsumerWidget {
@@ -30,6 +31,7 @@ class AppSettingsPage extends ConsumerWidget {
     final colors = context.colors;
     final unreadCount = ref.watch(unreadNotificationCountProvider);
     final packageInfo = ref.watch(packageInfoProvider);
+    final isPrivileged = ref.watch(isUserPrivilegedProvider);
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
@@ -74,6 +76,20 @@ class AppSettingsPage extends ConsumerWidget {
                 badgeCount: unreadCount,
                 onTap: () => NavigationHandler.goToNotifications(context),
               ),
+
+              if (isPrivileged) ...[
+                const SizedBox(height: 32),
+                _buildSectionTitle(context, 'EKİP ARAÇLARI'),
+                const SizedBox(height: 16),
+                _buildAtelierTile(
+                  context,
+                  title: 'Bilet Kontrolü',
+                  subtitle: 'Kapıda QR kod okutarak bilet doğrula.',
+                  icon: Icons.qr_code_scanner_rounded,
+                  color: BentoColors.emerald,
+                  onTap: () => NavigationHandler.goToTicketScanner(context),
+                ),
+              ],
 
               const SizedBox(height: 32),
               _buildSectionTitle(context, 'DUYUSAL AYARLAR'),
