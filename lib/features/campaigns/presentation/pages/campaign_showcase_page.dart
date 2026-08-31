@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/comminucation_actions.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/bento/bento_primitives.dart';
 import '../../../../shared/widgets/custom_dots_indicator.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -67,14 +69,22 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
       // 💡 Yardım ikonu artık header'da
       showFab: true,
       customScrollController: scrollController,
-      layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
+      layoutConfig: const BasePageLayoutConfig(
+        backgroundColor: BentoColors.canvas,
         safeAreaTop: true,
       ),
       child: campaignsAsync.when(
         loading: () =>
             const Center(child: ShimmerLoading(height: 500, width: 350)),
-        error: (final err, final _) => Center(child: Text("Hata: $err")),
+        error: (final err, final _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: BentoErrorState(
+              message: 'Kampanyalar yüklenemedi.',
+              onRetry: () => ref.invalidate(campaignsProvider),
+            ),
+          ),
+        ),
         data: (final campaigns) {
           if (campaigns.isEmpty) return _buildEmptyState();
 
@@ -216,8 +226,8 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
       );
 
   Widget _buildShareButton(final Campaign campaign) => GestureDetector(
-        onTap: () => TiyatrolDeeplinkService.shareShow(
-            id: campaign.id, name: campaign.title),
+        onTap: () => TiyatrolDeeplinkService.shareCampaign(
+            title: campaign.title, url: campaign.url),
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -281,8 +291,15 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
       );
 
   Widget _buildEmptyState() => Center(
-      child: Text("Aktif kampanya bulunamadı.",
-          style: context.textTheme.titleMedium));
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: BentoEmptyState(
+            icon: Icons.local_offer_outlined,
+            title: 'Aktif kampanya yok',
+            message: 'Yeni fırsatlar eklendiğinde burada görünecek.',
+          ),
+        ),
+      );
 
   Widget _buildCampaignPager(final List<Campaign> campaigns) =>
       PageView.builder(

@@ -39,6 +39,14 @@ final class TiyatrolDeeplinkService {
     await Share.share("Ekibimiz $name hakkında her şey burada: $url");
   }
 
+  /// 🎉 Kampanya Paylaşımı — kampanyanın kendi (harici) URL'ini paylaşır.
+  /// Not: kampanyalar birer "show" değildir, bu yüzden shareShow'un
+  /// ürettiği /show/ deep link'i kampanyalar için YANLIŞ olurdu.
+  static Future<void> shareCampaign(
+      {required final String title, required final String url}) async {
+    await Share.share("TiyatRol - $title fırsatını kaçırma! 🎉\n$url");
+  }
+
   /// 🎟 Bilet Paylaşımı
   static Future<void> shareTicket(final String ticketId) async {
     final url = "$_baseUrl/my-tickets/$ticketId";
