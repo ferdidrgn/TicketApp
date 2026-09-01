@@ -66,7 +66,7 @@ dependencies:
   simple_html_css:
   universal_html: ^2.2.4
   qr_flutter:
-  mobile_scanner: ^7.4.0
+  mobile_scanner: ^5.2.0
   shimmer: ^3.0.0
   url_launcher:
   share_plus: ^13.3.0

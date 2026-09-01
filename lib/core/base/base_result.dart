@@ -16,7 +16,7 @@ mixin BaseResultHandler {
       dev.log('Executing $tag...', name: 'BaseResultHandler');
       final result = await operation();
 
-      return result.fold(
+      return await result.fold(
         (final failure) {
           final error = _mapFailureToMessage(failure);
           dev.log('Error in $tag: $error',

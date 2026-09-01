@@ -25,7 +25,7 @@ mixin BaseNotifierActionHandler<T extends BaseState> {
       dev.log('Executing $tag...', name: 'BaseActionHandler');
       final result = await operation();
 
-      return result.fold(
+      return await result.fold(
         (final failure) {
           final error = _mapFailureToMessage(failure, customErrorMessage);
           dev.log('Error in $tag: $error',

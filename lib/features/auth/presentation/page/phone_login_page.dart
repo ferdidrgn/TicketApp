@@ -6,7 +6,6 @@ import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../providers/auth_provider.dart';
 
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
