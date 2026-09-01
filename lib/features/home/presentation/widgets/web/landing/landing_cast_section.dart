@@ -1,14 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../../players/domain/entities/player.dart';
 import '../../../../../players/presentation/providers/player_provider.dart';
+import 'landing_palette.dart';
 
 /// 🎭 "Sahnenin Yüzleri" — gerçek oyuncu kadrosunu (Firestore'daki Player
-/// koleksiyonu) tanıtan bölüm. Veri yoksa/hata varsa bölüm sessizce
-/// gizlenir; uydurma isim/görsel gösterilmez.
+/// koleksiyonu) tanıtan bölüm. Veri yoksa küratörü yönlendiren bir "yakında"
+/// kartı gösterilir; uydurma isim/görsel asla gösterilmez.
 class LandingCastSection extends ConsumerWidget {
   const LandingCastSection({super.key});
 
@@ -16,50 +16,24 @@ class LandingCastSection extends ConsumerWidget {
   Widget build(final BuildContext context, final WidgetRef ref) {
     final playersAsync = ref.watch(playersProvider(isLimit: true));
     final players = playersAsync.value ?? const <Player>[];
-    if (players.isEmpty) return const SizedBox.shrink();
+    if (players.isEmpty) {
+      return const LandingComingSoonCard(
+        icon: Icons.groups_2_outlined,
+        message: 'Kadro yakında burada — oyuncular eklendikçe bu bölüm '
+            'otomatik dolacak.',
+      );
+    }
 
     final preview = players.take(10).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: WebColors.primaryGold.withOpacity(0.14),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.groups_2_rounded,
-                  color: WebColors.primaryGoldLight, size: 20),
-            ),
-            const SizedBox(width: 12),
-            const Text('Sahnenin Yüzleri',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5)),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text('Her performansın arkasındaki emeği tanı.',
-            style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13.5)),
-        const SizedBox(height: 24),
-        SizedBox(
-          height: 168,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: preview.length,
-            separatorBuilder: (final _, final __) => const SizedBox(width: 18),
-            itemBuilder: (final context, final i) =>
-                _CastTile(player: preview[i]),
-          ),
-        ),
-      ],
+    return SizedBox(
+      height: 168,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: preview.length,
+        separatorBuilder: (final _, final __) => const SizedBox(width: 18),
+        itemBuilder: (final context, final i) => _CastTile(player: preview[i]),
+      ),
     );
   }
 }
@@ -95,15 +69,10 @@ class _CastTileState extends State<_CastTile> {
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: _hovering
-                          ? const LinearGradient(colors: [
-                              WebColors.primaryGoldLight,
-                              WebColors.primaryGold,
-                            ])
-                          : null,
+                      gradient: _hovering ? LandingPalette.crimsonGradient : null,
                       border: _hovering
                           ? null
-                          : Border.all(color: WebColors.microBorder),
+                          : Border.all(color: LandingPalette.microBorder),
                     ),
                     child: ClipOval(
                       child: widget.player.imageUrl.isNotEmpty
@@ -111,7 +80,7 @@ class _CastTileState extends State<_CastTile> {
                               imageUrl: widget.player.imageUrl,
                               fit: BoxFit.cover)
                           : Container(
-                              color: WebColors.darkBlueAccent,
+                              color: LandingPalette.surface,
                               alignment: Alignment.center,
                               child: const Icon(Icons.person_rounded,
                                   color: Colors.white38, size: 30),

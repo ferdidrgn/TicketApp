@@ -1,8 +1,8 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../features/home/domain/entities/audio_highlight.dart';
+import '../../../features/home/presentation/widgets/web/landing/landing_palette.dart';
 
 /// 🎧 "Sesli Deneyim" bölümündeki tek bir monolog/tirat kaydını çalan,
 /// yeniden kullanılabilir kart. `record_player_card.dart`'ın aksine tek bir
@@ -79,17 +79,17 @@ class _AudioHighlightCardState extends State<AudioHighlightCard> {
       width: 300,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface,
+        color: LandingPalette.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isPlaying
-              ? WebColors.primaryGold.withOpacity(0.5)
-              : WebColors.microBorder,
+              ? LandingPalette.crimson.withOpacity(0.5)
+              : LandingPalette.microBorder,
         ),
         boxShadow: isPlaying
             ? [
                 BoxShadow(
-                  color: WebColors.primaryGold.withOpacity(0.18),
+                  color: LandingPalette.crimson.withOpacity(0.18),
                   blurRadius: 24,
                   spreadRadius: -4,
                 ),
@@ -112,10 +112,10 @@ class _AudioHighlightCardState extends State<AudioHighlightCard> {
                           fit: BoxFit.cover,
                         )
                       : Container(
-                          color: WebColors.darkBlueAccent,
+                          color: LandingPalette.surfaceAlt,
                           alignment: Alignment.center,
                           child: const Icon(Icons.mic_rounded,
-                              color: WebColors.primaryGoldLight, size: 22),
+                              color: LandingPalette.crimsonLight, size: 22),
                         ),
                 ),
               ),
@@ -157,7 +157,7 @@ class _AudioHighlightCardState extends State<AudioHighlightCard> {
                   height: 40,
                   alignment: Alignment.center,
                   decoration: const BoxDecoration(
-                    color: WebColors.primaryGold,
+                    color: LandingPalette.crimson,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -174,9 +174,9 @@ class _AudioHighlightCardState extends State<AudioHighlightCard> {
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 5,
-                    backgroundColor: WebColors.darkBlueAccent,
+                    backgroundColor: LandingPalette.surfaceAlt,
                     valueColor: const AlwaysStoppedAnimation(
-                        WebColors.primaryGoldLight),
+                        LandingPalette.crimsonLight),
                   ),
                 ),
               ),

@@ -1,12 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
-import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../shows/domain/entities/show.dart';
+import 'landing_palette.dart';
 
 /// 🎬 "Fragmanlar" bölümü — küratörün Firestore'da `Show.trailerYoutubeId`
 /// alanına elle eklediği YouTube video ID'lerini oynatır. Hiçbir gösterinin
-/// fragmanı yoksa bölüm tamamen gizlenir (uydurma/boş içerik göstermeyiz).
+/// fragmanı yoksa, bölümü tamamen gizlemek yerine küratörü yönlendiren bir
+/// "yakında" kartı gösterilir (Sponsors bölümündeki ilkeyle aynı: ziyaretçi
+/// bu bölümün var olduğunu her zaman görsün).
 class LandingTrailersSection extends StatefulWidget {
   final List<Show> shows;
   const LandingTrailersSection({super.key, required this.shows});
@@ -17,7 +19,7 @@ class LandingTrailersSection extends StatefulWidget {
 
 class _LandingTrailersSectionState extends State<LandingTrailersSection> {
   late final List<Show> _trailerShows;
-  late final YoutubePlayerController _controller;
+  YoutubePlayerController? _controller;
   int _activeIndex = 0;
 
   @override
@@ -27,32 +29,38 @@ class _LandingTrailersSectionState extends State<LandingTrailersSection> {
         .where((final s) =>
             s.trailerYoutubeId != null && s.trailerYoutubeId!.trim().isNotEmpty)
         .toList();
-    _controller = YoutubePlayerController(
-      params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
-        mute: false,
-      ),
-    );
     if (_trailerShows.isNotEmpty) {
-      _controller.cueVideoById(videoId: _trailerShows.first.trailerYoutubeId!);
+      _controller = YoutubePlayerController(
+        params: const YoutubePlayerParams(
+          showControls: true,
+          showFullscreenButton: true,
+          mute: false,
+        ),
+      )..cueVideoById(videoId: _trailerShows.first.trailerYoutubeId!);
     }
   }
 
   void _select(final int index) {
     setState(() => _activeIndex = index);
-    _controller.loadVideoById(videoId: _trailerShows[index].trailerYoutubeId!);
+    _controller?.loadVideoById(videoId: _trailerShows[index].trailerYoutubeId!);
   }
 
   @override
   void dispose() {
-    _controller.close();
+    _controller?.close();
     super.dispose();
   }
 
   @override
   Widget build(final BuildContext context) {
-    if (_trailerShows.isEmpty) return const SizedBox.shrink();
+    if (_trailerShows.isEmpty) {
+      return const LandingComingSoonCard(
+        icon: Icons.movie_creation_outlined,
+        message: 'Fragmanlar yakında burada — küratör her gösteri için bir '
+            'YouTube video bağlantısı ekledikçe bu bölüm otomatik dolacak.',
+      );
+    }
+
     final width = MediaQuery.of(context).size.width;
     final bool isLarge = width > 900;
 
@@ -60,7 +68,7 @@ class _LandingTrailersSectionState extends State<LandingTrailersSection> {
       borderRadius: BorderRadius.circular(24),
       child: AspectRatio(
         aspectRatio: 16 / 9,
-        child: YoutubePlayer(controller: _controller),
+        child: YoutubePlayer(controller: _controller!),
       ),
     );
 
@@ -95,37 +103,8 @@ class _LandingTrailersSectionState extends State<LandingTrailersSection> {
             ),
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: WebColors.primaryGold.withOpacity(0.14),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.play_circle_fill_rounded,
-                  color: WebColors.primaryGoldLight, size: 20),
-            ),
-            const SizedBox(width: 12),
-            const Text('Fragmanlar',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5)),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text('Sahneye çıkmadan önce bir bakış at.',
-            style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13.5)),
-        const SizedBox(height: 24),
-        if (isLarge)
-          Row(
+    return isLarge
+        ? Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: player),
@@ -133,16 +112,13 @@ class _LandingTrailersSectionState extends State<LandingTrailersSection> {
               rail,
             ],
           )
-        else
-          Column(
+        : Column(
             children: [
               player,
               const SizedBox(height: 16),
               rail,
             ],
-          ),
-      ],
-    );
+          );
   }
 }
 
@@ -162,9 +138,7 @@ class _TrailerThumb extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: active
-                  ? WebColors.primaryGold
-                  : WebColors.microBorder,
+              color: active ? LandingPalette.crimson : LandingPalette.microBorder,
               width: active ? 2 : 1,
             ),
           ),
@@ -176,7 +150,9 @@ class _TrailerThumb extends StatelessWidget {
                 CachedNetworkImage(imageUrl: show.imageUrl, fit: BoxFit.cover),
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color: active ? Colors.black.withOpacity(0.15) : Colors.black.withOpacity(0.45),
+                    color: active
+                        ? Colors.black.withOpacity(0.15)
+                        : Colors.black.withOpacity(0.45),
                   ),
                 ),
                 if (!active)

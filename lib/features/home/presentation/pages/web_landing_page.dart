@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/audio/audio_highlight_card.dart';
 import '../../../../shared/widgets/bento/bento_primitives.dart';
@@ -15,19 +14,25 @@ import '../../domain/entities/audio_highlight.dart';
 import '../providers/audio_highlight_provider.dart';
 import '../widgets/web/landing/landing_cast_section.dart';
 import '../widgets/web/landing/landing_mystery_section.dart';
+import '../widgets/web/landing/landing_palette.dart';
 import '../widgets/web/landing/landing_trailers_section.dart';
-import '../widgets/web/theater_section_divider.dart';
 
-/// 🎭 GERÇEK TANITIM (LANDING) SAYFASI — Web'in `/` adresi.
+/// 🩸 GERÇEK TANITIM (LANDING) SAYFASI — Web'in `/` adresi.
 ///
-/// Marka/atmosfer ağırlıklı, çok bölümlü bir "büyüleyici deneyim" sayfası:
-/// hero, değer önerileri, öne çıkan oyunlar (3D hover), fragmanlar
-/// (YouTube), perde arkası sürpriz kartları, oyuncu kadrosu, sesli deneyim
-/// (monolog/tirat kayıtları), gerçek oyuncu alıntısı ve istatistikler.
-/// Her bölüm GERÇEK Firestore verisine bağlıdır — veri yoksa bölüm
-/// sessizce gizlenir, asla uydurma içerik gösterilmez. Uygulamanın kendisine
-/// (mobil dahil) hiçbir şekilde dokunmuyor; gerçek deneyim "Uygulamaya Gir"
-/// CTA'sının arkasında (`/app`).
+/// "Crimson Noir" atmosferi: koyu lacivert-siyah zemin (#02060E) + kızıl
+/// (#C50337) aksan, kullanıcının paylaştığı referans sitelere (House
+/// Targaryen / TheMuBa) göre. Sayfa, referans sitelerdeki gibi tam
+/// genişlikte, birbirinden ayrılan renkli "band"lara (section section)
+/// bölünmüş: hero, öne çıkan oyunlar (3D hover), fragmanlar (YouTube),
+/// perde arkası sürpriz kartları (fragman izleme düğmesiyle), oyuncu
+/// kadrosu, sesli deneyim (monolog/tirat kayıtları), gerçek oyuncu
+/// alıntısı, istatistikler ve footer.
+///
+/// Her bölüm GERÇEK Firestore verisine bağlıdır. İçerik henüz eklenmemişse
+/// (fragman/ses kaydı gibi) bölüm gizlenmez — küratörü yönlendiren zarif bir
+/// "yakında" kartı gösterilir, böylece sayfa asla boş/eksik hissettirmez.
+/// Uygulamanın kendisine (mobil dahil) hiçbir şekilde dokunmuyor; gerçek
+/// deneyim "Uygulamaya Gir" CTA'sının arkasında (`/app`).
 class WebLandingPage extends ConsumerWidget {
   const WebLandingPage({super.key});
 
@@ -43,7 +48,7 @@ class WebLandingPage extends ConsumerWidget {
     final audioHighlights = audioAsync.value ?? const <AudioHighlight>[];
 
     return Scaffold(
-      backgroundColor: WebColors.darkBlueBackground,
+      backgroundColor: LandingPalette.bg,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -53,55 +58,58 @@ class WebLandingPage extends ConsumerWidget {
                 hPad: hPad,
                 isLarge: isLarge,
                 heroShow: shows.isNotEmpty ? shows.first : null),
-            const TheaterSectionDivider(style: DividerStyle.iconCenter, height: 90),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: hPad),
-              child: _ValueProps(isLarge: isLarge),
-            ),
-            const SizedBox(height: 80),
             if (shows.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: hPad),
+              LandingSectionBand(
+                eyebrow: 'REPERTUAR',
+                title: 'Öne Çıkan Oyunlar',
+                subtitle: 'İmleci gezdir, sahneyi hisset.',
+                hPad: hPad,
                 child: _FeaturedShows(shows: shows),
               ),
-            const SizedBox(height: 80),
-            if (shows.any((final s) =>
-                s.trailerYoutubeId != null && s.trailerYoutubeId!.trim().isNotEmpty)) ...[
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: hPad),
-                child: LandingTrailersSection(shows: shows),
-              ),
-              const SizedBox(height: 80),
-            ],
-            if (shows.isNotEmpty) ...[
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: hPad),
+            LandingSectionBand(
+              eyebrow: 'NEDEN TİYATROL',
+              title: 'Sahneye Açılan Kapı',
+              hPad: hPad,
+              alt: true,
+              child: _ValueProps(isLarge: isLarge),
+            ),
+            LandingSectionBand(
+              eyebrow: 'FRAGMANLAR',
+              title: 'Sahneye Çıkmadan Bir Bakış',
+              hPad: hPad,
+              child: LandingTrailersSection(shows: shows),
+            ),
+            if (shows.isNotEmpty)
+              LandingSectionBand(
+                eyebrow: 'PERDE ARKASI',
+                title: 'Perdeyi Arala',
+                subtitle: 'Her kart bir sürpriz saklıyor — dokun, çevir, izle.',
+                hPad: hPad,
+                alt: true,
+                ember: true,
                 child: LandingMysterySection(shows: shows),
               ),
-              const SizedBox(height: 80),
-            ],
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: hPad),
+            LandingSectionBand(
+              eyebrow: 'KADRO',
+              title: 'Sahnenin Yüzleri',
+              hPad: hPad,
               child: const LandingCastSection(),
             ),
-            const SizedBox(height: 80),
-            if (audioHighlights.isNotEmpty) ...[
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: hPad),
-                child: _AudioHighlightsSection(highlights: audioHighlights),
-              ),
-              const SizedBox(height: 80),
-            ],
+            LandingSectionBand(
+              eyebrow: 'SESLİ DENEYİM',
+              title: 'Bir Monoloğa Kulak Ver',
+              hPad: hPad,
+              alt: true,
+              child: _AudioHighlightsSection(highlights: audioHighlights),
+            ),
             const _PullQuoteSection(),
-            const SizedBox(height: 80),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: hPad),
+              padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 56),
               child: _StatsBar(
                 showCount: shows.length,
                 stageCount: (stagesAsync.value ?? const []).length,
               ),
             ),
-            const SizedBox(height: 80),
             const Footer(),
           ],
         ),
@@ -118,12 +126,17 @@ class _LandingNavBar extends StatelessWidget {
   const _LandingNavBar({required this.hPad});
 
   @override
-  Widget build(final BuildContext context) => Padding(
-        padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 24),
+  Widget build(final BuildContext context) => Container(
+        decoration: const BoxDecoration(
+          color: LandingPalette.bg,
+          border: Border(
+              bottom: BorderSide(color: LandingPalette.microBorder)),
+        ),
+        padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 22),
         child: Row(
           children: [
             const Icon(Icons.theater_comedy_rounded,
-                color: WebColors.primaryGold, size: 26),
+                color: LandingPalette.crimsonLight, size: 26),
             const SizedBox(width: 10),
             const Text('TiyatRol',
                 style: TextStyle(
@@ -138,18 +151,25 @@ class _LandingNavBar extends StatelessWidget {
               child: const Text('Giriş Yap'),
             ),
             const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: () => NavigationHandler.goToApp(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: WebColors.primaryGold,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LandingPalette.crimsonGradient,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text('Uygulamaya Gir',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              child: ElevatedButton(
+                onPressed: () => NavigationHandler.goToApp(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 22, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Uygulamaya Gir',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
         ),
@@ -157,7 +177,7 @@ class _LandingNavBar extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════
-// HERO — hafif imleç-parallax + yüzen bilgi rozetleri
+// HERO — hafif imleç-parallax + yüzen bilgi rozetleri + kızıl ışık
 // ══════════════════════════════════════════════════════════════
 class _LandingHero extends StatefulWidget {
   final double hPad;
@@ -191,133 +211,154 @@ class _LandingHeroState extends State<_LandingHero> {
         builder: (final context, final constraints) => MouseRegion(
           onHover: (final e) => _onHover(e, constraints.maxWidth),
           onExit: (final _) => setState(() => _parallax = Offset.zero),
-          child: Stack(
-            children: [
-              if (widget.heroShow != null)
-                Positioned.fill(
-                  child: AnimatedSlide(
-                    duration: const Duration(milliseconds: 260),
-                    curve: Curves.easeOut,
-                    offset: Offset(_parallax.dx / 400, _parallax.dy / 400),
-                    child: Opacity(
-                      opacity: 0.22,
-                      child: CachedNetworkImage(
-                          imageUrl: widget.heroShow!.imageUrl, fit: BoxFit.cover),
-                    ),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(gradient: LandingPalette.heroGradient),
+            child: Stack(
+              children: [
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(gradient: LandingPalette.emberGlow),
                   ),
                 ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        WebColors.darkBlueBackground.withOpacity(0.3),
-                        WebColors.darkBlueBackground,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(widget.hPad, 64, widget.hPad, 88),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: WebColors.primaryGold.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                            color: WebColors.primaryGold.withOpacity(0.35)),
+                if (widget.heroShow != null)
+                  Positioned.fill(
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOut,
+                      offset: Offset(_parallax.dx / 400, _parallax.dy / 400),
+                      child: Opacity(
+                        opacity: 0.22,
+                        child: CachedNetworkImage(
+                            imageUrl: widget.heroShow!.imageUrl, fit: BoxFit.cover),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _LivePulseDot(),
-                          const SizedBox(width: 8),
-                          const Text('TÜRKİYE\'NİN SAHNE PLATFORMU',
-                              style: TextStyle(
-                                  color: WebColors.primaryGoldLight,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 2)),
+                    ),
+                  ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          LandingPalette.bg.withOpacity(0.25),
+                          LandingPalette.bg,
                         ],
                       ),
                     ),
-                    const SizedBox(height: 28),
-                    Text(
-                      'Sanat Seni Bekliyor',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: widget.isLarge ? 64 : 40,
-                        fontWeight: FontWeight.w900,
-                        height: 1.05,
-                        letterSpacing: -1.5,
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(widget.hPad, 64, widget.hPad, 88),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: LandingPalette.crimson.withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                              color: LandingPalette.crimson.withOpacity(0.4)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _LivePulseDot(),
+                            const SizedBox(width: 8),
+                            const Text('TÜRKİYE\'NİN SAHNE PLATFORMU',
+                                style: TextStyle(
+                                    color: LandingPalette.crimsonLight,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 2)),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 620),
-                      child: Text(
-                        'Tiyatro, konser ve etkinlikleri keşfet; koltuğunu seç, '
-                        'biletini saniyeler içinde al. Fragmanları izle, sahne '
-                        'kadrosuyla tanış, perde arkasındaki sürprizleri keşfet.',
+                      const SizedBox(height: 28),
+                      Text(
+                        'Sanat Seni Bekliyor',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: widget.isLarge ? 17 : 15,
-                            height: 1.6),
+                          color: Colors.white,
+                          fontSize: widget.isLarge ? 68 : 42,
+                          fontWeight: FontWeight.w900,
+                          height: 1.05,
+                          letterSpacing: -1.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 36),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () => NavigationHandler.goToApp(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: WebColors.primaryGold,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 20),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: const Text('ETKİNLİKLERİ KEŞFET',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 20),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 640),
+                        child: Text(
+                          'Tiyatro, konser ve etkinlikleri keşfet; koltuğunu seç, '
+                          'biletini saniyeler içinde al. Fragmanları izle, sahne '
+                          'kadrosuyla tanış, perde arkasındaki sürprizleri keşfet.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.72),
+                              fontSize: widget.isLarge ? 17 : 15,
+                              height: 1.6),
                         ),
-                        OutlinedButton(
-                          onPressed: () => NavigationHandler.goToApp(context),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white38),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 28, vertical: 20),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
+                      ),
+                      const SizedBox(height: 36),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LandingPalette.crimsonGradient,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: LandingPalette.crimson.withOpacity(0.4),
+                                    blurRadius: 28,
+                                    offset: const Offset(0, 10)),
+                              ],
+                            ),
+                            child: ElevatedButton(
+                              onPressed: () => NavigationHandler.goToApp(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 32, vertical: 20),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: const Text('ETKİNLİKLERİ KEŞFET',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold, fontSize: 14)),
+                            ),
                           ),
-                          child: const Text('NASIL ÇALIŞIR?',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13)),
-                        ),
+                          OutlinedButton(
+                            onPressed: () => NavigationHandler.goToApp(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white38),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 28, vertical: 20),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text('NASIL ÇALIŞIR?',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ],
+                      ),
+                      if (widget.heroShow != null) ...[
+                        const SizedBox(height: 48),
+                        _HeroFloatingBadge(show: widget.heroShow!),
                       ],
-                    ),
-                    if (widget.heroShow != null) ...[
-                      const SizedBox(height: 48),
-                      _HeroFloatingBadge(show: widget.heroShow!),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -348,7 +389,7 @@ class _LivePulseDotState extends State<_LivePulseDot>
           width: 7,
           height: 7,
           decoration: const BoxDecoration(
-              color: WebColors.accentEmerald, shape: BoxShape.circle),
+              color: LandingPalette.live, shape: BoxShape.circle),
         ),
       );
 }
@@ -380,7 +421,7 @@ class _HeroFloatingBadge extends StatelessWidget {
               children: [
                 const Text('ŞU AN SAHNEDE',
                     style: TextStyle(
-                        color: WebColors.primaryGoldLight,
+                        color: LandingPalette.crimsonLight,
                         fontSize: 9.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1)),
@@ -433,9 +474,9 @@ class _ValueProps extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
-                      color: WebColors.darkBlueSurface,
+                      color: LandingPalette.surface,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: WebColors.microBorder),
+                      border: Border.all(color: LandingPalette.microBorder),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,11 +486,11 @@ class _ValueProps extends StatelessWidget {
                           height: 52,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: WebColors.primaryGold.withOpacity(0.14),
+                            color: LandingPalette.crimson.withOpacity(0.16),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(item.$1,
-                              color: WebColors.primaryGoldLight, size: 26),
+                              color: LandingPalette.crimsonLight, size: 26),
                         ),
                         const SizedBox(height: 18),
                         Text(item.$2,
@@ -484,24 +525,15 @@ class _FeaturedShows extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Öne Çıkan Oyunlar',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5)),
-            TextButton(
-              onPressed: () => NavigationHandler.goToApp(context),
-              style: TextButton.styleFrom(
-                  foregroundColor: WebColors.primaryGoldLight),
-              child: const Text('Tümünü Keşfet →'),
-            ),
-          ],
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => NavigationHandler.goToApp(context),
+            style:
+                TextButton.styleFrom(foregroundColor: LandingPalette.crimsonLight),
+            child: const Text('Tümünü Keşfet →'),
+          ),
         ),
-        const SizedBox(height: 24),
         SizedBox(
           height: 320,
           child: ListView.separated(
@@ -568,7 +600,7 @@ class _FeaturedShowTileState extends State<_FeaturedShowTile> {
                 boxShadow: [
                   BoxShadow(
                     color: _hovering
-                        ? WebColors.primaryGold.withOpacity(0.35)
+                        ? LandingPalette.crimson.withOpacity(0.4)
                         : Colors.black.withOpacity(0.35),
                     blurRadius: _hovering ? 28 : 18,
                     offset: const Offset(0, 8),
@@ -612,7 +644,7 @@ class _FeaturedShowTileState extends State<_FeaturedShowTile> {
                         children: [
                           Text(widget.show.category.toUpperCase(),
                               style: const TextStyle(
-                                  color: WebColors.primaryGoldLight,
+                                  color: LandingPalette.crimsonLight,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1.5)),
@@ -645,51 +677,29 @@ class _AudioHighlightsSection extends StatelessWidget {
   const _AudioHighlightsSection({required this.highlights});
 
   @override
-  Widget build(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: WebColors.primaryGold.withOpacity(0.14),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.graphic_eq_rounded,
-                    color: WebColors.primaryGoldLight, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Text('Sesli Deneyim',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text('Sahneye çıkmadan bir monoloğa kulak ver.',
-              style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13.5)),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 168,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: highlights.length,
-              separatorBuilder: (final _, final __) => const SizedBox(width: 18),
-              itemBuilder: (final context, final i) =>
-                  AudioHighlightCard(highlight: highlights[i]),
-            ),
-          ),
-        ],
+  Widget build(final BuildContext context) {
+    if (highlights.isEmpty) {
+      return const LandingComingSoonCard(
+        icon: Icons.graphic_eq_rounded,
+        message: 'Sesli deneyim yakında burada — küratör Firestore\'a bir '
+            'monolog/tirat kaydı ekledikçe bu bölüm otomatik dolacak.',
       );
+    }
+    return SizedBox(
+      height: 168,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: highlights.length,
+        separatorBuilder: (final _, final __) => const SizedBox(width: 18),
+        itemBuilder: (final context, final i) =>
+            AudioHighlightCard(highlight: highlights[i]),
+      ),
+    );
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
-// GERÇEK OYUNCU ALINTISI
+// GERÇEK OYUNCU ALINTISI (yoksa genel bir marka sözü)
 // ══════════════════════════════════════════════════════════════
 class _PullQuoteSection extends ConsumerWidget {
   const _PullQuoteSection();
@@ -700,25 +710,33 @@ class _PullQuoteSection extends ConsumerWidget {
     final players = playersAsync.value ?? const <Player>[];
     final withQuote =
         players.where((final p) => p.quote.trim().isNotEmpty).toList();
-    if (withQuote.isEmpty) return const SizedBox.shrink();
 
-    final player = withQuote.first;
+    final String quote;
+    final String attribution;
+    if (withQuote.isNotEmpty) {
+      final player = withQuote.first;
+      quote = '"${player.quote.trim()}"';
+      attribution = '${player.firstName} ${player.lastName}';
+    } else {
+      quote = '"Her perde açılışı yeni bir dünyanın kapısı."';
+      attribution = 'TİYATROL';
+    }
+
     final width = MediaQuery.of(context).size.width;
 
     return Container(
       width: double.infinity,
-      color: WebColors.darkBlueSurface,
+      decoration: const BoxDecoration(gradient: LandingPalette.crimsonGradient),
       padding: EdgeInsets.symmetric(
           vertical: 64, horizontal: width > 900 ? 100 : 24),
       child: Column(
         children: [
-          const Icon(Icons.format_quote_rounded,
-              color: WebColors.primaryGold, size: 36),
+          const Icon(Icons.format_quote_rounded, color: Colors.white, size: 36),
           const SizedBox(height: 20),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: Text(
-              '"${player.quote.trim()}"',
+              quote,
               textAlign: TextAlign.center,
               style: const TextStyle(
                   color: Colors.white,
@@ -729,9 +747,9 @@ class _PullQuoteSection extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text('${player.firstName} ${player.lastName}',
-              style: const TextStyle(
-                  color: WebColors.primaryGoldLight,
+          Text(attribution,
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.85),
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5)),
@@ -754,9 +772,9 @@ class _StatsBar extends StatelessWidget {
   Widget build(final BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
         decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface,
+          color: LandingPalette.surface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: WebColors.microBorder),
+          border: Border.all(color: LandingPalette.microBorder),
         ),
         child: Wrap(
           alignment: WrapAlignment.spaceEvenly,
