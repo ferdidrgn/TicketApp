@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/gallery_section.dart';
@@ -107,7 +109,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         rightIcon: Icons.theaters,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
-          backgroundColor: const Color(0xFF0a0a1a),
+          backgroundColor: WebColors.darkBlueBackground,
           ambientColor: context.primaryColor.withOpacity(0.05),
         ),
         child: detailAsync.when(
@@ -165,6 +167,29 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             right: 20,
             child: Row(
               children: [
+                if (showData.trailerYoutubeId != null &&
+                    showData.trailerYoutubeId!.trim().isNotEmpty) ...[
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: context.colors.surfaceContainerHighest,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.play_circle_outline_rounded,
+                          size: 22, color: context.colors.onSurface),
+                      tooltip: 'Fragmanı İzle',
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        barrierColor: Colors.black87,
+                        builder: (final _) =>
+                            _TrailerDialog(youtubeId: showData.trailerYoutubeId!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -381,28 +406,28 @@ class _EventItemTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1a1a2e).withOpacity(0.8),
+        color: WebColors.darkBlueSurface.withOpacity(0.8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFD4AF37).withOpacity(0.2),
+              color: WebColors.primaryGold.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               children: [
                 Text(gun,
                     style: const TextStyle(
-                        color: Color(0xFFD4AF37),
+                        color: WebColors.primaryGold,
                         fontSize: 20,
                         fontWeight: FontWeight.bold)),
                 Text(ay,
                     style: const TextStyle(
-                        color: Color(0xFFD4AF37), fontSize: 11)),
+                        color: WebColors.primaryGold, fontSize: 11)),
               ],
             ),
           ),
@@ -431,7 +456,7 @@ class _EventItemTile extends StatelessWidget {
             ),
           ),
           const Icon(Icons.arrow_forward_ios,
-              color: Color(0xFFD4AF37), size: 14),
+              color: WebColors.primaryGold, size: 14),
         ],
       ),
     );
@@ -470,7 +495,7 @@ class _AnimatedPoster extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.4),
+                color: WebColors.primaryGold.withOpacity(0.4),
                 blurRadius: 50,
                 spreadRadius: 5)
           ],
@@ -494,12 +519,12 @@ class _GlassDescriptionCard extends StatelessWidget {
   Widget build(final BuildContext context) => Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: const Color(0xFF1a1a2e).withOpacity(0.8),
+          color: WebColors.darkBlueSurface.withOpacity(0.8),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+          border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.1), blurRadius: 30)
+                color: WebColors.primaryGold.withOpacity(0.1), blurRadius: 30)
           ],
         ),
         child: Text(
@@ -526,15 +551,15 @@ class _SectionTitle extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                  colors: [Color(0xFFD4AF37), Color(0xFFF5E6A3)]),
+                  colors: [WebColors.primaryGold, WebColors.primaryGoldLight]),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                    color: const Color(0xFFD4AF37).withOpacity(0.4),
+                    color: WebColors.primaryGold.withOpacity(0.4),
                     blurRadius: 15)
               ],
             ),
-            child: Icon(icon, color: const Color(0xFF0a0a1a), size: 22),
+            child: Icon(icon, color: WebColors.darkBlueBackground, size: 22),
           ),
           const SizedBox(width: 16),
           Text(title,
@@ -549,10 +574,67 @@ class _SectionTitle extends StatelessWidget {
                   height: 1,
                   decoration: BoxDecoration(
                       gradient: LinearGradient(colors: [
-                    const Color(0xFFD4AF37).withOpacity(0.5),
+                    WebColors.primaryGold.withOpacity(0.5),
                     Colors.transparent
                   ])))),
         ],
+      );
+}
+
+/// 🎬 Gösteri fragmanını (küratörün Firestore'a elle eklediği
+/// `trailerYoutubeId`) küçük bir pencerede oynatır — web landing sayfasının
+/// "Perde Arkası" bölümündeki fragman penceresiyle aynı fikir.
+class _TrailerDialog extends StatefulWidget {
+  final String youtubeId;
+  const _TrailerDialog({required this.youtubeId});
+
+  @override
+  State<_TrailerDialog> createState() => _TrailerDialogState();
+}
+
+class _TrailerDialogState extends State<_TrailerDialog> {
+  late final YoutubePlayerController _controller =
+      YoutubePlayerController.fromVideoId(
+    videoId: widget.youtubeId,
+    autoPlay: true,
+    params: const YoutubePlayerParams(showFullscreenButton: true),
+  );
+
+  @override
+  void dispose() {
+    _controller.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => Dialog(
+        backgroundColor: WebColors.darkBlueSurface,
+        insetPadding: const EdgeInsets.all(24),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: YoutubePlayer(controller: _controller),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
 }
 
@@ -580,7 +662,7 @@ class _BackgroundParticles extends StatelessWidget {
                     width: 4,
                     height: 4,
                     decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: Color(0xFFD4AF37))));
+                        shape: BoxShape.circle, color: WebColors.primaryGold)));
           },
         );
       }),

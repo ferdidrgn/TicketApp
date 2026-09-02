@@ -12,13 +12,22 @@ final class TiyatrolCommunicationActions {
 
   // --- 📧 E-POSTA GÖNDER ---
   static Future<void> sendEmail(
-      {final String subject = "TiyatRol Destek"}) async {
+      {final String subject = "TiyatRol Destek", final String? body}) async {
     final Uri uri = Uri(
         scheme: 'mailto',
         path: _officialEmail,
-        queryParameters: {'subject': subject});
+        queryParameters: {
+          'subject': subject,
+          if (body != null && body.isNotEmpty) 'body': body,
+        });
     await _launch(uri);
   }
+
+  /// Herkese açık şekilde gösterilebilecek resmi iletişim e-postası.
+  static String get officialEmail => _officialEmail;
+
+  /// Herkese açık şekilde gösterilebilecek Instagram kullanıcı adı.
+  static String get instagramHandle => _instagramUser;
 
   // --- 📱 WHATSAPP DESTEK HATTI ---
   static Future<void> contactWhatsApp() async {

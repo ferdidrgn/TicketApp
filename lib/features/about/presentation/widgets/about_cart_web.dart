@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../players/presentation/providers/player_provider.dart';
+import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../stages/presentation/providers/stage_provider.dart';
 
-class AboutCard extends StatefulWidget {
+class AboutCard extends ConsumerStatefulWidget {
   const AboutCard({super.key});
 
   @override
-  State<AboutCard> createState() => _AboutCardState();
+  ConsumerState<AboutCard> createState() => _AboutCardState();
 }
 
-class _AboutCardState extends State<AboutCard>
+class _AboutCardState extends ConsumerState<AboutCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -171,30 +175,40 @@ class _AboutCardState extends State<AboutCard>
     );
   }
 
+  // 🎭 2018'de kurulduk (yukarıdaki tanıtım metniyle aynı) — deneyim yılı
+  // buradan GERÇEK ZAMANLI hesaplanıyor, elle yazılan bir sayı zamanla
+  // (tıpkı eskiden burada sabit "7" yazması gibi) yanlış hale gelmiyor.
+  static const int _foundingYear = 2018;
+
   Widget _buildStatsGrid(final BuildContext context) {
+    final showCount = ref.watch(showsProvider(isLimit: true)).value?.length;
+    final playerCount = ref.watch(playersProvider(isLimit: true)).value?.length;
+    final stageCount = ref.watch(stagesProvider(isLimit: true)).value?.length;
+    final yearsExperience = DateTime.now().year - _foundingYear;
+
     final stats = [
       {
         'icon': Icons.theater_comedy,
-        'number': '10+',
+        'number': showCount != null ? '$showCount+' : '—',
         'label': 'Sahnelenen Oyun',
         'color': WebColors.primaryGold,
       },
       {
         'icon': Icons.people,
-        'number': '10k+',
-        'label': 'Seyirci',
+        'number': playerCount != null ? '$playerCount+' : '—',
+        'label': 'Aktif Oyuncu',
         'color': WebColors.info,
       },
       {
         'icon': Icons.calendar_today,
-        'number': '7',
+        'number': '$yearsExperience',
         'label': 'Yıllık Deneyim',
         'color': WebColors.success,
       },
       {
-        'icon': Icons.favorite,
-        'number': '10',
-        'label': 'Gönül Vermiş Kişiler',
+        'icon': Icons.location_city_rounded,
+        'number': stageCount != null ? '$stageCount+' : '—',
+        'label': 'Sahne / Mekan',
         'color': WebColors.error,
       },
     ];

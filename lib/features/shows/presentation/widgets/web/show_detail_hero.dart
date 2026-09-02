@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../../core/common/constants/app_constants.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/util/responsive_utils.dart';
 import '../../../domain/entities/show.dart';
 
@@ -91,10 +92,10 @@ class _HeroGradientOverlay extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF0a0a1a).withOpacity(0.3),
+              WebColors.darkBlueBackground.withOpacity(0.3),
               Colors.transparent,
-              Color(0xFF0a0a1a).withOpacity(0.9),
-              Color(0xFF0a0a1a),
+              WebColors.darkBlueBackground.withOpacity(0.9),
+              WebColors.darkBlueBackground,
             ],
             stops: const [0.0, 0.3, 0.8, 1.0],
           ),
@@ -117,7 +118,7 @@ class _HeroDivider extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             Colors.transparent,
-            Color(0xFFD4AF37),
+            WebColors.primaryGold,
             Colors.transparent,
           ],
         ),
@@ -136,7 +137,7 @@ class _HeroTitle extends StatelessWidget {
   Widget build(final BuildContext context) {
     return ShaderMask(
       shaderCallback: (final bounds) => LinearGradient(
-        colors: [Colors.white, Color(0xFFF5E6A3)],
+        colors: [Colors.white, WebColors.primaryGoldLight],
       ).createShader(bounds),
       child: Text(
         title.toUpperCase(),
@@ -147,7 +148,7 @@ class _HeroTitle extends StatelessWidget {
           letterSpacing: 8,
           shadows: [
             BoxShadow(
-              color: Color(0xFFD4AF37).withOpacity(0.5),
+              color: WebColors.primaryGold.withOpacity(0.5),
               blurRadius: 40,
             ),
           ],
@@ -174,15 +175,15 @@ class _AnimatedUnderline extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFFD4AF37),
-                Color(0xFFF5E6A3),
-                Color(0xFFD4AF37),
+                WebColors.primaryGold,
+                WebColors.primaryGoldLight,
+                WebColors.primaryGold,
               ],
             ),
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFFD4AF37).withOpacity(0.6),
+                color: WebColors.primaryGold.withOpacity(0.6),
                 blurRadius: 15,
               ),
             ],
