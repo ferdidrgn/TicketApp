@@ -7,7 +7,6 @@ import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/gallery_section.dart';
@@ -15,6 +14,7 @@ import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../events/domain/entities/event.dart';
 import '../../../favorite/presentation/widgets/favorite_toggle_button.dart';
+import '../../../home/presentation/widgets/web/landing/landing_palette.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../users/domain/entities/favorite_type.dart';
@@ -109,8 +109,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         rightIcon: Icons.theaters,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
-          backgroundColor: WebColors.darkBlueBackground,
-          ambientColor: context.primaryColor.withOpacity(0.05),
+          backgroundColor: LandingPalette.bg,
+          ambientColor: LandingPalette.crimson.withOpacity(0.05),
         ),
         child: detailAsync.when(
           loading: () => const SizedBox.shrink(),
@@ -172,13 +172,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   Container(
                     padding: EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: context.colors.surfaceContainerHighest,
+                      color: Colors.black.withOpacity(0.35),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       icon: Icon(Icons.play_circle_outline_rounded,
-                          size: 22, color: context.colors.onSurface),
+                          size: 22, color: Colors.white),
                       tooltip: 'Fragmanı İzle',
                       onPressed: () => showDialog<void>(
                         context: context,
@@ -193,26 +193,26 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                 Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: context.colors.surfaceContainerHighest,
+                    color: Colors.black.withOpacity(0.35),
                     shape: BoxShape.circle,
                   ),
                   child: FavoriteToggleButton(
                     itemId: showData.id,
                     type: FavoriteType.show,
-                    inactiveColor: context.colors.onSurface,
+                    inactiveColor: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: context.colors.surfaceContainerHighest,
+                    color: Colors.black.withOpacity(0.35),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: Icon(Icons.share_outlined,
-                        size: 22, color: context.colors.onSurface),
+                        size: 22, color: Colors.white),
                     onPressed: () => TiyatrolDeeplinkService.shareShow(
                         id: showData.id, name: showData.name),
                   ),
@@ -406,28 +406,28 @@ class _EventItemTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: WebColors.darkBlueSurface.withOpacity(0.8),
+        color: LandingPalette.surface.withOpacity(0.8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+        border: Border.all(color: LandingPalette.crimson.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: WebColors.primaryGold.withOpacity(0.2),
+              color: LandingPalette.crimson.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               children: [
                 Text(gun,
                     style: const TextStyle(
-                        color: WebColors.primaryGold,
+                        color: LandingPalette.crimson,
                         fontSize: 20,
                         fontWeight: FontWeight.bold)),
                 Text(ay,
                     style: const TextStyle(
-                        color: WebColors.primaryGold, fontSize: 11)),
+                        color: LandingPalette.crimson, fontSize: 11)),
               ],
             ),
           ),
@@ -456,7 +456,7 @@ class _EventItemTile extends StatelessWidget {
             ),
           ),
           const Icon(Icons.arrow_forward_ios,
-              color: WebColors.primaryGold, size: 14),
+              color: LandingPalette.crimson, size: 14),
         ],
       ),
     );
@@ -495,7 +495,7 @@ class _AnimatedPoster extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-                color: WebColors.primaryGold.withOpacity(0.4),
+                color: LandingPalette.crimson.withOpacity(0.4),
                 blurRadius: 50,
                 spreadRadius: 5)
           ],
@@ -519,12 +519,12 @@ class _GlassDescriptionCard extends StatelessWidget {
   Widget build(final BuildContext context) => Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface.withOpacity(0.8),
+          color: LandingPalette.surface.withOpacity(0.8),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+          border: Border.all(color: LandingPalette.crimson.withOpacity(0.3)),
           boxShadow: [
             BoxShadow(
-                color: WebColors.primaryGold.withOpacity(0.1), blurRadius: 30)
+                color: LandingPalette.crimson.withOpacity(0.1), blurRadius: 30)
           ],
         ),
         child: Text(
@@ -551,15 +551,15 @@ class _SectionTitle extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                  colors: [WebColors.primaryGold, WebColors.primaryGoldLight]),
+                  colors: [LandingPalette.crimson, LandingPalette.crimsonLight]),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                    color: WebColors.primaryGold.withOpacity(0.4),
+                    color: LandingPalette.crimson.withOpacity(0.4),
                     blurRadius: 15)
               ],
             ),
-            child: Icon(icon, color: WebColors.darkBlueBackground, size: 22),
+            child: Icon(icon, color: LandingPalette.bg, size: 22),
           ),
           const SizedBox(width: 16),
           Text(title,
@@ -574,7 +574,7 @@ class _SectionTitle extends StatelessWidget {
                   height: 1,
                   decoration: BoxDecoration(
                       gradient: LinearGradient(colors: [
-                    WebColors.primaryGold.withOpacity(0.5),
+                    LandingPalette.crimson.withOpacity(0.5),
                     Colors.transparent
                   ])))),
         ],
@@ -608,7 +608,7 @@ class _TrailerDialogState extends State<_TrailerDialog> {
 
   @override
   Widget build(final BuildContext context) => Dialog(
-        backgroundColor: WebColors.darkBlueSurface,
+        backgroundColor: LandingPalette.surface,
         insetPadding: const EdgeInsets.all(24),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -662,7 +662,7 @@ class _BackgroundParticles extends StatelessWidget {
                     width: 4,
                     height: 4,
                     decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: WebColors.primaryGold)));
+                        shape: BoxShape.circle, color: LandingPalette.crimson)));
           },
         );
       }),

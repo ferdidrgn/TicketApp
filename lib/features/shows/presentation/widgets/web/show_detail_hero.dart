@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../../core/common/constants/app_constants.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/util/responsive_utils.dart';
+import '../../../../home/presentation/widgets/web/landing/landing_palette.dart';
 import '../../../domain/entities/show.dart';
 
 class ShowDetailHero extends StatelessWidget {
@@ -92,10 +92,10 @@ class _HeroGradientOverlay extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              WebColors.darkBlueBackground.withOpacity(0.3),
+              LandingPalette.bg.withOpacity(0.3),
               Colors.transparent,
-              WebColors.darkBlueBackground.withOpacity(0.9),
-              WebColors.darkBlueBackground,
+              LandingPalette.bg.withOpacity(0.9),
+              LandingPalette.bg,
             ],
             stops: const [0.0, 0.3, 0.8, 1.0],
           ),
@@ -118,7 +118,7 @@ class _HeroDivider extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             Colors.transparent,
-            WebColors.primaryGold,
+            LandingPalette.crimson,
             Colors.transparent,
           ],
         ),
@@ -137,7 +137,7 @@ class _HeroTitle extends StatelessWidget {
   Widget build(final BuildContext context) {
     return ShaderMask(
       shaderCallback: (final bounds) => LinearGradient(
-        colors: [Colors.white, WebColors.primaryGoldLight],
+        colors: [Colors.white, LandingPalette.crimsonLight],
       ).createShader(bounds),
       child: Text(
         title.toUpperCase(),
@@ -148,7 +148,7 @@ class _HeroTitle extends StatelessWidget {
           letterSpacing: 8,
           shadows: [
             BoxShadow(
-              color: WebColors.primaryGold.withOpacity(0.5),
+              color: LandingPalette.crimson.withOpacity(0.5),
               blurRadius: 40,
             ),
           ],
@@ -175,15 +175,15 @@ class _AnimatedUnderline extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                WebColors.primaryGold,
-                WebColors.primaryGoldLight,
-                WebColors.primaryGold,
+                LandingPalette.crimson,
+                LandingPalette.crimsonLight,
+                LandingPalette.crimson,
               ],
             ),
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
               BoxShadow(
-                color: WebColors.primaryGold.withOpacity(0.6),
+                color: LandingPalette.crimson.withOpacity(0.6),
                 blurRadius: 15,
               ),
             ],
