@@ -7,6 +7,8 @@
 .pub/
 /build/
 .fvm/
+.flutter-plugins
+.flutter-plugins-dependencies
 
 # DİKKAT: pubspec.lock ASLA buraya eklenmemeli!
 
