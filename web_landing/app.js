@@ -178,26 +178,74 @@ async function boot() {
   setStatTarget(2, stages.length);
   setStatTarget(3, new Date().getFullYear() - FOUNDING_YEAR);
 
-  renderMosaic(shows);
-  renderFeatured(events, shows, stages);
+  renderHero(shows, events, stages);
+  renderAbout(shows, players);
   renderMonthTabs();
   renderCalendarStrip(events, shows);
   renderTeam(metaforPlayers(shows, players));
   renderRepertoire(shows);
   renderGallery(shows);
   renderVenues(stages);
+  renderTestimonial(players);
   initInteractions();
 }
 
-/* ── Masthead mosaik: gerçek oyun görselleri ──────────────────── */
-function renderMosaic(shows) {
-  const row = document.getElementById('mosaicRow');
+/* ── Hero: gerçek gösteri görseli + gerçek "yaklaşan gösteri" durumu ── */
+function renderHero(shows, events, stages) {
   const withImages = shows.filter((s) => s.imageUrl);
-  if (!withImages.length) { row.innerHTML = ''; return; }
-  row.innerHTML = withImages.slice(0, 6).map((s) => `
-    <div class="mosaic-tile"><img src="${esc(s.imageUrl)}" alt="${esc(s.name || '')}" loading="lazy" /></div>
-  `).join('');
+  const heroImg = document.getElementById('heroImage');
+  if (withImages.length) {
+    const pick = withImages[0];
+    heroImg.innerHTML = `<img src="${esc(pick.imageUrl)}" alt="${esc(pick.name || '')}" loading="lazy" />`;
+  }
+
+  const statusEl = document.getElementById('heroStatus');
+  const next = upcomingEvents(events)[0];
+  if (next) {
+    const show = shows.find((s) => s.id === next.showId);
+    const stage = stages.find((st) => st.id === next.stageId);
+    const parts = [`Yaklaşan gösteri: ${show?.name || 'Gösteri'} — ${formatEventDateTr(next._date)}`];
+    if (stage?.name) parts.push(stage.name);
+    statusEl.textContent = parts.join(' · ');
+  } else if (shows.length) {
+    statusEl.textContent = `Repertuarda ${shows.length} oyun sahneleniyor.`;
+  } else {
+    statusEl.textContent = '';
+  }
 }
+
+/* ── Hakkımızda kolajı: iki gerçek görsel (oyun + oyuncu) ─────────── */
+function renderAbout(shows, players) {
+  const collage = document.getElementById('aboutCollage');
+  const showImg = shows.find((s) => s.imageUrl)?.imageUrl;
+  const playerImg = players.find((p) => p.imageUrl)?.imageUrl;
+  if (showImg) collage.style.setProperty('--about-img-1', `url("${showImg}")`);
+  if (playerImg) collage.style.setProperty('--about-img-2', `url("${playerImg}")`);
+  if (!showImg && !playerImg) collage.style.display = 'none';
+}
+
+/* ── Testimonial: gerçek oyuncu alıntısı (varsa) ──────────────────── */
+function renderTestimonial(players) {
+  const withQuote = players.filter((p) => p.quote && p.quote.trim());
+  if (!withQuote.length) return; // Marka sesi satırı (HTML'deki varsayılan) zaten yerinde kalır — uydurma değil.
+  const p = withQuote[Math.floor(Math.random() * withQuote.length)];
+  document.getElementById('testimonialQuote').textContent = `"${p.quote.trim()}"`;
+  document.getElementById('testimonialAttr').textContent = `— ${p.firstName ?? ''} ${p.lastName ?? ''}`.trim();
+}
+
+/* ── İletişim formu: gerçek çalışan mailto (backend yok, sahte
+ * "gönderildi" mesajı yok — kullanıcının kendi e-posta istemcisi açılır) ── */
+document.getElementById('contactForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const name = form.name.value.trim();
+  const email = form.email.value.trim();
+  const subject = form.subject.value;
+  const message = form.message.value.trim();
+  const body = `Gönderen: ${name} (${email})\n\n${message}`;
+  const mailto = `mailto:iletisim@tiyatrol.com?subject=${encodeURIComponent(`[${subject}] ${name}`)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+});
 
 /* ── Tarih ayrıştırma: "dd.MM.yyyy, HH:mm" (virgül sonrası boşluk
  * olsun/olmasın) — Flutter uygulamasındaki DateFormatter ile aynı
@@ -340,7 +388,7 @@ function renderRepertoire(shows) {
     grid.innerHTML = `<div class="empty-note">Sezon repertuarı yakında burada — küratör oyun eklediğinde bu bölüm otomatik dolacak.</div>`;
     return;
   }
-  grid.innerHTML = shows.map((s, i) => {
+  grid.innerHTML = shows.map((s) => {
     const name = esc(s.name || 'İsimsiz Oyun');
     const desc = esc(s.description || '');
     const cat = esc(s.category || 'Tiyatro');
@@ -350,7 +398,7 @@ function renderRepertoire(shows) {
       ? `<img class="show-card__img" src="${esc(s.imageUrl)}" alt="${name}" loading="lazy" />`
       : `<div class="show-card__img show-card__img--placeholder">${name}</div>`;
     return `
-      <div class="show-card${i === 0 ? ' show-card--featured' : ''}">
+      <div class="show-card">
         ${img}
         <div class="show-card__shade"></div>
         <span class="show-card__cat">${cat}</span>
@@ -460,9 +508,9 @@ function applyMagnetic(el, strength = 0.32) {
 }
 
 function initInteractions() {
-  document.querySelectorAll('.show-card, .venue-card').forEach((el) => applySpotlight(el));
+  document.querySelectorAll('.show-card').forEach((el) => applySpotlight(el));
   document.querySelectorAll('.player-card').forEach((el) => { applySpotlight(el); applyTilt(el); });
-  document.querySelectorAll('.btn, .nav__cta, .featured__cta').forEach((el) => applyMagnetic(el));
+  document.querySelectorAll('.btn').forEach((el) => applyMagnetic(el));
 }
 
 boot();
