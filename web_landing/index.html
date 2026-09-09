@@ -14,6 +14,13 @@
 </head>
 <body>
 
+<!-- ══════ PERDE AÇILIŞI (yükleme animasyonu) ══════ -->
+<div class="curtain-reveal" id="curtainReveal" aria-hidden="true">
+  <div class="curtain-reveal__panel curtain-reveal__panel--left"></div>
+  <div class="curtain-reveal__panel curtain-reveal__panel--right"></div>
+  <span class="curtain-reveal__mark">TR</span>
+</div>
+
 <!-- ══════ ÖZEL İMLEÇ ══════ -->
 <div class="cursor-dot" aria-hidden="true"></div>
 <div class="cursor-ring" aria-hidden="true"></div>
@@ -52,26 +59,34 @@
 
 <main id="top">
 
-  <!-- ══════ HERO (split: metin + gerçek gösteri görseli) ══════ -->
+  <!-- ══════ HERO (split: gerçek video solda + metin sağda) ══════ -->
   <section class="hero">
+    <div class="hero__media">
+      <video class="hero__video" id="heroVideo" autoplay muted loop playsinline preload="metadata"
+        poster="" aria-hidden="true">
+        <source src="https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705" type="video/mp4" />
+      </video>
+      <span class="hero__city">İSTANBUL, 2018'DEN BERİ</span>
+    </div>
     <div class="hero__text">
       <p class="hero__labels">
-        TİYATRO YAPIMI<br>
-        SAHNE SANATLARI<br>
-        TOPLULUK RUHU
+        PERDE AÇILIYOR<br>
+        IŞIKLAR SÖNÜYOR<br>
+        SÖZ SAHNEDE
       </p>
-      <h1 class="hero__title">SAHNE.<br>TUTKU.<br><em>HAKİKAT.</em></h1>
-      <p class="hero__sub">AVANGARD OYUNLAR<br>SAHNELEYEN TİYATRO TOPLULUĞU</p>
+      <h1 class="hero__title">HER ŞEY BİR<br><em>METAFOR.</em></h1>
+      <p class="hero__sub">GERÇEĞİ ANLATMANIN<br>EN GÜZEL YALANI: TİYATRO.</p>
       <div class="hero__actions">
         <a href="/app" class="btn btn--solid" data-cursor-hover>Bilet Al</a>
         <a href="#repertuar" class="btn btn--ghost" data-cursor-hover>Oyunları Gör</a>
       </div>
     </div>
-    <div class="hero__media">
-      <div class="hero__media-inner" id="heroImage"></div>
-      <span class="hero__city">İSTANBUL</span>
-    </div>
     <p class="hero__status" id="heroStatus">Sezon takvimi yükleniyor…</p>
+  </section>
+
+  <!-- ══════ MARKA ŞERİDİ (gerçek oyun adları, dönen kuşak) ══════ -->
+  <section class="brandline" aria-hidden="true">
+    <div class="brandline__track" id="brandlineTrack"></div>
   </section>
 
   <!-- ══════ HAKKIMIZDA (kolaj + büyük alıntı) ══════ -->
@@ -85,36 +100,43 @@
     </div>
   </section>
 
+  <!-- ══════ AYRAÇ: SPOTLIGHT TARAMASI ══════ -->
+  <div class="divider divider--dark"><span class="divider__sweep"></span></div>
+
   <!-- ══════ NELER SUNUYORUZ (koyu bant, 5 sütun) ══════ -->
   <section class="offer" id="neden">
+    <p class="offer__kicker reveal-up">PERDE ARALANDIĞINDA GÖRECEKLERİN</p>
     <div class="offer__grid">
       <div class="offer__item reveal-up" style="--d:0">
         <span class="offer__icon">✦</span>
-        <h3>Repertuar Tiyatrosu</h3>
-        <p>Klasik ve özgün metinleri modern sahne yorumuyla buluşturan, küratörlü bir sezon programı.</p>
+        <h3>Metaforla Yazılan Repertuar</h3>
+        <p>Her metni bir kez daha yazan, klasiği bugüne çeviren küratörlü bir sezon — söz burada anlam değiştirir.</p>
       </div>
       <div class="offer__item reveal-up" style="--d:1">
         <span class="offer__icon">◈</span>
-        <h3>Usta Oyunculuk Kadrosu</h3>
-        <p>Deneyimli oyuncular ve yönetmenlerden oluşan, her prodüksiyonda büyüyen bir sanatçı ailesi.</p>
+        <h3>Kadro, Aile Olunca</h3>
+        <p>Prova salonunda başlayıp sahnede biten bağ. Her yeni oyunla büyüyen, gerçek bir oyuncu ailesi.</p>
       </div>
       <div class="offer__item reveal-up" style="--d:2">
         <span class="offer__icon">◎</span>
-        <h3>Gerçek Zamanlı Bilet</h3>
-        <p>Koltuk haritasından yerini seç, saniyeler içinde bileti al — gişe kuyruğu yok.</p>
+        <h3>Koltuk Senin, Saniyeler İçinde</h3>
+        <p>Gerçek zamanlı koltuk haritası, anında bilet. Gişe kuyruğuyla değil, sahneyle vaktin geçsin.</p>
       </div>
       <div class="offer__item reveal-up" style="--d:3">
         <span class="offer__icon">✧</span>
-        <h3>Sahne Arkası Erişim</h3>
-        <p>Prova fotoğrafları, kulis anları ve gerçek prömiyer kayıtlarıyla perde arkasını keşfet.</p>
+        <h3>Işık Sönmeden Önce</h3>
+        <p>Prova terleri, kulis kahkahaları, ilk okuma anları — perde açılmadan önceki her şeye tanık ol.</p>
       </div>
       <div class="offer__item reveal-up" style="--d:4">
         <span class="offer__icon">⟡</span>
-        <h3>Mekan & Sahne Ağı</h3>
-        <p>İstanbul'un gerçek kültür merkezlerinde, her oyuna özel sahnelenen deneyimler.</p>
+        <h3>Her Sahnenin Kendi Işığı</h3>
+        <p>İstanbul'un gerçek kültür merkezlerinde, her oyuna kendi ruhunu bulan bir mekan.</p>
       </div>
     </div>
   </section>
+
+  <!-- ══════ AYRAÇ: SPOTLIGHT TARAMASI ══════ -->
+  <div class="divider divider--light"><span class="divider__sweep"></span></div>
 
   <!-- ══════ ÖNE ÇIKAN OYUNLAR (repertuar) ══════ -->
   <section class="repertoire" id="repertuar">

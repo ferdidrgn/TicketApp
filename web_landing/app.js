@@ -164,13 +164,29 @@ function metaforPlayers(shows, players) {
   return filtered.length ? filtered : players;
 }
 
+/** Küratör kararı: repertuar sıralaması — Metafor en üstte, sonra Göz
+ * Kapa Vazgeç, sonra Kurtar Beni Doktor, sonra Yolcular, en sonda
+ * Kadınlık Bizde Kalsın. Bu listede olmayan oyunlar sırayı bozmadan
+ * araya, sondan bir önceki konuma eklenir. */
+function sortRepertoire(shows) {
+  const order = ['metafor', 'göz', 'doktor', 'yolcu'];
+  const rank = (s) => {
+    const name = (s.name || '').toLowerCase();
+    if (name.includes('kadınlık')) return 999;
+    for (let i = 0; i < order.length; i++) if (name.includes(order[i])) return i;
+    return order.length;
+  };
+  return [...shows].sort((a, b) => rank(a) - rank(b));
+}
+
 async function boot() {
-  const [shows, players, stages, events] = await Promise.all([
+  const [showsRaw, players, stages, events] = await Promise.all([
     fetchCollection('Show'),
     fetchCollection('Player'),
     fetchCollection('Stage'),
     fetchCollection('Event'),
   ]);
+  const shows = sortRepertoire(showsRaw);
 
   // İstatistikler (uydurma yok — gerçek sayılar, TÜM kadro üzerinden)
   setStatTarget(0, shows.length);
@@ -179,6 +195,7 @@ async function boot() {
   setStatTarget(3, new Date().getFullYear() - FOUNDING_YEAR);
 
   renderHero(shows, events, stages);
+  renderBrandline(shows);
   renderAbout(shows, players);
   renderMonthTabs();
   renderCalendarStrip(events, shows);
@@ -190,15 +207,16 @@ async function boot() {
   initInteractions();
 }
 
-/* ── Hero: gerçek gösteri görseli + gerçek "yaklaşan gösteri" durumu ── */
-function renderHero(shows, events, stages) {
-  const withImages = shows.filter((s) => s.imageUrl);
-  const heroImg = document.getElementById('heroImage');
-  if (withImages.length) {
-    const pick = withImages[0];
-    heroImg.innerHTML = `<img src="${esc(pick.imageUrl)}" alt="${esc(pick.name || '')}" loading="lazy" />`;
-  }
+/* ── Marka şeridi: gerçek oyun adları, akan kuşak ─────────────────── */
+function renderBrandline(shows) {
+  const track = document.getElementById('brandlineTrack');
+  const names = shows.length ? shows.map((s) => s.name).filter(Boolean) : ['TiyatRol Sahne Sanatları Topluluğu'];
+  const itemsHtml = names.map((n) => `<span class="brandline__item">${esc(n)} <span>✦</span></span>`).join('');
+  track.innerHTML = itemsHtml + itemsHtml;
+}
 
+/* ── Hero: gerçek "yaklaşan gösteri" durumu (video statik HTML'de) ── */
+function renderHero(shows, events, stages) {
   const statusEl = document.getElementById('heroStatus');
   const next = upcomingEvents(events)[0];
   if (next) {

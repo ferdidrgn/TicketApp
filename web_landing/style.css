@@ -68,25 +68,57 @@ section{position:relative; z-index:1;}
 @media (max-width:900px){ .nav__links{ display:none; } }
 
 /* ═══════════════ HERO ═══════════════ */
-.hero{ position:relative; min-height:100vh; display:grid; grid-template-columns:1fr 1.15fr; background:var(--wine); color:var(--cream); overflow:hidden; }
+.hero{ position:relative; min-height:100vh; display:grid; grid-template-columns:1.15fr 1fr; background:var(--wine); color:var(--cream); overflow:hidden; }
 .hero__text{ padding:150px clamp(28px,5vw,72px) 60px; display:flex; flex-direction:column; justify-content:center; position:relative; z-index:2; }
 .hero__labels{ font-size:10.5px; font-weight:700; letter-spacing:2px; line-height:1.9; color:var(--rose-light); text-transform:uppercase; margin-bottom:28px; }
 .hero__title{ font-family:var(--serif); font-weight:500; font-size:clamp(46px,6.2vw,84px); line-height:1.02; letter-spacing:.5px; }
 .hero__title em{ font-style:italic; color:var(--rose-light); }
 .hero__sub{ margin-top:26px; font-size:12px; font-weight:700; letter-spacing:1.6px; line-height:1.8; color:var(--cream-dim); border-top:1px solid var(--line-dark); padding-top:18px; max-width:280px; }
 .hero__actions{ display:flex; gap:14px; margin-top:38px; flex-wrap:wrap; }
-.hero__media{ position:relative; overflow:hidden; }
-.hero__media-inner{ position:absolute; inset:0; background:var(--wine-light); }
-.hero__media-inner img{ width:100%; height:100%; object-fit:cover; }
-.hero__media::after{ content:''; position:absolute; inset:0; background:linear-gradient(90deg, var(--wine) 0%, transparent 22%); }
-.hero__city{ position:absolute; right:26px; top:50%; transform:translateY(-50%) rotate(90deg) translateX(50%); transform-origin:right center; font-size:11px; font-weight:700; letter-spacing:3px; color:var(--cream-dim); white-space:nowrap; }
+.hero__media{ position:relative; overflow:hidden; background:var(--wine-light); }
+.hero__video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.hero__media::after{ content:''; position:absolute; inset:0; background:linear-gradient(270deg, var(--wine) 0%, transparent 22%); }
+.hero__city{ position:absolute; right:26px; top:50%; transform:translateY(-50%) rotate(90deg) translateX(50%); transform-origin:right center; font-size:11px; font-weight:700; letter-spacing:3px; color:var(--cream-dim); white-space:nowrap; z-index:2; }
 .hero__status{ position:absolute; left:clamp(28px,5vw,72px); bottom:26px; z-index:2; font-size:12px; font-weight:600; color:var(--cream-dim); letter-spacing:.3px; }
 @media (max-width:900px){
   .hero{ grid-template-columns:1fr; }
-  .hero__media{ height:280px; order:-1; }
-  .hero__text{ padding-top:120px; }
+  .hero__media{ height:280px; }
+  .hero__text{ padding-top:60px; }
   .hero__city{ display:none; }
 }
+
+/* ═══════════════ PERDE AÇILIŞI (yükleme animasyonu) ═══════════════
+   Kasıtlı olarak SAF CSS — JavaScript'e hiç bağımlı değil. Bir script
+   hatası açılışı asla sonsuza dek engellemesin diye (bu oturumda
+   yaşanan "sayfa hiç açılmıyor" sorunlarından ders): animasyon sayfa
+   yüklenir yüklenmez kendiliğinden, garanti şekilde tamamlanır. */
+.curtain-reveal{ position:fixed; inset:0; z-index:10000; animation:curtainHide .01s 1.6s forwards; }
+.curtain-reveal__panel{ position:absolute; top:0; bottom:0; width:50%; background:var(--wine-deep); animation-duration:1s; animation-timing-function:cubic-bezier(.76,0,.24,1); animation-delay:.5s; animation-fill-mode:forwards; }
+.curtain-reveal__panel--left{ left:0; animation-name:curtainOpenLeft; }
+.curtain-reveal__panel--right{ right:0; animation-name:curtainOpenRight; }
+.curtain-reveal__mark{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--serif); font-size:15px;
+  letter-spacing:2px; color:var(--cream-dim); animation:curtainMarkFade .4s ease .5s forwards;
+}
+@keyframes curtainOpenLeft{ to{ transform:translateX(-100%); } }
+@keyframes curtainOpenRight{ to{ transform:translateX(100%); } }
+@keyframes curtainMarkFade{ to{ opacity:0; } }
+@keyframes curtainHide{ to{ opacity:0; visibility:hidden; pointer-events:none; } }
+@media (prefers-reduced-motion: reduce){ .curtain-reveal{ display:none; } }
+
+/* ═══════════════ MARKA ŞERİDİ (marquee) ═══════════════ */
+.brandline{ background:var(--wine-deep); overflow:hidden; padding:16px 0; border-bottom:1px solid var(--line-dark); }
+.brandline__track{ display:flex; gap:44px; width:max-content; white-space:nowrap; animation:marquee 30s linear infinite; }
+@keyframes marquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+.brandline__item{ font-family:var(--serif); font-style:italic; font-size:15px; color:var(--cream-dim); display:flex; align-items:center; gap:44px; }
+.brandline__item span{ color:var(--rose-light); font-style:normal; }
+
+/* ═══════════════ AYRAÇ: SPOTLIGHT TARAMASI ═══════════════ */
+.divider{ position:relative; height:1px; overflow:hidden; }
+.divider--dark{ background:var(--line-dark); }
+.divider--light{ background:var(--line-light); }
+.divider__sweep{ position:absolute; top:0; bottom:0; left:-20%; width:20%; background:linear-gradient(90deg, transparent, var(--rose-light), transparent); animation:sweep 5s ease-in-out infinite; }
+@keyframes sweep{ 0%{ left:-20%; } 50%{ left:100%; } 100%{ left:100%; } }
 
 /* ═══════════════ BUTONLAR ═══════════════ */
 .btn{ display:inline-flex; align-items:center; gap:8px; padding:13px 28px; border-radius:3px; font-size:11.5px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; transition:transform .22s var(--ease), background .22s, border-color .22s; }
