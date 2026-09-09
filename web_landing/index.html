@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TiyatRol — Sahnede Yaşanan Gerçek Hikâyeler</title>
+<meta name="description" content="TiyatRol Sahne Sanatları Topluluğu — 2018'den beri İstanbul'da sahneye çıkan amatör-profesyonel bir tiyatro topluluğu. Ekibimizi, oyunlarımızı ve sahne arkasını keşfedin." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════ ÖZEL İMLEÇ ══════ -->
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"></div>
+
+<!-- ══════ SCROLL İLERLEME ÇUBUĞU ══════ -->
+<div class="scroll-progress" aria-hidden="true"><div class="scroll-progress__fill"></div></div>
+
+<!-- ══════ GRAIN DOKUSU ══════ -->
+<canvas id="grain" aria-hidden="true"></canvas>
+
+<!-- ══════ NAV ══════ -->
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="#top" class="nav__brand" data-cursor-hover>
+      <span class="nav__brand-mark">TR</span>
+      <span class="nav__brand-name">TiyatRol</span>
+    </a>
+    <nav class="nav__links">
+      <a href="#manifesto" data-cursor-hover>Biz Kimiz</a>
+      <a href="#ekip" data-cursor-hover>Ekip</a>
+      <a href="#repertuar" data-cursor-hover>Oyunlar</a>
+      <a href="#sahneler" data-cursor-hover>Sahneler</a>
+      <a href="#iletisim" data-cursor-hover>İletişim</a>
+    </nav>
+    <a class="nav__cta" href="/app" data-cursor-hover>
+      <span>Biletini Ayırt</span>
+    </a>
+    <button class="nav__burger" id="burger" aria-label="Menüyü aç">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- ══════ MOBİL MENÜ ══════ -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#manifesto">Biz Kimiz</a>
+  <a href="#ekip">Ekip</a>
+  <a href="#repertuar">Oyunlar</a>
+  <a href="#sahneler">Sahneler</a>
+  <a href="#iletisim">İletişim</a>
+  <a href="/app" class="mobile-menu__cta">Biletini Ayırt</a>
+</div>
+
+<main id="top">
+
+  <!-- ══════ HERO ══════ -->
+  <section class="hero">
+    <div class="hero__spotlight" aria-hidden="true"></div>
+    <div class="hero__curtain hero__curtain--left" aria-hidden="true"></div>
+    <div class="hero__curtain hero__curtain--right" aria-hidden="true"></div>
+
+    <div class="hero__content">
+      <p class="hero__eyebrow reveal-word">
+        <span class="live-dot"></span> <span id="seasonLabel">SEZON AÇILDI</span>
+      </p>
+      <h1 class="hero__title">
+        <span class="line" data-line="1"><span class="word">Sahnede</span> <span class="word">Yaşanan</span></span>
+        <span class="line line--accent" data-line="2"><span class="word">Gerçek</span> <span class="word">Hikâyeler</span></span>
+      </h1>
+      <p class="hero__desc reveal-up">2018'den beri İstanbul'da sahneye çıkan amatör-profesyonel bir tiyatro topluluğuyuz. Burada hem seyirci hem tanığız — her oyun bizden bir parça taşıyor.</p>
+      <div class="hero__actions reveal-up">
+        <a href="#repertuar" class="btn btn--solid" data-cursor-hover>Sezon Oyunları</a>
+        <a href="#manifesto" class="btn btn--ghost" data-cursor-hover>Ekibi Tanı</a>
+      </div>
+    </div>
+
+    <div class="hero__marquee" aria-hidden="true">
+      <div class="hero__marquee-track" id="marqueeTrack">
+        <!-- JS ile doldurulacak: gerçek oyun adları -->
+      </div>
+    </div>
+
+    <button class="hero__scroll-hint" id="scrollHint" aria-label="Aşağı kaydır" data-cursor-hover>
+      <svg width="20" height="30" viewBox="0 0 20 30" fill="none"><rect x="1" y="1" width="18" height="28" rx="9" stroke="currentColor" stroke-opacity=".5"/><circle class="hero__scroll-dot" cx="10" cy="9" r="3" fill="currentColor"/></svg>
+    </button>
+  </section>
+
+  <!-- ══════ İSTATİSTİK ŞERİDİ ══════ -->
+  <section class="stats" id="stats">
+    <div class="stats__grid">
+      <div class="stat" data-count data-suffix="+">
+        <span class="stat__num" data-target="0">0</span>
+        <span class="stat__label">Sahnelenen Oyun</span>
+      </div>
+      <div class="stat" data-count data-suffix="+">
+        <span class="stat__num" data-target="0">0</span>
+        <span class="stat__label">Sanatçı</span>
+      </div>
+      <div class="stat" data-count data-suffix="+">
+        <span class="stat__num" data-target="0">0</span>
+        <span class="stat__label">Sahne / Mekan</span>
+      </div>
+      <div class="stat" data-count data-suffix="">
+        <span class="stat__num" data-target="0">0</span>
+        <span class="stat__label">Yıllık Deneyim</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ MANİFESTO ══════ -->
+  <section class="manifesto" id="manifesto">
+    <svg class="manifesto__mask" viewBox="0 0 200 120" aria-hidden="true">
+      <path d="M40 20 Q30 10 20 20 Q10 30 20 45 Q10 55 25 60 Q15 70 30 78 Q25 90 45 92 Q50 105 65 100 Q75 112 90 100 Q105 112 115 100 Q130 105 135 92 Q155 90 150 78 Q165 70 155 60 Q170 55 160 45 Q170 30 160 20 Q150 10 140 20" stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.5"/>
+    </svg>
+    <p class="manifesto__kicker reveal-up">BİZ KİMİZ</p>
+    <h2 class="manifesto__lines">
+      <span class="reveal-up" style="--d:0">Tiyatrol bizim için</span>
+      <span class="reveal-up" style="--d:1">sahneyi paylaşmak ve</span>
+      <span class="reveal-up" style="--d:2">kendimizi anlatmaktır.</span>
+      <span class="reveal-up manifesto__accent" style="--d:3">Her perde açılışı,</span>
+      <span class="reveal-up manifesto__accent" style="--d:4">yeni bir yüzleşme.</span>
+    </h2>
+    <p class="manifesto__quote reveal-up" style="--d:5">"Bir oyun izlemiyorsun, bir parçası oluyorsun."</p>
+  </section>
+
+  <!-- ══════ EKİP ══════ -->
+  <section class="team" id="ekip">
+    <div class="section-head">
+      <p class="section-head__eyebrow reveal-up">PERDENİN ARKASINDAKİLER</p>
+      <h2 class="section-head__title reveal-up">Ekibimiz</h2>
+    </div>
+    <div class="team__rail" id="teamRail">
+      <div class="loading-row"><span class="spinner"></span> Sanatçılar yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ REPERTUAR ══════ -->
+  <section class="repertoire" id="repertuar">
+    <div class="section-head">
+      <p class="section-head__eyebrow reveal-up">REPERTUAR</p>
+      <h2 class="section-head__title reveal-up">Bu Sezon Sahnede</h2>
+    </div>
+    <div class="repertoire__grid" id="repertoireGrid">
+      <div class="loading-row"><span class="spinner"></span> Oyunlar yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ GALERİ ══════ -->
+  <section class="gallery" id="galeri">
+    <div class="section-head section-head--light">
+      <p class="section-head__eyebrow reveal-up">SAHNE ARKASI</p>
+      <h2 class="section-head__title reveal-up">Provalardan, Kulisten, Alkıştan</h2>
+    </div>
+    <div class="gallery__wall" id="galleryWall">
+      <div class="loading-row loading-row--light"><span class="spinner"></span> Galeri yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ SAHNELER ══════ -->
+  <section class="venues" id="sahneler">
+    <div class="section-head">
+      <p class="section-head__eyebrow reveal-up">MEKANLAR</p>
+      <h2 class="section-head__title reveal-up">Sahnelerimiz</h2>
+    </div>
+    <div class="venues__grid" id="venuesGrid">
+      <div class="loading-row"><span class="spinner"></span> Sahneler yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ FİNAL / CTA ══════ -->
+  <section class="finale">
+    <div class="finale__spotlight" aria-hidden="true"></div>
+    <p class="finale__kicker reveal-up">PERDE KAPANMADAN</p>
+    <h2 class="finale__title reveal-up">Sahne seni bekliyor.</h2>
+    <p class="finale__desc reveal-up">Gerçek zamanlı koltuk haritasından yerini seç, saniyeler içinde bileti al.</p>
+    <a href="/app" class="btn btn--solid btn--lg reveal-up" data-cursor-hover>Biletini Ayırt</a>
+  </section>
+
+</main>
+
+<!-- ══════ FOOTER ══════ -->
+<footer class="footer" id="iletisim">
+  <div class="footer__top">
+    <div class="footer__brand">
+      <span class="footer__brand-mark">TR</span>
+      <span class="footer__brand-name">TiyatRol</span>
+      <p class="footer__tagline">Sahne Sanatları Topluluğu</p>
+    </div>
+    <div class="footer__col">
+      <h4>İletişim</h4>
+      <a href="mailto:iletisim@tiyatrol.com" data-cursor-hover>iletisim@tiyatrol.com</a>
+      <p>Ataşehir, İstanbul, Türkiye</p>
+    </div>
+    <div class="footer__col">
+      <h4>Bizi Takip Edin</h4>
+      <div class="footer__socials">
+        <a href="https://www.instagram.com/tiyatrol" target="_blank" rel="noopener" aria-label="Instagram" data-cursor-hover>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg>
+        </a>
+        <a href="https://www.facebook.com/tiyatrol" target="_blank" rel="noopener" aria-label="Facebook" data-cursor-hover>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 3h-2.5A4.5 4.5 0 0 0 8 7.5V10H5.5v3.5H8V21h3.5v-7.5h2.7l.5-3.5h-3.2V7.8c0-1 .3-1.7 1.7-1.7H15V3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="footer__col">
+      <h4>Uygulama</h4>
+      <a href="/app" data-cursor-hover>Biletini Ayırt →</a>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <p>© <span id="year">2026</span> TiyatRol Sahne Sanatları — Tüm Hakları Saklıdır.</p>
+  </div>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
