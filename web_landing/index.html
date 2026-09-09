@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TiyatRol — Sahne Sanatları Topluluğu</title>
+<meta name="description" content="TiyatRol Sahne Sanatları Topluluğu — 2018'den beri İstanbul'da sahneye çıkan amatör-profesyonel bir tiyatro topluluğu. Ekibimizi, repertuarımızı ve sezon takvimimizi keşfedin." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════ PERDE AÇILIŞI (yükleme animasyonu) ══════ -->
+<div class="curtain-reveal" id="curtainReveal" aria-hidden="true">
+  <div class="curtain-reveal__panel curtain-reveal__panel--left"></div>
+  <div class="curtain-reveal__panel curtain-reveal__panel--right"></div>
+  <span class="curtain-reveal__mark">TR</span>
+</div>
+
+<!-- ══════ ÖZEL İMLEÇ ══════ -->
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"></div>
+
+<!-- ══════ SCROLL İLERLEME ÇUBUĞU ══════ -->
+<div class="scroll-progress" aria-hidden="true"><div class="scroll-progress__fill"></div></div>
+
+<!-- ══════ GRAIN DOKUSU ══════ -->
+<canvas id="grain" aria-hidden="true"></canvas>
+
+<!-- ══════ NAV (hero üzerinde şeffaf) ══════ -->
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="#top" class="nav__brand" data-cursor-hover>VA<span class="nav__brand-dot">·</span>TR</a>
+    <nav class="nav__links">
+      <a href="#hakkimizda" data-cursor-hover>Hakkımızda</a>
+      <a href="#repertuar" data-cursor-hover>Oyunlar</a>
+      <a href="#ekip" data-cursor-hover>Ekip</a>
+      <a href="#takvim" data-cursor-hover>Takvim</a>
+      <a href="#iletisim" data-cursor-hover>İletişim</a>
+    </nav>
+    <button class="nav__burger" id="burger" aria-label="Menüyü aç">MENÜ <span></span></button>
+  </div>
+</header>
+
+<!-- ══════ MOBİL MENÜ ══════ -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#hakkimizda">Hakkımızda</a>
+  <a href="#neden">Neler Sunuyoruz</a>
+  <a href="#repertuar">Oyunlar</a>
+  <a href="#ekip">Ekip</a>
+  <a href="#takvim">Takvim</a>
+  <a href="#iletisim">İletişim</a>
+  <a href="/app" class="mobile-menu__cta">Bilet Al</a>
+</div>
+
+<main id="top">
+
+  <!-- ══════ HERO (split: gerçek video solda + metin sağda) ══════ -->
+  <section class="hero">
+    <div class="hero__media">
+      <video class="hero__video" id="heroVideo" autoplay muted loop playsinline preload="metadata"
+        poster="" aria-hidden="true">
+        <source src="https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705" type="video/mp4" />
+      </video>
+      <span class="hero__city">İSTANBUL, 2018'DEN BERİ</span>
+    </div>
+    <div class="hero__text">
+      <p class="hero__labels">
+        PERDE AÇILIYOR<br>
+        IŞIKLAR SÖNÜYOR<br>
+        SÖZ SAHNEDE
+      </p>
+      <h1 class="hero__title">HER ŞEY BİR<br><em>METAFOR.</em></h1>
+      <p class="hero__sub">GERÇEĞİ ANLATMANIN<br>EN GÜZEL YALANI: TİYATRO.</p>
+      <div class="hero__actions">
+        <a href="/app" class="btn btn--solid" data-cursor-hover>Bilet Al</a>
+        <a href="#repertuar" class="btn btn--ghost" data-cursor-hover>Oyunları Gör</a>
+      </div>
+    </div>
+    <p class="hero__status" id="heroStatus">Sezon takvimi yükleniyor…</p>
+  </section>
+
+  <!-- ══════ MARKA ŞERİDİ (gerçek oyun adları, dönen kuşak) ══════ -->
+  <section class="brandline" aria-hidden="true">
+    <div class="brandline__track" id="brandlineTrack"></div>
+  </section>
+
+  <!-- ══════ HAKKIMIZDA (kolaj + büyük alıntı) ══════ -->
+  <section class="about" id="hakkimizda">
+    <div class="about__collage" id="aboutCollage" aria-hidden="true"></div>
+    <div class="about__text">
+      <p class="section-eyebrow reveal-up">HAKKIMIZDA</p>
+      <h2 class="about__quote reveal-up">Bir oyun izlemiyorsun, <em>bir parçası</em> oluyorsun.</h2>
+      <p class="about__desc reveal-up">TiyatRol Sahne Sanatları Topluluğu, 2018 yılında kurulan ve İstanbul merkezli faaliyet gösteren amatör-profesyonel bir tiyatro grubudur. Amacımız, klasik eserleri modern yorumlarla sahneye taşımak ve özgün metinlerle çağdaş tiyatro sanatına katkıda bulunmaktır.</p>
+      <a href="#ekip" class="about__link reveal-up" data-cursor-hover>Ekibimizi Tanı <span>→</span></a>
+    </div>
+  </section>
+
+  <!-- ══════ AYRAÇ: SPOTLIGHT TARAMASI ══════ -->
+  <div class="divider divider--dark"><span class="divider__sweep"></span></div>
+
+  <!-- ══════ NELER SUNUYORUZ (koyu bant, 5 sütun) ══════ -->
+  <section class="offer" id="neden">
+    <p class="offer__kicker reveal-up">PERDE ARALANDIĞINDA GÖRECEKLERİN</p>
+    <div class="offer__grid">
+      <div class="offer__item reveal-up" style="--d:0">
+        <span class="offer__icon">✦</span>
+        <h3>Metaforla Yazılan Repertuar</h3>
+        <p>Her metni bir kez daha yazan, klasiği bugüne çeviren küratörlü bir sezon — söz burada anlam değiştirir.</p>
+      </div>
+      <div class="offer__item reveal-up" style="--d:1">
+        <span class="offer__icon">◈</span>
+        <h3>Kadro, Aile Olunca</h3>
+        <p>Prova salonunda başlayıp sahnede biten bağ. Her yeni oyunla büyüyen, gerçek bir oyuncu ailesi.</p>
+      </div>
+      <div class="offer__item reveal-up" style="--d:2">
+        <span class="offer__icon">◎</span>
+        <h3>Koltuk Senin, Saniyeler İçinde</h3>
+        <p>Gerçek zamanlı koltuk haritası, anında bilet. Gişe kuyruğuyla değil, sahneyle vaktin geçsin.</p>
+      </div>
+      <div class="offer__item reveal-up" style="--d:3">
+        <span class="offer__icon">✧</span>
+        <h3>Işık Sönmeden Önce</h3>
+        <p>Prova terleri, kulis kahkahaları, ilk okuma anları — perde açılmadan önceki her şeye tanık ol.</p>
+      </div>
+      <div class="offer__item reveal-up" style="--d:4">
+        <span class="offer__icon">⟡</span>
+        <h3>Her Sahnenin Kendi Işığı</h3>
+        <p>İstanbul'un gerçek kültür merkezlerinde, her oyuna kendi ruhunu bulan bir mekan.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ AYRAÇ: SPOTLIGHT TARAMASI ══════ -->
+  <div class="divider divider--light"><span class="divider__sweep"></span></div>
+
+  <!-- ══════ ÖNE ÇIKAN OYUNLAR (repertuar) ══════ -->
+  <section class="repertoire" id="repertuar">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow reveal-up">BU SEZON</p>
+        <h2 class="section-title reveal-up">Öne Çıkan Oyunlar</h2>
+      </div>
+      <a href="#takvim" class="section-head__link reveal-up" data-cursor-hover>Tüm Takvimi Gör <span>→</span></a>
+    </div>
+    <div class="repertoire__grid" id="repertoireGrid">
+      <div class="loading-row"><span class="spinner"></span> Oyunlar yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ EKİP ══════ -->
+  <section class="team" id="ekip">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow reveal-up">PERDENİN ARKASINDAKİLER</p>
+        <h2 class="section-title reveal-up">Ekibimiz</h2>
+      </div>
+    </div>
+    <p class="section-head__sub reveal-up">Şu an sahnede olan "Metafor" oyununun kadrosuyla tanışın.</p>
+    <div class="team__rail" id="teamRail">
+      <div class="loading-row"><span class="spinner"></span> Sanatçılar yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ SEZON TAKVİMİ ══════ -->
+  <section class="calendar" id="takvim">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow reveal-up">SEZON TAKVİMİ</p>
+        <h2 class="section-title reveal-up" id="calendarMonth">—</h2>
+      </div>
+    </div>
+    <div class="calendar__months" id="monthTabs" aria-hidden="true"></div>
+    <div class="calendar__strip" id="calendarStrip">
+      <div class="loading-row"><span class="spinner"></span> Takvim yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ İSTATİSTİK ══════ -->
+  <section class="stats" id="stats">
+    <div class="stats__grid">
+      <div class="stat" data-count data-suffix="+"><span class="stat__num" data-target="0">0</span><span class="stat__label">Sahnelenen Oyun</span></div>
+      <div class="stat" data-count data-suffix="+"><span class="stat__num" data-target="0">0</span><span class="stat__label">Sanatçı</span></div>
+      <div class="stat" data-count data-suffix="+"><span class="stat__num" data-target="0">0</span><span class="stat__label">Sahne / Mekan</span></div>
+      <div class="stat" data-count data-suffix=""><span class="stat__num" data-target="0">0</span><span class="stat__label">Yıllık Deneyim</span></div>
+    </div>
+  </section>
+
+  <!-- ══════ GALERİ ══════ -->
+  <section class="gallery" id="galeri">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow reveal-up">SAHNE ARKASI</p>
+        <h2 class="section-title reveal-up">Provalardan, Kulisten, Alkıştan</h2>
+      </div>
+    </div>
+    <div class="gallery__wall" id="galleryWall">
+      <div class="loading-row"><span class="spinner"></span> Galeri yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ SAHNELER ══════ -->
+  <section class="venues" id="sahneler">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow reveal-up">MEKANLAR</p>
+        <h2 class="section-title reveal-up">Sahnelerimiz</h2>
+      </div>
+    </div>
+    <div class="venues__grid" id="venuesGrid">
+      <div class="loading-row"><span class="spinner"></span> Sahneler yükleniyor…</div>
+    </div>
+  </section>
+
+  <!-- ══════ TESTIMONIAL (gerçek oyuncu alıntısı) ══════ -->
+  <section class="testimonial" id="testimonialSection">
+    <span class="testimonial__mark">"</span>
+    <p class="testimonial__quote reveal-up" id="testimonialQuote">Bir oyun izlemiyorsun, bir parçası oluyorsun.</p>
+    <p class="testimonial__attr reveal-up" id="testimonialAttr">— TİYATROL</p>
+  </section>
+
+  <!-- ══════ İLETİŞİM (split: görsel + gerçek mailto formu) ══════ -->
+  <section class="contact" id="iletisim">
+    <div class="contact__media">
+      <h2 class="contact__title">BİRLİKTE<br>SAHNE<br>KURALIM.</h2>
+      <p class="contact__note">Yeni sezon için ekibimize katılmak ya da işbirliği yapmak isteyenleri bekliyoruz.</p>
+    </div>
+    <form class="contact__form" id="contactForm">
+      <p class="section-eyebrow">İLETİŞİME GEÇ</p>
+      <div class="contact__row">
+        <input type="text" name="name" placeholder="Ad Soyad" required />
+        <input type="email" name="email" placeholder="E-posta Adresi" required />
+      </div>
+      <select name="subject">
+        <option value="Bilet">Bilet Hakkında</option>
+        <option value="Isbirligi">İşbirliği / Sponsorluk</option>
+        <option value="Basin">Basın</option>
+        <option value="Diger">Diğer</option>
+      </select>
+      <textarea name="message" rows="4" placeholder="Mesajınızı yazın…" required></textarea>
+      <button type="submit" class="btn btn--solid">Gönder <span>→</span></button>
+    </form>
+  </section>
+
+</main>
+
+<!-- ══════ FOOTER ══════ -->
+<footer class="footer">
+  <div class="footer__top">
+    <div class="footer__brand">
+      <span class="footer__brand-mark">VA·TR</span>
+      <p class="footer__tagline">TiyatRol Sahne Sanatları Topluluğu</p>
+    </div>
+    <div class="footer__col">
+      <h4>İletişim</h4>
+      <a href="mailto:iletisim@tiyatrol.com" data-cursor-hover>iletisim@tiyatrol.com</a>
+      <p>Ataşehir, İstanbul, Türkiye</p>
+    </div>
+    <div class="footer__col">
+      <h4>Bizi Takip Edin</h4>
+      <a href="https://www.instagram.com/tiyatrol" target="_blank" rel="noopener" data-cursor-hover>Instagram</a>
+      <a href="https://www.facebook.com/tiyatrol" target="_blank" rel="noopener" data-cursor-hover>Facebook</a>
+    </div>
+    <div class="footer__col">
+      <h4>Uygulama</h4>
+      <a href="/app" data-cursor-hover>Bileti Ayırt →</a>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <p>© <span id="year">2026</span> TiyatRol Sahne Sanatları — Tüm Hakları Saklıdır.</p>
+  </div>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
