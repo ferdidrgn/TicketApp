@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TiyatRol — Sahnede Yaşanan Gerçek Hikâyeler</title>
-<meta name="description" content="TiyatRol Sahne Sanatları Topluluğu — 2018'den beri İstanbul'da sahneye çıkan amatör-profesyonel bir tiyatro topluluğu. Ekibimizi, oyunlarımızı ve sahne arkasını keşfedin." />
+<title>TiyatRol — Sahne Sanatları Topluluğu</title>
+<meta name="description" content="TiyatRol Sahne Sanatları Topluluğu — 2018'den beri İstanbul'da sahneye çıkan amatör-profesyonel bir tiyatro topluluğu. Ekibimizi, repertuarımızı ve sezon takvimimizi keşfedin." />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="style.css" />
 </head>
@@ -29,17 +29,16 @@
   <div class="nav__inner">
     <a href="#top" class="nav__brand" data-cursor-hover>
       <span class="nav__brand-mark">TR</span>
-      <span class="nav__brand-name">TiyatRol</span>
     </a>
     <nav class="nav__links">
-      <a href="#manifesto" data-cursor-hover>Biz Kimiz</a>
       <a href="#ekip" data-cursor-hover>Ekip</a>
-      <a href="#repertuar" data-cursor-hover>Oyunlar</a>
+      <a href="#repertuar" data-cursor-hover>Repertuar</a>
+      <a href="#takvim" data-cursor-hover>Takvim</a>
       <a href="#sahneler" data-cursor-hover>Sahneler</a>
       <a href="#iletisim" data-cursor-hover>İletişim</a>
     </nav>
     <a class="nav__cta" href="/app" data-cursor-hover>
-      <span>Biletini Ayırt</span>
+      <span>Bilet Al</span>
     </a>
     <button class="nav__burger" id="burger" aria-label="Menüyü aç">
       <span></span><span></span><span></span>
@@ -49,46 +48,71 @@
 
 <!-- ══════ MOBİL MENÜ ══════ -->
 <div class="mobile-menu" id="mobileMenu">
-  <a href="#manifesto">Biz Kimiz</a>
   <a href="#ekip">Ekip</a>
-  <a href="#repertuar">Oyunlar</a>
+  <a href="#repertuar">Repertuar</a>
+  <a href="#takvim">Takvim</a>
   <a href="#sahneler">Sahneler</a>
   <a href="#iletisim">İletişim</a>
-  <a href="/app" class="mobile-menu__cta">Biletini Ayırt</a>
+  <a href="/app" class="mobile-menu__cta">Bilet Al</a>
 </div>
 
 <main id="top">
 
-  <!-- ══════ HERO ══════ -->
-  <section class="hero">
-    <div class="hero__spotlight" aria-hidden="true"></div>
-    <div class="hero__curtain hero__curtain--left" aria-hidden="true"></div>
-    <div class="hero__curtain hero__curtain--right" aria-hidden="true"></div>
-
-    <div class="hero__content">
-      <p class="hero__eyebrow reveal-word">
-        <span class="live-dot"></span> <span id="seasonLabel">SEZON AÇILDI</span>
-      </p>
-      <h1 class="hero__title">
-        <span class="line" data-line="1"><span class="word">Sahnede</span> <span class="word">Yaşanan</span></span>
-        <span class="line line--accent" data-line="2"><span class="word">Gerçek</span> <span class="word">Hikâyeler</span></span>
-      </h1>
-      <p class="hero__desc reveal-up">2018'den beri İstanbul'da sahneye çıkan amatör-profesyonel bir tiyatro topluluğuyuz. Burada hem seyirci hem tanığız — her oyun bizden bir parça taşıyor.</p>
-      <div class="hero__actions reveal-up">
-        <a href="#repertuar" class="btn btn--solid" data-cursor-hover>Sezon Oyunları</a>
-        <a href="#manifesto" class="btn btn--ghost" data-cursor-hover>Ekibi Tanı</a>
+  <!-- ══════ MASTHEAD (editoryal poster ızgarası) ══════ -->
+  <section class="masthead">
+    <div class="masthead__grid">
+      <div class="cell cell--brand">
+        <h1 class="masthead__wordmark">TİYATROL</h1>
+        <p class="masthead__tagline">Sahne Sanatları Topluluğu</p>
+        <p class="masthead__desc">2018'den beri İstanbul'da sahneye çıkan amatör-profesyonel bir tiyatro topluluğuyuz. Burada hem seyirci hem tanığız — her oyun bizden bir parça taşıyor.</p>
+      </div>
+      <nav class="cell cell--nav-list">
+        <a href="#ekip" data-cursor-hover><span>01</span>Ekip</a>
+        <a href="#repertuar" data-cursor-hover><span>02</span>Repertuar</a>
+        <a href="#takvim" data-cursor-hover><span>03</span>Takvim</a>
+        <a href="#sahneler" data-cursor-hover><span>04</span>Sahneler</a>
+        <a href="#iletisim" data-cursor-hover><span>05</span>İletişim</a>
+      </nav>
+      <div class="cell cell--emblem" aria-hidden="true">
+        <svg viewBox="0 0 160 160" class="emblem-spin">
+          <defs><path id="emblemCircle" d="M80,80 m-62,0 a62,62 0 1,1 124,0 a62,62 0 1,1 -124,0" /></defs>
+          <text font-size="12.6" letter-spacing="3" fill="currentColor">
+            <textPath href="#emblemCircle">TİYATROL • SAHNE SANATLARI • TİYATROL • SAHNE SANATLARI •</textPath>
+          </text>
+        </svg>
+        <span class="emblem-center">TR</span>
       </div>
     </div>
-
-    <div class="hero__marquee" aria-hidden="true">
-      <div class="hero__marquee-track" id="marqueeTrack">
-        <!-- JS ile doldurulacak: gerçek oyun adları -->
-      </div>
+    <div class="masthead__mosaic" id="mosaicRow" aria-hidden="true">
+      <div class="loading-row"><span class="spinner"></span></div>
     </div>
+  </section>
 
-    <button class="hero__scroll-hint" id="scrollHint" aria-label="Aşağı kaydır" data-cursor-hover>
-      <svg width="20" height="30" viewBox="0 0 20 30" fill="none"><rect x="1" y="1" width="18" height="28" rx="9" stroke="currentColor" stroke-opacity=".5"/><circle class="hero__scroll-dot" cx="10" cy="9" r="3" fill="currentColor"/></svg>
-    </button>
+  <!-- ══════ ÖNE ÇIKAN GÖSTERİ (KIRMIZI BLOK) ══════ -->
+  <section class="featured" id="featuredSection">
+    <div class="featured__inner">
+      <p class="featured__eyebrow" id="featuredEyebrow">YAKLAŞAN GÖSTERİ</p>
+      <h2 class="featured__title" id="featuredTitle">Yükleniyor…</h2>
+      <div class="featured__meta">
+        <span id="featuredDate">—</span>
+        <span id="featuredVenue">—</span>
+        <span id="featuredPrice">—</span>
+      </div>
+      <a href="/app" class="featured__cta" data-cursor-hover>Bilet Al <span>→</span></a>
+    </div>
+    <div class="featured__image" id="featuredImage"></div>
+  </section>
+
+  <!-- ══════ SEZON TAKVİMİ ══════ -->
+  <section class="calendar" id="takvim">
+    <div class="calendar__head">
+      <p class="section-head__eyebrow reveal-up">SEZON TAKVİMİ</p>
+      <h2 class="calendar__month reveal-up" id="calendarMonth">—</h2>
+    </div>
+    <div class="calendar__months" id="monthTabs" aria-hidden="true"></div>
+    <div class="calendar__strip" id="calendarStrip">
+      <div class="loading-row"><span class="spinner"></span> Takvim yükleniyor…</div>
+    </div>
   </section>
 
   <!-- ══════ İSTATİSTİK ŞERİDİ ══════ -->
@@ -115,18 +139,13 @@
 
   <!-- ══════ MANİFESTO ══════ -->
   <section class="manifesto" id="manifesto">
-    <svg class="manifesto__mask" viewBox="0 0 200 120" aria-hidden="true">
-      <path d="M40 20 Q30 10 20 20 Q10 30 20 45 Q10 55 25 60 Q15 70 30 78 Q25 90 45 92 Q50 105 65 100 Q75 112 90 100 Q105 112 115 100 Q130 105 135 92 Q155 90 150 78 Q165 70 155 60 Q170 55 160 45 Q170 30 160 20 Q150 10 140 20" stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.5"/>
-    </svg>
     <p class="manifesto__kicker reveal-up">BİZ KİMİZ</p>
     <h2 class="manifesto__lines">
-      <span class="reveal-up" style="--d:0">Tiyatrol bizim için</span>
-      <span class="reveal-up" style="--d:1">sahneyi paylaşmak ve</span>
-      <span class="reveal-up" style="--d:2">kendimizi anlatmaktır.</span>
-      <span class="reveal-up manifesto__accent" style="--d:3">Her perde açılışı,</span>
-      <span class="reveal-up manifesto__accent" style="--d:4">yeni bir yüzleşme.</span>
+      <span class="reveal-up" style="--d:0">TİYATROL BİZİM İÇİN</span>
+      <span class="reveal-up" style="--d:1">SAHNEYİ PAYLAŞMAK VE</span>
+      <span class="reveal-up manifesto__accent" style="--d:2">KENDİMİZİ ANLATMAKTIR.</span>
     </h2>
-    <p class="manifesto__quote reveal-up" style="--d:5">"Bir oyun izlemiyorsun, bir parçası oluyorsun."</p>
+    <p class="manifesto__quote reveal-up" style="--d:3">"Bir oyun izlemiyorsun, bir parçası oluyorsun."</p>
   </section>
 
   <!-- ══════ EKİP ══════ -->
@@ -154,12 +173,12 @@
 
   <!-- ══════ GALERİ ══════ -->
   <section class="gallery" id="galeri">
-    <div class="section-head section-head--light">
+    <div class="section-head">
       <p class="section-head__eyebrow reveal-up">SAHNE ARKASI</p>
       <h2 class="section-head__title reveal-up">Provalardan, Kulisten, Alkıştan</h2>
     </div>
     <div class="gallery__wall" id="galleryWall">
-      <div class="loading-row loading-row--light"><span class="spinner"></span> Galeri yükleniyor…</div>
+      <div class="loading-row"><span class="spinner"></span> Galeri yükleniyor…</div>
     </div>
   </section>
 
@@ -174,24 +193,18 @@
     </div>
   </section>
 
-  <!-- ══════ FİNAL / CTA ══════ -->
-  <section class="finale">
-    <div class="finale__spotlight" aria-hidden="true"></div>
-    <p class="finale__kicker reveal-up">PERDE KAPANMADAN</p>
-    <h2 class="finale__title reveal-up">Sahne seni bekliyor.</h2>
-    <p class="finale__desc reveal-up">Gerçek zamanlı koltuk haritasından yerini seç, saniyeler içinde bileti al.</p>
-    <a href="/app" class="btn btn--solid btn--lg reveal-up" data-cursor-hover>Biletini Ayırt</a>
-  </section>
-
 </main>
 
 <!-- ══════ FOOTER ══════ -->
 <footer class="footer" id="iletisim">
+  <div class="footer__cta">
+    <h2>Sahne seni bekliyor.</h2>
+    <a href="/app" class="featured__cta" data-cursor-hover>Bilet Al <span>→</span></a>
+  </div>
   <div class="footer__top">
     <div class="footer__brand">
       <span class="footer__brand-mark">TR</span>
-      <span class="footer__brand-name">TiyatRol</span>
-      <p class="footer__tagline">Sahne Sanatları Topluluğu</p>
+      <p class="footer__tagline">TiyatRol Sahne Sanatları Topluluğu</p>
     </div>
     <div class="footer__col">
       <h4>İletişim</h4>
@@ -211,7 +224,7 @@
     </div>
     <div class="footer__col">
       <h4>Uygulama</h4>
-      <a href="/app" data-cursor-hover>Biletini Ayırt →</a>
+      <a href="/app" data-cursor-hover>Bileti Ayırt →</a>
     </div>
   </div>
   <div class="footer__bottom">

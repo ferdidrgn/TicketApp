@@ -89,17 +89,6 @@ const mobileMenu = document.getElementById('mobileMenu');
 burger.addEventListener('click', () => mobileMenu.classList.toggle('is-open'));
 mobileMenu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => mobileMenu.classList.remove('is-open')));
 
-/* ═══════════════ HERO GİRİŞ ANİMASYONU ═══════════════ */
-requestAnimationFrame(() => requestAnimationFrame(() => {
-  document.querySelector('.hero').classList.add('is-ready');
-}));
-
-/* ═══════════════ SEZON ETİKETİ ═══════════════ */
-(function seasonLabel() {
-  const now = new Date();
-  const startYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1; // ay 0-index: Ağustos=7
-  document.getElementById('seasonLabel').textContent = `${startYear}-${startYear + 1} SEZONU AÇILDI`;
-})();
 document.getElementById('year').textContent = new Date().getFullYear();
 
 /* ═══════════════ SCROLL-REVEAL (IntersectionObserver) ═══════════════ */
@@ -111,7 +100,7 @@ const revealObserver = new IntersectionObserver((entries) => {
     }
   });
 }, { threshold: 0.15 });
-document.querySelectorAll('section:not(.hero)').forEach((el) => revealObserver.observe(el));
+document.querySelectorAll('section').forEach((el) => revealObserver.observe(el));
 
 /* ═══════════════ SAYAÇ (count-up) ═══════════════ */
 function animateCount(el, target, suffix) {
@@ -176,10 +165,11 @@ function metaforPlayers(shows, players) {
 }
 
 async function boot() {
-  const [shows, players, stages] = await Promise.all([
+  const [shows, players, stages, events] = await Promise.all([
     fetchCollection('Show'),
     fetchCollection('Player'),
     fetchCollection('Stage'),
+    fetchCollection('Event'),
   ]);
 
   // İstatistikler (uydurma yok — gerçek sayılar, TÜM kadro üzerinden)
@@ -188,7 +178,10 @@ async function boot() {
   setStatTarget(2, stages.length);
   setStatTarget(3, new Date().getFullYear() - FOUNDING_YEAR);
 
-  renderMarquee(shows);
+  renderMosaic(shows);
+  renderFeatured(events, shows, stages);
+  renderMonthTabs();
+  renderCalendarStrip(events, shows);
   renderTeam(metaforPlayers(shows, players));
   renderRepertoire(shows);
   renderGallery(shows);
@@ -196,15 +189,121 @@ async function boot() {
   initInteractions();
 }
 
-/* ── Marquee: gerçek oyun adları ────────────────────────────── */
-function renderMarquee(shows) {
-  const track = document.getElementById('marqueeTrack');
-  const names = shows.length
-    ? shows.map((s) => s.name).filter(Boolean)
-    : ['TiyatRol Sahne Sanatları Topluluğu'];
-  const itemsHtml = names.map((n) => `<span class="hero__marquee-item">${esc(n)} <span class="dot">✦</span></span>`).join('');
-  // Kesintisiz döngü için içerik iki kez tekrarlanır
-  track.innerHTML = itemsHtml + itemsHtml;
+/* ── Masthead mosaik: gerçek oyun görselleri ──────────────────── */
+function renderMosaic(shows) {
+  const row = document.getElementById('mosaicRow');
+  const withImages = shows.filter((s) => s.imageUrl);
+  if (!withImages.length) { row.innerHTML = ''; return; }
+  row.innerHTML = withImages.slice(0, 6).map((s) => `
+    <div class="mosaic-tile"><img src="${esc(s.imageUrl)}" alt="${esc(s.name || '')}" loading="lazy" /></div>
+  `).join('');
+}
+
+/* ── Tarih ayrıştırma: "dd.MM.yyyy, HH:mm" (virgül sonrası boşluk
+ * olsun/olmasın) — Flutter uygulamasındaki DateFormatter ile aynı
+ * normalize mantığı. ─────────────────────────────────────────── */
+function parseEventDate(raw) {
+  if (!raw) return null;
+  const norm = raw.trim().replace(/,\s*/, ' ');
+  const m = norm.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const [d, mo, y, h, mi] = m.slice(1).map(Number);
+  const date = new Date(y, mo - 1, d, h, mi);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+const MONTHS_TR = ['OCAK', 'ŞUBAT', 'MART', 'NİSAN', 'MAYIS', 'HAZİRAN', 'TEMMUZ', 'AĞUSTOS', 'EYLÜL', 'EKİM', 'KASIM', 'ARALIK'];
+
+function formatEventDateTr(date) {
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  return `${date.getDate()} ${MONTHS_TR[date.getMonth()][0]}${MONTHS_TR[date.getMonth()].slice(1).toLowerCase()} ${date.getFullYear()}, ${time}`;
+}
+
+/** Gerçek verilerden, tarihi bugünden sonraki EN YAKIN etkinliği bulur.
+ * Uydurma yok — parse edilemeyen ya da geçmiş tarihli etkinlikler elenir. */
+function upcomingEvents(events) {
+  const now = new Date();
+  return events
+    .map((e) => ({ ...e, _date: parseEventDate(e.date) }))
+    .filter((e) => e._date && e._date >= now)
+    .sort((a, b) => a._date - b._date);
+}
+
+/* ── Öne çıkan gösteri (kırmızı blok) ──────────────────────────── */
+function renderFeatured(events, shows, stages) {
+  const section = document.getElementById('featuredSection');
+  const next = upcomingEvents(events)[0];
+
+  const eyebrowEl = document.getElementById('featuredEyebrow');
+  const titleEl = document.getElementById('featuredTitle');
+  const dateEl = document.getElementById('featuredDate');
+  const venueEl = document.getElementById('featuredVenue');
+  const priceEl = document.getElementById('featuredPrice');
+  const imageEl = document.getElementById('featuredImage');
+
+  if (next) {
+    const show = shows.find((s) => s.id === next.showId);
+    const stage = stages.find((st) => st.id === next.stageId);
+    eyebrowEl.textContent = 'YAKLAŞAN GÖSTERİ';
+    titleEl.textContent = show?.name || 'Yaklaşan Gösteri';
+    dateEl.textContent = formatEventDateTr(next._date);
+    dateEl.style.display = '';
+    if (stage?.name) { venueEl.textContent = stage.name; venueEl.style.display = ''; }
+    else venueEl.style.display = 'none';
+    const priceNum = Number(next.price);
+    if (Number.isFinite(priceNum) && priceNum > 0) { priceEl.textContent = `${priceNum} ₺`; priceEl.style.display = ''; }
+    else if (priceNum === 0) { priceEl.textContent = 'Ücretsiz'; priceEl.style.display = ''; }
+    else priceEl.style.display = 'none';
+    if (show?.imageUrl) imageEl.innerHTML = `<img src="${esc(show.imageUrl)}" alt="${esc(show.name || '')}" loading="lazy" />`;
+    else imageEl.innerHTML = '';
+  } else if (shows.length) {
+    eyebrowEl.textContent = 'REPERTUARDAN';
+    titleEl.textContent = shows[0].name || 'Repertuar';
+    dateEl.style.display = 'none';
+    venueEl.style.display = 'none';
+    priceEl.style.display = 'none';
+    if (shows[0].imageUrl) imageEl.innerHTML = `<img src="${esc(shows[0].imageUrl)}" alt="${esc(shows[0].name || '')}" loading="lazy" />`;
+  } else {
+    section.style.display = 'none';
+  }
+}
+
+/* ── Ay sekmeleri (dekoratif — bulunduğumuz ay vurgulanır) ─────── */
+function renderMonthTabs() {
+  const wrap = document.getElementById('monthTabs');
+  const current = new Date().getMonth();
+  wrap.innerHTML = MONTHS_TR.map((m, i) => `<div class="month-tab${i === current ? ' is-current' : ''}">${m}</div>`).join('');
+}
+
+/* ── Sezon takvimi şeridi: gerçek yaklaşan etkinlikler ─────────── */
+function renderCalendarStrip(events, shows) {
+  const strip = document.getElementById('calendarStrip');
+  const monthTitle = document.getElementById('calendarMonth');
+  const now = new Date();
+  monthTitle.textContent = `${MONTHS_TR[now.getMonth()]} ${now.getFullYear()}`;
+
+  const upcoming = upcomingEvents(events);
+  if (!upcoming.length) {
+    strip.innerHTML = `<div class="empty-note">Yaklaşan seans takvimi yakında burada — küratör yeni seanslar ekledikçe bu şerit otomatik dolacak.</div>`;
+    return;
+  }
+  strip.innerHTML = upcoming.map((e) => {
+    const show = shows.find((s) => s.id === e.showId);
+    const name = esc(show?.name || 'Gösteri');
+    const img = show?.imageUrl
+      ? `<img class="event-chip__img" src="${esc(show.imageUrl)}" alt="${name}" loading="lazy" />`
+      : `<div class="event-chip__img event-chip__img--placeholder">${name}</div>`;
+    const time = `${String(e._date.getHours()).padStart(2, '0')}:${String(e._date.getMinutes()).padStart(2, '0')}`;
+    return `
+      <div class="event-chip">
+        ${img}
+        <div class="event-chip__date">
+          <span class="event-chip__day">${e._date.getDate()}</span>
+          <span class="event-chip__rest">${MONTHS_TR[e._date.getMonth()]}<br>${time}</span>
+        </div>
+        <p class="event-chip__name">${name}</p>
+      </div>`;
+  }).join('');
 }
 
 /* ── Ekip ────────────────────────────────────────────────────── */
@@ -360,29 +459,10 @@ function applyMagnetic(el, strength = 0.32) {
   });
 }
 
-/** Hero'da scroll ile hafif paralaks — spot ışığı ve perdeler scroll
- * ettikçe derinlik hissi vermek için farklı hızlarda kayar. */
-function initHeroParallax() {
-  const hero = document.querySelector('.hero');
-  const spotlight = document.querySelector('.hero__spotlight');
-  const curtainL = document.querySelector('.hero__curtain--left');
-  const curtainR = document.querySelector('.hero__curtain--right');
-  if (!hero) return;
-  window.addEventListener('scroll', () => {
-    const y = window.scrollY;
-    if (y > hero.offsetHeight) return;
-    const p = y / hero.offsetHeight;
-    if (spotlight) spotlight.style.transform = `translate(-50%, ${y * 0.35}px)`;
-    if (curtainL) curtainL.style.transform = `translateX(${-p * 40}px)`;
-    if (curtainR) curtainR.style.transform = `translateX(${p * 40}px)`;
-  }, { passive: true });
-}
-
 function initInteractions() {
   document.querySelectorAll('.show-card, .venue-card').forEach((el) => applySpotlight(el));
   document.querySelectorAll('.player-card').forEach((el) => { applySpotlight(el); applyTilt(el); });
-  document.querySelectorAll('.btn, .nav__cta').forEach((el) => applyMagnetic(el));
-  initHeroParallax();
+  document.querySelectorAll('.btn, .nav__cta, .featured__cta').forEach((el) => applyMagnetic(el));
 }
 
 boot();
