@@ -162,6 +162,19 @@ function setStatTarget(index, value) {
   if (stat) stat.dataset.target = value;
 }
 
+/** Küratör kararı: kadro bölümünde sadece "Metafor" oyununun kadrosu
+ * gösterilir (Flutter uygulamasındaki aynı kürasyon kuralıyla birebir).
+ * Metafor bulunamazsa ya da eşleşen oyuncu yoksa tüm kadroya düşer —
+ * bölüm asla boş kalmaz. */
+function metaforPlayers(shows, players) {
+  const metafor = shows.find((s) => (s.name || '').toLowerCase().includes('metafor'));
+  if (!metafor) return players;
+  const ids = new Set([...(metafor.nowPlayersId || []), ...(metafor.oldPlayersId || [])].filter(Boolean));
+  if (!ids.size) return players;
+  const filtered = players.filter((p) => ids.has(p.id));
+  return filtered.length ? filtered : players;
+}
+
 async function boot() {
   const [shows, players, stages] = await Promise.all([
     fetchCollection('Show'),
@@ -169,17 +182,18 @@ async function boot() {
     fetchCollection('Stage'),
   ]);
 
-  // İstatistikler (uydurma yok — gerçek sayılar)
+  // İstatistikler (uydurma yok — gerçek sayılar, TÜM kadro üzerinden)
   setStatTarget(0, shows.length);
   setStatTarget(1, players.length);
   setStatTarget(2, stages.length);
   setStatTarget(3, new Date().getFullYear() - FOUNDING_YEAR);
 
   renderMarquee(shows);
-  renderTeam(players);
+  renderTeam(metaforPlayers(shows, players));
   renderRepertoire(shows);
   renderGallery(shows);
   renderVenues(stages);
+  initInteractions();
 }
 
 /* ── Marquee: gerçek oyun adları ────────────────────────────── */
@@ -227,7 +241,7 @@ function renderRepertoire(shows) {
     grid.innerHTML = `<div class="empty-note">Sezon repertuarı yakında burada — küratör oyun eklediğinde bu bölüm otomatik dolacak.</div>`;
     return;
   }
-  grid.innerHTML = shows.map((s) => {
+  grid.innerHTML = shows.map((s, i) => {
     const name = esc(s.name || 'İsimsiz Oyun');
     const desc = esc(s.description || '');
     const cat = esc(s.category || 'Tiyatro');
@@ -237,7 +251,7 @@ function renderRepertoire(shows) {
       ? `<img class="show-card__img" src="${esc(s.imageUrl)}" alt="${name}" loading="lazy" />`
       : `<div class="show-card__img show-card__img--placeholder">${name}</div>`;
     return `
-      <div class="show-card">
+      <div class="show-card${i === 0 ? ' show-card--featured' : ''}">
         ${img}
         <div class="show-card__shade"></div>
         <span class="show-card__cat">${cat}</span>
@@ -297,6 +311,78 @@ function renderVenues(stages) {
         </div>
       </div>`;
   }).join('');
+}
+
+/* ═══════════════ MODERN MİKRO-ETKİLEŞİMLER ═══════════════
+   Veriler ekrana bastıktan SONRA çağrılır (initInteractions), çünkü
+   kartlar dinamik olarak innerHTML ile o an oluşuyor. */
+
+/** İmleci takip eden "spotlight" kenarlık parıltısı — kart üstünde
+ * fare hareket ettikçe ışık kaynağı fareyi takip eder. */
+function applySpotlight(el) {
+  el.addEventListener('pointermove', (e) => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+    el.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+  });
+}
+
+/** Gerçek 3B perspektif eğimi (tilt) — fare kart üzerindeyken kart,
+ * fareye doğru hafifçe döner; ayrılınca yumuşakça düzleşir. */
+function applyTilt(el, max = 10) {
+  const inner = el.querySelector('.player-card__inner') || el;
+  el.addEventListener('pointermove', (e) => {
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    inner.style.transition = 'transform .08s linear';
+    inner.style.transform = `perspective(900px) rotateX(${(-py * max).toFixed(2)}deg) rotateY(${(px * max).toFixed(2)}deg) scale3d(1.03,1.03,1.03)`;
+  });
+  el.addEventListener('pointerleave', () => {
+    inner.style.transition = 'transform .6s var(--ease)';
+    inner.style.transform = 'perspective(900px) rotateX(0) rotateY(0) scale3d(1,1,1)';
+  });
+}
+
+/** Manyetik düğme — fare düğmenin yakınına geldiğinde düğme hafifçe
+ * fareye doğru kayar (Awwwards tarzı premium mikro-etkileşim). */
+function applyMagnetic(el, strength = 0.32) {
+  el.addEventListener('pointermove', (e) => {
+    const r = el.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) * strength;
+    const dy = (e.clientY - (r.top + r.height / 2)) * strength;
+    el.style.transition = 'transform .12s linear';
+    el.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+  });
+  el.addEventListener('pointerleave', () => {
+    el.style.transition = 'transform .5s var(--ease)';
+    el.style.transform = 'translate(0,0)';
+  });
+}
+
+/** Hero'da scroll ile hafif paralaks — spot ışığı ve perdeler scroll
+ * ettikçe derinlik hissi vermek için farklı hızlarda kayar. */
+function initHeroParallax() {
+  const hero = document.querySelector('.hero');
+  const spotlight = document.querySelector('.hero__spotlight');
+  const curtainL = document.querySelector('.hero__curtain--left');
+  const curtainR = document.querySelector('.hero__curtain--right');
+  if (!hero) return;
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    if (y > hero.offsetHeight) return;
+    const p = y / hero.offsetHeight;
+    if (spotlight) spotlight.style.transform = `translate(-50%, ${y * 0.35}px)`;
+    if (curtainL) curtainL.style.transform = `translateX(${-p * 40}px)`;
+    if (curtainR) curtainR.style.transform = `translateX(${p * 40}px)`;
+  }, { passive: true });
+}
+
+function initInteractions() {
+  document.querySelectorAll('.show-card, .venue-card').forEach((el) => applySpotlight(el));
+  document.querySelectorAll('.player-card').forEach((el) => { applySpotlight(el); applyTilt(el); });
+  document.querySelectorAll('.btn, .nav__cta').forEach((el) => applyMagnetic(el));
+  initHeroParallax();
 }
 
 boot();
