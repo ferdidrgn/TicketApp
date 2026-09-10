@@ -8,6 +8,25 @@ import '../../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../domain/entities/show.dart';
 import '../../providers/show_provider.dart';
 
+// -----------------------------------------------------------------------------
+// HOVER/DOKUNMA İLE GÖSTERİLECEK "ESKİ" GÖRSEL & METİN İÇİN BİLİNEN OYUNLARIN
+// KENDİ DETAY SAYFALARINDAKİ ORİJİNAL İÇERİĞİ (isme göre override).
+// Firestore'da photosShowId/description girilmemiş oyunlar için devreye girer,
+// diğer tüm oyunlar galerideki ilk fotoğraf + açıklamasını kullanmaya devam eder.
+// -----------------------------------------------------------------------------
+class _ShowHoverMedia {
+  final String imageUrl;
+  final String text;
+  const _ShowHoverMedia(this.imageUrl, this.text);
+}
+
+const Map<String, _ShowHoverMedia> _knownShowHoverOverrides = {
+  'Gözlerimi Kaparım Vazifemi Yaparım': _ShowHoverMedia(
+    'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2FgözKapVazYap%2F20220610_174009.jpg?alt=media&token=40652d5a-31fe-4dec-9df1-61e516dfda27',
+    '"Körlüğe terfi etmek mi, gerçeğe mahkum olmak mı? Bir tercihin anatomisi."',
+  ),
+};
+
 class ShowsSection extends ConsumerStatefulWidget {
   const ShowsSection({super.key});
 
@@ -190,6 +209,19 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
         ),
       );
 
+  Widget _buildShowCard(final Show show, final int index) {
+    final override = _knownShowHoverOverrides[show.name];
+    return _ShowCard(
+      imageUrl: show.imageUrl,
+      secondaryImageUrl: override?.imageUrl ??
+          (show.photosShowId.isNotEmpty ? show.photosShowId.first : null),
+      gameName: show.name,
+      description: override?.text ?? show.description,
+      index: index,
+      showId: show.id,
+    );
+  }
+
   Widget _buildShowsCarousel(
       final BuildContext context, final List<Show> shows) {
     final cardHeight =
@@ -210,12 +242,7 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
             itemBuilder: (final context, final index) => Padding(
               padding:
                   EdgeInsets.symmetric(horizontal: context.isMobile ? 8 : 12),
-              child: _ShowCard(
-                imageUrl: shows[index].imageUrl,
-                gameName: shows[index].name,
-                index: index,
-                showId: shows[index].id,
-              ),
+              child: _buildShowCard(shows[index], index),
             ),
           ),
           if (!context.isMobile) ...[
@@ -249,13 +276,17 @@ class _ShowsSectionState extends ConsumerState<ShowsSection>
 class _ShowCard extends StatefulWidget {
   final String showId;
   final String imageUrl;
+  final String? secondaryImageUrl;
   final String gameName;
+  final String description;
   final int index;
 
   const _ShowCard({
     required this.showId,
     required this.imageUrl,
+    this.secondaryImageUrl,
     required this.gameName,
+    this.description = '',
     required this.index,
   });
 
@@ -373,13 +404,32 @@ class _ShowCardState extends State<_ShowCard>
         borderRadius: BorderRadius.circular(context.isMobile ? 16 : 24),
         child: Stack(
           children: [
-            // 1. GÖRSEL (Optimized)
+            // 1. GÖRSEL (Hover/Dokunma sırasında oyunun diğer güzel görüntüsü gelir)
             Positioned.fill(
-              child: OptimizedCachedImage(
-                imageUrl: widget.imageUrl,
-                fit: BoxFit.cover,
-                width: 300, // Yaklaşık max genişlik
-                height: 400,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _isHovered,
+                builder: (final context, final isActive, final _) {
+                  final bool showSecondary = isActive &&
+                      widget.secondaryImageUrl != null &&
+                      widget.secondaryImageUrl!.isNotEmpty &&
+                      widget.secondaryImageUrl != widget.imageUrl;
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    child: OptimizedCachedImage(
+                      key: ValueKey(showSecondary
+                          ? widget.secondaryImageUrl
+                          : widget.imageUrl),
+                      imageUrl: showSecondary
+                          ? widget.secondaryImageUrl!
+                          : widget.imageUrl,
+                      fit: BoxFit.cover,
+                      width: 300, // Yaklaşık max genişlik
+                      height: 400,
+                    ),
+                  );
+                },
               ),
             ),
 
@@ -463,7 +513,7 @@ class _ShowCardState extends State<_ShowCard>
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  // Detay butonu sadece hover olunca görünür
+                  // Açıklama metni ve Detay butonu sadece hover/dokunma olunca görünür
                   ValueListenableBuilder<bool>(
                     valueListenable: _isHovered,
                     builder: (final context, final isActive, final _) =>
@@ -472,20 +522,38 @@ class _ShowCardState extends State<_ShowCard>
                           const SizedBox(height: 0, width: double.infinity),
                       secondChild: Padding(
                         padding: const EdgeInsets.only(top: 8.0),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Detayları Gör',
-                              style: TextStyle(
-                                fontSize: context.captionSize,
-                                color: WebColors.primaryGoldLight,
-                                fontWeight: FontWeight.w600,
+                            if (widget.description.isNotEmpty)
+                              Text(
+                                widget.description,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: context.captionSize,
+                                  color: Colors.white70,
+                                  height: 1.3,
+                                ),
                               ),
+                            SizedBox(
+                                height: widget.description.isNotEmpty ? 6 : 0),
+                            Row(
+                              children: [
+                                Text(
+                                  'Detayları Gör',
+                                  style: TextStyle(
+                                    fontSize: context.captionSize,
+                                    color: WebColors.primaryGoldLight,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(Icons.arrow_forward,
+                                    color: WebColors.primaryGold,
+                                    size: context.iconSmall),
+                              ],
                             ),
-                            const SizedBox(width: 4),
-                            Icon(Icons.arrow_forward,
-                                color: WebColors.primaryGold,
-                                size: context.iconSmall),
                           ],
                         ),
                       ),
