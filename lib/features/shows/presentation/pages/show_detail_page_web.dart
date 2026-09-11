@@ -100,7 +100,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       child: BasePageWrapper(
         showBackButton: true,
         showFab: true,
-        title: 'Zamanın Çizgilerdeki İmzası',
+        title: detailAsync.valueOrNull?.show.name ?? 'Oyun Detayı',
         subtitle: 'Anların altına gizlenmiş bin yıllık fısıltılar',
         rightIcon: Icons.theaters,
         customScrollController: scrollController,

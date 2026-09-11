@@ -82,6 +82,76 @@ mixin WebTheme {
         thumbColor: MaterialStateProperty.all(colors.primary.withOpacity(0.5)),
         trackColor: MaterialStateProperty.all(colors.surface.withOpacity(0.5)),
       ),
+
+      // --- SİTENİN GENELİNDE TUTARLI "PREMİUM" BİLEŞENLER ---
+      // Bu bölüm, tek tek her sayfayı elle boyamak yerine, tüm standart
+      // Material bileşenlerinin (buton, sekme, chip, dialog vb.) otomatik
+      // olarak lacivert/altın temayla uyumlu görünmesini sağlar.
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colors.primary,
+          side: BorderSide(color: colors.primary.withOpacity(0.6)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: colors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: colors.onSurface,
+        unselectedLabelColor: colors.onSurface.withOpacity(0.4),
+        indicatorColor: colors.primary,
+        dividerColor: Colors.transparent,
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: colors.surface,
+        selectedColor: colors.primary.withOpacity(0.2),
+        labelStyle: TextStyle(color: colors.onSurface),
+        side: BorderSide(color: colors.primary.withOpacity(0.25)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100)),
+      ),
+      dividerTheme: DividerThemeData(
+        color: colors.primary.withOpacity(0.15),
+        thickness: 1,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: colors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: colors.primary.withOpacity(0.25)),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: colors.surface,
+        contentTextStyle: TextStyle(color: colors.onSurface),
+        actionTextColor: colors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
