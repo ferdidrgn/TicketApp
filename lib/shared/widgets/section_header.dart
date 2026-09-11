@@ -12,6 +12,13 @@ class SectionHeader extends StatelessWidget {
   final Color backgroundColor;
   final Color? textColor;
 
+  /// Ana başlığın rengi (ör. web'in premium temasında altın/beyaz).
+  /// null ise mevcut Material temasındaki gibi davranır.
+  final Color? titleColor;
+
+  /// Sol taraftaki vurgu çubuğunun rengi. null ise `context.colors.primary`.
+  final Color? accentColor;
+
   const SectionHeader({
     super.key,
     required this.title,
@@ -21,12 +28,16 @@ class SectionHeader extends StatelessWidget {
     this.fontWeight = FontWeight.bold,
     this.backgroundColor = Colors.transparent,
     this.textColor,
+    this.titleColor,
+    this.accentColor,
     this.onTap,
   });
 
   @override
   Widget build(final BuildContext context) {
     final effectiveColor = textColor ?? context.primaryColor.withOpacity(0.8);
+    final effectiveAccent = accentColor ?? context.colors.primary;
+    final effectiveTitleColor = titleColor ?? context.colors.onSurface;
 
     final textStyle = context.textTheme.headlineMedium!.copyWith(
         color: effectiveColor, fontSize: fontSize, fontWeight: fontWeight);
@@ -37,7 +48,7 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(width: 4, height: 24, color: context.colors.primary),
+          Container(width: 4, height: 24, color: effectiveAccent),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -50,7 +61,7 @@ class SectionHeader extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: context.colors.onSurface,
+                        color: effectiveTitleColor,
                         letterSpacing: -0.5)),
               ],
             ),

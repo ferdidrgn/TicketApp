@@ -2,6 +2,7 @@ import 'dart:ui'; // Glassmorphism için gerekli
 import 'package:flutter/material.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class EventsCard extends StatelessWidget {
   final String imageUrl;
@@ -15,6 +16,10 @@ class EventsCard extends StatelessWidget {
   final double? width;
   final EdgeInsetsGeometry? margin;
 
+  /// Web'deki lacivert/altın "premium" temayla gösterir. Mobil uygulamanın
+  /// kendi Material temasını bozmamak için varsayılan olarak kapalıdır.
+  final bool premium;
+
   const EventsCard({
     super.key,
     required this.imageUrl,
@@ -27,12 +32,13 @@ class EventsCard extends StatelessWidget {
     this.onTap,
     this.width,
     this.margin,
+    this.premium = false,
   });
 
   @override
   Widget build(final BuildContext context) {
-    // Tema renklerini çekelim (Material 3 uyumlu)
-    final colors = context.colors;
+    final _EventsCardPalette colors =
+        premium ? _EventsCardPalette.premium() : _EventsCardPalette.material(context);
 
     return Container(
       width: width ?? 280,
@@ -41,12 +47,15 @@ class EventsCard extends StatelessWidget {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            color: colors.surfaceContainer, // M3 Surface rengi
+            color: colors.surfaceContainer,
             borderRadius: BorderRadius.circular(28),
+            border: premium
+                ? Border.all(color: WebColors.primaryGold.withOpacity(0.2))
+                : null,
             boxShadow: [
               // Derinlik veren yumuşak gölge
               BoxShadow(
-                color: colors.shadow.withOpacity(0.1),
+                color: colors.shadow.withOpacity(premium ? 0.35 : 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
                 spreadRadius: -5,
@@ -277,4 +286,69 @@ class EventsCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// EventsCard'ın hem mobil (Material) hem web (WebColors) temasında
+/// aynı kod yolunu kullanabilmesi için küçük bir renk soyutlaması.
+class _EventsCardPalette {
+  final Color surfaceContainer;
+  final Color shadow;
+  final Color primary;
+  final Color onPrimary;
+  final Color surfaceBright;
+  final Color onSurfaceVariant;
+  final Color tertiaryContainer;
+  final Color onTertiaryContainer;
+  final Color onSurface;
+  final Color secondaryContainer;
+  final Color outlineVariant;
+  final Color secondary;
+
+  const _EventsCardPalette({
+    required this.surfaceContainer,
+    required this.shadow,
+    required this.primary,
+    required this.onPrimary,
+    required this.surfaceBright,
+    required this.onSurfaceVariant,
+    required this.tertiaryContainer,
+    required this.onTertiaryContainer,
+    required this.onSurface,
+    required this.secondaryContainer,
+    required this.outlineVariant,
+    required this.secondary,
+  });
+
+  factory _EventsCardPalette.material(final BuildContext context) {
+    final colors = context.colors;
+    return _EventsCardPalette(
+      surfaceContainer: colors.surfaceContainer,
+      shadow: colors.shadow,
+      primary: colors.primary,
+      onPrimary: colors.onPrimary,
+      surfaceBright: colors.surfaceBright,
+      onSurfaceVariant: colors.onSurfaceVariant,
+      tertiaryContainer: colors.tertiaryContainer,
+      onTertiaryContainer: colors.onTertiaryContainer,
+      onSurface: colors.onSurface,
+      secondaryContainer: colors.secondaryContainer,
+      outlineVariant: colors.outlineVariant,
+      secondary: colors.secondary,
+    );
+  }
+
+  factory _EventsCardPalette.premium() => _EventsCardPalette(
+        surfaceContainer: WebColors.darkBlueSurface,
+        shadow: Colors.black,
+        primary: WebColors.primaryGold,
+        onPrimary: WebColors.darkBlueBackground,
+        surfaceBright: WebColors.darkBlueAccent,
+        onSurfaceVariant: WebColors.textSecondary,
+        tertiaryContainer: WebColors.darkBlueAccent,
+        onTertiaryContainer: WebColors.primaryGoldLight,
+        onSurface: Colors.white,
+        secondaryContainer: WebColors.primaryGold.withOpacity(0.15),
+        outlineVariant: WebColors.primaryGold.withOpacity(0.2),
+        secondary: WebColors.primaryGoldLight,
+      );
 }
