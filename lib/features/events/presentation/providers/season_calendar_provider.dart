@@ -3,6 +3,7 @@ import '../../../../core/util/date_formatter.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../domain/entities/event.dart';
+import 'event_provider.dart';
 
 part 'season_calendar_provider.g.dart';
 
