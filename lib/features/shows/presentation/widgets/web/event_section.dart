@@ -97,14 +97,14 @@ class AnimatedEventCard extends ConsumerWidget {
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF1a1a2e), //
+              color: const Color(0xFF211A15), //
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFFD4AF37).withOpacity(0.3), //
+                color: const Color(0xFFE8823C).withOpacity(0.3), //
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFD4AF37).withOpacity(0.1), //
+                  color: const Color(0xFFE8823C).withOpacity(0.1), //
                   blurRadius: 20,
                 ),
               ],
@@ -136,15 +136,15 @@ class AnimatedEventCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37).withOpacity(0.15),
+                    color: const Color(0xFFE8823C).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: const Color(0xFFD4AF37).withOpacity(0.3),
+                      color: const Color(0xFFE8823C).withOpacity(0.3),
                     ),
                   ),
                   child: const Icon(
                     Icons.arrow_forward_rounded,
-                    color: Color(0xFFD4AF37),
+                    color: Color(0xFFE8823C),
                   ),
                 ),
               ],
@@ -190,8 +190,8 @@ class DateBox extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFFD4AF37),
-              Color(0xFFF5E6A3),
+              Color(0xFFE8823C),
+              Color(0xFFF2A868),
             ],
           ),
           borderRadius: BorderRadius.circular(16),
@@ -203,7 +203,7 @@ class DateBox extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w900,
-                color: Color(0xFF0a0a1a),
+                color: Color(0xFF15110E),
               ),
             ),
             Text(
@@ -211,7 +211,7 @@ class DateBox extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0a0a1a),
+                color: Color(0xFF15110E),
               ),
             ),
           ],
@@ -230,7 +230,7 @@ class EventLocationRow extends StatelessWidget {
           Icon(
             Icons.location_on,
             size: 16,
-            color: Color(0xFFD4AF37),
+            color: Color(0xFFE8823C),
           ),
           const SizedBox(width: 4),
           Text(
@@ -244,7 +244,7 @@ class EventLocationRow extends StatelessWidget {
           Icon(
             Icons.access_time,
             size: 16,
-            color: Color(0xFFD4AF37),
+            color: Color(0xFFE8823C),
           ),
           const SizedBox(width: 4),
           Text(

@@ -43,7 +43,7 @@ mixin WebTheme {
         color: colors.surface, // WebColors.darkBlueSurface buraya denk gelecek
         elevation: 2,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
@@ -94,7 +94,7 @@ mixin WebTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -102,7 +102,7 @@ mixin WebTheme {
           foregroundColor: colors.primary,
           side: BorderSide(color: colors.primary.withOpacity(0.6)),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -133,7 +133,7 @@ mixin WebTheme {
         backgroundColor: colors.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(10),
           side: BorderSide(color: colors.primary.withOpacity(0.25)),
         ),
       ),
@@ -150,7 +150,7 @@ mixin WebTheme {
         actionTextColor: colors.primary,
         behavior: SnackBarBehavior.floating,
         shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
     );
   }
