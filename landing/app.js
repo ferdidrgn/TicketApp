@@ -118,6 +118,40 @@ function showByEventIdMap(shows) {
 
 const FOUNDING_YEAR = 2018;
 
+/* ── Show.mediaLinks — Firestore'da her oyunun kendi medya linklerini
+ * tuttuğu alan. Eleman formatı: { type, title, url, featured }
+ * type: "youtube" | "audio" | "instagram" | "other". featured:true olan
+ * kayıt anasayfada (prömiyer/video bölümlerinde) öne çıkarılır. ── */
+function mediaLinksOf(show) {
+  return Array.isArray(show?.mediaLinks) ? show.mediaLinks.filter((l) => l && l.url) : [];
+}
+function youtubeIdFromUrl(url) {
+  if (!url) return null;
+  const m = String(url).match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{6,})/);
+  return m ? m[1] : null;
+}
+
+/* ── Elle düzenlenebilir içerik alanları — gerçek veri geldikçe ilgili
+ * bölüm otomatik dolar, boşken "yakında" mesajı gösterilir. ── */
+const PRESS_MENTIONS = [
+  // { outlet: 'Yayın adı', quote: 'Kısa alıntı…', url: 'https://…' },
+];
+const BLOG_POSTS = [
+  // { title: 'Yazı başlığı', excerpt: 'Kısa özet…', date: '12 Eylül 2026', url: '#' },
+];
+const AWARDS = [
+  // { title: 'Ödül / festival adı', year: '2026', note: 'Kısa açıklama' },
+];
+const WORKSHOPS = [
+  // { title: 'Atölye adı', date: '20 Ekim 2026', desc: 'Kısa açıklama', url: '#' },
+];
+const FAQ_ITEMS = [
+  { q: 'Bilet iadesi yapabilir miyim?', a: 'İade ve değişim koşulları etkinlik tarihine göre değişebilir. Güncel bilgi için iletişim formumuzdan bize ulaşabilirsiniz.' },
+  { q: 'Salona geç kalırsam ne olur?', a: 'Sahnedeki performansı bölmemek adına geç kalan seyirciler ilk uygun ara/sahne geçişine kadar bekletilebilir.' },
+  { q: 'Yaş sınırı olan oyunlar var mı?', a: 'Bazı oyunlarımız içerik itibarıyla belirli bir yaş sınırına sahip olabilir; ilgili bilgi oyunun repertuar kartında belirtilir.' },
+  { q: 'Bilet aldıktan sonra koltuğumu değiştirebilir miyim?', a: 'Koltuk değişikliği talepleriniz için etkinlik öncesinde bizimle iletişime geçebilirsiniz, uygunluğa göre yardımcı oluruz.' },
+];
+
 async function boot() {
   const [showsRaw, players, stages, events] = await Promise.all([
     fetchCollection('Show'),
@@ -142,8 +176,16 @@ async function boot() {
   renderGallery(shows);
   renderVenues(stages);
   renderPremiere(shows);
+  renderVideoInterviews(shows);
+  renderPress();
+  renderAwards();
   renderQuote(players);
+  renderWorkshops();
+  renderBlog();
+  renderFAQ();
+  renderInstagram(shows);
   initChrome();
+  initNewsletterForm();
   initReveal();
   initCalendarTabs(events, shows);
   initInteractions();
@@ -231,13 +273,13 @@ function renderTeam(players, shows) {
   const sub = document.getElementById('teamSub');
   if (shows[0]?.name) sub.textContent = `Şu an sahnede olan "${shows[0].name}" oyununun kadrosuyla tanışın.`;
   if (!players.length) { rail.innerHTML = `<div class="empty empty--light">Kadro bilgileri yakında burada.</div>`; return; }
-  rail.innerHTML = players.map((p) => {
+  rail.innerHTML = players.map((p, i) => {
     const name = esc(`${p.firstName ?? ''} ${p.lastName ?? ''}`.trim() || 'İsimsiz Sanatçı');
     const quote = p.quote ? esc(p.quote) : '';
     const img = p.imageUrl
       ? `<img class="player__img" src="${esc(p.imageUrl)}" alt="${name}" loading="lazy" />`
       : `<div class="player__img player__img--ph">${esc((p.firstName || '?')[0] || '?')}</div>`;
-    return `<a class="player reveal" href="${playerHref(p)}">
+    return `<a class="player reveal" href="${playerHref(p)}" style="--i:${i}">
       <div class="player__ring">${img}</div>
       <p class="player__name">${name}</p>
       ${quote ? `<p class="player__quote">"${quote}"</p>` : ''}
@@ -351,12 +393,24 @@ function renderPremiere(shows) {
   desc.textContent = show?.description || 'Prömiyerimizin ilk gösterim kaydını izleyin ve Göz Kap Vaz Yap oyunumuzdan bir sahne sesi dinleyin.';
   if (show?.imageUrl) poster.style.setProperty('--premiere-img', `url("${esc(show.imageUrl)}")`);
 
+  // mediaLinks alanı doldurulduysa oradan çekilir; yoksa mevcut sabit
+  // (Kadınlık Bizde Kalsın prömiyeri / Göz Kap Vaz Yap sesi) linklere düşülür.
+  const links = mediaLinksOf(show);
+  const ytLink_ = links.find((l) => l.type === 'youtube' && l.featured) || links.find((l) => l.type === 'youtube');
+  const audioLink_ = links.find((l) => l.type === 'audio' && l.featured) || links.find((l) => l.type === 'audio');
+  const ytId = (ytLink_ && youtubeIdFromUrl(ytLink_.url)) || KADINLIK_YT_ID;
+  const ytUrl = ytLink_?.url || KADINLIK_YT_URL;
+  const audioUrl = audioLink_?.url || KADINLIK_AUDIO_URL;
+  const audioLabel = audioLink_?.title || 'Göz Kap Vaz Yap — Sahne Sesi';
+
   const ytThumb = document.getElementById('premiereYtThumb');
-  if (ytThumb) ytThumb.style.backgroundImage = `url("https://img.youtube.com/vi/${KADINLIK_YT_ID}/hqdefault.jpg")`;
+  if (ytThumb) ytThumb.style.backgroundImage = `url("https://img.youtube.com/vi/${ytId}/hqdefault.jpg")`;
   const ytLink = document.getElementById('premiereYtLink');
-  if (ytLink) ytLink.href = KADINLIK_YT_URL;
+  if (ytLink) ytLink.href = ytUrl;
   const audio = document.getElementById('premiereAudio');
-  if (audio) audio.src = KADINLIK_AUDIO_URL;
+  if (audio) audio.src = audioUrl;
+  const audioLabelEl = document.getElementById('premiereAudioLabel');
+  if (audioLabelEl) audioLabelEl.textContent = audioLabel;
 }
 
 function renderQuote(players) {
@@ -365,6 +419,119 @@ function renderQuote(players) {
   const p = withQuote[Math.floor(Math.random() * withQuote.length)];
   document.getElementById('quoteText').textContent = `"${p.quote.trim()}"`;
   document.getElementById('quoteAttr').textContent = `— ${p.firstName ?? ''} ${p.lastName ?? ''}`.trim();
+}
+
+/** Tüm oyunların mediaLinks alanındaki YouTube kayıtlarını (röportaj,
+ * sahne arkası vb.) tek bir video ızgarasında toplar. Oyunlara link
+ * eklendikçe bu bölüm otomatik büyür. */
+function renderVideoInterviews(shows) {
+  const section = document.getElementById('interviews');
+  const grid = document.getElementById('interviewsGrid');
+  if (!section || !grid) return;
+  const items = [];
+  shows.forEach((s) => mediaLinksOf(s).forEach((l) => {
+    if (l.type === 'youtube' && l.url) items.push({ show: s, link: l });
+  }));
+  if (!items.length) { grid.innerHTML = `<div class="empty empty--light">Video röportajlarımız ve sahne arkası kayıtlarımız yakında burada.</div>`; return; }
+  grid.innerHTML = items.map(({ show, link }) => {
+    const id = youtubeIdFromUrl(link.url);
+    const thumb = id ? `background-image:url('https://img.youtube.com/vi/${id}/hqdefault.jpg')` : '';
+    const title = esc(link.title || show.name || 'Video');
+    return `<a class="ivcard reveal" href="${esc(link.url)}" target="_blank" rel="noopener" data-cursor-hover>
+      <div class="ivcard__thumb" style="${thumb}"></div>
+      <div class="ivcard__play"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></div>
+      <p class="ivcard__title">${title}</p>
+    </a>`;
+  }).join('');
+}
+
+function renderPress() {
+  const grid = document.getElementById('pressGrid');
+  if (!grid) return;
+  if (!PRESS_MENTIONS.length) { grid.innerHTML = `<div class="empty">Basın bültenlerimiz ve röportajlarımız yakında burada.</div>`; return; }
+  grid.innerHTML = PRESS_MENTIONS.map((p) => `<a class="press__card reveal" href="${esc(p.url || '#')}" target="_blank" rel="noopener" data-cursor-hover>
+    <span class="press__outlet">${esc(p.outlet || '')}</span>
+    <p class="press__quote">"${esc(p.quote || '')}"</p>
+  </a>`).join('');
+}
+
+function renderAwards() {
+  const list = document.getElementById('awardsList');
+  if (!list) return;
+  if (!AWARDS.length) { list.innerHTML = `<div class="empty empty--light">Ödüllerimiz ve katıldığımız festivaller yakında burada.</div>`; return; }
+  list.innerHTML = AWARDS.map((a) => `<div class="awards__item reveal">
+    <span class="awards__year">${esc(a.year || '')}</span>
+    <div><p class="awards__title">${esc(a.title || '')}</p>${a.note ? `<p class="awards__note">${esc(a.note)}</p>` : ''}</div>
+  </div>`).join('');
+}
+
+function renderBlog() {
+  const grid = document.getElementById('blogGrid');
+  if (!grid) return;
+  if (!BLOG_POSTS.length) { grid.innerHTML = `<div class="empty empty--light">Yazılarımız yakında burada.</div>`; return; }
+  grid.innerHTML = BLOG_POSTS.map((post) => `<a class="blog__card reveal" href="${esc(post.url || '#')}" data-cursor-hover>
+    <span class="blog__date">${esc(post.date || '')}</span>
+    <h3 class="blog__title">${esc(post.title || '')}</h3>
+    <p class="blog__excerpt">${esc(post.excerpt || '')}</p>
+    <span class="link-arrow">Devamını Oku</span>
+  </a>`).join('');
+}
+
+function renderWorkshops() {
+  const grid = document.getElementById('workshopsGrid');
+  if (!grid) return;
+  if (!WORKSHOPS.length) { grid.innerHTML = `<div class="empty">Atölye ve eğitim duyurularımız yakında burada.</div>`; return; }
+  grid.innerHTML = WORKSHOPS.map((w) => `<a class="workshop__card reveal" href="${esc(w.url || '#')}" data-cursor-hover>
+    <span class="workshop__date">${esc(w.date || '')}</span>
+    <h3 class="workshop__title">${esc(w.title || '')}</h3>
+    ${w.desc ? `<p class="workshop__desc">${esc(w.desc)}</p>` : ''}
+  </a>`).join('');
+}
+
+function renderFAQ() {
+  const list = document.getElementById('faqList');
+  if (!list) return;
+  list.innerHTML = FAQ_ITEMS.map((item, i) => `
+    <div class="faq__item reveal">
+      <button type="button" class="faq__q" data-i="${i}">
+        <span>${esc(item.q)}</span>
+        <span class="faq__plus">+</span>
+      </button>
+      <div class="faq__a"><p>${esc(item.a)}</p></div>
+    </div>`).join('');
+  list.querySelectorAll('.faq__q').forEach((btn) => btn.addEventListener('click', () => {
+    btn.closest('.faq__item').classList.toggle('is-open');
+  }));
+}
+
+const IG_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>';
+
+/** Gerçek Instagram API/oEmbed anahtarı olmadığı için "canlı besleme"
+ * yerine, galerideki gerçek sahne fotoğraflarını Instagram-vari bir
+ * ızgarada gösterip gerçek profile yönlendiriyoruz. */
+function renderInstagram(shows) {
+  const grid = document.getElementById('instaGrid');
+  if (!grid) return;
+  const photos = [];
+  shows.forEach((s) => (s.photosShowId || []).forEach((url) => { if (url) photos.push(url); }));
+  if (!photos.length) { grid.innerHTML = `<div class="empty">Instagram galerimiz yakında burada.</div>`; return; }
+  const shuffled = photos.map((p, i) => ({ p, sort: Math.sin(i * 555) })).sort((a, b) => a.sort - b.sort).map((x) => x.p).slice(0, 8);
+  grid.innerHTML = shuffled.map((url) => `<a class="insta__item" href="https://www.instagram.com/tiyatrol" target="_blank" rel="noopener" data-cursor-hover>
+    <img src="${esc(url)}" alt="TiyatRol Instagram" loading="lazy" />
+    <span class="insta__icon">${IG_ICON}</span>
+  </a>`).join('');
+}
+
+function initNewsletterForm() {
+  const form = document.getElementById('newsletterForm');
+  if (!form) return;
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = form.email.value.trim();
+    window.location.href = `mailto:ferdidurgun34@gmail.com?subject=${encodeURIComponent('Bülten Aboneliği')}&body=${encodeURIComponent(`Abone olmak isteyen e-posta: ${email}`)}`;
+    const note = document.getElementById('newsletterNote');
+    if (note) note.textContent = 'Teşekkürler! E-posta istemcin açıldı, göndermeyi unutma.';
+  });
 }
 
 /* ── Sayfa iskeleti: nav, scroll progress, mobil menü, sayaç, yıl, form ── */

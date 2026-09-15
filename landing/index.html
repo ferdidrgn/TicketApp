@@ -157,7 +157,7 @@
           <span class="ytcard__cap">Prömiyeri İzle</span>
         </a>
         <div class="audiocard">
-          <span class="audiocard__label">Göz Kap Vaz Yap — Sahne Sesi</span>
+          <span class="audiocard__label" id="premiereAudioLabel">Göz Kap Vaz Yap — Sahne Sesi</span>
           <audio id="premiereAudio" controls preload="none"></audio>
         </div>
       </div>
@@ -165,6 +165,15 @@
   </section>
 
   <div class="perf" aria-hidden="true"></div>
+
+  <section class="interviews" id="interviews">
+    <div class="head head--light">
+      <div><p class="eyebrow eyebrow--light">SAHNE ARKASI</p><h2 class="h2 h2--light">Video Röportajlar</h2></div>
+    </div>
+    <div class="interviews__grid" id="interviewsGrid">
+      <div class="loading loading--light"><span class="spin"></span>Videolar yükleniyor…</div>
+    </div>
+  </section>
 
   <section class="venues" id="sahneler">
     <div class="head head--light">
@@ -175,10 +184,84 @@
     </div>
   </section>
 
+  <section class="press" id="basin">
+    <div class="head">
+      <div><p class="eyebrow">BASINDA</p><h2 class="h2">Basında Biz</h2></div>
+    </div>
+    <div class="press__grid" id="pressGrid">
+      <div class="loading"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="awards" id="oduller">
+    <div class="head head--light">
+      <div><p class="eyebrow eyebrow--light">TANINIRLIK</p><h2 class="h2 h2--light">Ödüller &amp; Festivaller</h2></div>
+    </div>
+    <div class="awards__list" id="awardsList">
+      <div class="loading loading--light"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
   <section class="quote">
     <span class="quote__mark">"</span>
     <p class="quote__text" id="quoteText">Bir bileti değil, bir anı satın alırsın.</p>
     <p class="quote__attr" id="quoteAttr">— TİYATROL</p>
+  </section>
+
+  <section class="workshops" id="atolyeler">
+    <div class="head">
+      <div><p class="eyebrow">GELİŞİM</p><h2 class="h2">Atölye &amp; Eğitim Duyuruları</h2></div>
+    </div>
+    <div class="workshops__grid" id="workshopsGrid">
+      <div class="loading"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="blog" id="blog">
+    <div class="head head--light">
+      <div><p class="eyebrow eyebrow--light">SAHNE ARKASI NOTLARI</p><h2 class="h2 h2--light">Blog</h2></div>
+    </div>
+    <div class="blog__grid" id="blogGrid">
+      <div class="loading loading--light"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="faq" id="sss">
+    <div class="head">
+      <div><p class="eyebrow">MERAK EDİLENLER</p><h2 class="h2">Sıkça Sorulan Sorular</h2></div>
+    </div>
+    <div class="faq__list" id="faqList"></div>
+  </section>
+
+  <section class="partners" id="sponsorlar">
+    <div class="partners__inner">
+      <p class="eyebrow eyebrow--light">İŞ BİRLİKLERİ</p>
+      <h2 class="h2 h2--light">Sahneyi birlikte <em>büyütelim.</em></h2>
+      <p class="p partners__p">Marka iş birlikleri, kurumsal sponsorluklar ve mekân ortaklıkları için kapımız açık. Bizimle çalışmak isteyen kurumlar iletişim formundan ulaşabilir.</p>
+      <a href="#iletisim" class="btn btn--line" data-cursor-hover>İş Birliği Teklif Et</a>
+    </div>
+  </section>
+
+  <section class="instagram" id="instagram">
+    <div class="head">
+      <div><p class="eyebrow">SOSYAL</p><h2 class="h2">Instagram'da TiyatRol</h2></div>
+      <a href="https://www.instagram.com/tiyatrol" target="_blank" rel="noopener" class="link-arrow" data-cursor-hover>Profili Gör</a>
+    </div>
+    <div class="insta__grid" id="instaGrid">
+      <div class="loading"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="newsletter" id="bulten">
+    <div class="newsletter__inner">
+      <p class="eyebrow">HABERDAR OL</p>
+      <h2 class="h2">Yeni oyunları <em>ilk sen öğren.</em></h2>
+      <form class="newsletter__form" id="newsletterForm">
+        <input type="email" name="email" placeholder="E-posta adresin" required />
+        <button type="submit" class="btn btn--fill" data-cursor-hover>Abone Ol →</button>
+      </form>
+      <p class="newsletter__note" id="newsletterNote"></p>
+    </div>
   </section>
 
   <section class="contact" id="iletisim">
@@ -213,6 +296,7 @@
     <div><span class="footer__mark">TiyatRol</span><p>Sahne Sanatları Topluluğu</p></div>
     <div class="footer__col"><h4>İletişim</h4><a href="mailto:ferdidurgun34@gmail.com">Bize Yazın</a><span>Ataşehir, İstanbul</span></div>
     <div class="footer__col"><h4>Takip Et</h4><a href="https://www.instagram.com/tiyatrol" target="_blank" rel="noopener">Instagram</a><a href="https://www.facebook.com/tiyatrol" target="_blank" rel="noopener">Facebook</a></div>
+    <div class="footer__col"><h4>Keşfet</h4><a href="#blog">Blog</a><a href="#sss">SSS</a><a href="#basin">Basında Biz</a><a href="#atolyeler">Atölyeler</a><a href="#oduller">Ödüller</a><a href="#sponsorlar">İş Birlikleri</a></div>
     <div class="footer__col"><h4>Uygulama</h4><a href="/app">Bileti Ayır →</a></div>
   </div>
   <div class="footer__bottom"><span>© <span id="year">2026</span> TiyatRol — Tüm Hakları Saklıdır.</span></div>
