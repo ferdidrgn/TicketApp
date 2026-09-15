@@ -105,7 +105,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         rightIcon: Icons.theaters,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
-          backgroundColor: const Color(0xFF15110E),
+          backgroundColor: const Color(0xFF0F2318),
           ambientColor: context.primaryColor.withOpacity(0.05),
         ),
         child: detailAsync.when(
@@ -362,28 +362,28 @@ class _EventItemTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF211A15).withOpacity(0.8),
+        color: const Color(0xFF1B3A26).withOpacity(0.8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8823C).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFE85C3F).withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8823C).withOpacity(0.2),
+              color: const Color(0xFFE85C3F).withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               children: [
                 Text(gun,
                     style: const TextStyle(
-                        color: Color(0xFFE8823C),
+                        color: Color(0xFFE85C3F),
                         fontSize: 20,
                         fontWeight: FontWeight.bold)),
                 Text(ay,
                     style: const TextStyle(
-                        color: Color(0xFFE8823C), fontSize: 11)),
+                        color: Color(0xFFE85C3F), fontSize: 11)),
               ],
             ),
           ),
@@ -412,7 +412,7 @@ class _EventItemTile extends StatelessWidget {
             ),
           ),
           const Icon(Icons.arrow_forward_ios,
-              color: Color(0xFFE8823C), size: 14),
+              color: Color(0xFFE85C3F), size: 14),
         ],
       ),
     );
@@ -451,7 +451,7 @@ class _AnimatedPoster extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFE8823C).withOpacity(0.4),
+                color: const Color(0xFFE85C3F).withOpacity(0.4),
                 blurRadius: 50,
                 spreadRadius: 5)
           ],
@@ -475,12 +475,12 @@ class _GlassDescriptionCard extends StatelessWidget {
   Widget build(final BuildContext context) => Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: const Color(0xFF211A15).withOpacity(0.8),
+          color: const Color(0xFF1B3A26).withOpacity(0.8),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE8823C).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFFE85C3F).withOpacity(0.3)),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFE8823C).withOpacity(0.1), blurRadius: 30)
+                color: const Color(0xFFE85C3F).withOpacity(0.1), blurRadius: 30)
           ],
         ),
         child: Text(
@@ -507,15 +507,15 @@ class _SectionTitle extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                  colors: [Color(0xFFE8823C), Color(0xFFF2A868)]),
+                  colors: [Color(0xFFE85C3F), Color(0xFFF0876F)]),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                    color: const Color(0xFFE8823C).withOpacity(0.4),
+                    color: const Color(0xFFE85C3F).withOpacity(0.4),
                     blurRadius: 15)
               ],
             ),
-            child: Icon(icon, color: const Color(0xFF15110E), size: 22),
+            child: Icon(icon, color: const Color(0xFF0F2318), size: 22),
           ),
           const SizedBox(width: 16),
           Text(title,
@@ -530,7 +530,7 @@ class _SectionTitle extends StatelessWidget {
                   height: 1,
                   decoration: BoxDecoration(
                       gradient: LinearGradient(colors: [
-                    const Color(0xFFE8823C).withOpacity(0.5),
+                    const Color(0xFFE85C3F).withOpacity(0.5),
                     Colors.transparent
                   ])))),
         ],
@@ -561,7 +561,7 @@ class _BackgroundParticles extends StatelessWidget {
                     width: 4,
                     height: 4,
                     decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: Color(0xFFE8823C))));
+                        shape: BoxShape.circle, color: Color(0xFFE85C3F))));
           },
         );
       }),

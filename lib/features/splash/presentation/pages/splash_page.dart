@@ -49,7 +49,7 @@ class _SplashPageState extends State<SplashPage>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF15110E), Color(0xFF211A15), Color(0xFF2E241D)],
+            colors: [Color(0xFF0F2318), Color(0xFF1B3A26), Color(0xFF24402C)],
           ),
         ),
         child: Column(
@@ -65,7 +65,7 @@ class _SplashPageState extends State<SplashPage>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFE8823C).withOpacity(0.4),
+                      color: const Color(0xFFE85C3F).withOpacity(0.4),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),
@@ -80,7 +80,7 @@ class _SplashPageState extends State<SplashPage>
                       return const Icon(
                         Icons.theater_comedy,
                         size: 80,
-                        color: Color(0xFFE8823C),
+                        color: Color(0xFFE85C3F),
                       );
                     },
                   ),
@@ -96,7 +96,7 @@ class _SplashPageState extends State<SplashPage>
               style: TextStyle(
                 fontSize: isMobile ? 40 : 56,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFFE8823C),
+                color: const Color(0xFFE85C3F),
                 letterSpacing: 3,
               ),
             ),
@@ -112,11 +112,11 @@ class _SplashPageState extends State<SplashPage>
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
-                    color: const Color(0xFFE8823C).withOpacity(0.3),
+                    color: const Color(0xFFE85C3F).withOpacity(0.3),
                     width: 1,
                   ),
                   bottom: BorderSide(
-                    color: const Color(0xFFE8823C).withOpacity(0.3),
+                    color: const Color(0xFFE85C3F).withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -126,7 +126,7 @@ class _SplashPageState extends State<SplashPage>
                 style: TextStyle(
                   fontSize: isMobile ? 14 : 16,
                   fontWeight: FontWeight.w400,
-                  color: const Color(0xFFF2D9BE).withOpacity(0.9),
+                  color: const Color(0xFFEAE1C8).withOpacity(0.9),
                   letterSpacing: 1.5,
                   fontStyle: FontStyle.italic,
                 ),
@@ -140,8 +140,8 @@ class _SplashPageState extends State<SplashPage>
             SizedBox(
               width: isMobile ? 200 : 300,
               child: const LinearProgressIndicator(
-                backgroundColor: Color(0xFF211A15),
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE8823C)),
+                backgroundColor: Color(0xFF1B3A26),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE85C3F)),
                 minHeight: 2,
               ),
             ),
@@ -154,7 +154,7 @@ class _SplashPageState extends State<SplashPage>
               style: TextStyle(
                 fontSize: isMobile ? 12 : 14,
                 fontWeight: FontWeight.w300,
-                color: const Color(0xFFE8823C).withOpacity(0.8),
+                color: const Color(0xFFE85C3F).withOpacity(0.8),
                 letterSpacing: 1.0,
               ),
             ),

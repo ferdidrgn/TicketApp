@@ -17,8 +17,8 @@ class GlobalErrorWidget extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     // Tasarımlarındaki ortak altın rengi
-    const goldColor = Color(0xFFE8823C);
-    const darkBg = Color(0xFF15110E);
+    const goldColor = Color(0xFFE85C3F);
+    const darkBg = Color(0xFF0F2318);
 
     final content = Center(
       child: Padding(
@@ -70,7 +70,7 @@ class GlobalErrorWidget extends StatelessWidget {
         decoration: BoxDecoration(
           // ErrorStateWidget'taki gradient
           gradient: LinearGradient(
-            colors: [goldColor, const Color(0xFFF2A868)],
+            colors: [goldColor, const Color(0xFFF0876F)],
           ),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [

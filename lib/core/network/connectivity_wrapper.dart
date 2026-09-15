@@ -80,9 +80,9 @@ class _OfflineScreenState extends State<_OfflineScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF211A15),
-                    Color(0xFF2E241D),
-                    Color(0xFF0B0806),
+                    Color(0xFF1B3A26),
+                    Color(0xFF24402C),
+                    Color(0xFF081712),
                   ],
                 ),
               ),

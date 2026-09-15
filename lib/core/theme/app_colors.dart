@@ -2,32 +2,33 @@ import 'package:flutter/material.dart';
 import '../common/extentions/app_context_ui_extension.dart';
 
 /// WEB UYGULAMASI RENKLERİ
-/// "SPOTLIGHT" PALETİ — eski lacivert/altın kimliğin tamamen yerine geçer.
-/// Sahne arkası, is1 karanlık kulis + tek bir sıcak reflektör rengi fikri.
+/// "ÇAM & MERCAN" (Pine & Coral) PALETİ — landing/ tanıtım sitesiyle birebir
+/// aynı kimlik. Flutter web uygulaması da artık bu paleti kullanıyor ki tüm
+/// site (tanıtım + uygulama) tek bir marka gibi hissettirsin.
 class WebColors {
-  // Ana Renkler — reflektör turuncusu (eski "altın"ın yerine)
-  static const Color primaryGold = Color(0xFFE8823C);
-  static const Color primaryGoldDark = Color(0xFFC4652A);
-  static const Color primaryGoldLight = Color(0xFFF2A868);
+  // Ana Renkler — mercan reflektör vurgusu (eski "altın"ın yerine)
+  static const Color primaryGold = Color(0xFFE85C3F);
+  static const Color primaryGoldDark = Color(0xFFC1432A);
+  static const Color primaryGoldLight = Color(0xFFF0876F);
 
-  // İkincil vurgu — soğuk gece mavisi-yeşili (yeni, eskisinde yoktu)
-  static const Color secondaryAccent = Color(0xFF6E96A0);
-  static const Color secondaryAccentLight = Color(0xFF95BAC2);
+  // İkincil vurgu — adaçayı yeşili (landing'deki --sage ile aynı)
+  static const Color secondaryAccent = Color(0xFF8FB29C);
+  static const Color secondaryAccentLight = Color(0xFFABC7B4);
 
-  // Arkaplan Renkleri — sıcak kömür/kulis siyahı (eski laciverdin yerine)
-  static const Color darkBlueBackground = Color(0xFF15110E);
-  static const Color darkBlueSurface = Color(0xFF211A15);
-  static const Color darkBlueAccent = Color(0xFF2E241D);
+  // Arkaplan Renkleri — koyu çam yeşili kulis (eski kömür siyahının yerine)
+  static const Color darkBlueBackground = Color(0xFF0F2318);
+  static const Color darkBlueSurface = Color(0xFF1B3A26);
+  static const Color darkBlueAccent = Color(0xFF24402C);
 
   // Ekstra Arkaplan Tonları
-  static const Color veryDarkBlue = Color(0xFF0B0806); // En koyu ton
-  static const Color mediumDarkBlue = Color(0xFF362A21); // Orta ton
+  static const Color veryDarkBlue = Color(0xFF081712); // En koyu ton
+  static const Color mediumDarkBlue = Color(0xFF24402C); // Orta ton
 
   // Metin Renkleri
-  static const Color whiteText = Colors.white;
-  static const Color lightWhite = Color(0xFFF4ECE1);
-  static const Color textSecondary = Color(0xFFC7B7A6);
-  static const Color textTertiary = Color(0xFF93816E); // Ek ton
+  static const Color whiteText = Color(0xFFF2ECD9); // Fildişi (ivory)
+  static const Color lightWhite = Color(0xFFEAE1C8);
+  static const Color textSecondary = Color(0xFFC9BBA5);
+  static const Color textTertiary = Color(0xFF9C8F79); // Ek ton
 
   // Aksan Renkler
   static const Color success = Color(0xFF4CAF50);

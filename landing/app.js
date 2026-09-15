@@ -188,9 +188,9 @@ function renderAbout(shows, players) {
 
 function renderPitchNoop() { /* Pitch bölümü statik (sabit) metin içerir — uydurma veri değil, marka konumlandırması. */ }
 
-/** Varsayılan görsel: galeriden ilk gerçek fotoğraf (afiş değil) — fare/parmak
- * geldiğinde afişe (imageUrl) geçilir ve özet alttan yukarı kayar. İkisi de
- * yoksa/aynıysa tek katman gösterilir, kart yine de tıklanabilir kalır. */
+/** Varsayılan görsel: afiş (imageUrl) — fare/parmak geldiğinde galeriden
+ * RASTGELE seçilmiş gerçek bir sahne fotoğrafına geçilir ve özet alttan
+ * yukarı kayar. Galeri boşsa tek katman (afiş) gösterilir. */
 function renderRepertoire(shows) {
   const grid = document.getElementById('repertoireGrid');
   if (!shows.length) { grid.innerHTML = `<div class="empty">Repertuar yakında burada.</div>`; return; }
@@ -200,9 +200,10 @@ function renderRepertoire(shows) {
     const cat = esc(s.category || 'Tiyatro');
     const duration = esc(s.duration || '');
     const age = esc(s.ageLimit || '');
-    const gallery0 = (s.photosShowId || []).find(Boolean);
-    const primary = gallery0 || s.imageUrl || '';
-    const secondary = s.imageUrl && s.imageUrl !== primary ? s.imageUrl : '';
+    const gallery = (s.photosShowId || []).filter(Boolean);
+    const randomShot = gallery.length ? gallery[Math.floor(Math.random() * gallery.length)] : '';
+    const primary = s.imageUrl || randomShot || '';
+    const secondary = randomShot && randomShot !== primary ? randomShot : '';
 
     const imgLayers = primary
       ? `<img class="show__img show__img--primary" src="${esc(primary)}" alt="${name}" loading="lazy" />`
@@ -402,7 +403,10 @@ function initChrome() {
     e.preventDefault();
     const f = e.target;
     const body = `Gönderen: ${f.name.value.trim()} (${f.email.value.trim()})\n\n${f.message.value.trim()}`;
-    window.location.href = `mailto:iletisim@tiyatrol.com?subject=${encodeURIComponent(`[${f.subject.value}] ${f.name.value.trim()}`)}&body=${encodeURIComponent(body)}`;
+    // Not: Kurumsal e-posta alınana kadar geçici olarak buraya düşüyor —
+    // adres kullanıcıya görünür metin olarak gösterilmiyor, sadece mailto
+    // bağlantısının arkasında (form gönderildiğinde açılan e-posta istemcisinde).
+    window.location.href = `mailto:ferdidurgun34@gmail.com?subject=${encodeURIComponent(`[${f.subject.value}] ${f.name.value.trim()}`)}&body=${encodeURIComponent(body)}`;
   });
 
   const statsObserver = new IntersectionObserver((entries) => {

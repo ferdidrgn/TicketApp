@@ -91,10 +91,10 @@ class _HeroGradientOverlay extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF15110E).withOpacity(0.3),
+              Color(0xFF0F2318).withOpacity(0.3),
               Colors.transparent,
-              Color(0xFF15110E).withOpacity(0.9),
-              Color(0xFF15110E),
+              Color(0xFF0F2318).withOpacity(0.9),
+              Color(0xFF0F2318),
             ],
             stops: const [0.0, 0.3, 0.8, 1.0],
           ),
@@ -117,7 +117,7 @@ class _HeroDivider extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             Colors.transparent,
-            Color(0xFFE8823C),
+            Color(0xFFE85C3F),
             Colors.transparent,
           ],
         ),
@@ -136,7 +136,7 @@ class _HeroTitle extends StatelessWidget {
   Widget build(final BuildContext context) {
     return ShaderMask(
       shaderCallback: (final bounds) => LinearGradient(
-        colors: [Colors.white, Color(0xFFF2A868)],
+        colors: [Colors.white, Color(0xFFF0876F)],
       ).createShader(bounds),
       child: Text(
         title.toUpperCase(),
@@ -147,7 +147,7 @@ class _HeroTitle extends StatelessWidget {
           letterSpacing: 8,
           shadows: [
             BoxShadow(
-              color: Color(0xFFE8823C).withOpacity(0.5),
+              color: Color(0xFFE85C3F).withOpacity(0.5),
               blurRadius: 40,
             ),
           ],
@@ -174,15 +174,15 @@ class _AnimatedUnderline extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFFE8823C),
-                Color(0xFFF2A868),
-                Color(0xFFE8823C),
+                Color(0xFFE85C3F),
+                Color(0xFFF0876F),
+                Color(0xFFE85C3F),
               ],
             ),
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFFE8823C).withOpacity(0.6),
+                color: Color(0xFFE85C3F).withOpacity(0.6),
                 blurRadius: 15,
               ),
             ],
