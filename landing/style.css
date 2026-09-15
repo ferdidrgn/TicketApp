@@ -180,6 +180,7 @@ section{position:relative;}
 .show__cat{position:absolute; top:14px; left:14px; padding:5px 12px; border-radius:2px 8px; background:var(--coral); color:var(--ivory); font-size:10px; font-weight:800; letter-spacing:.6px; text-transform:uppercase;}
 .show__body{position:absolute; left:0; right:0; bottom:0; padding:20px; color:var(--ivory);}
 .show__name{font-family:var(--serif); font-size:20px;}
+.show__author{font-size:10.5px; font-weight:700; letter-spacing:.4px; color:var(--coral-light); margin-top:2px; text-transform:uppercase;}
 .show__desc{font-size:12px; color:var(--ivory-dim); line-height:1.6; max-height:0; opacity:0; overflow:hidden; transition:max-height .4s var(--ease), opacity .3s;}
 .show:hover .show__desc,.show.is-active .show__desc{max-height:70px; opacity:1; margin-top:6px;}
 .show__meta{display:flex; gap:12px; margin-top:8px; font-size:10.5px; color:var(--ivory-faint); text-transform:uppercase;}
@@ -230,6 +231,18 @@ section{position:relative;}
 .ticket__day{font-family:var(--serif); font-size:26px; color:var(--coral-deep); line-height:1;}
 .ticket__rest{font-size:10.5px; font-weight:700; color:var(--ink-dim); text-transform:uppercase; line-height:1.3;}
 .ticket__name{margin-top:6px; font-size:13px; font-weight:700; color:var(--ink);}
+
+/* ═══════════════ KULİSTEN NOTLAR (yapışkan not panosu) ═══════════════ */
+.notes{background:var(--ivory-2); padding:clamp(60px,8vw,90px) 0;}
+.notes__board{max-width:1200px; margin:0 auto; padding:10px clamp(20px,4vw,56px) 0; display:flex; flex-wrap:wrap; gap:26px 22px; justify-content:center;}
+.note{--r:0deg; flex:0 1 250px; background:var(--ivory); padding:24px 20px 28px; box-shadow:0 10px 22px rgba(18,32,26,.12); transform:rotate(var(--r)); transition:transform .3s var(--ease), box-shadow .3s var(--ease); position:relative;}
+.note::before{content:''; position:absolute; top:-10px; left:50%; transform:translateX(-50%) rotate(-4deg); width:34px; height:14px; background:rgba(232,92,63,.55); border-radius:2px;}
+.note:hover{transform:rotate(0deg) translateY(-5px); box-shadow:0 20px 34px rgba(18,32,26,.18); z-index:2;}
+.note p{font-family:var(--serif); font-style:italic; font-size:14.5px; line-height:1.6; color:var(--ink);}
+.note:nth-child(3n){background:#F7E8DE;}
+.note:nth-child(4n){background:#EAF0E6;}
+.note:nth-child(5n){background:#F2E4E9;}
+@media (prefers-reduced-motion:reduce){ .note{transition:none;} }
 
 /* ═══════════════ STATS ═══════════════ */
 .stats{background:var(--pine-deep); color:var(--ivory); padding:56px 0;}
@@ -397,6 +410,7 @@ section{position:relative;}
 /* ═══════════════ BÜLTEN (newsletter) ═══════════════ */
 .newsletter{background:var(--ivory-2); padding:clamp(70px,10vw,110px) clamp(20px,4vw,56px); text-align:center;}
 .newsletter__inner{max-width:560px; margin:0 auto;}
+.newsletter__inner .p{margin-top:14px;}
 .newsletter__form{display:flex; gap:12px; margin-top:26px; flex-wrap:wrap; justify-content:center;}
 .newsletter__form input{flex:1; min-width:220px; padding:14px 16px; border:1px solid var(--ink-line); border-radius:2px 8px; background:var(--ivory); color:var(--ink); font-family:var(--sans); font-size:13px;}
 .newsletter__form ::placeholder{color:var(--ink-faint);}

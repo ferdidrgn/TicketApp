@@ -145,6 +145,34 @@ const AWARDS = [
 const WORKSHOPS = [
   // { title: 'Atölye adı', date: '20 Ekim 2026', desc: 'Kısa açıklama', url: '#' },
 ];
+/** Bazı oyunlarımız Türk tiyatrosunun bilinen eserleri — yazarını doğru
+ * anmak hem izleyiciye hem esere karşı bir saygı borcu. İsim eşleşmesine
+ * göre (doğrulanmış kaynaklardan) küçük bir "Yazan:" notu ekleniyor. */
+const SHOW_PLAYWRIGHTS = {
+  'kadınlık': 'Yılmaz Erdoğan',
+  'gözlerimi': 'Haldun Taner',
+};
+function playwrightOf(show) {
+  const key = Object.keys(SHOW_PLAYWRIGHTS).find((k) => (show?.name || '').toLowerCase().includes(k));
+  return key ? SHOW_PLAYWRIGHTS[key] : '';
+}
+
+/* ── Kulisten Notlar — birebir replik değil, oyunların gerçek temalarından
+ * (doğrulanmış kaynaklardan) esinlenen kısa yansımalar + topluluk ruhunu
+ * anlatan genel notlar. Yapışkan not / pano hissi veren bir bölümde. ── */
+const STAGE_NOTES = [
+  'Her gece aynı repliği söylüyoruz, hiçbir gece aynı hissetmiyoruz.',
+  'Alkış bittiğinde asıl hikâye kulis kapısının ardında başlar.',
+  'Bir oyunu izlemek, birinin en cesur hâlini görmektir.',
+  'Sahne, ışıklar sönünce de içimizde kalır.',
+  'Prova bir alışkanlık değil, her seferinde yeniden âşık olmaktır.',
+  'Seyirci gülerken biz nefesimizi tutarız.',
+];
+const SHOW_THEME_NOTES = {
+  'kadınlık': 'Tarih boyunca gölgede kalmış kadınlara bir kahkaha, bir başkaldırı.',
+  'gözlerimi': 'Vicdani ile Efruz’un aynı yüzyılda, hiç aynı olmayan hayatları.',
+};
+
 const FAQ_ITEMS = [
   { q: 'Bilet iadesi yapabilir miyim?', a: 'İade ve değişim koşulları etkinlik tarihine göre değişebilir. Güncel bilgi için iletişim formumuzdan bize ulaşabilirsiniz.' },
   { q: 'Salona geç kalırsam ne olur?', a: 'Sahnedeki performansı bölmemek adına geç kalan seyirciler ilk uygun ara/sahne geçişine kadar bekletilebilir.' },
@@ -173,6 +201,7 @@ async function boot() {
   renderRepertoire(shows);
   renderTeam(curatedCast(shows, players), shows);
   renderCalendar(events, shows);
+  renderNotes(shows);
   renderGallery(shows);
   renderVenues(stages);
   renderPremiere(shows);
@@ -206,9 +235,9 @@ function renderHero(shows, events, stages) {
     if (stage?.name) parts.push(stage.name);
     el.textContent = parts.join(' · ');
   } else if (shows.length) {
-    el.textContent = `Repertuarda ${shows.length} oyun sahneleniyor.`;
+    el.textContent = `Bu sezon sahnede ${shows.length} oyun var, seni bekliyoruz.`;
   } else {
-    el.textContent = 'Yeni sezon hazırlanıyor.';
+    el.textContent = 'Yeni sezonun perdesi yakında açılıyor.';
   }
 }
 
@@ -245,6 +274,7 @@ function renderRepertoire(shows) {
   grid.innerHTML = shows.map((s) => {
     const name = esc(s.name || 'İsimsiz Oyun');
     const desc = esc(s.description || '');
+    const playwright = esc(playwrightOf(s));
     const cat = esc(s.category || 'Tiyatro');
     const duration = esc(s.duration || '');
     const age = esc(s.ageLimit || '');
@@ -267,6 +297,7 @@ function renderRepertoire(shows) {
       <span class="show__cat">${cat}</span>
       <div class="show__body">
         <p class="show__name">${name}</p>
+        ${playwright ? `<p class="show__author">Yazan: ${playwright}</p>` : ''}
         ${desc ? `<p class="show__desc">${desc}</p>` : ''}
         <div class="show__meta">${duration ? `<span>${duration}</span>` : ''}${age ? `<span>${age}+</span>` : ''}</div>
       </div>
@@ -345,6 +376,23 @@ function renderCalendarRow() {
         <p class="ticket__name">${name}</p>
       </div>
     </${tag}>`;
+  }).join('');
+}
+
+/** "Kulisten Notlar" — yapışkan not panosu. Topluluk ruhunu anlatan genel
+ * notlarla, Firestore'daki oyun adlarıyla eşleşen doğrulanmış tema
+ * notlarını birleştirip rastgele hafif döndürülmüş kartlar olarak basar. */
+function renderNotes(shows) {
+  const board = document.getElementById('notesBoard');
+  if (!board) return;
+  const items = [...STAGE_NOTES];
+  shows.forEach((s) => {
+    const key = Object.keys(SHOW_THEME_NOTES).find((k) => (s.name || '').toLowerCase().includes(k));
+    if (key) items.push(`${SHOW_THEME_NOTES[key]} — “${s.name}”`);
+  });
+  board.innerHTML = items.map((text, i) => {
+    const angle = ((i % 5) - 2) * 3.2;
+    return `<div class="note reveal" style="--r:${angle}deg"><p>${esc(text)}</p></div>`;
   }).join('');
 }
 
