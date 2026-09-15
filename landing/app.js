@@ -168,7 +168,7 @@ async function boot() {
 
   renderHero(shows, events, stages);
   renderMarquee(shows);
-  renderAbout(shows, players);
+  renderAbout(shows);
   renderPitchNoop();
   renderRepertoire(shows);
   renderTeam(curatedCast(shows, players), shows);
@@ -219,10 +219,16 @@ function renderMarquee(shows) {
   row.innerHTML = html + html;
 }
 
-function renderAbout(shows, players) {
+/** Her iki blob görseli de öne çıkan oyunla ilgili olsun diye — ikinci
+ * (üstteki, küçük) görsel artık rastgele bir oyuncu yüzü değil, aynı
+ * oyunun kendi galerisinden gerçek bir sahne fotoğrafı. */
+function renderAbout(shows) {
   const art = document.getElementById('aboutArt');
-  const img1 = shows.find((s) => s.imageUrl)?.imageUrl;
-  const img2 = players.find((p) => p.imageUrl)?.imageUrl;
+  const lead = shows.find((s) => s.imageUrl) || shows[0];
+  const img1 = lead?.imageUrl || shows.find((s) => s.imageUrl)?.imageUrl;
+  const gallery = (lead?.photosShowId || []).filter(Boolean);
+  const img2 = gallery.find((url) => url !== img1)
+    || shows.find((s) => s.imageUrl && s.imageUrl !== img1)?.imageUrl;
   if (img1) art.style.setProperty('--about-img-1', `url("${img1}")`);
   if (img2) art.style.setProperty('--about-img-2', `url("${img2}")`);
   if (!img1 && !img2) art.style.display = 'none';

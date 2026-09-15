@@ -51,11 +51,6 @@
 <main id="top">
 
   <section class="hero">
-    <div class="hero__frame">
-      <video class="hero__video" autoplay muted loop playsinline preload="metadata">
-        <source src="https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705" type="video/mp4" />
-      </video>
-    </div>
     <div class="hero__panel">
       <p class="eyebrow">İSTANBUL · SAHNE SANATLARI</p>
       <h1 class="hero__title">Işıklar<br><em>sizin için</em><br>sönüyor.</h1>
@@ -65,7 +60,12 @@
         <a href="#repertuar" class="btn btn--line" data-cursor-hover>Repertuarı Gör</a>
       </div>
     </div>
-    <a class="hero__scroll" href="#marquee" aria-label="Aşağı kaydır"><span></span></a>
+    <div class="hero__frame">
+      <video class="hero__video" autoplay muted loop playsinline preload="metadata">
+        <source src="https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705" type="video/mp4" />
+      </video>
+      <a class="hero__scroll" href="#marquee" aria-label="Aşağı kaydır"><span></span></a>
+    </div>
   </section>
 
   <section class="marquee" id="marquee" aria-hidden="true">
