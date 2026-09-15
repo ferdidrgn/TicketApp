@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -38,6 +39,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   late final Animation<double> _contentFade;
 
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
+  final GlobalKey _eventsSectionKey = GlobalKey();
+  bool _scrollToEventsHandled = false;
 
   @override
   void initState() {
@@ -69,6 +72,31 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) _contentController.forward();
     });
+  }
+
+  /// Sezon takviminden ("?scrollTo=etkinlikler" ile) gelindiyse, sayfa
+  /// hazır olur olmaz Etkinlik Takvimi bölümüne kaydırır. Görseller henüz
+  /// yüklenirken layout biraz kayabileceği için kısa bir gecikmeyle tekrar
+  /// dener.
+  void _maybeScrollToEvents() {
+    if (_scrollToEventsHandled || !mounted) return;
+    final scrollTo = GoRouterState.of(context).uri.queryParameters['scrollTo'];
+    if (scrollTo != 'etkinlikler') return;
+    _scrollToEventsHandled = true;
+
+    void attemptScroll() {
+      final eventsContext = _eventsSectionKey.currentContext;
+      if (eventsContext == null || !mounted) return;
+      Scrollable.ensureVisible(
+        eventsContext,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
+        alignment: 0.1,
+      );
+    }
+
+    attemptScroll();
+    Future.delayed(const Duration(milliseconds: 500), attemptScroll);
   }
 
   void _initScrollListener() => scrollController.addListener(() {
@@ -112,8 +140,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           loading: () => const SizedBox.shrink(),
           error: (final err, final stack) => const SizedBox.shrink(),
           data: (final state) {
-            WidgetsBinding.instance
-                .addPostFrameCallback((final _) => _startPageAnimations());
+            WidgetsBinding.instance.addPostFrameCallback((final _) {
+              _startPageAnimations();
+              _maybeScrollToEvents();
+            });
             return _buildSuccessState(
                 state.show, state.events, state.players, state.stages);
           },
@@ -152,6 +182,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                     events: eventList,
                     players: playerList,
                     stages: stageList,
+                    eventsSectionKey: _eventsSectionKey,
                   ),
                 ),
               ),
@@ -185,12 +216,14 @@ class _MainContent extends StatelessWidget {
   final List<Event> events;
   final List<Player> players;
   final List<Stage> stages;
+  final GlobalKey eventsSectionKey;
 
   const _MainContent(
       {required this.showData,
       required this.events,
       required this.players,
-      required this.stages});
+      required this.stages,
+      required this.eventsSectionKey});
 
   @override
   Widget build(final BuildContext context) => Padding(
@@ -200,12 +233,14 @@ class _MainContent extends StatelessWidget {
               showData: showData,
               events: events,
               players: players,
-              stages: stages)
+              stages: stages,
+              eventsSectionKey: eventsSectionKey)
           : _MobileLayout(
               showData: showData,
               events: events,
               players: players,
-              stages: stages));
+              stages: stages,
+              eventsSectionKey: eventsSectionKey));
 }
 
 class _DesktopLayout extends StatelessWidget {
@@ -213,12 +248,14 @@ class _DesktopLayout extends StatelessWidget {
   final List<Event> events;
   final List<Player> players;
   final List<Stage> stages;
+  final GlobalKey eventsSectionKey;
 
   const _DesktopLayout(
       {required this.showData,
       required this.events,
       required this.players,
-      required this.stages});
+      required this.stages,
+      required this.eventsSectionKey});
 
   @override
   Widget build(final BuildContext context) {
@@ -248,11 +285,19 @@ class _DesktopLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _SectionTitle(
-                  title: 'Etkinlik Takvimi',
-                  icon: Icons.calendar_today_rounded),
-              const SizedBox(height: 24),
-              _EventDateList(events: events),
+              KeyedSubtree(
+                key: eventsSectionKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SectionTitle(
+                        title: 'Etkinlik Takvimi',
+                        icon: Icons.calendar_today_rounded),
+                    const SizedBox(height: 24),
+                    _EventDateList(events: events),
+                  ],
+                ),
+              ),
               const SizedBox(height: 50),
               const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
               const SizedBox(height: 24),
@@ -280,12 +325,14 @@ class _MobileLayout extends StatelessWidget {
   final List<Event> events;
   final List<Player> players;
   final List<Stage> stages;
+  final GlobalKey eventsSectionKey;
 
   const _MobileLayout(
       {required this.showData,
       required this.events,
       required this.players,
-      required this.stages});
+      required this.stages,
+      required this.eventsSectionKey});
 
   @override
   Widget build(final BuildContext context) {
@@ -301,10 +348,19 @@ class _MobileLayout extends StatelessWidget {
       children: [
         _GlassDescriptionCard(description: showData.description),
         const SizedBox(height: 40),
-        const _SectionTitle(
-            title: 'Etkinlik Takvimi', icon: Icons.calendar_today_rounded),
-        const SizedBox(height: 20),
-        _EventDateList(events: events),
+        KeyedSubtree(
+          key: eventsSectionKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _SectionTitle(
+                  title: 'Etkinlik Takvimi',
+                  icon: Icons.calendar_today_rounded),
+              const SizedBox(height: 20),
+              _EventDateList(events: events),
+            ],
+          ),
+        ),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
         const SizedBox(height: 20),

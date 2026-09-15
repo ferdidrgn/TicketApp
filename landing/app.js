@@ -287,14 +287,16 @@ function renderCalendarRow() {
       ? `<img class="ticket__img" src="${esc(show.imageUrl)}" alt="${name}" loading="lazy" />`
       : `<div class="ticket__img--ph">${name}</div>`;
     const time = `${String(e._date.getHours()).padStart(2,'0')}:${String(e._date.getMinutes()).padStart(2,'0')}`;
-    return `<div class="ticket">
+    const tag = show ? 'a' : 'div';
+    const hrefAttr = show ? ` href="${showHref(show)}?scrollTo=etkinlikler" data-cursor-hover` : '';
+    return `<${tag} class="ticket"${hrefAttr}>
       ${img}
       <div class="ticket__notch"></div>
       <div class="ticket__body">
         <div class="ticket__date"><span class="ticket__day">${e._date.getDate()}</span><span class="ticket__rest">${MONTHS_TR[e._date.getMonth()]}<br>${time}</span></div>
         <p class="ticket__name">${name}</p>
       </div>
-    </div>`;
+    </${tag}>`;
   }).join('');
 }
 
@@ -334,8 +336,9 @@ const KADINLIK_YT_URL = `https://www.youtube.com/watch?v=${KADINLIK_YT_ID}&t=699
 const KADINLIK_AUDIO_URL = 'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/voices%2Fgoz_kap_vaz_yap_bakirkoyde_hastane.mp3?alt=media&token=deb93736-6fd8-45eb-8c8b-8a8f298e5b14';
 
 /** Prömiyer bölümü: "Kadınlık Bizde Kalsın" gerçek Show kaydı varsa afişi ve
- * tanıtımı ondan çeker; YouTube fragmanı ve ses kaydı sabit medya olarak
- * eklenir (ikisi de gerçek, verdiğiniz linkler). */
+ * tanıtımı ondan çeker. YouTube videosu oyunun ilk gösterim (prömiyer)
+ * kaydıdır — fragman değildir. Ses kaydı ise "Göz Kap Vaz Yap" oyununa
+ * aittir, Kadınlık Bizde Kalsın'a değil. */
 function renderPremiere(shows) {
   const section = document.getElementById('premiere');
   if (!section) return;
@@ -345,7 +348,7 @@ function renderPremiere(shows) {
   const desc = document.getElementById('premiereDesc');
 
   title.textContent = show?.name || 'Kadınlık Bizde Kalsın';
-  desc.textContent = show?.description || 'Prömiyer öncesi tanıtım fragmanımızı izleyin ve sahne sesimizi dinleyin.';
+  desc.textContent = show?.description || 'Prömiyerimizin ilk gösterim kaydını izleyin ve Göz Kap Vaz Yap oyunumuzdan bir sahne sesi dinleyin.';
   if (show?.imageUrl) poster.style.setProperty('--premiere-img', `url("${esc(show.imageUrl)}")`);
 
   const ytThumb = document.getElementById('premiereYtThumb');
