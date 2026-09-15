@@ -29,6 +29,19 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
+/* Flutter uygulamasındaki StringSlug.toSlug() ile birebir aynı mantık —
+ * oyun/oyuncu kartları /app içindeki gerçek detay sayfasına gitsin diye. */
+function toSlugTr(str) {
+  return String(str ?? '')
+    .toLowerCase()
+    .replaceAll(' ', '-')
+    .replaceAll('ş', 's').replaceAll('ı', 'i').replaceAll('ç', 'c')
+    .replaceAll('ö', 'o').replaceAll('ü', 'u').replaceAll('ğ', 'g')
+    .replace(/[^a-z0-9-]/g, '');
+}
+const showHref = (s) => `/app/show/${toSlugTr(s.name)}-${s.id}`;
+const playerHref = (p) => `/app/player/${toSlugTr(`${p.firstName ?? ''} ${p.lastName ?? ''}`)}-${p.id}`;
+
 async function fetchCollection(name, max = 300) {
   try {
     const url = `${FIRESTORE_BASE}/${name}?key=${FIREBASE_API_KEY}&pageSize=${max}`;
@@ -128,6 +141,7 @@ async function boot() {
   renderCalendar(events, shows);
   renderGallery(shows);
   renderVenues(stages);
+  renderPremiere(shows);
   renderQuote(players);
   initChrome();
   initReveal();
@@ -174,6 +188,9 @@ function renderAbout(shows, players) {
 
 function renderPitchNoop() { /* Pitch bölümü statik (sabit) metin içerir — uydurma veri değil, marka konumlandırması. */ }
 
+/** Varsayılan görsel: galeriden ilk gerçek fotoğraf (afiş değil) — fare/parmak
+ * geldiğinde afişe (imageUrl) geçilir ve özet alttan yukarı kayar. İkisi de
+ * yoksa/aynıysa tek katman gösterilir, kart yine de tıklanabilir kalır. */
 function renderRepertoire(shows) {
   const grid = document.getElementById('repertoireGrid');
   if (!shows.length) { grid.innerHTML = `<div class="empty">Repertuar yakında burada.</div>`; return; }
@@ -183,11 +200,20 @@ function renderRepertoire(shows) {
     const cat = esc(s.category || 'Tiyatro');
     const duration = esc(s.duration || '');
     const age = esc(s.ageLimit || '');
-    const img = s.imageUrl
-      ? `<img class="show__img" src="${esc(s.imageUrl)}" alt="${name}" loading="lazy" />`
+    const gallery0 = (s.photosShowId || []).find(Boolean);
+    const primary = gallery0 || s.imageUrl || '';
+    const secondary = s.imageUrl && s.imageUrl !== primary ? s.imageUrl : '';
+
+    const imgLayers = primary
+      ? `<img class="show__img show__img--primary" src="${esc(primary)}" alt="${name}" loading="lazy" />`
       : `<div class="show__img show__img--ph">${name}</div>`;
-    return `<div class="show reveal">
-      ${img}
+    const secondaryLayer = secondary
+      ? `<img class="show__img show__img--secondary" src="${esc(secondary)}" alt="${name}" loading="lazy" />`
+      : '';
+
+    return `<a class="show reveal" href="${showHref(s)}" data-swap>
+      ${imgLayers}
+      ${secondaryLayer}
       <div class="show__shade"></div>
       <span class="show__cat">${cat}</span>
       <div class="show__body">
@@ -195,7 +221,7 @@ function renderRepertoire(shows) {
         ${desc ? `<p class="show__desc">${desc}</p>` : ''}
         <div class="show__meta">${duration ? `<span>${duration}</span>` : ''}${age ? `<span>${age}+</span>` : ''}</div>
       </div>
-    </div>`;
+    </a>`;
   }).join('');
 }
 
@@ -210,11 +236,11 @@ function renderTeam(players, shows) {
     const img = p.imageUrl
       ? `<img class="player__img" src="${esc(p.imageUrl)}" alt="${name}" loading="lazy" />`
       : `<div class="player__img player__img--ph">${esc((p.firstName || '?')[0] || '?')}</div>`;
-    return `<div class="player reveal">
+    return `<a class="player reveal" href="${playerHref(p)}">
       <div class="player__ring">${img}</div>
       <p class="player__name">${name}</p>
       ${quote ? `<p class="player__quote">"${quote}"</p>` : ''}
-    </div>`;
+    </a>`;
   }).join('');
 }
 
@@ -289,9 +315,44 @@ function renderVenues(stages) {
     const cap = esc(s.capacity || '');
     const img = s.imageUrl
       ? `<img class="venue__img" src="${esc(s.imageUrl)}" alt="${name}" loading="lazy" />`
-      : `<div class="venue__img"></div>`;
-    return `<div class="venue reveal">${img}<div><p class="venue__name">${name}</p>${addr ? `<p class="venue__addr">${addr}</p>` : ''}${cap ? `<p class="venue__cap">${cap} Kişi</p>` : ''}</div></div>`;
+      : `<div class="venue__img venue__img--ph">${name}</div>`;
+    return `<div class="venue reveal">
+      ${img}
+      <div class="venue__shade"></div>
+      <div class="venue__body">
+        <p class="venue__name">${name}</p>
+        ${addr ? `<p class="venue__addr">${addr}</p>` : ''}
+        ${cap ? `<p class="venue__cap">${cap} Kişi Kapasiteli</p>` : ''}
+      </div>
+    </div>`;
   }).join('');
+}
+
+const KADINLIK_YT_ID = 'joEK2NmpwuM';
+const KADINLIK_YT_URL = `https://www.youtube.com/watch?v=${KADINLIK_YT_ID}&t=699s`;
+const KADINLIK_AUDIO_URL = 'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/voices%2Fgoz_kap_vaz_yap_bakirkoyde_hastane.mp3?alt=media&token=deb93736-6fd8-45eb-8c8b-8a8f298e5b14';
+
+/** Prömiyer bölümü: "Kadınlık Bizde Kalsın" gerçek Show kaydı varsa afişi ve
+ * tanıtımı ondan çeker; YouTube fragmanı ve ses kaydı sabit medya olarak
+ * eklenir (ikisi de gerçek, verdiğiniz linkler). */
+function renderPremiere(shows) {
+  const section = document.getElementById('premiere');
+  if (!section) return;
+  const show = shows.find((s) => (s.name || '').toLowerCase().includes('kadınlık'));
+  const poster = document.getElementById('premierePoster');
+  const title = document.getElementById('premiereTitle');
+  const desc = document.getElementById('premiereDesc');
+
+  title.textContent = show?.name || 'Kadınlık Bizde Kalsın';
+  desc.textContent = show?.description || 'Prömiyer öncesi tanıtım fragmanımızı izleyin ve sahne sesimizi dinleyin.';
+  if (show?.imageUrl) poster.style.setProperty('--premiere-img', `url("${esc(show.imageUrl)}")`);
+
+  const ytThumb = document.getElementById('premiereYtThumb');
+  if (ytThumb) ytThumb.style.backgroundImage = `url("https://img.youtube.com/vi/${KADINLIK_YT_ID}/hqdefault.jpg")`;
+  const ytLink = document.getElementById('premiereYtLink');
+  if (ytLink) ytLink.href = KADINLIK_YT_URL;
+  const audio = document.getElementById('premiereAudio');
+  if (audio) audio.src = KADINLIK_AUDIO_URL;
 }
 
 function renderQuote(players) {
@@ -419,6 +480,17 @@ function applyMagnetic(el, strength = 0.28) {
 function initInteractions() {
   document.querySelectorAll('.show, .player__ring').forEach((el) => applySpotlight(el));
   document.querySelectorAll('.btn').forEach((el) => applyMagnetic(el));
+
+  // Afiş <-> ilk galeri görseli geçişi: masaüstünde CSS :hover, dokunmatikte
+  // basılı tutulduğu sürece .is-active — Flutter uygulamasındaki oyun kartı
+  // davranışıyla aynı (bas -> afiş+özet görünür, bırak -> detay sayfasına git).
+  document.querySelectorAll('.show[data-swap]').forEach((el) => {
+    const on = () => el.classList.add('is-active');
+    const off = () => el.classList.remove('is-active');
+    el.addEventListener('pointerdown', on);
+    el.addEventListener('pointerup', off);
+    el.addEventListener('pointerleave', off);
+  });
 }
 
 boot();

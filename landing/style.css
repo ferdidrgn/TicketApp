@@ -156,20 +156,24 @@ section{position:relative;}
 .repertoire{background:var(--ivory); padding:clamp(70px,9vw,110px) 0;}
 .repertoire__grid{max-width:1400px; margin:0 auto; padding:0 clamp(20px,4vw,56px); display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:24px;}
 .show{position:relative; overflow:hidden; aspect-ratio:3/4; border-radius:4px 28px 4px 28px; background:var(--pine-mid); cursor:pointer; box-shadow:0 16px 34px rgba(18,32,26,.14);}
-.show__img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .6s var(--ease);}
-.show:hover .show__img{transform:scale(1.07);}
+.show{display:block;}
+.show__img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity .45s ease, transform .6s var(--ease);}
+.show:hover .show__img--primary,.show.is-active .show__img--primary{transform:scale(1.05);}
+.show__img--secondary{opacity:0;}
+.show:hover .show__img--secondary,.show.is-active .show__img--secondary{opacity:1;}
+.show:hover .show__img--primary,.show.is-active .show__img--primary{opacity:0;}
 .show__img--ph{display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; color:var(--ivory-dim); text-align:center; padding:26px;}
 .show__shade{position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,23,18,.05) 0%, rgba(8,23,18,.25) 45%, rgba(8,23,18,.94) 100%);}
 .show__cat{position:absolute; top:14px; left:14px; padding:5px 12px; border-radius:2px 8px; background:var(--coral); color:var(--ivory); font-size:10px; font-weight:800; letter-spacing:.6px; text-transform:uppercase;}
 .show__body{position:absolute; left:0; right:0; bottom:0; padding:20px; color:var(--ivory);}
 .show__name{font-family:var(--serif); font-size:20px;}
 .show__desc{font-size:12px; color:var(--ivory-dim); line-height:1.6; max-height:0; opacity:0; overflow:hidden; transition:max-height .4s var(--ease), opacity .3s;}
-.show:hover .show__desc{max-height:60px; opacity:1; margin-top:6px;}
+.show:hover .show__desc,.show.is-active .show__desc{max-height:70px; opacity:1; margin-top:6px;}
 .show__meta{display:flex; gap:12px; margin-top:8px; font-size:10.5px; color:var(--ivory-faint); text-transform:uppercase;}
 
 /* ═══════════════ TEAM (dairesel) ═══════════════ */
 .team{background:var(--pine); color:var(--ivory); padding:clamp(70px,9vw,110px) 0;}
-.team__rail{display:flex; gap:28px; overflow-x:auto; padding:6px clamp(20px,4vw,56px) 10px;}
+.team__rail{display:flex; justify-content:center; gap:28px; overflow-x:auto; padding:6px clamp(20px,4vw,56px) 10px;}
 .player{flex:0 0 160px; text-align:center;}
 .player__ring{position:relative; width:150px; height:150px; margin:0 auto 14px; border-radius:50%; overflow:hidden; border:2px solid var(--pine-line-strong); background:var(--pine-mid);}
 .player__img{width:100%; height:100%; object-fit:cover; transition:transform .5s var(--ease);}
@@ -217,11 +221,39 @@ section{position:relative;}
 /* ═══════════════ VENUES ═══════════════ */
 .venues{background:var(--pine); color:var(--ivory); padding:clamp(70px,9vw,110px) 0;}
 .venues__grid{max-width:1400px; margin:0 auto; padding:0 clamp(20px,4vw,56px); display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px;}
-.venue{display:flex; gap:14px; padding:18px; border-radius:4px 16px; background:rgba(242,236,217,.04); border:1px solid var(--pine-line);}
-.venue__img{width:76px; height:76px; object-fit:cover; border-radius:3px 10px; flex:none; background:var(--pine-mid);}
-.venue__name{font-family:var(--serif); font-size:16px;}
-.venue__addr{font-size:12px; color:var(--ivory-dim); line-height:1.5;}
-.venue__cap{font-size:10.5px; color:var(--coral-light); margin-top:5px; font-weight:700; text-transform:uppercase;}
+.venue{position:relative; overflow:hidden; border-radius:4px 20px; background:var(--pine-mid); border:1px solid var(--pine-line); min-height:220px; display:flex; align-items:flex-end;}
+.venue__img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .6s var(--ease);}
+.venue:hover .venue__img{transform:scale(1.06);}
+.venue__img--ph{display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; color:var(--ivory-dim); text-align:center; padding:24px;}
+.venue__shade{position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,23,18,.05) 0%, rgba(8,23,18,.35) 55%, rgba(8,23,18,.92) 100%);}
+.venue__body{position:relative; z-index:1; padding:20px; color:var(--ivory);}
+.venue__name{font-family:var(--serif); font-size:19px;}
+.venue__addr{font-size:12.5px; color:var(--ivory-dim); line-height:1.5; margin-top:4px;}
+.venue__cap{font-size:10.5px; color:var(--coral-light); margin-top:6px; font-weight:700; text-transform:uppercase;}
+
+/* ═══════════════ PRÖMİYER (Kadınlık Bizde Kalsın) ═══════════════ */
+.premiere{background:var(--pine-deep); color:var(--ivory); padding:clamp(70px,9vw,110px) clamp(20px,4vw,56px); display:grid; grid-template-columns:.8fr 1.2fr; gap:44px; align-items:center;}
+.premiere__poster{--premiere-img:none; aspect-ratio:3/4; border-radius:4px 34px 4px 34px; background:var(--premiere-img) center/cover no-repeat, linear-gradient(150deg, var(--pine-mid), var(--pine-deep)); box-shadow:0 26px 54px rgba(8,23,18,.5);}
+.premiere__pill{display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:1.8px; color:var(--pine-deep); background:linear-gradient(120deg, var(--coral-light), var(--coral-deep)); padding:5px 14px; border-radius:2px 10px;}
+.premiere__title{font-family:var(--serif); font-weight:500; font-size:clamp(26px,4vw,40px); margin-top:16px;}
+.premiere__desc{font-size:14px; line-height:1.8; color:var(--ivory-dim); margin-top:14px; max-width:52ch;}
+.premiere__media{display:flex; gap:18px; margin-top:30px; flex-wrap:wrap;}
+.ytcard{position:relative; flex:1 1 260px; aspect-ratio:16/9; border-radius:4px 20px; overflow:hidden; background:var(--pine-mid); display:flex; align-items:center; justify-content:center;}
+.ytcard__thumb{position:absolute; inset:0; background-size:cover; background-position:center; opacity:.75; transition:opacity .3s, transform .5s var(--ease);}
+.ytcard:hover .ytcard__thumb{opacity:.55; transform:scale(1.04);}
+.ytcard::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,23,18,.15), rgba(8,23,18,.75));}
+.ytcard__play{position:relative; z-index:2; width:56px; height:56px; border-radius:50%; background:rgba(8,23,18,.55); border:2px solid var(--coral-light); display:flex; align-items:center; justify-content:center; color:var(--coral-light); transition:transform .25s var(--ease), background .25s;}
+.ytcard:hover .ytcard__play{transform:scale(1.08); background:var(--coral);}
+.ytcard__cap{position:absolute; left:14px; bottom:12px; z-index:2; font-size:11px; font-weight:700; letter-spacing:.5px; color:var(--ivory-dim);}
+.audiocard{flex:1 1 260px; background:var(--pine-mid); border:1px solid var(--pine-line-strong); border-radius:4px 20px; padding:18px; display:flex; flex-direction:column; gap:12px; justify-content:center;}
+.audiocard__label{font-size:10.5px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase; color:var(--coral-light);}
+.audiocard audio{width:100%;}
+@media (max-width:820px){ .premiere{grid-template-columns:1fr;} .premiere__poster{max-width:280px; margin:0 auto;} }
+
+/* ═══════════════ BİLET KENARI AYRACI (perforasyon motifi) ═══════════════ */
+.perf{height:18px; background:var(--pine-deep);
+  background-image:radial-gradient(circle at 9px 0, var(--ivory) 9px, transparent 9.5px);
+  background-size:18px 18px; background-repeat:repeat-x; background-position:center top;}
 
 /* ═══════════════ QUOTE ═══════════════ */
 .quote{background:var(--ivory-2); padding:clamp(90px,12vw,130px) clamp(20px,4vw,56px); text-align:center; max-width:880px; margin:0 auto;}
