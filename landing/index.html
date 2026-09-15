@@ -14,28 +14,37 @@
 </head>
 <body>
 
+<div class="curtain" id="curtain" aria-hidden="true">
+  <div class="curtain__panel curtain__panel--l"></div>
+  <div class="curtain__panel curtain__panel--r"></div>
+  <span class="curtain__mark">TR</span>
+</div>
+
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"></div>
+
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="progress" aria-hidden="true"><div class="progress__bar" id="progressBar"></div></div>
 
 <header class="nav" id="nav">
-  <a href="#top" class="nav__mark">TiyatRol</a>
+  <a href="#top" class="nav__mark" data-cursor-hover>TiyatRol</a>
   <nav class="nav__links">
-    <a href="#repertuar">Repertuar</a>
-    <a href="#ekip">Ekip</a>
-    <a href="#takvim">Takvim</a>
-    <a href="#sahneler">Sahneler</a>
-    <a href="#iletisim">İletişim</a>
+    <a href="#repertuar" data-cursor-hover>Repertuar</a>
+    <a href="#ekip" data-cursor-hover>Ekip</a>
+    <a href="#takvim" data-cursor-hover>Takvim</a>
+    <a href="#sahneler" data-cursor-hover>Sahneler</a>
+    <a href="#iletisim" data-cursor-hover>İletişim</a>
   </nav>
-  <a href="/app" class="nav__cta">Bilet Al</a>
+  <a href="/app" class="nav__cta" data-cursor-hover>Bilet Al</a>
   <button class="nav__burger" id="burger" aria-label="Menü"><span></span><span></span><span></span></button>
 </header>
 
 <div class="mnav" id="mnav">
-  <a href="#repertuar">Repertuar</a>
-  <a href="#ekip">Ekip</a>
-  <a href="#takvim">Takvim</a>
-  <a href="#sahneler">Sahneler</a>
-  <a href="#iletisim">İletişim</a>
+  <a href="#repertuar" data-cursor-hover>Repertuar</a>
+  <a href="#ekip" data-cursor-hover>Ekip</a>
+  <a href="#takvim" data-cursor-hover>Takvim</a>
+  <a href="#sahneler" data-cursor-hover>Sahneler</a>
+  <a href="#iletisim" data-cursor-hover>İletişim</a>
   <a href="/app" class="mnav__cta">Bilet Al →</a>
 </div>
 
@@ -52,8 +61,8 @@
       <h1 class="hero__title">Işıklar<br><em>sizin için</em><br>sönüyor.</h1>
       <p class="hero__lede" id="heroStatus">Sezon bilgisi yükleniyor…</p>
       <div class="hero__actions">
-        <a href="/app" class="btn btn--fill">Bilet Al</a>
-        <a href="#repertuar" class="btn btn--line">Repertuarı Gör</a>
+        <a href="/app" class="btn btn--fill" data-cursor-hover>Bilet Al</a>
+        <a href="#repertuar" class="btn btn--line" data-cursor-hover>Repertuarı Gör</a>
       </div>
     </div>
     <a class="hero__scroll" href="#marquee" aria-label="Aşağı kaydır"><span></span></a>
@@ -72,7 +81,7 @@
       <p class="eyebrow">TOPLULUK</p>
       <h2 class="h2">Bir bileti değil, <em>bir anı</em> satın alırsın.</h2>
       <p class="p">2018'den beri İstanbul'da sahne alan amatör-profesyonel bir tiyatro topluluğuyuz. Klasikleri bugüne taşıyor, özgün metinlerle yeni sahne dili arıyoruz — her prömiyer, aylarca süren bir provanın son perdesi.</p>
-      <a href="#ekip" class="link-arrow">Kadromuzla tanışın</a>
+      <a href="#ekip" class="link-arrow" data-cursor-hover>Kadromuzla tanışın</a>
     </div>
   </section>
 
@@ -89,7 +98,7 @@
   <section class="repertoire" id="repertuar">
     <div class="head">
       <div><p class="eyebrow">BU SEZON</p><h2 class="h2">Repertuar</h2></div>
-      <a href="#takvim" class="link-arrow">Tüm takvim</a>
+      <a href="#takvim" class="link-arrow" data-cursor-hover>Tüm takvim</a>
     </div>
     <div class="repertoire__grid" id="repertoireGrid">
       <div class="loading"><span class="spin"></span>Oyunlar yükleniyor…</div>
@@ -170,7 +179,7 @@
         <option value="Diger">Diğer</option>
       </select>
       <textarea name="message" rows="4" placeholder="Mesajın…" required></textarea>
-      <button type="submit" class="btn btn--fill">Gönder →</button>
+      <button type="submit" class="btn btn--fill" data-cursor-hover>Gönder →</button>
     </form>
   </section>
 

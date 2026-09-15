@@ -21,8 +21,12 @@ class SeasonCalendarEntry {
 /// Tüm oyunların tüm etkinliklerini tek bir listede, tarihe göre sıralı
 /// olarak döner. Sezon takvimi gibi "tüm oyunlar" görünümleri bunu kullanır.
 ///
-/// Gerçek Firestore verisini kullanır: sahte/placeholder oyun adı göstermez,
-/// her etkinliğin gerçek `showId`'sine bakıp gerçek oyun adını eşler.
+/// Gerçek Firestore verisini kullanır: sahte/placeholder oyun adı göstermez.
+/// ÖNEMLİ: Firestore'daki `Event` dokümanlarının `showId` alanı YOK — ilişki
+/// tersten kuruluyor: her `Show` dokümanı kendi etkinliklerinin ID'lerini
+/// `eventsId` dizisinde tutuyor (ör. "Gözlerimi Kaparım Vazifemi Yaparım
+/// Event1"). O yüzden eşleştirmeyi event.showId üzerinden değil, hangi
+/// show'un eventsId'sinde bu event'in ID'si geçiyorsa ona göre yapıyoruz.
 @riverpod
 Future<List<SeasonCalendarEntry>> seasonCalendarEntries(final Ref ref) async {
   final shows = await ref.watch(showsProvider(isLimit: false).future);
@@ -32,11 +36,18 @@ Future<List<SeasonCalendarEntry>> seasonCalendarEntries(final Ref ref) async {
 
   final events =
       await ref.watch(eventsByIdsProvider(allEventIds.toList()).future);
-  final Map<String, Show> showsById = {for (final s in shows) s.id: s};
+
+  // eventId -> show eşlemesini Show.eventsId üzerinden kuruyoruz.
+  final Map<String, Show> showByEventId = {};
+  for (final show in shows) {
+    for (final eventId in show.eventsId) {
+      showByEventId[eventId] = show;
+    }
+  }
 
   final entries = events
       .map((final e) =>
-          SeasonCalendarEntry(event: e, show: showsById[e.showId]))
+          SeasonCalendarEntry(event: e, show: showByEventId[e.id]))
       .where((final entry) => entry.dateTime != null)
       .toList()
     ..sort((final a, final b) => a.dateTime!.compareTo(b.dateTime!));

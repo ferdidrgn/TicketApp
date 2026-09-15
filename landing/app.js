@@ -94,6 +94,15 @@ function sortRepertoire(shows) {
   return [...shows].sort((a, b) => rank(a) - rank(b));
 }
 
+/** Firestore'daki Event dokümanlarında showId alanı YOK — ilişki tersten:
+ * her Show kendi etkinlik ID'lerini eventsId dizisinde tutuyor. Bu yüzden
+ * eventId -> show eşlemesini Show.eventsId üzerinden kuruyoruz. */
+function showByEventIdMap(shows) {
+  const map = {};
+  shows.forEach((s) => (s.eventsId || []).forEach((eventId) => { map[eventId] = s; }));
+  return map;
+}
+
 const FOUNDING_YEAR = 2018;
 
 async function boot() {
@@ -123,6 +132,7 @@ async function boot() {
   initChrome();
   initReveal();
   initCalendarTabs(events, shows);
+  initInteractions();
 }
 
 function setStat(i, v) {
@@ -134,7 +144,7 @@ function renderHero(shows, events, stages) {
   const el = document.getElementById('heroStatus');
   const next = upcomingEvents(events)[0];
   if (next) {
-    const show = shows.find((s) => s.id === next.showId);
+    const show = showByEventIdMap(shows)[next.id];
     const stage = stages.find((st) => st.id === next.stageId);
     const parts = [`${show?.name || 'Yaklaşan gösteri'} — ${formatDateTr(next._date)}`];
     if (stage?.name) parts.push(stage.name);
@@ -210,12 +220,14 @@ function renderTeam(players, shows) {
 
 let CAL_EVENTS = [];
 let CAL_SHOWS = [];
+let CAL_SHOW_MAP = {};
 let CAL_MONTH = new Date().getMonth();
 let CAL_YEAR = new Date().getFullYear();
 
 function renderCalendar(events, shows) {
   CAL_EVENTS = events;
   CAL_SHOWS = shows;
+  CAL_SHOW_MAP = showByEventIdMap(shows);
   renderCalendarRow();
 }
 
@@ -242,7 +254,7 @@ function renderCalendarRow() {
   if (!inMonth.length) { row.innerHTML = `<div class="empty">Bu ayda planlanmış bir etkinlik yok.</div>`; return; }
 
   row.innerHTML = inMonth.map((e) => {
-    const show = CAL_SHOWS.find((s) => s.id === e.showId);
+    const show = CAL_SHOW_MAP[e.id];
     const name = esc(show?.name || 'Gösteri');
     const img = show?.imageUrl
       ? `<img class="ticket__img" src="${esc(show.imageUrl)}" alt="${name}" loading="lazy" />`
@@ -293,6 +305,24 @@ function renderQuote(players) {
 /* ── Sayfa iskeleti: nav, scroll progress, mobil menü, sayaç, yıl, form ── */
 function initChrome() {
   document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Özel imleç (dokunmatik cihazlarda CSS ile gizleniyor)
+  const cursorDot = document.querySelector('.cursor-dot');
+  const cursorRing = document.querySelector('.cursor-ring');
+  let mouseX = -100, mouseY = -100, ringX = -100, ringY = -100;
+  window.addEventListener('pointermove', (e) => {
+    mouseX = e.clientX; mouseY = e.clientY;
+    cursorDot.style.transform = `translate(${mouseX}px, ${mouseY}px) translate(-50%,-50%)`;
+  });
+  (function animateRing() {
+    ringX += (mouseX - ringX) * 0.18;
+    ringY += (mouseY - ringY) * 0.18;
+    cursorRing.style.transform = `translate(${ringX}px, ${ringY}px) translate(-50%,-50%)`;
+    requestAnimationFrame(animateRing);
+  })();
+  document.body.addEventListener('mouseover', (e) => {
+    cursorRing.classList.toggle('is-hover', !!e.target.closest('[data-cursor-hover]'));
+  });
 
   const bar = document.getElementById('progressBar');
   const nav = document.getElementById('nav');
@@ -360,6 +390,35 @@ function initReveal() {
     });
   }, { threshold: .12 });
   document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+}
+
+/* ── Mikro-etkileşimler: kartlar innerHTML ile SONRADAN render edildiği
+ * için veriler ekrana bastıktan sonra çağrılır. ── */
+function applySpotlight(el) {
+  el.addEventListener('pointermove', (e) => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+    el.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+  });
+}
+
+function applyMagnetic(el, strength = 0.28) {
+  el.addEventListener('pointermove', (e) => {
+    const r = el.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) * strength;
+    const dy = (e.clientY - (r.top + r.height / 2)) * strength;
+    el.style.transition = 'transform .12s linear';
+    el.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+  });
+  el.addEventListener('pointerleave', () => {
+    el.style.transition = 'transform .5s var(--ease)';
+    el.style.transform = 'translate(0,0)';
+  });
+}
+
+function initInteractions() {
+  document.querySelectorAll('.show, .player__ring').forEach((el) => applySpotlight(el));
+  document.querySelectorAll('.btn').forEach((el) => applyMagnetic(el));
 }
 
 boot();
