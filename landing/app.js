@@ -173,13 +173,6 @@ const SHOW_THEME_NOTES = {
   'gözlerimi': 'Vicdani ile Efruz’un aynı yüzyılda, hiç aynı olmayan hayatları.',
 };
 
-const FAQ_ITEMS = [
-  { q: 'Bilet iadesi yapabilir miyim?', a: 'İade ve değişim koşulları etkinlik tarihine göre değişebilir. Güncel bilgi için iletişim formumuzdan bize ulaşabilirsiniz.' },
-  { q: 'Salona geç kalırsam ne olur?', a: 'Sahnedeki performansı bölmemek adına geç kalan seyirciler ilk uygun ara/sahne geçişine kadar bekletilebilir.' },
-  { q: 'Yaş sınırı olan oyunlar var mı?', a: 'Bazı oyunlarımız içerik itibarıyla belirli bir yaş sınırına sahip olabilir; ilgili bilgi oyunun repertuar kartında belirtilir.' },
-  { q: 'Bilet aldıktan sonra koltuğumu değiştirebilir miyim?', a: 'Koltuk değişikliği talepleriniz için etkinlik öncesinde bizimle iletişime geçebilirsiniz, uygunluğa göre yardımcı oluruz.' },
-];
-
 async function boot() {
   const [showsRaw, players, stages, events] = await Promise.all([
     fetchCollection('Show'),
@@ -211,7 +204,6 @@ async function boot() {
   renderQuote(players);
   renderWorkshops();
   renderBlog();
-  renderFAQ();
   renderInstagram(shows);
   initChrome();
   initNewsletterForm();
@@ -255,9 +247,22 @@ function renderAbout(shows) {
   const art = document.getElementById('aboutArt');
   const lead = shows.find((s) => s.imageUrl) || shows[0];
   const img1 = lead?.imageUrl || shows.find((s) => s.imageUrl)?.imageUrl;
-  const gallery = (lead?.photosShowId || []).filter(Boolean);
-  const img2 = gallery.find((url) => url !== img1)
-    || shows.find((s) => s.imageUrl && s.imageUrl !== img1)?.imageUrl;
+
+  // İkinci (öndeki) görsel için önce öne çıkan oyunun kendi galerisine
+  // bakılır; orada gerçekten farklı bir kare yoksa TÜM oyunların
+  // galeri+afiş görselleri tek bir havuzda toplanıp img1'den farklı olan
+  // ilk kare seçilir — tek bir fotoğrafın tekrar tekrar kullanılmasını
+  // (ya da aynı karenin iki ayrı Storage linkiyle "aynı" görünmesini)
+  // en aza indirir.
+  const ownGallery = (lead?.photosShowId || []).filter(Boolean);
+  const allPool = [];
+  shows.forEach((s) => {
+    if (s.imageUrl) allPool.push(s.imageUrl);
+    (s.photosShowId || []).forEach((url) => { if (url) allPool.push(url); });
+  });
+  const img2 = ownGallery.find((url) => url !== img1)
+    || allPool.find((url) => url !== img1);
+
   if (img1) art.style.setProperty('--about-img-1', `url("${img1}")`);
   if (img2) art.style.setProperty('--about-img-2', `url("${img2}")`);
   if (!img1 && !img2) art.style.display = 'none';
@@ -554,22 +559,6 @@ function renderWorkshops() {
     <h3 class="workshop__title">${esc(w.title || '')}</h3>
     ${w.desc ? `<p class="workshop__desc">${esc(w.desc)}</p>` : ''}
   </a>`).join('');
-}
-
-function renderFAQ() {
-  const list = document.getElementById('faqList');
-  if (!list) return;
-  list.innerHTML = FAQ_ITEMS.map((item, i) => `
-    <div class="faq__item reveal">
-      <button type="button" class="faq__q" data-i="${i}">
-        <span>${esc(item.q)}</span>
-        <span class="faq__plus">+</span>
-      </button>
-      <div class="faq__a"><p>${esc(item.a)}</p></div>
-    </div>`).join('');
-  list.querySelectorAll('.faq__q').forEach((btn) => btn.addEventListener('click', () => {
-    btn.closest('.faq__item').classList.toggle('is-open');
-  }));
 }
 
 const IG_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>';
