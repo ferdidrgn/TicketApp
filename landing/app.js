@@ -434,12 +434,15 @@ function renderVideoInterviews(shows) {
   const section = document.getElementById('interviews');
   const grid = document.getElementById('interviewsGrid');
   if (!section || !grid) return;
-  const items = [];
+  const videos = [];
+  const audios = [];
   shows.forEach((s) => mediaLinksOf(s).forEach((l) => {
-    if (l.type === 'youtube' && l.url) items.push({ show: s, link: l });
+    if (l.type === 'youtube' && l.url) videos.push({ show: s, link: l });
+    else if (l.type === 'audio' && l.url) audios.push({ show: s, link: l });
   }));
-  if (!items.length) { grid.innerHTML = `<div class="empty empty--light">Video röportajlarımız ve sahne arkası kayıtlarımız yakında burada.</div>`; return; }
-  grid.innerHTML = items.map(({ show, link }) => {
+  if (!videos.length && !audios.length) { grid.innerHTML = `<div class="empty empty--light">Video röportajlarımız ve sahne seslerimiz yakında burada.</div>`; return; }
+
+  const videoCards = videos.map(({ show, link }) => {
     const id = youtubeIdFromUrl(link.url);
     const thumb = id ? `background-image:url('https://img.youtube.com/vi/${id}/hqdefault.jpg')` : '';
     const title = esc(link.title || show.name || 'Video');
@@ -449,6 +452,17 @@ function renderVideoInterviews(shows) {
       <p class="ivcard__title">${title}</p>
     </a>`;
   }).join('');
+
+  const audioCards = audios.map(({ show, link }) => {
+    const title = esc(link.title || show.name || 'Sahne Sesi');
+    const showName = esc(show.name || '');
+    return `<div class="ivcard ivcard--audio reveal">
+      <span class="ivcard__audioLabel">${showName ? `${showName} — ` : ''}${title}</span>
+      <audio controls preload="none" src="${esc(link.url)}"></audio>
+    </div>`;
+  }).join('');
+
+  grid.innerHTML = videoCards + audioCards;
 }
 
 function renderPress() {
@@ -522,7 +536,7 @@ function renderInstagram(shows) {
   shows.forEach((s) => (s.photosShowId || []).forEach((url) => { if (url) photos.push(url); }));
   if (!photos.length) { grid.innerHTML = `<div class="empty">Instagram galerimiz yakında burada.</div>`; return; }
   const shuffled = photos.map((p, i) => ({ p, sort: Math.sin(i * 555) })).sort((a, b) => a.sort - b.sort).map((x) => x.p).slice(0, 8);
-  grid.innerHTML = shuffled.map((url) => `<a class="insta__item" href="https://www.instagram.com/tiyatrol" target="_blank" rel="noopener" data-cursor-hover>
+  grid.innerHTML = shuffled.map((url) => `<a class="insta__item" href="https://www.instagram.com/tiyatrol_/" target="_blank" rel="noopener" data-cursor-hover>
     <img src="${esc(url)}" alt="TiyatRol Instagram" loading="lazy" />
     <span class="insta__icon">${IG_ICON}</span>
   </a>`).join('');
