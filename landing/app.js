@@ -158,19 +158,27 @@ function playwrightOf(show) {
 }
 
 /* ── Kulisten Notlar — birebir replik değil, oyunların gerçek temalarından
- * (doğrulanmış kaynaklardan) esinlenen kısa yansımalar + topluluk ruhunu
- * anlatan genel notlar. Yapışkan not / pano hissi veren bir bölümde. ── */
+ * (doğrulanmış kaynaklardan araştırılmış) esinlenen kısa yansımalar +
+ * topluluk ruhunu anlatan genel notlar. Yapışkan not / pano hissi veren
+ * bir bölümde. Her not tek bir sesin (topluluğun) ağzından, aynı kısa/
+ * aforizma tonunda yazıldı. ── */
 const STAGE_NOTES = [
-  'Her gece aynı repliği söylüyoruz, hiçbir gece aynı hissetmiyoruz.',
+  'Her gece aynı repliği söylüyoruz; hiçbir gece aynı nefesi almıyoruz.',
   'Alkış bittiğinde asıl hikâye kulis kapısının ardında başlar.',
   'Bir oyunu izlemek, birinin en cesur hâlini görmektir.',
-  'Sahne, ışıklar sönünce de içimizde kalır.',
-  'Prova bir alışkanlık değil, her seferinde yeniden âşık olmaktır.',
-  'Seyirci gülerken biz nefesimizi tutarız.',
+  'Sahne, ışıklar sönünce de içimizde yanmaya devam eder.',
+  'Prova bir alışkanlık değil, her seferinde yeniden âşık olma biçimimizdir.',
+  'Seyirci gülerken biz nefesimizi tutar, susarken elimizi sıkarız.',
+  'Kostüm bir kılık değil, ödünç alınmış bir hayattır.',
+  'Her replik ezberlenir; ama her gece yeniden doğar.',
 ];
+/* Kaynağı doğrulanmış (bkz. WebSearch araştırması) gerçek oyun temalarına
+ * dayanan notlar — birebir alıntı değil, temanın kısa bir yansıması: */
 const SHOW_THEME_NOTES = {
-  'kadınlık': 'Tarih boyunca gölgede kalmış kadınlara bir kahkaha, bir başkaldırı.',
-  'gözlerimi': 'Vicdani ile Efruz’un aynı yüzyılda, hiç aynı olmayan hayatları.',
+  'kadınlık': 'Âdem ile Havva\'dan başlayıp Hezarfen Ahmed Çelebi\'ye uzanan bir kahkaha — tarih boyunca gölgede bırakılmış kadınlara adanmış bir başkaldırı.',
+  'gözlerimi': 'Vicdani dürüst ama sorgusuzdur, Efruz her yolu meşru sayar — Meşrutiyet\'ten yakın tarihe, iyiyle kötünün aynı yüzyılda yan yana yürüyüşü.',
+  'kurtar': 'Bir yazarın hikâyelerindeki karakterler, ziyaretçiler gittikten sonra kendi hikâyelerini yazmaya kalkarsa ne olur? Çehov\'a en sevgili başkaldırı.',
+  'metafor': 'Bir sahne bazen bir oda, bazen bir hayat, bazen sadece bir valiz kadardır — sonunda her şey aslında bir metafordur.',
 };
 
 async function boot() {

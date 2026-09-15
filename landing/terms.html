@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kullanım Şartları — TiyatRol</title>
+<meta name="description" content="TiyatRol kullanım şartları — bilet satın alma, iade ve site kullanım koşulları." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="nav" style="position:relative; background:var(--pine-deep);">
+  <a href="index.html" class="nav__mark" data-cursor-hover>TiyatRol</a>
+  <nav class="nav__links">
+    <a href="index.html#repertuar" data-cursor-hover>Repertuar</a>
+    <a href="index.html#ekip" data-cursor-hover>Ekip</a>
+    <a href="index.html#takvim" data-cursor-hover>Takvim</a>
+    <a href="index.html#iletisim" data-cursor-hover>İletişim</a>
+  </nav>
+  <a href="/app" class="nav__cta" data-cursor-hover>Bilet Al</a>
+</header>
+
+<main class="legal">
+  <div class="legal__head">
+    <p class="eyebrow">YASAL</p>
+    <h1 class="h2">Kullanım Şartları</h1>
+    <p class="p">Bu metin, uygulamamızda da yer alan aynı kullanım şartlarıdır — tek kaynaktan güncellenir.</p>
+  </div>
+  <div class="legal__content" id="legalContent" data-field="termsAndCondition">
+    <div class="loading"><span class="spin"></span>Yükleniyor…</div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer__bottom" style="max-width:1400px; margin:0 auto; padding:24px clamp(20px,4vw,56px); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <span>© <span id="year">2026</span> TiyatRol — Tüm Hakları Saklıdır.</span>
+    <a href="index.html" class="link-arrow">← Ana Sayfaya Dön</a>
+  </div>
+</footer>
+
+<script src="legal.js"></script>
+</body>
+</html>
