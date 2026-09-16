@@ -72,6 +72,11 @@
 .webpack/
 .dwds/
 
+# landing/ (statik site) + Flutter web build'inin birleştirildiği,
+# deploy anında oluşturulan klasör — commit edilmez, scripts/deploy.sh
+# her seferinde sıfırdan üretir.
+/deploy/
+
 # -----------------------
 # FIREBASE & GOOGLE SERVICES
 # -----------------------
