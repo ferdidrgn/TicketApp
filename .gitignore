@@ -97,6 +97,11 @@ firebase-debug.*.log
 !.env.example
 
 # -----------------------
+# CLAUDE CODE (yerel agent worktree'leri — repo içeriği değil)
+# -----------------------
+.claude/
+
+# -----------------------
 # IDE & EDİTÖR DOSYALARI
 # -----------------------
 .idea/
