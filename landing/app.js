@@ -30,7 +30,15 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
 }[c]));
 
 /* Flutter uygulamasındaki StringSlug.toSlug() ile birebir aynı mantık —
- * oyun/oyuncu kartları /app içindeki gerçek detay sayfasına gitsin diye. */
+ * oyun/oyuncu kartları gerçek detay sayfasına gitsin diye.
+ *
+ * ÖNEMLİ: lib/core/config/router/app_router.dart içindeki gerçek GoRouter
+ * tanımına bakılınca show/player/stage/team detay rotalarının HİÇBİRİ
+ * "/app" öneki taşımıyor — bunlar "/app" shell'inin (sadece ana sayfa
+ * sekmesi orada) DIŞINDA, üst seviyede tanımlı: `path: '/show/:slugWithId'`,
+ * `path: '/player/:slugWithId'` gibi. "/app" öneki eklemek, "Bilet Al"a
+ * tıklayınca ilgili sayfa yerine hep uygulamanın ana sayfasına düşülmesine
+ * (deep link'in eşleşmemesine) sebep oluyordu — bu yüzden burada YOK. */
 function toSlugTr(str) {
   return String(str ?? '')
     .toLowerCase()
@@ -39,8 +47,8 @@ function toSlugTr(str) {
     .replaceAll('ö', 'o').replaceAll('ü', 'u').replaceAll('ğ', 'g')
     .replace(/[^a-z0-9-]/g, '');
 }
-const showHref = (s) => `/app/show/${toSlugTr(s.name)}-${s.id}`;
-const playerHref = (p) => `/app/player/${toSlugTr(`${p.firstName ?? ''} ${p.lastName ?? ''}`)}-${p.id}`;
+const showHref = (s) => `/show/${toSlugTr(s.name)}-${s.id}`;
+const playerHref = (p) => `/player/${toSlugTr(`${p.firstName ?? ''} ${p.lastName ?? ''}`)}-${p.id}`;
 
 async function fetchCollection(name, max = 300) {
   try {
