@@ -162,23 +162,27 @@ function playwrightOf(show) {
  * topluluk ruhunu anlatan genel notlar. Yapışkan not / pano hissi veren
  * bir bölümde. Her not tek bir sesin (topluluğun) ağzından, aynı kısa/
  * aforizma tonunda yazıldı. ── */
-const STAGE_NOTES = [
-  'Her gece aynı repliği söylüyoruz; hiçbir gece aynı nefesi almıyoruz.',
-  'Alkış bittiğinde asıl hikâye kulis kapısının ardında başlar.',
-  'Bir oyunu izlemek, birinin en cesur hâlini görmektir.',
-  'Sahne, ışıklar sönünce de içimizde yanmaya devam eder.',
-  'Prova bir alışkanlık değil, her seferinde yeniden âşık olma biçimimizdir.',
-  'Seyirci gülerken biz nefesimizi tutar, susarken elimizi sıkarız.',
-  'Kostüm bir kılık değil, ödünç alınmış bir hayattır.',
-  'Her replik ezberlenir; ama her gece yeniden doğar.',
-];
 /* Kaynağı doğrulanmış (bkz. WebSearch araştırması) gerçek oyun temalarına
- * dayanan notlar — birebir alıntı değil, temanın kısa bir yansıması: */
+ * dayanan notlar — birebir replik/alıntı DEĞİL, o oyunun temasından
+ * esinlenen kısa bir hayat dersi/yansıma. Her oyun için birden fazla not
+ * olacak şekilde, hepsi doğrudan repertuardaki gerçek oyunlara bağlı. */
 const SHOW_THEME_NOTES = {
-  'kadınlık': 'Âdem ile Havva\'dan başlayıp Hezarfen Ahmed Çelebi\'ye uzanan bir kahkaha — tarih boyunca gölgede bırakılmış kadınlara adanmış bir başkaldırı.',
-  'gözlerimi': 'Vicdani dürüst ama sorgusuzdur, Efruz her yolu meşru sayar — Meşrutiyet\'ten yakın tarihe, iyiyle kötünün aynı yüzyılda yan yana yürüyüşü.',
-  'kurtar': 'Bir yazarın hikâyelerindeki karakterler, ziyaretçiler gittikten sonra kendi hikâyelerini yazmaya kalkarsa ne olur? Çehov\'a en sevgili başkaldırı.',
-  'metafor': 'Bir sahne bazen bir oda, bazen bir hayat, bazen sadece bir valiz kadardır — sonunda her şey aslında bir metafordur.',
+  'kadınlık': [
+    'Âdem ile Havva\'dan başlayıp Hezarfen Ahmed Çelebi\'ye uzanan bir kahkaha — tarih boyunca gölgede bırakılmış kadınlara adanmış bir başkaldırı.',
+    'Bazen en güçlü başkaldırı, yüksek sesle gülebilmektir.',
+  ],
+  'gözlerimi': [
+    'Vicdani dürüst ama sorgusuzdur, Efruz her yolu meşru sayar — ikisi de bize aynı soruyu sordurur: sen hangisisin?',
+    'Bazen gözlerini kapatmak, vazifeni kolay yapmanın değil, ondan kaçmanın başka bir adıdır.',
+  ],
+  'kurtar': [
+    'Bir yazarın hikâyelerindeki karakterler, ziyaretçiler gittikten sonra kendi hikâyelerini yazmaya kalkarsa ne olur? Çehov\'a en sevgili başkaldırı.',
+    'Bazen kurtarılması gereken hasta değil, hikâyeyi anlatma biçimimizdir.',
+  ],
+  'metafor': [
+    'Bir oda, bir valiz, bir bekleyiş — bazen hayatın tamamı küçük bir sahne kadardır.',
+    'Sahnede hiçbir eşya sadece kendisi değildir; her nesne bir şeyi saklar.',
+  ],
 };
 
 async function boot() {
@@ -251,28 +255,44 @@ function renderMarquee(shows) {
 /** Her iki blob görseli de öne çıkan oyunla ilgili olsun diye — ikinci
  * (üstteki, küçük) görsel artık rastgele bir oyuncu yüzü değil, aynı
  * oyunun kendi galerisinden gerçek bir sahne fotoğrafı. */
+/** Firebase Storage URL'lerinin sorgu kısmındaki (?alt=media&token=...) tek
+ * seferlik indirme tokenı hariç, asıl dosya yolunu döner. Aynı görsel iki
+ * ayrı alana (örn. imageUrl + photosShowId[0]) referans olarak eklenmişse,
+ * bu iki link farklı token taşısa da AYNI Storage objesine işaret eder —
+ * "farklı" sanıp aynı karayı iki kez göstermeyi önlemek için asıl
+ * karşılaştırmayı token'sız yol üzerinden yapıyoruz. */
+function storagePath(url) {
+  try { return new URL(url).pathname; } catch { return url; }
+}
+
 function renderAbout(shows) {
   const art = document.getElementById('aboutArt');
   const lead = shows.find((s) => s.imageUrl) || shows[0];
   const img1 = lead?.imageUrl || shows.find((s) => s.imageUrl)?.imageUrl;
+  const path1 = storagePath(img1);
 
   // İkinci (öndeki) görsel için önce öne çıkan oyunun kendi galerisine
   // bakılır; orada gerçekten farklı bir kare yoksa TÜM oyunların
-  // galeri+afiş görselleri tek bir havuzda toplanıp img1'den farklı olan
-  // ilk kare seçilir — tek bir fotoğrafın tekrar tekrar kullanılmasını
-  // (ya da aynı karenin iki ayrı Storage linkiyle "aynı" görünmesini)
-  // en aza indirir.
+  // galeri+afiş görselleri tek bir havuzda toplanıp img1 ile AYNI Storage
+  // objesi olmayan ilk kare seçilir.
   const ownGallery = (lead?.photosShowId || []).filter(Boolean);
   const allPool = [];
   shows.forEach((s) => {
     if (s.imageUrl) allPool.push(s.imageUrl);
     (s.photosShowId || []).forEach((url) => { if (url) allPool.push(url); });
   });
-  const img2 = ownGallery.find((url) => url !== img1)
-    || allPool.find((url) => url !== img1);
+  const img2 = ownGallery.find((url) => storagePath(url) !== path1)
+    || allPool.find((url) => storagePath(url) !== path1);
 
   if (img1) art.style.setProperty('--about-img-1', `url("${img1}")`);
-  if (img2) art.style.setProperty('--about-img-2', `url("${img2}")`);
+  if (img2) {
+    art.style.setProperty('--about-img-2', `url("${img2}")`);
+    art.classList.remove('about__art--single');
+  } else {
+    // Gerçekten farklı ikinci bir kare yoksa iki özdeş daire göstermek
+    // yerine tek görsele zarifçe düşüyoruz.
+    art.classList.add('about__art--single');
+  }
   if (!img1 && !img2) art.style.display = 'none';
 }
 
@@ -398,11 +418,12 @@ function renderCalendarRow() {
 function renderNotes(shows) {
   const board = document.getElementById('notesBoard');
   if (!board) return;
-  const items = [...STAGE_NOTES];
+  const items = [];
   shows.forEach((s) => {
     const key = Object.keys(SHOW_THEME_NOTES).find((k) => (s.name || '').toLowerCase().includes(k));
-    if (key) items.push(`${SHOW_THEME_NOTES[key]} — “${s.name}”`);
+    if (key) SHOW_THEME_NOTES[key].forEach((note) => items.push(`${note} — “${s.name}”`));
   });
+  if (!items.length) { board.innerHTML = `<div class="empty">Kulis notlarımız yakında burada.</div>`; return; }
   board.innerHTML = items.map((text, i) => {
     const angle = ((i % 5) - 2) * 3.2;
     return `<div class="note reveal" style="--r:${angle}deg"><p>${esc(text)}</p></div>`;
@@ -569,22 +590,39 @@ function renderWorkshops() {
   </a>`).join('');
 }
 
-const IG_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>';
+const HEART_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.5s-7.5-4.6-9.8-9.2C.6 7.8 2.3 4.5 5.6 4c2-.3 3.7.6 4.9 2.3L12 8l1.5-1.7c1.2-1.7 2.9-2.6 4.9-2.3 3.3.5 5 3.8 3.4 7.3-2.3 4.6-9.8 9.2-9.8 9.2z"/></svg>';
+const COMMENT_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.3 0-2.5-.3-3.6-.8L3 21l1.8-5.4A8.5 8.5 0 1 1 21 11.5z"/></svg>';
 
-/** Gerçek Instagram API/oEmbed anahtarı olmadığı için "canlı besleme"
- * yerine, galerideki gerçek sahne fotoğraflarını Instagram-vari bir
- * ızgarada gösterip gerçek profile yönlendiriyoruz. */
+/** ÖNEMLİ: Instagram'ın kendi resmi API'si (Graph API / Business hesap
+ * bağlantısı) olmadan sayfayı otomatik olarak instagram.com'dan görsel
+ * "çekecek" şekilde kurmuyoruz — hesap herkese açık olsa bile bu tür bir
+ * kazıma (scraping) Instagram'ın kullanım şartlarına aykırı ve kırılgan
+ * olurdu. Onun yerine galerideki gerçek sahne fotoğraflarını, gerçek
+ * Instagram gönderisi gibi tasarlanmış kartlarda gösterip gerçek profile
+ * yönlendiriyoruz. Resmi API bağlanınca bu fonksiyon aynı kart tasarımıyla
+ * gerçek gönderileri de gösterecek şekilde kolayca genişletilebilir. */
 function renderInstagram(shows) {
   const grid = document.getElementById('instaGrid');
   if (!grid) return;
   const photos = [];
-  shows.forEach((s) => (s.photosShowId || []).forEach((url) => { if (url) photos.push(url); }));
+  shows.forEach((s) => (s.photosShowId || []).forEach((url) => { if (url) photos.push({ url, name: s.name }); }));
   if (!photos.length) { grid.innerHTML = `<div class="empty">Instagram galerimiz yakında burada.</div>`; return; }
   const shuffled = photos.map((p, i) => ({ p, sort: Math.sin(i * 555) })).sort((a, b) => a.sort - b.sort).map((x) => x.p).slice(0, 8);
-  grid.innerHTML = shuffled.map((url) => `<a class="insta__item" href="https://www.instagram.com/tiyatrol_/" target="_blank" rel="noopener" data-cursor-hover>
-    <img src="${esc(url)}" alt="TiyatRol Instagram" loading="lazy" />
-    <span class="insta__icon">${IG_ICON}</span>
-  </a>`).join('');
+  grid.innerHTML = shuffled.map(({ url, name }) => {
+    const tag = esc((name || 'tiyatrol').toLowerCase().replace(/\s+/g, ''));
+    return `<a class="insta__card" href="https://www.instagram.com/tiyatrol_/" target="_blank" rel="noopener" data-cursor-hover>
+      <div class="insta__head">
+        <img class="insta__avatar" src="logo-mark.png" alt="" />
+        <span class="insta__handle">tiyatrol_</span>
+      </div>
+      <div class="insta__photo"><img src="${esc(url)}" alt="TiyatRol Instagram" loading="lazy" /></div>
+      <div class="insta__foot">
+        <span class="insta__ico">${HEART_ICON}</span>
+        <span class="insta__ico">${COMMENT_ICON}</span>
+        <span class="insta__cap">#${tag}</span>
+      </div>
+    </a>`;
+  }).join('');
 }
 
 function initNewsletterForm() {
