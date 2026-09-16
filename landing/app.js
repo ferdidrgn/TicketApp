@@ -157,31 +157,29 @@ function playwrightOf(show) {
   return key ? SHOW_PLAYWRIGHTS[key] : '';
 }
 
-/* ── Kulisten Notlar — birebir replik değil, oyunların gerçek temalarından
- * (doğrulanmış kaynaklardan araştırılmış) esinlenen kısa yansımalar +
- * topluluk ruhunu anlatan genel notlar. Yapışkan not / pano hissi veren
- * bir bölümde. Her not tek bir sesin (topluluğun) ağzından, aynı kısa/
- * aforizma tonunda yazıldı. ── */
-/* Kaynağı doğrulanmış (bkz. WebSearch araştırması) gerçek oyun temalarına
- * dayanan notlar — birebir replik/alıntı DEĞİL, o oyunun temasından
- * esinlenen kısa bir hayat dersi/yansıma. Her oyun için birden fazla not
- * olacak şekilde, hepsi doğrudan repertuardaki gerçek oyunlara bağlı. */
+/* ── Sahnenin Fısıltıları / Kulisten Notlar — GERÇEK, kaynağı doğrulanmış
+ * repliklerdir (bkz. WebSearch araştırması), uydurma değil. Sadece
+ * kaynağını bulabildiğim oyunlar burada: "Kadınlık Bizde Kalsın"dan
+ * Hürriyet röportajında doğrudan alıntılanan replik, "Gözlerimi Kaparım
+ * Vazifemi Yaparım"dan oyunun kendi adını taşıyan ünlü cümlesi ve
+ * "Nilüfer Tiradı"nın gerçek açılışı. "Kurtar Beni Doktor" ve "Metafor"
+ * için doğrulanabilir gerçek replik bulamadım — o yüzden burada yoklar;
+ * gerçek script'ten alıntı verilirse hemen eklenir. */
 const SHOW_THEME_NOTES = {
+  // "Kadınlık Bizde Kalsın" — Yılmaz Erdoğan'ın oyunundan, oyunun
+  // güncellenmiş sahnelenişi üzerine yapılan bir röportajda doğrudan
+  // alıntılanan gerçek repliğin iki parçası (Hürriyet, "31 yıl sonra
+  // yeniden sahnede").
   'kadınlık': [
-    'Âdem ile Havva\'dan başlayıp Hezarfen Ahmed Çelebi\'ye uzanan bir kahkaha — tarih boyunca gölgede bırakılmış kadınlara adanmış bir başkaldırı.',
-    'Bazen en güçlü başkaldırı, yüksek sesle gülebilmektir.',
+    'Hepiniz bir ara iyi bir çocuktunuz, en azından iyi bir çocuğa benziyordunuz.',
+    'Biz kadınlar artık hiçbirinizin bizi sevmesini istemiyoruz — siz insan gibi sevmeyi öğreninceye kadar.',
   ],
+  // "Gözlerimi Kaparım Vazifemi Yaparım" — Haldun Taner'in oyununun kendi
+  // adını taşıyan ünlü repliği + konservatuvar sınavlarında sıkça
+  // seçilen, oyundaki "Nilüfer Tiradı"nın gerçek açılış cümlesi.
   'gözlerimi': [
-    'Vicdani dürüst ama sorgusuzdur, Efruz her yolu meşru sayar — ikisi de bize aynı soruyu sordurur: sen hangisisin?',
-    'Bazen gözlerini kapatmak, vazifeni kolay yapmanın değil, ondan kaçmanın başka bir adıdır.',
-  ],
-  'kurtar': [
-    'Bir yazarın hikâyelerindeki karakterler, ziyaretçiler gittikten sonra kendi hikâyelerini yazmaya kalkarsa ne olur? Çehov\'a en sevgili başkaldırı.',
-    'Bazen kurtarılması gereken hasta değil, hikâyeyi anlatma biçimimizdir.',
-  ],
-  'metafor': [
-    'Bir oda, bir valiz, bir bekleyiş — bazen hayatın tamamı küçük bir sahne kadardır.',
-    'Sahnede hiçbir eşya sadece kendisi değildir; her nesne bir şeyi saklar.',
+    'Gözlerimi kaparım, vazifemi yaparım.',
+    'Benim adım Nilüfer. Nasıl tanıdınız beni o kadar mektup arasında?',
   ],
 };
 
