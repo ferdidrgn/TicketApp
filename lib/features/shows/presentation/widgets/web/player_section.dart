@@ -63,14 +63,14 @@ class AnimatedPlayerCard extends StatelessWidget {
         child: Container(
           width: 150,
           decoration: BoxDecoration(
-            color: const Color(0xFF1a1a2e),
+            color: const Color(0xFF1B3A26),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFFD4AF37).withOpacity(0.3),
+              color: const Color(0xFFE85C3F).withOpacity(0.3),
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.15),
+                color: const Color(0xFFE85C3F).withOpacity(0.15),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -136,7 +136,7 @@ class AnimatedPlayerCard extends StatelessWidget {
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                       colors: [
-                        const Color(0xFFD4AF37).withOpacity(isOld ? 0.3 : 0.6),
+                        const Color(0xFFE85C3F).withOpacity(isOld ? 0.3 : 0.6),
                         Colors.transparent,
                       ],
                     ),

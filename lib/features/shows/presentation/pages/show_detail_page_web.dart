@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -38,6 +39,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   late final Animation<double> _contentFade;
 
   final ValueNotifier<double> _scrollNotifier = ValueNotifier(0.0);
+  final GlobalKey _eventsSectionKey = GlobalKey();
+  bool _scrollToEventsHandled = false;
 
   @override
   void initState() {
@@ -71,6 +74,31 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     });
   }
 
+  /// Sezon takviminden ("?scrollTo=etkinlikler" ile) gelindiyse, sayfa
+  /// hazır olur olmaz Etkinlik Takvimi bölümüne kaydırır. Görseller henüz
+  /// yüklenirken layout biraz kayabileceği için kısa bir gecikmeyle tekrar
+  /// dener.
+  void _maybeScrollToEvents() {
+    if (_scrollToEventsHandled || !mounted) return;
+    final scrollTo = GoRouterState.of(context).uri.queryParameters['scrollTo'];
+    if (scrollTo != 'etkinlikler') return;
+    _scrollToEventsHandled = true;
+
+    void attemptScroll() {
+      final eventsContext = _eventsSectionKey.currentContext;
+      if (eventsContext == null || !mounted) return;
+      Scrollable.ensureVisible(
+        eventsContext,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
+        alignment: 0.1,
+      );
+    }
+
+    attemptScroll();
+    Future.delayed(const Duration(milliseconds: 500), attemptScroll);
+  }
+
   void _initScrollListener() => scrollController.addListener(() {
         if (mounted) _scrollNotifier.value = scrollController.offset;
       });
@@ -100,20 +128,22 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       child: BasePageWrapper(
         showBackButton: true,
         showFab: true,
-        title: 'Zamanın Çizgilerdeki İmzası',
+        title: detailAsync.value?.show.name ?? 'Oyun Detayı',
         subtitle: 'Anların altına gizlenmiş bin yıllık fısıltılar',
         rightIcon: Icons.theaters,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
-          backgroundColor: const Color(0xFF0a0a1a),
+          backgroundColor: const Color(0xFF0F2318),
           ambientColor: context.primaryColor.withOpacity(0.05),
         ),
         child: detailAsync.when(
           loading: () => const SizedBox.shrink(),
           error: (final err, final stack) => const SizedBox.shrink(),
           data: (final state) {
-            WidgetsBinding.instance
-                .addPostFrameCallback((final _) => _startPageAnimations());
+            WidgetsBinding.instance.addPostFrameCallback((final _) {
+              _startPageAnimations();
+              _maybeScrollToEvents();
+            });
             return _buildSuccessState(
                 state.show, state.events, state.players, state.stages);
           },
@@ -152,6 +182,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                     events: eventList,
                     players: playerList,
                     stages: stageList,
+                    eventsSectionKey: _eventsSectionKey,
                   ),
                 ),
               ),
@@ -185,12 +216,14 @@ class _MainContent extends StatelessWidget {
   final List<Event> events;
   final List<Player> players;
   final List<Stage> stages;
+  final GlobalKey eventsSectionKey;
 
   const _MainContent(
       {required this.showData,
       required this.events,
       required this.players,
-      required this.stages});
+      required this.stages,
+      required this.eventsSectionKey});
 
   @override
   Widget build(final BuildContext context) => Padding(
@@ -200,12 +233,14 @@ class _MainContent extends StatelessWidget {
               showData: showData,
               events: events,
               players: players,
-              stages: stages)
+              stages: stages,
+              eventsSectionKey: eventsSectionKey)
           : _MobileLayout(
               showData: showData,
               events: events,
               players: players,
-              stages: stages));
+              stages: stages,
+              eventsSectionKey: eventsSectionKey));
 }
 
 class _DesktopLayout extends StatelessWidget {
@@ -213,12 +248,14 @@ class _DesktopLayout extends StatelessWidget {
   final List<Event> events;
   final List<Player> players;
   final List<Stage> stages;
+  final GlobalKey eventsSectionKey;
 
   const _DesktopLayout(
       {required this.showData,
       required this.events,
       required this.players,
-      required this.stages});
+      required this.stages,
+      required this.eventsSectionKey});
 
   @override
   Widget build(final BuildContext context) {
@@ -248,11 +285,19 @@ class _DesktopLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _SectionTitle(
-                  title: 'Etkinlik Takvimi',
-                  icon: Icons.calendar_today_rounded),
-              const SizedBox(height: 24),
-              _EventDateList(events: events),
+              KeyedSubtree(
+                key: eventsSectionKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SectionTitle(
+                        title: 'Etkinlik Takvimi',
+                        icon: Icons.calendar_today_rounded),
+                    const SizedBox(height: 24),
+                    _EventDateList(events: events),
+                  ],
+                ),
+              ),
               const SizedBox(height: 50),
               const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
               const SizedBox(height: 24),
@@ -280,12 +325,14 @@ class _MobileLayout extends StatelessWidget {
   final List<Event> events;
   final List<Player> players;
   final List<Stage> stages;
+  final GlobalKey eventsSectionKey;
 
   const _MobileLayout(
       {required this.showData,
       required this.events,
       required this.players,
-      required this.stages});
+      required this.stages,
+      required this.eventsSectionKey});
 
   @override
   Widget build(final BuildContext context) {
@@ -301,10 +348,19 @@ class _MobileLayout extends StatelessWidget {
       children: [
         _GlassDescriptionCard(description: showData.description),
         const SizedBox(height: 40),
-        const _SectionTitle(
-            title: 'Etkinlik Takvimi', icon: Icons.calendar_today_rounded),
-        const SizedBox(height: 20),
-        _EventDateList(events: events),
+        KeyedSubtree(
+          key: eventsSectionKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _SectionTitle(
+                  title: 'Etkinlik Takvimi',
+                  icon: Icons.calendar_today_rounded),
+              const SizedBox(height: 20),
+              _EventDateList(events: events),
+            ],
+          ),
+        ),
         const SizedBox(height: 40),
         const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
         const SizedBox(height: 20),
@@ -362,28 +418,28 @@ class _EventItemTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1a1a2e).withOpacity(0.8),
+        color: const Color(0xFF1B3A26).withOpacity(0.8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFE85C3F).withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFD4AF37).withOpacity(0.2),
+              color: const Color(0xFFE85C3F).withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               children: [
                 Text(gun,
                     style: const TextStyle(
-                        color: Color(0xFFD4AF37),
+                        color: Color(0xFFE85C3F),
                         fontSize: 20,
                         fontWeight: FontWeight.bold)),
                 Text(ay,
                     style: const TextStyle(
-                        color: Color(0xFFD4AF37), fontSize: 11)),
+                        color: Color(0xFFE85C3F), fontSize: 11)),
               ],
             ),
           ),
@@ -412,7 +468,7 @@ class _EventItemTile extends StatelessWidget {
             ),
           ),
           const Icon(Icons.arrow_forward_ios,
-              color: Color(0xFFD4AF37), size: 14),
+              color: Color(0xFFE85C3F), size: 14),
         ],
       ),
     );
@@ -451,7 +507,7 @@ class _AnimatedPoster extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.4),
+                color: const Color(0xFFE85C3F).withOpacity(0.4),
                 blurRadius: 50,
                 spreadRadius: 5)
           ],
@@ -475,12 +531,12 @@ class _GlassDescriptionCard extends StatelessWidget {
   Widget build(final BuildContext context) => Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: const Color(0xFF1a1a2e).withOpacity(0.8),
+          color: const Color(0xFF1B3A26).withOpacity(0.8),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFFE85C3F).withOpacity(0.3)),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.1), blurRadius: 30)
+                color: const Color(0xFFE85C3F).withOpacity(0.1), blurRadius: 30)
           ],
         ),
         child: Text(
@@ -507,15 +563,15 @@ class _SectionTitle extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                  colors: [Color(0xFFD4AF37), Color(0xFFF5E6A3)]),
+                  colors: [Color(0xFFE85C3F), Color(0xFFF0876F)]),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                    color: const Color(0xFFD4AF37).withOpacity(0.4),
+                    color: const Color(0xFFE85C3F).withOpacity(0.4),
                     blurRadius: 15)
               ],
             ),
-            child: Icon(icon, color: const Color(0xFF0a0a1a), size: 22),
+            child: Icon(icon, color: const Color(0xFF0F2318), size: 22),
           ),
           const SizedBox(width: 16),
           Text(title,
@@ -530,7 +586,7 @@ class _SectionTitle extends StatelessWidget {
                   height: 1,
                   decoration: BoxDecoration(
                       gradient: LinearGradient(colors: [
-                    const Color(0xFFD4AF37).withOpacity(0.5),
+                    const Color(0xFFE85C3F).withOpacity(0.5),
                     Colors.transparent
                   ])))),
         ],
@@ -561,7 +617,7 @@ class _BackgroundParticles extends StatelessWidget {
                     width: 4,
                     height: 4,
                     decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: Color(0xFFD4AF37))));
+                        shape: BoxShape.circle, color: Color(0xFFE85C3F))));
           },
         );
       }),

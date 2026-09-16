@@ -2,7 +2,7 @@
   "hosting": [
     {
       "target": "ana",
-      "public": "build/web",
+      "public": "deploy",
       "ignore": [
         "firebase.json",
         "**/.*",
@@ -39,14 +39,14 @@
       ],
       "rewrites": [
         {
-          "source": "**",
-          "destination": "/index.html"
+          "source": "/app/**",
+          "destination": "/app/index.html"
         }
       ]
     },
     {
       "target": "ekip",
-      "public": "build/web",
+      "public": "deploy",
       "ignore": [
         "firebase.json",
         "**/.*",
@@ -83,8 +83,8 @@
       ],
       "rewrites": [
         {
-          "source": "**",
-          "destination": "/index.html"
+          "source": "/app/**",
+          "destination": "/app/index.html"
         }
       ]
     }

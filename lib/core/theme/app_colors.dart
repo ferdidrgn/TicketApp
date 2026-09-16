@@ -2,26 +2,33 @@ import 'package:flutter/material.dart';
 import '../common/extentions/app_context_ui_extension.dart';
 
 /// WEB UYGULAMASI RENKLERİ
+/// "ÇAM & MERCAN" (Pine & Coral) PALETİ — landing/ tanıtım sitesiyle birebir
+/// aynı kimlik. Flutter web uygulaması da artık bu paleti kullanıyor ki tüm
+/// site (tanıtım + uygulama) tek bir marka gibi hissettirsin.
 class WebColors {
-  // Ana Renkler
-  static const Color primaryGold = Color(0xFFD4AF37);
-  static const Color primaryGoldDark = Color(0xFFB8941F);
-  static const Color primaryGoldLight = Color(0xFFE6C158);
+  // Ana Renkler — mercan reflektör vurgusu (eski "altın"ın yerine)
+  static const Color primaryGold = Color(0xFFE85C3F);
+  static const Color primaryGoldDark = Color(0xFFC1432A);
+  static const Color primaryGoldLight = Color(0xFFF0876F);
 
-  // Arkaplan Renkleri - Güncellendi
-  static const Color darkBlueBackground = Color(0xFF0A1628);
-  static const Color darkBlueSurface = Color(0xFF0F1F35);
-  static const Color darkBlueAccent = Color(0xFF1A2940);
+  // İkincil vurgu — adaçayı yeşili (landing'deki --sage ile aynı)
+  static const Color secondaryAccent = Color(0xFF8FB29C);
+  static const Color secondaryAccentLight = Color(0xFFABC7B4);
+
+  // Arkaplan Renkleri — koyu çam yeşili kulis (eski kömür siyahının yerine)
+  static const Color darkBlueBackground = Color(0xFF0F2318);
+  static const Color darkBlueSurface = Color(0xFF1B3A26);
+  static const Color darkBlueAccent = Color(0xFF24402C);
 
   // Ekstra Arkaplan Tonları
-  static const Color veryDarkBlue = Color(0xFF050B15); // En koyu ton
-  static const Color mediumDarkBlue = Color(0xFF152238); // Orta ton
+  static const Color veryDarkBlue = Color(0xFF081712); // En koyu ton
+  static const Color mediumDarkBlue = Color(0xFF24402C); // Orta ton
 
   // Metin Renkleri
-  static const Color whiteText = Colors.white;
-  static const Color lightWhite = Color(0xFFEDEDED);
-  static const Color textSecondary = Color(0xFFB0B0B0);
-  static const Color textTertiary = Color(0xFF808080); // Ek ton
+  static const Color whiteText = Color(0xFFF2ECD9); // Fildişi (ivory)
+  static const Color lightWhite = Color(0xFFEAE1C8);
+  static const Color textSecondary = Color(0xFFC9BBA5);
+  static const Color textTertiary = Color(0xFF9C8F79); // Ek ton
 
   // Aksan Renkler
   static const Color success = Color(0xFF4CAF50);

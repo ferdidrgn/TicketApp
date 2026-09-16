@@ -5,7 +5,9 @@ import 'package:ticketapp/features/about/presentation/widgets/contact_card_web.d
 import 'package:ticketapp/features/home/presentation/widgets/web/hero_video_section.dart';
 import 'package:ticketapp/features/home/presentation/widgets/web/theater_section_divider.dart';
 import 'package:ticketapp/features/shows/presentation/widgets/web/goz_kap_vaz_yap_landing.dart';
+import 'package:ticketapp/features/shows/presentation/widgets/web/kadinlik_bizde_kalsin_landing.dart';
 import 'package:ticketapp/features/shows/presentation/widgets/web/kurtar_beni_doktor_landing.dart';
+import 'package:ticketapp/features/shows/presentation/widgets/web/season_calendar_section.dart';
 import 'package:ticketapp/features/shows/presentation/widgets/web/shows_section_web.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import 'package:ticketapp/features/teams/presentation/pages/team_card_web.dart';
@@ -171,6 +173,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             const SliverToBoxAdapter(
                 child: TheaterSectionDivider(
+                    style: DividerStyle.iconCenter, height: 120)),
+
+            // 2b. Sezon Takvimi (tüm oyunların gerçek Firestore etkinlikleri)
+            const SliverToBoxAdapter(
+                child: RepaintBoundary(child: SeasonCalendarSection())),
+
+            const SliverToBoxAdapter(
+                child: TheaterSectionDivider(
                     style: DividerStyle.spotlight, height: 150)),
 
             // 3. Artistic Section
@@ -196,6 +206,14 @@ class _HomePageState extends ConsumerState<HomePage> {
             SliverToBoxAdapter(
                 child: RepaintBoundary(
                     key: widget.gozKapKey, child: const GozYapVazYapLanding())),
+
+            const SliverToBoxAdapter(
+                child: TheaterSectionDivider(
+                    style: DividerStyle.spotlight, height: 150)),
+
+            // 5b. Kadınlık Bizde Kalsın (Prömiyer)
+            const SliverToBoxAdapter(
+                child: RepaintBoundary(child: KadinlikBizdeKalsinLanding())),
 
             const SliverToBoxAdapter(
                 child: TheaterSectionDivider(

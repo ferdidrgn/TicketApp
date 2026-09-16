@@ -19,8 +19,8 @@ class Footer extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             WebColors.darkBlueBackground,
-            Color(0xFF16213e),
-            Color(0xFF0f3460),
+            WebColors.darkBlueAccent,
+            Color(0xFF3A2E24),
           ],
         ),
       ),

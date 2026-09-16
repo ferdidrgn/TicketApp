@@ -68,7 +68,7 @@ class NearbyEventsPage extends StatelessWidget {
       rightIcon: Icons.tune_rounded,
       showFab: true,
       layoutConfig: BasePageLayoutConfig(
-          backgroundColor: Colors.white, safeAreaTop: true),
+          backgroundColor: context.colors.surface, safeAreaTop: true),
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -298,12 +298,14 @@ class NearbyEventsPage extends StatelessWidget {
           text,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: isActive ? Colors.white : Colors.grey.shade700,
+            color: isActive
+                ? context.colors.onPrimary
+                : context.colors.onSurfaceVariant,
           ),
         ),
         selected: isActive,
         onSelected: (final selected) {},
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: context.colors.surfaceContainerHighest,
         selectedColor: context.primaryColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -327,17 +329,17 @@ class NearbyEventsPage extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: context.colors.shadow.withOpacity(0.15),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: context.colors.outlineVariant,
           width: 1,
         ),
       ),
@@ -360,10 +362,10 @@ class NearbyEventsPage extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             venue['name'] as String,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Colors.black87,
+              color: context.colors.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -373,7 +375,7 @@ class NearbyEventsPage extends StatelessWidget {
             venue['type'] as String,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: context.colors.onSurfaceVariant,
             ),
           ),
         ],

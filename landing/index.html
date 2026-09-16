@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TiyatRol</title>
+<meta name="description" content="TiyatRol — İstanbul merkezli sahne sanatları topluluğu. Repertuarımızı, kadromuzu ve sezon takvimimizi keşfedin, biletinizi ayırtın." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="curtain" id="curtain" aria-hidden="true">
+  <div class="curtain__panel curtain__panel--l"></div>
+  <div class="curtain__panel curtain__panel--r"></div>
+  <span class="curtain__mark">TR</span>
+</div>
+
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"></div>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="progress" aria-hidden="true"><div class="progress__bar" id="progressBar"></div></div>
+
+<header class="nav" id="nav">
+  <a href="#top" class="nav__mark" data-cursor-hover><img class="nav__mark-logo" src="logo-mark.png" alt="TiyatRol" width="30" height="30" />TiyatRol</a>
+  <nav class="nav__links">
+    <a href="#repertuar" data-cursor-hover>Repertuar</a>
+    <a href="#ekip" data-cursor-hover>Ekip</a>
+    <a href="#takvim" data-cursor-hover>Takvim</a>
+    <a href="#sahneler" data-cursor-hover>Sahneler</a>
+    <a href="#iletisim" data-cursor-hover>İletişim</a>
+  </nav>
+  <a href="/app" class="nav__cta" data-cursor-hover>Bilet Al</a>
+  <button class="nav__burger" id="burger" aria-label="Menü"><span></span><span></span><span></span></button>
+</header>
+
+<div class="mnav" id="mnav">
+  <a href="#repertuar" data-cursor-hover>Repertuar</a>
+  <a href="#ekip" data-cursor-hover>Ekip</a>
+  <a href="#takvim" data-cursor-hover>Takvim</a>
+  <a href="#sahneler" data-cursor-hover>Sahneler</a>
+  <a href="#iletisim" data-cursor-hover>İletişim</a>
+  <a href="/app" class="mnav__cta">Bilet Al →</a>
+</div>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="hero__frame">
+      <video class="hero__video" autoplay muted loop playsinline preload="metadata">
+        <source src="https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/images%2Fmetafor%2FIMG_20250310_200748-ANIMATION.mp4?alt=media&token=feab36d3-1d54-4ff8-868f-76f6591e8705" type="video/mp4" />
+      </video>
+      <span class="hero__vertical">İstanbul · 2018'den beri</span>
+      <a class="hero__scroll" href="#marquee" aria-label="Aşağı kaydır"><span></span></a>
+    </div>
+    <div class="hero__panel">
+      <div class="hero__cues">
+        <span>Perde Açılıyor</span>
+        <span>Işıklar Sönüyor</span>
+        <span>Söz Sahnede</span>
+      </div>
+      <div class="hero__divider"></div>
+      <h1 class="hero__title">Işıklar<br><em>sizin için</em><br>sönüyor.</h1>
+      <p class="hero__tagline">Gerçeği anlatmanın en güzel yalanı: tiyatro.</p>
+      <p class="hero__lede" id="heroStatus">Sezon bilgisi yükleniyor…</p>
+      <div class="hero__actions">
+        <a href="/app" class="btn btn--fill" data-cursor-hover>Bilet Al</a>
+        <a href="#repertuar" class="btn btn--line" data-cursor-hover>Repertuarı Gör</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="marquee" id="marquee" aria-hidden="true">
+    <div class="marquee__row" id="marqueeRow"></div>
+  </section>
+
+  <section class="about" id="hakkimizda">
+    <div class="about__art" id="aboutArt" aria-hidden="true">
+      <div class="about__blob about__blob--a"></div>
+      <div class="about__blob about__blob--b"></div>
+    </div>
+    <div class="about__copy">
+      <p class="eyebrow">TOPLULUK</p>
+      <h2 class="h2">Bir bileti değil, <em>bir anı</em> satın alırsın.</h2>
+      <p class="p">2018'den bu yana İstanbul'da, birbirine emek veren gönüllü bir ailenin sahnesiyiz. Klasikleri bugüne taşırken özgün metinlerle kendi sahne dilimizi arıyoruz. Her prömiyer; aylarca süren provaların, paylaşılan kahvelerin ve birbirimize duyduğumuz güvenin son perdesidir.</p>
+      <a href="#ekip" class="link-arrow" data-cursor-hover>Kadromuzla tanışın</a>
+    </div>
+  </section>
+
+  <section class="pitch">
+    <p class="eyebrow eyebrow--light">PERDE ARALANMADAN ÖNCE</p>
+    <div class="pitch__grid">
+      <article class="pitch__card"><span class="pitch__num">01</span><h3>Küratörlü Repertuar</h3><p>Her sezon özenle bir araya getirdiğimiz, birbirini tamamlayan bir oyun seçkisi — rastgele değil, bütünlüklü bir hikâye anlayışıyla kurgulanır.</p></article>
+      <article class="pitch__card"><span class="pitch__num">02</span><h3>Canlı Koltuk Haritası</h3><p>Gerçek zamanlı doluluk, saniyeler içinde bilet. Gişe kuyruğunda değil, sahneyle geçireceğin vakitte olmanı istiyoruz.</p></article>
+      <article class="pitch__card"><span class="pitch__num">03</span><h3>Sahnede Büyüyen Kadro</h3><p>Prova salonunda kurulan dostluklar, her yeni oyunla genişleyen gerçek bir topluluk — sahnede birlikte nefes alıyoruz.</p></article>
+      <article class="pitch__card"><span class="pitch__num">04</span><h3>Şehrin Gerçek Sahneleri</h3><p>İstanbul'un kendi kültür merkezlerinde, her oyunun kendi atmosferini bulduğu, sizi ağırlamaktan mutluluk duyduğumuz mekanlarda buluşuyoruz.</p></article>
+    </div>
+  </section>
+
+  <section class="repertoire" id="repertuar">
+    <div class="head">
+      <div><p class="eyebrow">BU SEZON</p><h2 class="h2">Repertuar</h2></div>
+      <a href="#takvim" class="link-arrow" data-cursor-hover>Tüm takvim</a>
+    </div>
+    <div class="repertoire__grid" id="repertoireGrid">
+      <div class="loading"><span class="spin"></span>Oyunlar yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="team" id="ekip">
+    <div class="head head--light">
+      <div><p class="eyebrow eyebrow--light">PERDENİN ARKASI</p><h2 class="h2 h2--light">Kadro</h2></div>
+    </div>
+    <p class="head__sub" id="teamSub">Sahnedeki oyunun kadrosuyla tanışın.</p>
+    <div class="team__rail" id="teamRail">
+      <div class="loading loading--light"><span class="spin"></span>Sanatçılar yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="calendar" id="takvim">
+    <div class="head">
+      <div><p class="eyebrow">SEZON</p><h2 class="h2" id="calMonth">Takvim</h2></div>
+    </div>
+    <div class="calendar__tabs" id="calTabs"></div>
+    <div class="calendar__row" id="calRow">
+      <div class="loading"><span class="spin"></span>Takvim yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="notes" id="notlar">
+    <div class="head">
+      <div><p class="eyebrow">KULİSTEN</p><h2 class="h2">Sahnenin Fısıltıları</h2></div>
+    </div>
+    <div class="notes__board" id="notesBoard"></div>
+  </section>
+
+  <section class="stats">
+    <div class="stats__grid">
+      <div class="stat"><span class="stat__num" data-target="0">0</span><span class="stat__label">Oyun</span></div>
+      <div class="stat"><span class="stat__num" data-target="0">0</span><span class="stat__label">Sanatçı</span></div>
+      <div class="stat"><span class="stat__num" data-target="0">0</span><span class="stat__label">Sahne</span></div>
+      <div class="stat"><span class="stat__num" data-target="0" data-plain="1">0</span><span class="stat__label">Yıllık Tecrübe</span></div>
+    </div>
+  </section>
+
+  <section class="gallery" id="galeri">
+    <div class="head">
+      <div><p class="eyebrow">SAHNE ARKASI</p><h2 class="h2">Provadan Alkışa</h2></div>
+    </div>
+    <div class="gallery__wall" id="galleryWall">
+      <div class="loading"><span class="spin"></span>Galeri yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="mediastage" id="mediaarsivi">
+    <div class="head head--light">
+      <div><p class="eyebrow eyebrow--light">PRÖMİYER ARŞİVİ</p><h2 class="h2 h2--light">Sahnenin Sesi ve Görüntüsü</h2></div>
+    </div>
+    <div class="mediastage__wrap">
+      <div class="mediastage__tabs" id="mediaTabs">
+        <div class="loading loading--light"><span class="spin"></span>Yükleniyor…</div>
+      </div>
+      <div class="mediastage__panel" id="mediaPanel"></div>
+    </div>
+  </section>
+
+  <div class="perf" aria-hidden="true"></div>
+
+  <section class="venues" id="sahneler">
+    <div class="head head--light">
+      <div><p class="eyebrow eyebrow--light">MEKANLAR</p><h2 class="h2 h2--light">Sahnelerimiz</h2></div>
+    </div>
+    <div class="venues__grid" id="venuesGrid">
+      <div class="loading loading--light"><span class="spin"></span>Sahneler yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="press" id="basin">
+    <div class="head">
+      <div><p class="eyebrow">BASINDA</p><h2 class="h2">Basında Biz</h2></div>
+    </div>
+    <div class="press__grid" id="pressGrid">
+      <div class="loading"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="awards" id="oduller">
+    <div class="head head--light">
+      <div><p class="eyebrow eyebrow--light">TANINIRLIK</p><h2 class="h2 h2--light">Ödüller &amp; Festivaller</h2></div>
+    </div>
+    <div class="awards__list" id="awardsList">
+      <div class="loading loading--light"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="duo" id="bulten">
+    <div class="duo__panel duo__panel--quote">
+      <span class="quote__mark">"</span>
+      <p class="quote__text" id="quoteText">Bir bileti değil, bir anı satın alırsın.</p>
+      <p class="quote__attr" id="quoteAttr">— TİYATROL</p>
+    </div>
+    <div class="duo__panel duo__panel--newsletter">
+      <p class="eyebrow">HABERDAR OL</p>
+      <h2 class="h2">Yeni oyunları <em>ilk sen öğren.</em></h2>
+      <p class="p">Prömiyer davetlerinden kulis notlarına, bilet fırsatlarından sezon haberlerine — seni ilgilendiren her şeyi doğrudan sana ulaştıralım.</p>
+      <form class="newsletter__form" id="newsletterForm">
+        <input type="email" name="email" placeholder="E-posta adresin" required />
+        <button type="submit" class="btn btn--fill" data-cursor-hover>Abone Ol →</button>
+      </form>
+      <p class="newsletter__note" id="newsletterNote"></p>
+    </div>
+  </section>
+
+  <section class="workshops" id="atolyeler">
+    <div class="head">
+      <div><p class="eyebrow">GELİŞİM</p><h2 class="h2">Atölye &amp; Eğitim Duyuruları</h2></div>
+    </div>
+    <div class="workshops__grid" id="workshopsGrid">
+      <div class="loading"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="blog" id="blog">
+    <div class="head head--light">
+      <div><p class="eyebrow eyebrow--light">SAHNE ARKASI NOTLARI</p><h2 class="h2 h2--light">Blog</h2></div>
+    </div>
+    <div class="blog__grid" id="blogGrid">
+      <div class="loading loading--light"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="partners" id="sponsorlar">
+    <div class="partners__inner">
+      <p class="eyebrow eyebrow--light">İŞ BİRLİKLERİ</p>
+      <h2 class="h2 h2--light">Sahneyi birlikte <em>büyütelim.</em></h2>
+      <p class="p partners__p">Sanatı büyütmek tek başına yapılmaz. Marka iş birlikleri, kurumsal sponsorluklar ve mekân ortaklıkları için kapımız her zaman açık — birlikte daha çok sahneye, daha çok seyirciye ulaşabiliriz.</p>
+      <a href="#iletisim" class="btn btn--line" data-cursor-hover>İş Birliği Teklif Et</a>
+    </div>
+  </section>
+
+  <section class="instagram" id="instagram">
+    <div class="head">
+      <div><p class="eyebrow">SOSYAL</p><h2 class="h2">Instagram'da TiyatRol</h2></div>
+      <a href="https://www.instagram.com/tiyatrol_/" target="_blank" rel="noopener" class="link-arrow" data-cursor-hover>Profili Gör</a>
+    </div>
+    <div class="insta__grid" id="instaGrid">
+      <div class="loading"><span class="spin"></span>Yükleniyor…</div>
+    </div>
+  </section>
+
+  <section class="contact" id="iletisim">
+    <div class="contact__side">
+      <h2 class="contact__title">Sahneyi<br>birlikte<br><em>kuralım.</em></h2>
+      <p class="p">İster ekibimize katılmak, ister iş birliği yapmak, isterse sadece merhaba demek isteyin — kapımız her zaman açık. Yazdığınız her mesajı okuyoruz.</p>
+      <div class="contact__meta">
+        <a href="mailto:ferdidurgun34@gmail.com">Bize Yazın →</a>
+        <span>Ataşehir, İstanbul</span>
+      </div>
+    </div>
+    <form class="contact__form" id="contactForm">
+      <div class="row">
+        <input type="text" name="name" placeholder="Ad Soyad" required />
+        <input type="email" name="email" placeholder="E-posta" required />
+      </div>
+      <select name="subject">
+        <option value="Bilet">Bilet Hakkında</option>
+        <option value="Isbirligi">İşbirliği / Sponsorluk</option>
+        <option value="Basin">Basın</option>
+        <option value="Diger">Diğer</option>
+      </select>
+      <textarea name="message" rows="4" placeholder="Mesajın…" required></textarea>
+      <button type="submit" class="btn btn--fill" data-cursor-hover>Gönder →</button>
+    </form>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer__top">
+    <div class="footer__about">
+      <span class="footer__mark">TiyatRol</span>
+      <p>2018'den bu yana İstanbul'da sahne alan bir sahne sanatları topluluğu — klasikleri bugüne taşıyor, özgün metinlerle kendi sahne dilimizi arıyoruz.</p>
+      <div class="footer__social" aria-hidden="false">
+        <a href="https://www.instagram.com/tiyatrol_/" target="_blank" rel="noopener" aria-label="Instagram" data-cursor-hover><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg></a>
+        <a href="https://www.facebook.com/tiyatrol" target="_blank" rel="noopener" aria-label="Facebook" data-cursor-hover><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M13.5 21v-7.5H16l.5-3H13.5V8.5c0-.9.25-1.5 1.55-1.5H16.5V4.3c-.28-.04-1.24-.13-2.36-.13-2.34 0-3.94 1.43-3.94 4.04V10.5H8v3h2.2V21h3.3z"/></svg></a>
+      </div>
+    </div>
+    <div class="footer__col"><h4>İletişim</h4><a href="mailto:ferdidurgun34@gmail.com">Bize Yazın</a><span>Ataşehir, İstanbul</span></div>
+    <div class="footer__col"><h4>Keşfet</h4><a href="#blog">Blog</a><a href="#basin">Basında Biz</a><a href="#atolyeler">Atölyeler</a><a href="#oduller">Ödüller</a><a href="#sponsorlar">İş Birlikleri</a></div>
+    <div class="footer__col"><h4>Topluluk</h4><a href="#repertuar">Repertuar</a><a href="#ekip">Kadro</a><a href="#takvim">Takvim</a><a href="#sahneler">Sahneler</a></div>
+    <div class="footer__col"><h4>Yasal</h4><a href="privacy.html">Gizlilik Politikası</a><a href="terms.html">Kullanım Şartları</a></div>
+    <div class="footer__col"><h4>Uygulama</h4><a href="/app">Bileti Ayır →</a></div>
+  </div>
+  <div class="footer__bottom">
+    <span>© <span id="year">2026</span> TiyatRol — Tüm Hakları Saklıdır.</span>
+    <div class="footer__legal-links">
+      <a href="privacy.html">Gizlilik Politikası</a>
+      <a href="terms.html">Kullanım Şartları</a>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
