@@ -1,8 +1,6 @@
 package com.ferdidrgn.ticketapp
 
-import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.core.view.WindowCompat
 import io.flutter.embedding.android.FlutterActivity
 
@@ -13,11 +11,11 @@ class MainActivity : FlutterActivity() {
 
         super.onCreate(savedInstanceState)
 
-        // TargetSDK 37 / Android 15+ cihazlarda sistem navigasyon çubuklarının
-        // şeffaflık ve kontrast korumalarını native düzeyde yönetir
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-            window.isStatusBarContrastEnforced = false
-        }
+        // NOT: window.isStatusBarContrastEnforced / isNavigationBarContrastEnforced
+        // (ve styles.xml'deki android:statusBarColor/navigationBarColor) Android 15
+        // (API 35) itibarıyla kullanımdan kaldırıldı (deprecated) — Google Play
+        // Console "uçtan uca ekran" uyarısının kaynağı buydu. Edge-to-edge artık
+        // Android 15+ cihazlarda varsayılan olarak zorunlu ve otomatik; eski
+        // API'lerde de yukarıdaki setDecorFitsSystemWindows(false) çağrısı yeterli.
     }
 }
