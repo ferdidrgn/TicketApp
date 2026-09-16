@@ -201,7 +201,7 @@ async function boot() {
 
   renderHero(shows, events, stages);
   renderMarquee(shows);
-  renderAbout(shows);
+  renderAbout(shows, players);
   renderPitchNoop();
   renderRepertoire(shows);
   renderTeam(curatedCast(shows, players), shows);
@@ -265,24 +265,31 @@ function storagePath(url) {
   try { return new URL(url).pathname; } catch { return url; }
 }
 
-function renderAbout(shows) {
+function renderAbout(shows, players) {
   const art = document.getElementById('aboutArt');
   const lead = shows.find((s) => s.imageUrl) || shows[0];
   const img1 = lead?.imageUrl || shows.find((s) => s.imageUrl)?.imageUrl;
   const path1 = storagePath(img1);
+  const isSame = (url) => storagePath(url) === path1;
 
-  // İkinci (öndeki) görsel için önce öne çıkan oyunun kendi galerisine
-  // bakılır; orada gerçekten farklı bir kare yoksa TÜM oyunların
-  // galeri+afiş görselleri tek bir havuzda toplanıp img1 ile AYNI Storage
-  // objesi olmayan ilk kare seçilir.
+  // Bazı oyunların "galeri" fotoğrafları da afişin kendisi (aynı tasarımın
+  // başka bir yüklemesi) olabiliyor — Storage yolu farklı olsa bile
+  // GÖRSEL OLARAK aynı afiş. Bu yüzden ikinci görsel için önce, öne çıkan
+  // oyunun kadrosundan gerçek bir oyuncu fotoğrafı deniyoruz (kesin olarak
+  // afişten farklı, ve hâlâ bu oyunla doğrudan ilgili bir kişi) — yoksa
+  // galeriye, yoksa tüm oyunların havuzuna düşüyoruz.
+  const castIds = new Set([...(lead?.nowPlayersId || []), ...(lead?.oldPlayersId || [])].filter(Boolean));
+  const castPhoto = players.find((p) => castIds.has(p.id) && p.imageUrl && !isSame(p.imageUrl))?.imageUrl;
+
   const ownGallery = (lead?.photosShowId || []).filter(Boolean);
   const allPool = [];
   shows.forEach((s) => {
     if (s.imageUrl) allPool.push(s.imageUrl);
     (s.photosShowId || []).forEach((url) => { if (url) allPool.push(url); });
   });
-  const img2 = ownGallery.find((url) => storagePath(url) !== path1)
-    || allPool.find((url) => storagePath(url) !== path1);
+  const img2 = castPhoto
+    || ownGallery.find((url) => !isSame(url))
+    || allPool.find((url) => !isSame(url));
 
   if (img1) art.style.setProperty('--about-img-1', `url("${img1}")`);
   if (img2) {
