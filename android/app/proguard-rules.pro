@@ -45,12 +45,19 @@
 -keep class io.flutter.plugin.editing.** { *; }
 
 # ------------------------------------------------------------------------------
-# 🔥 4. FIREBASE & GOOGLE SERSVİSLERİ MODÜLER GÜVENLİĞİ
+# 🔥 4. FIREBASE & GOOGLE SERVİSLERİ
 # ------------------------------------------------------------------------------
-# Firebase Analytics, Crashlytics ve Play Integrity sistem bileşenlerini koruma altına alır
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
--keepclassmembers class com.google.firebase.** { *; }
+# DİKKAT: Buradaki "-keep class com.google.firebase.** { *; }" ve
+# "-keep class com.google.android.gms.** { *; }" satırları KASITLI OLARAK
+# SİLİNDİ. Firebase/Google Play Services SDK'ları kendi consumer-proguard
+# kurallarını AAR'ları içinde zaten taşıyor ve Gradle bunları otomatik
+# uyguluyor — uygulama seviyesinde tekrar tüm paketi (*, tüm üyeleriyle)
+# tutmak sadece kod karartmayı (obfuscation) etkisiz kılıyordu. Google
+# Play Console'un "DEX kodu optimizasyonu %19, eşiğin altında" uyarısının
+# ana sebebi buydu — gms tek başına DEX'in büyük bir kısmını oluşturuyor.
+# Build/uyarı gürültüsünü önlemek için -dontwarn'lar yeterli, ayrıca kalıyor.
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
 
 # Google Play Güvenlik Duvarı ve App Check bütünlük kontrolü (Play Integrity)
 -keep class com.google.android.play.core.** { *; }
@@ -58,8 +65,10 @@
 # ------------------------------------------------------------------------------
 # ☕ 5. KOTLIN STANDART KÜTÜPHANESİ VE LIFECYCLE KORUMALARI
 # ------------------------------------------------------------------------------
-# Kotlin asenkron süreçlerinin ve StateFlow yapılarının karartma esnasında bozulmasını önler
--keep class kotlin.** { *; }
+# "-keep class kotlin.** { *; }" da aynı sebeple kaldırıldı — R8/Kotlin'in
+# resmi varsayılan kuralları sadece Metadata'yı korumayı gerektirir, tüm
+# stdlib'i değil. Asenkron/StateFlow yapıları için gerçekten gereken dar
+# kapsamlı korumalar (Metadata, WhenMappings) aynen kalıyor.
 -keep class kotlin.Metadata { *; }
 -dontwarn kotlin.**
 -keepclassmembers class **$WhenMappings { <fields>; }
@@ -127,19 +136,25 @@
 # ------------------------------------------------------------------------------
 # 🎯 11. UYGULAMA PAKET KORUMASI (TICKETAPP ÖZEL)
 # ------------------------------------------------------------------------------
-# com.ferdidrgn.saglamspot yerine projenizin orijinal kök dizini tam korumaya alınıyor
--keep class com.ferdidrgn.ticketapp.** { *; }
-
+# "-keep class com.ferdidrgn.ticketapp.** { *; }" de KASITLI OLARAK
+# kaldırıldı — Play Console'un obfuscation metriği özellikle UYGULAMANIN
+# KENDİ kodunun karartılıp karartılmadığına bakıyor; bu satır tüm kendi
+# kodumuzu (kategori/business logic dahil) karartmadan muaf tutuyordu.
+# Gerçekte native tarafta yalnızca MainActivity var ve o zaten aşağıdaki
+# "extends android.app.Activity" kuralıyla korunuyor; başka bir şeyin
+# reflection ile isme göre çağrıldığına dair bir iz yok.
 # JSON/Dart model eşleşmelerinin (Data Transfer Objects) patlamaması için alan adlarını koru
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
 # ------------------------------------------------------------------------------
-# 📢 12. ADMOB MONETIZATION SENSITIVE LAYER
+# 📢 12. ADMOB
 # ------------------------------------------------------------------------------
-# Google AdMob reklam banner ve interstitial API'larının karartılmasını engeller
--keep class com.google.android.gms.ads.** { *; }
+# Google Mobile Ads SDK da kendi consumer-proguard kurallarını AAR'ı
+# içinde taşıyor (resmi AdMob Android dokümantasyonu manuel keep kuralı
+# gerekmediğini açıkça belirtiyor) — aynı sebeple blanket keep kaldırıldı,
+# sadece build uyarılarını susturan -dontwarn kalıyor.
 -dontwarn com.google.android.gms.ads.**
 
 # ------------------------------------------------------------------------------

@@ -48,34 +48,52 @@ class OptimizedCachedImage extends StatelessWidget {
     final double effectiveRadius =
         isCircular ? (height ?? width ?? 50) / 2 : borderRadius;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(effectiveRadius),
-      child: CachedNetworkImage(
-        imageUrl: imageUrl,
-        width: width,
-        height: height,
-        fit: fit,
-        fadeInCurve: Curves.easeOut,
-        fadeInDuration: const Duration(milliseconds: 300),
-        fadeOutDuration: const Duration(milliseconds: 300),
+    // 📉 Bitmap Alt Örnekleme (subsampling): width/height açıkça
+    // verilmediğinde (ör. Stack(fit: StackFit.expand) içindeki mozaik
+    // kartları), ebeveynin gerçek constraint'lerini bellek boyutu
+    // hesaplamasına yedek olarak kullanıyoruz — aksi halde görsel,
+    // ekranda kapladığı küçük alandan bağımsız olarak tam çözünürlükte
+    // belleğe decode edilir (Play Console "bitmap subsampling" uyarısı
+    // tam olarak bunu işaret ediyor). Gerçekten sınırsız alanlarda
+    // (ör. tam ekran zoom görüntüleyici) constraint sonsuz kalır ve
+    // bilinçli olarak subsampling uygulanmaz.
+    return LayoutBuilder(
+      builder: (final context, final constraints) {
+        final double? cacheWidth =
+            width ?? (constraints.maxWidth.isFinite ? constraints.maxWidth : null);
+        final double? cacheHeight = height ??
+            (constraints.maxHeight.isFinite ? constraints.maxHeight : null);
 
-        // Bellek Optimizasyonu
-        memCacheHeight: _calculateCacheSize(context, height),
-        memCacheWidth: _calculateCacheSize(context, width),
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(effectiveRadius),
+          child: CachedNetworkImage(
+            imageUrl: imageUrl,
+            width: width,
+            height: height,
+            fit: fit,
+            fadeInCurve: Curves.easeOut,
+            fadeInDuration: const Duration(milliseconds: 300),
+            fadeOutDuration: const Duration(milliseconds: 300),
 
-        // Yükleniyor (Shimmer)
-        placeholder: (final context, final url) => ShimmerLoading(
-          width: width ?? double.infinity,
-          height: height ?? double.infinity,
-          borderRadius: effectiveRadius,
-          isCircular: isCircular,
-        ),
+            // Bellek Optimizasyonu
+            memCacheHeight: _calculateCacheSize(context, cacheHeight),
+            memCacheWidth: _calculateCacheSize(context, cacheWidth),
 
-        // Hata Durumu
-        errorWidget: errorBuilder ??
-            (final context, final url, final error) =>
-                _buildErrorWidget(context),
-      ),
+            // Yükleniyor (Shimmer)
+            placeholder: (final context, final url) => ShimmerLoading(
+              width: width ?? double.infinity,
+              height: height ?? double.infinity,
+              borderRadius: effectiveRadius,
+              isCircular: isCircular,
+            ),
+
+            // Hata Durumu
+            errorWidget: errorBuilder ??
+                (final context, final url, final error) =>
+                    _buildErrorWidget(context),
+          ),
+        );
+      },
     );
   }
 
