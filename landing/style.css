@@ -288,24 +288,59 @@ section{position:relative;}
 .venue__addr{font-size:12.5px; color:var(--ivory-dim); line-height:1.5; margin-top:4px;}
 .venue__cap{font-size:10.5px; color:var(--coral-light); margin-top:6px; font-weight:700; text-transform:uppercase;}
 
-/* ═══════════════ PRÖMİYER (Kadınlık Bizde Kalsın) ═══════════════ */
-.premiere{background:var(--pine-deep); color:var(--ivory); padding:clamp(70px,9vw,110px) clamp(20px,4vw,56px); display:grid; grid-template-columns:.8fr 1.2fr; gap:44px; align-items:center;}
-.premiere__poster{--premiere-img:none; aspect-ratio:3/4; border-radius:4px 34px 4px 34px; background:var(--premiere-img) center/cover no-repeat, linear-gradient(150deg, var(--pine-mid), var(--pine-deep)); box-shadow:0 26px 54px rgba(8,23,18,.5);}
-.premiere__pill{display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:1.8px; color:var(--pine-deep); background:linear-gradient(120deg, var(--coral-light), var(--coral-deep)); padding:5px 14px; border-radius:2px 10px;}
-.premiere__title{font-family:var(--serif); font-weight:500; font-size:clamp(26px,4vw,40px); margin-top:16px;}
-.premiere__desc{font-size:14px; line-height:1.8; color:var(--ivory-dim); margin-top:14px; max-width:52ch;}
-.premiere__media{display:flex; gap:18px; margin-top:30px; flex-wrap:wrap;}
-.ytcard{position:relative; flex:1 1 260px; aspect-ratio:16/9; border-radius:4px 20px; overflow:hidden; background:var(--pine-mid); display:flex; align-items:center; justify-content:center;}
-.ytcard__thumb{position:absolute; inset:0; background-size:cover; background-position:center; opacity:.75; transition:opacity .3s, transform .5s var(--ease);}
-.ytcard:hover .ytcard__thumb{opacity:.55; transform:scale(1.04);}
-.ytcard::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,23,18,.15), rgba(8,23,18,.75));}
-.ytcard__play{position:relative; z-index:2; width:56px; height:56px; border-radius:50%; background:rgba(8,23,18,.55); border:2px solid var(--coral-light); display:flex; align-items:center; justify-content:center; color:var(--coral-light); transition:transform .25s var(--ease), background .25s;}
-.ytcard:hover .ytcard__play{transform:scale(1.08); background:var(--coral);}
-.ytcard__cap{position:absolute; left:14px; bottom:12px; z-index:2; font-size:11px; font-weight:700; letter-spacing:.5px; color:var(--ivory-dim);}
-.audiocard{flex:1 1 260px; background:var(--pine-mid); border:1px solid var(--pine-line-strong); border-radius:4px 20px; padding:18px; display:flex; flex-direction:column; gap:12px; justify-content:center;}
-.audiocard__label{font-size:10.5px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase; color:var(--coral-light);}
-.audiocard audio{width:100%;}
-@media (max-width:820px){ .premiere{grid-template-columns:1fr;} .premiere__poster{max-width:280px; margin:0 auto;} }
+/* ═══════════════ PRÖMİYER ARŞİVİ — sekmeli medya sahnesi ═══════════════
+   Tek bir oyuna sabitlenmiş eski "Prömiyer" bölümünün yerine, mediaLinks
+   alanı dolu HER oyunun kendi sekmesi olduğu, tıklanınca o oyunun video/
+   ses kayıtlarını gösteren dinamik bir arşiv. Yeni oyun eklendikçe kendi
+   kendine büyür — kod tarafında hiçbir şey sabit değil. */
+.mediastage{background:var(--pine-deep); color:var(--ivory); padding:clamp(70px,9vw,110px) 0;}
+.mediastage__wrap{max-width:1400px; margin:0 auto; padding:0 clamp(20px,4vw,56px); display:grid; grid-template-columns:280px 1fr; gap:28px; align-items:start;}
+.mediastage__tabs{display:flex; flex-direction:column; gap:10px;}
+.mediatab{display:flex; align-items:center; gap:14px; padding:10px; border-radius:4px 16px; background:var(--pine-mid); border:1px solid transparent; cursor:pointer; text-align:left; transition:background .25s, border-color .25s, transform .25s; font-family:var(--sans); color:var(--ivory);}
+.mediatab:hover{transform:translateX(4px);}
+.mediatab.is-active{background:linear-gradient(120deg, rgba(232,92,63,.24), rgba(232,92,63,.06)); border-color:var(--coral);}
+.mediatab__thumb{width:46px; height:46px; border-radius:50%; object-fit:cover; flex:none; border:2px solid var(--pine-line-strong);}
+.mediatab__thumb--ph{display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; background:var(--pine-line); color:var(--ivory-dim);}
+.mediatab__info{min-width:0;}
+.mediatab__name{font-family:var(--serif); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.mediatab__meta{font-size:9.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--coral-light); margin-top:3px;}
+.mediastage__panel{position:relative; overflow:hidden; background:var(--pine-mid); border-radius:4px 30px; padding:clamp(26px,3.4vw,44px); min-height:360px; display:flex; flex-direction:column; justify-content:center; gap:22px;}
+.mediastage__panel::before{content:''; position:absolute; inset:0; background:var(--stage-bg,none) center/cover no-repeat; opacity:.14; filter:blur(1px); pointer-events:none;}
+.mediastage__panel::after{content:''; position:absolute; inset:0; background:linear-gradient(160deg, rgba(27,58,38,.5), rgba(8,23,18,.85)); pointer-events:none;}
+.mediastage__head{position:relative; z-index:1;}
+.mediastage__pill{display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:1.6px; color:var(--pine-deep); background:linear-gradient(120deg, var(--coral-light), var(--coral-deep)); padding:5px 14px; border-radius:2px 10px;}
+.mediastage__cards{position:relative; z-index:1; display:flex; gap:18px; flex-wrap:wrap;}
+.mediashow{position:relative; flex:1 1 300px; aspect-ratio:16/9; border-radius:4px 20px; overflow:hidden; background:var(--pine-deep); display:flex; align-items:flex-end; justify-content:flex-start;}
+.mediashow__thumb{position:absolute; inset:0; background-size:cover; background-position:center; opacity:.75; transition:opacity .3s, transform .5s var(--ease);}
+.mediashow:hover .mediashow__thumb{opacity:.55; transform:scale(1.05);}
+.mediashow::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,23,18,.1), rgba(8,23,18,.8));}
+.mediashow__play{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; width:58px; height:58px; border-radius:50%; background:rgba(8,23,18,.55); border:2px solid var(--coral-light); display:flex; align-items:center; justify-content:center; color:var(--coral-light); transition:transform .25s var(--ease), background .25s;}
+.mediashow:hover .mediashow__play{transform:translate(-50%,-50%) scale(1.1); background:var(--coral);}
+.mediashow__title{position:relative; z-index:2; padding:14px; font-size:12.5px; font-weight:700; color:var(--ivory);}
+/* ── Özel ses oynatıcı: yerli <audio controls> yerine, ışık paneli /
+   ekolayzer hissi veren markalı bir kart. ── */
+.mediaplayer{flex:1 1 300px; background:rgba(8,23,18,.55); border:1px solid var(--pine-line-strong); border-radius:4px 20px; padding:18px 20px; display:flex; align-items:center; gap:16px;}
+.mediaplayer__play{flex:none; width:48px; height:48px; border-radius:50%; background:var(--coral); border:none; color:var(--pine-deep); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .2s var(--ease), background .2s;}
+.mediaplayer__play:hover{transform:scale(1.08); background:var(--coral-light);}
+/* Tarayıcılar SVG (HTML olmayan ad alanı) elemanlarında "hidden" niteliğine
+   her zaman display:none uygulamıyor — burada açıkça zorluyoruz. */
+.mediaplayer__play svg[hidden]{display:none;}
+.mediaplayer__info{flex:1; min-width:0;}
+.mediaplayer__title{font-size:12.5px; font-weight:700; color:var(--ivory); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.mediaplayer__bars{display:flex; align-items:flex-end; gap:3px; height:18px; margin-top:8px;}
+.mediaplayer__bars span{width:3px; height:20%; background:var(--coral-light); border-radius:2px; transition:height .2s;}
+.mediaplayer.is-playing .mediaplayer__bars span{animation:barPulse 1s ease-in-out infinite;}
+.mediaplayer.is-playing .mediaplayer__bars span:nth-child(1){animation-delay:0s;}
+.mediaplayer.is-playing .mediaplayer__bars span:nth-child(2){animation-delay:.15s;}
+.mediaplayer.is-playing .mediaplayer__bars span:nth-child(3){animation-delay:.3s;}
+.mediaplayer.is-playing .mediaplayer__bars span:nth-child(4){animation-delay:.1s;}
+.mediaplayer.is-playing .mediaplayer__bars span:nth-child(5){animation-delay:.25s;}
+@keyframes barPulse{0%,100%{height:20%;} 50%{height:100%;}}
+@media (max-width:820px){
+  .mediastage__wrap{grid-template-columns:1fr;}
+  .mediastage__tabs{flex-direction:row; overflow-x:auto; padding-bottom:6px;}
+  .mediatab{flex:0 0 auto; width:130px;}
+}
 
 /* ═══════════════ BİLET KENARI AYRACI (perforasyon motifi) ═══════════════ */
 .perf{height:18px; background:var(--pine-deep);
@@ -360,20 +395,6 @@ section{position:relative;}
 .footer__legal-links a:hover{color:var(--ivory);}
 @media (max-width:900px){ .footer__top{grid-template-columns:1fr 1fr 1fr;} }
 @media (max-width:600px){ .footer__top{grid-template-columns:1fr 1fr;} }
-
-/* ═══════════════ VIDEO RÖPORTAJLAR (interviews) ═══════════════ */
-.interviews{background:var(--pine); color:var(--ivory); padding:clamp(70px,9vw,110px) 0;}
-.interviews__grid{max-width:1400px; margin:0 auto; padding:0 clamp(20px,4vw,56px); display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:20px;}
-.ivcard{position:relative; aspect-ratio:16/9; border-radius:4px 20px; overflow:hidden; background:var(--pine-mid); display:flex; align-items:center; justify-content:center;}
-.ivcard__thumb{position:absolute; inset:0; background-size:cover; background-position:center; opacity:.7; transition:opacity .3s, transform .5s var(--ease);}
-.ivcard:hover .ivcard__thumb{opacity:.5; transform:scale(1.05);}
-.ivcard::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,23,18,.1), rgba(8,23,18,.8));}
-.ivcard__play{position:relative; z-index:2; width:50px; height:50px; border-radius:50%; background:rgba(8,23,18,.55); border:2px solid var(--coral-light); display:flex; align-items:center; justify-content:center; color:var(--coral-light); transition:transform .25s var(--ease), background .25s;}
-.ivcard:hover .ivcard__play{transform:scale(1.08); background:var(--coral);}
-.ivcard__title{position:absolute; left:14px; right:14px; bottom:12px; z-index:2; font-size:12.5px; font-weight:700; color:var(--ivory);}
-.ivcard--audio{position:static; aspect-ratio:auto; background:var(--pine-mid); border:1px solid var(--pine-line-strong); padding:18px; display:flex; flex-direction:column; gap:12px; justify-content:center;}
-.ivcard__audioLabel{font-size:11.5px; font-weight:700; letter-spacing:.3px; color:var(--coral-light);}
-.ivcard--audio audio{width:100%;}
 
 /* ═══════════════ BASINDA BİZ (press) ═══════════════ */
 .press{background:var(--ivory); padding:clamp(70px,9vw,110px) 0;}

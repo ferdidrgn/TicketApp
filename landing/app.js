@@ -207,8 +207,7 @@ async function boot() {
   renderNotes(shows);
   renderGallery(shows);
   renderVenues(stages);
-  renderPremiere(shows);
-  renderVideoInterviews(shows);
+  renderMediaStage(shows);
   renderPress();
   renderAwards();
   renderQuote(players);
@@ -466,46 +465,6 @@ function renderVenues(stages) {
   }).join('');
 }
 
-const KADINLIK_YT_ID = 'joEK2NmpwuM';
-const KADINLIK_YT_URL = `https://www.youtube.com/watch?v=${KADINLIK_YT_ID}&t=699s`;
-const KADINLIK_AUDIO_URL = 'https://firebasestorage.googleapis.com/v0/b/ticketappflutter.appspot.com/o/voices%2Fgoz_kap_vaz_yap_bakirkoyde_hastane.mp3?alt=media&token=deb93736-6fd8-45eb-8c8b-8a8f298e5b14';
-
-/** Prömiyer bölümü: "Kadınlık Bizde Kalsın" gerçek Show kaydı varsa afişi ve
- * tanıtımı ondan çeker. YouTube videosu oyunun ilk gösterim (prömiyer)
- * kaydıdır — fragman değildir. Ses kaydı ise "Göz Kap Vaz Yap" oyununa
- * aittir, Kadınlık Bizde Kalsın'a değil. */
-function renderPremiere(shows) {
-  const section = document.getElementById('premiere');
-  if (!section) return;
-  const show = shows.find((s) => (s.name || '').toLowerCase().includes('kadınlık'));
-  const poster = document.getElementById('premierePoster');
-  const title = document.getElementById('premiereTitle');
-  const desc = document.getElementById('premiereDesc');
-
-  title.textContent = show?.name || 'Kadınlık Bizde Kalsın';
-  desc.textContent = show?.description || 'Prömiyerimizin ilk gösterim kaydını izleyin ve Göz Kap Vaz Yap oyunumuzdan bir sahne sesi dinleyin.';
-  if (show?.imageUrl) poster.style.setProperty('--premiere-img', `url("${esc(show.imageUrl)}")`);
-
-  // mediaLinks alanı doldurulduysa oradan çekilir; yoksa mevcut sabit
-  // (Kadınlık Bizde Kalsın prömiyeri / Göz Kap Vaz Yap sesi) linklere düşülür.
-  const links = mediaLinksOf(show);
-  const ytLink_ = links.find((l) => l.type === 'youtube' && l.featured) || links.find((l) => l.type === 'youtube');
-  const audioLink_ = links.find((l) => l.type === 'audio' && l.featured) || links.find((l) => l.type === 'audio');
-  const ytId = (ytLink_ && youtubeIdFromUrl(ytLink_.url)) || KADINLIK_YT_ID;
-  const ytUrl = ytLink_?.url || KADINLIK_YT_URL;
-  const audioUrl = audioLink_?.url || KADINLIK_AUDIO_URL;
-  const audioLabel = audioLink_?.title || 'Göz Kap Vaz Yap — Sahne Sesi';
-
-  const ytThumb = document.getElementById('premiereYtThumb');
-  if (ytThumb) ytThumb.style.backgroundImage = `url("https://img.youtube.com/vi/${ytId}/hqdefault.jpg")`;
-  const ytLink = document.getElementById('premiereYtLink');
-  if (ytLink) ytLink.href = ytUrl;
-  const audio = document.getElementById('premiereAudio');
-  if (audio) audio.src = audioUrl;
-  const audioLabelEl = document.getElementById('premiereAudioLabel');
-  if (audioLabelEl) audioLabelEl.textContent = audioLabel;
-}
-
 function renderQuote(players) {
   const withQuote = players.filter((p) => p.quote && p.quote.trim());
   if (!withQuote.length) return;
@@ -514,42 +473,108 @@ function renderQuote(players) {
   document.getElementById('quoteAttr').textContent = `— ${p.firstName ?? ''} ${p.lastName ?? ''}`.trim();
 }
 
-/** Tüm oyunların mediaLinks alanındaki YouTube kayıtlarını (röportaj,
- * sahne arkası vb.) tek bir video ızgarasında toplar. Oyunlara link
- * eklendikçe bu bölüm otomatik büyür. */
-function renderVideoInterviews(shows) {
-  const section = document.getElementById('interviews');
-  const grid = document.getElementById('interviewsGrid');
-  if (!section || !grid) return;
-  const videos = [];
-  const audios = [];
-  shows.forEach((s) => mediaLinksOf(s).forEach((l) => {
-    if (l.type === 'youtube' && l.url) videos.push({ show: s, link: l });
-    else if (l.type === 'audio' && l.url) audios.push({ show: s, link: l });
-  }));
-  if (!videos.length && !audios.length) { grid.innerHTML = `<div class="empty empty--light">Video röportajlarımız ve sahne seslerimiz yakında burada.</div>`; return; }
+/** "Prömiyer Arşivi" — mediaLinks alanı dolu HER oyun kendi sekmesini
+ * alır (afiş küçük resmiyle), sekmeye tıklanınca sağdaki panel o oyunun
+ * video/ses kayıtlarını gösterir. Tek bir oyuna (örn. Kadınlık Bizde
+ * Kalsın) sabitlenmiş eski tasarımın yerine geçti — veri büyüdükçe
+ * kendiliğinden büyüyen, sekme sekme gezilen bir medya sahnesi. */
+function renderMediaStage(shows) {
+  const tabsEl = document.getElementById('mediaTabs');
+  const panelEl = document.getElementById('mediaPanel');
+  if (!tabsEl || !panelEl) return;
 
-  const videoCards = videos.map(({ show, link }) => {
-    const id = youtubeIdFromUrl(link.url);
-    const thumb = id ? `background-image:url('https://img.youtube.com/vi/${id}/hqdefault.jpg')` : '';
-    const title = esc(link.title || show.name || 'Video');
-    return `<a class="ivcard reveal" href="${esc(link.url)}" target="_blank" rel="noopener" data-cursor-hover>
-      <div class="ivcard__thumb" style="${thumb}"></div>
-      <div class="ivcard__play"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></div>
-      <p class="ivcard__title">${title}</p>
-    </a>`;
+  const entries = shows
+    .map((show) => ({ show, links: mediaLinksOf(show) }))
+    .filter((e) => e.links.length);
+
+  if (!entries.length) {
+    tabsEl.innerHTML = '';
+    panelEl.innerHTML = `<div class="empty empty--light">Sahne arkası video ve ses kayıtlarımız yakında burada.</div>`;
+    return;
+  }
+
+  const metaFor = (links) => {
+    const hasVideo = links.some((l) => l.type === 'youtube');
+    const hasAudio = links.some((l) => l.type === 'audio');
+    return [hasVideo ? '▶ Video' : null, hasAudio ? '♪ Ses' : null].filter(Boolean).join(' · ');
+  };
+
+  function showPanel(i) {
+    const { show, links } = entries[i];
+    panelEl.style.setProperty('--stage-bg', show.imageUrl ? `url("${esc(show.imageUrl)}")` : 'none');
+
+    const cards = links.map((link) => {
+      if (link.type === 'youtube') {
+        const id = youtubeIdFromUrl(link.url);
+        const thumb = id ? `background-image:url('https://img.youtube.com/vi/${id}/hqdefault.jpg')` : '';
+        return `<a class="mediashow" href="${esc(link.url)}" target="_blank" rel="noopener" data-cursor-hover>
+          <div class="mediashow__thumb" style="${thumb}"></div>
+          <div class="mediashow__play"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></div>
+          <p class="mediashow__title">${esc(link.title || 'Video')}</p>
+        </a>`;
+      }
+      if (link.type === 'audio') {
+        return `<div class="mediaplayer" data-src="${esc(link.url)}">
+          <button type="button" class="mediaplayer__play" aria-label="Oynat">
+            <svg class="ico-play" viewBox="0 0 24 24" width="16" height="16"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+            <svg class="ico-pause" viewBox="0 0 24 24" width="16" height="16" hidden><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+          </button>
+          <div class="mediaplayer__info">
+            <p class="mediaplayer__title">${esc(link.title || 'Sahne Sesi')}</p>
+            <div class="mediaplayer__bars"><span></span><span></span><span></span><span></span><span></span></div>
+          </div>
+        </div>`;
+      }
+      return '';
+    }).join('');
+
+    panelEl.innerHTML = `
+      <div class="mediastage__head"><span class="mediastage__pill">${esc(show.name || '')}</span></div>
+      <div class="mediastage__cards">${cards}</div>
+    `;
+
+    panelEl.querySelectorAll('.mediaplayer').forEach((el) => {
+      const audio = new Audio(el.dataset.src);
+      const btn = el.querySelector('.mediaplayer__play');
+      const iconPlay = el.querySelector('.ico-play');
+      const iconPause = el.querySelector('.ico-pause');
+      btn.addEventListener('click', () => {
+        if (audio.paused) {
+          document.querySelectorAll('audio').forEach((a) => { if (a !== audio) a.pause(); });
+          audio.play().catch(() => {});
+        } else {
+          audio.pause();
+        }
+      });
+      const onPlay = () => { el.classList.add('is-playing'); iconPlay.hidden = true; iconPause.hidden = false; };
+      const onStop = () => { el.classList.remove('is-playing'); iconPlay.hidden = false; iconPause.hidden = true; };
+      audio.addEventListener('play', onPlay);
+      audio.addEventListener('pause', onStop);
+      audio.addEventListener('ended', onStop);
+    });
+  }
+
+  tabsEl.innerHTML = entries.map((e, i) => {
+    const thumb = e.show.imageUrl
+      ? `<img class="mediatab__thumb" src="${esc(e.show.imageUrl)}" alt="" />`
+      : `<div class="mediatab__thumb mediatab__thumb--ph">${esc((e.show.name || '?')[0])}</div>`;
+    return `<button type="button" class="mediatab${i === 0 ? ' is-active' : ''}" data-i="${i}">
+      ${thumb}
+      <div class="mediatab__info">
+        <p class="mediatab__name">${esc(e.show.name || '')}</p>
+        <p class="mediatab__meta">${metaFor(e.links)}</p>
+      </div>
+    </button>`;
   }).join('');
 
-  const audioCards = audios.map(({ show, link }) => {
-    const title = esc(link.title || show.name || 'Sahne Sesi');
-    const showName = esc(show.name || '');
-    return `<div class="ivcard ivcard--audio reveal">
-      <span class="ivcard__audioLabel">${showName ? `${showName} — ` : ''}${title}</span>
-      <audio controls preload="none" src="${esc(link.url)}"></audio>
-    </div>`;
-  }).join('');
+  tabsEl.querySelectorAll('.mediatab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tabsEl.querySelectorAll('.mediatab').forEach((b) => b.classList.toggle('is-active', b === btn));
+      showPanel(Number(btn.dataset.i));
+    });
+  });
 
-  grid.innerHTML = videoCards + audioCards;
+  showPanel(0);
 }
 
 function renderPress() {
