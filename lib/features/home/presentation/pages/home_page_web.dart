@@ -66,7 +66,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(final BuildContext context) {
     final campaignState = ref.watch(campaignsProvider);
-    final showState = ref.watch(showsProvider(isLimit: true));
+    // Sadece takviminde gelecek etkinliği olan ("aktif") oyunlar — geçmiş
+    // sezonlarda kalmış oyunlar ana sayfada/önerilerde görünmemeli.
+    final showState = ref.watch(activeShowsProvider(true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
 
     final bool isLoading =
@@ -89,7 +91,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               message: 'Sahne verileri yüklenirken bir sorun oluştu.',
               onRetry: () {
                 ref.invalidate(campaignsProvider);
-                ref.invalidate(showsProvider);
+                ref.invalidate(activeShowsProvider);
                 ref.invalidate(stagesProvider);
               },
             )
