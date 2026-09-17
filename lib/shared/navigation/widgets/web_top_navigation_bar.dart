@@ -1,13 +1,20 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// 💻 WEB TOP NAVIGATION BAR
 ///
-/// Üst kısımda sabit duran navigation bar
-/// Home, Keşfet, Yakındakiler, Profil sekmelerini içerir
+/// Üst kısımda sabit duran, tüm shell sekmelerini (Ana Sayfa, Keşfet,
+/// Yakındakiler, Profil) saran kalıcı gezinme çubuğu. "Çam & Mercan"
+/// (Pine & Coral) marka kimliğiyle, `landing/` tanıtım sitesiyle aynı
+/// dilde tasarlanmıştır (asimetrik köşeler, mercan vurgu, fildişi metin).
+///
+/// Navigasyon mantığı (goBranch, HapticFeedback, Scaffold+Column+Expanded
+/// iskeleti) birebir korunmuştur — sadece görsel kimlik değişti.
 
 class WebTopNavigationBar extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -34,6 +41,7 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
   @override
   Widget build(final BuildContext context) {
     return Scaffold(
+      backgroundColor: WebColors.darkBlueBackground,
       body: Column(
         children: [
           // TOP NAVIGATION BAR
@@ -47,59 +55,60 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
   }
 
   Widget _buildTopBar(final BuildContext context) {
-    final accentColor = context.colors.primary;
-    final isDark = context.isDarkMode;
-
-    return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        color: context.scaffoldBackgroundColor,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.1),
-            width: 1,
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          height: 84,
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface.withOpacity(0.92),
+            border: const Border(
+              bottom: BorderSide(color: WebColors.darkBlueAccent, width: 1),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: WebColors.veryDarkBlue.withOpacity(0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1600),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.responsive(
+                    mobile: 20.0,
+                    tablet: 40.0,
+                    desktop: 56.0,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // LOGO
+                    _buildLogo(context),
+
+                    const Spacer(),
+
+                    // NAVIGATION ITEMS
+                    _buildNavItems(context),
+
+                    SizedBox(width: context.spacing * 2),
+
+                    // PROFILE / LOGIN BUTTON
+                    _buildProfileButton(context),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.responsive(
-            mobile: 20.0,
-            tablet: 40.0,
-            desktop: 60.0,
-          ),
-        ),
-        child: Row(
-          children: [
-            // LOGO
-            _buildLogo(context, accentColor, isDark),
-
-            const Spacer(),
-
-            // NAVIGATION ITEMS
-            _buildNavItems(context, accentColor, isDark),
-
-            SizedBox(width: context.spacing * 2),
-
-            // PROFILE / LOGIN BUTTON
-            _buildProfileButton(context, accentColor),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildLogo(
-      final BuildContext context, final Color accentColor, final bool isDark) {
+  Widget _buildLogo(final BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -107,16 +116,39 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: accentColor,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(2),
+                  topRight: Radius.circular(14),
+                  bottomLeft: Radius.circular(2),
+                  bottomRight: Radius.circular(14),
+                ),
+                border: Border.all(
+                    color: WebColors.primaryGold.withOpacity(0.55), width: 1.4),
               ),
-              child: const Icon(
-                Icons.theater_comedy,
-                color: Colors.white,
-                size: 24,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(1),
+                  topRight: Radius.circular(13),
+                  bottomLeft: Radius.circular(1),
+                  bottomRight: Radius.circular(13),
+                ),
+                child: Image.asset(
+                  'assets/images/tiyatrol_logo.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (final context, final error, final stackTrace) =>
+                      Container(
+                    color: WebColors.primaryGold,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.theater_comedy_rounded,
+                      color: WebColors.veryDarkBlue,
+                      size: 22,
+                    ),
+                  ),
+                ),
               ),
             ),
             SizedBox(width: context.spacing),
@@ -125,19 +157,23 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "TicketApp",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black,
+                  "TiyatRol",
+                  style: (context.textTheme.titleLarge ?? const TextStyle())
+                      .copyWith(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                    color: WebColors.whiteText,
+                    height: 1.0,
                   ),
                 ),
-                Text(
-                  "Sanat & Kültür",
+                const SizedBox(height: 2),
+                const Text(
+                  "SANAT & KÜLTÜR",
                   style: TextStyle(
-                    fontSize: 10,
-                    color: accentColor,
-                    letterSpacing: 1,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: WebColors.primaryGoldLight,
+                    letterSpacing: 1.6,
                   ),
                 ),
               ],
@@ -148,8 +184,7 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
     );
   }
 
-  Widget _buildNavItems(
-      final BuildContext context, final Color accentColor, final bool isDark) {
+  Widget _buildNavItems(final BuildContext context) {
     final items = [
       {"label": "Ana Sayfa", "icon": Icons.home_rounded},
       {"label": "Keşfet", "icon": Icons.explore_rounded},
@@ -161,14 +196,12 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
       children: List.generate(items.length, (final index) {
         final item = items[index];
         return Padding(
-          padding: EdgeInsets.only(right: context.spacing),
+          padding: EdgeInsets.only(right: context.spacing * 0.5),
           child: _buildNavItem(
             context,
             label: item["label"] as String,
             icon: item["icon"] as IconData,
             index: index,
-            accentColor: accentColor,
-            isDark: isDark,
           ),
         );
       }),
@@ -180,11 +213,10 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
     required final String label,
     required final IconData icon,
     required final int index,
-    required final Color accentColor,
-    required final bool isDark,
   }) {
     final isSelected = widget.navigationShell.currentIndex == index;
     final isHovered = _hoveredIndex == index;
+    final bool highlighted = isSelected || isHovered;
 
     return MouseRegion(
       onEnter: (final _) => setState(() => _hoveredIndex = index),
@@ -194,39 +226,55 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
         onTap: () => _onItemTapped(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
-                ? accentColor.withOpacity(0.15)
+                ? WebColors.primaryGold.withOpacity(0.14)
                 : (isHovered
-                    ? accentColor.withOpacity(0.08)
+                    ? WebColors.primaryGold.withOpacity(0.06)
                     : Colors.transparent),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected
-                  ? accentColor.withOpacity(0.5)
-                  : Colors.transparent,
-              width: 1.5,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(2),
+              topRight: Radius.circular(14),
+              bottomLeft: Radius.circular(2),
+              bottomRight: Radius.circular(14),
             ),
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isSelected
-                    ? accentColor
-                    : (isDark ? Colors.white70 : Colors.black87),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 19,
+                    color: highlighted
+                        ? WebColors.primaryGoldLight
+                        : WebColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: highlighted
+                          ? WebColors.whiteText
+                          : WebColors.textSecondary,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected
-                      ? accentColor
-                      : (isDark ? Colors.white70 : Colors.black87),
+              const SizedBox(height: 6),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: 2,
+                width: isSelected ? 20 : 0,
+                decoration: BoxDecoration(
+                  color: WebColors.primaryGold,
+                  borderRadius: BorderRadius.circular(1),
                 ),
               ),
             ],
@@ -236,8 +284,7 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
     );
   }
 
-  Widget _buildProfileButton(
-      final BuildContext context, final Color accentColor) {
+  Widget _buildProfileButton(final BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -246,27 +293,39 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
           widget.navigationShell.goBranch(3); // Profil tab'ı
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [accentColor, accentColor.withOpacity(0.8)],
+            gradient: WebColors.goldButtonGradient,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(2),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(2),
+              bottomRight: Radius.circular(18),
             ),
-            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: WebColors.primaryGold.withOpacity(0.28),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.person_outline,
-                color: context.colors.onPrimary,
-                size: 20,
+              const Icon(
+                Icons.person_outline_rounded,
+                color: WebColors.veryDarkBlue,
+                size: 19,
               ),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 "Giriş Yap",
                 style: TextStyle(
-                  color: context.colors.onPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  color: WebColors.veryDarkBlue,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],

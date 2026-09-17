@@ -1,0 +1,952 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/custom_search_bar.dart';
+import '../../../../shared/widgets/global_error_widget.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../campaigns/presentation/providers/campaign_provider.dart';
+import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../stages/presentation/providers/stage_provider.dart';
+import '../widgets/web/home_campaign_rail.dart';
+import '../widgets/web/home_show_grid.dart';
+import '../widgets/web/home_stage_rail.dart';
+import '../widgets/web/reveal_on_scroll.dart';
+
+/// 🖥️ ANA SAYFA — MASAÜSTÜ/WEB
+///
+/// `home_page_mobile.dart`'ın bir büyütülmüş hali DEĞİL: sıfırdan, "gerçek
+/// bir bilet platformu masaüstünde nasıl görünür" sorusuna cevap veren bir
+/// kompozisyon. "Çam & Mercan" (Pine & Coral) tasarım sistemini kullanır ve
+/// `show_detail_page_web.dart` ile aynı kalite çıtasını hedefler.
+///
+/// Aynı Riverpod sağlayıcılarını okur (campaignsProvider, showsProvider,
+/// stagesProvider) — sahte veri yok.
+class HomePage extends ConsumerStatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _openSearch() => NavigationHandler.goToSearch(context);
+
+  void _goToTickets() {
+    if (ref.read(isLoggedInProvider)) {
+      final uid = ref.read(currentUserIdProvider);
+      NavigationHandler.goToMyTickets(context, uid ?? '');
+    } else {
+      NavigationHandler.goToLogin(context);
+    }
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final campaignState = ref.watch(campaignsProvider);
+    final showState = ref.watch(showsProvider(isLimit: true));
+    final stageState = ref.watch(stagesProvider(isLimit: true));
+
+    final bool isLoading =
+        campaignState.isLoading || showState.isLoading || stageState.isLoading;
+    final bool hasError =
+        campaignState.hasError || showState.hasError || stageState.hasError;
+
+    final campaigns = campaignState.value ?? const [];
+    final shows = showState.value ?? const [];
+    final stages = stageState.value ?? const [];
+
+    return BasePageWrapper(
+      showBackButton: false,
+      showFab: true,
+      customScrollController: _scrollController,
+      isLoading: isLoading && showState.value == null,
+      layoutConfig: const BasePageLayoutConfig(
+        backgroundColor: WebColors.darkBlueBackground,
+        ambientColor: Color(0x0DE85C3F), // WebColors.primaryGold @ ~5%
+        extendBody: true,
+      ),
+      child: hasError
+          ? GlobalErrorWidget(
+              isFullPage: false,
+              title: 'Perdeler Henüz Açılmadı',
+              message: 'Sahne verileri yüklenirken bir sorun oluştu.',
+              onRetry: () {
+                ref.invalidate(campaignsProvider);
+                ref.invalidate(showsProvider);
+                ref.invalidate(stagesProvider);
+              },
+            )
+          : SingleChildScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _HeroBand(
+                    onSearchTap: _openSearch,
+                    onDiscoverTap: () => NavigationHandler.goToDiscover(context),
+                    onNearbyTap: () => NavigationHandler.goToNearby(context),
+                    showCount: showState.value?.length,
+                    stageCount: stageState.value?.length,
+                    campaignCount: campaignState.value?.length,
+                  ),
+                  if (campaigns.isNotEmpty)
+                    RevealOnScroll(
+                      child: _Section(
+                        kicker: 'VİTRİN',
+                        title: 'Öne Çıkan Kampanyalar',
+                        child: HomeCampaignRail(
+                          campaigns: campaigns,
+                          onCampaignTap: (final index) =>
+                              NavigationHandler.goToCampaigns(context,
+                                  index: index),
+                        ),
+                      ),
+                    ),
+                  RevealOnScroll(
+                    delay: const Duration(milliseconds: 80),
+                    child: _Section(
+                      kicker: 'REPERTUAR',
+                      title: 'Sahnede Bu Sezon',
+                      trailingLabel: shows.isEmpty ? null : 'Tümünü Gör',
+                      onTrailingTap: () => NavigationHandler.goToDiscover(context),
+                      child: shows.isEmpty
+                          ? const _EmptyHint(
+                              text:
+                                  'Şu anda listelenecek bir oyun bulunmuyor. Yakında burada olacak.')
+                          : HomeShowGrid(
+                              shows: shows,
+                              onShowTap: (final show) =>
+                                  NavigationHandler.goToShow(
+                                      context, show.id, show.name),
+                            ),
+                    ),
+                  ),
+                  if (stages.isNotEmpty)
+                    RevealOnScroll(
+                      delay: const Duration(milliseconds: 80),
+                      child: _Section(
+                        kicker: 'MEKANLAR',
+                        title: 'Şehrin Sahneleri',
+                        child: HomeStageRail(
+                          stages: stages,
+                          onStageTap: (final stage) =>
+                              NavigationHandler.goToStage(
+                                  context, stage.id, stage.name),
+                        ),
+                      ),
+                    ),
+                  RevealOnScroll(
+                    child: _QuickLinksBand(
+                      onSearchTap: _openSearch,
+                      onFavoritesTap: () => NavigationHandler.goToFavorites(context),
+                      onTicketsTap: _goToTickets,
+                      onNearbyTap: () => NavigationHandler.goToNearby(context),
+                    ),
+                  ),
+                  const RevealOnScroll(child: _ClosingQuoteBand()),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAYLAŞILAN KÜÇÜK YARDIMCILAR
+// ═══════════════════════════════════════════════════════════════
+
+const BorderRadius _kAsymLg = BorderRadius.only(
+  topLeft: Radius.circular(6),
+  topRight: Radius.circular(32),
+  bottomLeft: Radius.circular(6),
+  bottomRight: Radius.circular(32),
+);
+
+const BorderRadius _kAsymSm = BorderRadius.only(
+  topLeft: Radius.circular(2),
+  topRight: Radius.circular(12),
+  bottomLeft: Radius.circular(2),
+  bottomRight: Radius.circular(12),
+);
+
+double _sectionPad(final BuildContext context) => context.responsive(
+      mobile: 20.0,
+      tablet: 40.0,
+      desktop: 64.0,
+      largeDesktop: 96.0,
+    );
+
+// ═══════════════════════════════════════════════════════════════
+// BÖLÜM (SECTION) ÇATISI
+// ═══════════════════════════════════════════════════════════════
+
+class _Section extends StatelessWidget {
+  final String kicker;
+  final String title;
+  final Widget child;
+  final String? trailingLabel;
+  final VoidCallback? onTrailingTap;
+
+  const _Section({
+    required this.kicker,
+    required this.title,
+    required this.child,
+    this.trailingLabel,
+    this.onTrailingTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: EdgeInsets.only(
+            top: context.responsive(mobile: 44.0, tablet: 52.0, desktop: 60.0)),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: _sectionPad(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              kicker,
+                              style: const TextStyle(
+                                color: WebColors.secondaryAccentLight,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 3,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              title,
+                              style: context.textTheme.headlineMedium?.copyWith(
+                                color: WebColors.whiteText,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (trailingLabel != null)
+                        _TextLink(label: trailingLabel!, onTap: onTrailingTap),
+                    ],
+                  ),
+                  SizedBox(
+                      height: context.responsive(
+                          mobile: 20.0, tablet: 26.0, desktop: 30.0)),
+                  child,
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _TextLink extends StatefulWidget {
+  final String label;
+  final VoidCallback? onTap;
+
+  const _TextLink({required this.label, this.onTap});
+
+  @override
+  State<_TextLink> createState() => _TextLinkState();
+}
+
+class _TextLinkState extends State<_TextLink> {
+  bool _hovered = false;
+
+  @override
+  Widget build(final BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (final _) => setState(() => _hovered = true),
+        onExit: (final _) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 180),
+            opacity: _hovered ? 1 : 0.75,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: WebColors.primaryGoldLight,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                AnimatedSlide(
+                  duration: const Duration(milliseconds: 180),
+                  offset: Offset(_hovered ? 0.2 : 0, 0),
+                  child: const Icon(Icons.arrow_forward_rounded,
+                      size: 15, color: WebColors.primaryGoldLight),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _EmptyHint extends StatelessWidget {
+  final String text;
+
+  const _EmptyHint({required this.text});
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: _kAsymLg,
+          border: Border.all(color: WebColors.darkBlueAccent),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: WebColors.textSecondary, fontSize: 15),
+        ),
+      );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HERO BANDI
+// ═══════════════════════════════════════════════════════════════
+
+class _HeroBand extends StatefulWidget {
+  final VoidCallback onSearchTap;
+  final VoidCallback onDiscoverTap;
+  final VoidCallback onNearbyTap;
+  final int? showCount;
+  final int? stageCount;
+  final int? campaignCount;
+
+  const _HeroBand({
+    required this.onSearchTap,
+    required this.onDiscoverTap,
+    required this.onNearbyTap,
+    required this.showCount,
+    required this.stageCount,
+    required this.campaignCount,
+  });
+
+  @override
+  State<_HeroBand> createState() => _HeroBandState();
+}
+
+class _HeroBandState extends State<_HeroBand>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _glowController = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 6),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(gradient: WebColors.backgroundGradient),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -140,
+              right: -80,
+              child: AnimatedBuilder(
+                animation: _glowController,
+                builder: (final context, final child) => Opacity(
+                  opacity: 0.18 + _glowController.value * 0.10,
+                  child: child,
+                ),
+                child: Container(
+                  width: 420,
+                  height: 420,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [WebColors.primaryGold, Colors.transparent],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                _sectionPad(context),
+                context.responsive(mobile: 40.0, tablet: 56.0, desktop: 72.0),
+                _sectionPad(context),
+                context.responsive(mobile: 40.0, tablet: 48.0, desktop: 56.0),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1400),
+                  child: LayoutBuilder(
+                    builder: (final context, final constraints) {
+                      final bool wide = constraints.maxWidth >= 980;
+                      final left = _HeroCopy(
+                        onSearchTap: widget.onSearchTap,
+                        onDiscoverTap: widget.onDiscoverTap,
+                        onNearbyTap: widget.onNearbyTap,
+                      );
+                      final right = _HeroStatsPanel(
+                        showCount: widget.showCount,
+                        stageCount: widget.stageCount,
+                        campaignCount: widget.campaignCount,
+                      );
+
+                      if (!wide)
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            left,
+                            const SizedBox(height: 36),
+                            right,
+                          ],
+                        );
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 3, child: left),
+                          const SizedBox(width: 56),
+                          Expanded(flex: 2, child: right),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _HeroCopy extends StatelessWidget {
+  final VoidCallback onSearchTap;
+  final VoidCallback onDiscoverTap;
+  final VoidCallback onNearbyTap;
+
+  const _HeroCopy({
+    required this.onSearchTap,
+    required this.onDiscoverTap,
+    required this.onNearbyTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              border: Border.all(color: WebColors.primaryGold.withOpacity(0.5)),
+              borderRadius: _kAsymSm,
+            ),
+            child: const Text(
+              'TİYATROL',
+              style: TextStyle(
+                color: WebColors.primaryGoldLight,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            'Bu akşam,\nhangi sahne seni bekliyor?',
+            style: (context.textTheme.displaySmall ?? const TextStyle()).copyWith(
+              color: WebColors.whiteText,
+              fontWeight: FontWeight.w300,
+              height: 1.12,
+              fontSize: context.responsive(
+                  mobile: 34.0, tablet: 42.0, desktop: 50.0, largeDesktop: 56.0),
+            ),
+          ),
+          const SizedBox(height: 18),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Text(
+              'Şehrin sahnelerinde bu sezon oynayan oyunları keşfet, '
+              'yakınındaki etkinliklere göz at ve biletini birkaç '
+              'tıkla al.',
+              style: TextStyle(
+                color: WebColors.textSecondary,
+                fontSize: 16,
+                height: 1.6,
+              ),
+            ),
+          ),
+          const SizedBox(height: 30),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: CustomSearchbar(onTap: onSearchTap),
+          ),
+          const SizedBox(height: 22),
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: [
+              _PillButton(
+                label: 'Sahneleri Keşfet',
+                icon: Icons.explore_rounded,
+                filled: true,
+                onTap: onDiscoverTap,
+              ),
+              _PillButton(
+                label: 'Yakınımdakiler',
+                icon: Icons.near_me_rounded,
+                filled: false,
+                onTap: onNearbyTap,
+              ),
+            ],
+          ),
+        ],
+      );
+}
+
+class _PillButton extends StatefulWidget {
+  final String label;
+  final IconData icon;
+  final bool filled;
+  final VoidCallback onTap;
+
+  const _PillButton({
+    required this.label,
+    required this.icon,
+    required this.filled,
+    required this.onTap,
+  });
+
+  @override
+  State<_PillButton> createState() => _PillButtonState();
+}
+
+class _PillButtonState extends State<_PillButton> {
+  bool _hovered = false;
+
+  static const BorderRadius _radius = BorderRadius.only(
+    topLeft: Radius.circular(2),
+    topRight: Radius.circular(18),
+    bottomLeft: Radius.circular(2),
+    bottomRight: Radius.circular(18),
+  );
+
+  @override
+  Widget build(final BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (final _) => setState(() => _hovered = true),
+        onExit: (final _) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            transform: Matrix4.translationValues(0, _hovered ? -2 : 0, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: widget.filled ? WebColors.goldButtonGradient : null,
+              color: widget.filled ? null : Colors.transparent,
+              borderRadius: _radius,
+              border: widget.filled
+                  ? null
+                  : Border.all(
+                      color: WebColors.primaryGold.withOpacity(_hovered ? 0.9 : 0.55),
+                      width: 1.4),
+              boxShadow: widget.filled && _hovered
+                  ? [
+                      BoxShadow(
+                        color: WebColors.primaryGold.withOpacity(0.35),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.icon,
+                    size: 18,
+                    color: widget.filled
+                        ? WebColors.veryDarkBlue
+                        : WebColors.primaryGoldLight),
+                const SizedBox(width: 10),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: widget.filled
+                        ? WebColors.veryDarkBlue
+                        : WebColors.whiteText,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _HeroStatsPanel extends StatelessWidget {
+  final int? showCount;
+  final int? stageCount;
+  final int? campaignCount;
+
+  const _HeroStatsPanel({
+    required this.showCount,
+    required this.stageCount,
+    required this.campaignCount,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface.withOpacity(0.65),
+          borderRadius: _kAsymLg,
+          border: Border.all(color: WebColors.primaryGold.withOpacity(0.22)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'ŞU AN SAHNEDE',
+              style: TextStyle(
+                color: WebColors.textTertiary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 18),
+            _StatRow(
+                icon: Icons.theater_comedy_rounded,
+                label: 'Oyun',
+                value: showCount),
+            const _StatDivider(),
+            _StatRow(
+                icon: Icons.location_city_rounded,
+                label: 'Sahne',
+                value: stageCount),
+            const _StatDivider(),
+            _StatRow(
+                icon: Icons.local_activity_rounded,
+                label: 'Aktif kampanya',
+                value: campaignCount),
+          ],
+        ),
+      );
+}
+
+class _StatDivider extends StatelessWidget {
+  const _StatDivider();
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Container(height: 1, color: WebColors.darkBlueAccent),
+      );
+}
+
+class _StatRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int? value;
+
+  const _StatRow({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(final BuildContext context) => Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: WebColors.primaryGold.withOpacity(0.14),
+              borderRadius: _kAsymSm,
+            ),
+            child: Icon(icon, size: 18, color: WebColors.primaryGoldLight),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: WebColors.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          value == null
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(WebColors.primaryGoldLight),
+                  ),
+                )
+              : Text(
+                  '$value',
+                  style: const TextStyle(
+                    color: WebColors.whiteText,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+        ],
+      );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HIZLI BAĞLANTILAR
+// ═══════════════════════════════════════════════════════════════
+
+class _QuickLinksBand extends StatelessWidget {
+  final VoidCallback onSearchTap;
+  final VoidCallback onFavoritesTap;
+  final VoidCallback onTicketsTap;
+  final VoidCallback onNearbyTap;
+
+  const _QuickLinksBand({
+    required this.onSearchTap,
+    required this.onFavoritesTap,
+    required this.onTicketsTap,
+    required this.onNearbyTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: EdgeInsets.only(
+            top: context.responsive(mobile: 44.0, tablet: 52.0, desktop: 60.0)),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: _sectionPad(context)),
+              child: Wrap(
+                spacing: 18,
+                runSpacing: 18,
+                children: [
+                  _QuickLinkCard(
+                    icon: Icons.search_rounded,
+                    title: 'Bilet Ara',
+                    subtitle: 'Oyun, sanatçı ya da mekan ara',
+                    onTap: onSearchTap,
+                  ),
+                  _QuickLinkCard(
+                    icon: Icons.near_me_rounded,
+                    title: 'Yakınımdakiler',
+                    subtitle: 'Bulunduğun şehirdeki etkinlikler',
+                    onTap: onNearbyTap,
+                  ),
+                  _QuickLinkCard(
+                    icon: Icons.favorite_rounded,
+                    title: 'Favorilerim',
+                    subtitle: 'Kaydettiğin oyunlar',
+                    onTap: onFavoritesTap,
+                  ),
+                  _QuickLinkCard(
+                    icon: Icons.confirmation_number_rounded,
+                    title: 'Biletlerim',
+                    subtitle: 'Aldığın biletleri görüntüle',
+                    onTap: onTicketsTap,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _QuickLinkCard extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _QuickLinkCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  State<_QuickLinkCard> createState() => _QuickLinkCardState();
+}
+
+class _QuickLinkCardState extends State<_QuickLinkCard> {
+  bool _hovered = false;
+
+  @override
+  Widget build(final BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (final _) => setState(() => _hovered = true),
+        onExit: (final _) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 280,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: WebColors.darkBlueSurface,
+              borderRadius: _kAsymLg,
+              border: Border.all(
+                color: _hovered
+                    ? WebColors.primaryGold.withOpacity(0.55)
+                    : WebColors.darkBlueAccent,
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: WebColors.goldGradient,
+                    borderRadius: _kAsymSm,
+                  ),
+                  child: Icon(widget.icon,
+                      size: 22, color: WebColors.veryDarkBlue),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: const TextStyle(
+                          color: WebColors.whiteText,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.subtitle,
+                        style: const TextStyle(
+                          color: WebColors.textSecondary,
+                          fontSize: 12.5,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KAPANIŞ ALIN TIYATI
+// ═══════════════════════════════════════════════════════════════
+
+class _ClosingQuoteBand extends StatelessWidget {
+  const _ClosingQuoteBand();
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: EdgeInsets.only(
+          top: context.responsive(mobile: 56.0, tablet: 68.0, desktop: 84.0),
+        ),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: _sectionPad(context),
+            vertical: context.responsive(
+                mobile: 48.0, tablet: 60.0, desktop: 76.0),
+          ),
+          decoration: const BoxDecoration(color: WebColors.veryDarkBlue),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Column(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [
+                        Colors.transparent,
+                        WebColors.primaryGold.withOpacity(0.9),
+                        Colors.transparent,
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+                  Text(
+                    '"Perde her açıldığında şehir bir kez daha nefes alır."',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: WebColors.lightWhite,
+                      fontStyle: FontStyle.italic,
+                      fontSize: context.responsive(
+                          mobile: 18.0, tablet: 21.0, desktop: 24.0),
+                      height: 1.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'TİYATROL',
+                    style: TextStyle(
+                      color: WebColors.textTertiary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
