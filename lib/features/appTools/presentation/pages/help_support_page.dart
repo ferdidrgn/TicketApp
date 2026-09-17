@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
 
   @override
   Widget build(final BuildContext context) {
+    // 🖥️ Masaüstü/web: mobil zırhı (gradient başlık, FAB, parçacık
+    // arkaplanı) atlanır, kendi sade web kabuğu kullanılır.
+    if (context.isDesktop) return _buildDesktopPage(context);
+
     // 💡 Senin responsive utils uzantılarını kullanarak web/tablet kontrolü yapıyoruz
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
@@ -124,4 +129,158 @@ class HelpSupportPage extends StatelessWidget {
       Text(title,
           style: context.textTheme.labelSmall
               ?.copyWith(letterSpacing: 2, fontWeight: FontWeight.w900));
+
+  // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
+  // Aynı arama kutusu, aynı iletişim kartları, aynı SSS listesi; sadece
+  // mobil BasePageWrapper zırhı yerine sade, WebColors temalı bir kabuk.
+  Widget _buildDesktopPage(final BuildContext context) => ColoredBox(
+        color: WebColors.darkBlueBackground,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+              physics: const BouncingScrollPhysics(),
+              children: [
+                const Text(
+                  'DANIŞMA MASASI',
+                  style: TextStyle(
+                    color: WebColors.whiteText,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 26,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Serüveninde sana rehberlik edelim...',
+                  style: TextStyle(
+                    color: WebColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildDesktopSearchBox(),
+                const SizedBox(height: 32),
+                _buildDesktopSupportActions(),
+                const SizedBox(height: 48),
+                _buildDesktopSectionTitle('SIKÇA SORULANLAR'),
+                const SizedBox(height: 16),
+                _buildDesktopFaqItem(context, 'Biletimi nasıl bulabilirim?',
+                    'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
+                _buildDesktopFaqItem(context, 'Sanatçı profili nasıl açılır?',
+                    'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildDesktopSearchBox() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+            topRight: Radius.circular(6),
+            bottomLeft: Radius.circular(6),
+          ),
+          border: Border.all(
+              color: WebColors.darkBlueAccent.withOpacity(0.8)),
+        ),
+        child: TextField(
+          style: const TextStyle(color: WebColors.whiteText),
+          decoration: InputDecoration(
+            hintText: 'Sorunun cevabını burada ara...',
+            hintStyle: TextStyle(color: WebColors.textTertiary),
+            border: InputBorder.none,
+            icon: const Icon(Icons.search, color: WebColors.textSecondary),
+          ),
+        ),
+      );
+
+  Widget _buildDesktopSupportActions() => Row(
+        children: [
+          Expanded(
+              child: _buildDesktopActionCard(Icons.chat_bubble_outline,
+                  'Canlı Destek', 'Küratörle Konuş')),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildDesktopActionCard(
+                  Icons.mail_outline, 'E-posta', 'Mektup Gönder')),
+        ],
+      );
+
+  Widget _buildDesktopActionCard(
+          final IconData icon, final String title, final String sub) =>
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            bottomRight: Radius.circular(20),
+            topRight: Radius.circular(6),
+            bottomLeft: Radius.circular(6),
+          ),
+          border: Border.all(
+              color: WebColors.primaryGold.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: WebColors.primaryGold, size: 32),
+            const SizedBox(height: 12),
+            Text(title,
+                style: const TextStyle(
+                    color: WebColors.whiteText, fontWeight: FontWeight.bold)),
+            Text(sub,
+                style: TextStyle(
+                    fontSize: 10, color: WebColors.textSecondary)),
+          ],
+        ),
+      );
+
+  Widget _buildDesktopSectionTitle(final String title) => Text(title,
+      style: const TextStyle(
+          color: WebColors.primaryGoldLight,
+          letterSpacing: 2,
+          fontWeight: FontWeight.w900,
+          fontSize: 12));
+
+  Widget _buildDesktopFaqItem(final BuildContext context,
+          final String question, final String answer) =>
+      Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+            topRight: Radius.circular(6),
+            bottomLeft: Radius.circular(6),
+          ),
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            iconColor: WebColors.primaryGold,
+            collapsedIconColor: WebColors.textSecondary,
+            title: Text(question,
+                style: const TextStyle(
+                    color: WebColors.whiteText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600)),
+            children: [
+              Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(answer,
+                      style: TextStyle(color: WebColors.textSecondary)))
+            ],
+          ),
+        ),
+      );
 }
