@@ -172,15 +172,22 @@ class _DesktopSearchFieldState extends State<DesktopSearchField> {
 // MASAÜSTÜ FİLTRE SEKMELERİ
 // =============================================================================
 
+/// Bir filtre sekmesi. [colors] o kategorinin "Çam & Mercan" paletinden
+/// gelen [açık, koyu] tonu — seçiliyken gradyan, seçili değilken ince bir
+/// kenarlık/etiket rengi olarak kullanılır. Böylece masaüstü filtre çubuğu
+/// da mobildeki chip'lerle aynı kategori kimliğini taşır (örn. "Mekanlar"
+/// her iki yüzeyde de aynı yeşil tonu alır).
 class DesktopFilterChip extends StatelessWidget {
   final String label;
   final bool isSelected;
+  final List<Color> colors;
   final VoidCallback onTap;
 
   const DesktopFilterChip({
     super.key,
     required this.label,
     required this.isSelected,
+    required this.colors,
     required this.onTap,
   });
 
@@ -195,18 +202,16 @@ class DesktopFilterChip extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 6),
             padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
             decoration: BoxDecoration(
-              color:
-                  isSelected ? WebColors.primaryGold : Colors.white.withOpacity(0.04),
+              gradient: isSelected ? LinearGradient(colors: colors) : null,
+              color: isSelected ? null : Colors.white.withOpacity(0.04),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: isSelected
-                    ? WebColors.primaryGold
-                    : WebColors.secondaryAccent.withOpacity(0.25),
+                color: isSelected ? Colors.transparent : colors[0].withOpacity(0.3),
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                          color: WebColors.primaryGold.withOpacity(0.35),
+                          color: colors[1].withOpacity(0.4),
                           blurRadius: 18,
                           offset: const Offset(0, 6)),
                     ]
@@ -229,14 +234,19 @@ class DesktopFilterChip extends StatelessWidget {
 /// Ortalanmış, sarmalanabilen (Wrap) masaüstü filtre çubuğu. Mobildeki yatay
 /// kaydırmalı chip listesinin aksine, geniş ekranda tüm filtreler tek satırda
 /// (gerekirse iki satıra sararak) rahatça görünür.
+///
+/// [palettes], her etiket için `SearchCategoryPalette.tints` sırasıyla eşleşen
+/// [açık, koyu] renk çiftlerinin listesidir.
 class DesktopFilterTabs extends StatelessWidget {
   final List<String> labels;
+  final List<List<Color>> palettes;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
 
   const DesktopFilterTabs({
     super.key,
     required this.labels,
+    required this.palettes,
     required this.selectedIndex,
     required this.onSelect,
   });
@@ -251,6 +261,7 @@ class DesktopFilterTabs extends StatelessWidget {
             (final i) => DesktopFilterChip(
               label: labels[i],
               isSelected: selectedIndex == i,
+              colors: palettes[i % palettes.length],
               onTap: () => onSelect(i),
             ),
           ),
