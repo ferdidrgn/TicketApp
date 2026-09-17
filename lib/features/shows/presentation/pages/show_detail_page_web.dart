@@ -7,6 +7,7 @@ import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/gallery_section.dart';
@@ -133,7 +134,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         rightIcon: Icons.theaters,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
-          backgroundColor: const Color(0xFF0F2318),
+          backgroundColor: WebColors.darkBlueBackground,
           ambientColor: context.primaryColor.withOpacity(0.05),
         ),
         child: detailAsync.when(
@@ -228,19 +229,27 @@ class _MainContent extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
-      child: context.isDesktop
-          ? _DesktopLayout(
-              showData: showData,
-              events: events,
-              players: players,
-              stages: stages,
-              eventsSectionKey: eventsSectionKey)
-          : _MobileLayout(
-              showData: showData,
-              events: events,
-              players: players,
-              stages: stages,
-              eventsSectionKey: eventsSectionKey));
+      // landing/style.css bölümlerinde olduğu gibi geniş masaüstü
+      // ekranlarında içerik ~1360px'te sınırlanır, aksi halde satır
+      // uzunluğu ve poster/açıklama oranı ultra geniş monitörlerde bozulur.
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1360),
+          child: context.isDesktop
+              ? _DesktopLayout(
+                  showData: showData,
+                  events: events,
+                  players: players,
+                  stages: stages,
+                  eventsSectionKey: eventsSectionKey)
+              : _MobileLayout(
+                  showData: showData,
+                  events: events,
+                  players: players,
+                  stages: stages,
+                  eventsSectionKey: eventsSectionKey),
+        ),
+      ));
 }
 
 class _DesktopLayout extends StatelessWidget {
