@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_html_css/simple_html_css.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import '../providers/app_tools_provider.dart';
 
 class ContractsPage extends ConsumerWidget {
@@ -10,6 +11,10 @@ class ContractsPage extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
+    // 🖥️ Masaüstü/web: mobil zırhı (gradient başlık, FAB, parçacık
+    // arkaplanı) tamamen atlanır, kendi sade web kabuğu kullanılır.
+    if (context.isDesktop) return _buildDesktopPage(context, ref);
+
     // 💡 Responsive değerlerimizi alalım
     final bool isWebOrTablet = context.isTablet || context.isDesktop;
 
@@ -160,4 +165,204 @@ class ContractsPage extends ConsumerWidget {
       TextButton(onPressed: onRetry, child: const Text("Tekrar Dene")),
     ],
   );
+
+  // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
+  // Aynı privacyPolicyProvider/termsConditionProvider verisi, aynı
+  // yenileme akışı; sadece mobil BasePageWrapper zırhı yerine sade,
+  // WebColors temalı bir sekmeli görünüm.
+  Widget _buildDesktopPage(final BuildContext context, final WidgetRef ref) =>
+      ColoredBox(
+        color: WebColors.darkBlueBackground,
+        child: DefaultTabController(
+          length: 2,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'LEGAL DÖKÜMANLAR',
+                      style: TextStyle(
+                        color: WebColors.whiteText,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 26,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Koleksiyon kurallarını ve güvenliğini incele...',
+                      style: TextStyle(
+                        color: WebColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildDesktopTabBar(),
+                    const SizedBox(height: 24),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _buildDesktopPrivacyTab(context, ref),
+                          _buildDesktopTermsTab(context, ref),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildDesktopTabBar() => Container(
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+            topRight: Radius.circular(6),
+            bottomLeft: Radius.circular(6),
+          ),
+        ),
+        child: TabBar(
+          dividerColor: Colors.transparent,
+          indicator: const BoxDecoration(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(16),
+              bottomRight: Radius.circular(16),
+              topRight: Radius.circular(6),
+              bottomLeft: Radius.circular(6),
+            ),
+            color: WebColors.primaryGold,
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelColor: WebColors.whiteText,
+          unselectedLabelColor: WebColors.textSecondary,
+          labelStyle:
+              const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          tabs: const [
+            Tab(text: 'GİZLİLİK'),
+            Tab(text: 'ŞARTLAR'),
+          ],
+        ),
+      );
+
+  Widget _buildDesktopPrivacyTab(
+      final BuildContext context, final WidgetRef ref) {
+    final privacyAsync = ref.watch(privacyPolicyProvider);
+    return privacyAsync.when(
+      data: (final content) => _buildDesktopContentTab(
+          context, content, () => ref.invalidate(privacyPolicyProvider)),
+      loading: () => const Center(
+          child: CircularProgressIndicator(color: WebColors.primaryGold)),
+      error: (final err, final _) => _buildDesktopErrorState(
+          err.toString(), () => ref.invalidate(privacyPolicyProvider)),
+    );
+  }
+
+  Widget _buildDesktopTermsTab(
+      final BuildContext context, final WidgetRef ref) {
+    final termsAsync = ref.watch(termsConditionProvider);
+    return termsAsync.when(
+      data: (final content) => _buildDesktopContentTab(
+          context, content, () => ref.invalidate(termsConditionProvider)),
+      loading: () => const Center(
+          child: CircularProgressIndicator(color: WebColors.primaryGold)),
+      error: (final err, final _) => _buildDesktopErrorState(
+          err.toString(), () => ref.invalidate(termsConditionProvider)),
+    );
+  }
+
+  Widget _buildDesktopContentTab(final BuildContext context,
+      final String? content, final VoidCallback onRefresh) {
+    if (content == null)
+      return const Center(
+          child: Text("İçerik Bulunamadı",
+              style: TextStyle(color: WebColors.whiteText)));
+
+    return RefreshIndicator(
+      onRefresh: () async => onRefresh(),
+      color: WebColors.primaryGold,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          _buildDesktopHtmlContent(context, content),
+          const SizedBox(height: 24),
+          _buildDesktopLastUpdated(),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopHtmlContent(
+          final BuildContext context, final String content) =>
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
+            topRight: Radius.circular(8),
+            bottomLeft: Radius.circular(8),
+          ),
+          border:
+              Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
+        ),
+        child: RichText(
+          text: HTML.toTextSpan(
+            context,
+            content,
+            defaultTextStyle: const TextStyle(
+              fontSize: 16,
+              height: 1.7,
+              color: WebColors.whiteText,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildDesktopLastUpdated() => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.history_rounded,
+              size: 14, color: WebColors.textTertiary),
+          const SizedBox(width: 8),
+          Text(
+            'Son Güncelleme: ${DateTime.now().toString().split(' ')[0]}',
+            style: const TextStyle(
+              color: WebColors.textTertiary,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      );
+
+  Widget _buildDesktopErrorState(
+          final String message, final VoidCallback onRetry) =>
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              size: 48, color: WebColors.error),
+          const SizedBox(height: 16),
+          const Text("Döküman yüklenirken bir hata oluştu.",
+              style: TextStyle(color: WebColors.whiteText)),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(foregroundColor: WebColors.primaryGoldLight),
+            child: const Text("Tekrar Dene"),
+          ),
+        ],
+      );
 }

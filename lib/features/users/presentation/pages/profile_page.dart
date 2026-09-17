@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -43,6 +44,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   @override
   Widget build(final BuildContext context) {
     final userProfileAsync = ref.watch(userProfileProvider);
+
+    // 🖥️ Masaüstü/web: mobil zırhı (gradient başlık, FAB, parçacık
+    // arkaplanı) tamamen atlanır, kendi sade web kabuğu kullanılır.
+    if (context.isDesktop) {
+      return _buildDesktopPage(context, userProfileAsync);
+    }
+
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
@@ -451,5 +459,374 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     height: 1.5)),
           ],
         ),
+      );
+
+  // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
+  // Aynı provider verisi, aynı navigasyon/sign-out/delete akışları; sadece
+  // mobil "neumorphic" kabuğun yerini sade, WebColors temalı bir kabuk alır.
+  Widget _buildDesktopPage(
+    final BuildContext context,
+    final AsyncValue<entity.User?> userProfileAsync,
+  ) =>
+      ColoredBox(
+        color: WebColors.darkBlueBackground,
+        child: userProfileAsync.when(
+          loading: () => const Center(
+              child: CircularProgressIndicator(color: WebColors.primaryGold)),
+          error: (final err, final stack) => Center(
+            child: Text('Hata: $err',
+                style: const TextStyle(color: WebColors.whiteText)),
+          ),
+          data: (final userData) {
+            final bool isLoggedIn = userData != null;
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: ListView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _buildDesktopHeader(!isLoggedIn),
+                    const SizedBox(height: 32),
+                    if (isLoggedIn)
+                      _buildDesktopPortrait(userData)
+                    else
+                      _buildDesktopInvitation(context),
+                    const SizedBox(height: 48),
+                    _buildDesktopSectionLabel('ATMOSFER VE TEKNİK'),
+                    const SizedBox(height: 16),
+                    const ThemeSelectorCard(),
+                    const SizedBox(height: 12),
+                    _buildDesktopTile(
+                      context,
+                      icon: Icons.settings_suggest_rounded,
+                      title: 'Atölye Ayarları',
+                      subtitle: 'Bildirimler, dil ve teknik tercihler',
+                      onTap: () => NavigationHandler.goToSettings(context),
+                    ),
+                    const SizedBox(height: 40),
+                    _buildDesktopSectionLabel('RUHUN İZLERİ'),
+                    const SizedBox(height: 16),
+                    _buildDesktopTile(
+                      context,
+                      icon: Icons.auto_stories_rounded,
+                      title: 'Tanıklık Günlüğü',
+                      subtitle: 'Sahne tozunu yuttuğun tüm anların dökümü',
+                      isLocked: !isLoggedIn,
+                      onTap: () => NavigationHandler.goToMyTickets(
+                          context, userData?.id ?? ""),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDesktopTile(
+                      context,
+                      icon: Icons.auto_awesome_mosaic_rounded,
+                      title: 'İlham Galerisi',
+                      subtitle: 'Zihninde yankılanan seçilmiş eserler',
+                      isLocked: !isLoggedIn,
+                      onTap: () => NavigationHandler.goToFavorites(context),
+                    ),
+                    const SizedBox(height: 40),
+                    _buildDesktopSectionLabel('KİMLİK ATÖLYESİ'),
+                    const SizedBox(height: 16),
+                    _buildDesktopTile(
+                      context,
+                      icon: Icons.brush_rounded,
+                      title: 'Fırça İzlerim',
+                      subtitle: 'Kendi portreni ve sanatsal kimliğini yorumla',
+                      isLocked: !isLoggedIn,
+                      onTap: () =>
+                          context.push('/profile-edit/${userData?.id ?? ""}'),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDesktopTile(
+                      context,
+                      icon: Icons.map_rounded,
+                      title: 'Serüven Rehberi',
+                      subtitle: 'Soruların için küratörle temas kur',
+                      onTap: () =>
+                          NavigationHandler.goToHelpSupport(context),
+                    ),
+                    const SizedBox(height: 40),
+                    _buildDesktopSectionLabel('YASAL YÜKÜMLÜLÜKLER'),
+                    const SizedBox(height: 16),
+                    _buildDesktopTile(
+                      context,
+                      icon: Icons.gavel_rounded,
+                      title: 'Atölye Sözleşmesi',
+                      subtitle: 'Kullanım şartları ve KVKK rehberi',
+                      onTap: () => NavigationHandler.goToContracts(context),
+                    ),
+                    if (isLoggedIn) ...[
+                      const SizedBox(height: 40),
+                      _buildDesktopSectionLabel('SON DOKUNUŞLAR'),
+                      const SizedBox(height: 16),
+                      _buildDesktopTile(
+                        context,
+                        icon: Icons.logout_rounded,
+                        title: 'Atölyeyi Kapat',
+                        subtitle: 'Serüveni şimdilik mühürle ve ayrıl',
+                        onTap: () => showSignOutDialog(context, ref),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDesktopTile(
+                        context,
+                        icon: Icons.delete_forever_rounded,
+                        title: 'Koleksiyonu Yak',
+                        subtitle:
+                            'Tüm izlerini ve hatıralarını kalıcı olarak sil',
+                        onTap: () =>
+                            showDeleteAccountDialog(context, ref, userData.id),
+                      ),
+                    ],
+                    const SizedBox(height: 56),
+                    _buildDesktopReflection(),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+
+  Widget _buildDesktopHeader(final bool isGuest) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('DENEYİM KÜRATÖRÜ',
+              style: TextStyle(
+                  color: WebColors.textTertiary,
+                  letterSpacing: 4,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(
+            isGuest ? 'Kendi Hikayeni Kaleme Al' : 'Tanıklığın Karakterindir',
+            style: const TextStyle(
+                color: WebColors.whiteText,
+                fontWeight: FontWeight.w900,
+                fontSize: 28,
+                letterSpacing: -0.5),
+          ),
+        ],
+      );
+
+  Widget _buildDesktopPortrait(final entity.User user) => Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          gradient: WebColors.cardGradient,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            bottomRight: Radius.circular(28),
+            topRight: Radius.circular(8),
+            bottomLeft: Radius.circular(8),
+          ),
+          border:
+              Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 44,
+              backgroundColor: WebColors.darkBlueAccent,
+              backgroundImage: NetworkImage(user.imageUrl),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${user.firstName} ${user.lastName}'.trim(),
+                      style: const TextStyle(
+                          color: WebColors.whiteText,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                          letterSpacing: 0.5)),
+                  const SizedBox(height: 4),
+                  Text(user.city,
+                      style: const TextStyle(
+                          color: WebColors.primaryGoldLight,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13)),
+                ],
+              ),
+            ),
+            _buildDesktopStat('HAFIZA', '${user.ticketsId.length}'),
+            const SizedBox(width: 24),
+            _buildDesktopStat('ŞAHİTLİK', '12'),
+            const SizedBox(width: 24),
+            _buildDesktopStat('DİKKAT', '8.9'),
+          ],
+        ),
+      );
+
+  Widget _buildDesktopStat(final String label, final String value) => Column(
+        children: [
+          Text(value,
+              style: const TextStyle(
+                  color: WebColors.whiteText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: const TextStyle(
+                  color: WebColors.textTertiary,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1)),
+        ],
+      );
+
+  Widget _buildDesktopInvitation(final BuildContext context) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          gradient: WebColors.cardGradient,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            bottomRight: Radius.circular(28),
+            topRight: Radius.circular(8),
+            bottomLeft: Radius.circular(8),
+          ),
+          border:
+              Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.theater_comedy_rounded,
+                size: 44, color: WebColors.primaryGold),
+            const SizedBox(height: 16),
+            const Text('SAHNE ŞİMDİLİK SESSİZ',
+                style: TextStyle(
+                    color: WebColors.whiteText,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15)),
+            const SizedBox(height: 10),
+            const Text(
+                'Işıkları açmak ve kendi hikayeni başlatmak için galerinin anahtarını teslim al.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: WebColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.6)),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: 260,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                    topRight: Radius.circular(4),
+                    bottomLeft: Radius.circular(4),
+                  )),
+                  elevation: 0,
+                  backgroundColor: WebColors.primaryGold,
+                  foregroundColor: WebColors.whiteText,
+                ),
+                onPressed: () => NavigationHandler.goToLogin(context),
+                child: const Text('SAHNEYİ UYANDIR',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildDesktopSectionLabel(final String text) => Text(
+        text,
+        style: const TextStyle(
+            color: WebColors.primaryGoldLight,
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+            letterSpacing: 3),
+      );
+
+  Widget _buildDesktopTile(
+    final BuildContext context, {
+    required final IconData icon,
+    required final String title,
+    required final String subtitle,
+    final bool isLocked = false,
+    required final VoidCallback onTap,
+  }) =>
+      Opacity(
+        opacity: isLocked ? 0.5 : 1.0,
+        child: InkWell(
+          onTap: isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            bottomRight: Radius.circular(20),
+            topRight: Radius.circular(6),
+            bottomLeft: Radius.circular(6),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            decoration: BoxDecoration(
+              color: WebColors.darkBlueSurface,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+                topRight: Radius.circular(6),
+                bottomLeft: Radius.circular(6),
+              ),
+              border: Border.all(
+                  color: WebColors.darkBlueAccent.withOpacity(0.8), width: 1),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: WebColors.primaryGold, size: 22),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              color: WebColors.whiteText,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14)),
+                      const SizedBox(height: 2),
+                      Text(subtitle,
+                          style: const TextStyle(
+                              color: WebColors.textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                Icon(
+                    isLocked
+                        ? Icons.lock_person_rounded
+                        : Icons.chevron_right_rounded,
+                    color: WebColors.textTertiary,
+                    size: 20),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildDesktopReflection() => Column(
+        children: const [
+          Text('UNUTMA; GERÇEK SANAT ESERİ,\nİNSANIN KENDİ HAYATIDIR.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: WebColors.whiteText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  letterSpacing: 2,
+                  height: 1.5)),
+          SizedBox(height: 10),
+          Text(
+              'Tanık olduğun her sahne, ruhundaki o büyük yapbozun bir parçasıdır.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: WebColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                  fontSize: 12,
+                  height: 1.5)),
+        ],
       );
 }
