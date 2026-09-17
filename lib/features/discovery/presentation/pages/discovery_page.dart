@@ -315,24 +315,26 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 // şeridi, gerçek kategorilere göre filtre hapları, haftanın seçkisi paneli
 // ve poster/fotoğraf hover geçişli bir keşif ızgarası. `show_detail_page_web`
 // dosyasındaki BasePageWrapper + WebColors kullanım kalıbını izler.
+/// `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR — o mobil uygulama
+/// çatısıdır (geri tuşu başlık çubuğu, "yukarı kaydır" FAB'ı, pull-to-
+/// refresh, `CustomAppBackground`'ın renksiz/rastgele parçacık noktaları
+/// — burada `particleColor` hiç verilmediği için `context.primaryColor`
+/// gibi markaya ait olmayan bir renkle geliyordu). Bunlar
+/// `home_page_web.dart`'ta "Android uygulaması gibi görünüyor" şikayetinin
+/// asıl sebebiydi (bkz. o dosyadaki aynı gerekçe). Üst navigasyon zaten
+/// `WebTopNavigationBar`'dan geliyor — burada ikinci bir gradyanlı başlık
+/// çubuğuna gerek yok. Sade, düz zeminli bir kaydırma alanı.
 class _DiscoveryDesktopPage extends StatelessWidget {
   final String? selectedCategory;
 
   const _DiscoveryDesktopPage({this.selectedCategory});
 
   @override
-  Widget build(final BuildContext context) => BasePageWrapper(
-        title: selectedCategory ?? 'İlhamını Bul',
-        subtitle: selectedCategory != null
-            ? '$selectedCategory kategorisindeki etkinlikler'
-            : 'Küratörlerin hazırladığı özel seçkiler',
-        showBackButton: false,
-        showFab: true,
-        layoutConfig: BasePageLayoutConfig(
-          backgroundColor: WebColors.darkBlueBackground,
-          ambientColor: WebColors.primaryGold.withOpacity(0.05),
-          safeAreaTop: true,
-        ),
+  Widget build(final BuildContext context) => ColoredBox(
+        // NOT: `_DiscoveryDesktopBrowser` kendi `ListView`'ı ile zaten
+        // kaydırılabilir — ikinci bir SingleChildScrollView SARMAK
+        // "unbounded height" hatasına yol açar, bilerek eklenmedi.
+        color: WebColors.darkBlueBackground,
         child: Center(
           child: ConstrainedBox(
             constraints:

@@ -416,20 +416,22 @@ class NearbyEventsPage extends StatelessWidget {
 // Sayfa `geolocator` eklendiğinde mesafeye göre sıralamaya kolayca
 // genişletilebilir (bkz. `Stage.locationLat`/`locationLng` — bu alanlar
 // zaten gerçek ve kullanılabilir durumda).
+/// `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR — o mobil uygulama
+/// çatısıdır (geri tuşu başlık çubuğu, "yukarı kaydır" FAB'ı, pull-to-
+/// refresh, `CustomAppBackground`'ın rastgele renkli parçacık noktaları).
+/// Bunlar `home_page_web.dart`'ta "Android uygulaması gibi görünüyor"
+/// şikayetinin asıl sebebiydi (bkz. o dosyadaki aynı gerekçe). Üst
+/// navigasyon zaten `WebTopNavigationBar`'dan geliyor; burada ikinci bir
+/// başlık çubuğuna gerek yok. Sade, düz zeminli bir kaydırma alanı.
 class _NearbyEventsDesktopPage extends StatelessWidget {
   const _NearbyEventsDesktopPage();
 
   @override
-  Widget build(final BuildContext context) => BasePageWrapper(
-        title: 'Yakınızdaki Etkinlikler',
-        subtitle: 'Sahnede olan tüm oyunlar, en yakın tarihe göre sıralı',
-        showBackButton: false,
-        showFab: true,
-        layoutConfig: BasePageLayoutConfig(
-          backgroundColor: WebColors.darkBlueBackground,
-          ambientColor: WebColors.primaryGold.withOpacity(0.05),
-          safeAreaTop: true,
-        ),
+  Widget build(final BuildContext context) => ColoredBox(
+        // NOT: `_NearbyEventsDesktopBody` kendi `ListView`'ı ile zaten
+        // kaydırılabilir — burada ikinci bir SingleChildScrollView SARMAK
+        // "unbounded height" hatasına yol açar, bilerek eklenmedi.
+        color: WebColors.darkBlueBackground,
         child: Center(
           child: ConstrainedBox(
             constraints:
