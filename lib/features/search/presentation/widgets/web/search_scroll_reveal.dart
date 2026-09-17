@@ -40,6 +40,7 @@ class _SearchRevealOnScrollState extends State<SearchRevealOnScroll>
   late final AnimationController _controller;
   late final Animation<double> _fade;
   late final Animation<double> _slideY;
+  late final Animation<double> _scale;
   final Key _visibilityKey = UniqueKey();
   bool _triggered = false;
 
@@ -52,6 +53,12 @@ class _SearchRevealOnScrollState extends State<SearchRevealOnScroll>
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _slideY = Tween<double>(begin: 28, end: 0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    // Hafif bir ölçek (0.94 → 1.0) — kartların sadece kayarak değil, aynı
+    // zamanda hafifçe "büyüyerek" sahneye oturduğu, ızgaranın tek seferde
+    // değil parça parça monte edildiği hissini güçlendirir.
+    _scale = Tween<double>(begin: 0.94, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
   }
@@ -83,7 +90,7 @@ class _SearchRevealOnScrollState extends State<SearchRevealOnScroll>
             opacity: _fade.value,
             child: Transform.translate(
               offset: Offset(0, _slideY.value),
-              child: child,
+              child: Transform.scale(scale: _scale.value, child: child),
             ),
           ),
           child: widget.child,

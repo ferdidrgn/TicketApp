@@ -160,44 +160,131 @@ class DesktopResultsMetaBar extends StatelessWidget {
     final String categoryLabel = SearchCategoryPalette.labels[
         filterIndex.clamp(0, SearchCategoryPalette.labels.length - 1)];
     final Color accent = SearchCategoryPalette.tintFor(filterIndex)[0];
+    final String suffix = <String>[
+      if (filterIndex != SearchCategoryPalette.all) '$categoryLabel içinde',
+      if (query.isNotEmpty) '"$query" için',
+    ].join('  ·  ');
+    const secondaryStyle = TextStyle(
+      fontSize: 14,
+      color: WebColors.textSecondary,
+      fontWeight: FontWeight.w600,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 22, top: 2),
       child: Row(
         children: [
-          Container(
+          // Facet anahtarının seçili segmentiyle aynı tonu taşıyan, filtre
+          // değiştikçe yumuşakça renk geçişi yapan küçük bir "canlı" nokta —
+          // hangi kategoride olduğumuzu sessizce hatırlatır.
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOut,
             width: 6,
             height: 6,
             margin: const EdgeInsets.only(right: 10),
             decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
           ),
           Expanded(
-            child: Text.rich(
-              TextSpan(
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: WebColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-                children: [
-                  TextSpan(
-                    text: '$count sonuç',
-                    style: const TextStyle(
-                        color: WebColors.whiteText, fontWeight: FontWeight.w800),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                _AnimatedCount(
+                  value: count,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: WebColors.whiteText,
+                    fontWeight: FontWeight.w800,
                   ),
-                  if (filterIndex != SearchCategoryPalette.all)
-                    TextSpan(text: '  ·  $categoryLabel içinde'),
-                  if (query.isNotEmpty) TextSpan(text: '  ·  "$query" için'),
+                ),
+                const Text(' sonuç', style: secondaryStyle),
+                if (suffix.isNotEmpty) ...[
+                  const Text('  ·  ', style: secondaryStyle),
+                  Flexible(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      transitionBuilder: (final child, final animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      child: Text(
+                        suffix,
+                        key: ValueKey(suffix),
+                        style: secondaryStyle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                 ],
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+// =============================================================================
+// CANLI SAYAÇ — sonuç sayısı değiştikçe (yazarken daralan/genişleyen sonuç
+// kümesi) rakamın eskisinden yenisine doğru sayarak geçiş yapmasını sağlar.
+// Sadece gerçek, zaten hesaplanmış `count` değerini kullanır — uydurma bir
+// sayı üretmez, sadece onu göstermenin biçimini canlandırır.
+// =============================================================================
+
+class _AnimatedCount extends StatefulWidget {
+  final int value;
+  final TextStyle style;
+
+  const _AnimatedCount({required this.value, required this.style});
+
+  @override
+  State<_AnimatedCount> createState() => _AnimatedCountState();
+}
+
+class _AnimatedCountState extends State<_AnimatedCount>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _animation = AlwaysStoppedAnimation<double>(widget.value.toDouble());
+  }
+
+  @override
+  void didUpdateWidget(covariant final _AnimatedCount oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      final double from = _animation.value;
+      _animation = Tween<double>(begin: from, end: widget.value.toDouble())
+          .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+      _controller
+        ..reset()
+        ..forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => AnimatedBuilder(
+        animation: _animation,
+        builder: (final context, final _) => Text(
+          _animation.value.round().toString(),
+          style: widget.style,
+        ),
+      );
 }
 
 // =============================================================================
@@ -603,11 +690,17 @@ class DesktopSearchEmptyState extends StatelessWidget {
   final String clearLabel;
   final VoidCallback onClear;
 
+  /// Boş sonuç anında kullanıcıya gerçekten var olan kategorileri (uydurma
+  /// arama önerileri DEĞİL) hızlıca göz atma imkânı sunar — dokunulduğunda
+  /// hem sorgu temizlenir hem de o kategoriye geçilir.
+  final void Function(int categoryIndex) onBrowseCategory;
+
   const DesktopSearchEmptyState({
     super.key,
     required this.message,
     required this.clearLabel,
     required this.onClear,
+    required this.onBrowseCategory,
   });
 
   @override
@@ -615,20 +708,10 @@ class DesktopSearchEmptyState extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 100),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
+            constraints: const BoxConstraints(maxWidth: 560),
             child: Column(
               children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: WebColors.primaryGold.withOpacity(0.12),
-                    border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
-                  ),
-                  child: const Icon(Icons.auto_awesome_motion_outlined,
-                      size: 44, color: WebColors.primaryGoldLight),
-                ),
+                const _BreathingEmptyIcon(),
                 const SizedBox(height: 28),
                 Text(
                   message,
@@ -658,9 +741,171 @@ class DesktopSearchEmptyState extends StatelessWidget {
                   ),
                   child: Text(clearLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
+                const SizedBox(height: 36),
+                Container(
+                  height: 1,
+                  width: 64,
+                  color: WebColors.primaryGold.withOpacity(0.18),
+                ),
+                const SizedBox(height: 22),
+                Text(
+                  'Bunun yerine göz atabilirsin',
+                  style: TextStyle(
+                    color: WebColors.textTertiary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (int i = 1; i < SearchCategoryPalette.labels.length; i++)
+                      _EmptyStateCategoryChip(
+                        index: i,
+                        onTap: () => onBrowseCategory(i),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
         ),
       );
+}
+
+/// Boş durum ikonu — sabit değil, dikkat çekmeden sürekli hafifçe "nefes
+/// alan" bir ölçek/opaklık döngüsü. Marka rengiyle (primaryGold) uyumlu,
+/// sonsuz döngülü ama küçük genlikli — abartısız bir "burada hâlâ hayat
+/// var" motifi.
+class _BreathingEmptyIcon extends StatefulWidget {
+  const _BreathingEmptyIcon();
+
+  @override
+  State<_BreathingEmptyIcon> createState() => _BreathingEmptyIconState();
+}
+
+class _BreathingEmptyIconState extends State<_BreathingEmptyIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        builder: (final context, final child) {
+          final double t = Curves.easeInOut.transform(_controller.value);
+          final double scale = 1.0 + (t * 0.06);
+          final double glow = 0.10 + (t * 0.10);
+          return Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: WebColors.primaryGold.withOpacity(0.12),
+              border: Border.all(
+                  color: WebColors.primaryGold.withOpacity(0.3 + t * 0.2)),
+              boxShadow: [
+                BoxShadow(
+                  color: WebColors.primaryGold.withOpacity(glow),
+                  blurRadius: 24,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Transform.scale(scale: scale, child: child),
+          );
+        },
+        child: const Icon(Icons.auto_awesome_motion_outlined,
+            size: 44, color: WebColors.primaryGoldLight),
+      );
+}
+
+/// Boş durumda önerilen, GERÇEK var olan kategori — uydurma bir arama
+/// terimi değil, doğrudan `SearchCategoryPalette`'ten (aynı ikon/ton).
+class _EmptyStateCategoryChip extends StatefulWidget {
+  final int index;
+  final VoidCallback onTap;
+
+  const _EmptyStateCategoryChip({required this.index, required this.onTap});
+
+  @override
+  State<_EmptyStateCategoryChip> createState() =>
+      _EmptyStateCategoryChipState();
+}
+
+class _EmptyStateCategoryChipState extends State<_EmptyStateCategoryChip> {
+  bool _hovered = false;
+
+  void _setHovered(final bool value) {
+    if (mounted) setState(() => _hovered = value);
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final accent = SearchCategoryPalette.tintFor(widget.index);
+    final label = SearchCategoryPalette.labels[widget.index];
+    final icon = SearchCategoryPalette.icons[widget.index];
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (final _) => _setHovered(true),
+      onExit: (final _) => _setHovered(false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          transform: Matrix4.translationValues(0, _hovered ? -2.0 : 0.0, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: _hovered
+                ? accent[0].withOpacity(0.14)
+                : WebColors.darkBlueSurface,
+            borderRadius: kSearchIconCorner,
+            border: Border.all(
+              color: _hovered
+                  ? accent[0].withOpacity(0.7)
+                  : WebColors.textTertiary.withOpacity(0.25),
+            ),
+            boxShadow: _hovered
+                ? [BoxShadow(color: accent[0].withOpacity(0.3), blurRadius: 16)]
+                : const [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: _hovered ? accent[0] : WebColors.textSecondary),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: _hovered ? WebColors.whiteText : WebColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

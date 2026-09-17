@@ -54,6 +54,16 @@ class _SearchPageState extends ConsumerState<SearchPage>
   void _onSeeAll(final int filterIndex) =>
       ref.read(searchFilterProvider.notifier).setFilter(filterIndex);
 
+  /// Boş sonuç durumunda gerçek bir kategoriye "göz at" çipine dokunulunca:
+  /// hem serbest metin sorgusunu temizler hem de o kategoriye geçer —
+  /// böylece kullanıcı gerçekten var olan içeriği görür, uydurma bir öneri
+  /// değil.
+  void _onBrowseCategory(final int filterIndex) {
+    _textController.clear();
+    ref.read(searchQueryProvider.notifier).update("");
+    ref.read(searchFilterProvider.notifier).setFilter(filterIndex);
+  }
+
   @override
   Widget build(final BuildContext context) {
     final selectedFilter = ref.watch(searchFilterProvider);
@@ -292,6 +302,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
             _textController.clear();
             ref.read(searchQueryProvider.notifier).update("");
           },
+          onBrowseCategory: _onBrowseCategory,
         ),
       );
 
