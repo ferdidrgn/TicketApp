@@ -9,6 +9,7 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../shows/domain/entities/show.dart';
+import '../../../shows/presentation/providers/show_provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/web/player_detail_desktop_view.dart';
 
@@ -62,6 +63,17 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
 
   @override
   Widget build(final BuildContext context) {
+    // Masaüstünde (>=1024px) tamamen ayrı, gerçek bir "premium" web
+    // deneyimi kullanılır (bkz. _PlayerDetailDesktopPage) — BasePageWrapper
+    // (mobil uygulama çatısı: geri tuşu başlık çubuğu, "yukarı kaydır"
+    // FAB'ı, pull-to-refresh, CustomAppBackground'ın rastgele renkli
+    // parçacık noktaları) burada HİÇ örneklenmez. Mobil/tablet gövdesi
+    // aşağıda AYNEN kalır — bu görevin kapsamı sadece masaüstü deneyimini
+    // ayırmak, mobili yeniden yazmak değil.
+    if (context.isDesktop) {
+      return _PlayerDetailDesktopPage(playerId: widget.playerId);
+    }
+
     final playerAsync = ref.watch(playerDetailProvider(widget.playerId));
     final colors = context.colors;
 
@@ -82,9 +94,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
             child: CircularProgressIndicator(
                 color: colors.primary, strokeWidth: 2)),
         error: (final err, final stack) => _buildErrorState(context, err),
-        data: (final state) => context.isDesktop
-            ? _buildDesktopBody(context, state)
-            : _buildMobileBody(context, state),
+        data: (final state) => _buildMobileBody(context, state),
       ),
     );
   }
@@ -108,110 +118,6 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         ),
         _buildGlassTopBar(context, state),
       ],
-    );
-  }
-
-  // --- 🖥️ MASAÜSTÜ GÖVDE (ÇAM & MERCAN EDİTORYAL DÜZENİ) ---
-  Widget _buildDesktopBody(final BuildContext context, final dynamic state) {
-    final List<Show> activeShows = List<Show>.from(state.activeShows ?? []);
-    final List<Show> pastShows = List<Show>.from(state.pastShows ?? []);
-
-    return Stack(
-      children: [
-        CustomScrollView(
-          controller: scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: PlayerDetailDesktopView(
-                  player: state.player,
-                  activeShows: activeShows,
-                  pastShows: pastShows,
-                ),
-              ),
-            ),
-          ],
-        ),
-        _buildDesktopFloatingChip(context, state),
-      ],
-    );
-  }
-
-  // --- 💊 MASAÜSTÜ: KAYDIRINCA BELİREN SABİT MİNİ PROFİL KARTI ---
-  // Apple ürün sayfalarındaki "yapışkan" (sticky) CTA hissini, sayfanın
-  // genel kaydırma durumunu (mobildeki cam üst bar için zaten var olan
-  // `_isScrolled`) kullanarak güvenli biçimde yeniden üretir: kullanıcı
-  // hero'yu geçtiğinde sağ altta beliren, oyuncunun adı + paylaş kısayolunu
-  // taşıyan küçük bir kart.
-  Widget _buildDesktopFloatingChip(
-      final BuildContext context, final dynamic state) {
-    final String fullName = '${state.player.firstName} ${state.player.lastName}';
-
-    return Positioned(
-      right: 40,
-      bottom: 36,
-      child: IgnorePointer(
-        ignoring: !_isScrolled,
-        child: AnimatedSlide(
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
-          offset: _isScrolled ? Offset.zero : const Offset(0, 0.4),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 300),
-            opacity: _isScrolled ? 1.0 : 0.0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(10, 10, 16, 10),
-              decoration: BoxDecoration(
-                color: WebColors.veryDarkBlue.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(100),
-                border:
-                    Border.all(color: WebColors.primaryGold.withOpacity(0.4)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.35),
-                    blurRadius: 26,
-                    offset: const Offset(0, 14),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipOval(
-                    child: OptimizedCachedImage(
-                      imageUrl: state.player.imageUrl,
-                      width: 38,
-                      height: 38,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    fullName,
-                    style: const TextStyle(
-                      color: WebColors.whiteText,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  InkWell(
-                    onTap: () => TiyatrolDeeplinkService.shareActor(
-                      id: state.player.id,
-                      name: fullName,
-                    ),
-                    borderRadius: BorderRadius.circular(100),
-                    child: const Icon(Icons.share_rounded,
-                        size: 18, color: WebColors.primaryGoldLight),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -661,5 +567,239 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     return Center(
         child: Text("Sanatçı profili yüklenirken bir sorun oluştu.",
             style: TextStyle(color: context.colors.error)));
+  }
+}
+
+// =============================================================================
+// MASAÜSTÜ (WEB) SANATÇI DETAY SAYFASI
+// =============================================================================
+//
+/// `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR — o mobil uygulama
+/// çatısıdır (geri tuşu başlık çubuğu, "yukarı kaydır" FAB'ı, pull-to-
+/// refresh, `CustomAppBackground`'ın rastgele renkli parçacık noktaları —
+/// `particleColor` verilmediğinde markaya ait olmayan `context.primaryColor`
+/// kullanır). Bunlar `home_page_web.dart`'ta "Android uygulaması gibi
+/// görünüyor" şikayetinin asıl sebebiydi (bkz. o dosyadaki aynı gerekçe, ve
+/// `nearby_events_page.dart` / `discovery_page.dart`'taki aynı düzeltme). Üst
+/// navigasyon zaten `WebTopNavigationBar`'dan geliyor; burada ikinci bir
+/// başlık çubuğuna gerek yok. Sade, düz zeminli bir kaydırma alanı.
+class _PlayerDetailDesktopPage extends StatelessWidget {
+  final String playerId;
+
+  const _PlayerDetailDesktopPage({required this.playerId});
+
+  @override
+  Widget build(final BuildContext context) => ColoredBox(
+        // NOT: `_PlayerDetailDesktopBody` kendi `CustomScrollView`'ı ile
+        // zaten kaydırılabilir — ikinci bir SingleChildScrollView SARMAK
+        // "unbounded height" hatasına yol açar, bilerek eklenmedi.
+        color: WebColors.darkBlueBackground,
+        child: Center(
+          child: ConstrainedBox(
+            constraints:
+                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
+            child: _PlayerDetailDesktopBody(playerId: playerId),
+          ),
+        ),
+      );
+}
+
+class _PlayerDetailDesktopBody extends ConsumerStatefulWidget {
+  final String playerId;
+
+  const _PlayerDetailDesktopBody({required this.playerId});
+
+  @override
+  ConsumerState<_PlayerDetailDesktopBody> createState() =>
+      _PlayerDetailDesktopBodyState();
+}
+
+class _PlayerDetailDesktopBodyState
+    extends ConsumerState<_PlayerDetailDesktopBody>
+    with SingleTickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
+  late final AnimationController _animationController;
+  late final Animation<double> _fadeAnimation;
+  bool _isScrolled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _animationController.forward();
+  }
+
+  void _onScroll() {
+    if (!mounted) return;
+    final bool isScrolledNow = _scrollController.offset > 240;
+    if (_isScrolled != isScrolledNow) setState(() => _isScrolled = isScrolledNow);
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final playerAsync = ref.watch(playerDetailProvider(widget.playerId));
+
+    return playerAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 140),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(WebColors.primaryGold),
+            strokeWidth: 2,
+          ),
+        ),
+      ),
+      error: (final err, final stack) => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 140),
+        child: Center(
+          child: Text(
+            "Sanatçı profili yüklenirken bir sorun oluştu.",
+            style: TextStyle(color: WebColors.textSecondary),
+          ),
+        ),
+      ),
+      data: (final state) => _buildBody(context, state),
+    );
+  }
+
+  // --- 🟢 GERÇEK "ŞU AN SAHNEDE" ÇAPRAZ KONTROLÜ ---
+  // `state.activeShows`, oyuncunun `nowShowsId` alanından GELDİĞİ GİBİ
+  // gelir — bu elle tutulan bir liste, ve bir oyunun son etkinliği geçtiğinde
+  // birinin onu buradan çıkarmayı unutması kolayca gerçekle uyuşmaz hale
+  // gelebilir. `activeShowsProvider` ise "aktiflik"i `Show.eventsId` +
+  // `Event.date`'ten CANLI hesaplar (bkz. show_provider.dart) — Firestore'da
+  // elle tutulan bir alan değil. Burada ikisini çapraz kontrol ediyoruz:
+  // "ŞU AN SAHNEDE" bandında yalnızca hem oyuncunun `nowShowsId`
+  // listesinde OLAN hem de takviminde gerçekten gelecek bir etkinliği OLAN
+  // oyunlar gösterilir. `activeShowsProvider` henüz yüklenmemişse (bu proje
+  // Riverpod'unda `AsyncValue.valueOrNull` YOK, `.value` kullanılır — o da
+  // null dönebilir) ham listeyi olduğu gibi gösteriyoruz; ikincil bir
+  // doğrulamanın yüklenmesini beklerken içeriği gizlemek yanlış olur.
+  List<Show> _crossCheckedActiveShows(final List<Show> rawActiveShows) {
+    if (rawActiveShows.isEmpty) return rawActiveShows;
+    final List<Show>? realActiveShows =
+        ref.watch(activeShowsProvider(false)).value;
+    if (realActiveShows == null) return rawActiveShows;
+    final Set<String> realActiveIds =
+        realActiveShows.map((final s) => s.id).toSet();
+    return rawActiveShows
+        .where((final s) => realActiveIds.contains(s.id))
+        .toList();
+  }
+
+  Widget _buildBody(final BuildContext context, final PlayerDetailState state) {
+    final List<Show> activeShows = _crossCheckedActiveShows(state.activeShows);
+
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: PlayerDetailDesktopView(
+                  player: state.player,
+                  activeShows: activeShows,
+                  pastShows: state.pastShows,
+                ),
+              ),
+            ),
+          ],
+        ),
+        _buildFloatingChip(context, state),
+      ],
+    );
+  }
+
+  // --- 💊 MASAÜSTÜ: KAYDIRINCA BELİREN SABİT MİNİ PROFİL KARTI ---
+  // Apple ürün sayfalarındaki "yapışkan" (sticky) CTA hissini sayfanın
+  // kaydırma durumuna (`_isScrolled`) göre yeniden üretir: kullanıcı hero'yu
+  // geçtiğinde sağ altta beliren, oyuncunun adı + paylaş kısayolunu taşıyan
+  // küçük bir kart.
+  Widget _buildFloatingChip(
+      final BuildContext context, final PlayerDetailState state) {
+    final String fullName =
+        '${state.player.firstName} ${state.player.lastName}';
+
+    return Positioned(
+      right: 40,
+      bottom: 36,
+      child: IgnorePointer(
+        ignoring: !_isScrolled,
+        child: AnimatedSlide(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+          offset: _isScrolled ? Offset.zero : const Offset(0, 0.4),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: _isScrolled ? 1.0 : 0.0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 10, 16, 10),
+              decoration: BoxDecoration(
+                color: WebColors.veryDarkBlue.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(100),
+                border:
+                    Border.all(color: WebColors.primaryGold.withOpacity(0.4)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.35),
+                    blurRadius: 26,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipOval(
+                    child: OptimizedCachedImage(
+                      imageUrl: state.player.imageUrl,
+                      width: 38,
+                      height: 38,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    fullName,
+                    style: const TextStyle(
+                      color: WebColors.whiteText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  InkWell(
+                    onTap: () => TiyatrolDeeplinkService.shareActor(
+                      id: state.player.id,
+                      name: fullName,
+                    ),
+                    borderRadius: BorderRadius.circular(100),
+                    child: const Icon(Icons.share_rounded,
+                        size: 18, color: WebColors.primaryGoldLight),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
