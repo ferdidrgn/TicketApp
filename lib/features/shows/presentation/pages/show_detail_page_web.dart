@@ -283,7 +283,9 @@ class _DesktopLayout extends StatelessWidget {
           child: Column(
             children: [
               _AnimatedPoster(imageUrl: showData.imageUrl),
-              const SizedBox(height: 40),
+              const SizedBox(height: 28),
+              _ShowMetaChips(showData: showData),
+              const SizedBox(height: 28),
               _GlassDescriptionCard(description: showData.description),
             ],
           ),
@@ -302,8 +304,9 @@ class _DesktopLayout extends StatelessWidget {
                     const _SectionTitle(
                         title: 'Etkinlik Takvimi',
                         icon: Icons.calendar_today_rounded),
+                    _EventRuleNote(eventRule: showData.eventRule),
                     const SizedBox(height: 24),
-                    _EventDateList(events: events),
+                    _EventDateList(events: events, stages: stages),
                   ],
                 ),
               ),
@@ -355,6 +358,8 @@ class _MobileLayout extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _ShowMetaChips(showData: showData),
+        const SizedBox(height: 24),
         _GlassDescriptionCard(description: showData.description),
         const SizedBox(height: 40),
         KeyedSubtree(
@@ -365,8 +370,9 @@ class _MobileLayout extends StatelessWidget {
               const _SectionTitle(
                   title: 'Etkinlik Takvimi',
                   icon: Icons.calendar_today_rounded),
+              _EventRuleNote(eventRule: showData.eventRule),
               const SizedBox(height: 20),
-              _EventDateList(events: events),
+              _EventDateList(events: events, stages: stages),
             ],
           ),
         ),
@@ -391,23 +397,35 @@ class _MobileLayout extends StatelessWidget {
 
 class _EventDateList extends StatelessWidget {
   final List<Event> events;
+  final List<Stage> stages;
 
-  const _EventDateList({required this.events});
+  const _EventDateList({required this.events, required this.stages});
 
   @override
   Widget build(final BuildContext context) {
     if (events.isEmpty) return const SizedBox.shrink();
     return Column(
-      children: events
-          .map((final e) => _EventItemTile(rawDateString: e.date.toString()))
-          .toList(),
+      children: events.map((final e) {
+        Stage? stage;
+        for (final s in stages) {
+          if (s.id == e.stageId) {
+            stage = s;
+            break;
+          }
+        }
+        return _EventItemTile(rawDateString: e.date.toString(), stage: stage, price: e.price);
+      }).toList(),
     );
   }
 }
 
 class _EventItemTile extends StatelessWidget {
   final String rawDateString; // Örn: "15.09.2024,19:00"
-  const _EventItemTile({required this.rawDateString});
+  final Stage? stage; // Gerçek sahne verisi varsa mekan adını gösterir
+  final String price; // Ham fiyat verisi (Event.price)
+
+  const _EventItemTile(
+      {required this.rawDateString, this.stage, this.price = ''});
 
   @override
   Widget build(final BuildContext context) {
@@ -423,32 +441,48 @@ class _EventItemTile extends StatelessWidget {
       debugPrint("Tarih ayrıştırma hatası: $e");
     }
 
+    final priceValue = double.tryParse(price);
+    final priceLabel =
+        priceValue != null && priceValue > 0 ? '₺${priceValue.toStringAsFixed(0)}' : null;
+    final venueName = (stage?.name ?? '').trim();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B3A26).withOpacity(0.8),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE85C3F).withOpacity(0.3)),
+        color: WebColors.darkBlueSurface.withOpacity(0.8),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(6),
+          topRight: Radius.circular(22),
+          bottomRight: Radius.circular(6),
+          bottomLeft: Radius.circular(22),
+        ),
+        border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFE85C3F).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
+              color: WebColors.primaryGold.withOpacity(0.2),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(14),
+                bottomRight: Radius.circular(4),
+                bottomLeft: Radius.circular(14),
+              ),
             ),
             child: Column(
               children: [
                 Text(gun,
                     style: const TextStyle(
-                        color: Color(0xFFE85C3F),
+                        color: WebColors.primaryGold,
                         fontSize: 20,
                         fontWeight: FontWeight.bold)),
                 Text(ay,
                     style: const TextStyle(
-                        color: Color(0xFFE85C3F), fontSize: 11)),
+                        color: WebColors.primaryGold, fontSize: 11)),
               ],
             ),
           ),
@@ -458,26 +492,55 @@ class _EventItemTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(rawDateString.split(',')[0],
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: WebColors.whiteText,
                         fontSize: 16,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.access_time,
-                        color: Colors.white60, size: 14),
+                    Icon(Icons.access_time,
+                        color: WebColors.whiteText.withOpacity(0.6), size: 14),
                     const SizedBox(width: 4),
                     Text(saat,
-                        style: const TextStyle(
-                            color: Colors.white60, fontSize: 14)),
+                        style: TextStyle(
+                            color: WebColors.whiteText.withOpacity(0.6),
+                            fontSize: 14)),
+                    if (venueName.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      Icon(Icons.place_outlined,
+                          color: WebColors.whiteText.withOpacity(0.6),
+                          size: 14),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(venueName,
+                            style: TextStyle(
+                                color: WebColors.whiteText.withOpacity(0.6),
+                                fontSize: 14),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
                   ],
                 ),
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios,
-              color: Color(0xFFE85C3F), size: 14),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (priceLabel != null) ...[
+                Text(priceLabel,
+                    style: const TextStyle(
+                        color: WebColors.primaryGoldLight,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+              ],
+              const Icon(Icons.arrow_forward_ios,
+                  color: WebColors.primaryGold, size: 14),
+            ],
+          ),
         ],
       ),
     );
@@ -509,20 +572,30 @@ class _AnimatedPoster extends StatelessWidget {
 
   const _AnimatedPoster({required this.imageUrl});
 
+  // Landing sitesindeki köşegen "büyük/küçük" köşe dili (bkz. style.css
+  // .show { border-radius:4px 28px 4px 28px }) — üst-sol & alt-sağ küçük,
+  // üst-sağ & alt-sol büyük.
+  static const _radius = BorderRadius.only(
+    topLeft: Radius.circular(8),
+    topRight: Radius.circular(34),
+    bottomRight: Radius.circular(8),
+    bottomLeft: Radius.circular(34),
+  );
+
   @override
   Widget build(final BuildContext context) => Container(
         constraints: const BoxConstraints(maxWidth: 380),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: _radius,
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFE85C3F).withOpacity(0.4),
+                color: WebColors.primaryGold.withOpacity(0.4),
                 blurRadius: 50,
                 spreadRadius: 5)
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: _radius,
           child: AspectRatio(
               aspectRatio: 9 / 13,
               child:
@@ -540,23 +613,120 @@ class _GlassDescriptionCard extends StatelessWidget {
   Widget build(final BuildContext context) => Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: const Color(0xFF1B3A26).withOpacity(0.8),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE85C3F).withOpacity(0.3)),
+          color: WebColors.darkBlueSurface.withOpacity(0.8),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(6),
+            topRight: Radius.circular(28),
+            bottomRight: Radius.circular(6),
+            bottomLeft: Radius.circular(28),
+          ),
+          border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFE85C3F).withOpacity(0.1), blurRadius: 30)
+                color: WebColors.primaryGold.withOpacity(0.1), blurRadius: 30)
           ],
         ),
         child: Text(
           description.replaceAll('\\n', '\n'),
-          style: const TextStyle(
-              color: Colors.white70,
+          style: TextStyle(
+              color: WebColors.whiteText.withOpacity(0.7),
               fontSize: 16,
               height: 1.9,
               letterSpacing: 0.3),
         ),
       );
+}
+
+/// Show.duration / category / type / ageLimit alanlarından — hepsi gerçek
+/// Firestore verisi, önceden bu sayfada hiç gösterilmiyordu. Boş gelen
+/// alanlar sessizce gizlenir, hiçbir metin uydurulmaz.
+class _ShowMetaChips extends StatelessWidget {
+  final Show showData;
+
+  const _ShowMetaChips({required this.showData});
+
+  @override
+  Widget build(final BuildContext context) {
+    final items = <(IconData, String)>[
+      if (showData.duration.trim().isNotEmpty)
+        (Icons.schedule_rounded, showData.duration.trim()),
+      if (showData.category.trim().isNotEmpty)
+        (Icons.theater_comedy_rounded, showData.category.trim()),
+      if (showData.type.trim().isNotEmpty)
+        (Icons.style_rounded, showData.type.trim()),
+      if (showData.ageLimit.trim().isNotEmpty)
+        (Icons.shield_outlined, showData.ageLimit.trim()),
+    ];
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: items
+          .map((final item) => Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                  color: WebColors.darkBlueSurface.withOpacity(0.6),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(16),
+                    bottomRight: Radius.circular(4),
+                    bottomLeft: Radius.circular(16),
+                  ),
+                  border:
+                      Border.all(color: WebColors.primaryGold.withOpacity(0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(item.$1, size: 15, color: WebColors.primaryGoldLight),
+                    const SizedBox(width: 6),
+                    Text(item.$2,
+                        style: TextStyle(
+                            color: WebColors.whiteText.withOpacity(0.85),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ))
+          .toList(),
+    );
+  }
+}
+
+/// Show.eventRule dolu geldiğinde (ör. bilet/iade kuralı) takvim
+/// başlığının hemen altında küçük bir not olarak gösterilir; boşsa hiç yer
+/// kaplamaz.
+class _EventRuleNote extends StatelessWidget {
+  final String eventRule;
+
+  const _EventRuleNote({required this.eventRule});
+
+  @override
+  Widget build(final BuildContext context) {
+    final text = eventRule.trim();
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded,
+              size: 14, color: WebColors.textTertiary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(text,
+                style: TextStyle(
+                    color: WebColors.textTertiary,
+                    fontSize: 12.5,
+                    height: 1.5,
+                    fontStyle: FontStyle.italic)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SectionTitle extends StatelessWidget {
@@ -571,23 +741,28 @@ class _SectionTitle extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  colors: [Color(0xFFE85C3F), Color(0xFFF0876F)]),
-              borderRadius: BorderRadius.circular(12),
+              gradient: WebColors.goldButtonGradient,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(18),
+                bottomRight: Radius.circular(4),
+                bottomLeft: Radius.circular(18),
+              ),
               boxShadow: [
                 BoxShadow(
-                    color: const Color(0xFFE85C3F).withOpacity(0.4),
+                    color: WebColors.primaryGold.withOpacity(0.4),
                     blurRadius: 15)
               ],
             ),
-            child: Icon(icon, color: const Color(0xFF0F2318), size: 22),
+            child: Icon(icon,
+                color: WebColors.darkBlueBackground, size: 22),
           ),
           const SizedBox(width: 16),
           Text(title,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: WebColors.whiteText,
                   letterSpacing: 1)),
           const SizedBox(width: 16),
           Expanded(
@@ -595,7 +770,7 @@ class _SectionTitle extends StatelessWidget {
                   height: 1,
                   decoration: BoxDecoration(
                       gradient: LinearGradient(colors: [
-                    const Color(0xFFE85C3F).withOpacity(0.5),
+                    WebColors.primaryGold.withOpacity(0.5),
                     Colors.transparent
                   ])))),
         ],
@@ -626,7 +801,8 @@ class _BackgroundParticles extends StatelessWidget {
                     width: 4,
                     height: 4,
                     decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: Color(0xFFE85C3F))));
+                        shape: BoxShape.circle,
+                        color: WebColors.primaryGold)));
           },
         );
       }),
