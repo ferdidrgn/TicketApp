@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
@@ -18,7 +19,7 @@ class PlayerSection extends StatelessWidget {
     if (players.isEmpty)
       return Center(
         child: Text(isOld ? 'Eski ekip bilgisi yok.' : 'Ekip bilgisi yok.',
-            style: const TextStyle(color: Colors.white38)),
+            style: TextStyle(color: WebColors.whiteText.withOpacity(0.38))),
       );
 
     return Wrap(
@@ -51,6 +52,15 @@ class AnimatedPlayerCard extends StatelessWidget {
     required this.isOld,
   });
 
+  // Landing sitesindeki köşegen köşe dili: üst-sol & alt-sağ küçük,
+  // üst-sağ & alt-sol büyük (bkz. style.css .show / .venue).
+  static const _cardRadius = BorderRadius.only(
+    topLeft: Radius.circular(6),
+    topRight: Radius.circular(26),
+    bottomRight: Radius.circular(6),
+    bottomLeft: Radius.circular(26),
+  );
+
   @override
   Widget build(final BuildContext context) {
     final String fullName = '${player.firstName} ${player.lastName}';
@@ -63,14 +73,14 @@ class AnimatedPlayerCard extends StatelessWidget {
         child: Container(
           width: 150,
           decoration: BoxDecoration(
-            color: const Color(0xFF1B3A26),
-            borderRadius: BorderRadius.circular(20),
+            color: WebColors.darkBlueSurface,
+            borderRadius: _cardRadius,
             border: Border.all(
-              color: const Color(0xFFE85C3F).withOpacity(0.3),
+              color: WebColors.primaryGold.withOpacity(0.3),
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFE85C3F).withOpacity(0.15),
+                color: WebColors.primaryGold.withOpacity(0.15),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -81,8 +91,9 @@ class AnimatedPlayerCard extends StatelessWidget {
               Column(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(6),
+                      topRight: Radius.circular(26),
                     ),
                     child: OptimizedCachedImage(
                       imageUrl: player.imageUrl,
@@ -95,8 +106,8 @@ class AnimatedPlayerCard extends StatelessWidget {
                     padding: const EdgeInsets.all(14),
                     child: Text(
                       fullName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: WebColors.whiteText,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                         height: 1.3,
@@ -107,18 +118,18 @@ class AnimatedPlayerCard extends StatelessWidget {
                   ),
                 ],
               ),
-              // Eski oyuncu ise üzerine siyah perde ve ikon
+              // Eski oyuncu ise üzerine koyu perde ve ikon
               if (isOld)
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: _cardRadius,
+                      color: WebColors.veryDarkBlue.withOpacity(0.5),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Icon(
                         Icons.history,
-                        color: Colors.white38,
+                        color: WebColors.whiteText.withOpacity(0.38),
                         size: 40,
                       ),
                     ),
@@ -136,13 +147,13 @@ class AnimatedPlayerCard extends StatelessWidget {
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                       colors: [
-                        const Color(0xFFE85C3F).withOpacity(isOld ? 0.3 : 0.6),
+                        WebColors.primaryGold.withOpacity(isOld ? 0.3 : 0.6),
                         Colors.transparent,
                       ],
                     ),
                     borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(20),
-                      bottomLeft: Radius.circular(20),
+                      topRight: Radius.circular(26),
+                      bottomLeft: Radius.circular(26),
                     ),
                   ),
                 ),
