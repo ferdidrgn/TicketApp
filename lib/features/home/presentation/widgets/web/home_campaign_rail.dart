@@ -20,12 +20,12 @@ class HomeCampaignRail extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => SizedBox(
-        height: 300,
+        height: 260,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: campaigns.length,
-          separatorBuilder: (final _, final __) => const SizedBox(width: 20),
+          separatorBuilder: (final _, final __) => const SizedBox(width: 16),
           itemBuilder: (final context, final index) => _CampaignCard(
             campaign: campaigns[index],
             onTap: () => onCampaignTap(index),
@@ -57,7 +57,7 @@ class _CampaignCardState extends State<_CampaignCard> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
-            width: 380,
+            width: 340,
             transform: Matrix4.translationValues(0, _hovered ? -4 : 0, 0),
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.only(
@@ -66,11 +66,19 @@ class _CampaignCardState extends State<_CampaignCard> {
                 bottomLeft: Radius.circular(6),
                 bottomRight: Radius.circular(32),
               ),
+              border: Border.all(
+                color: _hovered
+                    ? WebColors.primaryGold.withOpacity(0.6)
+                    : Colors.transparent,
+                width: 1.2,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: WebColors.veryDarkBlue
-                      .withOpacity(_hovered ? 0.55 : 0.35),
-                  blurRadius: _hovered ? 28 : 16,
+                  color: (_hovered
+                          ? WebColors.primaryGold
+                          : WebColors.veryDarkBlue)
+                      .withOpacity(_hovered ? 0.32 : 0.35),
+                  blurRadius: _hovered ? 26 : 16,
                   offset: const Offset(0, 12),
                 ),
               ],

@@ -463,17 +463,31 @@ class _HeroBand extends StatefulWidget {
 }
 
 class _HeroBandState extends State<_HeroBand>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _glowController = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 6),
   )..repeat(reverse: true);
 
+  // Sayfa ilk açıldığında bir kereye mahsus çalışan giriş animasyonu —
+  // hero içeriği önceden statikti, artık sol/sağ panel hafif kademeli
+  // (staggered) fade+slide ile beliriyor.
+  late final AnimationController _entranceController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  )..forward();
+
   @override
   void dispose() {
     _glowController.dispose();
+    _entranceController.dispose();
     super.dispose();
   }
+
+  Animation<double> _fade(final double start) => CurvedAnimation(
+        parent: _entranceController,
+        curve: Interval(start, 1.0, curve: Curves.easeOut),
+      );
 
   @override
   Widget build(final BuildContext context) => Container(
@@ -481,13 +495,14 @@ class _HeroBandState extends State<_HeroBand>
         decoration: const BoxDecoration(gradient: WebColors.backgroundGradient),
         child: Stack(
           children: [
+            // Sahne ışığı motifi #1 — sağ üst, ana vurgu
             Positioned(
               top: -140,
               right: -80,
               child: AnimatedBuilder(
                 animation: _glowController,
                 builder: (final context, final child) => Opacity(
-                  opacity: 0.18 + _glowController.value * 0.10,
+                  opacity: 0.16 + _glowController.value * 0.09,
                   child: child,
                 ),
                 child: Container(
@@ -502,12 +517,36 @@ class _HeroBandState extends State<_HeroBand>
                 ),
               ),
             ),
+            // Sahne ışığı motifi #2 — sol alt, daha soluk ikincil vurgu
+            // (referans "Crimson Noir" paletindeki ortalanmış radial glow
+            // hissini tüm hero'ya yayıyor, tek nokta yerine)
+            Positioned(
+              bottom: -120,
+              left: -100,
+              child: AnimatedBuilder(
+                animation: _glowController,
+                builder: (final context, final child) => Opacity(
+                  opacity: 0.22 - _glowController.value * 0.08,
+                  child: child,
+                ),
+                child: Container(
+                  width: 340,
+                  height: 340,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [WebColors.secondaryAccent, Colors.transparent],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 _sectionPad(context),
-                context.responsive(mobile: 40.0, tablet: 56.0, desktop: 72.0),
+                context.responsive(mobile: 32.0, tablet: 44.0, desktop: 56.0),
                 _sectionPad(context),
-                context.responsive(mobile: 40.0, tablet: 48.0, desktop: 56.0),
+                context.responsive(mobile: 32.0, tablet: 36.0, desktop: 44.0),
               ),
               child: Center(
                 child: ConstrainedBox(
@@ -515,15 +554,31 @@ class _HeroBandState extends State<_HeroBand>
                   child: LayoutBuilder(
                     builder: (final context, final constraints) {
                       final bool wide = constraints.maxWidth >= 980;
-                      final left = _HeroCopy(
-                        onSearchTap: widget.onSearchTap,
-                        onDiscoverTap: widget.onDiscoverTap,
-                        onNearbyTap: widget.onNearbyTap,
+                      final left = FadeTransition(
+                        opacity: _fade(0.0),
+                        child: SlideTransition(
+                          position: _fade(0.0).drive(Tween(
+                              begin: const Offset(0, 0.06),
+                              end: Offset.zero)),
+                          child: _HeroCopy(
+                            onSearchTap: widget.onSearchTap,
+                            onDiscoverTap: widget.onDiscoverTap,
+                            onNearbyTap: widget.onNearbyTap,
+                          ),
+                        ),
                       );
-                      final right = _HeroStatsPanel(
-                        showCount: widget.showCount,
-                        stageCount: widget.stageCount,
-                        campaignCount: widget.campaignCount,
+                      final right = FadeTransition(
+                        opacity: _fade(0.18),
+                        child: SlideTransition(
+                          position: _fade(0.18).drive(Tween(
+                              begin: const Offset(0, 0.06),
+                              end: Offset.zero)),
+                          child: _HeroStatsPanel(
+                            showCount: widget.showCount,
+                            stageCount: widget.stageCount,
+                            campaignCount: widget.campaignCount,
+                          ),
+                        ),
                       );
 
                       if (!wide)
@@ -531,7 +586,7 @@ class _HeroBandState extends State<_HeroBand>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             left,
-                            const SizedBox(height: 36),
+                            const SizedBox(height: 28),
                             right,
                           ],
                         );
@@ -540,7 +595,7 @@ class _HeroBandState extends State<_HeroBand>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(flex: 3, child: left),
-                          const SizedBox(width: 56),
+                          const SizedBox(width: 48),
                           Expanded(flex: 2, child: right),
                         ],
                       );
@@ -586,7 +641,7 @@ class _HeroCopy extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
           Text(
             'Bu akşam,\nhangi sahne seni bekliyor?',
             style: (context.textTheme.displaySmall ?? const TextStyle()).copyWith(
@@ -594,29 +649,29 @@ class _HeroCopy extends StatelessWidget {
               fontWeight: FontWeight.w300,
               height: 1.12,
               fontSize: context.responsive(
-                  mobile: 34.0, tablet: 42.0, desktop: 50.0, largeDesktop: 56.0),
+                  mobile: 30.0, tablet: 36.0, desktop: 42.0, largeDesktop: 46.0),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
+            constraints: const BoxConstraints(maxWidth: 480),
             child: Text(
               'Şehrin sahnelerinde bu sezon oynayan oyunları keşfet, '
               'yakınındaki etkinliklere göz at ve biletini birkaç '
               'tıkla al.',
               style: TextStyle(
                 color: WebColors.textSecondary,
-                fontSize: 16,
+                fontSize: 14.5,
                 height: 1.6,
               ),
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 24),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            constraints: const BoxConstraints(maxWidth: 440),
             child: _WebSearchField(onTap: onSearchTap),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
           Wrap(
             spacing: 16,
             runSpacing: 12,
@@ -748,7 +803,7 @@ class _PillButtonState extends State<_PillButton> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             transform: Matrix4.translationValues(0, _hovered ? -2 : 0, 0),
-            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
             decoration: BoxDecoration(
               gradient: widget.filled ? WebColors.goldButtonGradient : null,
               color: widget.filled ? null : Colors.transparent,
@@ -808,9 +863,16 @@ class _HeroStatsPanel extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface.withOpacity(0.65),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              WebColors.darkBlueSurface.withOpacity(0.75),
+              WebColors.darkBlueSurface.withOpacity(0.5),
+            ],
+          ),
           borderRadius: _kAsymLg,
           border: Border.all(color: WebColors.primaryGold.withOpacity(0.22)),
         ),

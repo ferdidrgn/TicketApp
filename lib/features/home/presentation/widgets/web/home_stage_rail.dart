@@ -16,12 +16,12 @@ class HomeStageRail extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => SizedBox(
-        height: 220,
+        height: 190,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: stages.length,
-          separatorBuilder: (final _, final __) => const SizedBox(width: 18),
+          separatorBuilder: (final _, final __) => const SizedBox(width: 14),
           itemBuilder: (final context, final index) => _StageCard(
             stage: stages[index],
             onTap: () => onStageTap(stages[index]),
@@ -54,27 +54,36 @@ class _StageCardState extends State<_StageCard> {
             duration: const Duration(milliseconds: 200),
             scale: _hovered ? 1.02 : 1.0,
             child: Container(
-              width: 300,
+              width: 260,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(24),
+                  topLeft: Radius.circular(22),
                   topRight: Radius.circular(4),
-                  bottomLeft: Radius.circular(24),
+                  bottomLeft: Radius.circular(22),
                   bottomRight: Radius.circular(4),
+                ),
+                border: Border.all(
+                  color: _hovered
+                      ? WebColors.primaryGold.withOpacity(0.55)
+                      : Colors.transparent,
+                  width: 1.2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: WebColors.veryDarkBlue.withOpacity(0.4),
-                    blurRadius: _hovered ? 22 : 12,
+                    color: (_hovered
+                            ? WebColors.primaryGold
+                            : WebColors.veryDarkBlue)
+                        .withOpacity(_hovered ? 0.3 : 0.4),
+                    blurRadius: _hovered ? 20 : 12,
                     offset: const Offset(0, 8),
                   ),
                 ],
               ),
               child: ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(24),
+                  topLeft: Radius.circular(22),
                   topRight: Radius.circular(4),
-                  bottomLeft: Radius.circular(24),
+                  bottomLeft: Radius.circular(22),
                   bottomRight: Radius.circular(4),
                 ),
                 child: Stack(

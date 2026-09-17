@@ -9,9 +9,11 @@ import '../../../core/theme/app_colors.dart';
 /// 💻 WEB TOP NAVIGATION BAR
 ///
 /// Üst kısımda sabit duran, tüm shell sekmelerini (Ana Sayfa, Keşfet,
-/// Yakındakiler, Profil) saran kalıcı gezinme çubuğu. "Çam & Mercan"
-/// (Pine & Coral) marka kimliğiyle, `landing/` tanıtım sitesiyle aynı
-/// dilde tasarlanmıştır (asimetrik köşeler, mercan vurgu, fildişi metin).
+/// Yakındakiler, Profil) saran kalıcı gezinme çubuğu. Artık "Kırmızı &
+/// Siyah" (Crimson Noir) marka kimliği — `WebColors` sabitlerinin
+/// değerleri değişti, burası otomatik olarak takip ediyor. Daha kompakt
+/// bir yükseklik (68px, eskiden 84px) ve barın arkasında hafif bir
+/// sahne-ışığı (spotlight) motifiyle "kocaman/şişkin" hissi azaltıldı.
 ///
 /// Navigasyon mantığı (goBranch, HapticFeedback, Scaffold+Column+Expanded
 /// iskeleti) birebir korunmuştur — sadece görsel kimlik değişti.
@@ -59,49 +61,78 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
-          height: 84,
+          height: 68,
           decoration: BoxDecoration(
             color: WebColors.darkBlueSurface.withOpacity(0.92),
-            border: const Border(
-              bottom: BorderSide(color: WebColors.darkBlueAccent, width: 1),
+            border: Border(
+              bottom: BorderSide(
+                  color: WebColors.primaryGold.withOpacity(0.14), width: 1),
             ),
             boxShadow: [
               BoxShadow(
-                color: WebColors.veryDarkBlue.withOpacity(0.35),
+                color: WebColors.veryDarkBlue.withOpacity(0.5),
                 blurRadius: 18,
                 offset: const Offset(0, 6),
               ),
             ],
           ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1600),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: context.responsive(
-                    mobile: 20.0,
-                    tablet: 40.0,
-                    desktop: 56.0,
+          // İnce bir sahne-ışığı (spotlight) motifi — üst barın tam
+          // ortasında, zemine değil bara ait çok hafif bir kızıl parıltı.
+          // `landing`'in kendi radial glow deseniyle aynı dil.
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: -40,
+                child: IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      width: 420,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          colors: [
+                            WebColors.primaryGold.withOpacity(0.10),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    // LOGO
-                    _buildLogo(context),
+              ),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1600),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.responsive(
+                        mobile: 16.0,
+                        tablet: 32.0,
+                        desktop: 44.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        // LOGO
+                        _buildLogo(context),
 
-                    const Spacer(),
+                        const Spacer(),
 
-                    // NAVIGATION ITEMS
-                    _buildNavItems(context),
+                        // NAVIGATION ITEMS
+                        _buildNavItems(context),
 
-                    SizedBox(width: context.spacing * 2),
+                        SizedBox(width: context.spacing * 1.5),
 
-                    // PROFILE / LOGIN BUTTON
-                    _buildProfileButton(context),
-                  ],
+                        // PROFILE / LOGIN BUTTON
+                        _buildProfileButton(context),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -116,24 +147,24 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
         child: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(2),
-                  topRight: Radius.circular(14),
+                  topRight: Radius.circular(11),
                   bottomLeft: Radius.circular(2),
-                  bottomRight: Radius.circular(14),
+                  bottomRight: Radius.circular(11),
                 ),
                 border: Border.all(
-                    color: WebColors.primaryGold.withOpacity(0.55), width: 1.4),
+                    color: WebColors.primaryGold.withOpacity(0.55), width: 1.2),
               ),
               child: ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(1),
-                  topRight: Radius.circular(13),
+                  topRight: Radius.circular(10),
                   bottomLeft: Radius.circular(1),
-                  bottomRight: Radius.circular(13),
+                  bottomRight: Radius.circular(10),
                 ),
                 child: Image.asset(
                   'assets/images/tiyatrol_logo.png',
@@ -145,13 +176,13 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
                     child: const Icon(
                       Icons.theater_comedy_rounded,
                       color: WebColors.veryDarkBlue,
-                      size: 22,
+                      size: 18,
                     ),
                   ),
                 ),
               ),
             ),
-            SizedBox(width: context.spacing),
+            SizedBox(width: context.spacing * 0.7),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +191,7 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
                   "TiyatRol",
                   style: (context.textTheme.titleLarge ?? const TextStyle())
                       .copyWith(
-                    fontSize: 19,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: WebColors.whiteText,
                     height: 1.0,
@@ -170,10 +201,10 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
                 const Text(
                   "SANAT & KÜLTÜR",
                   style: TextStyle(
-                    fontSize: 9.5,
+                    fontSize: 8.5,
                     fontWeight: FontWeight.w700,
                     color: WebColors.primaryGoldLight,
-                    letterSpacing: 1.6,
+                    letterSpacing: 1.4,
                   ),
                 ),
               ],
@@ -226,7 +257,7 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
         onTap: () => _onItemTapped(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
                 ? WebColors.primaryGold.withOpacity(0.14)
@@ -235,9 +266,9 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
                     : Colors.transparent),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(2),
-              topRight: Radius.circular(14),
+              topRight: Radius.circular(12),
               bottomLeft: Radius.circular(2),
-              bottomRight: Radius.circular(14),
+              bottomRight: Radius.circular(12),
             ),
           ),
           child: Column(
@@ -248,16 +279,16 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
                 children: [
                   Icon(
                     icon,
-                    size: 19,
+                    size: 16,
                     color: highlighted
                         ? WebColors.primaryGoldLight
                         : WebColors.textSecondary,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 7),
                   Text(
                     label,
                     style: TextStyle(
-                      fontSize: 13.5,
+                      fontSize: 12.5,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       color: highlighted
                           ? WebColors.whiteText
@@ -267,13 +298,14 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
                 height: 2,
-                width: isSelected ? 20 : 0,
+                width: isSelected ? 18 : 0,
                 decoration: BoxDecoration(
-                  color: WebColors.primaryGold,
+                  gradient: WebColors.goldButtonGradient,
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
@@ -293,20 +325,20 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
           widget.navigationShell.goBranch(3); // Profil tab'ı
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
           decoration: BoxDecoration(
             gradient: WebColors.goldButtonGradient,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(2),
-              topRight: Radius.circular(18),
+              topRight: Radius.circular(14),
               bottomLeft: Radius.circular(2),
-              bottomRight: Radius.circular(18),
+              bottomRight: Radius.circular(14),
             ),
             boxShadow: [
               BoxShadow(
-                color: WebColors.primaryGold.withOpacity(0.28),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+                color: WebColors.primaryGold.withOpacity(0.3),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -316,15 +348,15 @@ class WebTopNavigationBarState extends State<WebTopNavigationBar> {
               const Icon(
                 Icons.person_outline_rounded,
                 color: WebColors.veryDarkBlue,
-                size: 19,
+                size: 16,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 7),
               const Text(
                 "Giriş Yap",
                 style: TextStyle(
                   color: WebColors.veryDarkBlue,
                   fontWeight: FontWeight.w700,
-                  fontSize: 13.5,
+                  fontSize: 12.5,
                   letterSpacing: 0.2,
                 ),
               ),

@@ -36,8 +36,8 @@ class HomeShowGrid extends StatelessWidget {
             itemCount: shows.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 22,
-              mainAxisSpacing: 22,
+              crossAxisSpacing: 18,
+              mainAxisSpacing: 18,
               childAspectRatio: 0.72,
             ),
             itemBuilder: (final context, final index) =>
