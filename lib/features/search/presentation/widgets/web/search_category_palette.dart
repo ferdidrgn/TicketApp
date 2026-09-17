@@ -44,11 +44,13 @@ class SearchCategoryPalette {
 
     // 3. Mekanlar — adaçayı + koyu çam kulis karışımı: daha "mimari" ve
     // loş bir yeşil, Oyuncular'ın canlı adaçayısından belirgin şekilde
-    // koyu/soğuk
+    // koyu/soğuk. Karışım oranı, koyu (veryDarkBlue) etiket metninin
+    // her iki gradyan durağında da okunur kalması için bilinçli olarak
+    // ölçülü tutuldu (çam tarafına çok kaymaz).
     [
       WebColors.secondaryAccent,
       Color.lerp(
-          WebColors.secondaryAccent, WebColors.darkBlueAccent, 0.55)!,
+          WebColors.secondaryAccent, WebColors.darkBlueAccent, 0.35)!,
     ],
 
     // 4. Ekipler — mercan + adaçayı karışımı: markanın iki ana rengini
