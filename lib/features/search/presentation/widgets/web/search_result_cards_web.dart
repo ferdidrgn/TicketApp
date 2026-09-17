@@ -2,9 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
+import 'package:ticketapp/features/search/presentation/widgets/web/search_category_palette.dart';
 import 'package:ticketapp/features/search/presentation/widgets/web/search_scroll_reveal.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
+
+// =============================================================================
+// KÖŞE DİLİ — landing/style.css'teki asimetrik `border-radius` motifinin
+// (örn. `.show{border-radius:4px 28px 4px 28px}`, `.venue{border-radius:
+// 4px 20px}`) Flutter karşılığı. Tek biçimli `BorderRadius.circular` yerine
+// her yüzeyde aynı yönde (sol-üst/sağ-alt keskin, sağ-üst/sol-alt yuvarlak)
+// köşegen bir kesim kullanılır — büyüklük hiyerarşiye göre değişir.
+// =============================================================================
+
+const BorderRadius kSearchCardCorner = BorderRadius.only(
+  topLeft: Radius.circular(4),
+  topRight: Radius.circular(28),
+  bottomRight: Radius.circular(4),
+  bottomLeft: Radius.circular(28),
+);
+
+const BorderRadius kSearchPlaceCorner = BorderRadius.only(
+  topLeft: Radius.circular(4),
+  topRight: Radius.circular(20),
+  bottomRight: Radius.circular(4),
+  bottomLeft: Radius.circular(20),
+);
+
+const BorderRadius kSearchBadgeCorner = BorderRadius.only(
+  topLeft: Radius.circular(2),
+  topRight: Radius.circular(10),
+  bottomRight: Radius.circular(2),
+  bottomLeft: Radius.circular(10),
+);
+
+const BorderRadius kSearchIconCorner = BorderRadius.only(
+  topLeft: Radius.circular(4),
+  topRight: Radius.circular(16),
+  bottomRight: Radius.circular(4),
+  bottomLeft: Radius.circular(16),
+);
 
 // =============================================================================
 // BÖLÜM BAŞLIĞI (show_detail_page_web.dart'daki _SectionTitle konvansiyonu)
@@ -16,16 +53,24 @@ class DesktopSectionTitle extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onSeeAll;
 
+  /// Bölümün kategori tonu ([açık, koyu]) — verilmezse ana mercan
+  /// gradyanına düşer ("Tümü" / genel kullanım).
+  final List<Color>? accentColors;
+
   const DesktopSectionTitle({
     super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
     this.onSeeAll,
+    this.accentColors,
   });
 
   @override
-  Widget build(final BuildContext context) => Padding(
+  Widget build(final BuildContext context) {
+    final colors = accentColors ??
+        const [WebColors.primaryGold, WebColors.primaryGoldLight];
+    return Padding(
         padding: const EdgeInsets.only(bottom: 28, top: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -33,12 +78,10 @@ class DesktopSectionTitle extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [WebColors.primaryGold, WebColors.primaryGoldLight]),
-                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(colors: colors),
+                borderRadius: kSearchIconCorner,
                 boxShadow: [
-                  BoxShadow(
-                      color: WebColors.primaryGold.withOpacity(0.35), blurRadius: 18),
+                  BoxShadow(color: colors.first.withOpacity(0.35), blurRadius: 18),
                 ],
               ),
               child: Icon(icon, color: WebColors.veryDarkBlue, size: 24),
@@ -87,6 +130,7 @@ class DesktopSectionTitle extends StatelessWidget {
           ],
         ),
       );
+  }
 }
 
 // =============================================================================
@@ -125,7 +169,7 @@ class _DesktopShowCardState extends State<DesktopShowCard> {
               curve: Curves.easeOut,
               transform: Matrix4.identity()..translate(0.0, _hovered ? -8.0 : 0.0),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: kSearchCardCorner,
                 boxShadow: [
                   BoxShadow(
                     color: _hovered
@@ -137,7 +181,7 @@ class _DesktopShowCardState extends State<DesktopShowCard> {
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: kSearchCardCorner,
                 child: AspectRatio(
                   aspectRatio: 0.72,
                   child: Stack(
@@ -179,8 +223,10 @@ class _DesktopShowCardState extends State<DesktopShowCard> {
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: WebColors.primaryGold.withOpacity(0.85),
-                                borderRadius: BorderRadius.circular(6),
+                                color: SearchCategoryPalette
+                                    .tints[SearchCategoryPalette.events][0]
+                                    .withOpacity(0.9),
+                                borderRadius: kSearchBadgeCorner,
                               ),
                               child: const Text('ETKİNLİK',
                                   style: TextStyle(
@@ -298,7 +344,9 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
                         border: Border.all(
                           color: _hovered
                               ? WebColors.primaryGold
-                              : WebColors.secondaryAccent.withOpacity(0.35),
+                              : SearchCategoryPalette
+                                  .tints[SearchCategoryPalette.players][1]
+                                  .withOpacity(0.35),
                           width: _hovered ? 3 : 1.5,
                         ),
                         boxShadow: _hovered
@@ -367,7 +415,15 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
   }
 
   @override
-  Widget build(final BuildContext context) => SearchRevealOnScroll(
+  Widget build(final BuildContext context) {
+    // Mekan ve ekip kategorileri, aynı kart tipini paylaşsa bile
+    // SearchCategoryPalette'ten farklı bir ton alır — böylece rozet ve
+    // hover parıltısı "Mekanlar" filtre sekmesiyle/simgesiyle,
+    // "Ekipler" ise kendi sekmesiyle aynı kimliği taşır.
+    final accent = SearchCategoryPalette.tints[
+        widget.isStage ? SearchCategoryPalette.stages : SearchCategoryPalette.teams];
+
+    return SearchRevealOnScroll(
         index: widget.index,
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
@@ -384,18 +440,18 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
               curve: Curves.easeOut,
               transform: Matrix4.identity()..translate(0.0, _hovered ? -6.0 : 0.0),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: kSearchPlaceCorner,
                 boxShadow: [
                   BoxShadow(
                       color: _hovered
-                          ? WebColors.secondaryAccent.withOpacity(0.3)
+                          ? accent[1].withOpacity(0.35)
                           : Colors.black.withOpacity(0.3),
                       blurRadius: _hovered ? 26 : 14,
                       offset: const Offset(0, 10)),
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: kSearchPlaceCorner,
                 child: AspectRatio(
                   aspectRatio: 1.1,
                   child: Stack(
@@ -436,8 +492,8 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: WebColors.secondaryAccent.withOpacity(0.85),
-                                borderRadius: BorderRadius.circular(6),
+                                color: accent[0].withOpacity(0.9),
+                                borderRadius: kSearchBadgeCorner,
                               ),
                               child: Text(
                                 widget.isStage ? 'MEKAN' : 'EKİP',
@@ -468,6 +524,7 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
           ),
         ),
       );
+  }
 }
 
 // =============================================================================
@@ -522,7 +579,15 @@ class DesktopSearchEmptyState extends StatelessWidget {
                     backgroundColor: WebColors.primaryGold,
                     foregroundColor: WebColors.veryDarkBlue,
                     padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    // landing/style.css .btn: köşegen kesimli CTA (2px 14px
+                    // 2px 14px) — tam yuvarlak hap yerine marka köşe dili.
+                    shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(2),
+                      topRight: Radius.circular(18),
+                      bottomRight: Radius.circular(2),
+                      bottomLeft: Radius.circular(18),
+                    )),
                   ),
                   child: Text(clearLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
