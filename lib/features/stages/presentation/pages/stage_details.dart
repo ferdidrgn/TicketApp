@@ -4,13 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
+import '../../domain/entities/stage.dart';
 import '../providers/stage_detail_provider.dart';
+import '../widgets/web/scroll_reveal_section.dart';
+import '../widgets/web/stage_hero_section.dart';
+import '../widgets/web/stage_info_rail.dart';
+import '../widgets/web/stage_show_tile.dart';
 
 class StageDetailPage extends ConsumerStatefulWidget {
   final String stageId;
@@ -22,9 +28,42 @@ class StageDetailPage extends ConsumerStatefulWidget {
 }
 
 class _StageDetailPageState extends ConsumerState<StageDetailPage>
-    with GlobalScrollMixin {
+    with TickerProviderStateMixin, GlobalScrollMixin {
+  // 🎬 MASAÜSTÜ HERO GİRİŞ ANİMASYONU (yalnızca context.isDesktop dalında
+  // kullanılır; mobil/tablet görünümü hiç dokunmaz). Desen,
+  // show_detail_page_web.dart'taki hero fade/slide yaklaşımıyla aynıdır.
+  late final AnimationController _heroController;
+  late final Animation<double> _heroFade;
+  late final Animation<Offset> _heroSlide;
+  bool _desktopHeroAnimationStarted = false;
+
   @override
   void onLoadMore() {}
+
+  @override
+  void initState() {
+    super.initState();
+    _heroController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _heroFade = CurvedAnimation(parent: _heroController, curve: Curves.easeOut);
+    _heroSlide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+        .animate(CurvedAnimation(
+            parent: _heroController, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _heroController.dispose();
+    super.dispose();
+  }
+
+  void _startDesktopHeroAnimationOnce() {
+    if (_desktopHeroAnimationStarted) return;
+    _desktopHeroAnimationStarted = true;
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
+      if (mounted) _heroController.forward();
+    });
+  }
 
   @override
   Widget build(final BuildContext context) {
@@ -49,59 +88,196 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (final err, final _) =>
             Center(child: Text('Veri yüklenemedi: $err')),
-        data: (final state) => Center(
-          child: ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: isLargeScreen ? 800 : double.infinity),
-            child: CustomScrollView(
-              controller: scrollController,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverPadding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      _buildStageImage(state.stage.imageUrl),
-                      const SizedBox(height: 32),
-
-                      // 📖 MEKAN HİKAYESİ
-                      _buildSectionLabel(
-                          context, 'HAKKINDA', Icons.info_outline_rounded),
-                      const SizedBox(height: 12),
-                      _buildStageInfo(state.stage.description),
-                      const SizedBox(height: 40),
-
-                      // 🎬 ETKİNLİKLER
-                      if (state.shows.isNotEmpty) ...[
-                        _buildSectionLabel(context, 'SAHNELENEN ESERLER',
-                            Icons.event_seat_rounded),
-                        const SizedBox(height: 16),
-                        _buildShowList(state.shows),
-                        const SizedBox(height: 40),
-                      ],
-
-                      // 📍 KONUM VE ADRES
-                      _buildSectionLabel(
-                          context, 'LOKASYON', Icons.map_outlined),
-                      const SizedBox(height: 16),
-                      _buildStageMap(
-                          state.stage.locationLat, state.stage.locationLng),
-                      const SizedBox(height: 24),
-                      _buildAddressSection(context, state.stage.address,
-                          state.stage.communication),
-
-                      const SizedBox(height: 120),
-                    ]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // 🖥️ Masaüstünde tamamen yeni, editoryal bir sayfa; mobil/tablet
+        // için orijinal (dokunulmamış) yerleşim korunuyor.
+        data: (final state) => context.isDesktop
+            ? _buildDesktopBody(context, state)
+            : _buildMobileBody(context, isLargeScreen, state),
       ),
     );
   }
+
+  // --- MOBİL/TABLET GÖVDE (ORİJİNAL, DEĞİŞTİRİLMEMİŞ YERLEŞİM) ---
+
+  Widget _buildMobileBody(final BuildContext context, final bool isLargeScreen,
+          final StageDetailState state) =>
+      Center(
+        child: ConstrainedBox(
+          constraints:
+              BoxConstraints(maxWidth: isLargeScreen ? 800 : double.infinity),
+          child: CustomScrollView(
+            controller: scrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildStageImage(state.stage.imageUrl),
+                    const SizedBox(height: 32),
+
+                    // 📖 MEKAN HİKAYESİ
+                    _buildSectionLabel(
+                        context, 'HAKKINDA', Icons.info_outline_rounded),
+                    const SizedBox(height: 12),
+                    _buildStageInfo(state.stage.description),
+                    const SizedBox(height: 40),
+
+                    // 🎬 ETKİNLİKLER
+                    if (state.shows.isNotEmpty) ...[
+                      _buildSectionLabel(context, 'SAHNELENEN ESERLER',
+                          Icons.event_seat_rounded),
+                      const SizedBox(height: 16),
+                      _buildShowList(state.shows),
+                      const SizedBox(height: 40),
+                    ],
+
+                    // 📍 KONUM VE ADRES
+                    _buildSectionLabel(
+                        context, 'LOKASYON', Icons.map_outlined),
+                    const SizedBox(height: 16),
+                    _buildStageMap(
+                        state.stage.locationLat, state.stage.locationLng),
+                    const SizedBox(height: 24),
+                    _buildAddressSection(context, state.stage.address,
+                        state.stage.communication),
+
+                    const SizedBox(height: 120),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  // --- MASAÜSTÜ/WEB GÖVDE (YENİ, PREMIUM EDİTORYAL SAYFA) ---
+
+  Widget _buildDesktopBody(
+      final BuildContext context, final StageDetailState state) {
+    _startDesktopHeroAnimationOnce();
+
+    return CustomScrollView(
+      controller: scrollController,
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: StageHeroSection(
+            stage: state.stage,
+            fadeAnimation: _heroFade,
+            slideAnimation: _heroSlide,
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1280),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 48, vertical: 72),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ScrollRevealSection(
+                      id: 'stage-${state.stage.id}-split',
+                      child: StickyEditorialSplit(
+                        scrollListenable: scrollController,
+                        sidebar: StageInfoCard(stage: state.stage),
+                        content: _buildDesktopContentColumn(context, state),
+                      ),
+                    ),
+                    const SizedBox(height: 80),
+                    if (state.stage.locationLat != 0 ||
+                        state.stage.locationLng != 0)
+                      ScrollRevealSection(
+                        id: 'stage-${state.stage.id}-map',
+                        delay: const Duration(milliseconds: 120),
+                        child: _buildDesktopMapSection(state.stage),
+                      ),
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopContentColumn(
+          final BuildContext context, final StageDetailState state) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _DesktopSectionTitle(
+              title: 'Hakkında', icon: Icons.info_outline_rounded),
+          const SizedBox(height: 24),
+          Text(
+            state.stage.description,
+            style: const TextStyle(
+              color: WebColors.textSecondary,
+              fontSize: 17,
+              height: 1.85,
+              letterSpacing: 0.2,
+            ),
+          ),
+          if (state.shows.isNotEmpty) ...[
+            const SizedBox(height: 56),
+            const _DesktopSectionTitle(
+                title: 'Sahnelenen Eserler', icon: Icons.event_seat_rounded),
+            const SizedBox(height: 28),
+            ...state.shows.map(
+              (final show) => StageUpcomingShowTile(
+                show: show,
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (final _) =>
+                            ShowDetailPage(showId: show.id))),
+              ),
+            ),
+          ],
+        ],
+      );
+
+  Widget _buildDesktopMapSection(final Stage stage) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _DesktopSectionTitle(
+              title: 'Konum', icon: Icons.map_outlined),
+          const SizedBox(height: 28),
+          Container(
+            height: 420,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: WebColors.primaryGold.withOpacity(0.25)),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20)),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: GoogleMap(
+                initialCameraPosition: CameraPosition(
+                    target: LatLng(stage.locationLat, stage.locationLng),
+                    zoom: 15),
+                markers: {
+                  Marker(
+                      markerId: const MarkerId('stage'),
+                      position: LatLng(stage.locationLat, stage.locationLng)),
+                },
+                zoomControlsEnabled: false,
+                scrollGesturesEnabled: false,
+              ),
+            ),
+          ),
+        ],
+      );
 
   // --- UI BİLEŞENLERİ ---
 
@@ -223,6 +399,52 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
           Text(title,
               style: context.textTheme.labelLarge
                   ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 2)),
+        ],
+      );
+}
+
+/// Masaüstü sayfasındaki bölüm başlıkları için, `show_detail_page_web.dart`
+/// içindeki `_SectionTitle` ile aynı görsel dile sahip (gradyanlı ikon
+/// rozeti + büyük başlık + solan çizgi) özel bileşen.
+class _DesktopSectionTitle extends StatelessWidget {
+  final String title;
+  final IconData icon;
+
+  const _DesktopSectionTitle({required this.title, required this.icon});
+
+  @override
+  Widget build(final BuildContext context) => Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  colors: [WebColors.primaryGold, WebColors.primaryGoldLight]),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                    color: WebColors.primaryGold.withOpacity(0.4),
+                    blurRadius: 15),
+              ],
+            ),
+            child: Icon(icon, color: WebColors.veryDarkBlue, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: WebColors.whiteText,
+                  letterSpacing: 0.5)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [
+                    WebColors.primaryGold.withOpacity(0.5),
+                    Colors.transparent,
+                  ])))),
         ],
       );
 }
