@@ -8,6 +8,7 @@ import '../../../../core/util/date_formatter.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../providers/my_ticket_provider.dart';
+import '../widgets/web/my_tickets_desktop_view.dart';
 
 class MyTicketPage extends ConsumerStatefulWidget {
   final String userId;
@@ -46,6 +47,16 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   @override
   Widget build(final BuildContext context) {
     super.build(context);
+
+    // Masaüstünde (>=1024px) gerçek Firestore verisiyle çalışan, ayrı bir
+    // "premium" web deneyimi kullanılır (bkz. _MyTicketsDesktopBody).
+    // Mobil/tablet gövdesi aşağıda AYNEN kalır — bu görevin kapsamı sadece
+    // masaüstü deneyimini eklemek, mobili yeniden yazmak değil.
+    if (context.isDesktop)
+      return MyTicketsDesktopPage(
+        userId: widget.userId,
+        onTicketTap: _showTicketDetails,
+      );
 
     final ticketsAsync = ref.watch(myTicketsProvider(widget.userId));
 

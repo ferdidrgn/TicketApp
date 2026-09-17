@@ -11,6 +11,7 @@ import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/custom_dots_indicator.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
+import '../widgets/web/campaign_showcase_desktop_view.dart';
 
 class CampaignShowcasePage extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -55,6 +56,13 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
 
   @override
   Widget build(final BuildContext context) {
+    // Masaüstünde (>=1024px) gerçek Firestore verisiyle çalışan, ayrı bir
+    // "premium" web deneyimi kullanılır (bkz. CampaignShowcaseDesktopPage).
+    // Mobil/tablet gövdesi aşağıda AYNEN kalır — bu görevin kapsamı sadece
+    // masaüstü deneyimini eklemek, mobili yeniden yazmak değil.
+    if (context.isDesktop)
+      return CampaignShowcaseDesktopPage(initialIndex: widget.initialIndex);
+
     final campaignsAsync = ref.watch(campaignsProvider);
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 

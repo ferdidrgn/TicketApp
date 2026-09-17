@@ -7,6 +7,7 @@ import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../../stages/presentation/pages/stage_details.dart';
 import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
+import '../widgets/web/favorites_desktop_view.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -33,6 +34,12 @@ class _FavoritesPageState extends State<FavoritesPage>
 
   @override
   Widget build(final BuildContext context) {
+    // Masaüstünde (>=1024px) gerçek Firestore verisiyle çalışan, ayrı bir
+    // "premium" web deneyimi kullanılır (bkz. FavoritesDesktopPage). Mobil/
+    // tablet gövdesi aşağıda AYNEN kalır — bu görevin kapsamı sadece
+    // masaüstü deneyimini eklemek, mobili yeniden yazmak değil.
+    if (context.isDesktop) return const FavoritesDesktopPage();
+
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return DefaultTabController(
