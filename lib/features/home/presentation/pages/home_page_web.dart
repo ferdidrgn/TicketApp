@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
+import '../../../events/domain/entities/event.dart';
+import '../../../events/presentation/providers/event_provider.dart';
+import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../widgets/web/home_campaign_rail.dart';
 import '../widgets/web/home_category_strip.dart';
@@ -109,9 +115,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                         onDiscoverTap: () =>
                             NavigationHandler.goToDiscover(context),
                         onNearbyTap: () => NavigationHandler.goToNearby(context),
-                        showCount: showState.value?.length,
-                        stageCount: stageState.value?.length,
-                        campaignCount: campaignState.value?.length,
+                        onFeaturedShowTap: (final show) =>
+                            NavigationHandler.goToShow(
+                                context, show.id, show.name),
+                        shows: shows,
+                        stages: stages,
                       ),
                       // 1. Öne Çıkanlar / Vitrin (mobildeki StoryCircles'ın
                       // web karşılığı — aynı SectionHeader kicker/title)
@@ -447,17 +455,17 @@ class _HeroBand extends StatefulWidget {
   final VoidCallback onSearchTap;
   final VoidCallback onDiscoverTap;
   final VoidCallback onNearbyTap;
-  final int? showCount;
-  final int? stageCount;
-  final int? campaignCount;
+  final ValueChanged<Show> onFeaturedShowTap;
+  final List<Show> shows;
+  final List<Stage> stages;
 
   const _HeroBand({
     required this.onSearchTap,
     required this.onDiscoverTap,
     required this.onNearbyTap,
-    required this.showCount,
-    required this.stageCount,
-    required this.campaignCount,
+    required this.onFeaturedShowTap,
+    required this.shows,
+    required this.stages,
   });
 
   @override
@@ -492,135 +500,177 @@ class _HeroBandState extends State<_HeroBand>
       );
 
   @override
-  Widget build(final BuildContext context) => Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(gradient: WebColors.backgroundGradient),
-        child: Stack(
-          children: [
-            // Sahne ışığı motifi #1 — sağ üst, ana vurgu
-            Positioned(
-              top: -140,
-              right: -80,
-              child: AnimatedBuilder(
-                animation: _glowController,
-                builder: (final context, final child) => Opacity(
-                  opacity: 0.16 + _glowController.value * 0.09,
-                  child: child,
-                ),
-                child: Container(
-                  width: 420,
-                  height: 420,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [WebColors.primaryGold, Colors.transparent],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // Sahne ışığı motifi #2 — sol alt, daha soluk ikincil vurgu
-            // (referans "Crimson Noir" paletindeki ortalanmış radial glow
-            // hissini tüm hero'ya yayıyor, tek nokta yerine)
-            Positioned(
-              bottom: -120,
-              left: -100,
-              child: AnimatedBuilder(
-                animation: _glowController,
-                builder: (final context, final child) => Opacity(
-                  opacity: 0.22 - _glowController.value * 0.08,
-                  child: child,
-                ),
-                child: Container(
-                  width: 340,
-                  height: 340,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [WebColors.secondaryAccent, Colors.transparent],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                _sectionPad(context),
-                context.responsive(mobile: 32.0, tablet: 44.0, desktop: 56.0),
-                _sectionPad(context),
-                context.responsive(mobile: 32.0, tablet: 36.0, desktop: 44.0),
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1400),
-                  child: LayoutBuilder(
-                    builder: (final context, final constraints) {
-                      final bool wide = constraints.maxWidth >= 980;
-                      final left = FadeTransition(
-                        opacity: _fade(0.0),
-                        child: SlideTransition(
-                          position: _fade(0.0).drive(Tween(
-                              begin: const Offset(0, 0.06),
-                              end: Offset.zero)),
-                          child: _HeroCopy(
-                            onSearchTap: widget.onSearchTap,
-                            onDiscoverTap: widget.onDiscoverTap,
-                            onNearbyTap: widget.onNearbyTap,
-                          ),
-                        ),
-                      );
-                      final right = FadeTransition(
-                        opacity: _fade(0.18),
-                        child: SlideTransition(
-                          position: _fade(0.18).drive(Tween(
-                              begin: const Offset(0, 0.06),
-                              end: Offset.zero)),
-                          child: _HeroStatsPanel(
-                            showCount: widget.showCount,
-                            stageCount: widget.stageCount,
-                            campaignCount: widget.campaignCount,
-                          ),
-                        ),
-                      );
+  Widget build(final BuildContext context) {
+    // Editoryal vitrin (gerçek afiş + tarih/sahne) sadece takviminde en az
+    // bir gelecek etkinliği olan bir oyun varsa gösterilir. Hiç aktif oyun
+    // yoksa metin bloğu tek başına, tam genişlikte kalır — boş bir panel
+    // için asla yer ayrılmaz.
+    final bool hasFeatured = widget.shows.isNotEmpty;
 
-                      if (!wide)
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            left,
-                            const SizedBox(height: 28),
-                            right,
-                          ],
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(gradient: WebColors.backgroundGradient),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Stack(
+            children: [
+              // Sahne ışığı motifi #1 — sağ üst, ana vurgu
+              Positioned(
+                top: -140,
+                right: -80,
+                child: AnimatedBuilder(
+                  animation: _glowController,
+                  builder: (final context, final child) => Opacity(
+                    opacity: 0.14 + _glowController.value * 0.07,
+                    child: child,
+                  ),
+                  child: Container(
+                    width: 420,
+                    height: 420,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [WebColors.primaryGold, Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Sahne ışığı motifi #2 — sol alt, daha soluk ikincil vurgu
+              // (referans "Crimson Noir" paletindeki ortalanmış radial glow
+              // hissini tüm hero'ya yayıyor, tek nokta yerine)
+              Positioned(
+                bottom: -120,
+                left: -100,
+                child: AnimatedBuilder(
+                  animation: _glowController,
+                  builder: (final context, final child) => Opacity(
+                    opacity: 0.18 - _glowController.value * 0.06,
+                    child: child,
+                  ),
+                  child: Container(
+                    width: 340,
+                    height: 340,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [WebColors.secondaryAccent, Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  _sectionPad(context),
+                  context.responsive(mobile: 32.0, tablet: 44.0, desktop: 56.0),
+                  _sectionPad(context),
+                  context.responsive(mobile: 36.0, tablet: 40.0, desktop: 48.0),
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1400),
+                    child: LayoutBuilder(
+                      builder: (final context, final constraints) {
+                        final bool wide = constraints.maxWidth >= 980;
+                        final left = FadeTransition(
+                          opacity: _fade(0.0),
+                          child: SlideTransition(
+                            position: _fade(0.0).drive(Tween(
+                                begin: const Offset(0, 0.06),
+                                end: Offset.zero)),
+                            child: _HeroCopy(
+                              onSearchTap: widget.onSearchTap,
+                              onDiscoverTap: widget.onDiscoverTap,
+                              onNearbyTap: widget.onNearbyTap,
+                              showCount: widget.shows.length,
+                              stageCount: widget.stages.length,
+                            ),
+                          ),
                         );
 
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 3, child: left),
-                          const SizedBox(width: 48),
-                          Expanded(flex: 2, child: right),
-                        ],
-                      );
-                    },
+                        if (!hasFeatured) return left;
+
+                        final right = FadeTransition(
+                          opacity: _fade(0.18),
+                          child: SlideTransition(
+                            position: _fade(0.18).drive(Tween(
+                                begin: const Offset(0, 0.06),
+                                end: Offset.zero)),
+                            child: _HeroFeaturedPanel(
+                              shows: widget.shows,
+                              stages: widget.stages,
+                              onTap: widget.onFeaturedShowTap,
+                            ),
+                          ),
+                        );
+
+                        if (!wide)
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              left,
+                              const SizedBox(height: 28),
+                              right,
+                            ],
+                          );
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 5, child: left),
+                            const SizedBox(width: 56),
+                            Expanded(flex: 4, child: right),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
+            ],
+          ),
+          // Sahnedeki oyunların isimlerinin sessizce kaydığı ince bir
+          // şerit — eski, kutulu istatistik panelinin yerini alan çok daha
+          // sakin bir "neler oynuyor" ipucu (bkz. `landing/index.html`'deki
+          // `.marquee` bölümü — aynı dil, farklı görsel ağırlık).
+          _HeroShowsMarquee(
+              names: widget.shows.map((final s) => s.name).toList()),
+        ],
+      ),
+    );
+  }
 }
 
 class _HeroCopy extends StatelessWidget {
   final VoidCallback onSearchTap;
   final VoidCallback onDiscoverTap;
   final VoidCallback onNearbyTap;
+  final int showCount;
+  final int stageCount;
 
   const _HeroCopy({
     required this.onSearchTap,
     required this.onDiscoverTap,
     required this.onNearbyTap,
+    required this.showCount,
+    required this.stageCount,
   });
+
+  /// Eski kutulu istatistik panelinin ("Oyun" / "Sahne" / "Aktif kampanya")
+  /// yerini alan, sayıları metne örülü tutan tanıtım cümlesi — ikinci
+  /// planda ama hâlâ gerçek. Sayılar 0 ya da henüz bilinmiyorsa (yükleme
+  /// sırasında geçici olarak `0` gelebilir) jenerik ama doğru bir cümleye
+  /// düşer; asla uydurma bir rakam göstermez.
+  String get _lede {
+    if (showCount > 0 && stageCount > 0)
+      return 'Şehrin $stageCount sahnesinde bu sezon aktif $showCount '
+          'oyunu keşfet; sana en yakın gösterimlere göz at ve birkaç '
+          'dokunuşla biletini al.';
+    return 'Şehrin sahnelerinde bu sezon oynayan oyunları keşfet, '
+        'yakınındaki etkinliklere göz at ve biletini birkaç tıkla al.';
+  }
 
   @override
   Widget build(final BuildContext context) => Column(
@@ -643,7 +693,7 @@ class _HeroCopy extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           Text(
             'Bu akşam,\nhangi sahne seni bekliyor?',
             style: (context.textTheme.displaySmall ?? const TextStyle()).copyWith(
@@ -654,21 +704,19 @@ class _HeroCopy extends StatelessWidget {
                   mobile: 30.0, tablet: 36.0, desktop: 42.0, largeDesktop: 46.0),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            constraints: const BoxConstraints(maxWidth: 460),
             child: Text(
-              'Şehrin sahnelerinde bu sezon oynayan oyunları keşfet, '
-              'yakınındaki etkinliklere göz at ve biletini birkaç '
-              'tıkla al.',
-              style: TextStyle(
+              _lede,
+              style: const TextStyle(
                 color: WebColors.textSecondary,
                 fontSize: 14.5,
                 height: 1.6,
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 26),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 440),
             child: _WebSearchField(onTap: onSearchTap),
@@ -852,108 +900,401 @@ class _PillButtonState extends State<_PillButton> {
       );
 }
 
-class _HeroStatsPanel extends StatelessWidget {
-  final int? showCount;
-  final int? stageCount;
-  final int? campaignCount;
+/// "Sıradaki oyun" olarak öne çıkarılacak gösterim + (varsa) takvimindeki
+/// en yakın GELECEK etkinliği + (varsa) o etkinliğin sahnesi.
+class _FeaturedShowInfo {
+  final Show show;
+  final Event? event;
+  final Stage? stage;
 
-  const _HeroStatsPanel({
-    required this.showCount,
-    required this.stageCount,
-    required this.campaignCount,
+  const _FeaturedShowInfo({required this.show, this.event, this.stage});
+}
+
+/// `shows` listesindeki oyunlar arasından takviminde en yakın GELECEK
+/// tarihli etkinliği olanı seçer — `landing/app.js`'teki
+/// `upcomingEvents()` + `renderHero()` ile AYNI mantık (bu Flutter
+/// sayfasının kendi statik kardeşi, aynı dilde). Hiçbir oyunun gelecek
+/// etkinliği `events` listesinde bulunamazsa (örn. henüz yüklenmemişse)
+/// ilk oyuna sessizce düşer — asla sahte bir tarih/sahne uydurmaz.
+_FeaturedShowInfo? _pickFeaturedShow(
+  final List<Show> shows,
+  final List<Event> events,
+  final List<Stage> stages,
+) {
+  if (shows.isEmpty) return null;
+
+  final now = DateTime.now();
+  Event? bestEvent;
+  DateTime? bestDate;
+  for (final event in events) {
+    final date = DateFormatter.parseDateString(event.date);
+    if (date == null || !date.isAfter(now)) continue;
+    if (bestDate == null || date.isBefore(bestDate)) {
+      bestDate = date;
+      bestEvent = event;
+    }
+  }
+
+  Show featured = shows.first;
+  if (bestEvent != null)
+    for (final s in shows)
+      if (s.id == bestEvent.showId) {
+        featured = s;
+        break;
+      }
+
+  Stage? stage;
+  if (bestEvent != null)
+    for (final st in stages)
+      if (st.id == bestEvent.stageId) {
+        stage = st;
+        break;
+      }
+
+  return _FeaturedShowInfo(show: featured, event: bestEvent, stage: stage);
+}
+
+/// Büyük format editoryal vitrin — gerçek bir afiş görseli üzerinde,
+/// gerçek tarih/sahne bilgisiyle "sıradaki oyun". Eski `_HeroStatsPanel`
+/// (Oyun/Sahne/Kampanya sayaçlı kutu) burada YOK — sayılar artık
+/// `_HeroCopy._lede` içinde metne örülü, ikinci planda.
+class _HeroFeaturedPanel extends ConsumerWidget {
+  final List<Show> shows;
+  final List<Stage> stages;
+  final ValueChanged<Show> onTap;
+
+  const _HeroFeaturedPanel({
+    required this.shows,
+    required this.stages,
+    required this.onTap,
   });
 
   @override
-  Widget build(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              WebColors.darkBlueSurface.withOpacity(0.75),
-              WebColors.darkBlueSurface.withOpacity(0.5),
-            ],
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    // Firestore okumasını sınırlı tutmak için en fazla ilk 12 aktif oyunun
+    // etkinliklerine bakılır — `activeShowsProvider` zaten `isLimit: true`
+    // ile üst sınırlı bir listeden geliyor.
+    final candidates = shows.length > 12 ? shows.sublist(0, 12) : shows;
+    final eventIds = candidates
+        .expand((final s) => s.eventsId)
+        .where((final id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+
+    final eventsAsync = eventIds.isEmpty
+        ? const AsyncValue<List<Event>>.data(<Event>[])
+        : ref.watch(eventsByIdsProvider(eventIds));
+
+    final info =
+        _pickFeaturedShow(candidates, eventsAsync.value ?? const [], stages);
+    if (info == null) return const SizedBox.shrink();
+
+    return _FeaturedShowCard(info: info, onTap: () => onTap(info.show));
+  }
+}
+
+class _FeaturedShowCard extends StatefulWidget {
+  final _FeaturedShowInfo info;
+  final VoidCallback onTap;
+
+  const _FeaturedShowCard({required this.info, required this.onTap});
+
+  @override
+  State<_FeaturedShowCard> createState() => _FeaturedShowCardState();
+}
+
+class _FeaturedShowCardState extends State<_FeaturedShowCard> {
+  bool _hovered = false;
+
+  String? get _dateLabel {
+    final event = widget.info.event;
+    if (event == null) return null;
+    final parts = DateFormatter.parseFormattedDateTime(event.date,
+        formatWithMonthName: true);
+    final date = parts['date'];
+    final time = parts['time'];
+    if (date == null || time == null) return null;
+    return '$date, $time';
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final show = widget.info.show;
+    final stageName = widget.info.stage?.name;
+    final dateLabel = _dateLabel;
+    final metaLine =
+        [if (dateLabel != null) dateLabel, if (stageName != null) stageName]
+            .join('  ·  ');
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (final _) => setState(() => _hovered = true),
+      onExit: (final _) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          height:
+              context.responsive(mobile: 300.0, tablet: 360.0, desktop: 440.0),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: _kAsymLg,
+            border: Border.all(
+                color:
+                    WebColors.primaryGold.withOpacity(_hovered ? 0.5 : 0.18)),
+            boxShadow: _hovered
+                ? [
+                    BoxShadow(
+                      color: WebColors.veryDarkBlue.withOpacity(0.5),
+                      blurRadius: 30,
+                      offset: const Offset(0, 16),
+                    ),
+                  ]
+                : null,
           ),
-          borderRadius: _kAsymLg,
-          border: Border.all(color: WebColors.primaryGold.withOpacity(0.22)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'ŞU AN SAHNEDE',
-              style: TextStyle(
-                color: WebColors.textTertiary,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              AnimatedScale(
+                duration: const Duration(milliseconds: 260),
+                scale: _hovered ? 1.04 : 1.0,
+                child: show.imageUrl.isEmpty
+                    ? const ColoredBox(color: WebColors.darkBlueSurface)
+                    : Image.network(
+                        show.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (final _, final __, final ___) =>
+                            const ColoredBox(
+                          color: WebColors.darkBlueSurface,
+                          child: Icon(Icons.theater_comedy_rounded,
+                              color: WebColors.textTertiary, size: 40),
+                        ),
+                        loadingBuilder:
+                            (final _, final child, final progress) =>
+                                progress == null
+                                    ? child
+                                    : const ColoredBox(
+                                        color: WebColors.darkBlueSurface),
+                      ),
               ),
-            ),
-            const SizedBox(height: 18),
-            _StatRow(label: 'Oyun', value: showCount),
-            const _StatDivider(),
-            _StatRow(label: 'Sahne', value: stageCount),
-            const _StatDivider(),
-            _StatRow(label: 'Aktif kampanya', value: campaignCount),
-          ],
-        ),
-      );
-}
-
-class _StatDivider extends StatelessWidget {
-  const _StatDivider();
-
-  @override
-  Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Container(height: 1, color: WebColors.darkBlueAccent),
-      );
-}
-
-class _StatRow extends StatelessWidget {
-  final String label;
-  final int? value;
-
-  const _StatRow({required this.label, required this.value});
-
-  @override
-  Widget build(final BuildContext context) => Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          value == null
-              ? const SizedBox(
-                  width: 15,
-                  height: 15,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.6,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(WebColors.primaryGoldLight),
-                  ),
-                )
-              : Text(
-                  '$value',
-                  style: const TextStyle(
-                    color: WebColors.whiteText,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w300,
-                    height: 1.0,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      WebColors.veryDarkBlue.withOpacity(0.18),
+                      WebColors.veryDarkBlue.withOpacity(0.94),
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
                   ),
                 ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
+              ),
+              Positioned(
+                left: 22,
+                top: 20,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: WebColors.veryDarkBlue.withOpacity(0.55),
+                    borderRadius: _kAsymSm,
+                    border: Border.all(
+                        color: WebColors.primaryGold.withOpacity(0.4)),
+                  ),
+                  child: const Text(
+                    'SIRADAKİ OYUN',
+                    style: TextStyle(
+                      color: WebColors.primaryGoldLight,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2.2,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 22,
+                right: 22,
+                bottom: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      show.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.headlineSmall?.copyWith(
+                        color: WebColors.whiteText,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (metaLine.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        metaLine,
+                        style: const TextStyle(
+                          color: WebColors.textSecondary,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 180),
+                      opacity: _hovered ? 1 : 0.75,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Detayları Gör',
+                            style: TextStyle(
+                              color: WebColors.primaryGoldLight,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          AnimatedSlide(
+                            duration: const Duration(milliseconds: 180),
+                            offset: Offset(_hovered ? 0.2 : 0, 0),
+                            child: const Icon(Icons.arrow_forward_rounded,
+                                size: 14, color: WebColors.primaryGoldLight),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Sahnedeki oyun isimlerinin sürekli kaydığı ince, sessiz bir şerit —
+/// `landing/index.html`'deki `.marquee` bölümüyle AYNI DİL (sonsuz döngü,
+/// isimler arası ayraç), ama çok daha sakin bir görsel ağırlıkla: dolgu
+/// renk yok, sadece ince üst/alt çizgi + soluk metin. Eski kutulu
+/// istatistik panelinin yerini alan ikinci bir "neler oynuyor" ipucu.
+class _HeroShowsMarquee extends StatefulWidget {
+  final List<String> names;
+
+  const _HeroShowsMarquee({required this.names});
+
+  @override
+  State<_HeroShowsMarquee> createState() => _HeroShowsMarqueeState();
+}
+
+class _HeroShowsMarqueeState extends State<_HeroShowsMarquee>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 34),
+  )..repeat();
+  final GlobalKey _setKey = GlobalKey();
+  double _setWidth = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((final _) => _measure());
+  }
+
+  @override
+  void didUpdateWidget(covariant final _HeroShowsMarquee oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.names, widget.names)) {
+      _setWidth = 0;
+      WidgetsBinding.instance.addPostFrameCallback((final _) => _measure());
+    }
+  }
+
+  void _measure() {
+    if (!mounted) return;
+    final renderObject = _setKey.currentContext?.findRenderObject();
+    if (renderObject is RenderBox) {
+      final width = renderObject.size.width;
+      if (width > 0) setState(() => _setWidth = width);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _buildSet({final Key? key}) => Row(
+        key: key,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final name in widget.names) ...[
+            Text(
+              name,
               style: const TextStyle(
                 color: WebColors.textSecondary,
-                fontSize: 13,
-                height: 1.3,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
               ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              child: Text('✦',
+                  style: TextStyle(
+                      color: WebColors.primaryGold.withOpacity(0.55),
+                      fontSize: 11)),
+            ),
+          ],
         ],
       );
+
+  @override
+  Widget build(final BuildContext context) {
+    if (widget.names.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      height: 52,
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: WebColors.darkBlueAccent),
+          bottom: BorderSide(color: WebColors.darkBlueAccent),
+        ),
+      ),
+      child: ClipRect(
+        child: _setWidth == 0
+            ? Opacity(
+                opacity: 0, child: Center(child: _buildSet(key: _setKey)))
+            : AnimatedBuilder(
+                animation: _controller,
+                builder: (final context, final child) {
+                  final dx = -_controller.value * _setWidth;
+                  return Stack(
+                    children: [
+                      Positioned(
+                        left: dx,
+                        top: 0,
+                        bottom: 0,
+                        child: Center(
+                          child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [_buildSet(), _buildSet()]),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+      ),
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
