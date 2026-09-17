@@ -148,7 +148,9 @@ class _DesktopShowCardState extends State<DesktopShowCard> {
                         duration: const Duration(milliseconds: 280),
                         curve: Curves.easeOut,
                         child: OptimizedCachedImage(
-                            imageUrl: widget.show.imageUrl, fit: BoxFit.cover),
+                            imageUrl: widget.show.imageUrl,
+                            fit: BoxFit.cover,
+                            borderRadius: 0),
                       ),
                       Positioned.fill(
                         child: DecoratedBox(
@@ -196,24 +198,35 @@ class _DesktopShowCardState extends State<DesktopShowCard> {
                                     fontSize: 19,
                                     fontWeight: FontWeight.w800,
                                     height: 1.2)),
-                            AnimatedOpacity(
-                              opacity: _hovered ? 1 : 0,
+                            AnimatedSize(
                               duration: const Duration(milliseconds: 200),
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Text('Detayları Gör',
-                                        style: TextStyle(
-                                            color: WebColors.primaryGoldLight,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700)),
-                                    SizedBox(width: 4),
-                                    Icon(Icons.arrow_forward_rounded,
-                                        color: WebColors.primaryGoldLight, size: 14),
-                                  ],
-                                ),
+                              curve: Curves.easeOut,
+                              alignment: Alignment.topLeft,
+                              child: AnimatedOpacity(
+                                opacity: _hovered ? 1 : 0,
+                                duration: const Duration(milliseconds: 200),
+                                child: _hovered
+                                    ? Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: const [
+                                            Text('Detayları Gör',
+                                                style: TextStyle(
+                                                    color: WebColors
+                                                        .primaryGoldLight,
+                                                    fontSize: 13,
+                                                    fontWeight:
+                                                        FontWeight.w700)),
+                                            SizedBox(width: 4),
+                                            Icon(Icons.arrow_forward_rounded,
+                                                color:
+                                                    WebColors.primaryGoldLight,
+                                                size: 14),
+                                          ],
+                                        ),
+                                      )
+                                    : const SizedBox(width: double.infinity),
                               ),
                             ),
                           ],
@@ -253,60 +266,77 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
   @override
   Widget build(final BuildContext context) => SearchRevealOnScroll(
         index: widget.index,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (final _) => _setHovered(true),
-          onExit: (final _) => _setHovered(false),
-          child: GestureDetector(
-            onTap: () => NavigationHandler.goToPlayer(context, widget.player.id,
-                '${widget.player.firstName} ${widget.player.lastName}'),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOut,
-                  width: _hovered ? 132 : 124,
-                  height: _hovered ? 132 : 124,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _hovered
-                          ? WebColors.primaryGold
-                          : WebColors.secondaryAccent.withOpacity(0.35),
-                      width: _hovered ? 3 : 1.5,
+        // Avatar boyutu, grid hücresinin gerçek genişliğine göre hesaplanır
+        // (sabit piksel yerine) — böylece dar masaüstü genişliklerinde veya
+        // yüksek sütun sayılarında taşma (overflow) yaşanmaz.
+        child: LayoutBuilder(
+          builder: (final context, final constraints) {
+            final double maxW =
+                constraints.maxWidth.isFinite ? constraints.maxWidth : 132;
+            final double baseSize = (maxW * 0.86).clamp(56.0, 132.0);
+            final double avatarSize = _hovered ? baseSize * 1.05 : baseSize;
+
+            return MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (final _) => _setHovered(true),
+              onExit: (final _) => _setHovered(false),
+              child: GestureDetector(
+                onTap: () => NavigationHandler.goToPlayer(context,
+                    widget.player.id,
+                    '${widget.player.firstName} ${widget.player.lastName}'),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
+                      width: avatarSize,
+                      height: avatarSize,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _hovered
+                              ? WebColors.primaryGold
+                              : WebColors.secondaryAccent.withOpacity(0.35),
+                          width: _hovered ? 3 : 1.5,
+                        ),
+                        boxShadow: _hovered
+                            ? [
+                                BoxShadow(
+                                    color:
+                                        WebColors.primaryGold.withOpacity(0.35),
+                                    blurRadius: 24,
+                                    spreadRadius: 2),
+                              ]
+                            : const [],
+                      ),
+                      child: ClipOval(
+                        child: OptimizedCachedImage(
+                            imageUrl: widget.player.imageUrl,
+                            fit: BoxFit.cover),
+                      ),
                     ),
-                    boxShadow: _hovered
-                        ? [
-                            BoxShadow(
-                                color: WebColors.primaryGold.withOpacity(0.35),
-                                blurRadius: 24,
-                                spreadRadius: 2),
-                          ]
-                        : const [],
-                  ),
-                  child: ClipOval(
-                    child: OptimizedCachedImage(
-                        imageUrl: widget.player.imageUrl, fit: BoxFit.cover),
-                  ),
+                    const SizedBox(height: 14),
+                    Text(
+                      '${widget.player.firstName}\n${widget.player.lastName}',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: _hovered
+                            ? WebColors.primaryGoldLight
+                            : WebColors.whiteText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  '${widget.player.firstName}\n${widget.player.lastName}',
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _hovered ? WebColors.primaryGoldLight : WebColors.whiteText,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    height: 1.25,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       );
 }
@@ -376,7 +406,9 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
                         duration: const Duration(milliseconds: 260),
                         curve: Curves.easeOut,
                         child: OptimizedCachedImage(
-                            imageUrl: widget.item.imageUrl as String, fit: BoxFit.cover),
+                            imageUrl: widget.item.imageUrl as String,
+                            fit: BoxFit.cover,
+                            borderRadius: 0),
                       ),
                       Positioned.fill(
                         child: DecoratedBox(

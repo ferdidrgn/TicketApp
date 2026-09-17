@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
@@ -12,6 +13,8 @@ import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/widgets/players_hero_card.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
 import '../providers/search_query_provider.dart';
+import '../widgets/web/search_header_web.dart';
+import '../widgets/web/search_result_cards_web.dart';
 
 // =============================================================================
 // 1. STYLE & CONSTANTS
@@ -59,6 +62,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final selectedFilter = ref.watch(searchFilterProvider);
     final searchState = ref.watch(searchResultProvider);
     final activeColor = _SearchStyles.filterPalettes[selectedFilter][0];
+    // 🖥️ Masaüstü/web deneyimi: mobildeki renkli filtre paleti yerine
+    // Çam & Mercan marka kimliğini (WebColors) kullanır. Mobil davranış
+    // (activeColor, ambientColor vs.) hiç değişmez.
+    final bool isDesktop = context.isDesktop;
 
     return BasePageWrapper(
         showBackButton: true,
@@ -67,8 +74,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
         isLoading: searchState.isLoading,
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
-          ambientColor: activeColor,
-          particleColor: activeColor.withOpacity(0.1),
+          ambientColor: isDesktop ? WebColors.primaryGold : activeColor,
+          particleColor:
+              (isDesktop ? WebColors.primaryGold : activeColor).withOpacity(0.1),
+          backgroundColor: isDesktop ? WebColors.darkBlueBackground : null,
         ),
         child: CustomScrollView(
           controller: scrollController,
@@ -78,32 +87,43 @@ class _SearchPageState extends ConsumerState<SearchPage>
             SliverToBoxAdapter(
                 child: SizedBox(height: MediaQuery.of(context).padding.top)),
 
+            // Masaüstünde: büyük, editoryal "hero" girişi (Apple/Spotlight
+            // hissi). Pinned çubuğun üstünde yer alır, aşağı kaydırılınca
+            // sahneden çıkar. Mobilde hiç render edilmez.
+            if (isDesktop)
+              const SliverToBoxAdapter(child: SearchHeroIntro()),
+
             // Filtreler (Pinned Header)
             SliverPersistentHeader(
               pinned: true,
               delegate: _SliverFilterDelegate(
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                    child: Container(
-                      color: context.colors.surface.withOpacity(0.7),
-                      alignment: Alignment.center,
-                      child: Column(
-                        children: [
-                          _buildIntegratedSearchField(context),
-                          _buildFilterTabs(selectedFilter),
-                        ],
+                minExtent: isDesktop ? 186 : 110,
+                maxExtent: isDesktop ? 186 : 110,
+                child: isDesktop
+                    ? _buildDesktopHeaderBar(context, selectedFilter)
+                    : ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                          child: Container(
+                            color: context.colors.surface.withOpacity(0.7),
+                            alignment: Alignment.center,
+                            child: Column(
+                              children: [
+                                _buildIntegratedSearchField(context),
+                                _buildFilterTabs(selectedFilter),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
               ),
             ),
 
             // Sonuçlar
             searchState.when(
-              data: (final data) =>
-                  _buildSearchResultContent(data, selectedFilter),
+              data: (final data) => isDesktop
+                  ? _buildDesktopSearchResultContent(data, selectedFilter)
+                  : _buildSearchResultContent(data, selectedFilter),
               loading: () => const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator())),
               error: (final e, final _) =>
@@ -112,6 +132,56 @@ class _SearchPageState extends ConsumerState<SearchPage>
           ],
         ));
   }
+
+  // --- Masaüstü Pinned Header Çubuğu ---
+
+  Widget _buildDesktopHeaderBar(
+          final BuildContext context, final int selectedFilter) =>
+      ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: WebColors.veryDarkBlue.withOpacity(0.88),
+              border: Border(
+                bottom: BorderSide(
+                    color: WebColors.primaryGold.withOpacity(0.12)),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 14),
+                DesktopSearchField(
+                  controller: _textController,
+                  hintText: context.l10n.searchHint,
+                  onChanged: (final v) =>
+                      ref.read(searchQueryProvider.notifier).update(v),
+                  onSubmitted: () => FocusScope.of(context).unfocus(),
+                  onClear: () {
+                    _textController.clear();
+                    ref.read(searchQueryProvider.notifier).update("");
+                  },
+                ),
+                const SizedBox(height: 18),
+                DesktopFilterTabs(
+                  labels: const [
+                    "Tümü",
+                    "Etkinlikler",
+                    "Oyuncular",
+                    "Mekanlar",
+                    "Ekipler",
+                  ],
+                  selectedIndex: selectedFilter,
+                  onSelect: _onSeeAll,
+                ),
+                const SizedBox(height: 14),
+              ],
+            ),
+          ),
+        ),
+      );
 
   // --- Widget Oluşturucular (Sınıf İçinde Olmalı) ---
 
@@ -219,6 +289,199 @@ class _SearchPageState extends ConsumerState<SearchPage>
       ),
     );
   }
+
+  // ===========================================================================
+  // MASAÜSTÜ SONUÇ İÇERİĞİ (Apple/Spotlight tarzı, geniş whitespace'li grid)
+  // ===========================================================================
+
+  Widget _buildDesktopSearchResultContent(
+      final SearchResultState data, final int selectedFilter) {
+    final query = ref.watch(searchQueryProvider);
+    final bool isEmpty = data.shows.isEmpty &&
+        data.players.isEmpty &&
+        data.stages.isEmpty &&
+        data.teams.isEmpty;
+
+    if (isEmpty && query.isNotEmpty)
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: DesktopSearchEmptyState(
+          message: context.l10n.searchEmptyState(query),
+          clearLabel: context.l10n.searchClearGallery,
+          onClear: () {
+            _textController.clear();
+            ref.read(searchQueryProvider.notifier).update("");
+          },
+        ),
+      );
+
+    final content = _buildDesktopContentList(data, selectedFilter);
+    return SliverToBoxAdapter(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1300),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(40, 24, 40, 140),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: content),
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildDesktopContentList(
+      final SearchResultState state, final int filter) {
+    // "Tümü" filtresi: her kategori için editoryal bir bölüm.
+    if (filter == 0)
+      return [
+        if (state.shows.isNotEmpty)
+          _buildDesktopSection(
+            title: "Etkinlikler",
+            subtitle: "Sanatın Akışı",
+            icon: Icons.theater_comedy_rounded,
+            onSeeAll: () => _onSeeAll(1),
+            crossAxisCount: context.responsive(
+                mobile: 2, tablet: 3, desktop: 4, largeDesktop: 4),
+            aspectRatio: 0.72,
+            itemCount: state.shows.take(8).length,
+            itemBuilder: (final i) =>
+                DesktopShowCard(show: state.shows[i], index: i),
+          ),
+        if (state.players.isNotEmpty)
+          _buildDesktopSection(
+            title: "Oyuncular",
+            subtitle: "Sahne Yıldızları",
+            icon: Icons.people_rounded,
+            onSeeAll: () => _onSeeAll(2),
+            crossAxisCount: context.responsive(
+                mobile: 3, tablet: 4, desktop: 6, largeDesktop: 6),
+            aspectRatio: 0.62,
+            itemCount: state.players.take(12).length,
+            itemBuilder: (final i) =>
+                DesktopPlayerCard(player: state.players[i], index: i),
+          ),
+        if (state.stages.isNotEmpty)
+          _buildDesktopSection(
+            title: "Mekanlar",
+            subtitle: "Sanatın Kalbi",
+            icon: Icons.location_city_rounded,
+            onSeeAll: () => _onSeeAll(3),
+            crossAxisCount: context.responsive(
+                mobile: 2, tablet: 3, desktop: 4, largeDesktop: 4),
+            aspectRatio: 1.1,
+            itemCount: state.stages.take(8).length,
+            itemBuilder: (final i) => DesktopPlaceCard(
+                item: state.stages[i], index: i, isStage: true),
+          ),
+        if (state.teams.isNotEmpty)
+          _buildDesktopSection(
+            title: "Ekipler",
+            subtitle: "Yaratıcı Gruplar",
+            icon: Icons.groups_rounded,
+            onSeeAll: () => _onSeeAll(4),
+            crossAxisCount: context.responsive(
+                mobile: 2, tablet: 3, desktop: 4, largeDesktop: 4),
+            aspectRatio: 1.1,
+            itemCount: state.teams.take(8).length,
+            itemBuilder: (final i) => DesktopPlaceCard(
+                item: state.teams[i], index: i, isStage: false),
+          ),
+      ];
+
+    // Tekil filtre görünümleri: tüm sonuçlar tek bir geniş grid'de.
+    final Widget grid;
+    switch (filter) {
+      case 1:
+        grid = _buildDesktopGrid(
+          crossAxisCount: context.responsive(
+              mobile: 2, tablet: 3, desktop: 4, largeDesktop: 5),
+          aspectRatio: 0.72,
+          itemCount: state.shows.length,
+          itemBuilder: (final i) =>
+              DesktopShowCard(show: state.shows[i], index: i),
+        );
+        break;
+      case 2:
+        grid = _buildDesktopGrid(
+          crossAxisCount: context.responsive(
+              mobile: 3, tablet: 4, desktop: 6, largeDesktop: 7),
+          aspectRatio: 0.62,
+          itemCount: state.players.length,
+          itemBuilder: (final i) =>
+              DesktopPlayerCard(player: state.players[i], index: i),
+        );
+        break;
+      case 3:
+        grid = _buildDesktopGrid(
+          crossAxisCount: context.responsive(
+              mobile: 2, tablet: 3, desktop: 4, largeDesktop: 5),
+          aspectRatio: 1.1,
+          itemCount: state.stages.length,
+          itemBuilder: (final i) => DesktopPlaceCard(
+              item: state.stages[i], index: i, isStage: true),
+        );
+        break;
+      default:
+        grid = _buildDesktopGrid(
+          crossAxisCount: context.responsive(
+              mobile: 2, tablet: 3, desktop: 4, largeDesktop: 5),
+          aspectRatio: 1.1,
+          itemCount: state.teams.length,
+          itemBuilder: (final i) => DesktopPlaceCard(
+              item: state.teams[i], index: i, isStage: false),
+        );
+    }
+
+    return [grid];
+  }
+
+  Widget _buildDesktopSection({
+    required final String title,
+    required final String subtitle,
+    required final IconData icon,
+    required final VoidCallback onSeeAll,
+    required final int crossAxisCount,
+    required final double aspectRatio,
+    required final int itemCount,
+    required final Widget Function(int index) itemBuilder,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 56),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DesktopSectionTitle(
+                title: title, subtitle: subtitle, icon: icon, onSeeAll: onSeeAll),
+            _buildDesktopGrid(
+              crossAxisCount: crossAxisCount,
+              aspectRatio: aspectRatio,
+              itemCount: itemCount,
+              itemBuilder: itemBuilder,
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildDesktopGrid({
+    required final int crossAxisCount,
+    required final double aspectRatio,
+    required final int itemCount,
+    required final Widget Function(int index) itemBuilder,
+  }) =>
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 28,
+          crossAxisSpacing: 28,
+          childAspectRatio: aspectRatio,
+        ),
+        itemCount: itemCount,
+        itemBuilder: (final context, final i) => itemBuilder(i),
+      );
 
   List<Widget> _buildContentList(final BuildContext context,
       final SearchResultState state, final int filter) {
@@ -434,14 +697,21 @@ class _HorizontalSection extends StatelessWidget {
 
 class _SliverFilterDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
+  final double _minExtent;
+  final double _maxExtent;
 
-  _SliverFilterDelegate({required this.child});
+  _SliverFilterDelegate({
+    required this.child,
+    final double minExtent = 110,
+    final double maxExtent = 110,
+  })  : _minExtent = minExtent,
+        _maxExtent = maxExtent;
 
   @override
-  double get minExtent => 110;
+  double get minExtent => _minExtent;
 
   @override
-  double get maxExtent => 110;
+  double get maxExtent => _maxExtent;
 
   @override
   Widget build(
