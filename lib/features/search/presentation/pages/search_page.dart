@@ -13,22 +13,19 @@ import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/widgets/players_hero_card.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
 import '../providers/search_query_provider.dart';
+import '../widgets/web/search_category_palette.dart';
 import '../widgets/web/search_header_web.dart';
 import '../widgets/web/search_result_cards_web.dart';
 
 // =============================================================================
 // 1. STYLE & CONSTANTS
 // =============================================================================
-
-class _SearchStyles {
-  static const List<List<Color>> filterPalettes = [
-    [Color(0xFF6366F1), Color(0xFF8B5CF6)], // Tümü (Indigo)
-    [Color(0xFFF59E0B), Color(0xFFD97706)], // Etkinlikler (Amber)
-    [Color(0xFFEC4899), Color(0xFFBE185D)], // Oyuncular (Pink)
-    [Color(0xFF10B981), Color(0xFF047857)], // Mekanlar (Emerald)
-    [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Ekipler (Blue)
-  ];
-}
+//
+// Filtre kategorilerinin (Tümü/Etkinlikler/Oyuncular/Mekanlar/Ekipler) renk
+// kodlaması artık `SearchCategoryPalette` tek kaynağından geliyor — "Çam &
+// Mercan" marka paletinden türetilmiş, birbirinden ayırt edilebilir 5 ton.
+// Hem mobil hem masaüstü aynı kaynağı kullanır ki kategori kimliği tutarlı
+// kalsın.
 
 // =============================================================================
 // 2. MAIN SEARCH PAGE
@@ -61,7 +58,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
   Widget build(final BuildContext context) {
     final selectedFilter = ref.watch(searchFilterProvider);
     final searchState = ref.watch(searchResultProvider);
-    final activeColor = _SearchStyles.filterPalettes[selectedFilter][0];
+    final activeColor = SearchCategoryPalette.tintFor(selectedFilter)[0];
     // 🖥️ Masaüstü/web deneyimi: mobildeki renkli filtre paleti yerine
     // Çam & Mercan marka kimliğini (WebColors) kullanır. Mobil davranış
     // (activeColor, ambientColor vs.) hiç değişmez.
@@ -173,6 +170,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
                     "Mekanlar",
                     "Ekipler",
                   ],
+                  palettes: SearchCategoryPalette.tints,
                   selectedIndex: selectedFilter,
                   onSelect: _onSeeAll,
                 ),
@@ -233,7 +231,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           itemBuilder: (final context, final i) => ArtisticBrushChip(
             text: labels[i],
             isSelected: selectedIndex == i,
-            colors: _SearchStyles.filterPalettes[i],
+            colors: SearchCategoryPalette.tintFor(i),
             onTap: () => _onSeeAll(i),
           ),
         ),
@@ -341,6 +339,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
             title: "Etkinlikler",
             subtitle: "Sanatın Akışı",
             icon: Icons.theater_comedy_rounded,
+            accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.events],
             onSeeAll: () => _onSeeAll(1),
             crossAxisCount: context.responsive(
                 mobile: 2, tablet: 3, desktop: 4, largeDesktop: 4),
@@ -354,6 +353,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
             title: "Oyuncular",
             subtitle: "Sahne Yıldızları",
             icon: Icons.people_rounded,
+            accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.players],
             onSeeAll: () => _onSeeAll(2),
             crossAxisCount: context.responsive(
                 mobile: 3, tablet: 4, desktop: 6, largeDesktop: 6),
@@ -367,6 +367,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
             title: "Mekanlar",
             subtitle: "Sanatın Kalbi",
             icon: Icons.location_city_rounded,
+            accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.stages],
             onSeeAll: () => _onSeeAll(3),
             crossAxisCount: context.responsive(
                 mobile: 2, tablet: 3, desktop: 4, largeDesktop: 4),
@@ -380,6 +381,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
             title: "Ekipler",
             subtitle: "Yaratıcı Gruplar",
             icon: Icons.groups_rounded,
+            accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.teams],
             onSeeAll: () => _onSeeAll(4),
             crossAxisCount: context.responsive(
                 mobile: 2, tablet: 3, desktop: 4, largeDesktop: 4),
@@ -446,6 +448,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
     required final double aspectRatio,
     required final int itemCount,
     required final Widget Function(int index) itemBuilder,
+    final List<Color>? accentColors,
   }) =>
       Padding(
         padding: const EdgeInsets.only(bottom: 56),
@@ -453,7 +456,11 @@ class _SearchPageState extends ConsumerState<SearchPage>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DesktopSectionTitle(
-                title: title, subtitle: subtitle, icon: icon, onSeeAll: onSeeAll),
+                title: title,
+                subtitle: subtitle,
+                icon: icon,
+                onSeeAll: onSeeAll,
+                accentColors: accentColors),
             _buildDesktopGrid(
               crossAxisCount: crossAxisCount,
               aspectRatio: aspectRatio,
