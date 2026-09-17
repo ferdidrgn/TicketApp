@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
@@ -123,20 +122,21 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           message: detailAsync.error.toString(),
           onRetry: () => ref.invalidate(showDetailProvider(widget.showId)));
 
+    // `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR — bu dosya zaten yalnızca
+    // web derlemesinde kullanılıyor (bkz. show_detail_page.dart'ın koşullu
+    // export'u), yani "mobil mi web mi" ayrımına hiç gerek yok; her render
+    // burada zaten masaüstü. BasePageWrapper'ı sarmak sadece mobil uygulama
+    // çatısını (geri tuşu + gradyanlı başlık çubuğu, "yukarı kaydır" FAB'ı,
+    // CustomAppBackground'ın context.primaryColor renkli — yani marka dışı —
+    // FloatingParticles noktaları) gereksiz yere üstüne bindiriyordu; bu
+    // sayfanın zaten kendi markaya uygun, animasyonlu `_BackgroundParticles`'ı
+    // var, ikisi üst üste anlamsız bir tekrar oluşturuyordu. Üst navigasyon
+    // zaten `WebTopNavigationBar`'dan geliyor.
     return SplashDataGuard(
       isLoading: detailAsync.isLoading,
       loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
-      child: BasePageWrapper(
-        showBackButton: true,
-        showFab: true,
-        title: detailAsync.value?.show.name ?? 'Oyun Detayı',
-        subtitle: 'Anların altına gizlenmiş bin yıllık fısıltılar',
-        rightIcon: Icons.theaters,
-        customScrollController: scrollController,
-        layoutConfig: BasePageLayoutConfig(
-          backgroundColor: WebColors.darkBlueBackground,
-          ambientColor: context.primaryColor.withOpacity(0.05),
-        ),
+      child: ColoredBox(
+        color: WebColors.darkBlueBackground,
         child: detailAsync.when(
           loading: () => const SizedBox.shrink(),
           error: (final err, final stack) => const SizedBox.shrink(),
