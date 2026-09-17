@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/util/date_formatter.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
+import '../providers/nearby_events_provider.dart';
 
 class NearbyEventsPage extends StatelessWidget {
   const NearbyEventsPage({super.key});
@@ -58,6 +64,12 @@ class NearbyEventsPage extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    // Masaüstünde (>=1024px) gerçek Firestore verisiyle çalışan, ayrı bir
+    // "premium" web deneyimi kullanılır (bkz. _NearbyEventsDesktopPage).
+    // Mobil/tablet gövdesi aşağıda AYNEN kalır — bu görevin kapsamı sadece
+    // masaüstü deneyimini eklemek, mobili yeniden yazmak değil.
+    if (context.isDesktop) return const _NearbyEventsDesktopPage();
+
     final bool isLargeScreen = context.isTablet || context.isDesktop;
     final double cardWidth = isLargeScreen ? 400 : context.screenWidth - 48;
 
@@ -382,4 +394,427 @@ class NearbyEventsPage extends StatelessWidget {
       ),
     );
   }
+}
+
+// =============================================================================
+// MASAÜSTÜ (WEB) YAKINDAKİLER SAYFASI — GERÇEK VERİ
+// =============================================================================
+//
+// Mobil gövdedeki `staticEvents` tamamen kurgusal (uydurma oyun adları,
+// sahte tarihler/fiyatlar, üçüncü parti sitelerden alınmış stok görseller)
+// — burada KULLANILMIYOR. Bu sayfa yalnızca `nearbyStagesProvider` /
+// `upcomingNearbyEventsProvider` (bkz. ../providers/nearby_events_provider.dart)
+// üzerinden Firestore'dan gelen gerçek Show/Event/Stage verisiyle çalışır.
+//
+// GERÇEK KONUM/MESAFE HAKKINDA: `pubspec.yaml`'da `geolocator` (ya da
+// tarayıcının coğrafi konum API'sine erişim sağlayan başka bir paket) HENÜZ
+// bağımlılık olarak yok, ve bu sandbox'ta yeni bir paket eklenip
+// `flutter pub get` çalıştırılamıyor. Sahte "X km uzakta" etiketleri
+// uydurmak yerine — ki bu projede kesinlikle yasak — dürüst bir alternatif
+// seçildi: etkinlikler gerçek tarihlerine göre (en yakın tarih en önce)
+// sıralanıyor ve gerçek sahne/mekân bilgisine göre açıkça gruplanıyor.
+// Sayfa `geolocator` eklendiğinde mesafeye göre sıralamaya kolayca
+// genişletilebilir (bkz. `Stage.locationLat`/`locationLng` — bu alanlar
+// zaten gerçek ve kullanılabilir durumda).
+class _NearbyEventsDesktopPage extends StatelessWidget {
+  const _NearbyEventsDesktopPage();
+
+  @override
+  Widget build(final BuildContext context) => BasePageWrapper(
+        title: 'Yakınızdaki Etkinlikler',
+        subtitle: 'Sahnede olan tüm oyunlar, en yakın tarihe göre sıralı',
+        showBackButton: false,
+        showFab: true,
+        layoutConfig: BasePageLayoutConfig(
+          backgroundColor: WebColors.darkBlueBackground,
+          ambientColor: WebColors.primaryGold.withOpacity(0.05),
+          safeAreaTop: true,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints:
+                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
+            child: const _NearbyEventsDesktopBody(),
+          ),
+        ),
+      );
+}
+
+class _NearbyEventsDesktopBody extends ConsumerWidget {
+  const _NearbyEventsDesktopBody();
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final eventsState = ref.watch(upcomingNearbyEventsProvider);
+    final stagesState = ref.watch(nearbyStagesProvider);
+
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 36),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: _NearbyDesktopBanner(eventCount: eventsState.valueOrNull?.length),
+        ),
+        const SizedBox(height: 48),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: SectionHeader(
+            title: 'Yaklaşan Etkinlikler',
+            subtitle: 'Tarihe göre sıralı',
+            titleColor: Colors.white,
+            accentColor: WebColors.primaryGold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildEventsSection(context, eventsState),
+        const SizedBox(height: 56),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: SectionHeader(
+            title: 'Sahne ve Mekanlar',
+            subtitle: 'Yaklaşan etkinliği olan gerçek sahneler',
+            titleColor: Colors.white,
+            accentColor: WebColors.primaryGold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: _buildStagesSection(context, stagesState),
+        ),
+        const SizedBox(height: 100),
+      ],
+    );
+  }
+
+  Widget _buildEventsSection(
+      final BuildContext context, final AsyncValue<List<NearbyEventEntry>> state) {
+    return state.when(
+      loading: () => SizedBox(
+        height: 320,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 3,
+          itemBuilder: (final context, final index) => Container(
+            width: 280,
+            margin: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              color: WebColors.darkBlueSurface,
+              borderRadius: BorderRadius.circular(28),
+            ),
+          ),
+        ),
+      ),
+      error: (final err, final stack) => const _NearbyEmptyNotice(
+        message: 'Etkinlikler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+      ),
+      data: (final entries) {
+        if (entries.isEmpty)
+          return const _NearbyEmptyNotice(
+            message: 'Şu anda yaklaşan bir etkinlik bulunmuyor.',
+          );
+
+        return SizedBox(
+          height: 340,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            itemCount: entries.length,
+            itemBuilder: (final context, final index) {
+              final entry = entries[index];
+              final formatted = DateFormatter.formatForEventCard(entry.event.date);
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: EventsCard(
+                  key: ValueKey('nearby-event-${entry.event.id}'),
+                  width: 280,
+                  imageUrl: entry.show.imageUrl,
+                  showName: entry.show.name,
+                  category: entry.show.category,
+                  stage: entry.stage.name,
+                  price: double.tryParse(entry.event.price) ?? 0.0,
+                  fullDateString: '${formatted['day']} ${formatted['monthName']}',
+                  timeString: formatted['time'] ?? '',
+                  premium: true,
+                  onTap: () =>
+                      NavigationHandler.goToShow(context, entry.show.id, entry.show.name),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStagesSection(
+      final BuildContext context, final AsyncValue<List<NearbyStageGroup>> state) {
+    return state.when(
+      loading: () => const SizedBox(
+        height: 200,
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(WebColors.primaryGold),
+          ),
+        ),
+      ),
+      error: (final err, final stack) => const _NearbyEmptyNotice(
+        message: 'Sahneler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+      ),
+      data: (final groups) {
+        if (groups.isEmpty)
+          return const _NearbyEmptyNotice(
+            message: 'Şu anda gösterilecek bir sahne bulunmuyor.',
+          );
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 340,
+            mainAxisSpacing: 20,
+            crossAxisSpacing: 20,
+            childAspectRatio: 1.35,
+          ),
+          itemCount: groups.length,
+          itemBuilder: (final context, final index) =>
+              _NearbyStageCard(group: groups[index]),
+        );
+      },
+    );
+  }
+}
+
+class _NearbyDesktopBanner extends StatelessWidget {
+  final int? eventCount;
+
+  const _NearbyDesktopBanner({required this.eventCount});
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: WebColors.cardGradient,
+          border: Border.all(color: WebColors.primaryGold.withOpacity(0.25)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sahnede Şu An Neler Var?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: context.h3Size,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    eventCount == null
+                        ? 'Gerçek etkinlik takvimi yükleniyor…'
+                        : eventCount == 0
+                            ? 'Şu anda takvimde yaklaşan bir etkinlik yok.'
+                            : '$eventCount yaklaşan etkinlik, gerçek sahne bilgileriyle listeleniyor.',
+                    style: TextStyle(
+                      color: WebColors.textSecondary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: WebColors.goldGradient,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.theater_comedy_rounded,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _NearbyStageCard extends StatelessWidget {
+  final NearbyStageGroup group;
+
+  const _NearbyStageCard({required this.group});
+
+  @override
+  Widget build(final BuildContext context) {
+    final stage = group.stage;
+    final nearest = group.entries.first;
+    final formatted = DateFormatter.formatForEventCard(nearest.event.date);
+
+    return GestureDetector(
+      onTap: () => NavigationHandler.goToStage(context, stage.id, stage.name),
+      child: Container(
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          // Asimetrik köşeler — show_detail_page_web / discovery kartlarıyla
+          // aynı "premium" imza.
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(12),
+            bottomLeft: Radius.circular(12),
+            bottomRight: Radius.circular(28),
+          ),
+          border: Border.all(color: WebColors.primaryGold.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.35),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(12),
+            bottomLeft: Radius.circular(12),
+            bottomRight: Radius.circular(28),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 130,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    OptimizedCachedImage(
+                        imageUrl: stage.imageUrl, fit: BoxFit.cover, borderRadius: 0),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            WebColors.darkBlueSurface.withOpacity(0.95),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          gradient: WebColors.goldGradient,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          group.entries.length == 1
+                              ? '1 ETKİNLİK'
+                              : '${group.entries.length} ETKİNLİK',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stage.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_rounded,
+                            size: 14, color: WebColors.primaryGoldLight),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            stage.address,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: WebColors.textSecondary,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today_rounded,
+                            size: 13, color: WebColors.primaryGoldLight),
+                        const SizedBox(width: 6),
+                        Text(
+                          'En yakın: ${formatted['day']} ${formatted['monthName']}, ${formatted['time']}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NearbyEmptyNotice extends StatelessWidget {
+  final String message;
+
+  const _NearbyEmptyNotice({required this.message});
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Text(
+          message,
+          style: TextStyle(color: WebColors.textSecondary, fontSize: 15),
+        ),
+      );
 }
