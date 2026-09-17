@@ -9,21 +9,34 @@ class DiscoveryHero extends StatelessWidget {
   final String? categoryLabel;
   final int showCount;
 
+  /// true iken "Geçmiş Oyunlar" (arşiv) moduna özel metinler/etiket
+  /// gösterilir — aynı bileşen hem aktif hem geçmiş tarama görünümünde
+  /// yeniden kullanılır.
+  final bool archiveMode;
+
   const DiscoveryHero({
     super.key,
     this.categoryLabel,
     required this.showCount,
+    this.archiveMode = false,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final String eyebrow =
-        categoryLabel != null ? categoryLabel!.toUpperCase() : 'REPERTUAR';
-    final String headline = categoryLabel ?? 'Sahnede\nSeni Bekleyenler';
+    final String eyebrow = categoryLabel != null
+        ? categoryLabel!.toUpperCase()
+        : (archiveMode ? 'ARŞİV' : 'REPERTUAR');
+    final String headline = categoryLabel ??
+        (archiveMode ? 'Geçmiş\nOyunlar' : 'Sahnede\nSeni Bekleyenler');
     final String lede = categoryLabel != null
-        ? '"$categoryLabel" kategorisindeki oyunları keşfet, biletini dakikalar içinde ayırt.'
-        : 'Küratörlerimizin özenle seçtiği prodüksiyonlar arasında dolaş; '
-            'her perde farklı bir hikâye anlatıyor.';
+        ? (archiveMode
+            ? '"$categoryLabel" kategorisinde sahnelenmiş, perdesi artık kapanmış oyunları keşfet.'
+            : '"$categoryLabel" kategorisindeki oyunları keşfet, biletini dakikalar içinde ayırt.')
+        : (archiveMode
+            ? 'Takviminde artık gelecek etkinliği kalmamış prodüksiyonların '
+                'arşivine göz at; her biri bir zamanlar sahnedeydi.'
+            : 'Küratörlerimizin özenle seçtiği prodüksiyonlar arasında dolaş; '
+                'her perde farklı bir hikâye anlatıyor.');
 
     return LayoutBuilder(
       builder: (final context, final constraints) {
@@ -75,7 +88,7 @@ class DiscoveryHero extends StatelessWidget {
           ],
         );
 
-        final badge = _CountBadge(count: showCount);
+        final badge = _CountBadge(count: showCount, archiveMode: archiveMode);
 
         if (stacked) {
           return Column(
@@ -103,8 +116,9 @@ class DiscoveryHero extends StatelessWidget {
 
 class _CountBadge extends StatelessWidget {
   final int count;
+  final bool archiveMode;
 
-  const _CountBadge({required this.count});
+  const _CountBadge({required this.count, this.archiveMode = false});
 
   @override
   Widget build(final BuildContext context) => Container(
@@ -129,7 +143,7 @@ class _CountBadge extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'AKTİF OYUN',
+              archiveMode ? 'GEÇMİŞ OYUN' : 'AKTİF OYUN',
               style: TextStyle(
                 color: WebColors.primaryGoldLight,
                 fontSize: 11,
