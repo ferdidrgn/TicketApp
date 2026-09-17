@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/base/base_page_wrapper.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
-import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -19,8 +16,14 @@ import '../widgets/web/reveal_on_scroll.dart';
 ///
 /// `home_page_mobile.dart`'ın bir büyütülmüş hali DEĞİL: sıfırdan, "gerçek
 /// bir bilet platformu masaüstünde nasıl görünür" sorusuna cevap veren bir
-/// kompozisyon. "Çam & Mercan" (Pine & Coral) tasarım sistemini kullanır ve
-/// `show_detail_page_web.dart` ile aynı kalite çıtasını hedefler.
+/// kompozisyon. "Çam & Mercan" (Pine & Coral) tasarım sistemini kullanır.
+///
+/// KASITLI OLARAK `BasePageWrapper` KULLANMIYOR: o wrapper mobil uygulama
+/// çatısı içindir (geri tuşu başlığı, "yukarı kaydır" FAB'ı, pull-to-refresh,
+/// parçacık arka planı) — bunların hiçbiri bir web sitesinde olmaz ve
+/// sayfayı "Android uygulaması gibi" gösteren asıl sebep buydu. Üst
+/// navigasyon zaten `WebTopNavigationBar` tarafından sağlanıyor; bu sayfa
+/// sade bir kaydırılabilir içerik alanından ibaret.
 ///
 /// Aynı Riverpod sağlayıcılarını okur (campaignsProvider, showsProvider,
 /// stagesProvider) — sahte veri yok.
@@ -66,16 +69,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     final shows = showState.value ?? const [];
     final stages = stageState.value ?? const [];
 
-    return BasePageWrapper(
-      showBackButton: false,
-      showFab: true,
-      customScrollController: _scrollController,
-      isLoading: isLoading && showState.value == null,
-      layoutConfig: const BasePageLayoutConfig(
-        backgroundColor: WebColors.darkBlueBackground,
-        ambientColor: Color(0x0DE85C3F), // WebColors.primaryGold @ ~5%
-        extendBody: true,
-      ),
+    final bool showLoadingState = isLoading && showState.value == null;
+
+    return ColoredBox(
+      color: WebColors.darkBlueBackground,
       child: hasError
           ? GlobalErrorWidget(
               isFullPage: false,
@@ -87,81 +84,106 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ref.invalidate(stagesProvider);
               },
             )
-          : SingleChildScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _HeroBand(
-                    onSearchTap: _openSearch,
-                    onDiscoverTap: () => NavigationHandler.goToDiscover(context),
-                    onNearbyTap: () => NavigationHandler.goToNearby(context),
-                    showCount: showState.value?.length,
-                    stageCount: stageState.value?.length,
-                    campaignCount: campaignState.value?.length,
-                  ),
-                  if (campaigns.isNotEmpty)
-                    RevealOnScroll(
-                      child: _Section(
-                        kicker: 'VİTRİN',
-                        title: 'Öne Çıkan Kampanyalar',
-                        child: HomeCampaignRail(
-                          campaigns: campaigns,
-                          onCampaignTap: (final index) =>
-                              NavigationHandler.goToCampaigns(context,
-                                  index: index),
-                        ),
+          : showLoadingState
+              ? const _WebLoadingState()
+              : SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _HeroBand(
+                        onSearchTap: _openSearch,
+                        onDiscoverTap: () =>
+                            NavigationHandler.goToDiscover(context),
+                        onNearbyTap: () => NavigationHandler.goToNearby(context),
+                        showCount: showState.value?.length,
+                        stageCount: stageState.value?.length,
+                        campaignCount: campaignState.value?.length,
                       ),
-                    ),
-                  RevealOnScroll(
-                    delay: const Duration(milliseconds: 80),
-                    child: _Section(
-                      kicker: 'REPERTUAR',
-                      title: 'Sahnede Bu Sezon',
-                      trailingLabel: shows.isEmpty ? null : 'Tümünü Gör',
-                      onTrailingTap: () => NavigationHandler.goToDiscover(context),
-                      child: shows.isEmpty
-                          ? const _EmptyHint(
-                              text:
-                                  'Şu anda listelenecek bir oyun bulunmuyor. Yakında burada olacak.')
-                          : HomeShowGrid(
-                              shows: shows,
-                              onShowTap: (final show) =>
-                                  NavigationHandler.goToShow(
-                                      context, show.id, show.name),
+                      if (campaigns.isNotEmpty)
+                        RevealOnScroll(
+                          child: _Section(
+                            kicker: 'VİTRİN',
+                            title: 'Öne Çıkan Kampanyalar',
+                            child: HomeCampaignRail(
+                              campaigns: campaigns,
+                              onCampaignTap: (final index) =>
+                                  NavigationHandler.goToCampaigns(context,
+                                      index: index),
                             ),
-                    ),
-                  ),
-                  if (stages.isNotEmpty)
-                    RevealOnScroll(
-                      delay: const Duration(milliseconds: 80),
-                      child: _Section(
-                        kicker: 'MEKANLAR',
-                        title: 'Şehrin Sahneleri',
-                        child: HomeStageRail(
-                          stages: stages,
-                          onStageTap: (final stage) =>
-                              NavigationHandler.goToStage(
-                                  context, stage.id, stage.name),
+                          ),
+                        ),
+                      RevealOnScroll(
+                        delay: const Duration(milliseconds: 80),
+                        child: _Section(
+                          kicker: 'REPERTUAR',
+                          title: 'Sahnede Bu Sezon',
+                          trailingLabel: shows.isEmpty ? null : 'Tümünü Gör',
+                          onTrailingTap: () =>
+                              NavigationHandler.goToDiscover(context),
+                          child: shows.isEmpty
+                              ? const _EmptyHint(
+                                  text:
+                                      'Şu anda listelenecek bir oyun bulunmuyor. Yakında burada olacak.')
+                              : HomeShowGrid(
+                                  shows: shows,
+                                  onShowTap: (final show) =>
+                                      NavigationHandler.goToShow(
+                                          context, show.id, show.name),
+                                ),
                         ),
                       ),
-                    ),
-                  RevealOnScroll(
-                    child: _QuickLinksBand(
-                      onSearchTap: _openSearch,
-                      onFavoritesTap: () => NavigationHandler.goToFavorites(context),
-                      onTicketsTap: _goToTickets,
-                      onNearbyTap: () => NavigationHandler.goToNearby(context),
-                    ),
+                      if (stages.isNotEmpty)
+                        RevealOnScroll(
+                          delay: const Duration(milliseconds: 80),
+                          child: _Section(
+                            kicker: 'MEKANLAR',
+                            title: 'Şehrin Sahneleri',
+                            child: HomeStageRail(
+                              stages: stages,
+                              onStageTap: (final stage) =>
+                                  NavigationHandler.goToStage(
+                                      context, stage.id, stage.name),
+                            ),
+                          ),
+                        ),
+                      RevealOnScroll(
+                        child: _QuickLinksBand(
+                          onSearchTap: _openSearch,
+                          onFavoritesTap: () =>
+                              NavigationHandler.goToFavorites(context),
+                          onTicketsTap: _goToTickets,
+                          onNearbyTap: () => NavigationHandler.goToNearby(context),
+                        ),
+                      ),
+                      const RevealOnScroll(child: _ClosingQuoteBand()),
+                    ],
                   ),
-                  const RevealOnScroll(child: _ClosingQuoteBand()),
-                ],
-              ),
-            ),
+                ),
     );
   }
+}
+
+class _WebLoadingState extends StatelessWidget {
+  const _WebLoadingState();
+
+  @override
+  Widget build(final BuildContext context) => const SizedBox(
+        height: 520,
+        child: Center(
+          child: SizedBox(
+            width: 26,
+            height: 26,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(WebColors.primaryGoldLight),
+            ),
+          ),
+        ),
+      );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -511,7 +533,7 @@ class _HeroCopy extends StatelessWidget {
           const SizedBox(height: 30),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            child: CustomSearchbar(onTap: onSearchTap),
+            child: _WebSearchField(onTap: onSearchTap),
           ),
           const SizedBox(height: 22),
           Wrap(
@@ -533,6 +555,78 @@ class _HeroCopy extends StatelessWidget {
             ],
           ),
         ],
+      );
+}
+
+/// Sade, "gerçek bir web formu" gibi davranan arama alanı.
+///
+/// Mobildeki `CustomSearchbar` (parlayan, nabız gibi atan, bulanıklaştırılmış
+/// cam pill) buraya BİLEREK taşınmadı — o bileşen mobil uygulama estetiğine
+/// ait. `landing/style.css`'teki `.newsletter__form input` ile aynı dilde:
+/// düz kenarlık, küçük asimetrik köşe, gölgesiz/parıltısız.
+class _WebSearchField extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _WebSearchField({required this.onTap});
+
+  @override
+  State<_WebSearchField> createState() => _WebSearchFieldState();
+}
+
+class _WebSearchFieldState extends State<_WebSearchField> {
+  bool _hovered = false;
+
+  @override
+  Widget build(final BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (final _) => setState(() => _hovered = true),
+        onExit: (final _) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            decoration: BoxDecoration(
+              color: WebColors.darkBlueSurface,
+              borderRadius: _kAsymSm,
+              border: Border.all(
+                color: WebColors.primaryGold
+                    .withOpacity(_hovered ? 0.55 : 0.28),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.search_rounded,
+                    size: 18,
+                    color: _hovered
+                        ? WebColors.primaryGoldLight
+                        : WebColors.textTertiary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Tiyatro, konser, sanatçı ara…',
+                    style: TextStyle(
+                      color: WebColors.textSecondary.withOpacity(0.85),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                Text(
+                  'ARA',
+                  style: TextStyle(
+                    color: WebColors.textTertiary
+                        .withOpacity(_hovered ? 0.9 : 0.6),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
 }
 
@@ -653,20 +747,11 @@ class _HeroStatsPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            _StatRow(
-                icon: Icons.theater_comedy_rounded,
-                label: 'Oyun',
-                value: showCount),
+            _StatRow(label: 'Oyun', value: showCount),
             const _StatDivider(),
-            _StatRow(
-                icon: Icons.location_city_rounded,
-                label: 'Sahne',
-                value: stageCount),
+            _StatRow(label: 'Sahne', value: stageCount),
             const _StatDivider(),
-            _StatRow(
-                icon: Icons.local_activity_rounded,
-                label: 'Aktif kampanya',
-                value: campaignCount),
+            _StatRow(label: 'Aktif kampanya', value: campaignCount),
           ],
         ),
       );
@@ -683,41 +768,21 @@ class _StatDivider extends StatelessWidget {
 }
 
 class _StatRow extends StatelessWidget {
-  final IconData icon;
   final String label;
   final int? value;
 
-  const _StatRow({required this.icon, required this.label, required this.value});
+  const _StatRow({required this.label, required this.value});
 
   @override
   Widget build(final BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: WebColors.primaryGold.withOpacity(0.14),
-              borderRadius: _kAsymSm,
-            ),
-            child: Icon(icon, size: 18, color: WebColors.primaryGoldLight),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: WebColors.textSecondary,
-                fontSize: 14,
-              ),
-            ),
-          ),
           value == null
               ? const SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 15,
+                  height: 15,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
+                    strokeWidth: 1.6,
                     valueColor:
                         AlwaysStoppedAnimation<Color>(WebColors.primaryGoldLight),
                   ),
@@ -726,10 +791,22 @@ class _StatRow extends StatelessWidget {
                   '$value',
                   style: const TextStyle(
                     color: WebColors.whiteText,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w300,
+                    height: 1.0,
                   ),
                 ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: WebColors.textSecondary,
+                fontSize: 13,
+                height: 1.3,
+              ),
+            ),
+          ),
         ],
       );
 }
@@ -824,34 +901,30 @@ class _QuickLinkCardState extends State<_QuickLinkCard> {
         child: GestureDetector(
           onTap: widget.onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 280,
-            padding: const EdgeInsets.all(22),
+            duration: const Duration(milliseconds: 180),
+            width: 270,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            transform:
+                Matrix4.translationValues(0, _hovered ? -2 : 0, 0),
             decoration: BoxDecoration(
-              color: WebColors.darkBlueSurface,
-              borderRadius: _kAsymLg,
+              color: Colors.transparent,
+              borderRadius: _kAsymSm,
               border: Border.all(
                 color: _hovered
-                    ? WebColors.primaryGold.withOpacity(0.55)
+                    ? WebColors.primaryGold.withOpacity(0.5)
                     : WebColors.darkBlueAccent,
-                width: 1.2,
+                width: 1,
               ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: WebColors.goldGradient,
-                    borderRadius: _kAsymSm,
-                  ),
-                  child: Icon(widget.icon,
-                      size: 22, color: WebColors.veryDarkBlue),
-                ),
-                const SizedBox(width: 14),
+                Icon(widget.icon,
+                    size: 18,
+                    color: _hovered
+                        ? WebColors.primaryGoldLight
+                        : WebColors.textTertiary),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -861,16 +934,16 @@ class _QuickLinkCardState extends State<_QuickLinkCard> {
                         widget.title,
                         style: const TextStyle(
                           color: WebColors.whiteText,
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         widget.subtitle,
                         style: const TextStyle(
                           color: WebColors.textSecondary,
-                          fontSize: 12.5,
+                          fontSize: 12,
                           height: 1.4,
                         ),
                       ),
