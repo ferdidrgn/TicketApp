@@ -2,27 +2,38 @@ import 'package:flutter/material.dart';
 import '../common/extentions/app_context_ui_extension.dart';
 
 /// WEB UYGULAMASI RENKLERİ
-/// "ÇAM & MERCAN" (Pine & Coral) PALETİ — landing/ tanıtım sitesiyle birebir
-/// aynı kimlik. Flutter web uygulaması da artık bu paleti kullanıyor ki tüm
-/// site (tanıtım + uygulama) tek bir marka gibi hissettirsin.
+/// "KIRMIZI & SİYAH" (Crimson Noir) PALETİ — Flutter web uygulamasının
+/// (ana sayfa, arama, oyun detay, üst nav bar) kendi kimliği. Eski "Çam &
+/// Mercan" (çam yeşili + mercan) paleti buradan tamamen kaldırıldı — artık
+/// çam yeşili YOK, near-black + şarap kırmızısı ana dil. (NOT: `landing/`
+/// statik tanıtım sitesi bu değişikliğin dışında bırakıldı, kendi
+/// `style.css`'inde hâlâ eski çam & mercan paletini kullanıyor — bu
+/// kasıtlı bir kapsam kararı.)
+///
+/// Sabit adlar (ör. "primaryGold", "darkBlueBackground") artık ismiyle
+/// birebir örtüşmüyor — onlarca dosyada bu isimlerle referans verildiği
+/// için isim değişikliği yerine sadece DEĞERLER güncellendi; roller aynı
+/// kaldı (primaryGold = ana vurgu rengi, darkBlueBackground = ana koyu
+/// zemin, vs.).
 class WebColors {
-  // Ana Renkler — mercan reflektör vurgusu (eski "altın"ın yerine)
-  static const Color primaryGold = Color(0xFFE85C3F);
-  static const Color primaryGoldDark = Color(0xFFC1432A);
-  static const Color primaryGoldLight = Color(0xFFF0876F);
+  // Ana vurgu rengi — şarap/kırmızı (eski mercan turuncusunun yerine)
+  static const Color primaryGold = Color(0xFFC50337);
+  static const Color primaryGoldDark = Color(0xFF7A0222);
+  static const Color primaryGoldLight = Color(0xFFE23A5C);
 
-  // İkincil vurgu — adaçayı yeşili (landing'deki --sage ile aynı)
-  static const Color secondaryAccent = Color(0xFF8FB29C);
-  static const Color secondaryAccentLight = Color(0xFFABC7B4);
+  // İkincil vurgu — tozlu gül/bordo (eski adaçayı yeşilinin yerine —
+  // kırmızı ailesinden, yeşil tamamen kaldırıldı)
+  static const Color secondaryAccent = Color(0xFFB5495B);
+  static const Color secondaryAccentLight = Color(0xFFD98A97);
 
-  // Arkaplan Renkleri — koyu çam yeşili kulis (eski kömür siyahının yerine)
-  static const Color darkBlueBackground = Color(0xFF0F2318);
-  static const Color darkBlueSurface = Color(0xFF1B3A26);
-  static const Color darkBlueAccent = Color(0xFF24402C);
+  // Arkaplan Renkleri — near-black şarap zemin (eski çam yeşili kulisin yerine)
+  static const Color darkBlueBackground = Color(0xFF0A0509);
+  static const Color darkBlueSurface = Color(0xFF160A10);
+  static const Color darkBlueAccent = Color(0xFF2B0F18);
 
   // Ekstra Arkaplan Tonları
-  static const Color veryDarkBlue = Color(0xFF081712); // En koyu ton
-  static const Color mediumDarkBlue = Color(0xFF24402C); // Orta ton
+  static const Color veryDarkBlue = Color(0xFF02060E); // En koyu ton (referans)
+  static const Color mediumDarkBlue = Color(0xFF2B0F18); // Orta ton
 
   // Metin Renkleri
   static const Color whiteText = Color(0xFFF2ECD9); // Fildişi (ivory)
