@@ -32,12 +32,15 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     super.initState();
     scrollController.addListener(_onScroll);
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      // Diğer web/detay sayfalarındaki (ör. show_detail_page_web.dart'ın
+      // içerik fade'i ~500ms, hero fade'i 800ms) içerik geçişleriyle aynı
+      // hissi vermesi için süre kısaltıldı; eskiden 1500ms + easeInOutExpo
+      // diğer sayfalara göre belirgin şekilde daha yavaştı.
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-          parent: _animationController, curve: Curves.easeInOutExpo),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
     _animationController.forward();
   }
