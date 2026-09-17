@@ -17,7 +17,7 @@ import '../../../features/campaigns/presentation/pages/campaign_showcase_page.da
 import '../../../features/discovery/presentation/pages/discovery_page.dart';
 import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
 import '../../../features/favorite/presentation/pages/favorite_screen.dart';
-import '../../../features/home/presentation/pages/home_page_mobile.dart';
+import '../../../features/home/presentation/pages/home_page.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
