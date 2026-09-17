@@ -49,9 +49,20 @@ Future<SearchResultState> searchResult(final Ref ref) async {
   final query = ref.watch(searchQueryProvider).toLowerCase();
   final filterIndex = ref.watch(searchFilterProvider);
 
+  // Gösteriler (shows) için kaynak, sorgu durumuna göre değişir:
+  // - Kutu boşken (göz atma / "önerilenler" hâli): SADECE aktif oyunlar
+  //   (activeShowsProvider) — takviminde gelecek bir etkinliği olmayan
+  //   (arşivlenmiş) oyunlar önerilerde görünmemeli.
+  // - Kullanıcı bir şey yazdığında (açık arama): TÜM oyunlar aranır —
+  //   geçmiş bir oyunu ismiyle arayan biri onu hâlâ bulabilmeli, sadece
+  //   önerilerde öne çıkmasın.
+  final showsFuture = query.isEmpty
+      ? ref.watch(activeShowsProvider(false).future)
+      : ref.watch(showsProvider(isLimit: false).future);
+
   // 1. ADIM: Tüm verileri paralel ve güvenli bir şekilde çek
   final results = await Future.wait<dynamic>([
-    ref.watch(showsProvider(isLimit: false).future),
+    showsFuture,
     ref.watch(playersProvider(isLimit: false).future),
     ref.watch(stagesProvider(isLimit: false).future),
     ref.watch(teamsProvider(isLimit: false).future),
