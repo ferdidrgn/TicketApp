@@ -5,6 +5,7 @@ import 'package:ticketapp/core/services/deeplink/deeplink_service.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
 
 class AppSettingsPage extends StatelessWidget {
@@ -21,6 +22,10 @@ class AppSettingsPage extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    // 🖥️ Masaüstü/web: BasePageWrapper'ın mobil zırhı (gradient başlık, FAB,
+    // parçacık arkaplanı) yerine kendi sade web kabuğunu kullanır.
+    if (context.isDesktop) return _buildDesktopPage(context);
+
     final theme = context.theme;
     final colors = context.colors;
 
@@ -232,6 +237,203 @@ class AppSettingsPage extends StatelessWidget {
           letterSpacing: 2,
           fontWeight: FontWeight.w900,
           color: context.colors.primary.withOpacity(0.7),
+        ),
+      );
+
+  // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
+  // Mobil sohbet chrome'undan (TopHeaderWithBackButton, FAB, parçacıklar)
+  // bağımsız, sade, ortalanmış ve dar bir sütun. Aynı ayarlar/aksiyonlar,
+  // aynı callback'ler; sadece görsel kabuk değişiyor.
+  Widget _buildDesktopPage(final BuildContext context) => ColoredBox(
+        color: WebColors.darkBlueBackground,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+              physics: const BouncingScrollPhysics(),
+              children: [
+                Text(
+                  'ATÖLYE PANELİ',
+                  style: TextStyle(
+                    color: WebColors.whiteText,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 28,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Serüvenin teknik detaylarını restore et...',
+                  style: TextStyle(
+                    color: WebColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                _buildDesktopSectionTitle('DUYUSAL AYARLAR'),
+                const SizedBox(height: 16),
+                _buildDesktopTile(
+                  title: 'Mekansal Rezonans',
+                  subtitle: 'Çevrendeki sanat duraklarını hisset.',
+                  icon: Icons.location_searching_rounded,
+                  onTap: () => _handlePermission(Permission.location),
+                ),
+                const SizedBox(height: 12),
+                _buildDesktopTile(
+                  title: 'Sanat Fısıltıları',
+                  subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
+                  icon: Icons.vibration_rounded,
+                  onTap: () => _handlePermission(Permission.notification),
+                ),
+                const SizedBox(height: 40),
+                _buildDesktopSectionTitle('GALERİ YAYILIMI'),
+                const SizedBox(height: 16),
+                _buildDesktopAction(
+                  title: 'Atölyeyi Puanla',
+                  desc: 'Bu koleksiyonu yıldızlarla parlat.',
+                  icon: Icons.auto_awesome_rounded,
+                  onTap: () => TiyatrolDeeplinkService.shareApp(),
+                ),
+                const SizedBox(height: 12),
+                _buildDesktopAction(
+                  title: 'İlhamı Paylaş',
+                  desc: 'Sanatı bir dostunun kalbine bırak.',
+                  icon: Icons.send_rounded,
+                  onTap: _shareApp,
+                ),
+                const SizedBox(height: 48),
+                Center(
+                  child: Text(
+                    'Versiyon 1.0.4 - Sanatla Tasarlandı',
+                    style: TextStyle(
+                      color: WebColors.textTertiary,
+                      fontSize: 11,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildDesktopSectionTitle(final String title) => Text(
+        title,
+        style: TextStyle(
+          color: WebColors.primaryGoldLight,
+          letterSpacing: 2,
+          fontWeight: FontWeight.w900,
+          fontSize: 12,
+        ),
+      );
+
+  Widget _buildDesktopTile({
+    required final String title,
+    required final String subtitle,
+    required final IconData icon,
+    required final VoidCallback onTap,
+  }) =>
+      InkWell(
+        onTap: onTap,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+          topRight: Radius.circular(6),
+          bottomLeft: Radius.circular(6),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+              topRight: Radius.circular(6),
+              bottomLeft: Radius.circular(6),
+            ),
+            border: Border.all(
+                color: WebColors.darkBlueAccent.withOpacity(0.8), width: 1),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: WebColors.primaryGold, size: 22),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            color: WebColors.whiteText,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: TextStyle(
+                            color: WebColors.textSecondary, fontSize: 12)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: WebColors.textTertiary, size: 20),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildDesktopAction({
+    required final String title,
+    required final String desc,
+    required final IconData icon,
+    required final VoidCallback onTap,
+  }) =>
+      InkWell(
+        onTap: onTap,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+          topRight: Radius.circular(8),
+          bottomLeft: Radius.circular(8),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: WebColors.goldGradient,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              bottomRight: Radius.circular(24),
+              topRight: Radius.circular(8),
+              bottomLeft: Radius.circular(8),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: WebColors.whiteText, size: 26),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            color: WebColors.whiteText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15)),
+                    Text(desc,
+                        style: TextStyle(
+                            color: WebColors.whiteText.withOpacity(0.85),
+                            fontSize: 12)),
+                  ],
+                ),
+              ),
+              Icon(Icons.open_in_new_rounded,
+                  color: WebColors.whiteText.withOpacity(0.7), size: 18),
+            ],
+          ),
         ),
       );
 }
