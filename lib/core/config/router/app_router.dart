@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
-import 'package:ticketapp/features/home/presentation/pages/wrapper/app_home_page.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
@@ -72,7 +71,11 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
   return GoRouter(
     navigatorKey: NavigationKeys.rootNavigator,
-    initialLocation: isWeb ? '/' : '/app',
+    // Web'de kök ("/") artık statik landing/index.html tarafından
+    // karşılanıyor (bkz. firebase.json) — Flutter bundle'ı hiçbir zaman "/"
+    // yolunda çalışmıyor, bu yüzden GoRouter'ın başlangıç konumu da mobille
+    // aynı şekilde '/app' olmalı.
+    initialLocation: '/app',
     refreshListenable: authNotifier,
     observers: [
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
@@ -93,23 +96,11 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       // Login olmuşsa login sayfasına gidemez
       if (loggedIn && (path == '/login' || path == '/phone-login'))
-        return isWeb ? '/app' : '/app';
+        return '/app';
 
       return null;
     },
     routes: [
-      /// 🌐 WEB LANDING PAGE (Sadece web için)
-      /// Route: /
-      if (isWeb)
-        GoRoute(
-          path: '/',
-          pageBuilder: (final context, final state) => CustomTransitionPage(
-            key: state.pageKey,
-            child: const AppHomePage(),
-            transitionsBuilder: fadeTransition,
-            transitionDuration: const Duration(milliseconds: 500),
-          ),
-        ),
 
       /// 🎭 STATEFUL SHELL ROUTE - TAB NAVIGATION
       StatefulShellRoute.indexedStack(

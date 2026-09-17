@@ -39,7 +39,7 @@
       ],
       "rewrites": [
         {
-          "source": "/app/**",
+          "source": "**",
           "destination": "/app/index.html"
         }
       ]
@@ -83,7 +83,7 @@
       ],
       "rewrites": [
         {
-          "source": "/app/**",
+          "source": "**",
           "destination": "/app/index.html"
         }
       ]
