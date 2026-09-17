@@ -357,6 +357,11 @@ class _DiscoveryDesktopBrowserState
     extends ConsumerState<_DiscoveryDesktopBrowser> {
   String? _activeCategory;
 
+  // "Aktif Oyunlar" (varsayılan) / "Geçmiş Oyunlar" (arşiv) görünümü
+  // arasındaki anahtar. Kategori seçimi her iki listede de kalıcı — sadece
+  // hangi Show listesinin süzüldüğü değişir.
+  bool _showPast = false;
+
   @override
   void initState() {
     super.initState();
@@ -368,7 +373,17 @@ class _DiscoveryDesktopBrowserState
 
   @override
   Widget build(final BuildContext context) {
-    final showsState = ref.watch(showsProvider(isLimit: false));
+    // Varsayılan/ana tarama listesi artık `activeShowsProvider` — takviminde
+    // en az bir GELECEK etkinliği olan oyunlar (bkz. show_provider.dart).
+    // Geçmişi/arşivi gösteren "Geçmiş Oyunlar" moduna geçildiğinde aynı
+    // AsyncValue<List<Show>> şeklini koruyan `pastShowsProvider`e geçilir —
+    // her iki provider de `showsProvider`in "en yeni N oyun" limitini
+    // (isLimit) miras alır; burada tam listeyi istediğimiz için `false`
+    // geçiyoruz (aynı `showsProvider(isLimit: false)` çağrısının yerini
+    // alıyor).
+    final showsState = _showPast
+        ? ref.watch(pastShowsProvider(false))
+        : ref.watch(activeShowsProvider(false));
 
     return showsState.when(
       loading: () => _buildLoading(),
@@ -387,7 +402,9 @@ class _DiscoveryDesktopBrowserState
     }.toList()
       ..sort();
 
-    // Aktif kategori artık veride yoksa (ör. filtre eskimişse) "Tümü"ne düş.
+    // Aktif kategori artık veride yoksa (ör. filtre eskimişse, ya da mod
+    // değiştiğinde o kategoride hiç geçmiş/aktif oyun kalmadıysa) "Tümü"ne
+    // düş.
     final String? activeCategory =
         (_activeCategory != null && categories.contains(_activeCategory))
             ? _activeCategory
@@ -397,8 +414,14 @@ class _DiscoveryDesktopBrowserState
         ? shows
         : shows.where((final s) => s.category == activeCategory).toList();
 
-    final List<Show> trending = shows.take(6).toList();
-    final Show? featured = filtered.isNotEmpty ? filtered.first : null;
+    // "Haftanın Başyapıtları" (öne çıkanlar şeridi) ve "Haftanın Seçkisi"
+    // (büyük öne çıkan panel) kavramsal olarak sadece AKTİF tarama modunda
+    // anlamlı — bir arşiv görünümünde her şey zaten geçmiş, "öne çıkan"
+    // vurgusu yanıltıcı olurdu. Geçmiş Oyunlar modunda direkt kategori
+    // filtresi + ızgaraya geçiyoruz.
+    final List<Show> trending = _showPast ? const [] : shows.take(6).toList();
+    final Show? featured =
+        (!_showPast && filtered.isNotEmpty) ? filtered.first : null;
     final List<Show> gridShows = featured == null
         ? filtered
         : filtered.where((final s) => s.id != featured.id).toList();
@@ -413,28 +436,40 @@ class _DiscoveryDesktopBrowserState
             child: DiscoveryHero(
               categoryLabel: activeCategory,
               showCount: shows.length,
+              archiveMode: _showPast,
             ),
           ),
         ),
-        const SizedBox(height: 64),
+        const SizedBox(height: 28),
         ScrollReveal(
-          delay: const Duration(milliseconds: 80),
-          child: SectionHeader(
-            title: 'Haftanın Başyapıtları',
-            subtitle: 'Seçkiler',
-            titleColor: Colors.white,
-            accentColor: WebColors.primaryGold,
+          delay: const Duration(milliseconds: 40),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _buildModeToggle(),
           ),
         ),
-        const SizedBox(height: 16),
-        ScrollReveal(
-          delay: const Duration(milliseconds: 120),
-          child: _buildTrendingRow(trending),
-        ),
-        const SizedBox(height: 64),
+        const SizedBox(height: 36),
+        if (!_showPast) ...[
+          ScrollReveal(
+            delay: const Duration(milliseconds: 80),
+            child: SectionHeader(
+              title: 'Haftanın Başyapıtları',
+              subtitle: 'Seçkiler',
+              titleColor: Colors.white,
+              accentColor: WebColors.primaryGold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ScrollReveal(
+            delay: const Duration(milliseconds: 120),
+            child: _buildTrendingRow(trending),
+          ),
+          const SizedBox(height: 64),
+        ],
         ScrollReveal(
           child: SectionHeader(
-            title: 'Tümünü Keşfet',
+            title: _showPast ? 'Geçmiş Oyunlar' : 'Tümünü Keşfet',
+            subtitle: _showPast ? 'Arşiv' : null,
             titleColor: Colors.white,
             accentColor: WebColors.primaryGold,
           ),
@@ -464,17 +499,46 @@ class _DiscoveryDesktopBrowserState
               ),
             ),
           )
-        else
-          _buildEmptyCategoryNotice(),
+        else if (!_showPast)
+          _buildEmptyCategoryNotice(showPast: false),
         const SizedBox(height: 56),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: _buildGrid(gridShows),
-        ),
+        if (gridShows.isEmpty && _showPast)
+          _buildEmptyCategoryNotice(showPast: true)
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _buildGrid(gridShows),
+          ),
         const SizedBox(height: 100),
       ],
     );
   }
+
+  /// "Aktif Oyunlar" / "Geçmiş Oyunlar" arasında geçiş yapan segmentli
+  /// kontrol. Mobil tarafta karşılığı yok — bu tamamen masaüstüne özel,
+  /// arşivin görünmez kalmaması için eklenen gerçek bir tarama yolu.
+  Widget _buildModeToggle() => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ModePill(
+            label: 'Aktif Oyunlar',
+            icon: Icons.theater_comedy_rounded,
+            isActive: !_showPast,
+            onTap: () {
+              if (_showPast) setState(() => _showPast = false);
+            },
+          ),
+          const SizedBox(width: 12),
+          _ModePill(
+            label: 'Geçmiş Oyunlar',
+            icon: Icons.inventory_2_outlined,
+            isActive: _showPast,
+            onTap: () {
+              if (!_showPast) setState(() => _showPast = true);
+            },
+          ),
+        ],
+      );
 
   Widget _buildTrendingRow(final List<Show> shows) {
     if (shows.isEmpty) return const SizedBox.shrink();
@@ -544,10 +608,12 @@ class _DiscoveryDesktopBrowserState
     );
   }
 
-  Widget _buildEmptyCategoryNotice() => Padding(
+  Widget _buildEmptyCategoryNotice({required final bool showPast}) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Text(
-          'Bu kategoride henüz bir oyun yok.',
+          showPast
+              ? 'Bu kategoride arşivlenmiş (geçmiş) oyun yok.'
+              : 'Bu kategoride henüz bir oyun yok.',
           style: TextStyle(color: WebColors.textSecondary, fontSize: 15),
         ),
       );
@@ -571,8 +637,88 @@ class _DiscoveryDesktopBrowserState
 
   Widget _buildEmpty() => Center(
         child: Text(
-          'Henüz oyun yok',
+          _showPast ? 'Arşivde henüz geçmiş oyun yok' : 'Henüz aktif oyun yok',
           style: TextStyle(color: WebColors.textSecondary, fontSize: 15),
         ),
       );
+}
+
+/// "Aktif Oyunlar" / "Geçmiş Oyunlar" anahtarının tek bir hap (pill)
+/// düğmesi. `discovery_category_filter.dart`'taki `_CategoryPill` ile aynı
+/// hover/aktif görsel dilini izler, böylece sayfa genelinde tutarlı kalır.
+class _ModePill extends StatefulWidget {
+  final String label;
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _ModePill({
+    required this.label,
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_ModePill> createState() => _ModePillState();
+}
+
+class _ModePillState extends State<_ModePill> {
+  bool _hovered = false;
+
+  @override
+  Widget build(final BuildContext context) {
+    final bool highlight = widget.isActive || _hovered;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (final _) => setState(() => _hovered = true),
+      onExit: (final _) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: widget.isActive ? WebColors.goldGradient : null,
+            color: widget.isActive
+                ? null
+                : (_hovered
+                    ? WebColors.primaryGold.withOpacity(0.14)
+                    : WebColors.darkBlueSurface.withOpacity(0.6)),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: highlight
+                  ? WebColors.primaryGold.withOpacity(widget.isActive ? 1 : 0.6)
+                  : WebColors.primaryGold.withOpacity(0.22),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.icon,
+                size: 16,
+                color: widget.isActive
+                    ? WebColors.darkBlueBackground
+                    : WebColors.whiteText,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.isActive
+                      ? WebColors.darkBlueBackground
+                      : WebColors.whiteText,
+                  fontWeight: widget.isActive ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: 13.5,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
