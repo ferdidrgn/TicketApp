@@ -134,6 +134,73 @@ class DesktopSectionTitle extends StatelessWidget {
 }
 
 // =============================================================================
+// SONUÇ META ÇUBUĞU — facet bar
+// =============================================================================
+//
+// Segmentli kategori anahtarı (bkz. `search_header_web.dart`) hangi
+// kategoride olduğumuzu gösteriyor; bu şerit ise NE KADAR sonuç bulunduğunu
+// ve (varsa) aktif metin sorgusunu tek satırlık, sessiz bir "facet bar"
+// olarak özetler — gerçek e-ticaret/arama ürünlerindeki "124 sonuç ·
+// Oyuncular" satırına yakın. Chip değil: interaktif değil, kendi arka
+// planı/kenarlığı yok, içeriğe gömülü düz bir metin satırı.
+class DesktopResultsMetaBar extends StatelessWidget {
+  final int count;
+  final int filterIndex;
+  final String query;
+
+  const DesktopResultsMetaBar({
+    super.key,
+    required this.count,
+    required this.filterIndex,
+    required this.query,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final String categoryLabel = SearchCategoryPalette.labels[
+        filterIndex.clamp(0, SearchCategoryPalette.labels.length - 1)];
+    final Color accent = SearchCategoryPalette.tintFor(filterIndex)[0];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22, top: 2),
+      child: Row(
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(right: 10),
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+          ),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: WebColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$count sonuç',
+                    style: const TextStyle(
+                        color: WebColors.whiteText, fontWeight: FontWeight.w800),
+                  ),
+                  if (filterIndex != SearchCategoryPalette.all)
+                    TextSpan(text: '  ·  $categoryLabel içinde'),
+                  if (query.isNotEmpty) TextSpan(text: '  ·  "$query" için'),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
 // GÖSTERİ (SHOW) KARTI
 // =============================================================================
 

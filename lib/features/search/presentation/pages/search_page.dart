@@ -94,8 +94,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
             SliverPersistentHeader(
               pinned: true,
               delegate: _SliverFilterDelegate(
-                minExtent: isDesktop ? 186 : 110,
-                maxExtent: isDesktop ? 186 : 110,
+                minExtent: isDesktop ? 108 : 110,
+                maxExtent: isDesktop ? 108 : 110,
                 child: isDesktop
                     ? _buildDesktopHeaderBar(context, selectedFilter)
                     : ClipRect(
@@ -146,36 +146,18 @@ class _SearchPageState extends ConsumerState<SearchPage>
               ),
             ),
             alignment: Alignment.center,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 14),
-                DesktopSearchField(
-                  controller: _textController,
-                  hintText: context.l10n.searchHint,
-                  onChanged: (final v) =>
-                      ref.read(searchQueryProvider.notifier).update(v),
-                  onSubmitted: () => FocusScope.of(context).unfocus(),
-                  onClear: () {
-                    _textController.clear();
-                    ref.read(searchQueryProvider.notifier).update("");
-                  },
-                ),
-                const SizedBox(height: 18),
-                DesktopFilterTabs(
-                  labels: const [
-                    "Tümü",
-                    "Etkinlikler",
-                    "Oyuncular",
-                    "Mekanlar",
-                    "Ekipler",
-                  ],
-                  palettes: SearchCategoryPalette.tints,
-                  selectedIndex: selectedFilter,
-                  onSelect: _onSeeAll,
-                ),
-                const SizedBox(height: 14),
-              ],
+            child: DesktopSearchCommandBar(
+              controller: _textController,
+              hintText: context.l10n.searchHint,
+              onChanged: (final v) =>
+                  ref.read(searchQueryProvider.notifier).update(v),
+              onSubmitted: () => FocusScope.of(context).unfocus(),
+              onClear: () {
+                _textController.clear();
+                ref.read(searchQueryProvider.notifier).update("");
+              },
+              selectedIndex: selectedFilter,
+              onSelectFacet: _onSeeAll,
             ),
           ),
         ),
@@ -314,6 +296,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
       );
 
     final content = _buildDesktopContentList(data, selectedFilter);
+    final int totalCount = data.shows.length +
+        data.players.length +
+        data.stages.length +
+        data.teams.length;
     return SliverToBoxAdapter(
       child: Center(
         child: ConstrainedBox(
@@ -322,7 +308,14 @@ class _SearchPageState extends ConsumerState<SearchPage>
             padding: const EdgeInsets.fromLTRB(40, 24, 40, 140),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: content),
+                children: [
+                  DesktopResultsMetaBar(
+                    count: totalCount,
+                    filterIndex: selectedFilter,
+                    query: query,
+                  ),
+                  ...content,
+                ]),
           ),
         ),
       ),
@@ -338,7 +331,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           _buildDesktopSection(
             title: "Etkinlikler",
             subtitle: "Sanatın Akışı",
-            icon: Icons.theater_comedy_rounded,
+            icon: SearchCategoryPalette.icons[SearchCategoryPalette.events],
             accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.events],
             onSeeAll: () => _onSeeAll(1),
             crossAxisCount: context.responsive(
@@ -352,7 +345,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           _buildDesktopSection(
             title: "Oyuncular",
             subtitle: "Sahne Yıldızları",
-            icon: Icons.people_rounded,
+            icon: SearchCategoryPalette.icons[SearchCategoryPalette.players],
             accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.players],
             onSeeAll: () => _onSeeAll(2),
             crossAxisCount: context.responsive(
@@ -366,7 +359,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           _buildDesktopSection(
             title: "Mekanlar",
             subtitle: "Sanatın Kalbi",
-            icon: Icons.location_city_rounded,
+            icon: SearchCategoryPalette.icons[SearchCategoryPalette.stages],
             accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.stages],
             onSeeAll: () => _onSeeAll(3),
             crossAxisCount: context.responsive(
@@ -380,7 +373,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
           _buildDesktopSection(
             title: "Ekipler",
             subtitle: "Yaratıcı Gruplar",
-            icon: Icons.groups_rounded,
+            icon: SearchCategoryPalette.icons[SearchCategoryPalette.teams],
             accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.teams],
             onSeeAll: () => _onSeeAll(4),
             crossAxisCount: context.responsive(
