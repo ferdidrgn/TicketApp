@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/base/base_page_wrapper.dart';
@@ -9,6 +10,7 @@ import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../providers/player_provider.dart';
+import '../widgets/web/player_detail_desktop_view.dart';
 
 class PlayerDetailPage extends ConsumerStatefulWidget {
   final String playerId;
@@ -77,23 +79,134 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
             child: CircularProgressIndicator(
                 color: colors.primary, strokeWidth: 2)),
         error: (final err, final stack) => _buildErrorState(context, err),
-        data: (final state) => Stack(
-          children: [
-            CustomScrollView(
-              controller: scrollController,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                _buildArtisticHeader(context, state),
-                SliverToBoxAdapter(
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: _buildEliteContentBody(context, state),
-                  ),
-                ),
-              ],
+        data: (final state) => context.isDesktop
+            ? _buildDesktopBody(context, state)
+            : _buildMobileBody(context, state),
+      ),
+    );
+  }
+
+  // --- 📱 MOBİL GÖVDE (DEĞİŞTİRİLMEDİ) ---
+  Widget _buildMobileBody(final BuildContext context, final dynamic state) {
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildArtisticHeader(context, state),
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: _buildEliteContentBody(context, state),
+              ),
             ),
-            _buildGlassTopBar(context, state),
           ],
+        ),
+        _buildGlassTopBar(context, state),
+      ],
+    );
+  }
+
+  // --- 🖥️ MASAÜSTÜ GÖVDE (ÇAM & MERCAN EDİTORYAL DÜZENİ) ---
+  Widget _buildDesktopBody(final BuildContext context, final dynamic state) {
+    final List<Show> activeShows = List<Show>.from(state.activeShows ?? []);
+    final List<Show> pastShows = List<Show>.from(state.pastShows ?? []);
+
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: PlayerDetailDesktopView(
+                  player: state.player,
+                  activeShows: activeShows,
+                  pastShows: pastShows,
+                ),
+              ),
+            ),
+          ],
+        ),
+        _buildDesktopFloatingChip(context, state),
+      ],
+    );
+  }
+
+  // --- 💊 MASAÜSTÜ: KAYDIRINCA BELİREN SABİT MİNİ PROFİL KARTI ---
+  // Apple ürün sayfalarındaki "yapışkan" (sticky) CTA hissini, sayfanın
+  // genel kaydırma durumunu (mobildeki cam üst bar için zaten var olan
+  // `_isScrolled`) kullanarak güvenli biçimde yeniden üretir: kullanıcı
+  // hero'yu geçtiğinde sağ altta beliren, oyuncunun adı + paylaş kısayolunu
+  // taşıyan küçük bir kart.
+  Widget _buildDesktopFloatingChip(
+      final BuildContext context, final dynamic state) {
+    final String fullName = '${state.player.firstName} ${state.player.lastName}';
+
+    return Positioned(
+      right: 40,
+      bottom: 36,
+      child: IgnorePointer(
+        ignoring: !_isScrolled,
+        child: AnimatedSlide(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+          offset: _isScrolled ? Offset.zero : const Offset(0, 0.4),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: _isScrolled ? 1.0 : 0.0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 10, 16, 10),
+              decoration: BoxDecoration(
+                color: WebColors.veryDarkBlue.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(100),
+                border:
+                    Border.all(color: WebColors.primaryGold.withOpacity(0.4)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.35),
+                    blurRadius: 26,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipOval(
+                    child: OptimizedCachedImage(
+                      imageUrl: state.player.imageUrl,
+                      width: 38,
+                      height: 38,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    fullName,
+                    style: const TextStyle(
+                      color: WebColors.whiteText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  InkWell(
+                    onTap: () => TiyatrolDeeplinkService.shareActor(
+                      id: state.player.id,
+                      name: fullName,
+                    ),
+                    borderRadius: BorderRadius.circular(100),
+                    child: const Icon(Icons.share_rounded,
+                        size: 18, color: WebColors.primaryGoldLight),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
