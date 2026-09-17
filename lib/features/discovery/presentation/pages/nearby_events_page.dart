@@ -456,7 +456,7 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: _NearbyDesktopBanner(eventCount: eventsState.valueOrNull?.length),
+          child: _NearbyDesktopBanner(eventCount: eventsState.value?.length),
         ),
         const SizedBox(height: 48),
         const Padding(
