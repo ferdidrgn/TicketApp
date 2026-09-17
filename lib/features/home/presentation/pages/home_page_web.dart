@@ -8,15 +8,22 @@ import '../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../widgets/web/home_campaign_rail.dart';
+import '../widgets/web/home_category_strip.dart';
+import '../widgets/web/home_newsletter_band.dart';
+import '../widgets/web/home_promo_banner.dart';
 import '../widgets/web/home_show_grid.dart';
 import '../widgets/web/home_stage_rail.dart';
+import '../widgets/web/home_trending_chips.dart';
 import '../widgets/web/reveal_on_scroll.dart';
 
 /// 🖥️ ANA SAYFA — MASAÜSTÜ/WEB
 ///
-/// `home_page_mobile.dart`'ın bir büyütülmüş hali DEĞİL: sıfırdan, "gerçek
-/// bir bilet platformu masaüstünde nasıl görünür" sorusuna cevap veren bir
-/// kompozisyon. "Çam & Mercan" (Pine & Coral) tasarım sistemini kullanır.
+/// `home_page_mobile.dart`'ın (`HomePage` in `home_page_mobile.dart`) AYNI
+/// İÇERİK/BÖLÜM SIRASINI taşır — Vitrin, Kategoriler, Keşfet, Mekanlar,
+/// Günün Fırsatı, Hızlı Erişim, Şu An Popüler, Özel Fırsatlar, kapanış
+/// alıntısı — sadece piksel piksel büyütülmüş hali değil: her bölüm web'e
+/// özgü bir bileşimle (grid/rail, hover durumları, asimetrik köşeler)
+/// yeniden çizildi. "Çam & Mercan" (Pine & Coral) tasarım sistemini kullanır.
 ///
 /// KASITLI OLARAK `BasePageWrapper` KULLANMIYOR: o wrapper mobil uygulama
 /// çatısı içindir (geri tuşu başlığı, "yukarı kaydır" FAB'ı, pull-to-refresh,
@@ -26,7 +33,9 @@ import '../widgets/web/reveal_on_scroll.dart';
 /// sade bir kaydırılabilir içerik alanından ibaret.
 ///
 /// Aynı Riverpod sağlayıcılarını okur (campaignsProvider, showsProvider,
-/// stagesProvider) — sahte veri yok.
+/// stagesProvider) — sahte veri yok. Kategoriler/Günün Fırsatı/Popüler/
+/// Bülten bölümleri mobil tarafta da sabit/dekoratif içerik taşıyor (bkz.
+/// ilgili widget dosyalarındaki yorumlar) — aynı içerik birebir taşındı.
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -102,11 +111,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                         stageCount: stageState.value?.length,
                         campaignCount: campaignState.value?.length,
                       ),
+                      // 1. Öne Çıkanlar / Vitrin (mobildeki StoryCircles'ın
+                      // web karşılığı — aynı SectionHeader kicker/title)
                       if (campaigns.isNotEmpty)
                         RevealOnScroll(
                           child: _Section(
                             kicker: 'VİTRİN',
-                            title: 'Öne Çıkan Kampanyalar',
+                            title: 'Öne Çıkanlar',
                             child: HomeCampaignRail(
                               campaigns: campaigns,
                               onCampaignTap: (final index) =>
@@ -115,11 +126,27 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                           ),
                         ),
+                      // 2. Kategoriler / Sanatın Renkleri (mobildeki
+                      // CategoryGrid'in aynısı — /discover?category=... 'a gider)
+                      RevealOnScroll(
+                        delay: const Duration(milliseconds: 60),
+                        child: _Section(
+                          kicker: 'SANATIN RENKLERİ',
+                          title: 'Kategoriler',
+                          child: HomeCategoryStrip(
+                            onCategoryTap: (final category) =>
+                                NavigationHandler.goToDiscoverWithCategory(
+                                    context, category),
+                          ),
+                        ),
+                      ),
+                      // 3. Keşfet / Sana Özel Seçkiler (mobildeki
+                      // ShowCollage'ın web karşılığı)
                       RevealOnScroll(
                         delay: const Duration(milliseconds: 80),
                         child: _Section(
-                          kicker: 'REPERTUAR',
-                          title: 'Sahnede Bu Sezon',
+                          kicker: 'KEŞFET',
+                          title: 'Sana Özel Seçkiler',
                           trailingLabel: shows.isEmpty ? null : 'Tümünü Gör',
                           onTrailingTap: () =>
                               NavigationHandler.goToDiscover(context),
@@ -135,6 +162,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 ),
                         ),
                       ),
+                      // 4. Mekanlar / Şehrin Sahneleri (mobildeki
+                      // StageCarousel'in web karşılığı)
                       if (stages.isNotEmpty)
                         RevealOnScroll(
                           delay: const Duration(milliseconds: 80),
@@ -149,13 +178,65 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                           ),
                         ),
+                      // 5. Günün Fırsatı (mobildeki TicketStubCard'ın
+                      // web karşılığı)
                       RevealOnScroll(
-                        child: _QuickLinksBand(
-                          onSearchTap: _openSearch,
-                          onFavoritesTap: () =>
-                              NavigationHandler.goToFavorites(context),
-                          onTicketsTap: _goToTickets,
-                          onNearbyTap: () => NavigationHandler.goToNearby(context),
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                              top: context.responsive(
+                                  mobile: 44.0, tablet: 52.0, desktop: 60.0)),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1400),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: _sectionPad(context)),
+                                child: const HomePromoBanner(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 6. Hızlı Erişim (mobildeki QuickActionsGrid'in aynısı:
+                      // Bildirimler/Favorilerim/Biletlerim/Takvim)
+                      RevealOnScroll(
+                        child: _Section(
+                          kicker: 'HIZLI ERİŞİM',
+                          title: 'Neye İhtiyacın Var?',
+                          child: _QuickLinksBand(
+                            onNotificationsTap: () =>
+                                NavigationHandler.goToSettings(context),
+                            onFavoritesTap: () =>
+                                NavigationHandler.goToFavorites(context),
+                            onTicketsTap: _goToTickets,
+                          ),
+                        ),
+                      ),
+                      // 7. Şu An Popüler (mobildeki TrendingNowSection'ın aynısı)
+                      RevealOnScroll(
+                        child: _Section(
+                          kicker: 'GÜNDEM',
+                          title: 'Şu An Popüler',
+                          child: const HomeTrendingChips(),
+                        ),
+                      ),
+                      // 8. Özel Fırsatlar (mobildeki NewsletterSubscribe'ın
+                      // web karşılığı)
+                      RevealOnScroll(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                              top: context.responsive(
+                                  mobile: 44.0, tablet: 52.0, desktop: 60.0)),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1400),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: _sectionPad(context)),
+                                child: const HomeNewsletterBand(),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const RevealOnScroll(child: _ClosingQuoteBand()),
@@ -815,61 +896,51 @@ class _StatRow extends StatelessWidget {
 // HIZLI BAĞLANTILAR
 // ═══════════════════════════════════════════════════════════════
 
+/// Mobildeki `QuickActionsGrid` ile aynı 4 aksiyon (Bildirimler/
+/// Favorilerim/Biletlerim/Takvim) — Takvim'in `onTap`'ı mobil tarafta da
+/// boş (`() {}`), burada da öyle bırakıldı, yeni bir sahte davranış
+/// eklenmedi.
 class _QuickLinksBand extends StatelessWidget {
-  final VoidCallback onSearchTap;
+  final VoidCallback onNotificationsTap;
   final VoidCallback onFavoritesTap;
   final VoidCallback onTicketsTap;
-  final VoidCallback onNearbyTap;
 
   const _QuickLinksBand({
-    required this.onSearchTap,
+    required this.onNotificationsTap,
     required this.onFavoritesTap,
     required this.onTicketsTap,
-    required this.onNearbyTap,
   });
 
   @override
-  Widget build(final BuildContext context) => Padding(
-        padding: EdgeInsets.only(
-            top: context.responsive(mobile: 44.0, tablet: 52.0, desktop: 60.0)),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1400),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: _sectionPad(context)),
-              child: Wrap(
-                spacing: 18,
-                runSpacing: 18,
-                children: [
-                  _QuickLinkCard(
-                    icon: Icons.search_rounded,
-                    title: 'Bilet Ara',
-                    subtitle: 'Oyun, sanatçı ya da mekan ara',
-                    onTap: onSearchTap,
-                  ),
-                  _QuickLinkCard(
-                    icon: Icons.near_me_rounded,
-                    title: 'Yakınımdakiler',
-                    subtitle: 'Bulunduğun şehirdeki etkinlikler',
-                    onTap: onNearbyTap,
-                  ),
-                  _QuickLinkCard(
-                    icon: Icons.favorite_rounded,
-                    title: 'Favorilerim',
-                    subtitle: 'Kaydettiğin oyunlar',
-                    onTap: onFavoritesTap,
-                  ),
-                  _QuickLinkCard(
-                    icon: Icons.confirmation_number_rounded,
-                    title: 'Biletlerim',
-                    subtitle: 'Aldığın biletleri görüntüle',
-                    onTap: onTicketsTap,
-                  ),
-                ],
-              ),
-            ),
+  Widget build(final BuildContext context) => Wrap(
+        spacing: 18,
+        runSpacing: 18,
+        children: [
+          _QuickLinkCard(
+            icon: Icons.notifications_outlined,
+            title: 'Bildirimler',
+            subtitle: 'Fırsat ve hatırlatmaları yönet',
+            onTap: onNotificationsTap,
           ),
-        ),
+          _QuickLinkCard(
+            icon: Icons.favorite_outline,
+            title: 'Favorilerim',
+            subtitle: 'Kaydettiğin oyunlar',
+            onTap: onFavoritesTap,
+          ),
+          _QuickLinkCard(
+            icon: Icons.confirmation_number_outlined,
+            title: 'Biletlerim',
+            subtitle: 'Aldığın biletleri görüntüle',
+            onTap: onTicketsTap,
+          ),
+          _QuickLinkCard(
+            icon: Icons.calendar_today_outlined,
+            title: 'Takvim',
+            subtitle: 'Etkinlik takvimin (yakında)',
+            onTap: () {},
+          ),
+        ],
       );
 }
 
@@ -995,7 +1066,10 @@ class _ClosingQuoteBand extends StatelessWidget {
                   ),
                   const SizedBox(height: 26),
                   Text(
-                    '"Perde her açıldığında şehir bir kez daha nefes alır."',
+                    // Mobildeki BottomQuote ile birebir aynı metin
+                    // (decorative_elements.dart) — iki platformda da aynı
+                    // kapanış alıntısı görünsün diye.
+                    '"Sanat, hayatın kendisidir."',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: WebColors.lightWhite,
@@ -1008,7 +1082,7 @@ class _ClosingQuoteBand extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'TİYATROL',
+                    'HER GÜN YENİ BİR KEŞİF',
                     style: TextStyle(
                       color: WebColors.textTertiary,
                       fontSize: 12,
