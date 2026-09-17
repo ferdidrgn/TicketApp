@@ -65,4 +65,37 @@ class SearchCategoryPalette {
   /// [index] için güvenli erişim (aralık dışı gelirse "Tümü" tonuna düşer).
   static List<Color> tintFor(final int index) =>
       (index >= 0 && index < tints.length) ? tints[index] : tints[all];
+
+  /// Kategorilerin tam adı — bölüm başlıklarında, sonuç meta satırında ve
+  /// masaüstü segmentli anahtarın tooltip'lerinde kullanılan TEK kaynak.
+  static const List<String> labels = [
+    "Tümü",
+    "Etkinlikler",
+    "Oyuncular",
+    "Mekanlar",
+    "Ekipler",
+  ];
+
+  /// Masaüstü arama çubuğuna gömülü segmentli anahtar için KISALTILMIŞ
+  /// etiketler — segment dar (bkz. `_kFacetSegmentWidth`) olduğundan tam
+  /// isimler yerine tekil/kısa biçimler kullanılır ("Etkinlikler" →
+  /// "Etkinlik" vs.). Tam isim yine de o segmentin tooltip'inde görünür.
+  static const List<String> switcherLabels = [
+    "Tümü",
+    "Etkinlik",
+    "Oyuncu",
+    "Mekan",
+    "Ekip",
+  ];
+
+  /// Her kategori için ikon — hem masaüstü arama çubuğundaki segmentli
+  /// anahtarda hem de bölüm başlıklarında (`DesktopSectionTitle`) aynı
+  /// görsel kimliği taşımak için tek kaynak.
+  static const List<IconData> icons = [
+    Icons.auto_awesome_mosaic_rounded,
+    Icons.theater_comedy_rounded,
+    Icons.people_rounded,
+    Icons.location_city_rounded,
+    Icons.groups_rounded,
+  ];
 }
