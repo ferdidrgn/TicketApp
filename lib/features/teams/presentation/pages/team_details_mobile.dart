@@ -9,6 +9,7 @@ import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/custom_description_card.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
+import '../../domain/entities/team.dart';
 import '../providers/team_provider.dart';
 import '../widgets/web/team_gallery_spotlight_web.dart';
 import '../widgets/web/team_hero_web.dart';
@@ -31,6 +32,11 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
 
   @override
   Widget build(final BuildContext context) {
+    // 🖥️ MASAÜSTÜ: BasePageWrapper'ın mobil "app chrome"undan (header bar,
+    // FAB, particles) tamamen bağımsız, kendi web kabuğuna sahip ayrı yol.
+    if (context.isDesktop)
+      return _TeamDetailDesktopPage(teamId: widget.teamId);
+
     final teamDetailAsync = ref.watch(teamDetailProvider(widget.teamId));
 
     return BasePageWrapper(
@@ -276,5 +282,178 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
         decoration: BoxDecoration(
             color: Colors.grey.withOpacity(0.3),
             borderRadius: BorderRadius.circular(2)),
+      );
+}
+
+// ============================================================
+// 🖥️ MASAÜSTÜ (DESKTOP) SAYFASI
+// ------------------------------------------------------------
+// BasePageWrapper'ın mobil kabuğundan (TopHeaderWithBackButton,
+// scroll-to-top FAB, pull-to-refresh, CustomAppBackground'ın
+// FloatingParticles/AmbientLightEffect'i) tamamen bağımsız, kendi
+// web görünümüne sahip ayrı bir kök widget. Sadece WebColors
+// paletini kullanır.
+// ============================================================
+class _TeamDetailDesktopPage extends ConsumerWidget {
+  final String teamId;
+
+  const _TeamDetailDesktopPage({required this.teamId});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final teamDetailAsync = ref.watch(teamDetailProvider(teamId));
+
+    return ColoredBox(
+      color: WebColors.darkBlueBackground,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: teamDetailAsync.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(120),
+                child: CircularProgressIndicator(
+                  color: WebColors.primaryGold,
+                ),
+              ),
+            ),
+            error: (final err, final _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(120),
+                child: Text(
+                  "Hata: $err",
+                  style: const TextStyle(color: WebColors.whiteText),
+                ),
+              ),
+            ),
+            data: (final state) => _TeamDetailDesktopBody(state: state),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamDetailDesktopBody extends StatelessWidget {
+  final TeamDetailState state;
+
+  const _TeamDetailDesktopBody({required this.state});
+
+  @override
+  Widget build(final BuildContext context) {
+    // İçerik burada düz bir Column (self-scrolling bir ListView/
+    // CustomScrollView DEĞİL), bu yüzden tek bir SingleChildScrollView
+    // ile sarmalamak güvenli — "unbounded height" çakışması olmaz.
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeroBanner(state.team),
+          const SizedBox(height: 48),
+          _buildSectionHeader("EKİP HİKAYESİ", Icons.auto_stories_rounded),
+          const SizedBox(height: 16),
+          CustomDescriptionCard(
+            description: state.team.description.replaceAll('\\n', '\n'),
+          ),
+          const SizedBox(height: 56),
+          if (state.shows.isNotEmpty) ...[
+            _buildSectionHeader(
+                "SAHNEDEKİ ESERLER", Icons.auto_awesome_motion_rounded),
+            const SizedBox(height: 20),
+            ShowMosaicGallery(shows: state.shows, direction: Axis.horizontal),
+            const SizedBox(height: 56),
+          ],
+          if (state.team.photosId.isNotEmpty) ...[
+            _buildSectionHeader("TAKIM GALERİSİ", Icons.collections_rounded),
+            const SizedBox(height: 20),
+            GallerySection(photos: state.team.photosId),
+          ],
+          const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroBanner(final Team team) => ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: SizedBox(
+          height: 380,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CachedNetworkImage(
+                imageUrl: team.imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (final _, final __) => const ShimmerLoading(),
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black87, Colors.transparent],
+                    stops: [0.05, 0.7],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 48,
+                right: 48,
+                bottom: 40,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: WebColors.goldGradient,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        "PROFESYONEL EKİP",
+                        style: TextStyle(
+                          color: WebColors.darkBlueBackground,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      team.name.toUpperCase(),
+                      style: const TextStyle(
+                        color: WebColors.whiteText,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 42,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildSectionHeader(final String title, final IconData icon) => Row(
+        children: [
+          Icon(icon, color: WebColors.primaryGold, size: 24),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              color: WebColors.whiteText,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ],
       );
 }
