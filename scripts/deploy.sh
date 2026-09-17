@@ -23,6 +23,13 @@
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 
+# Windows'ta Git Bash (MSYS/MinGW), "/app/" gibi tek eğik çizgiyle başlayan
+# argümanları native (Unix olmayan) programlara geçirirken otomatik olarak
+# Windows yoluna çevirir (ör. "/app/" -> "D:/Program Files/Git/app/"),
+# `flutter build web --base-href /app/` çağrısını bozar. Bu değişken bu
+# otomatik dönüşümü kapatır; Linux/macOS'ta zaten hiçbir etkisi yok.
+export MSYS_NO_PATHCONV=1
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
