@@ -1,14 +1,50 @@
+import 'dart:math';
+
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 
-class OnboardingContainer extends ConsumerWidget {
+class OnboardingContainer extends ConsumerStatefulWidget {
   const OnboardingContainer({super.key});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<OnboardingContainer> createState() =>
+      _OnboardingContainerState();
+}
+
+class _OnboardingContainerState extends ConsumerState<OnboardingContainer> {
+  // 🎉 Onboarding tamamlandığında kısa bir kutlama patlaması için.
+  late final ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 800),
+    );
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  // 🎉 Onboarding'in tamamlandığı TEK an burası: kullanıcı "KEŞFETMEYE
+  // BAŞLA"ya bastığında konfeti patlatılır, kısa bir süre görünür kalması
+  // için beklenir ve ardından ana sayfaya geçilir.
+  Future<void> _completeOnboarding(final BuildContext context) async {
+    _confettiController.play();
+    await Future.delayed(const Duration(milliseconds: 650));
+    if (!context.mounted) return;
+    NavigationHandler.goToHome(context);
+  }
+
+  @override
+  Widget build(final BuildContext context) {
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
@@ -51,6 +87,9 @@ class OnboardingContainer extends ConsumerWidget {
               ),
             ),
           ),
+
+          // 4. KUTLAMA KONFETİSİ (Onboarding tamamlanma anı)
+          _buildConfetti(context),
         ],
       ),
     );
@@ -102,7 +141,7 @@ class OnboardingContainer extends ConsumerWidget {
       );
 
   Widget _buildStartButton(final BuildContext context) => GestureDetector(
-        onTap: () => NavigationHandler.goToHome(context),
+        onTap: () => _completeOnboarding(context),
         child: Container(
           width: double.infinity,
           height: 64,
@@ -128,6 +167,30 @@ class OnboardingContainer extends ConsumerWidget {
                 letterSpacing: 2,
               ),
             ),
+          ),
+        ),
+      );
+
+  // 🎉 Konfeti, ekranın üst ortasından aşağı doğru kısa ve zarif bir patlama
+  // yapar. Sayfanın Material tema renkleriyle (buton gradyanıyla aynı)
+  // uyumlu olsun diye context.colors kullanılıyor.
+  Widget _buildConfetti(final BuildContext context) => Align(
+        alignment: Alignment.topCenter,
+        child: IgnorePointer(
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirection: pi / 2, // aşağı doğru
+            maxBlastForce: 10,
+            minBlastForce: 4,
+            emissionFrequency: 0.08,
+            numberOfParticles: 16,
+            gravity: 0.3,
+            shouldLoop: false,
+            colors: [
+              context.colors.primary,
+              context.colors.secondary,
+              Colors.white,
+            ],
           ),
         ),
       );
