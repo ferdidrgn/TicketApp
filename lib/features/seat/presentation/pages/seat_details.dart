@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
@@ -23,9 +26,20 @@ class SeatSelectionPage extends ConsumerStatefulWidget {
 class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
   final Set<String> _processingSeats = {};
 
+  // 🎉 Satın alma başarıyla tamamlandığında kısa bir kutlama patlaması için.
+  late final ConfettiController _confettiController;
+
   // 🛡️ MİSAFİR KONTROLÜ
   bool get _isGuest =>
       widget.customerId == 'guest' || widget.customerId.isEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 800),
+    );
+  }
 
   @override
   void dispose() {
@@ -61,6 +75,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
         // koltuk her hâlükârda ana asenkron akış tamamlanınca serbest kalır.
       }
     }
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -73,50 +88,59 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F13),
       appBar: _buildAppBar(timerStream.value ?? 600),
-      body: eventAsync.when(
-        data: (final event) => Container(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment.topCenter,
-              radius: 1.5,
-              colors: [Color(0xFF1A1A2E), Color(0xFF0A0A12)],
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                _buildStageHeader(),
-                const _SeatLegend(),
-
-                // 🪑 KOLTUK ALANI
-                Expanded(
-                  child: seatsAsync.when(
-                    data: (final seatsStatus) => _SeatLayoutBuilder(
-                      allSeatsData: event.seats,
-                      liveStatus: seatsStatus,
-                      processingSeats: _processingSeats,
-                      customerId: widget.customerId,
-                      onSeatTap: _handleSeatTap, // Tıklama fonksiyonu
-                    ),
-                    loading: () => const Center(
-                        child: CircularProgressIndicator(color: Colors.cyan)),
-                    error: (final e, final _) => Center(
-                        child: Text("Hata: $e",
-                            style: const TextStyle(color: Colors.white))),
-                  ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          eventAsync.when(
+            data: (final event) => Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 1.5,
+                  colors: [Color(0xFF1A1A2E), Color(0xFF0A0A12)],
                 ),
+              ),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    _buildStageHeader(),
+                    const _SeatLegend(),
 
-                _buildPriceCard(seatsAsync, event.price),
-                const SizedBox(height: 20),
-              ],
+                    // 🪑 KOLTUK ALANI
+                    Expanded(
+                      child: seatsAsync.when(
+                        data: (final seatsStatus) => _SeatLayoutBuilder(
+                          allSeatsData: event.seats,
+                          liveStatus: seatsStatus,
+                          processingSeats: _processingSeats,
+                          customerId: widget.customerId,
+                          onSeatTap: _handleSeatTap, // Tıklama fonksiyonu
+                        ),
+                        loading: () => const Center(
+                            child:
+                                CircularProgressIndicator(color: Colors.cyan)),
+                        error: (final e, final _) => Center(
+                            child: Text("Hata: $e",
+                                style: const TextStyle(color: Colors.white))),
+                      ),
+                    ),
+
+                    _buildPriceCard(seatsAsync, event.price),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
             ),
+            loading: () => const Center(
+                child: CircularProgressIndicator(color: Colors.cyan)),
+            error: (final e, final _) => Center(
+                child: Text("Yüklenemedi: $e",
+                    style: const TextStyle(color: Colors.white))),
           ),
-        ),
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: Colors.cyan)),
-        error: (final e, final _) => Center(
-            child: Text("Yüklenemedi: $e",
-                style: const TextStyle(color: Colors.white))),
+
+          // 🎉 SATIN ALMA BAŞARILI KUTLAMASI
+          _buildConfetti(),
+        ],
       ),
       floatingActionButton: _buildFab(seatsAsync.value ?? {}),
     );
@@ -310,6 +334,9 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
 
       if (mounted) {
         Navigator.pop(context);
+        // 🎉 Satın alma burada, mevcut kodun başarıyı onayladığı TEK anda
+        // kutlanıyor — hata yolunda asla tetiklenmez.
+        _confettiController.play();
         showDialog(
             context: context,
             barrierDismissible: false,
@@ -372,6 +399,29 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                       style: const TextStyle(
                           color: Colors.cyan, fontWeight: FontWeight.bold))))
         ],
+      );
+
+  // 🎉 Konfeti, sahne alanının üst ortasından aşağı doğru kısa ve zarif bir
+  // patlama yapar. Sayfanın mevcut cyan/yeşil vurgu paletiyle uyumlu.
+  Widget _buildConfetti() => Align(
+        alignment: Alignment.topCenter,
+        child: IgnorePointer(
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirection: pi / 2, // aşağı doğru
+            maxBlastForce: 10,
+            minBlastForce: 4,
+            emissionFrequency: 0.08,
+            numberOfParticles: 16,
+            gravity: 0.3,
+            shouldLoop: false,
+            colors: const [
+              Colors.cyan,
+              Colors.greenAccent,
+              Colors.white,
+            ],
+          ),
+        ),
       );
 
   Widget _buildStageHeader() => Column(children: [
