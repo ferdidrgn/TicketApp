@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
@@ -581,32 +582,59 @@ class _DiscoveryDesktopBrowserState
 
   Widget _buildGrid(final List<Show> shows) {
     if (shows.isEmpty) return const SizedBox.shrink();
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 300,
-        mainAxisSpacing: 32,
-        crossAxisSpacing: 28,
-        childAspectRatio: 0.72,
+    // Izgara `shrinkWrap: true` + `NeverScrollableScrollPhysics` olduğu için
+    // tüm hücreler ebeveyn `ListView` tarafından anında (kaydırma beklemeden)
+    // inşa ediliyor — `ScrollReveal` (aşağıda, dokunulmadı) her kartın
+    // gerçekten ekrana girişini `visibility_detector` ile ayrı ayrı yönetmeye
+    // devam ediyor. Burada eklenen `AnimationLimiter` +
+    // `AnimationConfiguration.staggeredList` katmanı, o görünürlük tetiği
+    // gerçekleştiğinde kartların hepsinin birden değil, kademeli bir
+    // "cascade" ile belirmesini sağlıyor. Süre/eğri yine `reveal_on_scroll
+    // .dart`'taki (`RevealOnScroll`) 650ms/easeOutCubic diliyle aynı;
+    // `index % 6` sınırlaması da mevcut `ScrollReveal` gecikmesiyle
+    // (`50 * (index % 6)`) aynı desen — büyük ızgaralarda gecikmenin sınırsız
+    // birikmesini önlüyor.
+    return AnimationLimiter(
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 300,
+          mainAxisSpacing: 32,
+          crossAxisSpacing: 28,
+          childAspectRatio: 0.72,
+        ),
+        itemCount: shows.length,
+        itemBuilder: (final context, final index) {
+          final show = shows[index];
+          return AnimationConfiguration.staggeredList(
+            position: index % 6,
+            duration: const Duration(milliseconds: 650),
+            delay: const Duration(milliseconds: 70),
+            child: SlideAnimation(
+              verticalOffset: 28,
+              curve: Curves.easeOutCubic,
+              child: FadeInAnimation(
+                curve: Curves.easeOutCubic,
+                child: ScrollReveal(
+                  delay: Duration(milliseconds: 50 * (index % 6)),
+                  child: DiscoveryShowCard(
+                    key: ValueKey('grid-${show.id}'),
+                    imageUrl: show.imageUrl,
+                    secondaryImageUrl: show.photosShowId.isNotEmpty
+                        ? show.photosShowId.first
+                        : null,
+                    title: show.name,
+                    category: show.category,
+                    description: show.description,
+                    onTap: () => _openShow(show),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
-      itemCount: shows.length,
-      itemBuilder: (final context, final index) {
-        final show = shows[index];
-        return ScrollReveal(
-          delay: Duration(milliseconds: 50 * (index % 6)),
-          child: DiscoveryShowCard(
-            key: ValueKey('grid-${show.id}'),
-            imageUrl: show.imageUrl,
-            secondaryImageUrl:
-                show.photosShowId.isNotEmpty ? show.photosShowId.first : null,
-            title: show.name,
-            category: show.category,
-            description: show.description,
-            onTap: () => _openShow(show),
-          ),
-        );
-      },
     );
   }
 
