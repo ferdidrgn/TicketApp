@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
@@ -56,11 +57,7 @@ class _FavoritesDesktopBody extends ConsumerWidget {
     final userAsync = ref.watch(userProfileProvider);
 
     return userAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(WebColors.primaryGold),
-        ),
-      ),
+      loading: () => _FavoritesLoadingState(enabled: userAsync.isLoading),
       error: (final err, final stack) => Center(
         child: Text(
           'Koleksiyonun yüklenemedi: $err',
@@ -688,6 +685,90 @@ class _FavoritePlayerCard extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // ORTAK DURUMLAR
 // -----------------------------------------------------------------------------
+
+/// Gerçek koleksiyon (banner + favori oyunlar/sahneler ızgaraları)
+/// yüklenene kadar gösterilen iskelet. `Skeletonizer` gerçek widget
+/// ağacını otomatik olarak parıldayan bir yer tutucuya çevirdiği için
+/// burada tam kart tasarımını değil, aynı kaba oranlarda birkaç köşeleri
+/// yuvarlatılmış `Container` çiziyoruz.
+class _FavoritesLoadingState extends StatelessWidget {
+  final bool enabled;
+
+  const _FavoritesLoadingState({this.enabled = true});
+
+  @override
+  Widget build(final BuildContext context) => Skeletonizer(
+        enabled: enabled,
+        child: ListView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 36),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _skeletonBar(height: 140, radius: 28),
+            ),
+            const SizedBox(height: 48),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _skeletonBar(width: 200, height: 24),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _gridPlaceholder(
+                  maxCrossAxisExtent: 300, aspectRatio: 0.72),
+            ),
+            const SizedBox(height: 56),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _skeletonBar(width: 200, height: 24),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _gridPlaceholder(
+                  maxCrossAxisExtent: 340, aspectRatio: 1.35, itemCount: 2),
+            ),
+          ],
+        ),
+      );
+
+  Widget _gridPlaceholder(
+          {required final double maxCrossAxisExtent,
+          required final double aspectRatio,
+          final int itemCount = 3}) =>
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: maxCrossAxisExtent,
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          childAspectRatio: aspectRatio,
+        ),
+        itemCount: itemCount,
+        itemBuilder: (final context, final index) => Container(
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      );
+
+  Widget _skeletonBar(
+          {final double? width,
+          required final double height,
+          final double radius = 12}) =>
+      Container(
+        width: width ?? double.infinity,
+        height: height,
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      );
+}
+
 class _SectionGridSkeleton extends StatelessWidget {
   const _SectionGridSkeleton();
 
