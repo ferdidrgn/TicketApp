@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
@@ -11,6 +12,7 @@ import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../players/presentation/widgets/players_hero_card.dart';
+import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/widgets/mobile/show_mosaic_gallery.dart';
 import '../providers/search_query_provider.dart';
 import '../widgets/web/search_category_palette.dart';
@@ -338,19 +340,33 @@ class _SearchPageState extends ConsumerState<SearchPage>
     // "Tümü" filtresi: her kategori için editoryal bir bölüm.
     if (filter == 0)
       return [
+        // Etkinlikler (shows) bölümü, diğer kategorilerin aksine ortak
+        // `_buildDesktopSection`/`_buildDesktopGrid` sabit-oranlı grid'ini
+        // KULLANMAZ — kart yüksekliği artık gerçek veriye (kategori/süre
+        // rozeti var/yok) göre değişebildiğinden, masonry düzen için ayrı
+        // bir bölüm gövdesi kurulur. Oyuncu/Mekan/Ekip bölümleri aşağıda
+        // hiç değişmeden `_buildDesktopSection` üzerinden devam eder.
         if (state.shows.isNotEmpty)
-          _buildDesktopSection(
-            title: "Etkinlikler",
-            subtitle: "Sanatın Akışı",
-            icon: SearchCategoryPalette.icons[SearchCategoryPalette.events],
-            accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.events],
-            onSeeAll: () => _onSeeAll(1),
-            crossAxisCount: context.responsive(
-                mobile: 2, tablet: 3, desktop: 4, largeDesktop: 4),
-            aspectRatio: 0.72,
-            itemCount: state.shows.take(8).length,
-            itemBuilder: (final i) =>
-                DesktopShowCard(show: state.shows[i], index: i),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 56),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DesktopSectionTitle(
+                  title: "Etkinlikler",
+                  subtitle: "Sanatın Akışı",
+                  icon: SearchCategoryPalette.icons[SearchCategoryPalette.events],
+                  onSeeAll: () => _onSeeAll(1),
+                  accentColors:
+                      SearchCategoryPalette.tints[SearchCategoryPalette.events],
+                ),
+                _buildDesktopShowGrid(
+                  crossAxisCount: context.responsive(
+                      mobile: 2, tablet: 3, desktop: 4, largeDesktop: 4),
+                  shows: state.shows.take(8).toList(),
+                ),
+              ],
+            ),
           ),
         if (state.players.isNotEmpty)
           _buildDesktopSection(
@@ -400,13 +416,10 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final Widget grid;
     switch (filter) {
       case 1:
-        grid = _buildDesktopGrid(
+        grid = _buildDesktopShowGrid(
           crossAxisCount: context.responsive(
               mobile: 2, tablet: 3, desktop: 4, largeDesktop: 5),
-          aspectRatio: 0.72,
-          itemCount: state.shows.length,
-          itemBuilder: (final i) =>
-              DesktopShowCard(show: state.shows[i], index: i),
+          shows: state.shows,
         );
         break;
       case 2:
@@ -492,6 +505,29 @@ class _SearchPageState extends ConsumerState<SearchPage>
         ),
         itemCount: itemCount,
         itemBuilder: (final context, final i) => itemBuilder(i),
+      );
+
+  // SHOW kartları için ayrı, masonry grid. `DesktopShowCard` artık gerçek
+  // veriye göre (bkz. `search_result_cards_web.dart` — `show.category` /
+  // `show.duration` rozeti var/yok) farklı yüksekliklerde render edilebilir;
+  // sabit `childAspectRatio`'lu `_buildDesktopGrid` bu farkı ezip tekdüze
+  // bir ızgaraya zorlardı. `MasonryGridView.count`, her kolonun kendi
+  // akışında kartları yüksekliklerine göre dizerek gerçek bir "dergi"
+  // (magazine) düzeni oluşturur. Oyuncu/Mekan/Ekip grid'leri hâlâ
+  // `_buildDesktopGrid`'i kullanır — burada dokunulmadı.
+  Widget _buildDesktopShowGrid({
+    required final int crossAxisCount,
+    required final List<Show> shows,
+  }) =>
+      MasonryGridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: 28,
+        crossAxisSpacing: 28,
+        itemCount: shows.length,
+        itemBuilder: (final context, final i) =>
+            DesktopShowCard(show: shows[i], index: i),
       );
 
   List<Widget> _buildContentList(final BuildContext context,

@@ -336,110 +336,187 @@ class _DesktopShowCardState extends State<DesktopShowCard> {
               ),
               child: ClipRRect(
                 borderRadius: kSearchCardCorner,
-                child: AspectRatio(
-                  aspectRatio: 0.72,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      AnimatedScale(
-                        scale: _hovered ? 1.08 : 1.0,
-                        duration: const Duration(milliseconds: 280),
-                        curve: Curves.easeOut,
-                        child: OptimizedCachedImage(
-                            imageUrl: widget.show.imageUrl,
-                            fit: BoxFit.cover,
-                            borderRadius: 0),
-                      ),
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                WebColors.veryDarkBlue.withOpacity(_hovered ? 0.96 : 0.9),
-                              ],
-                              stops: const [0.35, 1.0],
+                // Poster görseli hâlâ sabit bir oranda (0.72) — bozulmasın
+                // diye. Asıl masonry farkı, altındaki gerçek-veri satırından
+                // (`_buildMetaFooter`) gelir: `show.category`/`show.duration`
+                // dolu olan kartlar bir satır daha uzun olur, boş olanlarda
+                // bu satır hiç render edilmez — uydurma bir yükseklik farkı
+                // DEĞİL, gerçek verinin doğal sonucu.
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AspectRatio(
+                      aspectRatio: 0.72,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          AnimatedScale(
+                            scale: _hovered ? 1.08 : 1.0,
+                            duration: const Duration(milliseconds: 280),
+                            curve: Curves.easeOut,
+                            child: OptimizedCachedImage(
+                                imageUrl: widget.show.imageUrl,
+                                fit: BoxFit.cover,
+                                borderRadius: 0),
+                          ),
+                          Positioned.fill(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    WebColors.veryDarkBlue
+                                        .withOpacity(_hovered ? 0.96 : 0.9),
+                                  ],
+                                  stops: const [0.35, 1.0],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 18,
-                        right: 18,
-                        bottom: 18,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: SearchCategoryPalette
-                                    .tints[SearchCategoryPalette.events][0]
-                                    .withOpacity(0.9),
-                                borderRadius: kSearchBadgeCorner,
-                              ),
-                              child: const Text('ETKİNLİK',
-                                  style: TextStyle(
-                                      color: WebColors.veryDarkBlue,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1)),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(widget.show.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: WebColors.whiteText,
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.2)),
-                            AnimatedSize(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOut,
-                              alignment: Alignment.topLeft,
-                              child: AnimatedOpacity(
-                                opacity: _hovered ? 1 : 0,
-                                duration: const Duration(milliseconds: 200),
-                                child: _hovered
-                                    ? Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: const [
-                                            Text('Detayları Gör',
-                                                style: TextStyle(
+                          Positioned(
+                            left: 18,
+                            right: 18,
+                            bottom: 18,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: SearchCategoryPalette
+                                        .tints[SearchCategoryPalette.events][0]
+                                        .withOpacity(0.9),
+                                    borderRadius: kSearchBadgeCorner,
+                                  ),
+                                  child: const Text('ETKİNLİK',
+                                      style: TextStyle(
+                                          color: WebColors.veryDarkBlue,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1)),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(widget.show.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: WebColors.whiteText,
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1.2)),
+                                AnimatedSize(
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeOut,
+                                  alignment: Alignment.topLeft,
+                                  child: AnimatedOpacity(
+                                    opacity: _hovered ? 1 : 0,
+                                    duration:
+                                        const Duration(milliseconds: 200),
+                                    child: _hovered
+                                        ? Padding(
+                                            padding: const EdgeInsets.only(
+                                                top: 8),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: const [
+                                                Text('Detayları Gör',
+                                                    style: TextStyle(
+                                                        color: WebColors
+                                                            .primaryGoldLight,
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w700)),
+                                                SizedBox(width: 4),
+                                                Icon(
+                                                    Icons
+                                                        .arrow_forward_rounded,
                                                     color: WebColors
                                                         .primaryGoldLight,
-                                                    fontSize: 13,
-                                                    fontWeight:
-                                                        FontWeight.w700)),
-                                            SizedBox(width: 4),
-                                            Icon(Icons.arrow_forward_rounded,
-                                                color:
-                                                    WebColors.primaryGoldLight,
-                                                size: 14),
-                                          ],
-                                        ),
-                                      )
-                                    : const SizedBox(width: double.infinity),
-                              ),
+                                                    size: 14),
+                                              ],
+                                            ),
+                                          )
+                                        : const SizedBox(
+                                            width: double.infinity),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    if (widget.show.category.isNotEmpty ||
+                        widget.show.duration.isNotEmpty)
+                      _buildMetaFooter(),
+                  ],
                 ),
               ),
             ),
           ),
         ),
       );
+
+  /// Kartın altında, sadece GERÇEK `show.category` / `show.duration` alanı
+  /// doluysa görünen bir meta satırı. İkisi de boşsa hiç render edilmez —
+  /// bu yüzden bazı kartlar diğerlerinden gerçekten daha uzun olur ve
+  /// masonry grid'de anlamlı, veriye dayalı bir fark yaratır (uydurma bir
+  /// yükseklik varyasyonu DEĞİL).
+  Widget _buildMetaFooter() {
+    final Color accent =
+        SearchCategoryPalette.tints[SearchCategoryPalette.events][0];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: WebColors.darkBlueSurface,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (widget.show.category.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.16),
+                borderRadius: kSearchBadgeCorner,
+                border: Border.all(color: accent.withOpacity(0.5)),
+              ),
+              child: Text(
+                widget.show.category.toUpperCase(),
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+          if (widget.show.duration.isNotEmpty)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.schedule_rounded,
+                    size: 13, color: WebColors.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  widget.show.duration,
+                  style: const TextStyle(
+                    color: WebColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 // =============================================================================
