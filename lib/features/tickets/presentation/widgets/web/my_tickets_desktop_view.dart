@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/util/date_formatter.dart';
@@ -55,7 +56,7 @@ class _MyTicketsDesktopBody extends ConsumerWidget {
     final ticketsAsync = ref.watch(myTicketsProvider(userId));
 
     return ticketsAsync.when(
-      loading: () => const _TicketsLoadingState(),
+      loading: () => _TicketsLoadingState(enabled: ticketsAsync.isLoading),
       error: (final err, final stack) => _TicketsErrorNotice(error: err),
       data: (final tickets) {
         if (tickets.isEmpty) return const _TicketsEmptyState();
@@ -398,13 +399,79 @@ class _TicketsDesktopBanner extends StatelessWidget {
       );
 }
 
+/// Gerçek bilet ızgarası (banner + "Sıradaki Biletlerin" + "Anılar"
+/// bölümleri) yüklenene kadar gösterilen iskelet. `Skeletonizer` gerçek
+/// widget ağacını otomatik olarak parıldayan bir yer tutucuya çevirdiği
+/// için burada tam kart tasarımını değil, aynı kaba oranlarda birkaç
+/// köşeleri yuvarlatılmış `Container` çiziyoruz.
 class _TicketsLoadingState extends StatelessWidget {
-  const _TicketsLoadingState();
+  final bool enabled;
+
+  const _TicketsLoadingState({this.enabled = true});
 
   @override
-  Widget build(final BuildContext context) => const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(WebColors.primaryGold),
+  Widget build(final BuildContext context) => Skeletonizer(
+        enabled: enabled,
+        child: ListView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 36),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _skeletonBar(height: 140, radius: 28),
+            ),
+            const SizedBox(height: 48),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _skeletonBar(width: 220, height: 24),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _ticketGridPlaceholder(),
+            ),
+            const SizedBox(height: 56),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _skeletonBar(width: 140, height: 24),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _ticketGridPlaceholder(),
+            ),
+          ],
+        ),
+      );
+
+  Widget _ticketGridPlaceholder() => GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 380,
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          childAspectRatio: 1.05,
+        ),
+        itemCount: 3,
+        itemBuilder: (final context, final index) => Container(
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      );
+
+  Widget _skeletonBar(
+          {final double? width,
+          required final double height,
+          final double radius = 12}) =>
+      Container(
+        width: width ?? double.infinity,
+        height: height,
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: BorderRadius.circular(radius),
         ),
       );
 }
