@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/comminucation_actions.dart';
@@ -107,7 +108,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               },
             )
           : showLoadingState
-              ? const _WebLoadingState()
+              ? _WebLoadingState(enabled: showLoadingState)
               : SingleChildScrollView(
                   controller: _scrollController,
                   physics: const ClampingScrollPhysics(),
@@ -262,22 +263,128 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
+/// Gerçek içerik (hero bandı + bölüm listesi) yüklenene kadar gösterilen
+/// iskelet — `skeletonizer` gerçek widget ağacını otomatik olarak
+/// parıldayan (shimmer) bir yer tutucuya çevirir, bu yüzden burada gerçek
+/// bölümleri birebir kopyalamıyoruz: yalnızca hero + birkaç bölüm satırının
+/// kaba oranlarında birkaç köşeleri yuvarlatılmış `Container` yeterli.
 class _WebLoadingState extends StatelessWidget {
-  const _WebLoadingState();
+  final bool enabled;
+
+  const _WebLoadingState({this.enabled = true});
 
   @override
-  Widget build(final BuildContext context) => const SizedBox(
-        height: 520,
-        child: Center(
-          child: SizedBox(
-            width: 26,
-            height: 26,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(WebColors.primaryGoldLight),
-            ),
+  Widget build(final BuildContext context) => Skeletonizer(
+        enabled: enabled,
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 60),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Hero bandı yaklaşıklaması — gerçek `_HeroBand` ile aynı
+              // kaba yerleşim: solda metin bloğu, sağda vitrin kartı.
+              Container(
+                width: double.infinity,
+                height: context.responsive(
+                    mobile: 480.0, tablet: 520.0, desktop: 560.0),
+                color: WebColors.veryDarkBlue,
+                padding: EdgeInsets.fromLTRB(
+                    _sectionPad(context), 100, _sectionPad(context), 40),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _bar(width: 160, height: 14),
+                          const SizedBox(height: 20),
+                          _bar(width: 320, height: 34),
+                          const SizedBox(height: 10),
+                          _bar(width: 260, height: 34),
+                          const SizedBox(height: 20),
+                          _bar(width: 380, height: 16),
+                          const SizedBox(height: 6),
+                          _bar(width: 300, height: 16),
+                          const SizedBox(height: 26),
+                          _bar(width: 340, height: 52, radius: 12),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              _bar(width: 150, height: 46, radius: 18),
+                              const SizedBox(width: 16),
+                              _bar(width: 150, height: 46, radius: 18),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 56),
+                    Expanded(
+                      flex: 4,
+                      child:
+                          _bar(width: double.infinity, height: 380, radius: 24),
+                    ),
+                  ],
+                ),
+              ),
+              // Bölüm yaklaşıklamaları — kicker + başlık + kart sırası
+              // (gerçek `_Section` + `HomeShowGrid`/`HomeStageRail` gibi
+              // grid/rail bölümlerinin kaba biçimi).
+              _sectionPlaceholder(context, cardCount: 4),
+              _sectionPlaceholder(context, cardCount: 3),
+            ],
           ),
+        ),
+      );
+
+  Widget _sectionPlaceholder(final BuildContext context,
+          {final int cardCount = 4}) =>
+      Padding(
+        padding: EdgeInsets.fromLTRB(
+            _sectionPad(context), 48, _sectionPad(context), 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _bar(width: 100, height: 12),
+            const SizedBox(height: 10),
+            _bar(width: 220, height: 26),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 220,
+              child: Row(
+                children: List.generate(
+                  cardCount,
+                  (final i) => Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                          right: i == cardCount - 1 ? 0 : 16),
+                      child: _bar(
+                          width: double.infinity,
+                          height: double.infinity,
+                          radius: 20),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _bar(
+          {required final double width,
+          required final double height,
+          final double radius = 8}) =>
+      Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: WebColors.darkBlueSurface,
+          borderRadius: BorderRadius.circular(radius),
         ),
       );
 }
