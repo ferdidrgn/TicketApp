@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../../../../core/theme/app_colors.dart';
 
 /// "Kategoriler" şeridi — mobildeki `CategoryGrid`'in web karşılığı.
@@ -23,16 +24,43 @@ class HomeCategoryStrip extends StatelessWidget {
     _CategoryData(icon: Icons.museum, label: 'Müze'),
   ];
 
+  // Kısa, sakin bir giriş animasyonu — süre/eğri `reveal_on_scroll.dart`
+  // (`RevealOnScroll`) ile aynı (650ms / easeOutCubic, 28px kayma), böylece
+  // sitenin genelindeki "restrained" hareket diliyle çelişmiyor. Buradaki
+  // fark tetikleyici: bu şerit ilk karede zaten tamamen görünür olduğu için
+  // scroll-visibility yerine `flutter_staggered_animations`'ın ilk-çizim
+  // (first-paint) kademeli girişi kullanılıyor.
+  static const _staggerDuration = Duration(milliseconds: 650);
+  static const _staggerDelay = Duration(milliseconds: 70);
+
   @override
-  Widget build(final BuildContext context) => Wrap(
-        spacing: 14,
-        runSpacing: 14,
-        children: _categories
-            .map((final c) => _CategoryChip(
-                  data: c,
-                  onTap: () => onCategoryTap(c.label),
-                ))
-            .toList(),
+  Widget build(final BuildContext context) => AnimationLimiter(
+        child: Wrap(
+          spacing: 14,
+          runSpacing: 14,
+          children: List.generate(
+            _categories.length,
+            (final index) {
+              final c = _categories[index];
+              return AnimationConfiguration.staggeredList(
+                position: index,
+                duration: _staggerDuration,
+                delay: _staggerDelay,
+                child: SlideAnimation(
+                  verticalOffset: 28,
+                  curve: Curves.easeOutCubic,
+                  child: FadeInAnimation(
+                    curve: Curves.easeOutCubic,
+                    child: _CategoryChip(
+                      data: c,
+                      onTap: () => onCategoryTap(c.label),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       );
 }
 
