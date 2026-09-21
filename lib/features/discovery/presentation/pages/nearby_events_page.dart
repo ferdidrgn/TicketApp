@@ -8,62 +8,15 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
+import '../../../stages/domain/entities/stage.dart';
+import '../../../stages/presentation/providers/stage_provider.dart';
 import '../providers/nearby_events_provider.dart';
 
-class NearbyEventsPage extends StatelessWidget {
+class NearbyEventsPage extends ConsumerWidget {
   const NearbyEventsPage({super.key});
 
-  // Statik verilerimiz - Tasarımın şıklığını korumak için
-  final List<Map<String, dynamic>> staticEvents = const [
-    {
-      'name': 'Cimri - Moliere',
-      'category': 'Klasik Tiyatro',
-      'date': '24 Aralık, 20:30',
-      'stage': 'Harbiye Muhsin Ertuğrul Sahnesi',
-      'price': 180.0,
-      'image':
-          'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
-    },
-    {
-      'name': 'Hamlet - Versus Tiyatro',
-      'category': 'Shakespeare Dramı',
-      'date': '28 Aralık, 20:00',
-      'stage': 'Zorlu PSM - Turkcell Sahnesi',
-      'price': 250.0,
-      'image':
-          'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
-    },
-    {
-      'name': 'Don Kişot\'um Ben',
-      'category': 'Modern Komedi',
-      'date': '30 Aralık, 20:30',
-      'stage': 'Baba Sahne - Taksim',
-      'price': 200.0,
-      'image':
-          'https://tiyatronline.com/isDosyalar/2019/05/20/crop_gozlerimi-kaparim-vazifemi-yaparim-ank_ilf4LaFHkp.jpg',
-    },
-    {
-      'name': 'Romeo & Juliet',
-      'category': 'Klasik Aşk',
-      'date': '26 Aralık, 19:30',
-      'stage': 'İstanbul Şehir Tiyatrosu',
-      'price': 150.0,
-      'image':
-          'https://i.pinimg.com/originals/cd/f6/58/cdf6583da74eb1838429456c96decdb8.jpg',
-    },
-    {
-      'name': 'Kral Lear',
-      'category': 'Tragedy',
-      'date': '29 Aralık, 21:00',
-      'stage': 'Kadıköy Haldun Taner',
-      'price': 220.0,
-      'image':
-          'https://static.ticimax.cloud/cdn-cgi/image/width=1125,quality=85/43055/uploads/urunresimleri/buyuk/king-lear-17-kasim-21-kasim-2022-55a1c.jpg',
-    },
-  ];
-
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     // Masaüstünde (>=1024px) gerçek Firestore verisiyle çalışan, ayrı bir
     // "premium" web deneyimi kullanılır (bkz. _NearbyEventsDesktopPage).
     // Mobil/tablet gövdesi aşağıda AYNEN kalır — bu görevin kapsamı sadece
@@ -72,6 +25,16 @@ class NearbyEventsPage extends StatelessWidget {
 
     final bool isLargeScreen = context.isTablet || context.isDesktop;
     final double cardWidth = isLargeScreen ? 400 : context.screenWidth - 48;
+
+    // Mobil gövde de artık aynı `nearby_events_provider.dart` sağlayıcılarını
+    // kullanıyor (masaüstü ile aynı gerçek Firestore verisi). "Popüler Sahne
+    // ve Mekanlar" bölümü için ise `stagesProvider` (bkz.
+    // ../../../stages/presentation/providers/stage_provider.dart) kullanılıyor
+    // — home sayfasındaki "popüler sahneler" rayı ile aynı desen
+    // (`stagesProvider(isLimit: true)`), çünkü burası "yaklaşan etkinliği
+    // olan sahneler" değil, genel popüler sahne/mekan listesi.
+    final eventsState = ref.watch(upcomingNearbyEventsProvider);
+    final stagesState = ref.watch(stagesProvider(isLimit: true));
 
     return BasePageWrapper(
       title: 'YAKININIZDAKİ ETKİNLİKLER',
@@ -125,43 +88,7 @@ class NearbyEventsPage extends StatelessWidget {
 
           // ETKİNLİK LİSTESİ - YATAY KAYDIRMA
           SliverToBoxAdapter(
-            child: SizedBox(
-              height: 320, // Sabit yükseklik - butonlar için yeterli alan
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                physics: const BouncingScrollPhysics(),
-                itemCount: staticEvents.length,
-                itemBuilder: (final context, final index) {
-                  return Container(
-                    width: cardWidth * 0.85, // Daha dar kartlar
-                    margin: EdgeInsets.only(
-                      right: index < staticEvents.length - 1 ? 16 : 0,
-                    ),
-                    child: EventsCard(
-                      width: cardWidth * 0.85,
-                      imageUrl: staticEvents[index]['image'],
-                      showName: staticEvents[index]['name'],
-                      category: staticEvents[index]['category'],
-                      fullDateString: staticEvents[index]['date'],
-                      timeString: '',
-                      stage: staticEvents[index]['stage'],
-                      price: staticEvents[index]['price'],
-                      onTap: () {
-                        // Kart tıklama işlevi
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '${staticEvents[index]['name']} - Bilet sayfasına yönlendiriliyorsunuz'),
-                            backgroundColor: context.primaryColor,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
+            child: _buildEventsSection(context, eventsState, cardWidth),
           ),
 
           // POPÜLER MEKANLAR BAŞLIĞI
@@ -177,21 +104,7 @@ class NearbyEventsPage extends StatelessWidget {
           ),
 
           // MEKAN LİSTESİ
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: isLargeScreen ? 3 : 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.2,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (final context, final index) => _buildVenueCard(context, index),
-                childCount: 6,
-              ),
-            ),
-          ),
+          _buildVenuesSliver(context, stagesState, isLargeScreen),
 
           const SliverToBoxAdapter(
             child: SizedBox(height: 80),
@@ -327,84 +240,218 @@ class NearbyEventsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildVenueCard(final BuildContext context, final int index) {
-    final venues = [
-      {'name': 'Zorlu PSM', 'type': 'Sahne', 'icon': Icons.theater_comedy},
-      {'name': 'İKSV Salon', 'type': 'Konser', 'icon': Icons.music_note},
-      {'name': 'BKM', 'type': 'Tiyatro', 'icon': Icons.home_max},
-      {'name': 'Kadıköy Sahne', 'type': 'Sahne', 'icon': Icons.location_city},
-      {'name': 'Bostancı Gösteri', 'type': 'Konser', 'icon': Icons.mic},
-      {'name': 'Akasya Kültür', 'type': 'Tiyatro', 'icon': Icons.palette},
-    ];
+  /// "Sizin İçin Önerilenler" — gerçek, yaklaşan etkinlikler.
+  /// `upcomingNearbyEventsProvider` masaüstü sürümünün de kullandığı AYNI
+  /// sağlayıcı (bkz. ../providers/nearby_events_provider.dart) — burada
+  /// ikinci bir sahte veri kaynağı icat edilmiyor.
+  Widget _buildEventsSection(final BuildContext context,
+      final AsyncValue<List<NearbyEventEntry>> state, final double cardWidth) {
+    return state.when(
+      loading: () => const SizedBox(
+        height: 320,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (final err, final stack) => const _MobileNearbyEmptyNotice(
+        message: 'Etkinlikler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+      ),
+      data: (final entries) {
+        if (entries.isEmpty)
+          return const _MobileNearbyEmptyNotice(
+            message: 'Şu anda yaklaşan bir etkinlik bulunmuyor.',
+          );
 
-    final venue = venues[index];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: context.colors.shadow.withOpacity(0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+        return SizedBox(
+          height: 320, // Sabit yükseklik - butonlar için yeterli alan
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            physics: const BouncingScrollPhysics(),
+            itemCount: entries.length,
+            itemBuilder: (final context, final index) {
+              final entry = entries[index];
+              final formatted =
+                  DateFormatter.formatForEventCard(entry.event.date);
+              return Container(
+                width: cardWidth * 0.85, // Daha dar kartlar
+                margin: EdgeInsets.only(
+                  right: index < entries.length - 1 ? 16 : 0,
+                ),
+                child: EventsCard(
+                  key: ValueKey('nearby-mobile-event-${entry.event.id}'),
+                  width: cardWidth * 0.85,
+                  imageUrl: entry.show.imageUrl,
+                  showName: entry.show.name,
+                  category: entry.show.category,
+                  fullDateString:
+                      '${formatted['day']} ${formatted['monthName']}',
+                  timeString: formatted['time'] ?? '',
+                  stage: entry.stage.name,
+                  price: double.tryParse(entry.event.price) ?? 0.0,
+                  onTap: () => NavigationHandler.goToShow(
+                      context, entry.show.id, entry.show.name),
+                ),
+              );
+            },
           ),
-        ],
-        border: Border.all(
-          color: context.colors.outlineVariant,
-          width: 1,
+        );
+      },
+    );
+  }
+
+  /// "Popüler Sahne ve Mekanlar" — gerçek sahneler.
+  /// Ana sayfadaki popüler sahne rayı ile aynı `stagesProvider(isLimit:
+  /// true)` sağlayıcısı kullanılıyor (bkz.
+  /// ../../../stages/presentation/providers/stage_provider.dart).
+  Widget _buildVenuesSliver(final BuildContext context,
+      final AsyncValue<List<Stage>> state, final bool isLargeScreen) {
+    return state.when(
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Center(child: CircularProgressIndicator()),
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: context.primaryColor.withOpacity(0.1),
-              shape: BoxShape.circle,
+      error: (final err, final stack) => const SliverToBoxAdapter(
+        child: _MobileNearbyEmptyNotice(
+          message: 'Sahneler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+        ),
+      ),
+      data: (final stages) {
+        if (stages.isEmpty)
+          return const SliverToBoxAdapter(
+            child: _MobileNearbyEmptyNotice(
+              message: 'Şu anda gösterilecek bir sahne bulunmuyor.',
             ),
-            child: Icon(
-              venue['icon'] as IconData,
-              color: context.primaryColor,
-              size: 24,
+          );
+
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isLargeScreen ? 3 : 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.2,
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            venue['name'] as String,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: context.colors.onSurface,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            venue['type'] as String,
-            style: TextStyle(
-              fontSize: 12,
-              color: context.colors.onSurfaceVariant,
+            delegate: SliverChildBuilderDelegate(
+              (final context, final index) =>
+                  _buildVenueCard(context, stages[index]),
+              childCount: stages.length,
             ),
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildVenueCard(final BuildContext context, final Stage stage) {
+    return GestureDetector(
+      onTap: () => NavigationHandler.goToStage(context, stage.id, stage.name),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.colors.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: context.colors.shadow.withOpacity(0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: context.colors.outlineVariant,
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 50,
+              height: 50,
+              child: OptimizedCachedImage(
+                imageUrl: stage.imageUrl,
+                width: 50,
+                height: 50,
+                isCircular: true,
+                errorBuilder: (final ctx, final url, final error) =>
+                    Container(
+                  decoration: BoxDecoration(
+                    color: context.primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.theater_comedy_rounded,
+                    color: context.primaryColor,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                stage.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: context.colors.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                stage.address,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.colors.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+/// Mobil/tablet gövdesi için sade, temaya duyarlı "boş/hata" bildirimi.
+/// Masaüstündeki `_NearbyEmptyNotice` ile aynı fikir, ama sabit
+/// `WebColors` yerine mobil temanın `context.colors`'ını kullanır — o
+/// sınıf yalnızca masaüstü lacivert/altın temasında doğru görünür.
+class _MobileNearbyEmptyNotice extends StatelessWidget {
+  final String message;
+
+  const _MobileNearbyEmptyNotice({required this.message});
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Text(
+          message,
+          style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 15),
+        ),
+      );
 }
 
 // =============================================================================
 // MASAÜSTÜ (WEB) YAKINDAKİLER SAYFASI — GERÇEK VERİ
 // =============================================================================
 //
-// Mobil gövdedeki `staticEvents` tamamen kurgusal (uydurma oyun adları,
-// sahte tarihler/fiyatlar, üçüncü parti sitelerden alınmış stok görseller)
-// — burada KULLANILMIYOR. Bu sayfa yalnızca `nearbyStagesProvider` /
-// `upcomingNearbyEventsProvider` (bkz. ../providers/nearby_events_provider.dart)
-// üzerinden Firestore'dan gelen gerçek Show/Event/Stage verisiyle çalışır.
+// Mobil gövde de artık gerçek veriyle çalışıyor (eskiden burada kurgusal
+// `staticEvents`/`venues` listeleri vardı — tamamen kaldırıldı). Bu sayfa
+// `upcomingNearbyEventsProvider` / `nearbyStagesProvider` (bkz.
+// ../providers/nearby_events_provider.dart) üzerinden Firestore'dan gelen
+// gerçek Show/Event/Stage verisiyle çalışır.
 //
 // GERÇEK KONUM/MESAFE HAKKINDA: `pubspec.yaml`'da `geolocator` (ya da
 // tarayıcının coğrafi konum API'sine erişim sağlayan başka bir paket) HENÜZ
