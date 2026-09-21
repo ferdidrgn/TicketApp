@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/date_formatter.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/magic_box.dart';
 import '../providers/my_ticket_provider.dart';
 
@@ -72,6 +73,10 @@ class _LuxuryTicketDetails extends StatelessWidget {
                         ticket: ticket,
                         dateText: dateText,
                         timeText: dateInfo['time'] ?? '--:--'),
+                    if (ticket.show != null || ticket.stage != null) ...[
+                      const SizedBox(height: 24),
+                      _NavigationActionsSection(ticket: ticket),
+                    ],
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -472,6 +477,108 @@ class _InfoListTile extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Biletten ilgili gösteriye ve/veya mekana geçiş yapılabilen aksiyon
+/// bölümü. `show` ve/veya `stage` null olduğunda ilgili buton hiç
+/// render edilmez; ikisi de null ise bölüm tamamen gizlenir (bkz.
+/// [_LuxuryTicketDetails] içindeki koşullu render).
+class _NavigationActionsSection extends StatelessWidget {
+  final DetailedTicket ticket;
+
+  const _NavigationActionsSection({required this.ticket});
+
+  @override
+  Widget build(final BuildContext context) {
+    final show = ticket.show;
+    final stage = ticket.stage;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (show != null)
+          _NavigationActionButton(
+            icon: Icons.theater_comedy_rounded,
+            label: 'Etkinliği Görüntüle',
+            onTap: () {
+              Navigator.pop(context);
+              NavigationHandler.goToShow(context, show.id, show.name);
+            },
+          ),
+        if (show != null && stage != null) const SizedBox(height: 12),
+        if (stage != null)
+          _NavigationActionButton(
+            icon: Icons.location_on_rounded,
+            label: 'Mekanı Görüntüle',
+            onTap: () {
+              Navigator.pop(context);
+              NavigationHandler.goToStage(context, stage.id, stage.name);
+            },
+          ),
+      ],
+    );
+  }
+}
+
+/// [_NavigationActionsSection] içinde kullanılan, modalın diğer
+/// bölümleriyle aynı "lüks" gradyan/ikon diline sahip tek bir aksiyon
+/// butonu.
+class _NavigationActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _NavigationActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final themeColors = context.colors;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                themeColors.primary,
+                themeColors.primaryContainer,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                  color: themeColors.primary.withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8))
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(label,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15)),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded,
+                  color: Colors.white, size: 16),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
