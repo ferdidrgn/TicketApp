@@ -19,6 +19,7 @@ import '../../../stages/domain/entities/stage.dart';
 import '../../../users/presentation/providers/user_provider.dart'
     show userProfileProvider;
 import '../widgets/mobile/show_info_section.dart';
+import '../widgets/show_team_credit.dart';
 
 class ShowDetailPage extends ConsumerStatefulWidget {
   final String showId;
@@ -502,6 +503,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               letterSpacing: -0.5,
             ),
           ),
+          const SizedBox(height: 12),
+
+          // Prodüksiyon / Topluluk
+          ShowTeamCredit(teamId: state.show.teamId),
         ],
       ),
     );
@@ -969,6 +974,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   letterSpacing: -1,
                 ),
               ),
+              const SizedBox(height: 16),
+              // Prodüksiyon / Topluluk
+              ShowTeamCredit(teamId: state.show.teamId),
               const SizedBox(height: 24),
               // Description
               Text(

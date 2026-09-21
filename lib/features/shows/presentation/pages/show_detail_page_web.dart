@@ -17,6 +17,7 @@ import '../../../players/domain/entities/player.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../domain/entities/show.dart';
 import '../providers/show_detail_provider.dart';
+import '../widgets/show_team_credit.dart';
 import '../widgets/web/player_section.dart';
 import '../widgets/web/show_detail_hero.dart';
 
@@ -287,6 +288,8 @@ class _DesktopLayout extends StatelessWidget {
               _ShowMetaChips(showData: showData),
               const SizedBox(height: 28),
               _GlassDescriptionCard(description: showData.description),
+              const SizedBox(height: 24),
+              ShowTeamCredit(teamId: showData.teamId),
             ],
           ),
         ),
@@ -361,6 +364,8 @@ class _MobileLayout extends StatelessWidget {
         _ShowMetaChips(showData: showData),
         const SizedBox(height: 24),
         _GlassDescriptionCard(description: showData.description),
+        const SizedBox(height: 20),
+        ShowTeamCredit(teamId: showData.teamId),
         const SizedBox(height: 40),
         KeyedSubtree(
           key: eventsSectionKey,
