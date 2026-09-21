@@ -4,6 +4,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/background/shimmer_components.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
@@ -11,6 +12,7 @@ import 'package:ticketapp/shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import '../providers/nearby_events_provider.dart';
 import '../widgets/web/discovery_category_filter.dart';
 import '../widgets/web/discovery_featured_show.dart';
 import '../widgets/web/discovery_hero.dart';
@@ -195,9 +197,75 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         ),
       );
 
+  // `upcomingNearbyEventsProvider` (bkz. `nearby_events_provider.dart`) zaten
+  // gerçek, Firestore kökenli YAKLAŞAN etkinlikleri; ait oldukları gösteri ve
+  // gerçekleştikleri sahneyle birleştirilmiş halde döndüren, bu oturumda
+  // başka bir sayfa için kurulmuş bir provider — burada da aynen yeniden
+  // kullanılıyor, ikinci bir Firestore sorgusu/provider icat edilmiyor.
   Widget _buildResponsiveEventList(
       final bool isLargeScreen, final bool premium) {
-    // Web'de 2'li grid, mobilde alt alta liste
+    final eventsState = ref.watch(upcomingNearbyEventsProvider);
+
+    return eventsState.when(
+      loading: () => _buildEventListLoading(isLargeScreen),
+      error: (final err, final stack) => _buildEventListMessage(
+          'Etkinlikler yüklenemedi', premium,
+          isError: true),
+      data: (final entries) {
+        if (entries.isEmpty)
+          return _buildEventListMessage(
+              'Şu an yaklaşan bir etkinlik yok', premium);
+
+        final cards = _buildEventCards(entries, premium);
+        // Web'de 2'li grid, mobilde alt alta liste
+        if (isLargeScreen) {
+          return GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            mainAxisSpacing: 20,
+            crossAxisSpacing: 20,
+            childAspectRatio: 2.5,
+            children: cards,
+          );
+        }
+        return Column(
+          children: cards
+              .expand((final e) => [e, const SizedBox(height: 16)])
+              .toList(),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildEventCards(
+      final List<NearbyEventEntry> entries, final bool premium) {
+    return entries.map((final entry) {
+      final dateParts = DateFormatter.formatForEventCard(entry.event.date);
+      final String fullDateString =
+          '${dateParts['day']} ${dateParts['monthName']}';
+      return EventsCard(
+        imageUrl: entry.show.imageUrl,
+        showName: entry.show.name,
+        category: entry.show.category,
+        stage: entry.stage.name,
+        price: double.tryParse(entry.event.price) ?? 0.0,
+        fullDateString: fullDateString,
+        timeString: dateParts['time'] ?? '--:--',
+        premium: premium,
+        onTap: () =>
+            NavigationHandler.goToShow(context, entry.show.id, entry.show.name),
+      );
+    }).toList();
+  }
+
+  Widget _buildEventListLoading(final bool isLargeScreen) {
+    final shimmers = List.generate(
+      isLargeScreen ? 4 : 2,
+      (final _) =>
+          const ShimmerLoading(width: 280, height: 280, borderRadius: 28),
+    );
+
     if (isLargeScreen) {
       return GridView.count(
         shrinkWrap: true,
@@ -206,45 +274,32 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         mainAxisSpacing: 20,
         crossAxisSpacing: 20,
         childAspectRatio: 2.5,
-        children: _getStaticEvents(premium),
+        children: shimmers,
       );
     }
-    return Column(children: _getStaticEvents(premium, spacing: 16));
+    return Column(
+      children: shimmers
+          .expand((final e) => [e, const SizedBox(height: 16)])
+          .toList(),
+    );
   }
 
-  List<Widget> _getStaticEvents(final bool premium, {final double spacing = 0}) {
-    final events = [
-      EventsCard(
-        imageUrl:
-            'https://versustiyatro.com/wp-content/uploads/2016/02/GHT_36101.jpg',
-        showName: 'Hamlet - Bir Kimlik Meselesi',
-        category: 'Dram',
-        stage: 'Zorlu PSM',
-        price: 240,
-        fullDateString: '15 Haz 2026',
-        timeString: '19:30',
-        premium: premium,
-      ),
-      EventsCard(
-        imageUrl:
-            'https://www.cumhuriyet.com.tr/Archive/2021/8/27/1863857/kapak_002553.jpg',
-        showName: 'Cimri - Şehir Tiyatroları',
-        category: 'Komedi',
-        stage: 'Kadıköy Sahnesi',
-        price: 150,
-        fullDateString: '20 Haz 2026',
-        timeString: '20.30',
-        premium: premium,
-      ),
-    ];
-
-    if (spacing > 0) {
-      return events
-          .expand((final e) => [e, SizedBox(height: spacing)])
-          .toList();
-    }
-    return events;
-  }
+  Widget _buildEventListMessage(final String message, final bool premium,
+          {final bool isError = false}) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Center(
+          child: Text(
+            message,
+            style: TextStyle(
+                color: premium
+                    ? Colors.white70
+                    : (isError
+                        ? context.colors.error
+                        : context.colors.onSurfaceVariant)),
+          ),
+        ),
+      );
 
   // --- KÜÇÜK UI BİLEŞENLERİ ---
 
