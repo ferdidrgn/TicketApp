@@ -15,6 +15,7 @@ import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../widgets/mobile/category_grid.dart';
+import '../widgets/mobile/home_teams_strip.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
 import '../widgets/mobile/show_collage.dart';
 import '../widgets/mobile/stage_carousel.dart';
@@ -125,6 +126,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                       // 4. Mekanlar (Carousel)
                       _PerformantStageCarouselSection(
                           stages: stageState.value ?? []),
+
+                      const DividerWithAccent(),
+
+                      // 4.5 Sahne Toplulukları (Teams)
+                      const _PerformantTeamsSection(),
 
                       const DividerWithAccent(),
 
@@ -284,6 +290,22 @@ class _PerformantStageCarouselSection extends StatelessWidget {
               NavigationHandler.goToStage(context, stage.id, stage.name);
             },
           ),
+        ],
+      );
+}
+
+class _PerformantTeamsSection extends StatelessWidget {
+  const _PerformantTeamsSection();
+
+  @override
+  Widget build(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+              title: "Sahne Toplulukları",
+              subtitle: "Ekipleri Keşfet",
+              onTap: () => NavigationHandler.goToSearch(context)),
+          const HomeTeamsStrip(),
         ],
       );
 }
