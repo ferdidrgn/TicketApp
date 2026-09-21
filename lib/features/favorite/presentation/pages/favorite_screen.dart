@@ -1,14 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
-import '../../../players/presentation/pages/player_details.dart';
-import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../players/presentation/providers/player_provider.dart';
+import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
-import '../../../stages/presentation/pages/stage_details.dart';
+import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../../stages/presentation/widgets/mobile/custom_stage_card.dart';
+import '../../../users/presentation/providers/user_provider.dart';
 import '../widgets/web/favorites_desktop_view.dart';
 
+// =============================================================================
+// MOBİL "KOLEKSİYONUM" (FAVORİLER) SAYFASI — GERÇEK VERİ
+// =============================================================================
+//
+// Önceden burada `itemCount: 8` sabit, üçüncü parti stok görselli, uydurma
+// isimli ("Favori Oyun $index" vb.) kartlar vardı ve dokunulduğunda HER
+// zaman aynı sahte id ('0') ile detay sayfasına gidilirdi. Artık masaüstü
+// karşılığı `favorites_desktop_view.dart`'taki gibi `userProfileProvider`'
+// dan gelen gerçek `User.favoriteShows` / `favoriteStages` / `favoritePlayers`
+// ID listeleri `showsByIdsProvider` / `stagesByIdsProvider` /
+// `playersByIdsProvider` ile gerçek Firestore kayıtlarına çevriliyor. Bir ID
+// artık Firestore'da yoksa (silinmiş kayıt) o kart sessizce listeden düşer
+// — sahte bir yer tutucuyla doldurulmaz. Mobil arayüz kabuğu (BasePageWrapper,
+// 3 sekmeli TabController/_FavoriteTabSelector, GridView.builder,
+// ShowCard/CustomStageCard) AYNEN korunuyor; sadece veri katmanı gerçek.
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
 
@@ -66,14 +84,14 @@ class _FavoritesPageState extends State<FavoritesPage>
                   child: _FavoriteTabSelector(controller: _tabController),
                 ),
 
-                // 2. RESPONSIVE GRID ALANI
+                // 2. RESPONSIVE GRID ALANI — GERÇEK VERİ
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
-                    children: [
-                      _buildResponsiveGrid(context, type: 'shows'),
-                      _buildResponsiveGrid(context, type: 'stages'),
-                      _buildResponsiveGrid(context, type: 'players'),
+                    children: const [
+                      _FavoriteShowsTab(),
+                      _FavoriteStagesTab(),
+                      _FavoritePlayersTab(),
                     ],
                   ),
                 ),
@@ -84,14 +102,25 @@ class _FavoritesPageState extends State<FavoritesPage>
       ),
     );
   }
+}
 
-  // --- MERKEZİ RESPONSIVE GRID YÖNETİMİ ---
-  Widget _buildResponsiveGrid(final BuildContext context,
-      {required final String type}) {
+// --- ORTAK RESPONSIVE GRID SARMALAYICI ---
+class _FavoriteGrid extends StatelessWidget {
+  final int itemCount;
+  final double aspectRatio;
+  final Widget Function(BuildContext, int) itemBuilder;
+
+  const _FavoriteGrid({
+    required this.itemCount,
+    required this.aspectRatio,
+    required this.itemBuilder,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
     // 💡 Ekran genişliğine göre sütun sayısı: Mobil 2, Tablet 3, Web 4-5
     final int crossAxisCount =
         context.responsive(mobile: 2, tablet: 3, desktop: 4);
-    final double aspectRatio = type == 'shows' ? 0.75 : 1.1;
 
     return GridView.builder(
       padding: const EdgeInsets.all(24),
@@ -102,56 +131,286 @@ class _FavoritesPageState extends State<FavoritesPage>
         crossAxisSpacing: 20,
         childAspectRatio: aspectRatio,
       ),
-      itemCount: 8,
-      // Dinamik veri gelecek
-      itemBuilder: (final context, final index) {
-        if (type == 'shows') return _buildShowItem(context, index);
-        if (type == 'stages') return _buildStageItem(context, index);
-        return _buildPlayerItem(context, index);
+      itemCount: itemCount,
+      itemBuilder: itemBuilder,
+    );
+  }
+}
+
+// --- SEKME 1: FAVORİ OYUNLAR ---
+class _FavoriteShowsTab extends ConsumerWidget {
+  const _FavoriteShowsTab();
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final userAsync = ref.watch(userProfileProvider);
+
+    return userAsync.when(
+      loading: () => const _FavoriteLoadingIndicator(),
+      error: (final _, final __) =>
+          const _FavoriteErrorNotice(message: 'Koleksiyonun yüklenemedi.'),
+      data: (final user) {
+        if (user == null) return const _FavoriteSignInNotice();
+
+        final ids = user.favoriteShows;
+        if (ids.isEmpty) {
+          return const _FavoriteEmptyState(
+            icon: Icons.theater_comedy_rounded,
+            message: 'Henüz favori oyununuz yok.',
+          );
+        }
+
+        final showsAsync = ref.watch(showsByIdsProvider(ids));
+        return showsAsync.when(
+          loading: () => const _FavoriteLoadingIndicator(),
+          error: (final _, final __) => const _FavoriteErrorNotice(
+              message: 'Favori oyunların yüklenemedi.'),
+          data: (final shows) {
+            if (shows.isEmpty) {
+              return const _FavoriteEmptyState(
+                icon: Icons.theater_comedy_rounded,
+                message: 'Favori oyunların artık bulunamıyor.',
+              );
+            }
+
+            return _FavoriteGrid(
+              itemCount: shows.length,
+              aspectRatio: 0.75,
+              itemBuilder: (final context, final index) {
+                final show = shows[index];
+                return ShowCard(
+                  key: ValueKey('fav-show-${show.id}'),
+                  imageUrl: show.imageUrl,
+                  gameName: show.name,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    NavigationHandler.goToShow(context, show.id, show.name);
+                  },
+                );
+              },
+            );
+          },
+        );
       },
     );
   }
+}
 
-  Widget _buildShowItem(final BuildContext context, final int index) =>
-      ShowCard(
-        imageUrl:
-            'https://tiyatrolar.com.tr/files/activity/g/gozlerimi-kaparim-vazifemi-yaparim-4/gallery/24624/gozlerimi-kaparim-vazifemi-yaparim-4-24624.jpg',
-        gameName: 'Favori Oyun $index',
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (final _) => const ShowDetailPage(showId: '0')));
-        },
+// --- SEKME 2: FAVORİ SAHNELER ---
+class _FavoriteStagesTab extends ConsumerWidget {
+  const _FavoriteStagesTab();
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final userAsync = ref.watch(userProfileProvider);
+
+    return userAsync.when(
+      loading: () => const _FavoriteLoadingIndicator(),
+      error: (final _, final __) =>
+          const _FavoriteErrorNotice(message: 'Koleksiyonun yüklenemedi.'),
+      data: (final user) {
+        if (user == null) return const _FavoriteSignInNotice();
+
+        final ids = user.favoriteStages;
+        if (ids.isEmpty) {
+          return const _FavoriteEmptyState(
+            icon: Icons.location_on_rounded,
+            message: 'Henüz favori sahneniz yok.',
+          );
+        }
+
+        final stagesAsync = ref.watch(stagesByIdsProvider(ids));
+        return stagesAsync.when(
+          loading: () => const _FavoriteLoadingIndicator(),
+          error: (final _, final __) => const _FavoriteErrorNotice(
+              message: 'Favori sahnelerin yüklenemedi.'),
+          data: (final stages) {
+            if (stages.isEmpty) {
+              return const _FavoriteEmptyState(
+                icon: Icons.location_on_rounded,
+                message: 'Favori sahnelerin artık bulunamıyor.',
+              );
+            }
+
+            return _FavoriteGrid(
+              itemCount: stages.length,
+              aspectRatio: 1.1,
+              itemBuilder: (final context, final index) {
+                final stage = stages[index];
+                return CustomStageCard(
+                  key: ValueKey('fav-stage-${stage.id}'),
+                  text: stage.name,
+                  imageUrl: stage.imageUrl,
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    NavigationHandler.goToStage(context, stage.id, stage.name);
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// --- SEKME 3: FAVORİ SANATÇILAR ---
+class _FavoritePlayersTab extends ConsumerWidget {
+  const _FavoritePlayersTab();
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final userAsync = ref.watch(userProfileProvider);
+
+    return userAsync.when(
+      loading: () => const _FavoriteLoadingIndicator(),
+      error: (final _, final __) =>
+          const _FavoriteErrorNotice(message: 'Koleksiyonun yüklenemedi.'),
+      data: (final user) {
+        if (user == null) return const _FavoriteSignInNotice();
+
+        final ids = user.favoritePlayers;
+        if (ids.isEmpty) {
+          return const _FavoriteEmptyState(
+            icon: Icons.person_rounded,
+            message: 'Henüz favori sanatçınız yok.',
+          );
+        }
+
+        final playersAsync = ref.watch(playersByIdsProvider(ids));
+        return playersAsync.when(
+          loading: () => const _FavoriteLoadingIndicator(),
+          error: (final _, final __) => const _FavoriteErrorNotice(
+              message: 'Favori sanatçıların yüklenemedi.'),
+          data: (final players) {
+            if (players.isEmpty) {
+              return const _FavoriteEmptyState(
+                icon: Icons.person_rounded,
+                message: 'Favori sanatçıların artık bulunamıyor.',
+              );
+            }
+
+            return _FavoriteGrid(
+              itemCount: players.length,
+              aspectRatio: 1.1,
+              itemBuilder: (final context, final index) {
+                final player = players[index];
+                final fullName =
+                    '${player.firstName} ${player.lastName}'.trim();
+                return CustomStageCard(
+                  key: ValueKey('fav-player-${player.id}'),
+                  text: fullName.isEmpty ? 'Sanatçı' : fullName,
+                  imageUrl: player.imageUrl,
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    NavigationHandler.goToPlayer(
+                      context,
+                      player.id,
+                      fullName.isEmpty ? player.id : fullName,
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// --- ORTAK DURUMLAR (Yükleniyor / Hata / Boş / Giriş Gerekli) ---
+class _FavoriteLoadingIndicator extends StatelessWidget {
+  const _FavoriteLoadingIndicator();
+
+  @override
+  Widget build(final BuildContext context) => Center(
+        child: CircularProgressIndicator(color: context.colors.primary),
       );
+}
 
-  Widget _buildStageItem(final BuildContext context, final int index) =>
-      CustomStageCard(
-        text: 'Sahne $index',
-        imageUrl:
-            'https://enstitu.ibb.istanbul/files/ismekOrg/Image/img_brans/brans_yenisitegaleri/drama/1-600.jpg',
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (final _) => const StageDetailPage(stageId: '0')));
-        },
+class _FavoriteErrorNotice extends StatelessWidget {
+  final String message;
+
+  const _FavoriteErrorNotice({required this.message});
+
+  @override
+  Widget build(final BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style:
+                TextStyle(color: context.colors.onSurfaceVariant, fontSize: 14),
+          ),
+        ),
       );
+}
 
-  Widget _buildPlayerItem(final BuildContext context, final int index) =>
-      CustomStageCard(
-        text: 'Sanatçı $index',
-        imageUrl:
-            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-cV2ZIk5Wi_uoyY1PdDVM2vFzuSMQATw7iw&s',
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (final _) => const PlayerDetailPage(playerId: "0")));
-        },
+class _FavoriteEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+
+  const _FavoriteEmptyState({required this.icon, required this.message});
+
+  @override
+  Widget build(final BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 56, color: context.colors.onSurfaceVariant),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.colors.onSurface,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Beğendiğin oyun, sahne ve sanatçıları kalp ikonuna dokunarak buraya ekleyebilirsin.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: context.colors.onSurfaceVariant, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _FavoriteSignInNotice extends StatelessWidget {
+  const _FavoriteSignInNotice();
+
+  @override
+  Widget build(final BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.person_outline_rounded,
+                  size: 56, color: context.colors.onSurfaceVariant),
+              const SizedBox(height: 16),
+              Text(
+                'Koleksiyonunu görmek için giriş yapmalısın.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.colors.onSurface,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
 }
 
