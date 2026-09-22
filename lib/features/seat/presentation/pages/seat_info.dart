@@ -4,6 +4,9 @@ import 'package:ticketapp/features/events/presentation/providers/event_provider.
 import 'package:ticketapp/shared/widgets/admin_guard.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../users/presentation/providers/user_provider.dart';
 import '../providers/seats_provider.dart';
@@ -69,18 +72,19 @@ class _CuratorSeatingAuditPageState
   Widget _buildInteractiveMap(final EventSeatingState state,
       final dynamic eventStatus) =>
       Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         decoration: BoxDecoration(
-            color: Colors.black26, borderRadius: BorderRadius.circular(20)),
+            color: Colors.black26,
+            borderRadius: BorderRadius.circular(AppRadius.lg)),
         child: InteractiveViewer(
-          boundaryMargin: const EdgeInsets.all(20),
+          boundaryMargin: const EdgeInsets.all(AppSpacing.xl),
           minScale: 0.5,
           maxScale: 2.5,
           child: SingleChildScrollView(
             child: Column(
               children: [
                 _buildStageVisual(),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.xl),
                 _buildGrid(state.layout, eventStatus),
               ],
             ),
@@ -106,27 +110,35 @@ class _CuratorSeatingAuditPageState
                   final isSold = info?['status'] == 'sold';
                   final isFocused = _focusedSeatId == seatId;
 
-                  return GestureDetector(
-                    onTap: () => setState(() => _focusedSeatId = seatId),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 35,
-                      height: 35,
-                      margin: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: isSold ? Colors.redAccent : Colors.white10,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: isFocused
-                                ? Colors.white
-                                : Colors.transparent,
-                            width: 2),
+                  return Semantics(
+                    button: true,
+                    selected: isFocused,
+                    label: '$seatId koltuğu, '
+                        '${isSold ? 'satılmış' : 'müsait'}'
+                        '${isFocused ? ', incelemede' : ''}',
+                    child: GestureDetector(
+                      onTap: () => setState(() => _focusedSeatId = seatId),
+                      child: AnimatedContainer(
+                        duration: AppMotion.fast,
+                        curve: AppMotion.standard,
+                        width: 35,
+                        height: 35,
+                        margin: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: isSold ? Colors.redAccent : Colors.white10,
+                          borderRadius: BorderRadius.circular(AppRadius.xs),
+                          border: Border.all(
+                              color: isFocused
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              width: 2),
+                        ),
+                        child: Center(
+                            child: Text(seatId.substring(1),
+                                style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold))),
                       ),
-                      child: Center(
-                          child: Text(seatId.substring(1),
-                              style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold))),
                     ),
                   );
                 }),
@@ -138,7 +150,7 @@ class _CuratorSeatingAuditPageState
   Widget _buildHeader(final BuildContext context,
       final EventSeatingState state) =>
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Row(
           children: [
             IconButton(
@@ -153,8 +165,8 @@ class _CuratorSeatingAuditPageState
                       style: context.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w900)),
                   Text(state.event.date,
-                      style:
-                      const TextStyle(color: Colors.green, fontSize: 11)),
+                      style: TextStyle(
+                          color: context.colors.primary, fontSize: 11)),
                 ],
               ),
             ),
@@ -168,11 +180,11 @@ class _CuratorSeatingAuditPageState
     final color = context.colors;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
           color: color.surface,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border:
           Border.all(color: color.primary.withOpacity(0.2))),
       child: uid != null
@@ -190,12 +202,13 @@ class _CuratorSeatingAuditPageState
         : (sold / eventStatus.seatStatus.length) * 100;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text("Doluluk: %${percent.toStringAsFixed(0)}",
-              style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              style: TextStyle(
+                  fontSize: 12, color: context.colors.onSurfaceVariant)),
           Text("$sold / ${eventStatus.seatStatus.length} Bilet",
               style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
@@ -215,7 +228,7 @@ class _CuratorSeatingAuditPageState
   Widget _buildLegend() =>
       const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.square, color: Colors.redAccent, size: 12),
-        SizedBox(width: 4),
+        SizedBox(width: AppSpacing.xs),
         Text("Dolu", style: TextStyle(fontSize: 12))
       ]);
 }

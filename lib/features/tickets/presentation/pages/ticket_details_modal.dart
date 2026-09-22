@@ -3,6 +3,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/magic_box.dart';
@@ -40,7 +43,8 @@ class _LuxuryTicketDetails extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: themeColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       child: Stack(
         children: [
@@ -49,35 +53,38 @@ class _LuxuryTicketDetails extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: [
               Center(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: themeColors.outlineVariant.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(2),
+                child: Semantics(
+                  label: 'Bileti kapatmak için aşağı sürükleyin',
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: themeColors.outlineVariant.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
               ),
               _LargeEventImage(
                   imageUrl: ticket.show?.imageUrl ?? '',
                   title: ticket.show?.name ?? 'Gösteri'),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
                 child: Column(
                   children: [
                     _LargeQRCodeSection(ticketId: ticket.ticket.id),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xxxl),
                     _DetailsSection(
                         ticket: ticket,
                         dateText: dateText,
                         timeText: dateInfo['time'] ?? '--:--'),
                     if (ticket.show != null || ticket.stage != null) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSpacing.xxl),
                       _NavigationActionsSection(ticket: ticket),
                     ],
-                    const SizedBox(height: 40),
+                    const SizedBox(height: AppSpacing.huge),
                   ],
                 ),
               ),
@@ -100,7 +107,7 @@ class _LargeQRCodeSection extends StatelessWidget {
 
     // 1. ÜST KATMAN (Sadece saf buzlu cam, üzerinde yazı yok!)
     final Widget foreground = ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
@@ -112,12 +119,15 @@ class _LargeQRCodeSection extends StatelessWidget {
     );
 
     // 2. ALT KATMAN (Net QR Kod)
+    // Not: QR kodun arka planı burada kasıtlı olarak sabit beyaz kalıyor —
+    // QR tarayıcıların güvenilir okuması için yüksek kontrast (siyah
+    // modül / beyaz zemin) şart, temaya göre değişemez.
     final Widget background = Container(
       width: 140,
       height: 140,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(20)),
+          color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.lg)),
       child: QrImageView(
         data: ticketId,
         version: QrVersions.auto,
@@ -128,49 +138,53 @@ class _LargeQRCodeSection extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: themeColors.surfaceVariant.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
         children: [
           // SİHİRLİ QR ALANI
-          SizedBox(
-            width: 140,
-            height: 140,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                MagicBox(
-                    radius: 0.28,
-                    foreground: foreground,
-                    background: background),
-                // YAZI VE İKONU BURAYA, MASKEDEN BAĞIMSIZ KOYUYORUZ
-                // Dokunma başladığında bunu gizlemek istersen bir ValueNotifier kullanabilirsin
-                // ama şu an orta kısım silineceği için bu ikonlar zaten kenara itilmiş olacak.
-                IgnorePointer(
-                  // Dokunmayı engellememesi için
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.qr_code_2_rounded,
-                          color: themeColors.primary.withOpacity(0.4),
-                          size: 32),
-                      const SizedBox(height: 4),
-                      Text("TARAMAK İÇİN\nKEŞFEDİN",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                              color: themeColors.primary.withOpacity(0.5))),
-                    ],
+          Semantics(
+            label: 'Bilet QR kodu, giriş için görevliye gösterin',
+            image: true,
+            child: SizedBox(
+              width: 140,
+              height: 140,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  MagicBox(
+                      radius: 0.28,
+                      foreground: foreground,
+                      background: background),
+                  // YAZI VE İKONU BURAYA, MASKEDEN BAĞIMSIZ KOYUYORUZ
+                  // Dokunma başladığında bunu gizlemek istersen bir ValueNotifier kullanabilirsin
+                  // ama şu an orta kısım silineceği için bu ikonlar zaten kenara itilmiş olacak.
+                  IgnorePointer(
+                    // Dokunmayı engellememesi için
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.qr_code_2_rounded,
+                            color: themeColors.primary.withOpacity(0.4),
+                            size: 32),
+                        const SizedBox(height: 4),
+                        Text("TARAMAK İÇİN\nKEŞFEDİN",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                                color: themeColors.primary.withOpacity(0.5))),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: AppSpacing.xl),
           const Expanded(
               child: Text(
                   "Biletinizi okutmak için QR kodun üzerini parmağınızla temizleyin.",
@@ -194,19 +208,10 @@ class _LargeEventImage extends StatelessWidget {
     return Container(
       height: 240,
       margin: EdgeInsets.zero,
+      // Biletin en dramatik, tek seferlik "hero" görseli — marka rengine
+      // eğilen premium bir parlama.
       decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 25,
-              offset: const Offset(0, 10),
-              spreadRadius: 2),
-          BoxShadow(
-              color: themeColors.primary.withOpacity(0.2),
-              blurRadius: 30,
-              offset: const Offset(0, 15),
-              spreadRadius: -5)
-        ],
+        boxShadow: AppShadows.level5(themeColors.primary),
       ),
       child: Stack(
         children: [
@@ -239,7 +244,7 @@ class _LargeEventImage extends StatelessWidget {
                 children: [
                   Icon(Icons.broken_image_rounded,
                       size: 64, color: themeColors.onSurfaceVariant),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Text('Görsel yüklenemedi',
                       style: context.textTheme.titleMedium
                           ?.copyWith(color: themeColors.onSurfaceVariant)),
@@ -318,7 +323,7 @@ class _DetailsSection extends StatelessWidget {
         Row(
           children: [
             Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -326,20 +331,21 @@ class _DetailsSection extends StatelessWidget {
                         themeColors.primaryContainer,
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(AppRadius.xs)),
                 child: Icon(Icons.info_outline_rounded,
                     color: Colors.white, size: 24)),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             Text('Bilet Bilgileri',
                 style: context.textTheme.headlineSmall
                     ?.copyWith(fontWeight: FontWeight.w700, fontSize: 22))
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
 
         // QR Kod stiline sahip yeni liste çerçevesi
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -349,14 +355,9 @@ class _DetailsSection extends StatelessWidget {
                 themeColors.surfaceContainer.withOpacity(0.4),
               ],
             ),
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: themeColors.primary, width: 1),
-            boxShadow: [
-              BoxShadow(
-                  color: themeColors.shadow.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8))
-            ],
+            boxShadow: AppShadows.level2(themeColors.shadow),
           ),
           child: Column(
             children: [
@@ -406,7 +407,7 @@ class _CustomDivider extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
       child: Divider(
           height: 1,
           color: Theme.of(context).colorScheme.outline.withOpacity(0.2)));
@@ -441,42 +442,47 @@ class _InfoListTile extends StatelessWidget {
     final subtitleColor =
         isHighlighted ? themeColors.primary : themeColors.onSurface;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // İkon
-        Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-                color: iconBackgroundColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(14)),
-            child: Icon(icon, color: themeColors.primary, size: 24)),
-        const SizedBox(width: 16),
+    return MergeSemantics(
+      child: Semantics(
+        label: '$title: $subtitle',
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // İkon
+            Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                    color: iconBackgroundColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.sm)),
+                child: Icon(icon, color: themeColors.primary, size: 24)),
+            const SizedBox(width: AppSpacing.lg),
 
-        // Başlık ve Alt Başlık
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title.toUpperCase(),
-                  style: themeText.labelMedium?.copyWith(
-                      color: themeColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 4),
-              Text(subtitle,
-                  style: themeText.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: subtitleColor,
-                      height: 1.2),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
-            ],
-          ),
+            // Başlık ve Alt Başlık
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title.toUpperCase(),
+                      style: themeText.labelMedium?.copyWith(
+                          color: themeColors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(subtitle,
+                      style: themeText.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: subtitleColor,
+                          height: 1.2),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -507,7 +513,7 @@ class _NavigationActionsSection extends StatelessWidget {
               NavigationHandler.goToShow(context, show.id, show.name);
             },
           ),
-        if (show != null && stage != null) const SizedBox(height: 12),
+        if (show != null && stage != null) const SizedBox(height: AppSpacing.md),
         if (stage != null)
           _NavigationActionButton(
             icon: Icons.location_on_rounded,
@@ -540,42 +546,42 @@ class _NavigationActionButton extends StatelessWidget {
   Widget build(final BuildContext context) {
     final themeColors = context.colors;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                themeColors.primary,
-                themeColors.primaryContainer,
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  themeColors.primary,
+                  themeColors.primaryContainer,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: AppShadows.level2(themeColors.primary),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: Colors.white, size: 22),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(label,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15)),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    color: Colors.white, size: 16),
               ],
             ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: themeColors.primary.withOpacity(0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8))
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(label,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15)),
-              ),
-              const Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.white, size: 16),
-            ],
           ),
         ),
       ),
