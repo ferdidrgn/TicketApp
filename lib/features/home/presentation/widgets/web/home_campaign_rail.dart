@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_radius.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 import '../../../../../shared/widgets/optimized_cached_image.dart';
 
@@ -60,12 +61,7 @@ class _CampaignCardState extends State<_CampaignCard> {
             width: 340,
             transform: Matrix4.translationValues(0, _hovered ? -4 : 0, 0),
             decoration: BoxDecoration(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(32),
-                bottomLeft: Radius.circular(6),
-                bottomRight: Radius.circular(32),
-              ),
+              borderRadius: AppRadius.asymLg,
               border: Border.all(
                 color: _hovered
                     ? WebColors.primaryGold.withOpacity(0.6)
@@ -84,12 +80,7 @@ class _CampaignCardState extends State<_CampaignCard> {
               ],
             ),
             child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(32),
-                bottomLeft: Radius.circular(6),
-                bottomRight: Radius.circular(32),
-              ),
+              borderRadius: AppRadius.asymLg,
               child: Stack(
                 fit: StackFit.expand,
                 children: [

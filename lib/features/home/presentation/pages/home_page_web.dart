@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/util/comminucation_actions.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -432,19 +433,9 @@ class _WebLoadingState extends StatelessWidget {
 // PAYLAŞILAN KÜÇÜK YARDIMCILAR
 // ═══════════════════════════════════════════════════════════════
 
-const BorderRadius _kAsymLg = BorderRadius.only(
-  topLeft: Radius.circular(6),
-  topRight: Radius.circular(32),
-  bottomLeft: Radius.circular(6),
-  bottomRight: Radius.circular(32),
-);
+const BorderRadius _kAsymLg = AppRadius.asymLg;
 
-const BorderRadius _kAsymSm = BorderRadius.only(
-  topLeft: Radius.circular(2),
-  topRight: Radius.circular(12),
-  bottomLeft: Radius.circular(2),
-  bottomRight: Radius.circular(12),
-);
+const BorderRadius _kAsymSm = AppRadius.asymSm;
 
 double _sectionPad(final BuildContext context) => context.responsive(
       mobile: 20.0,
