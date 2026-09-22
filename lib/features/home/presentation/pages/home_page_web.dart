@@ -13,12 +13,15 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
+import '../../../discovery/presentation/providers/nearby_events_provider.dart';
 import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import '../../../tickets/presentation/providers/my_ticket_provider.dart';
+import '../../../users/presentation/providers/user_provider.dart';
 import '../widgets/web/home_campaign_rail.dart';
 import '../widgets/web/home_category_strip.dart';
 import '../widgets/web/home_newsletter_band.dart';
@@ -91,6 +94,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     final campaigns = campaignState.value ?? const [];
     final shows = showState.value ?? const [];
     final stages = stageState.value ?? const [];
+
+    // "Hızlı Erişim" panelinin gerçek verisi — sayfanın geri kalanının
+    // loading/error durumunu ETKİLEMEZ (ikincil, kişisel bir panel; hesap
+    // verisi geç gelse ya da hata verse bile ana içerik akmaya devam eder).
+    final loggedIn = ref.watch(isLoggedInProvider);
+    final uid = ref.watch(currentUserIdProvider);
+    final ticketsAsync = uid == null
+        ? const AsyncValue<List<DetailedTicket>>.data(<DetailedTicket>[])
+        : ref.watch(myTicketsProvider(uid));
+    final userAsync = ref.watch(userProfileProvider);
+    final nearbyAsync = ref.watch(upcomingNearbyEventsProvider);
 
     final bool showLoadingState = isLoading && showState.value == null;
 
@@ -217,18 +231,38 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         ),
                       ),
-                      // 6. Hızlı Erişim (mobildeki QuickActionsGrid'in aynısı:
-                      // Bildirimler/Favorilerim/Biletlerim/Takvim)
+                      // 6. Hızlı Erişim — gerçek hesap panosu (Biletlerim/
+                      // Favorilerim/Yaklaşan Etkinlikler/Ayarlar), gerçek
+                      // sayılarla. Eskiden burada sabit metinli 4 kutu vardı
+                      // ve "Takvim" kartı hiçbir yere gitmiyordu ("yakında"
+                      // etiketiyle tıklanamaz duruyordu) — artık her kart
+                      // gerçek veriye bağlı ve gerçekten çalışıyor.
                       RevealOnScroll(
                         child: _Section(
-                          kicker: 'HIZLI ERİŞİM',
+                          kicker: 'HESABIM',
                           title: 'Neye İhtiyacın Var?',
                           child: _QuickLinksBand(
-                            onNotificationsTap: () =>
-                                NavigationHandler.goToSettings(context),
-                            onFavoritesTap: () =>
-                                NavigationHandler.goToFavorites(context),
+                            loggedIn: loggedIn,
+                            upcomingTicketCount: ticketsAsync.value
+                                    ?.where((final t) => !t.isPast)
+                                    .length ??
+                                0,
+                            nextTicketShowName: _firstUpcomingShowName(
+                                ticketsAsync.value),
+                            favoritesCount: userAsync.value == null
+                                ? 0
+                                : userAsync.value!.favoriteShows.length +
+                                    userAsync.value!.favoriteStages.length +
+                                    userAsync.value!.favoritePlayers.length,
+                            nearbyEventCount: nearbyAsync.value?.length ?? 0,
                             onTicketsTap: _goToTickets,
+                            onFavoritesTap: loggedIn
+                                ? () => NavigationHandler.goToFavorites(context)
+                                : () => NavigationHandler.goToLogin(context),
+                            onNearbyTap: () =>
+                                NavigationHandler.goToNearby(context),
+                            onSettingsTap: () =>
+                                NavigationHandler.goToSettings(context),
                           ),
                         ),
                       ),
@@ -417,6 +451,27 @@ double _sectionPad(final BuildContext context) => context.responsive(
       desktop: 64.0,
       largeDesktop: 96.0,
     );
+
+/// "Hızlı Erişim" panosundaki Biletlerim kartı için: kullanıcının en yakın
+/// GELECEK biletinin oyun adı (varsa) — sahte bir tarih/oyun uydurmak
+/// yerine, `myTicketsProvider`'ın zaten getirdiği gerçek `DetailedTicket`
+/// listesinden tarihe göre en yakın olanı bulur.
+String? _firstUpcomingShowName(final List<DetailedTicket>? tickets) {
+  if (tickets == null) return null;
+  DetailedTicket? soonest;
+  DateTime? soonestDate;
+  for (final ticket in tickets) {
+    if (ticket.isPast || ticket.show == null || ticket.event == null)
+      continue;
+    final date = DateFormatter.parseDateString(ticket.event!.date);
+    if (date == null) continue;
+    if (soonestDate == null || date.isBefore(soonestDate)) {
+      soonest = ticket;
+      soonestDate = date;
+    }
+  }
+  return soonest?.show?.name;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // BÖLÜM (SECTION) ÇATISI
@@ -2194,72 +2249,123 @@ class _HeroShowsMarqueeState extends State<_HeroShowsMarquee>
 // HIZLI BAĞLANTILAR
 // ═══════════════════════════════════════════════════════════════
 
-/// Mobildeki `QuickActionsGrid` ile aynı 4 aksiyon (Bildirimler/
-/// Favorilerim/Biletlerim/Takvim) — Takvim'in `onTap`'ı mobil tarafta da
-/// boş (`() {}`), burada da öyle bırakıldı, yeni bir sahte davranış
-/// eklenmedi.
+/// Gerçek hesap verisiyle çalışan bir "panom" bandı: Biletlerim/
+/// Favorilerim/Yaklaşan Etkinlikler/Hesap Ayarları — her kart gerçek bir
+/// sayı taşır (yaklaşan bilet adedi, favori adedi, önümüzdeki gerçek
+/// etkinlik adedi) ve gerçekten bir yere gider. Eskiden buradaki "Takvim"
+/// kartı `onTap: () {}` ile hiçbir şey yapmıyordu ve "Bildirimler" kartı
+/// aslında Ayarlar'a gidiyordu (yanlış etiketliydi) — ikisi de düzeltildi.
 class _QuickLinksBand extends StatelessWidget {
-  final VoidCallback onNotificationsTap;
-  final VoidCallback onFavoritesTap;
+  final bool loggedIn;
+  final int upcomingTicketCount;
+  final String? nextTicketShowName;
+  final int favoritesCount;
+  final int nearbyEventCount;
   final VoidCallback onTicketsTap;
+  final VoidCallback onFavoritesTap;
+  final VoidCallback onNearbyTap;
+  final VoidCallback onSettingsTap;
 
   const _QuickLinksBand({
-    required this.onNotificationsTap,
-    required this.onFavoritesTap,
+    required this.loggedIn,
+    required this.upcomingTicketCount,
+    required this.nextTicketShowName,
+    required this.favoritesCount,
+    required this.nearbyEventCount,
     required this.onTicketsTap,
+    required this.onFavoritesTap,
+    required this.onNearbyTap,
+    required this.onSettingsTap,
   });
 
   @override
-  Widget build(final BuildContext context) => Wrap(
-        spacing: 18,
-        runSpacing: 18,
-        children: [
-          _QuickLinkCard(
-            icon: Icons.notifications_outlined,
-            title: 'Bildirimler',
-            subtitle: 'Fırsat ve hatırlatmaları yönet',
-            onTap: onNotificationsTap,
-          ),
-          _QuickLinkCard(
-            icon: Icons.favorite_outline,
-            title: 'Favorilerim',
-            subtitle: 'Kaydettiğin oyunlar',
-            onTap: onFavoritesTap,
-          ),
-          _QuickLinkCard(
-            icon: Icons.confirmation_number_outlined,
-            title: 'Biletlerim',
-            subtitle: 'Aldığın biletleri görüntüle',
-            onTap: onTicketsTap,
-          ),
-          _QuickLinkCard(
-            icon: Icons.calendar_today_outlined,
-            title: 'Takvim',
-            subtitle: 'Etkinlik takvimin (yakında)',
-            onTap: () {},
-          ),
-        ],
-      );
+  Widget build(final BuildContext context) {
+    final String ticketsSubtitle = !loggedIn
+        ? 'Giriş yaparak biletlerini gör'
+        : upcomingTicketCount == 0
+            ? 'Henüz yaklaşan bileğin yok'
+            : nextTicketShowName == null
+                ? 'Bilet detaylarını gör'
+                : 'Sıradaki: $nextTicketShowName';
+    final String favoritesSubtitle = !loggedIn
+        ? 'Giriş yaparak favorilerini gör'
+        : favoritesCount == 0
+            ? 'Henüz favori eklemedin'
+            : 'Kaydettiklerini görüntüle';
+    final String nearbySubtitle = nearbyEventCount == 0
+        ? 'Şu an planlanan yeni etkinlik yok'
+        : 'Bu hafta sahnede neler var, gör';
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: WebColors.darkBlueSurface.withOpacity(0.5),
+        borderRadius: _kAsymLg,
+        border: Border.all(color: WebColors.darkBlueAccent, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: [
+            _DashboardCard(
+              icon: Icons.confirmation_number_outlined,
+              statValue: loggedIn ? '$upcomingTicketCount' : '—',
+              statLabel: 'Yaklaşan Bilet',
+              subtitle: ticketsSubtitle,
+              onTap: onTicketsTap,
+            ),
+            _DashboardCard(
+              icon: Icons.favorite_outline,
+              statValue: loggedIn ? '$favoritesCount' : '—',
+              statLabel: 'Favori',
+              subtitle: favoritesSubtitle,
+              onTap: onFavoritesTap,
+            ),
+            _DashboardCard(
+              icon: Icons.event_available_outlined,
+              statValue: '$nearbyEventCount',
+              statLabel: 'Yakında',
+              subtitle: nearbySubtitle,
+              onTap: onNearbyTap,
+            ),
+            _DashboardCard(
+              icon: Icons.settings_outlined,
+              statValue: null,
+              statLabel: null,
+              title: 'Hesap Ayarları',
+              subtitle: 'Profil, bildirim ve gizlilik tercihlerin',
+              onTap: onSettingsTap,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _QuickLinkCard extends StatefulWidget {
+class _DashboardCard extends StatefulWidget {
   final IconData icon;
-  final String title;
+  final String? statValue;
+  final String? statLabel;
+  final String? title;
   final String subtitle;
   final VoidCallback onTap;
 
-  const _QuickLinkCard({
+  const _DashboardCard({
     required this.icon,
-    required this.title,
+    required this.statValue,
+    required this.statLabel,
+    this.title,
     required this.subtitle,
     required this.onTap,
   });
 
   @override
-  State<_QuickLinkCard> createState() => _QuickLinkCardState();
+  State<_DashboardCard> createState() => _DashboardCardState();
 }
 
-class _QuickLinkCardState extends State<_QuickLinkCard> {
+class _DashboardCardState extends State<_DashboardCard> {
   bool _hovered = false;
 
   @override
@@ -2271,52 +2377,83 @@ class _QuickLinkCardState extends State<_QuickLinkCard> {
           onTap: widget.onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            width: 270,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            transform:
-                Matrix4.translationValues(0, _hovered ? -2 : 0, 0),
+            width: 258,
+            padding: const EdgeInsets.all(18),
+            transform: Matrix4.translationValues(0, _hovered ? -3 : 0, 0),
             decoration: BoxDecoration(
-              color: Colors.transparent,
+              color: _hovered
+                  ? WebColors.darkBlueAccent.withOpacity(0.4)
+                  : WebColors.darkBlueBackground.withOpacity(0.5),
               borderRadius: _kAsymSm,
               border: Border.all(
                 color: _hovered
-                    ? WebColors.primaryGold.withOpacity(0.5)
+                    ? WebColors.primaryGold.withOpacity(0.55)
                     : WebColors.darkBlueAccent,
                 width: 1,
               ),
+              boxShadow: _hovered
+                  ? [
+                      BoxShadow(
+                        color: WebColors.primaryGold.withOpacity(0.12),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
+                  : null,
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(widget.icon,
-                    size: 18,
-                    color: _hovered
-                        ? WebColors.primaryGoldLight
-                        : WebColors.textTertiary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _hovered
+                            ? WebColors.primaryGold.withOpacity(0.18)
+                            : WebColors.darkBlueAccent.withOpacity(0.6),
+                      ),
+                      child: Icon(widget.icon,
+                          size: 18,
+                          color: _hovered
+                              ? WebColors.primaryGoldLight
+                              : WebColors.textTertiary),
+                    ),
+                    if (widget.statValue != null) ...[
+                      const Spacer(),
                       Text(
-                        widget.title,
+                        widget.statValue!,
                         style: const TextStyle(
                           color: WebColors.whiteText,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        widget.subtitle,
-                        style: const TextStyle(
-                          color: WebColors.textSecondary,
-                          fontSize: 12,
-                          height: 1.4,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
                         ),
                       ),
                     ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  widget.title ?? widget.statLabel ?? '',
+                  style: const TextStyle(
+                    color: WebColors.whiteText,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  widget.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: WebColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.4,
                   ),
                 ),
               ],
