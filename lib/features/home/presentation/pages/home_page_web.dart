@@ -2496,11 +2496,12 @@ class _ClosingQuoteBand extends StatelessWidget {
                   ),
                   const SizedBox(height: 26),
                   Text(
-                    // Hippokrates'in ünlü aforizması — "Ars longa, vita
-                    // brevis" — İngilizce yerleşik hâliyle önce, altında
-                    // Türkçesi daha küçük puntoyla (bkz. mobildeki
-                    // BottomQuote, decorative_elements.dart — aynı metin).
-                    '"Life is short, art is long."',
+                    // Hippokrates'in tam aforizması, orijinal Latincesiyle
+                    // önce, altında tam Türkçe çevirisi daha küçük
+                    // puntoyla (bkz. mobildeki BottomQuote,
+                    // decorative_elements.dart — aynı metin).
+                    '"Ars longa, vita brevis, occasio praeceps, '
+                    'experimentum periculosum, iudicium difficile."',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: WebColors.lightWhite,
@@ -2513,7 +2514,8 @@ class _ClosingQuoteBand extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '"Hayat kısadır, sanat uzun."',
+                    '"Sanat (zanaat/bilgi) uzun, hayat kısa, fırsat kaçıcı, '
+                    'deneyim yanıltıcı (tehlikeli), karar vermek zordur."',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: WebColors.textSecondary,
