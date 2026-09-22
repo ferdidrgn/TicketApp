@@ -92,19 +92,41 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     }
   }
 
+  /// Firestore 'whereIn' sorgusu en fazla 30 eleman alır — bkz.
+  /// `show_remote_data_source_and_impl.dart`'taki `getShowsByIds` (aynı
+  /// düzeltme, aynı gerekçe). Bir ID listesini 30'luk parçalara böler.
+  List<List<String>> _chunkIds(final List<String> ids) {
+    const chunkSize = 30;
+    final uniqueIds = ids.toSet().toList();
+    return [
+      for (var i = 0; i < uniqueIds.length; i += chunkSize)
+        uniqueIds.sublist(
+            i, i + chunkSize > uniqueIds.length ? uniqueIds.length : i + chunkSize),
+    ];
+  }
+
   @override
   Future<List<EventModel>> getEventsByIds(final List<String> eventIds) async {
     if (eventIds.isEmpty) return [];
     try {
-      final snapshot = await _eventCollection
-          .where(FieldPath.documentId, whereIn: eventIds)
-          .get();
+      // 🔥 DÜZELTME: Eski kod tüm `eventIds` listesini tek bir `whereIn`
+      // sorgusuna gönderiyordu. Bir gösterinin (ya da keşfet/anasayfa gibi
+      // birçok gösteriyi birleştiren bir ekranın) 30'dan fazla etkinlik
+      // ID'si topladığı an Firestore 'invalid-argument' hatası fırlatıyor
+      // ve bu Future'ı tüketen sayfa (ör. mobil Keşfet) kalıcı bir hata/boş
+      // durumda kilitleniyordu. Artık `getShowsByIds` ile aynı desende
+      // 30'luk parçalara bölünüp paralel çekiliyor.
+      final chunks = _chunkIds(eventIds);
+      final snapshots = await Future.wait(chunks.map((final chunk) =>
+          _eventCollection.where(FieldPath.documentId, whereIn: chunk).get()));
 
-      return snapshot.docs.map((final doc) {
-        final data = doc.data();
-        data['_id'] = doc.id;
-        return EventModel.fromFirestore(data);
-      }).toList();
+      return snapshots
+          .expand((final snapshot) => snapshot.docs.map((final doc) {
+                final data = doc.data();
+                data['_id'] = doc.id;
+                return EventModel.fromFirestore(data);
+              }))
+          .toList();
     } catch (e) {
       throw Exception('getEventsByIds failed: $e');
     }
@@ -115,14 +137,27 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       final List<String> showIds) async {
     if (showIds.isEmpty) return [];
     try {
-      final snapshot =
-          await _eventCollection.where('showId', whereIn: showIds).get();
+      // 🔥 DÜZELTME: Aynı >30 eleman `whereIn` hatası burada da vardı —
+      // bu metot tam olarak mobil Keşfet sayfasının veri zincirinde
+      // (`eventsByShowIdsProvider` -> `_activeShowIdsFromEvents` /
+      // `upcomingNearbyEventsProvider`) kullanılıyor. Veritabanında 30'dan
+      // fazla gösteri olduğu an (ya da `showsActiveFirstProvider`/
+      // `activeShowsProvider`'ın `isLimit:false` çağrıları tüm gösterileri
+      // çektiğinde) bu sorgu senkron olmayan bir Firestore hatasıyla
+      // reddediliyor, bu da Keşfet'in olay listesini ("Etkinlikler
+      // yüklenemedi") her seferinde hataya düşürüyordu — kullanıcının
+      // tarif ettiği "sayfa hiç açılmıyor" hissinin en olası kök nedeni.
+      final chunks = _chunkIds(showIds);
+      final snapshots = await Future.wait(chunks.map((final chunk) =>
+          _eventCollection.where('showId', whereIn: chunk).get()));
 
-      return snapshot.docs.map((final doc) {
-        final data = doc.data();
-        data['_id'] = doc.id;
-        return EventModel.fromFirestore(data);
-      }).toList();
+      return snapshots
+          .expand((final snapshot) => snapshot.docs.map((final doc) {
+                final data = doc.data();
+                data['_id'] = doc.id;
+                return EventModel.fromFirestore(data);
+              }))
+          .toList();
     } catch (e) {
       throw Exception('getEventsByShowIds failed: $e');
     }
