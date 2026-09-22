@@ -13,9 +13,14 @@ class AuthService extends _$AuthService {
   @override
   User? build() {
     _firebaseAuthInstance = FirebaseAuth.instance;
+    // `serverClientId` yalnızca yerli (native) `GoogleSignIn().signIn()`
+    // akışında sunucu tarafı doğrulama kodu istemek için kullanılır. Web'de
+    // aşağıdaki akış bu örneği hiç kullanmıyor — Firebase'in kendi
+    // `signInWithPopup(GoogleAuthProvider())` akışını çağırıyor — bu yüzden
+    // burada gerçek bir OAuth istemci ID'si YOK; sahte bir placeholder
+    // ("YOUR_WEB_OAUTH_ID") bırakmak yerine null bırakılıyor.
     _googleSignInInstance = GoogleSignIn(
       scopes: ['email', 'profile'],
-      serverClientId: kIsWeb ? "798150499696-YOUR_WEB_OAUTH_ID.apps.googleusercontent.com" : null,
     );
     return _firebaseAuthInstance.currentUser;
   }
