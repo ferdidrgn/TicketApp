@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 
@@ -184,6 +185,9 @@ class NearbyEventsPage extends StatelessWidget {
           const SliverToBoxAdapter(
             child: SizedBox(height: 80),
           ),
+
+          // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
+          if (context.isDesktop) const SliverToBoxAdapter(child: Footer()),
         ],
       ),
     );

@@ -7,6 +7,7 @@ import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/background/shimmer_components.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import 'package:ticketapp/shared/widgets/section_header.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -78,6 +79,9 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               _buildResponsiveEventList(isLargeScreen, premium),
 
               const SizedBox(height: 100),
+
+              // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
+              if (premium) const Footer(),
             ],
           ),
         ),
