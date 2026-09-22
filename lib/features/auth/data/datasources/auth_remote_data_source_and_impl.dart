@@ -145,6 +145,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   // ✅ Named parametre olarak güncellendi
+  //
+  // 🌐 WEB DOĞRULAMASI (RecaptchaVerifier): firebase_auth 6.x / firebase_auth_web
+  // 6.x, verifyPhoneNumber() web'de çağrıldığında kendi görünmez (invisible)
+  // RecaptchaVerifier'ını otomatik oluşturup DOM'a (document.body altına)
+  // ekliyor — uygulama tarafında elle bir RecaptchaVerifier örneği ya da
+  // web/index.html içinde önceden var olması gereken bir
+  // <div id="recaptcha-container"> KONMASINA GEREK YOK. firebase_options.dart
+  // içindeki web `authDomain` (ticketappflutter.firebaseapp.com) de reCAPTCHA
+  // iframe'inin doğru origin ile çalışması için doğru tanımlı. Bu nedenle bu
+  // metot ek koşul olmadan tüm platformlarda (Android/iOS/Web) aynı şekilde
+  // çalışır.
   @override
   Future<String> verifyPhone({
     required final String phoneNumber,

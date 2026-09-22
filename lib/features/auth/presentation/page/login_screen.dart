@@ -6,7 +6,6 @@ import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
-import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -22,8 +21,20 @@ class LoginScreen extends ConsumerWidget {
         error: (final error, final stack) =>
             _showSnackBar(context, error.toString(), isError: true),
         data: (final _) {
-          if (ref.read(isLoggedInProvider)) if (context.mounted)
-            NavigationHandler.goToHome(context);
+          // Not: Burada önceden `ref.read(isLoggedInProvider)` ile ekstra bir
+          // kontrol yapılıyordu. isLoggedInProvider, authStateProvider'ın
+          // (FirebaseAuth.userChanges() stream'i) senkron `.value`'sunu okur;
+          // ama _handlePostLogin sonunda bu provider invalidate edildiğinde
+          // stream'in yeni değeri (özellikle web'de, IndexedDB/JS SDK
+          // round-trip'i nedeniyle) HENÜZ senkron olarak gelmemiş olabiliyor.
+          // Bu da başarılı bir Google girişinde bu okumanın an itibarıyla
+          // hâlâ eski/boş state döndürüp yönlendirmenin sessizce atlanmasına
+          // yol açabiliyordu (kullanıcı login ekranında "asılı" kalıyordu).
+          // authMutationProvider zaten yalnızca _handlePostLogin TAMAMEN
+          // BAŞARILI olduğunda `data` state'ine geçtiği için (aksi halde
+          // `error` dalı tetiklenir) bu noktada giriş kesinlikle başarılıdır;
+          // ekstra provider kontrolüne gerek yok.
+          if (context.mounted) NavigationHandler.goToHome(context);
         },
       );
     });

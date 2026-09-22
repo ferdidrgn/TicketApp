@@ -308,8 +308,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildStat('HAFIZA', '${user.ticketsId.length}'),
-                _buildStat('ŞAHİTLİK', '12'),
-                _buildStat('DİKKAT', '8.9'),
+                _buildStat('ŞAHİTLİK', '${user.favoriteShows.length}'),
+                _buildStat('DİKKAT', '${user.favoritePlayers.length}'),
               ],
             ),
           ],
@@ -685,9 +685,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             ),
             _buildDesktopStat('HAFIZA', '${user.ticketsId.length}'),
             const SizedBox(width: 24),
-            _buildDesktopStat('ŞAHİTLİK', '12'),
+            _buildDesktopStat('ŞAHİTLİK', '${user.favoriteShows.length}'),
             const SizedBox(width: 24),
-            _buildDesktopStat('DİKKAT', '8.9'),
+            _buildDesktopStat('DİKKAT', '${user.favoritePlayers.length}'),
           ],
         ),
       );
