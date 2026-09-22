@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 
 class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
@@ -33,20 +36,21 @@ class HelpSupportPage extends StatelessWidget {
             maxWidth: isLargeScreen ? 800 : double.infinity,
           ),
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xxl, vertical: AppSpacing.xl),
             physics: const BouncingScrollPhysics(),
             children: [
               _buildSearchBox(context),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               _buildSupportActions(context),
-              const SizedBox(height: 48),
+              const SizedBox(height: AppSpacing.massive),
               _buildSectionTitle(context, 'SIKÇA SORULANLAR'),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               _buildFaqItem(context, 'Biletimi nasıl bulabilirim?',
                   'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
               _buildFaqItem(context, 'Sanatçı profili nasıl açılır?',
                   'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
-              const SizedBox(height: 40),
+              const SizedBox(height: AppSpacing.huge),
             ],
           ),
         ),
@@ -55,18 +59,22 @@ class HelpSupportPage extends StatelessWidget {
   }
 
   // Arama Kutusu (Modern & Keskin Border)
-  Widget _buildSearchBox(final BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: context.colors.surfaceVariant.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: context.colors.outlineVariant),
-        ),
-        child: const TextField(
-          decoration: InputDecoration(
-            hintText: 'Sorunun cevabını burada ara...',
-            border: InputBorder.none,
-            icon: Icon(Icons.search),
+  Widget _buildSearchBox(final BuildContext context) => Semantics(
+        textField: true,
+        label: 'Yardım merkezinde ara',
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: context.colors.surfaceVariant.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: context.colors.outlineVariant),
+          ),
+          child: const TextField(
+            decoration: InputDecoration(
+              hintText: 'Sorunun cevabını burada ara...',
+              border: InputBorder.none,
+              icon: Icon(Icons.search),
+            ),
           ),
         ),
       );
@@ -77,7 +85,7 @@ class HelpSupportPage extends StatelessWidget {
           Expanded(
               child: _buildActionCard(context, Icons.chat_bubble_outline,
                   'Canlı Destek', 'Küratörle Konuş')),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           Expanded(
               child: _buildActionCard(
                   context, Icons.mail_outline, 'E-posta', 'Mektup Gönder')),
@@ -86,42 +94,49 @@ class HelpSupportPage extends StatelessWidget {
 
   Widget _buildActionCard(final BuildContext context, final IconData icon,
           final String title, final String sub) =>
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: context.colors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: context.colors.primary.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: context.colors.primary, size: 32),
-            const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(sub,
-                style: TextStyle(
-                    fontSize: 10, color: context.colors.onSurfaceVariant)),
-          ],
+      Semantics(
+        label: '$title. $sub',
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: context.colors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: context.colors.primary.withOpacity(0.2)),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: context.colors.primary, size: 32),
+              const SizedBox(height: AppSpacing.md),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(sub,
+                  style: TextStyle(
+                      fontSize: 10, color: context.colors.onSurfaceVariant)),
+            ],
+          ),
         ),
       );
 
   // Accordion (FAQ) Item
   Widget _buildFaqItem(final BuildContext context, final String question,
           final String answer) =>
-      Theme(
-        // FAQ çizgilerini temizlemek için
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          title: Text(question,
-              style:
-                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          children: [
-            Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(answer,
-                    style: TextStyle(color: context.colors.onSurfaceVariant)))
-          ],
+      Semantics(
+        button: true,
+        label: '$question. Cevabı görmek için dokun.',
+        child: Theme(
+          // FAQ çizgilerini temizlemek için
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: Text(question,
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            children: [
+              Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  child: Text(answer,
+                      style: TextStyle(color: context.colors.onSurfaceVariant)))
+            ],
+          ),
         ),
       );
 
@@ -133,71 +148,79 @@ class HelpSupportPage extends StatelessWidget {
   // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
   // Aynı arama kutusu, aynı iletişim kartları, aynı SSS listesi; sadece
   // mobil BasePageWrapper zırhı yerine sade, WebColors temalı bir kabuk.
+  // Sayfanın en altına, sitenin diğer masaüstü sayfalarıyla aynı tam
+  // genişlikte paylaşılan `Footer` eklenir.
   Widget _buildDesktopPage(final BuildContext context) => ColoredBox(
         color: WebColors.darkBlueBackground,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: ListView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
-              physics: const BouncingScrollPhysics(),
-              children: [
-                const Text(
-                  'DANIŞMA MASASI',
-                  style: TextStyle(
-                    color: WebColors.whiteText,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 26,
-                    letterSpacing: -0.5,
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xxxl,
+                      vertical: AppSpacing.section),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'DANIŞMA MASASI',
+                        style: TextStyle(
+                          color: WebColors.whiteText,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 26,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Serüveninde sana rehberlik edelim...',
+                        style: TextStyle(
+                          color: WebColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xxxl),
+                      _buildDesktopSearchBox(),
+                      const SizedBox(height: AppSpacing.xxxl),
+                      _buildDesktopSupportActions(),
+                      const SizedBox(height: AppSpacing.massive),
+                      _buildDesktopSectionTitle('SIKÇA SORULANLAR'),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildDesktopFaqItem(context, 'Biletimi nasıl bulabilirim?',
+                          'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
+                      _buildDesktopFaqItem(context, 'Sanatçı profili nasıl açılır?',
+                          'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Serüveninde sana rehberlik edelim...',
-                  style: TextStyle(
-                    color: WebColors.textSecondary,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                _buildDesktopSearchBox(),
-                const SizedBox(height: 32),
-                _buildDesktopSupportActions(),
-                const SizedBox(height: 48),
-                _buildDesktopSectionTitle('SIKÇA SORULANLAR'),
-                const SizedBox(height: 16),
-                _buildDesktopFaqItem(context, 'Biletimi nasıl bulabilirim?',
-                    'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
-                _buildDesktopFaqItem(context, 'Sanatçı profili nasıl açılır?',
-                    'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
-                const SizedBox(height: 40),
-              ],
+              ),
             ),
-          ),
+            const Footer(),
+          ],
         ),
       );
 
-  Widget _buildDesktopSearchBox() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-            topRight: Radius.circular(6),
-            bottomLeft: Radius.circular(6),
+  Widget _buildDesktopSearchBox() => Semantics(
+        textField: true,
+        label: 'Yardım merkezinde ara',
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
           ),
-          border: Border.all(
-              color: WebColors.darkBlueAccent.withOpacity(0.8)),
-        ),
-        child: TextField(
-          style: const TextStyle(color: WebColors.whiteText),
-          decoration: InputDecoration(
-            hintText: 'Sorunun cevabını burada ara...',
-            hintStyle: TextStyle(color: WebColors.textTertiary),
-            border: InputBorder.none,
-            icon: const Icon(Icons.search, color: WebColors.textSecondary),
+          child: TextField(
+            style: const TextStyle(color: WebColors.whiteText),
+            decoration: InputDecoration(
+              hintText: 'Sorunun cevabını burada ara...',
+              hintStyle: TextStyle(color: WebColors.textTertiary),
+              border: InputBorder.none,
+              icon: const Icon(Icons.search, color: WebColors.textSecondary),
+            ),
           ),
         ),
       );
@@ -207,7 +230,7 @@ class HelpSupportPage extends StatelessWidget {
           Expanded(
               child: _buildDesktopActionCard(Icons.chat_bubble_outline,
                   'Canlı Destek', 'Küratörle Konuş')),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           Expanded(
               child: _buildDesktopActionCard(
                   Icons.mail_outline, 'E-posta', 'Mektup Gönder')),
@@ -216,30 +239,26 @@ class HelpSupportPage extends StatelessWidget {
 
   Widget _buildDesktopActionCard(
           final IconData icon, final String title, final String sub) =>
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            bottomRight: Radius.circular(20),
-            topRight: Radius.circular(6),
-            bottomLeft: Radius.circular(6),
+      Semantics(
+        label: '$title. $sub',
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: AppRadius.asymLg,
+            border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
           ),
-          border: Border.all(
-              color: WebColors.primaryGold.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: WebColors.primaryGold, size: 32),
-            const SizedBox(height: 12),
-            Text(title,
-                style: const TextStyle(
-                    color: WebColors.whiteText, fontWeight: FontWeight.bold)),
-            Text(sub,
-                style: TextStyle(
-                    fontSize: 10, color: WebColors.textSecondary)),
-          ],
+          child: Column(
+            children: [
+              Icon(icon, color: WebColors.primaryGold, size: 32),
+              const SizedBox(height: AppSpacing.md),
+              Text(title,
+                  style: const TextStyle(
+                      color: WebColors.whiteText, fontWeight: FontWeight.bold)),
+              Text(sub,
+                  style: TextStyle(fontSize: 10, color: WebColors.textSecondary)),
+            ],
+          ),
         ),
       );
 
@@ -252,34 +271,33 @@ class HelpSupportPage extends StatelessWidget {
 
   Widget _buildDesktopFaqItem(final BuildContext context,
           final String question, final String answer) =>
-      Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-            topRight: Radius.circular(6),
-            bottomLeft: Radius.circular(6),
+      Semantics(
+        button: true,
+        label: '$question. Cevabı görmek için dokun.',
+        child: Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: AppRadius.asymSm,
           ),
-        ),
-        child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            iconColor: WebColors.primaryGold,
-            collapsedIconColor: WebColors.textSecondary,
-            title: Text(question,
-                style: const TextStyle(
-                    color: WebColors.whiteText,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600)),
-            children: [
-              Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(answer,
-                      style: TextStyle(color: WebColors.textSecondary)))
-            ],
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              iconColor: WebColors.primaryGold,
+              collapsedIconColor: WebColors.textSecondary,
+              title: Text(question,
+                  style: const TextStyle(
+                      color: WebColors.whiteText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600)),
+              children: [
+                Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: Text(answer,
+                        style: TextStyle(color: WebColors.textSecondary)))
+              ],
+            ),
           ),
         ),
       );

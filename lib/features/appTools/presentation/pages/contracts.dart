@@ -4,6 +4,9 @@ import 'package:simple_html_css/simple_html_css.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
+import 'package:ticketapp/shared/widgets/footers/footer.dart';
 import '../providers/app_tools_provider.dart';
 
 class ContractsPage extends ConsumerWidget {
@@ -33,7 +36,8 @@ class ContractsPage extends ConsumerWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: isWebOrTablet ? 800 : double.infinity, // Web'de 800px sınırı
+              maxWidth:
+                  isWebOrTablet ? 800 : double.infinity, // Web'de 800px sınırı
             ),
             child: Column(
               children: [
@@ -58,25 +62,31 @@ class ContractsPage extends ConsumerWidget {
   Widget _buildModernTabBar(final BuildContext context) {
     final color = context.colors;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      margin: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxl, vertical: AppSpacing.lg),
       decoration: BoxDecoration(
         color: color.surfaceVariant.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
-      child: TabBar(
-        dividerColor: Colors.transparent,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: color.primary,
+      child: Semantics(
+        container: true,
+        label: 'Gizlilik ve şartlar sekmeleri',
+        child: TabBar(
+          dividerColor: Colors.transparent,
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            color: color.primary,
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelColor: color.onPrimary,
+          unselectedLabelColor: color.onSurfaceVariant,
+          labelStyle:
+              const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          tabs: const [
+            Tab(text: 'GİZLİLİK'),
+            Tab(text: 'ŞARTLAR'),
+          ],
         ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: color.onPrimary,
-        unselectedLabelColor: color.onSurfaceVariant,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-        tabs: const [
-          Tab(text: 'GİZLİLİK'),
-          Tab(text: 'ŞARTLAR'),
-        ],
       ),
     );
   }
@@ -85,91 +95,108 @@ class ContractsPage extends ConsumerWidget {
   Widget _buildPrivacyTab(final BuildContext context, final WidgetRef ref) {
     final privacyAsync = ref.watch(privacyPolicyProvider);
     return privacyAsync.when(
-      data: (final content) => _buildContentTab(context, ref, content, () => ref.invalidate(privacyPolicyProvider)),
+      data: (final content) => _buildContentTab(
+          context, ref, content, () => ref.invalidate(privacyPolicyProvider)),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (final err, final _) => _buildErrorState(context, err.toString(), () => ref.invalidate(privacyPolicyProvider)),
+      error: (final err, final _) => _buildErrorState(
+          context, err.toString(), () => ref.invalidate(privacyPolicyProvider)),
     );
   }
 
   Widget _buildTermsTab(final BuildContext context, final WidgetRef ref) {
     final termsAsync = ref.watch(termsConditionProvider);
     return termsAsync.when(
-      data: (final content) => _buildContentTab(context, ref, content, () => ref.invalidate(termsConditionProvider)),
+      data: (final content) => _buildContentTab(
+          context, ref, content, () => ref.invalidate(termsConditionProvider)),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (final err, final _) => _buildErrorState(context, err.toString(), () => ref.invalidate(termsConditionProvider)),
+      error: (final err, final _) => _buildErrorState(context, err.toString(),
+          () => ref.invalidate(termsConditionProvider)),
     );
   }
 
-  Widget _buildContentTab(final BuildContext context, final WidgetRef ref, final String? content, final VoidCallback onRefresh) {
+  Widget _buildContentTab(final BuildContext context, final WidgetRef ref,
+      final String? content, final VoidCallback onRefresh) {
     if (content == null) return const Center(child: Text("İçerik Bulunamadı"));
 
     return RefreshIndicator(
       onRefresh: () async => onRefresh(),
       color: context.colors.primary,
       child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           _buildHtmlContent(context, content),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
           _buildLastUpdated(context),
-          const SizedBox(height: 40),
+          const SizedBox(height: AppSpacing.huge),
         ],
       ),
     );
   }
 
-  Widget _buildHtmlContent(final BuildContext context, final String content) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(24), // Web için padding arttırıldı
-    decoration: BoxDecoration(
-      color: context.colors.surfaceVariant.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: context.colors.outlineVariant.withOpacity(0.5)),
-    ),
-    child: RichText(
-      text: HTML.toTextSpan(
-        context,
-        content,
-        defaultTextStyle: TextStyle(
-          fontSize: 16, // Web'de okunabilirlik için 16px
-          height: 1.7,
-          color: context.colors.onSurface,
-          decoration: TextDecoration.none,
+  Widget _buildHtmlContent(final BuildContext context, final String content) =>
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.xxl), // Web için padding arttırıldı
+        decoration: BoxDecoration(
+          color: context.colors.surfaceVariant.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border:
+              Border.all(color: context.colors.outlineVariant.withOpacity(0.5)),
         ),
-      ),
-    ),
-  );
+        child: RichText(
+          text: HTML.toTextSpan(
+            context,
+            content,
+            defaultTextStyle: TextStyle(
+              fontSize: 16, // Web'de okunabilirlik için 16px
+              height: 1.7,
+              color: context.colors.onSurface,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      );
 
   Widget _buildLastUpdated(final BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.history_rounded, size: 14, color: context.colors.onSurfaceVariant),
-      const SizedBox(width: 8),
-      Text(
-        'Son Güncelleme: ${DateTime.now().toString().split(' ')[0]}',
-        style: context.textTheme.labelSmall?.copyWith(
-          color: context.colors.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
-      ),
-    ],
-  );
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history_rounded,
+              size: 14, color: context.colors.onSurfaceVariant),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            'Son Güncelleme: ${DateTime.now().toString().split(' ')[0]}',
+            style: context.textTheme.labelSmall?.copyWith(
+              color: context.colors.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      );
 
-  Widget _buildErrorState(final BuildContext context, final String message, final VoidCallback onRetry) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.error_outline_rounded, size: 48, color: context.colors.error),
-      const SizedBox(height: 16),
-      Text("Döküman yüklenirken bir hata oluştu.", style: context.textTheme.bodyMedium),
-      TextButton(onPressed: onRetry, child: const Text("Tekrar Dene")),
-    ],
-  );
+  Widget _buildErrorState(
+          final BuildContext context, final String message, final VoidCallback onRetry) =>
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline_rounded, size: 48, color: context.colors.error),
+          const SizedBox(height: AppSpacing.lg),
+          Text("Döküman yüklenirken bir hata oluştu.",
+              style: context.textTheme.bodyMedium),
+          Semantics(
+            button: true,
+            label: 'Dökümanı tekrar yüklemeyi dene',
+            child: TextButton(onPressed: onRetry, child: const Text("Tekrar Dene")),
+          ),
+        ],
+      );
 
   // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
   // Aynı privacyPolicyProvider/termsConditionProvider verisi, aynı
   // yenileme akışı; sadece mobil BasePageWrapper zırhı yerine sade,
-  // WebColors temalı bir sekmeli görünüm.
+  // WebColors temalı bir sekmeli görünüm. Her sekmenin kendi kaydırılabilir
+  // içeriğinin sonuna, sitenin diğer masaüstü sayfalarıyla aynı paylaşılan
+  // `Footer` eklenir.
   Widget _buildDesktopPage(final BuildContext context, final WidgetRef ref) =>
       ColoredBox(
         color: WebColors.darkBlueBackground,
@@ -179,12 +206,13 @@ class ContractsPage extends ConsumerWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxxl,
+                    vertical: AppSpacing.section),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'LEGAL DÖKÜMANLAR',
                       style: TextStyle(
                         color: WebColors.whiteText,
@@ -193,7 +221,7 @@ class ContractsPage extends ConsumerWidget {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Koleksiyon kurallarını ve güvenliğini incele...',
                       style: TextStyle(
@@ -201,9 +229,9 @@ class ContractsPage extends ConsumerWidget {
                         fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xxl),
                     _buildDesktopTabBar(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xxl),
                     Expanded(
                       child: TabBarView(
                         children: [
@@ -223,33 +251,27 @@ class ContractsPage extends ConsumerWidget {
   Widget _buildDesktopTabBar() => Container(
         decoration: BoxDecoration(
           color: WebColors.darkBlueSurface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-            topRight: Radius.circular(6),
-            bottomLeft: Radius.circular(6),
-          ),
+          borderRadius: AppRadius.asymSm,
         ),
-        child: TabBar(
-          dividerColor: Colors.transparent,
-          indicator: const BoxDecoration(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(16),
-              bottomRight: Radius.circular(16),
-              topRight: Radius.circular(6),
-              bottomLeft: Radius.circular(6),
+        child: Semantics(
+          container: true,
+          label: 'Gizlilik ve şartlar sekmeleri',
+          child: TabBar(
+            dividerColor: Colors.transparent,
+            indicator: BoxDecoration(
+              borderRadius: AppRadius.asymSm,
+              color: WebColors.primaryGold,
             ),
-            color: WebColors.primaryGold,
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: WebColors.whiteText,
+            unselectedLabelColor: WebColors.textSecondary,
+            labelStyle:
+                const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            tabs: const [
+              Tab(text: 'GİZLİLİK'),
+              Tab(text: 'ŞARTLAR'),
+            ],
           ),
-          indicatorSize: TabBarIndicatorSize.tab,
-          labelColor: WebColors.whiteText,
-          unselectedLabelColor: WebColors.textSecondary,
-          labelStyle:
-              const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-          tabs: const [
-            Tab(text: 'GİZLİLİK'),
-            Tab(text: 'ŞARTLAR'),
-          ],
         ),
       );
 
@@ -293,9 +315,12 @@ class ContractsPage extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           _buildDesktopHtmlContent(context, content),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
           _buildDesktopLastUpdated(),
-          const SizedBox(height: 40),
+          const SizedBox(height: AppSpacing.massive),
+          // Web masaüstü deneyiminde sekme içeriğinin sonuna site geneli
+          // footer eklenir.
+          const Footer(),
         ],
       ),
     );
@@ -305,15 +330,10 @@ class ContractsPage extends ConsumerWidget {
           final BuildContext context, final String content) =>
       Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         decoration: BoxDecoration(
           color: WebColors.darkBlueSurface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
-            topRight: Radius.circular(8),
-            bottomLeft: Radius.circular(8),
-          ),
+          borderRadius: AppRadius.asymLg,
           border:
               Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
         ),
@@ -336,7 +356,7 @@ class ContractsPage extends ConsumerWidget {
         children: [
           const Icon(Icons.history_rounded,
               size: 14, color: WebColors.textTertiary),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             'Son Güncelleme: ${DateTime.now().toString().split(' ')[0]}',
             style: const TextStyle(
@@ -355,13 +375,18 @@ class ContractsPage extends ConsumerWidget {
         children: [
           const Icon(Icons.error_outline_rounded,
               size: 48, color: WebColors.error),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           const Text("Döküman yüklenirken bir hata oluştu.",
               style: TextStyle(color: WebColors.whiteText)),
-          TextButton(
-            onPressed: onRetry,
-            style: TextButton.styleFrom(foregroundColor: WebColors.primaryGoldLight),
-            child: const Text("Tekrar Dene"),
+          Semantics(
+            button: true,
+            label: 'Dökümanı tekrar yüklemeyi dene',
+            child: TextButton(
+              onPressed: onRetry,
+              style:
+                  TextButton.styleFrom(foregroundColor: WebColors.primaryGoldLight),
+              child: const Text("Tekrar Dene"),
+            ),
           ),
         ],
       );
