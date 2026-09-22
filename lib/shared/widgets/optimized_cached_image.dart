@@ -97,9 +97,15 @@ class OptimizedCachedImage extends StatelessWidget {
     );
   }
 
-  /// 🛡️ Hata durumunda görünecek şık yer tutucu
+  /// 🛡️ Hata durumunda görünecek yer tutucu.
+  /// Önceden düz Material `Colors.grey[...]` kullanıyordu — uygulamanın
+  /// gerçek marka paletiyle (lacivert/bordo/altın) hiçbir ilgisi olmayan,
+  /// "tasarlanmamış" gri bir kutu. Artık aktif temanın kendi renk şemasından
+  /// (`ColorScheme.onSurface`/`outline`) türetiliyor — hangi ekranda,
+  /// hangi temada görünürse görünsün sayfanın geri kalanıyla aynı
+  /// ailede, marka rengine hafifçe eğilen bir nötr olarak okunuyor.
   Widget _buildErrorWidget(final BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colors = Theme.of(context).colorScheme;
     final double effectiveRadius =
         isCircular ? (height ?? width ?? 50) / 2 : borderRadius;
 
@@ -107,12 +113,12 @@ class OptimizedCachedImage extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-          color: isDarkMode ? Colors.grey[900] : Colors.grey[200],
+          color: colors.onSurface.withOpacity(0.08),
           borderRadius: BorderRadius.circular(effectiveRadius)),
       child: Center(
         child: Icon(
           Icons.broken_image_outlined,
-          color: isDarkMode ? Colors.grey[700] : Colors.grey[400],
+          color: colors.outline,
           size: (width != null && width! < 50) ? 18 : 24,
         ),
       ),
