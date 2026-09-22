@@ -24,8 +24,8 @@ class ContractsPage extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: BasePageWrapper(
-        title: 'LEGAL DÖKÜMANLAR',
-        subtitle: 'Koleksiyon kurallarını ve güvenliğini incele...',
+        title: 'Yasal Bilgiler',
+        subtitle: 'Gizlilik politikası ve kullanım şartları.',
         rightIcon: Icons.gavel_rounded,
         showBackButton: true,
         layoutConfig: BasePageLayoutConfig(
@@ -213,7 +213,7 @@ class ContractsPage extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'LEGAL DÖKÜMANLAR',
+                      'Yasal Bilgiler',
                       style: TextStyle(
                         color: WebColors.whiteText,
                         fontWeight: FontWeight.w900,
@@ -223,7 +223,7 @@ class ContractsPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Koleksiyon kurallarını ve güvenliğini incele...',
+                      'Gizlilik politikası ve kullanım şartları.',
                       style: TextStyle(
                         color: WebColors.textSecondary,
                         fontSize: 14,

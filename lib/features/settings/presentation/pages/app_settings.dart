@@ -1,20 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ticketapp/core/services/deeplink/deeplink_service.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/constants/app_constants.dart';
+import '../../../../core/common/enum/enums.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/theme_notifier.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 
-class AppSettingsPage extends StatelessWidget {
+class AppSettingsPage extends ConsumerWidget {
   const AppSettingsPage({super.key});
+
+  // 🎨 Tema Rengi seçicide sunulan hazır vurgu renkleri. `WebColors`/
+  // `AppLightColors`/`AppDarkColors` sabitlerine hiç dokunulmaz — bunlar
+  // `ColorScheme.fromSeed()`'e girecek tamamen ayrı, kullanıcı tercihi
+  // renk seçenekleridir (materialLight/materialDark'ın duvar kağıdından
+  // seed üretme tekniğiyle aynı mantık).
+  static const List<Color> _accentColorPresets = [
+    Colors.deepPurple,
+    Colors.indigo,
+    Colors.blue,
+    Colors.teal,
+    Colors.green,
+    Colors.amber,
+    Colors.deepOrange,
+    Colors.pink,
+    Colors.brown,
+    Colors.blueGrey,
+  ];
 
   Future<void> _handlePermission(final Permission permission) async {
     if (await permission.isDenied) await permission.request();
@@ -25,19 +46,86 @@ class AppSettingsPage extends StatelessWidget {
       'Ruhunu sanatla besleyecek bu serüvene sen de katıl: ${AppConstants.shareUrl}',
       subject: 'Sanat Serüveni');
 
+  Future<void> _showAccentColorPicker(
+      final BuildContext context, final WidgetRef ref) async {
+    final colors = context.colors;
+    final currentColor = ref.read(customAccentColorProvider);
+
+    await showDialog<void>(
+      context: context,
+      builder: (final dialogContext) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg)),
+        title: const Text('Tema Rengini Seç'),
+        content: SizedBox(
+          width: 320,
+          child: Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
+            children: _accentColorPresets.map((final swatch) {
+              final isSelected = currentColor?.value == swatch.value;
+              return Semantics(
+                button: true,
+                label: 'Tema rengi olarak seç',
+                selected: isSelected,
+                child: GestureDetector(
+                  onTap: () {
+                    ref
+                        .read(themeProvider.notifier)
+                        .setCustomAccentColor(swatch);
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: AnimatedContainer(
+                    duration: AppMotion.fast,
+                    curve: AppMotion.standard,
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: swatch,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? colors.onSurface : Colors.transparent,
+                        width: 2.5,
+                      ),
+                      boxShadow: AppShadows.level1(swatch),
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check_rounded, color: Colors.white)
+                        : null,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Vazgeç'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     // 🖥️ Masaüstü/web: BasePageWrapper'ın mobil zırhı (gradient başlık, FAB,
-    // parçacık arkaplanı) yerine kendi sade web kabuğunu kullanır.
+    // parçacık arkaplanı) yerine kendi sade web kabuğunu kullanır. Tema
+    // rengi seçimi bilinçli olarak sadece mobil/app tarafında — web renkleri
+    // (`WebColors`) sabit kalmaya devam eder.
     if (context.isDesktop) return _buildDesktopPage(context);
 
     final theme = context.theme;
     final colors = context.colors;
+    final currentThemeStyle = ref.watch(themeProvider);
+    final currentAccentColor = ref.watch(customAccentColorProvider);
 
     return BasePageWrapper(
       // 🎯 Header Parametreleri (Artık Wrapper tarafından otomatik yönetiliyor)
-      title: 'ATÖLYE PANELİ',
-      subtitle: 'Serüvenin teknik detaylarını restore et...',
+      title: 'Ayarlar',
+      subtitle: 'İzinlerini ve uygulama tercihlerini yönet.',
       rightIcon: Icons.handyman_rounded,
       showBackButton: true,
       showFab: false,
@@ -59,34 +147,45 @@ class AppSettingsPage extends StatelessWidget {
           ),
 
           const SizedBox(height: AppSpacing.xxxl),
-          _buildSectionTitle(context, 'DUYUSAL AYARLAR'),
+          _buildSectionTitle(context, 'İZİNLER'),
           const SizedBox(height: AppSpacing.lg),
 
           _buildAtelierTile(
             context,
-            title: 'Mekansal Rezonans',
-            subtitle: 'Çevrendeki sanat duraklarını hisset.',
+            title: 'Konum İzni',
+            subtitle: 'Yakınındaki gösterileri bulabilmemiz için izin ver.',
             icon: Icons.location_searching_rounded,
             color: colors.primary,
             onTap: () => _handlePermission(Permission.location),
           ),
           _buildAtelierTile(
             context,
-            title: 'Sanat Fısıltıları',
-            subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
+            title: 'Bildirimler',
+            subtitle: 'Yeni gösteriler ve kampanyalardan haberdar ol.',
             icon: Icons.vibration_rounded,
             color: colors.secondary,
             onTap: () => _handlePermission(Permission.notification),
           ),
 
           const SizedBox(height: AppSpacing.xxxl),
-          _buildSectionTitle(context, 'GALERİ YAYILIMI'),
+          _buildSectionTitle(context, 'GÖRÜNÜM'),
+          const SizedBox(height: AppSpacing.lg),
+
+          _buildAccentColorTile(
+            context,
+            currentThemeStyle: currentThemeStyle,
+            currentAccentColor: currentAccentColor,
+            onTap: () => _showAccentColorPicker(context, ref),
+          ),
+
+          const SizedBox(height: AppSpacing.xxxl),
+          _buildSectionTitle(context, 'UYGULAMAYI DESTEKLE'),
           const SizedBox(height: AppSpacing.lg),
 
           _buildCreativeAction(
             context,
-            title: 'Atölyeyi Puanla',
-            desc: 'Bu koleksiyonu yıldızlarla parlat.',
+            title: 'Uygulamayı Öner',
+            desc: 'Mağaza indirme bağlantısını paylaşarak bize destek ol.',
             icon: Icons.auto_awesome_rounded,
             gradient: [colors.primary, colors.primaryContainer],
             textColor: colors.onPrimary,
@@ -95,8 +194,8 @@ class AppSettingsPage extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           _buildCreativeAction(
             context,
-            title: 'İlhamı Paylaş',
-            desc: 'Sanatı bir dostunun kalbine bırak.',
+            title: 'Arkadaşlarınla Paylaş',
+            desc: 'TiyatRol\'ü mesajla ya da sosyal medyada paylaş.',
             icon: Icons.send_rounded,
             gradient: [colors.secondary, colors.secondaryContainer],
             textColor: colors.onSecondary,
@@ -169,6 +268,87 @@ class AppSettingsPage extends StatelessWidget {
                     children: [
                       Text(title,
                           style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 15)),
+                      Text(subtitle,
+                          style: TextStyle(
+                              color: colors.onSurface.withOpacity(0.5),
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: colors.outline),
+                const SizedBox(width: AppSpacing.md),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // "Tema Rengi" satırı — seçili özel rengi (varsa) dairesel bir örnekle
+  // gösterir, dokununca renk ızgarası diyaloğunu açar.
+  Widget _buildAccentColorTile(
+    final BuildContext context, {
+    required final AppThemeStyle currentThemeStyle,
+    required final Color? currentAccentColor,
+    required final VoidCallback onTap,
+  }) {
+    final colors = context.colors;
+    final isCustomActive = currentThemeStyle == AppThemeStyle.custom;
+    final swatchColor = currentAccentColor ?? colors.primary;
+    final subtitle = isCustomActive && currentAccentColor != null
+        ? 'Şu an kendi seçtiğin renk kullanılıyor.'
+        : 'Uygulamanın vurgu rengini kendin seç.';
+
+    return Semantics(
+      button: true,
+      label: 'Tema Rengi. $subtitle',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
+            boxShadow: AppShadows.level1(swatchColor),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Container(
+                  width: 6,
+                  decoration: BoxDecoration(
+                    color: swatchColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(AppRadius.lg),
+                      bottomLeft: Radius.circular(AppRadius.lg),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: swatchColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colors.outlineVariant),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Tema Rengi',
+                          style: TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 15)),
                       Text(subtitle,
                           style: TextStyle(
@@ -272,7 +452,7 @@ class AppSettingsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'ATÖLYE PANELİ',
+                        'Ayarlar',
                         style: TextStyle(
                           color: WebColors.whiteText,
                           fontWeight: FontWeight.w900,
@@ -282,43 +462,45 @@ class AppSettingsPage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Serüvenin teknik detaylarını restore et...',
+                        'İzinlerini ve uygulama tercihlerini yönet.',
                         style: TextStyle(
                           color: WebColors.textSecondary,
                           fontSize: 14,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.huge),
-                      _buildDesktopSectionTitle('DUYUSAL AYARLAR'),
+                      _buildDesktopSectionTitle('İZİNLER'),
                       const SizedBox(height: AppSpacing.lg),
                       _DesktopHoverTile(
                         icon: Icons.location_searching_rounded,
-                        title: 'Mekansal Rezonans',
-                        subtitle: 'Çevrendeki sanat duraklarını hisset.',
+                        title: 'Konum İzni',
+                        subtitle:
+                            'Yakınındaki gösterileri bulabilmemiz için izin ver.',
                         onTap: () => _handlePermission(Permission.location),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       _DesktopHoverTile(
                         icon: Icons.vibration_rounded,
-                        title: 'Sanat Fısıltıları',
-                        subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
+                        title: 'Bildirimler',
+                        subtitle: 'Yeni gösteriler ve kampanyalardan haberdar ol.',
                         onTap: () =>
                             _handlePermission(Permission.notification),
                       ),
                       const SizedBox(height: AppSpacing.huge),
-                      _buildDesktopSectionTitle('GALERİ YAYILIMI'),
+                      _buildDesktopSectionTitle('UYGULAMAYI DESTEKLE'),
                       const SizedBox(height: AppSpacing.lg),
                       _DesktopHoverAction(
                         icon: Icons.auto_awesome_rounded,
-                        title: 'Atölyeyi Puanla',
-                        desc: 'Bu koleksiyonu yıldızlarla parlat.',
+                        title: 'Uygulamayı Öner',
+                        desc:
+                            'Mağaza indirme bağlantısını paylaşarak bize destek ol.',
                         onTap: () => TiyatrolDeeplinkService.shareApp(),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       _DesktopHoverAction(
                         icon: Icons.send_rounded,
-                        title: 'İlhamı Paylaş',
-                        desc: 'Sanatı bir dostunun kalbine bırak.',
+                        title: 'Arkadaşlarınla Paylaş',
+                        desc: 'TiyatRol\'ü mesajla ya da sosyal medyada paylaş.',
                         onTap: _shareApp,
                       ),
                       const SizedBox(height: AppSpacing.massive),

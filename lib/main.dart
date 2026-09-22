@@ -60,10 +60,12 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(final BuildContext context) {
     final currentStyle = ref.watch(themeProvider);
     final themeNotifier = ref.watch(themeProvider.notifier);
+    final customAccentColor = ref.watch(customAccentColorProvider);
     final localeAsync = ref.watch(localeControllerProvider);
     final authMutation = ref.watch(authMutationProvider);
     final isWeb = PlatformChecker.isWeb;
-    final themeManager = ThemeManager(currentStyle);
+    final themeManager =
+        ThemeManager(currentStyle, customAccentColor: customAccentColor);
 
     // 🔔 PUSH/FCM: İzinleri iste, cihaz token'ını al ve dinleyicileri
     // (onMessage / onMessageOpenedApp / onTokenRefresh) kur. Daha önce bu

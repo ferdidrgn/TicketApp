@@ -6,7 +6,14 @@ import 'app_theme.dart';
 class ThemeManager {
   final AppThemeStyle style;
 
-  ThemeManager(this.style);
+  /// Kullanıcının Ayarlar > Tema Rengi'nden seçtiği özel vurgu rengi.
+  /// Sadece `style == AppThemeStyle.custom` iken kullanılır; `materialLight`/
+  /// `materialDark`'ın duvar kağıdı renginden `seedColor` üretme tekniğiyle
+  /// aynı yöntem — `WebColors`/`AppLightColors`/`AppDarkColors` sabitlerine
+  /// hiç dokunmadan tamamen yeni bir `ColorScheme.fromSeed` üretir.
+  final Color? customAccentColor;
+
+  ThemeManager(this.style, {this.customAccentColor});
 
   ThemeData getLightTheme(final ColorScheme? lightDynamic) {
     const fixedSeedColor = AppLightColors.primary;
@@ -32,6 +39,12 @@ class ThemeManager {
             colors: lightDynamic ??
                 ColorScheme.fromSeed(
                     seedColor: seed, brightness: Brightness.light));
+
+      case AppThemeStyle.custom:
+        final seed = customAccentColor ?? fixedSeedColor;
+        return AppTheme.createTheme(
+            colors: ColorScheme.fromSeed(
+                seedColor: seed, brightness: Brightness.light));
     }
   }
 
@@ -87,6 +100,14 @@ class ThemeManager {
                   secondaryContainer: atmosphericColor,
                   onSurface: Colors.white),
         );
+
+      // DURUM 6: Kullanıcının kendi seçtiği tema rengi (Ayarlar > Tema Rengi)
+      // -------------------------------------------------------------
+      case AppThemeStyle.custom:
+        final seed = customAccentColor ?? defaultSeed;
+        return AppTheme.createTheme(
+            colors: ColorScheme.fromSeed(
+                seedColor: seed, brightness: Brightness.dark));
     }
   }
 }

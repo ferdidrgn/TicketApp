@@ -26,4 +26,5 @@ enum AppThemeStyle {
   system, // Telefon ayarına göre sabit renkler (Oto)
   materialLight, // Duvar kağıdı rengi (Gündüz)
   materialDark, // Duvar kağıdı rengi + ATMOSFERİK MOD (Gece)
+  custom, // Kullanıcının Ayarlar'dan kendi seçtiği vurgu rengi
 }
