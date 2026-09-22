@@ -64,15 +64,15 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             physics: const BouncingScrollPhysics(),
             children: [
-              // 1. ÖNE ÇIKAN BAŞYAPITLAR (gerçek oyun verisiyle)
-              SectionHeader(
-                title: 'Haftanın Başyapıtları',
-                subtitle: 'Seçkiler',
-                titleColor: premium ? Colors.white : null,
-                accentColor: premium ? WebColors.primaryGold : null,
-              ),
-              const SizedBox(height: 16),
-              _buildTrendingSlider(premium),
+              // 1. AKTİF OYUNLAR / DİĞER OYUNLAR — takviminde gelecek
+              // etkinliği olan gerçek "aktif" oyunlar kendi başlığı
+              // altında, aktif OLMAYANLAR "Diğer Oyunlar" başlığı altında.
+              // Hiçbir oyun gizlenmiyor — sadece görsel/başlıklı bir ayrım
+              // ekleniyor. Aktiflik mantığı burada YENİDEN YAZILMIYOR:
+              // `show_provider.dart`'taki `activeShowsProvider`/
+              // `showsActiveFirstProvider` (`_activeShowIdsFromEvents`den
+              // türeyen) aynen tüketiliyor.
+              _buildActiveOtherShowSections(premium),
 
               const SizedBox(height: 40),
 
@@ -104,13 +104,19 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     );
   }
 
-  Widget _buildTrendingSlider(final bool premium) {
-    final showsState = ref.watch(showsProvider(isLimit: true));
+  // `showsActiveFirstProvider`/`activeShowsProvider` (show_provider.dart)
+  // burada da aynen tüketiliyor — "aktif" hesabı elle tekrar YAZILMIYOR.
+  // `all` HİÇBİR oyunu gizlemez (aktif önce sıralı, tam liste);
+  // `activeState`'ten gelen gerçek aktif id kümesiyle iki gerçek alt
+  // listeye (aktif / diğer) bölünüyor, ikisi de aynı sayfada gösteriliyor.
+  Widget _buildActiveOtherShowSections(final bool premium) {
+    final allState = ref.watch(showsActiveFirstProvider(true));
+    final activeState = ref.watch(activeShowsProvider(true));
 
-    return SizedBox(
-      height: 240,
-      child: showsState.when(
-        loading: () => ListView.builder(
+    if (allState.isLoading && allState.value == null) {
+      return SizedBox(
+        height: 240,
+        child: ListView.builder(
           scrollDirection: Axis.horizontal,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: 3,
@@ -119,31 +125,78 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
             child: ShimmerLoading(width: 320, height: 240, borderRadius: 28),
           ),
         ),
-        error: (final err, final stack) => Center(
-          child: Text('Oyunlar yüklenemedi',
-              style: TextStyle(
-                  color: premium ? Colors.white70 : context.colors.error)),
-        ),
-        data: (final shows) {
-          if (shows.isEmpty)
-            return Center(
-                child: Text('Henüz öne çıkan oyun yok',
-                    style: TextStyle(
-                        color: premium
-                            ? Colors.white70
-                            : context.colors.onSurfaceVariant)));
+      );
+    }
 
-          return ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: shows.length,
-            itemBuilder: (final context, final index) =>
-                _buildTrendingCard(shows[index], premium),
-          );
-        },
-      ),
+    if (allState.hasError) {
+      return Center(
+        child: Text('Oyunlar yüklenemedi',
+            style: TextStyle(
+                color: premium ? Colors.white70 : context.colors.error)),
+      );
+    }
+
+    final List<Show> all = allState.value ?? const <Show>[];
+    if (all.isEmpty) {
+      return Center(
+          child: Text('Henüz öne çıkan oyun yok',
+              style: TextStyle(
+                  color: premium
+                      ? Colors.white70
+                      : context.colors.onSurfaceVariant)));
+    }
+
+    // `activeState` henüz yüklenmediyse (kısa bir an) geçici olarak boş
+    // kümeye düşer — `all` zaten aktif-önce sıralı geldiği için görsel
+    // olarak yanlış bir şey göstermez, sadece başlıklı ayrım bir an
+    // gecikebilir.
+    final Set<String> activeIds =
+        (activeState.value ?? const <Show>[]).map((final s) => s.id).toSet();
+    final List<Show> active =
+        all.where((final s) => activeIds.contains(s.id)).toList();
+    final List<Show> other =
+        all.where((final s) => !activeIds.contains(s.id)).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (active.isNotEmpty) ...[
+          SectionHeader(
+            title: 'Aktif Oyunlar',
+            subtitle: 'Sahnede',
+            titleColor: premium ? Colors.white : null,
+            accentColor: premium ? WebColors.primaryGold : null,
+          ),
+          const SizedBox(height: 16),
+          _buildShowRow(active, premium),
+        ],
+        if (active.isNotEmpty && other.isNotEmpty)
+          const SizedBox(height: 32),
+        if (other.isNotEmpty) ...[
+          SectionHeader(
+            title: 'Diğer Oyunlar',
+            subtitle: 'Arşiv',
+            titleColor: premium ? Colors.white : null,
+            accentColor: premium ? WebColors.primaryGold : null,
+          ),
+          const SizedBox(height: 16),
+          _buildShowRow(other, premium),
+        ],
+      ],
     );
   }
+
+  Widget _buildShowRow(final List<Show> shows, final bool premium) =>
+      SizedBox(
+        height: 240,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: shows.length,
+          itemBuilder: (final context, final index) =>
+              _buildTrendingCard(shows[index], premium),
+        ),
+      );
 
   Widget _buildTrendingCard(final Show show, final bool premium) =>
       GestureDetector(
@@ -462,13 +515,17 @@ class _DiscoveryDesktopBrowserState
     // `shows` burada `showsActiveFirstProvider`'ın TÜM sonucu (aktif +
     // aktif olmayan, hiçbiri gizlenmiyor) — rozetin "AKTİF OYUN" yazıp
     // bu listenin tam uzunluğunu (ör. 5) göstermesi yanıltıcıydı, çünkü
-    // gerçekte bunların çoğu aktif olmayabilir. Rozet için gerçek aktif
-    // sayıyı ayrıca `activeShowsProvider`dan okuyoruz; arşiv modunda zaten
-    // etiket "GEÇMİŞ OYUN"a dönüyor ve `shows` doğrudan geçmiş oyunlar
-    // olduğu için orada bu ayrıma gerek yok.
-    final int activeCount = _showPast
-        ? shows.length
-        : (ref.watch(activeShowsProvider(false)).value?.length ?? shows.length);
+    // gerçekte bunların çoğu aktif olmayabilir. Rozet için (ve aşağıdaki
+    // ızgaranın "Aktif Oyunlar"/"Diğer Oyunlar" ayrımı için) gerçek aktif
+    // Show listesini TEK bir yerden okuyoruz; arşiv modunda zaten etiket
+    // "GEÇMİŞ OYUN"a dönüyor ve `shows` doğrudan geçmiş oyunlar olduğu için
+    // orada bu ayrıma gerek yok.
+    final List<Show>? realActiveShows =
+        ref.watch(activeShowsProvider(false)).value;
+    final Set<String> realActiveIds =
+        (realActiveShows ?? const <Show>[]).map((final s) => s.id).toSet();
+    final int activeCount =
+        _showPast ? shows.length : (realActiveShows?.length ?? shows.length);
     final categories = <String>{
       for (final show in shows)
         if (show.category.trim().isNotEmpty) show.category,
@@ -498,6 +555,21 @@ class _DiscoveryDesktopBrowserState
     final List<Show> gridShows = featured == null
         ? filtered
         : filtered.where((final s) => s.id != featured.id).toList();
+
+    // Kullanıcının "aktif pasif ayırmayalım, hepsi gelsin" talimatı
+    // korunuyor — `gridShows` hâlâ TAM liste (kategori filtresiyle
+    // süzülmüş, hiçbir oyun ekstra gizlenmiyor). Sadece görsel/başlıklı
+    // bir ayrım için `gridShows`, gerçek aktif id kümesine (`realActiveIds`)
+    // göre iki gerçek alt listeye bölünüyor. Arşiv (`_showPast`) modunda
+    // zaten hepsi aktif değildir (pastShowsProvider'dan geldiği için) —
+    // orada tek bir "Diğer Oyunlar/Arşiv" ızgarası yeterli, üstteki
+    // "Geçmiş Oyunlar" SectionHeader'ı zaten aynı anlamı taşıyor.
+    final List<Show> activeGridShows = _showPast
+        ? const []
+        : gridShows.where((final s) => realActiveIds.contains(s.id)).toList();
+    final List<Show> otherGridShows = _showPast
+        ? gridShows
+        : gridShows.where((final s) => !realActiveIds.contains(s.id)).toList();
 
     return ListView(
       physics: const BouncingScrollPhysics(),
@@ -577,11 +649,58 @@ class _DiscoveryDesktopBrowserState
         const SizedBox(height: 56),
         if (gridShows.isEmpty && _showPast)
           _buildEmptyCategoryNotice(showPast: true)
-        else
+        else if (_showPast)
+          // Arşiv modunda zaten hepsi geçmiş — üstteki "Geçmiş Oyunlar"
+          // başlığı yeterli, ayrıca "Aktif Oyunlar" alt başlığına gerek yok.
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _buildGrid(gridShows),
-          ),
+            child: _buildGrid(otherGridShows),
+          )
+        else ...[
+          // Aktif tarama modunda gerçek bir görsel ayrım: takviminde
+          // gelecek etkinliği olan oyunlar "Aktif Oyunlar" ızgarasında,
+          // aktif OLMAYANLAR "Diğer Oyunlar" ızgarasında — ikisi de
+          // gösteriliyor, hiçbiri gizlenmiyor.
+          if (activeGridShows.isNotEmpty) ...[
+            ScrollReveal(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SectionHeader(
+                  title: 'Aktif Oyunlar',
+                  subtitle: 'Sahnede',
+                  titleColor: Colors.white,
+                  accentColor: WebColors.primaryGold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildGrid(activeGridShows),
+            ),
+            if (otherGridShows.isNotEmpty) const SizedBox(height: 48),
+          ],
+          if (otherGridShows.isNotEmpty) ...[
+            ScrollReveal(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SectionHeader(
+                  title: 'Diğer Oyunlar',
+                  subtitle: 'Arşiv',
+                  titleColor: Colors.white,
+                  accentColor: WebColors.primaryGold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildGrid(otherGridShows),
+            ),
+          ],
+          if (activeGridShows.isEmpty && otherGridShows.isEmpty)
+            _buildEmptyCategoryNotice(showPast: false),
+        ],
         const SizedBox(height: 100),
       ],
     );
