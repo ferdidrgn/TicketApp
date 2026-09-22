@@ -33,27 +33,40 @@ Future<ShowDetailState> showDetail(final Ref ref, final String showId) async {
   final show = shows.first;
 
   // Filtreleme: Boş ID'leri temizle
-  final eventIds = show.eventsId.where((final id) => id.isNotEmpty).toList();
   final nowPlayerIds =
       show.nowPlayersId.where((final id) => id.isNotEmpty).toList();
   final oldPlayerIds =
       show.oldPlayersId.where((final id) => id.isNotEmpty).toList();
 
   final allPlayerIds = {...nowPlayerIds, ...oldPlayerIds}.toList();
+  final eventIds = show.eventsId.where((final id) => id.isNotEmpty).toList();
 
-  final results = await Future.wait([
-    if (eventIds.isNotEmpty)
-      ref.watch(eventsByIdsProvider(eventIds).future)
-    else
-      Future.value(<Event>[]),
+  final results = await Future.wait<dynamic>([
+    // Show <-> Event ilişkisi iki bağımsız yönde tutuluyor (`Event.showId`
+    // ve `Show.eventsId`); biri senkron kalmayı unutabilir (ör. Firebase
+    // Console'dan elle eklenmiş bir etkinlikte sadece biri dolu olabilir).
+    // Önceden burada SADECE `show.eventsId` kullanılıyordu — o dizide
+    // listelenmeyen gerçek bir etkinlik takvimden sessizce düşüyordu.
+    // Artık her iki yoldan gelen sonuçlar birleştiriliyor.
+    ref.watch(eventsByShowIdsProvider([show.id]).future),
+    eventIds.isNotEmpty
+        ? ref.watch(eventsByIdsProvider(eventIds).future)
+        : Future.value(<Event>[]),
     if (allPlayerIds.isNotEmpty)
       ref.watch(playersByIdsProvider(allPlayerIds).future)
     else
       Future.value(<Player>[]),
   ]);
 
-  final events = results[0] as List<Event>;
-  final players = results[1] as List<Player>;
+  final eventsById = <String, Event>{};
+  for (final event in [
+    ...results[0] as List<Event>,
+    ...results[1] as List<Event>,
+  ]) {
+    eventsById[event.id] = event;
+  }
+  final events = eventsById.values.toList();
+  final players = results[2] as List<Player>;
 
   // Sadece bu gösteriye ait ve geçerli sahnesi olan eventleri al
   final stageIds = events

@@ -27,6 +27,15 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
       });
 
   @override
+  Future<Either<Failure, List<Event>>> getEventsByShowIds(
+          final List<String> showIds) async =>
+      execute(() async {
+        final List<EventModel> models =
+            await remoteDataSource.getEventsByShowIds(showIds);
+        return models.map((final model) => model.toEntity()).toList();
+      });
+
+  @override
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId) {
     // Stream'ler 'execute' bloğuna sarılmaz çünkü anlık veri akışıdırlar

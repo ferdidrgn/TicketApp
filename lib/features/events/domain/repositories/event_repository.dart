@@ -10,6 +10,13 @@ abstract class EventRepository {
   Future<Either<Failure, List<Event>>> getEventsByIds(
       final List<String> eventIds);
 
+  /// Etkinlikleri, `Event.showId` alanına göre DOĞRUDAN sorgular — Show
+  /// tarafındaki `eventsId` dizisine bağımlı değildir. `Show.eventsId`
+  /// güncellenmeyi unutulursa (ör. Firebase Console'dan elle eklenmiş bir
+  /// etkinlik) bu yöntem yine de o etkinliği bulur.
+  Future<Either<Failure, List<Event>>> getEventsByShowIds(
+      final List<String> showIds);
+
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);
 

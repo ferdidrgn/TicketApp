@@ -17,7 +17,7 @@ import '../../../stages/presentation/providers/stage_provider.dart';
 // mümkün değil (yeni bir `.g.dart` parçası gerektirir). Bu yüzden bu dosya
 // klasik `FutureProvider` API'sini (flutter_riverpod) kullanıyor — ek kod
 // üretimi gerektirmeden derlenir — ve o dosyalardaki HAZIR provider'ları
-// (`activeShowsProvider`, `eventsByIdsProvider`, `stagesByIdsProvider`)
+// (`activeShowsProvider`, `eventsByShowIdsProvider`, `stagesByIdsProvider`)
 // birleştirerek gerçek, Firestore kökenli bir "yakındaki etkinlikler"
 // listesi türetiyor. Hiçbir alan uydurulmuyor; bir gösteri/etkinlik/sahne
 // eksikse (henüz Firestore'a yazılmamışsa) o kayıt sonuçtan sessizce
@@ -62,28 +62,54 @@ final upcomingNearbyEventsProvider =
   if (shows.isEmpty) return [];
 
   final showsById = {for (final s in shows) s.id: s};
-  final eventIds = shows
+
+  // Show <-> Event ilişkisi iki bağımsız yönde tutuluyor (`Event.showId`
+  // ve `Show.eventsId`); biri senkron kalmayı unutabilir. Her iki yoldan
+  // gelen sonuçlar birleştiriliyor — bkz. `show_provider.dart`'taki
+  // `_activeShowIdsFromEvents` yorumu, aynı kök sebep burada tekrarlanmasın.
+  final eventIdsFromArrays = shows
       .expand((final s) => s.eventsId)
       .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
-  if (eventIds.isEmpty) return [];
+  final eventLists = await Future.wait([
+    ref.watch(eventsByShowIdsProvider(showsById.keys.toList()).future),
+    eventIdsFromArrays.isNotEmpty
+        ? ref.watch(eventsByIdsProvider(eventIdsFromArrays).future)
+        : Future.value(<Event>[]),
+  ]);
+  final eventsById = <String, Event>{};
+  for (final event in [...eventLists[0], ...eventLists[1]]) {
+    eventsById[event.id] = event;
+  }
 
-  final events = await ref.watch(eventsByIdsProvider(eventIds).future);
+  final showIdsByEventId = <String, Set<String>>{};
+  for (final show in shows) {
+    for (final eventId in show.eventsId) {
+      if (eventId.isEmpty) continue;
+      showIdsByEventId.putIfAbsent(eventId, () => {}).add(show.id);
+    }
+  }
+
+  String? resolveShowId(final Event event) {
+    if (event.showId.isNotEmpty && showsById.containsKey(event.showId))
+      return event.showId;
+    return showIdsByEventId[event.id]?.first;
+  }
 
   final now = DateTime.now();
-  final upcoming = <MapEntry<Event, DateTime>>[];
-  for (final event in events) {
-    if (!showsById.containsKey(event.showId)) continue;
+  final upcoming = <(Event, Show, DateTime)>[];
+  for (final event in eventsById.values) {
+    final showId = resolveShowId(event);
+    final show = showId == null ? null : showsById[showId];
+    if (show == null) continue;
     final date = DateFormatter.parseDateString(event.date);
-    if (date != null && date.isAfter(now)) {
-      upcoming.add(MapEntry(event, date));
-    }
+    if (date != null && date.isAfter(now)) upcoming.add((event, show, date));
   }
   if (upcoming.isEmpty) return [];
 
   final stageIds = upcoming
-      .map((final e) => e.key.stageId)
+      .map((final e) => e.$1.stageId)
       .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
@@ -93,15 +119,14 @@ final upcomingNearbyEventsProvider =
   final stagesById = {for (final s in stages) s.id: s};
 
   final entries = <NearbyEventEntry>[];
-  for (final e in upcoming) {
-    final show = showsById[e.key.showId];
-    final stage = stagesById[e.key.stageId];
-    if (show == null || stage == null) continue;
+  for (final (event, show, date) in upcoming) {
+    final stage = stagesById[event.stageId];
+    if (stage == null) continue;
     entries.add(NearbyEventEntry(
-      event: e.key,
+      event: event,
       show: show,
       stage: stage,
-      dateTime: e.value,
+      dateTime: date,
     ));
   }
 

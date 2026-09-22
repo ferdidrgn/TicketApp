@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../../../core/errors/failures.dart';
 import '../../../../core/util/date_formatter.dart';
+import '../../../events/data/repositories/event_repository_provider.dart';
+import '../../../events/domain/entities/event.dart';
+import '../../../events/domain/usecases/get_events_by_show_ids_use_case_impl.dart';
 import '../../../events/presentation/providers/event_provider.dart';
 import '../../data/repositories/show_repository_provider.dart';
 import '../../domain/entities/show.dart';
@@ -96,21 +99,80 @@ Future<List<Show>> showsByIds(final Ref ref, final List<String> ids) async =>
 // bağlamları için doğru davranış bu; sonucun 20'den az (hatta 0) olması
 // olağan ve beklenen bir durumdur.
 
+// `event_provider.dart` `@riverpod` kod üretimi kullanıyor — bu sandbox'ta
+// `build_runner` çalıştırılamadığı için oraya yeni bir provider EKLEMEK
+// mümkün değil (yeni bir `.g.dart` parçası gerektirir). Bu yüzden, tıpkı
+// yukarıdaki `activeShowsProvider`/`pastShowsProvider` gibi, klasik
+// `Provider`/`FutureProvider.family` API'sini burada kullanıyoruz.
+final _getEventsByShowIdsUseCaseProvider =
+    Provider<GetEventsByShowIdsUseCase>((final ref) =>
+        GetEventsByShowIdsUseCaseImpl(ref.watch(eventRepositoryProvider)));
+
+/// Etkinlikleri `Event.showId` alanı üzerinden DOĞRUDAN çeker — bir
+/// gösterinin `eventsId` dizisine bağımlı değildir.
+final eventsByShowIdsProvider =
+    FutureProvider.family<List<Event>, List<String>>(
+        (final ref, final showIds) async {
+  if (showIds.isEmpty) return [];
+  return ref
+      .watch(_getEventsByShowIdsUseCaseProvider)
+      .call(showIds)
+      .getOrThrow();
+});
+
+// Bir Show <-> Event ilişkisi bu veri tabanında İKİ YÖNLÜ ve BİRBİRİNDEN
+// BAĞIMSIZ tutuluyor: `Show.eventsId` (gösterinin kendi etkinlik ID
+// listesi) ve `Event.showId` (etkinliğin kendi gösteri referansı). Normal
+// şartlarda ikisi de aynı ilişkiyi anlatır, ama biri diğeriyle senkron
+// kalacak diye garanti YOK — özellikle Firebase Console'dan elle eklenen
+// bir kayıtta ikisinden sadece biri doldurulmuş olabilir. Önceden burada
+// SADECE `Show.eventsId` kullanılıyordu; `Event.showId` boş/eksik kalan
+// bir etkinlik (ya da tam tersi, sadece `Event.showId` dolu olan) hem
+// "aktif oyun" hesabından hem de gösteri detay takviminden SESSİZCE
+// kayboluyordu — gerçek, tarihi geçmemiş bir etkinlik varken ana
+// sayfa/keşfet bomboş görünüyordu. Artık HER İKİ yön de birleştiriliyor;
+// bir etkinlik iki yoldan BİRİYLE bile bağlıysa yakalanır.
 Future<Set<String>> _activeShowIdsFromEvents(
     final Ref ref, final List<Show> shows) async {
-  final eventIds = shows
+  final showIds = shows.map((final s) => s.id).toList();
+  if (showIds.isEmpty) return {};
+
+  final eventIdsFromArrays = shows
       .expand((final s) => s.eventsId)
       .where((final id) => id.isNotEmpty)
       .toSet()
       .toList();
-  if (eventIds.isEmpty) return {};
 
-  final events = await ref.watch(eventsByIdsProvider(eventIds).future);
+  final results = await Future.wait([
+    ref.watch(eventsByShowIdsProvider(showIds).future),
+    eventIdsFromArrays.isNotEmpty
+        ? ref.watch(eventsByIdsProvider(eventIdsFromArrays).future)
+        : Future.value(<Event>[]),
+  ]);
+
+  // `event.id` -> event, iki sorgunun sonucunu tekilleştirerek birleştirir.
+  final eventsById = <String, Event>{};
+  for (final event in [...results[0], ...results[1]]) {
+    eventsById[event.id] = event;
+  }
+
+  // `event.id` -> bu event'i `eventsId` dizisinde listeleyen gösteri(ler).
+  final showIdsByEventId = <String, Set<String>>{};
+  for (final show in shows) {
+    for (final eventId in show.eventsId) {
+      if (eventId.isEmpty) continue;
+      showIdsByEventId.putIfAbsent(eventId, () => {}).add(show.id);
+    }
+  }
+
   final now = DateTime.now();
   final activeIds = <String>{};
-  for (final event in events) {
+  for (final event in eventsById.values) {
     final date = DateFormatter.parseDateString(event.date);
-    if (date != null && date.isAfter(now)) activeIds.add(event.showId);
+    if (date == null || !date.isAfter(now)) continue;
+    if (event.showId.isNotEmpty) activeIds.add(event.showId);
+    final linkedShowIds = showIdsByEventId[event.id];
+    if (linkedShowIds != null) activeIds.addAll(linkedShowIds);
   }
   return activeIds;
 }

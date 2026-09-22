@@ -7,6 +7,8 @@ abstract class EventRemoteDataSource {
 
   Future<List<EventModel>> getEventsByIds(final List<String> eventIds);
 
+  Future<List<EventModel>> getEventsByShowIds(final List<String> showIds);
+
   Stream<Map<String, Map<String, dynamic>>> getEventSeatStatusStream(
       final String eventId);
 
@@ -105,6 +107,24 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       }).toList();
     } catch (e) {
       throw Exception('getEventsByIds failed: $e');
+    }
+  }
+
+  @override
+  Future<List<EventModel>> getEventsByShowIds(
+      final List<String> showIds) async {
+    if (showIds.isEmpty) return [];
+    try {
+      final snapshot =
+          await _eventCollection.where('showId', whereIn: showIds).get();
+
+      return snapshot.docs.map((final doc) {
+        final data = doc.data();
+        data['_id'] = doc.id;
+        return EventModel.fromFirestore(data);
+      }).toList();
+    } catch (e) {
+      throw Exception('getEventsByShowIds failed: $e');
     }
   }
 
