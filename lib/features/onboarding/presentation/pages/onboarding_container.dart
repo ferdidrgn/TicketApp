@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 
 class OnboardingContainer extends ConsumerStatefulWidget {
@@ -15,21 +19,39 @@ class OnboardingContainer extends ConsumerStatefulWidget {
       _OnboardingContainerState();
 }
 
-class _OnboardingContainerState extends ConsumerState<OnboardingContainer> {
+class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
+    with SingleTickerProviderStateMixin {
   // 🎉 Onboarding tamamlandığında kısa bir kutlama patlaması için.
   late final ConfettiController _confettiController;
+
+  // 🎬 Girişte içeriğin (başlık/alt başlık/buton) sahneye deliberate bir
+  // şekilde süzülerek gelmesi için — show_detail sayfasındaki reveal
+  // animasyonuyla aynı hareket dilini (AppMotion) kullanır.
+  late final AnimationController _entranceController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(
-      duration: const Duration(milliseconds: 800),
+    _confettiController = ConfettiController(duration: AppMotion.slow);
+
+    _entranceController =
+        AnimationController(duration: AppMotion.slow, vsync: this);
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: AppMotion.standard),
     );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
+      CurvedAnimation(parent: _entranceController, curve: AppMotion.standard),
+    );
+    _entranceController.forward();
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _entranceController.dispose();
     super.dispose();
   }
 
@@ -38,7 +60,7 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer> {
   // için beklenir ve ardından ana sayfaya geçilir.
   Future<void> _completeOnboarding(final BuildContext context) async {
     _confettiController.play();
-    await Future.delayed(const Duration(milliseconds: 650));
+    await Future.delayed(AppMotion.slow);
     if (!context.mounted) return;
     NavigationHandler.goToHome(context);
   }
@@ -70,18 +92,24 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer> {
                 constraints: BoxConstraints(
                     maxWidth: isLargeScreen ? 500 : double.infinity),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTitle(context),
-                      const SizedBox(height: 16),
-                      _buildSubtitle(context),
-                      const SizedBox(height: 48),
-                      _buildStartButton(context),
-                    ],
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xxxl, vertical: AppSpacing.huge),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTitle(context),
+                          const SizedBox(height: AppSpacing.lg),
+                          _buildSubtitle(context),
+                          const SizedBox(height: AppSpacing.massive),
+                          _buildStartButton(context),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -140,31 +168,29 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer> {
         ),
       );
 
-  Widget _buildStartButton(final BuildContext context) => GestureDetector(
-        onTap: () => _completeOnboarding(context),
-        child: Container(
-          width: double.infinity,
-          height: 64,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [context.colors.primary, context.colors.secondary],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: context.colors.primary.withOpacity(0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+  Widget _buildStartButton(final BuildContext context) => Semantics(
+        button: true,
+        label: 'Keşfetmeye başla',
+        child: GestureDetector(
+          onTap: () => _completeOnboarding(context),
+          child: Container(
+            width: double.infinity,
+            height: 64,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [context.colors.primary, context.colors.secondary],
               ),
-            ],
-          ),
-          child: const Center(
-            child: Text(
-              'KEŞFETMEYE BAŞLA',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: AppShadows.level3(context.colors.primary),
+            ),
+            child: const Center(
+              child: Text(
+                'KEŞFETMEYE BAŞLA',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
               ),
             ),
           ),

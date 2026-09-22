@@ -429,7 +429,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                     const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: colors.primaryContainer,
-                  borderRadius: AppRadius.pill,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                   border: Border.all(
                     color: colors.primary.withOpacity(0.3),
                     width: 1,
@@ -463,7 +463,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                     const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: colors.tertiaryContainer,
-                  borderRadius: AppRadius.pill,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                   border: Border.all(
                     color: colors.tertiary.withOpacity(0.3),
                     width: 1,
@@ -773,7 +773,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: AppRadius.md,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                       boxShadow: AppShadows.level3(colors.primary),
                     ),
                     child: ElevatedButton(
@@ -787,7 +787,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                         foregroundColor: colors.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                         shape: RoundedRectangleBorder(
-                          borderRadius: AppRadius.md,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                         ),
                         elevation: 0,
                       ),
@@ -985,7 +985,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                     foregroundColor: colors.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
                     shape: RoundedRectangleBorder(
-                      borderRadius: AppRadius.lg,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                   ),
                 ),
