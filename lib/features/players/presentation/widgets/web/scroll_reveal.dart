@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
 
 /// 🎬 SCROLL-TRIGGERED REVEAL
 ///
@@ -24,7 +25,7 @@ class ScrollReveal extends StatefulWidget {
     super.key,
     required this.child,
     this.delay = Duration.zero,
-    this.duration = const Duration(milliseconds: 650),
+    this.duration = AppMotion.slow,
     this.beginOffset = const Offset(0, 0.12),
     this.visibleThreshold = 0.1,
   });
@@ -47,7 +48,7 @@ class _ScrollRevealState extends State<ScrollReveal>
     _controller = AnimationController(vsync: this, duration: widget.duration);
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _slide = Tween<Offset>(begin: widget.beginOffset, end: Offset.zero)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+        .animate(CurvedAnimation(parent: _controller, curve: AppMotion.standard));
   }
 
   @override

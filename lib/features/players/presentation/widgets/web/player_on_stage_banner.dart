@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'scroll_reveal.dart';
@@ -23,7 +26,8 @@ class PlayerOnStageBanner extends StatelessWidget {
       delay: const Duration(milliseconds: 250),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxxl, vertical: AppSpacing.xxl),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -31,14 +35,14 @@ class PlayerOnStageBanner extends StatelessWidget {
               WebColors.darkBlueSurface.withOpacity(0.4),
             ],
           ),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: WebColors.primaryGold.withOpacity(0.35)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const _PulsingDot(),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,7 +56,7 @@ class PlayerOnStageBanner extends StatelessWidget {
                       letterSpacing: 2.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
@@ -93,13 +97,14 @@ class _ActiveShowLinkState extends State<_ActiveShowLink> {
         onTap: () => NavigationHandler.goToShow(
             context, widget.show.id, widget.show.name),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          duration: AppMotion.fast,
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: 9),
           decoration: BoxDecoration(
             color: _hovered
                 ? WebColors.primaryGold
                 : WebColors.veryDarkBlue.withOpacity(0.55),
-            borderRadius: BorderRadius.circular(100),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
               color: _hovered
                   ? WebColors.primaryGold
