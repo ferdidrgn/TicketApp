@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_radius.dart';
 import '../../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../campaigns/domain/entities/campaign.dart';
 
@@ -15,12 +16,10 @@ class HomePromoBanner extends StatelessWidget {
 
   const HomePromoBanner({super.key, this.campaign, this.campaignIndex = 0});
 
-  static const _radius = BorderRadius.only(
-    topLeft: Radius.circular(6),
-    topRight: Radius.circular(32),
-    bottomLeft: Radius.circular(32),
-    bottomRight: Radius.circular(6),
-  );
+  // Önceden bottomLeft/bottomRight'ı ters (6/32/32/6, çapraz bir kesim)
+  // olan tek örnekti — uygulamanın her yerdeki asimetrik köşe imzasıyla
+  // (bir kenar keskin, karşı kenar belirgin yuvarlak) aynı yöne çevrildi.
+  static const _radius = AppRadius.asymLg;
 
   @override
   Widget build(final BuildContext context) {
