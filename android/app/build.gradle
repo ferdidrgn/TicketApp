@@ -12,6 +12,16 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Google Maps API anahtarı: android/local.properties içinden okunur (bu
+// dosya .gitignore'da, hiçbir zaman commit edilmez). MAPS_API_KEY satırı
+// yoksa boş bırakılır — harita anahtarsız açılmaz ama build kırılmaz.
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
+def mapsApiKey = localProperties.getProperty('MAPS_API_KEY', '')
+
 android {
     namespace = "com.ferdidrgn.ticketapp"
     compileSdk = flutter.compileSdkVersion
@@ -27,6 +37,7 @@ android {
 
         manifestPlaceholders["networkSecurityConfig"] = "@xml/network_security_config"
         manifestPlaceholders["allowBackup"] = "false"
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
 
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"

@@ -51,23 +51,12 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <!--
-        TODO(maps): GERÇEK bir Google Maps API anahtarı YOK (sahte/uydurma
-        bir anahtar bilerek eklenmedi). `google_maps_flutter` (bkz.
-        stage_details.dart, nearby_events_page.dart) Android'de bu anahtar
-        olmadan HARİTAYI GÖSTEREMEZ. Kurulum: Google Cloud Console'da
-        "Maps SDK for Android" için bir anahtar oluştur, gizli tutulması
-        gereken değeri `android/local.properties` (zaten .gitignore'da) gibi
-        commit edilmeyen bir yerden oku ve aşağıdaki meta-data'yı etkinleştir:
-
+        <!-- Google Maps API anahtarı: build.gradle, android/local.properties
+        (gitignore'da, hiç commit edilmez) içindeki MAPS_API_KEY değerini
+        manifestPlaceholders üzerinden buraya enjekte ediyor. -->
         <meta-data
             android:name="com.google.android.gms.maps.API_KEY"
             android:value="${MAPS_API_KEY}" />
-
-        (ve `android/app/build.gradle`'da manifestPlaceholders["MAPS_API_KEY"]
-        değerini `local.properties`'ten oku — imza anahtarları için zaten
-        kullanılan yönteme benzer.)
-        -->
 
         <meta-data
             android:name="android.window.setDecorFitsSystemWindows"
