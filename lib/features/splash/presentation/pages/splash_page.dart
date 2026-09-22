@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_shadows.dart';
+import '../../../../core/theme/app_spacing.dart';
 
 /// Yönlendirme mantığı (go_router) içermeyen, sadece görsel Splash tasarımı.
 /// Bu widget'ı veri yüklenirken "Loading Indicator" yerine kullanacağız.
@@ -26,7 +29,7 @@ class _SplashPageState extends State<SplashPage>
     )..repeat(reverse: true);
 
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _controller, curve: AppMotion.symmetric),
     );
   }
 
@@ -63,13 +66,7 @@ class _SplashPageState extends State<SplashPage>
                 height: isMobile ? 120 : 160,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFE85C3F).withOpacity(0.4),
-                      blurRadius: 40,
-                      spreadRadius: 10,
-                    ),
-                  ],
+                  boxShadow: AppShadows.level5(const Color(0xFFE85C3F)),
                 ),
                 child: ClipOval(
                   child: Image.asset(
@@ -88,7 +85,7 @@ class _SplashPageState extends State<SplashPage>
               ),
             ),
 
-            SizedBox(height: isMobile ? 40 : 60),
+            SizedBox(height: isMobile ? AppSpacing.huge : 60),
 
             // Başlık
             Text(
@@ -101,13 +98,13 @@ class _SplashPageState extends State<SplashPage>
               ),
             ),
 
-            SizedBox(height: isMobile ? 40 : 60),
+            SizedBox(height: isMobile ? AppSpacing.huge : 60),
 
             // Alt başlık
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
+                horizontal: AppSpacing.xxl,
+                vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
                 border: Border(
@@ -134,19 +131,23 @@ class _SplashPageState extends State<SplashPage>
               ),
             ),
 
-            SizedBox(height: isMobile ? 12 : 16),
+            SizedBox(height: isMobile ? AppSpacing.md : AppSpacing.lg),
 
             // Loading Bar (Indeterminate)
-            SizedBox(
-              width: isMobile ? 200 : 300,
-              child: const LinearProgressIndicator(
-                backgroundColor: Color(0xFF1B3A26),
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE85C3F)),
-                minHeight: 2,
+            Semantics(
+              label: widget.loadingMessage ?? 'Sahne hazırlanıyor',
+              liveRegion: true,
+              child: SizedBox(
+                width: isMobile ? 200 : 300,
+                child: const LinearProgressIndicator(
+                  backgroundColor: Color(0xFF1B3A26),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE85C3F)),
+                  minHeight: 2,
+                ),
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
 
             // Dinamik Mesaj
             Text(

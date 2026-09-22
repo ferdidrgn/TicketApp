@@ -4,10 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../players/domain/entities/player.dart';
@@ -138,6 +143,11 @@ class _SearchPageState extends ConsumerState<SearchPage>
               error: (final e, final _) =>
                   SliverToBoxAdapter(child: Center(child: Text("Hata: $e"))),
             ),
+
+            // Masaüstünde sonuçların altında ortak site alt bilgisi —
+            // diğer masaüstü sayfalarıyla (ana sayfa, gösteri detayı, keşif
+            // vb.) aynı desen. Mobilde hiç render edilmez.
+            if (isDesktop) const SliverToBoxAdapter(child: Footer()),
           ],
         ));
   }
@@ -186,7 +196,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
             constraints:
                 BoxConstraints(maxWidth: isLarge ? 800 : double.infinity),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               child: _CustomSearchVisualShell(
                 isDark: context.isDarkMode,
                 primaryColor: context.colors.primary,
@@ -220,7 +230,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
         height: 50,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           itemCount: labels.length,
           itemBuilder: (final context, final i) => ArtisticBrushChip(
             text: labels[i],
@@ -250,7 +260,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
             children: [
               Icon(Icons.auto_awesome_motion_outlined,
                   size: 80, color: context.colors.primary.withOpacity(0.2)),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Text(context.l10n.searchEmptyState(query),
                   style: context.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold)),
@@ -268,13 +278,13 @@ class _SearchPageState extends ConsumerState<SearchPage>
 
     if (selectedFilter == 1)
       return SliverPadding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           sliver:
               ShowMosaicGallery(shows: data.shows, direction: Axis.vertical));
 
     final content = _buildContentList(context, data, selectedFilter);
     return SliverPadding(
-      padding: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.only(top: AppSpacing.xl),
       sliver: SliverList(
         delegate:
             SliverChildListDelegate([...content, const SizedBox(height: 120)]),
@@ -318,7 +328,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1300),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(40, 24, 40, 140),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.huge, AppSpacing.xxl, AppSpacing.huge, 140),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -539,7 +550,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
               title: "Etkinlikler",
               subtitle: "Sanatın Akışı",
               onTap: () => _onSeeAll(1)),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           ShowMosaicGallery(
               shows: state.shows.take(10).toList(), direction: Axis.horizontal),
           const SizedBox(height: 30),
@@ -549,15 +560,15 @@ class _SearchPageState extends ConsumerState<SearchPage>
               title: "Oyuncular",
               subtitle: "Sahne Yıldızları",
               onTap: () => _onSeeAll(2)),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           SizedBox(
             height: 180,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               itemCount: state.players.take(10).length,
               itemBuilder: (final context, final i) => Padding(
-                padding: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.only(right: AppSpacing.md),
                 child: SizedBox(
                     width: 120,
                     child: PlayerHeroCard(player: state.players[i])),
@@ -589,7 +600,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
     final crossAxisCount = context.responsive(mobile: 3, tablet: 5, desktop: 6);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -624,26 +635,20 @@ class _CustomSearchVisualShell extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(
-              color: primaryColor.withOpacity(0.15),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          boxShadow: AppShadows.level3(primaryColor),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.white.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(32),
+                    ? context.colors.surface.withOpacity(0.05)
+                    : context.colors.surface.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(AppRadius.xl),
                 border: Border.all(color: primaryColor.withOpacity(0.2)),
               ),
               child: child,
@@ -667,42 +672,40 @@ class ArtisticBrushChip extends StatelessWidget {
       required this.onTap});
 
   @override
-  Widget build(final BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(22),
-              bottomRight: Radius.circular(22),
-              topRight: Radius.circular(6),
-              bottomLeft: Radius.circular(6),
+  Widget build(final BuildContext context) => Semantics(
+        button: true,
+        selected: isSelected,
+        label: text,
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: AppMotion.fast,
+            curve: AppMotion.standard,
+            margin: const EdgeInsets.symmetric(
+                horizontal: 6, vertical: AppSpacing.sm),
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.asymSm,
+              gradient: isSelected ? LinearGradient(colors: colors) : null,
+              color:
+                  isSelected ? null : context.colors.surface.withOpacity(0.5),
+              border: Border.all(
+                  color: isSelected
+                      ? Colors.transparent
+                      : context.colors.onSurface.withOpacity(0.1)),
+              boxShadow:
+                  isSelected ? AppShadows.level1(colors[0]) : AppShadows.level0,
             ),
-            gradient: isSelected ? LinearGradient(colors: colors) : null,
-            color: isSelected ? null : context.colors.surface.withOpacity(0.5),
-            border: Border.all(
-                color: isSelected
-                    ? Colors.transparent
-                    : context.colors.onSurface.withOpacity(0.1)),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                        color: colors[0].withOpacity(0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4))
-                  ]
-                : [],
-          ),
-          child: Center(
-            child: Text(text,
-                style: TextStyle(
-                    color: isSelected
-                        ? Colors.white
-                        : context.colors.onSurface.withOpacity(0.7),
-                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                    fontSize: 14)),
+            child: Center(
+              child: Text(text,
+                  style: TextStyle(
+                      color: isSelected
+                          ? Colors.white
+                          : context.colors.onSurface.withOpacity(0.7),
+                      fontWeight:
+                          isSelected ? FontWeight.w900 : FontWeight.w600,
+                      fontSize: 14)),
+            ),
           ),
         ),
       );
@@ -724,15 +727,15 @@ class _HorizontalSection extends StatelessWidget {
   Widget build(final BuildContext context) => Column(
         children: [
           SectionHeader(title: title, subtitle: "Keşfe Başla", onTap: onSeeAll),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           SizedBox(
             height: 140,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               itemCount: items.length,
               itemBuilder: (final context, final i) => Padding(
-                  padding: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.only(right: AppSpacing.md),
                   child: _GridCards.horizontalCard(context, items[i], isStage,
                       width: 260)),
             ),
@@ -780,12 +783,7 @@ class _GridCards {
         child: Container(
           decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4))
-              ]),
+              boxShadow: AppShadows.level1(context.colors.shadow)),
           clipBehavior: Clip.antiAlias,
           child: Stack(children: [
             Positioned.fill(
@@ -832,12 +830,7 @@ class _GridCards {
           decoration: BoxDecoration(
               color: context.colors.surface,
               borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4))
-              ]),
+              boxShadow: AppShadows.level1(context.colors.shadow)),
           clipBehavior: Clip.antiAlias,
           child: Row(children: [
             SizedBox(

@@ -7,10 +7,13 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/button/custom_elevated_button.dart';
 import '../../../../shared/widgets/custom_art_words_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../domain/entities/user.dart';
 import '../providers/user_mutation_provider.dart';
 import '../providers/user_provider.dart';
@@ -119,72 +122,92 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (final err, final stack) => Center(child: Text('Hata: $err')),
         data: (final user) => SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           physics: const BouncingScrollPhysics(),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
                 // Sayfa Başlığı (BasePageWrapper geri butonunu üstte bıraktığı için burayı sadeleştirdik)
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.xl),
                 _buildHeaderTexts(),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.xxl),
                 const CustomArtWordsCard(
                   word: 'Gelecek, güzelliğe inananlarındır.',
                   author: 'Eleanor Roosevelt',
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xxxl),
                 _buildAvatarSection(),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xxxl),
                 _buildSectionTitle('Öz Kimlik Bilgileri'),
 
                 Row(
                   children: [
                     Expanded(
-                      child: CustomTextField(
-                        controller: _firstNameController,
-                        label: 'Ad',
-                        isRequired: true,
+                      child: Semantics(
+                        textField: true,
+                        label: 'Ad, zorunlu alan',
+                        child: CustomTextField(
+                          controller: _firstNameController,
+                          label: 'Ad',
+                          isRequired: true,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
-                      child: CustomTextField(
-                        controller: _lastNameController,
-                        label: 'Soyad',
-                        isRequired: true,
+                      child: Semantics(
+                        textField: true,
+                        label: 'Soyad, zorunlu alan',
+                        child: CustomTextField(
+                          controller: _lastNameController,
+                          label: 'Soyad',
+                          isRequired: true,
+                        ),
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
-                CustomTextField(
-                  controller: _emailController,
+                const SizedBox(height: AppSpacing.lg),
+                Semantics(
+                  textField: true,
                   label: 'E-Posta Adresi',
-                  isRequired: false,
+                  child: CustomTextField(
+                    controller: _emailController,
+                    label: 'E-Posta Adresi',
+                    isRequired: false,
+                  ),
                 ),
 
-                const SizedBox(height: 16),
-                CustomTextField(
-                  controller: _phoneController,
+                const SizedBox(height: AppSpacing.lg),
+                Semantics(
+                  textField: true,
                   label: 'Telefon Numarası',
-                  isRequired: false,
+                  child: CustomTextField(
+                    controller: _phoneController,
+                    label: 'Telefon Numarası',
+                    isRequired: false,
+                  ),
                 ),
 
-                const SizedBox(height: 16),
-                CustomTextField(
-                  controller: _cityController,
+                const SizedBox(height: AppSpacing.lg),
+                Semantics(
+                  textField: true,
                   label: 'Yaşadığın Şehir',
-                  isRequired: false,
+                  child: CustomTextField(
+                    controller: _cityController,
+                    label: 'Yaşadığın Şehir',
+                    isRequired: false,
+                  ),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.huge),
                 _buildSaveButton(),
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.huge),
               ],
             ),
           ),
@@ -215,7 +238,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   Widget _buildForm(final BuildContext context, final User? currentUser) =>
       SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         physics: const BouncingScrollPhysics(),
         child: Form(
           key: _formKey,
@@ -224,9 +247,9 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               const CustomArtWordsCard(
                   word: 'Gelecek, güzelliğe inananlarındır.',
                   author: 'Eleanor Roosevelt'),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               _buildAvatarSection(),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               _buildSectionTitle('Öz Kimlik Bilgileri'),
               Row(
                 children: [
@@ -235,7 +258,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                           controller: _firstNameController,
                           label: 'Ad',
                           isRequired: true)),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                       child: CustomTextField(
                           controller: _lastNameController,
@@ -243,24 +266,24 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                           isRequired: true)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               CustomTextField(
                   controller: _emailController,
                   label: 'E-Posta Adresi',
                   isRequired: false),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               CustomTextField(
                   controller: _phoneController,
                   label: 'Telefon Numarası',
                   isRequired: false),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               CustomTextField(
                   controller: _cityController,
                   label: 'Yaşadığın Şehir',
                   isRequired: false),
-              const SizedBox(height: 40),
+              const SizedBox(height: AppSpacing.huge),
               _buildSaveButton(),
-              const SizedBox(height: 40),
+              const SizedBox(height: AppSpacing.huge),
             ],
           ),
         ),
@@ -269,25 +292,35 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Widget _buildAvatarSection() => Center(
         child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: context.colors.primary, width: 2)),
-              child: CircleAvatar(
-                radius: 60,
-                backgroundColor: context.colors.surfaceVariant,
-                backgroundImage: _selectedImageFile != null
-                    ? FileImage(_selectedImageFile!) as ImageProvider
-                    : NetworkImage(_profileImageUrl),
+            Semantics(
+              image: true,
+              label: 'Profil fotoğrafı',
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: context.colors.primary, width: 2)),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: context.colors.surfaceVariant,
+                  backgroundImage: _selectedImageFile != null
+                      ? FileImage(_selectedImageFile!) as ImageProvider
+                      : NetworkImage(_profileImageUrl),
+                ),
               ),
             ),
             Positioned(
               bottom: 0,
               right: 0,
-              child: FloatingActionButton.small(
-                onPressed: _pickImage,
-                child: const Icon(Icons.camera_alt_rounded),
+              child: Semantics(
+                button: true,
+                label: 'Profil fotoğrafını değiştir',
+                child: FloatingActionButton.small(
+                  tooltip: 'Profil fotoğrafını değiştir',
+                  onPressed: _pickImage,
+                  child: const Icon(Icons.camera_alt_rounded),
+                ),
               ),
             )
           ],
@@ -296,11 +329,15 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   Widget _buildSaveButton() {
     final isLoading = ref.watch(userMutationProvider).isLoading;
-    return SizedBox(
-      width: double.infinity,
-      child: CustomElevatedButton(
-        text: 'Varlığını Güncelle',
-        onPressed: isLoading ? () {} : () => _updateProfile(),
+    return Semantics(
+      button: true,
+      label: 'Varlığını Güncelle, profili kaydet',
+      child: SizedBox(
+        width: double.infinity,
+        child: CustomElevatedButton(
+          text: 'Varlığını Güncelle',
+          onPressed: isLoading ? () {} : () => _updateProfile(),
+        ),
       ),
     );
   }
@@ -356,7 +393,8 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       );
 
   Widget _buildSectionTitle(final String title) => Padding(
-        padding: const EdgeInsets.only(bottom: 16, top: 8),
+        padding:
+            const EdgeInsets.only(bottom: AppSpacing.lg, top: AppSpacing.sm),
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
@@ -396,72 +434,98 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
             child: Text('Hata: $err',
                 style: const TextStyle(color: WebColors.whiteText)),
           ),
-          data: (final user) => Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
-                physics: const BouncingScrollPhysics(),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      _buildDesktopHeaderTexts(),
-                      const SizedBox(height: 24),
-                      const CustomArtWordsCard(
-                        word: 'Gelecek, güzelliğe inananlarındır.',
-                        author: 'Eleanor Roosevelt',
-                      ),
-                      const SizedBox(height: 32),
-                      _buildDesktopAvatarSection(),
-                      const SizedBox(height: 32),
-                      _buildDesktopSectionTitle('Öz Kimlik Bilgileri'),
-                      Row(
+          data: (final user) => ListView(
+            padding: EdgeInsets.zero,
+            physics: const BouncingScrollPhysics(),
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xxxl, vertical: 56),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
                         children: [
-                          Expanded(
+                          _buildDesktopHeaderTexts(),
+                          const SizedBox(height: AppSpacing.xxl),
+                          const CustomArtWordsCard(
+                            word: 'Gelecek, güzelliğe inananlarındır.',
+                            author: 'Eleanor Roosevelt',
+                          ),
+                          const SizedBox(height: AppSpacing.xxxl),
+                          _buildDesktopAvatarSection(),
+                          const SizedBox(height: AppSpacing.xxxl),
+                          _buildDesktopSectionTitle('Öz Kimlik Bilgileri'),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Semantics(
+                                  textField: true,
+                                  label: 'Ad, zorunlu alan',
+                                  child: CustomTextField(
+                                    controller: _firstNameController,
+                                    label: 'Ad',
+                                    isRequired: true,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Semantics(
+                                  textField: true,
+                                  label: 'Soyad, zorunlu alan',
+                                  child: CustomTextField(
+                                    controller: _lastNameController,
+                                    label: 'Soyad',
+                                    isRequired: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          Semantics(
+                            textField: true,
+                            label: 'E-Posta Adresi',
                             child: CustomTextField(
-                              controller: _firstNameController,
-                              label: 'Ad',
-                              isRequired: true,
+                              controller: _emailController,
+                              label: 'E-Posta Adresi',
+                              isRequired: false,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
+                          const SizedBox(height: AppSpacing.lg),
+                          Semantics(
+                            textField: true,
+                            label: 'Telefon Numarası',
                             child: CustomTextField(
-                              controller: _lastNameController,
-                              label: 'Soyad',
-                              isRequired: true,
+                              controller: _phoneController,
+                              label: 'Telefon Numarası',
+                              isRequired: false,
                             ),
                           ),
+                          const SizedBox(height: AppSpacing.lg),
+                          Semantics(
+                            textField: true,
+                            label: 'Yaşadığın Şehir',
+                            child: CustomTextField(
+                              controller: _cityController,
+                              label: 'Yaşadığın Şehir',
+                              isRequired: false,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.huge),
+                          _buildDesktopSaveButton(),
+                          const SizedBox(height: AppSpacing.huge),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        controller: _emailController,
-                        label: 'E-Posta Adresi',
-                        isRequired: false,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        controller: _phoneController,
-                        label: 'Telefon Numarası',
-                        isRequired: false,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        controller: _cityController,
-                        label: 'Yaşadığın Şehir',
-                        isRequired: false,
-                      ),
-                      const SizedBox(height: 40),
-                      _buildDesktopSaveButton(),
-                      const SizedBox(height: 40),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              const Footer(),
+            ],
           ),
         ),
       );
@@ -490,46 +554,44 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Widget _buildDesktopAvatarSection() => Center(
         child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                border:
-                    Border.fromBorderSide(BorderSide(color: WebColors.primaryGold, width: 2)),
-              ),
-              child: CircleAvatar(
-                radius: 60,
-                backgroundColor: WebColors.darkBlueAccent,
-                backgroundImage: _selectedImageFile != null
-                    ? FileImage(_selectedImageFile!) as ImageProvider
-                    : NetworkImage(_profileImageUrl),
+            Semantics(
+              image: true,
+              label: 'Profil fotoğrafı',
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.fromBorderSide(
+                      BorderSide(color: WebColors.primaryGold, width: 2)),
+                ),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: WebColors.darkBlueAccent,
+                  backgroundImage: _selectedImageFile != null
+                      ? FileImage(_selectedImageFile!) as ImageProvider
+                      : NetworkImage(_profileImageUrl),
+                ),
               ),
             ),
             Positioned(
               bottom: 0,
               right: 0,
-              child: Material(
-                color: WebColors.primaryGold,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(14),
-                    bottomRight: Radius.circular(14),
-                    topRight: Radius.circular(4),
-                    bottomLeft: Radius.circular(4),
+              child: Semantics(
+                button: true,
+                label: 'Profil fotoğrafını değiştir',
+                child: Material(
+                  color: WebColors.primaryGold,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.asymSm,
                   ),
-                ),
-                child: InkWell(
-                  onTap: _pickImage,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(14),
-                    bottomRight: Radius.circular(14),
-                    topRight: Radius.circular(4),
-                    bottomLeft: Radius.circular(4),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Icon(Icons.camera_alt_rounded,
-                        color: WebColors.whiteText, size: 20),
+                  child: InkWell(
+                    onTap: _pickImage,
+                    borderRadius: AppRadius.asymSm,
+                    child: const Padding(
+                      padding: EdgeInsets.all(AppSpacing.sm),
+                      child: Icon(Icons.camera_alt_rounded,
+                          color: WebColors.whiteText, size: 20),
+                    ),
                   ),
                 ),
               ),
@@ -539,7 +601,8 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       );
 
   Widget _buildDesktopSectionTitle(final String title) => Padding(
-        padding: const EdgeInsets.only(bottom: 16, top: 8),
+        padding:
+            const EdgeInsets.only(bottom: AppSpacing.lg, top: AppSpacing.sm),
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
@@ -556,33 +619,32 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   Widget _buildDesktopSaveButton() {
     final isLoading = ref.watch(userMutationProvider).isLoading;
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(18),
-              bottomRight: Radius.circular(18),
-              topRight: Radius.circular(6),
-              bottomLeft: Radius.circular(6),
+    return Semantics(
+      button: true,
+      label: 'Varlığını Güncelle, profili kaydet',
+      child: SizedBox(
+        width: double.infinity,
+        height: 54,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            shape: const RoundedRectangleBorder(
+              borderRadius: AppRadius.asymSm,
             ),
+            elevation: 0,
+            backgroundColor: WebColors.primaryGold,
+            foregroundColor: WebColors.whiteText,
           ),
-          elevation: 0,
-          backgroundColor: WebColors.primaryGold,
-          foregroundColor: WebColors.whiteText,
+          onPressed: isLoading ? null : () => _updateProfile(),
+          child: isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: WebColors.whiteText),
+                )
+              : const Text('Varlığını Güncelle',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
         ),
-        onPressed: isLoading ? null : () => _updateProfile(),
-        child: isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: WebColors.whiteText),
-              )
-            : const Text('Varlığını Güncelle',
-                style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
