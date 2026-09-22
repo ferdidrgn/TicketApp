@@ -3,6 +3,10 @@ import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../events/presentation/providers/event_provider.dart';
@@ -126,7 +130,7 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                     ),
 
                     _buildPriceCard(seatsAsync, event.price),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
               ),
@@ -247,11 +251,12 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A2E),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.lg))),
       builder: (final ctx) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,14 +266,14 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               _paymentOption(
                   icon: Icons.credit_card,
                   title: "Kredi / Banka Kartı",
                   subtitle: "Anında Onay",
                   onTap: () => _processPurchase(ctx, selectedSeats, "card",
                       totalPrice, event.stageId, event.showId)),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               _paymentOption(
                   icon: Icons.account_balance,
                   title: "Havale / EFT",
@@ -287,23 +292,28 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
       required final String title,
       required final String subtitle,
       required final VoidCallback onTap}) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.all(12),
-      tileColor: Colors.white.withOpacity(0.05),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-              color: Colors.cyan.withOpacity(0.2), shape: BoxShape.circle),
-          child: Icon(icon, color: Colors.cyan)),
-      title: Text(title,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(color: Colors.white54, fontSize: 12)),
-      trailing:
-          const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
+    return Semantics(
+      button: true,
+      label: '$title, $subtitle',
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.all(AppSpacing.md),
+        tileColor: Colors.white.withOpacity(0.05),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md)),
+        leading: Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+                color: Colors.cyan.withOpacity(0.2), shape: BoxShape.circle),
+            child: Icon(icon, color: Colors.cyan)),
+        title: Text(title,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle,
+            style: const TextStyle(color: Colors.white54, fontSize: 12)),
+        trailing: const Icon(Icons.arrow_forward_ios,
+            color: Colors.white24, size: 16),
+      ),
     );
   }
 
@@ -342,8 +352,12 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             barrierDismissible: false,
             builder: (final context) => AlertDialog(
                   backgroundColor: const Color(0xFF1A1A2E),
-                  title: const Icon(Icons.check_circle,
-                      color: Colors.greenAccent, size: 60),
+                  // İkon dekoratif — sonuç zaten content metninde
+                  // ekran okuyucuya net biçimde anlatılıyor, çift anonsu
+                  // önlemek için ikon hariç tutuluyor.
+                  title: const ExcludeSemantics(
+                      child: Icon(Icons.check_circle,
+                          color: Colors.greenAccent, size: 60)),
                   content: const Text("Biletleriniz başarıyla oluşturuldu!",
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white)),
@@ -392,12 +406,16 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
           Padding(
-              padding: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: AppSpacing.lg),
               child: Center(
-                  child: Text(
-                      "${(seconds / 60).floor()}:${(seconds % 60).toString().padLeft(2, '0')}",
-                      style: const TextStyle(
-                          color: Colors.cyan, fontWeight: FontWeight.bold))))
+                  child: Semantics(
+                      label:
+                          'Koltuk rezervasyonu için kalan süre: ${(seconds / 60).floor()} dakika ${seconds % 60} saniye',
+                      child: Text(
+                          "${(seconds / 60).floor()}:${(seconds % 60).toString().padLeft(2, '0')}",
+                          style: const TextStyle(
+                              color: Colors.cyan,
+                              fontWeight: FontWeight.bold)))))
         ],
       );
 
@@ -425,14 +443,14 @@ class _SeatSelectionPageState extends ConsumerState<SeatSelectionPage> {
       );
 
   Widget _buildStageHeader() => Column(children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
         Container(
             width: 200,
             height: 3,
             decoration: BoxDecoration(color: Colors.cyan, boxShadow: [
               BoxShadow(color: Colors.cyan.withOpacity(0.5), blurRadius: 10)
             ])),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         const Text("S A H N E",
             style: TextStyle(
                 color: Colors.white38,
@@ -469,7 +487,7 @@ class _SeatLayoutBuilder extends StatelessWidget {
     final sortedRowKeys = rows.keys.toList()..sort();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Column(
@@ -484,7 +502,7 @@ class _SeatLayoutBuilder extends StatelessWidget {
             });
 
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: Row(
                 children: [
                   SizedBox(
@@ -532,6 +550,22 @@ class _SeatItem extends StatelessWidget {
       required this.isProcessing,
       required this.onTap});
 
+  // Koltuk durumunu ekran okuyucuya renkten bağımsız olarak anlatan etiket.
+  // Koltuk durumu SADECE renkle iletilmemeli — bu, uygulamadaki neredeyse
+  // hiç olmayan erişilebilirlik desteğinin en kritik boşluğuydu.
+  String get _semanticLabel {
+    final rowLetter = seatId.replaceAll(RegExp(r'[0-9]'), '');
+    final seatNum = seatId.replaceAll(RegExp(r'[^0-9]'), '');
+    final seatName = '$rowLetter sırası, $seatNum numaralı koltuk';
+    if (status == 'sold') return '$seatName, satılmış';
+    if (status == 'reserved') {
+      return isMine ? '$seatName, seçili' : '$seatName, dolu';
+    }
+    return '$seatName, müsait';
+  }
+
+  bool get _isSelectedByMe => isMine && status == 'reserved';
+
   @override
   Widget build(final BuildContext context) {
     Color color = Colors.white.withOpacity(0.1);
@@ -541,31 +575,51 @@ class _SeatItem extends StatelessWidget {
       color = isMine ? Colors.blueAccent : Colors.purple;
     else if (status == 'available') color = Colors.green.withOpacity(0.5);
     final seatNum = seatId.replaceAll(RegExp(r'[^0-9]'), '');
+    final bool isDisabled = isProcessing || status == 'sold';
 
-    return GestureDetector(
-      onTap: isProcessing || status == 'sold' ? null : onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 36,
-        height: 36,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-                color: isMine ? Colors.white : Colors.transparent, width: 1.5)),
-        child: Center(
-            child: isProcessing
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
-                : Text(seatNum,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold))),
+    return Semantics(
+      button: true,
+      enabled: !isDisabled,
+      selected: _isSelectedByMe,
+      label: _semanticLabel,
+      child: GestureDetector(
+        onTap: isDisabled ? null : onTap,
+        child: AnimatedScale(
+          // Kendi seçtiğin koltuk hafifçe büyüyerek "işte bu, senin
+          // koltuğun" hissini veriyor — tıklama geri bildirimi artık
+          // sadece renk değil, hareket de.
+          scale: _isSelectedByMe ? 1.12 : 1.0,
+          duration: AppMotion.fast,
+          curve: AppMotion.standard,
+          child: AnimatedContainer(
+            duration: AppMotion.fast,
+            curve: AppMotion.standard,
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+            decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+                border: Border.all(
+                    color: isMine ? Colors.white : Colors.transparent,
+                    width: 1.5),
+                boxShadow: _isSelectedByMe
+                    ? AppShadows.level2(Colors.blueAccent)
+                    : AppShadows.level0),
+            child: Center(
+                child: isProcessing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text(seatNum,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold))),
+          ),
+        ),
       ),
     );
   }
@@ -576,7 +630,7 @@ class _SeatLegend extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         _item(Colors.green.withOpacity(0.5), "Boş"),
         _item(Colors.blueAccent, "Sizin"),
@@ -585,7 +639,7 @@ class _SeatLegend extends StatelessWidget {
       ]));
 
   Widget _item(final Color c, final String t) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       child: Row(children: [
         Container(
             width: 8,
@@ -604,12 +658,20 @@ class _BottomPriceCard extends StatelessWidget {
       {required this.selectedSeats, required this.totalPrice});
 
   @override
-  Widget build(final BuildContext context) => Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
+  Widget build(final BuildContext context) => Semantics(
+      // excludeSemantics: alttaki metinlerin tek tek okunması yerine tek,
+      // tutarlı bir özet anons edilir (ör. "Seçilen koltuklar: A1, A2,
+      // toplam 400.00 TL").
+      excludeSemantics: true,
+      label: selectedSeats.isEmpty
+          ? 'Seçilen koltuk yok'
+          : 'Seçilen koltuklar: ${selectedSeats.join(", ")}, toplam ${totalPrice.toStringAsFixed(2)} TL',
+      child: Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: Colors.white10)),
       child: Row(children: [
         Expanded(
@@ -638,5 +700,6 @@ class _BottomPriceCard extends StatelessWidget {
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
                 color: Colors.greenAccent))
-      ]));
+      ])),
+    );
 }

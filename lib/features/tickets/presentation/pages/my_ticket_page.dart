@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/features/tickets/presentation/pages/ticket_details_modal.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
@@ -77,7 +80,8 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
         children: [
           // Sayfa Başlığı ve Alt Başlığı
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xxl, AppSpacing.sm, AppSpacing.xxl, AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -100,7 +104,8 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
 
           // Tab Seçici
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xxl, vertical: AppSpacing.sm),
             child: _TabSelector(controller: _tabController),
           ),
 
@@ -112,7 +117,7 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
               color: context.colors.primary,
               child: ticketsAsync.when(
                 loading: () => ListView.builder(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
                   itemCount: 3,
                   itemBuilder: (final _, final __) => const ShimmerCard(),
                 ),
@@ -173,21 +178,21 @@ class _TicketCard extends StatelessWidget {
         DateFormatter.formatForEventCard(detailedTicket.event?.date ?? '');
     final colors = context.colors;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+    return Semantics(
+      button: true,
+      label: (isPast ? 'Geçmiş bilet: ' : 'Yaklaşan bilet: ') +
+          (detailedTicket.show?.name ?? 'Sanat Eseri'),
+      child: Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.xl),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: colors.primary.withOpacity(0.06),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          )
-        ],
+        // "Sahne Köşesi" imzası: bu sayfadaki tek, en yüksek değerli kart
+        // türü (bilet) için bilinçli aksan.
+        borderRadius: AppRadius.asymLg,
+        boxShadow: AppShadows.level2(colors.primary),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: AppRadius.asymLg,
         child: IntrinsicHeight(
           child: Row(
             children: [
@@ -198,7 +203,7 @@ class _TicketCard extends StatelessWidget {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -207,12 +212,12 @@ class _TicketCard extends StatelessWidget {
                               fontWeight: FontWeight.w900,
                               color:
                                   isPast ? colors.outline : colors.onSurface)),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       _ArtInfoLine(
                           icon: Icons.castle_rounded,
                           text: detailedTicket.stage?.name ?? 'Sahne'),
                       const Spacer(),
-                      const Divider(height: 20, thickness: 0.5),
+                      const Divider(height: AppSpacing.xl, thickness: 0.5),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -232,6 +237,7 @@ class _TicketCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -258,10 +264,13 @@ class _ArtDateSidebar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
+          // Geçmiş biletler için gri bir Material yedeği yerine, temanın
+          // kendi nötr (outline) tonları kullanılıyor — hangi temada
+          // görünürse görünsün sayfanın rengiyle aynı ailede kalır.
           colors: isMagic
               ? [themeColors.primary, themeColors.tertiary]
               : (isPast
-                  ? [Colors.grey.shade400, Colors.grey.shade600]
+                  ? [themeColors.outline, themeColors.outlineVariant]
                   : [
                       themeColors.primary,
                       themeColors.primary.withOpacity(0.7)
@@ -274,16 +283,16 @@ class _ArtDateSidebar extends StatelessWidget {
           RotatedBox(
             quarterTurns: 3,
             child: Text(month,
-                style: const TextStyle(
-                    color: Colors.white70,
+                style: TextStyle(
+                    color: themeColors.onPrimary.withOpacity(0.7),
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 4)),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(day,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: themeColors.onPrimary,
                   fontSize: 28,
                   fontWeight: FontWeight.w900)),
         ],
@@ -305,23 +314,17 @@ class _TabSelector extends StatelessWidget {
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: themeColors.surfaceVariant.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: themeColors.outlineVariant.withOpacity(0.3)),
       ),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           gradient: LinearGradient(
             colors: [themeColors.primary, themeColors.primaryContainer],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: themeColors.primary.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: AppShadows.level1(themeColors.primary),
         ),
         labelColor: themeColors.onPrimary,
         unselectedLabelColor: themeColors.onSurfaceVariant,
@@ -367,7 +370,7 @@ class _ArtInfoLine extends StatelessWidget {
           Icon(icon,
               size: 14,
               color: context.colors.onSurfaceVariant.withOpacity(0.6)),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(text,
                 style: context.textTheme.bodyMedium?.copyWith(
@@ -397,7 +400,8 @@ class _TicketList extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => ListView.builder(
         controller: scrollController,
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 120),
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xxl, AppSpacing.sm, AppSpacing.xxl, 120),
         physics: const BouncingScrollPhysics(),
         itemCount: tickets.length,
         itemBuilder: (final context, final index) => _TicketCard(
@@ -416,9 +420,12 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.palette_outlined,
-                size: 60, color: context.colors.outline),
-            const SizedBox(height: 16),
+            Semantics(
+              label: 'Henüz bilet yok',
+              child: Icon(Icons.palette_outlined,
+                  size: 60, color: context.colors.outline),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             const Text("Sahne henüz boş...",
                 style: TextStyle(fontWeight: FontWeight.w600)),
           ],
