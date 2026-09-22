@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/custom_description_card.dart';
@@ -85,7 +87,7 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1400),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.huge),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -133,26 +135,27 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
                 children: [
                   _buildDragHandle(),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl),
                     child: Column(
                       children: [
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppSpacing.xxl),
 
                         // 📖 EKİP HİKAYESİ
                         _buildSectionHeader(context, "EKİP HİKAYESİ",
                             Icons.auto_stories_rounded),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.md),
                         CustomDescriptionCard(
                           description:
                               state.team.description.replaceAll('\\n', '\n'),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: AppSpacing.huge),
 
                         // 🎬 SAHNEDEKİ ESERLER Başlığı
                         if (state.shows.isNotEmpty) ...[
                           _buildSectionHeader(context, "SAHNEDEKİ ESERLER",
                               Icons.auto_awesome_motion_rounded),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppSpacing.xl),
                         ],
                       ],
                     ),
@@ -170,14 +173,14 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
           SliverToBoxAdapter(
             child: Container(
               color: context.scaffoldBackgroundColor,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               child: Column(
                 children: [
-                  const SizedBox(height: 40),
+                  const SizedBox(height: AppSpacing.huge),
                   if (state.team.photosId.isNotEmpty) ...[
                     _buildSectionHeader(
                         context, "TAKIM GALERİSİ", Icons.collections_rounded),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpacing.xl),
                     GallerySection(photos: state.team.photosId),
                     const SizedBox(height: 120),
                   ],
@@ -229,7 +232,8 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
       Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: context.colors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
@@ -246,7 +250,7 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           Text(
             name.toUpperCase(),
             textAlign: TextAlign.center,
@@ -264,7 +268,7 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
       Row(
         children: [
           Icon(icon, color: context.colors.primary, size: 22),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Text(
             title,
             style: context.textTheme.titleSmall?.copyWith(
@@ -276,11 +280,11 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
       );
 
   Widget _buildDragHandle() => Container(
-        margin: const EdgeInsets.only(top: 12),
+        margin: const EdgeInsets.only(top: AppSpacing.md),
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.3),
+            color: context.colors.onSurfaceVariant.withOpacity(0.3),
             borderRadius: BorderRadius.circular(2)),
       );
 }
@@ -345,14 +349,15 @@ class _TeamDetailDesktopBody extends StatelessWidget {
     // CustomScrollView DEĞİL), bu yüzden tek bir SingleChildScrollView
     // ile sarmalamak güvenli — "unbounded height" çakışması olmaz.
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxxl, vertical: 56),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeroBanner(state.team),
-          const SizedBox(height: 48),
+          const SizedBox(height: AppSpacing.massive),
           _buildSectionHeader("EKİP HİKAYESİ", Icons.auto_stories_rounded),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           CustomDescriptionCard(
             description: state.team.description.replaceAll('\\n', '\n'),
           ),
@@ -360,13 +365,13 @@ class _TeamDetailDesktopBody extends StatelessWidget {
           if (state.shows.isNotEmpty) ...[
             _buildSectionHeader(
                 "SAHNEDEKİ ESERLER", Icons.auto_awesome_motion_rounded),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             ShowMosaicGallery(shows: state.shows, direction: Axis.horizontal),
             const SizedBox(height: 56),
           ],
           if (state.team.photosId.isNotEmpty) ...[
             _buildSectionHeader("TAKIM GALERİSİ", Icons.collections_rounded),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             GallerySection(photos: state.team.photosId),
           ],
           const SizedBox(height: 80),
@@ -376,7 +381,7 @@ class _TeamDetailDesktopBody extends StatelessWidget {
   }
 
   Widget _buildHeroBanner(final Team team) => ClipRRect(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         child: SizedBox(
           height: 380,
           width: double.infinity,
@@ -399,9 +404,9 @@ class _TeamDetailDesktopBody extends StatelessWidget {
                 ),
               ),
               Positioned(
-                left: 48,
-                right: 48,
-                bottom: 40,
+                left: AppSpacing.massive,
+                right: AppSpacing.massive,
+                bottom: AppSpacing.huge,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -423,7 +428,7 @@ class _TeamDetailDesktopBody extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     Text(
                       team.name.toUpperCase(),
                       style: const TextStyle(
@@ -444,7 +449,7 @@ class _TeamDetailDesktopBody extends StatelessWidget {
   Widget _buildSectionHeader(final String title, final IconData icon) => Row(
         children: [
           Icon(icon, color: WebColors.primaryGold, size: 24),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Text(
             title,
             style: const TextStyle(

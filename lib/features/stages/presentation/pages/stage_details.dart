@@ -5,6 +5,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/util/comminucation_actions.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -89,36 +94,36 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
             physics: const BouncingScrollPhysics(),
             slivers: [
               SliverPadding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxl, vertical: AppSpacing.xl),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     _buildStageImage(state.stage.imageUrl),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xxxl),
 
                     // 📖 MEKAN HİKAYESİ
                     _buildSectionLabel(
                         context, 'HAKKINDA', Icons.info_outline_rounded),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     _buildStageInfo(state.stage.description),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: AppSpacing.huge),
 
                     // 🎬 ETKİNLİKLER
                     if (state.shows.isNotEmpty) ...[
                       _buildSectionLabel(context, 'SAHNELENEN ESERLER',
                           Icons.event_seat_rounded),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       _buildShowList(state.shows),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: AppSpacing.huge),
                     ],
 
                     // 📍 KONUM VE ADRES
                     _buildSectionLabel(
                         context, 'LOKASYON', Icons.map_outlined),
-                    const SizedBox(height: 16),
-                    _buildStageMap(
-                        state.stage.locationLat, state.stage.locationLng),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildStageMap(state.stage.locationLat,
+                        state.stage.locationLng, state.stage.name),
+                    const SizedBox(height: AppSpacing.xxl),
                     _buildAddressSection(context, state.stage.address,
                         state.stage.communication),
 
@@ -136,12 +141,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
   Widget _buildStageImage(final String imageUrl) => Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10)),
-          ],
+          boxShadow: AppShadows.level3(context.colors.shadow),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
@@ -167,7 +167,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
           physics: const BouncingScrollPhysics(),
           itemCount: shows.length,
           itemBuilder: (final context, final index) => Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: AppSpacing.lg),
             child: ShowCard(
               imageUrl: shows[index].imageUrl,
               gameName: shows[index].name,
@@ -178,24 +178,42 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
         ),
       );
 
-  Widget _buildStageMap(final double lat, final double lng) {
+  Widget _buildStageMap(
+      final double lat, final double lng, final String stageName) {
     if (lat == 0 && lng == 0) return const SizedBox.shrink();
     final LatLng position = LatLng(lat, lng);
     return Container(
       height: 250,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(color: context.colors.outlineVariant),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
-        child: GoogleMap(
-          initialCameraPosition: CameraPosition(target: position, zoom: 15),
-          markers: {
-            Marker(markerId: const MarkerId('stage'), position: position)
-          },
-          zoomControlsEnabled: false,
-          scrollGesturesEnabled: false, // Sayfa scroll'u ile çakışmaması için
+        child: Stack(
+          children: [
+            GoogleMap(
+              initialCameraPosition:
+                  CameraPosition(target: position, zoom: 15),
+              markers: {
+                Marker(markerId: const MarkerId('stage'), position: position)
+              },
+              zoomControlsEnabled: false,
+              scrollGesturesEnabled:
+                  false, // Sayfa scroll'u ile çakışmaması için
+            ),
+            Positioned(
+              right: AppSpacing.md,
+              bottom: AppSpacing.md,
+              child: _OpenInMapsButton(
+                background: context.colors.surface,
+                iconColor: context.colors.primary,
+                onPressed: () =>
+                    TiyatrolCommunicationActions.openStageLocation(
+                        lat: lat, lng: lng, stageName: stageName),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -207,7 +225,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
         children: [
           _buildInfoTile(
               context, Icons.location_on_rounded, 'Açık Adres', address),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           _buildInfoTile(
               context, Icons.phone_in_talk_rounded, 'İletişim', communication),
         ],
@@ -219,7 +237,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: context.colors.primary, size: 20),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +245,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
                 Text(title,
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(content,
                     style: TextStyle(
                         color: context.colors.onSurfaceVariant,
@@ -244,7 +262,7 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
       Row(
         children: [
           Icon(icon, color: context.colors.primary, size: 22),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Text(title,
               style: context.textTheme.labelLarge
                   ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 2)),
@@ -297,12 +315,12 @@ class _StageDetailDesktopPageState
   @override
   void initState() {
     super.initState();
-    _heroController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
-    _heroFade = CurvedAnimation(parent: _heroController, curve: Curves.easeOut);
+    _heroController = AnimationController(vsync: this, duration: AppMotion.slow);
+    _heroFade =
+        CurvedAnimation(parent: _heroController, curve: AppMotion.standard);
     _heroSlide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
         .animate(CurvedAnimation(
-            parent: _heroController, curve: Curves.easeOutCubic));
+            parent: _heroController, curve: AppMotion.standard));
   }
 
   @override
@@ -366,8 +384,8 @@ class _StageDetailDesktopPageState
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1280),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 48, vertical: 72),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.massive, vertical: 72),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -427,7 +445,7 @@ class _StageDetailDesktopPageState
       children: [
         const _DesktopSectionTitle(
             title: 'Hakkında', icon: Icons.info_outline_rounded),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.xxl),
         Text(
           state.stage.description,
           style: const TextStyle(
@@ -464,26 +482,40 @@ class _StageDetailDesktopPageState
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: WebColors.primaryGold.withOpacity(0.25)),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 40,
-                    offset: const Offset(0, 20)),
-              ],
+              boxShadow: AppShadows.level5(WebColors.veryDarkBlue),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                    target: LatLng(stage.locationLat, stage.locationLng),
-                    zoom: 15),
-                markers: {
-                  Marker(
-                      markerId: const MarkerId('stage'),
-                      position: LatLng(stage.locationLat, stage.locationLng)),
-                },
-                zoomControlsEnabled: false,
-                scrollGesturesEnabled: false,
+              child: Stack(
+                children: [
+                  GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                        target: LatLng(stage.locationLat, stage.locationLng),
+                        zoom: 15),
+                    markers: {
+                      Marker(
+                          markerId: const MarkerId('stage'),
+                          position:
+                              LatLng(stage.locationLat, stage.locationLng)),
+                    },
+                    zoomControlsEnabled: false,
+                    scrollGesturesEnabled: false,
+                  ),
+                  Positioned(
+                    right: AppSpacing.lg,
+                    bottom: AppSpacing.lg,
+                    child: _OpenInMapsButton(
+                      background: WebColors.veryDarkBlue,
+                      iconColor: WebColors.primaryGold,
+                      onPressed: () =>
+                          TiyatrolCommunicationActions.openStageLocation(
+                        lat: stage.locationLat,
+                        lng: stage.locationLng,
+                        stageName: stage.name,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -508,7 +540,7 @@ class _DesktopSectionTitle extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                   colors: [WebColors.primaryGold, WebColors.primaryGoldLight]),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               boxShadow: [
                 BoxShadow(
                     color: WebColors.primaryGold.withOpacity(0.4),
@@ -517,14 +549,14 @@ class _DesktopSectionTitle extends StatelessWidget {
             ),
             child: Icon(icon, color: WebColors.veryDarkBlue, size: 22),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           Text(title,
               style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: WebColors.whiteText,
                   letterSpacing: 0.5)),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           Expanded(
               child: Container(
                   height: 1,
@@ -534,5 +566,46 @@ class _DesktopSectionTitle extends StatelessWidget {
                     Colors.transparent,
                   ])))),
         ],
+      );
+}
+
+/// Harita önizlemesinin üzerine binen, gerçek harita uygulamasında yol
+/// tarifi açan küçük ikon buton — hem mobil hem masaüstü haritasında
+/// kullanılır, marka tonu her çağıran tarafından verilir.
+class _OpenInMapsButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final Color background;
+  final Color iconColor;
+
+  const _OpenInMapsButton({
+    required this.onPressed,
+    required this.background,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Semantics(
+        button: true,
+        label: 'Haritada yol tarifi al',
+        child: Container(
+          decoration: BoxDecoration(
+            color: background,
+            shape: BoxShape.circle,
+            boxShadow: AppShadows.level2(Colors.black),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onPressed,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child:
+                    Icon(Icons.directions_rounded, color: iconColor, size: 20),
+              ),
+            ),
+          ),
+        ),
       );
 }

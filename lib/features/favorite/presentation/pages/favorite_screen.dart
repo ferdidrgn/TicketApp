@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../players/presentation/providers/player_provider.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -79,8 +81,8 @@ class _FavoritesPageState extends State<FavoritesPage>
               children: [
                 // 1. MODERNIZE EDILMIŞ TAB SEÇİCİ
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xxl, vertical: AppSpacing.lg),
                   child: _FavoriteTabSelector(controller: _tabController),
                 ),
 
@@ -123,12 +125,12 @@ class _FavoriteGrid extends StatelessWidget {
         context.responsive(mobile: 2, tablet: 3, desktop: 4);
 
     return GridView.builder(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       physics: const BouncingScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
+        mainAxisSpacing: AppSpacing.xl,
+        crossAxisSpacing: AppSpacing.xl,
         childAspectRatio: aspectRatio,
       ),
       itemCount: itemCount,
@@ -338,7 +340,7 @@ class _FavoriteErrorNotice extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
           child: Text(
             message,
             textAlign: TextAlign.center,
@@ -358,12 +360,12 @@ class _FavoriteEmptyState extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 56, color: context.colors.onSurfaceVariant),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 message,
                 textAlign: TextAlign.center,
@@ -373,7 +375,7 @@ class _FavoriteEmptyState extends StatelessWidget {
                   fontSize: 16,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 'Beğendiğin oyun, sahne ve sanatçıları kalp ikonuna dokunarak buraya ekleyebilirsin.',
                 textAlign: TextAlign.center,
@@ -392,13 +394,13 @@ class _FavoriteSignInNotice extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.person_outline_rounded,
                   size: 56, color: context.colors.onSurfaceVariant),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 'Koleksiyonunu görmek için giriş yapmalısın.',
                 textAlign: TextAlign.center,
@@ -444,12 +446,7 @@ class _FavoriteTabSelector extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          boxShadow: [
-            BoxShadow(
-                color: context.colors.primary.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4)),
-          ],
+          boxShadow: AppShadows.level1(context.colors.primary),
         ),
         labelColor: context.colors.onPrimary,
         unselectedLabelColor: context.colors.onSurfaceVariant,
