@@ -7,6 +7,7 @@ import 'package:ticketapp/core/theme/app_radius.dart';
 import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
+import 'package:ticketapp/features/chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_detail_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/button/back_button_glassmorphism.dart';
@@ -110,9 +111,25 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             ],
           ),
         ),
-        data: (final state) => isLargeScreen
-            ? _buildWebLayout(context, state)
-            : _buildMobileLayout(context, state),
+        data: (final state) => Stack(
+          children: [
+            isLargeScreen
+                ? _buildWebLayout(context, state)
+                : _buildMobileLayout(context, state),
+            // Gösteriye özel SSS sohbet balonu — yerel anahtar kelime
+            // eşleştirmesi, ağ çağrısı yok (bkz. ShowFaqMatcher). Mobilde
+            // sağda zaten "yukarı kaydır" FAB'ı ve alt "Bilet Al" çubuğu
+            // olduğu için sol tarafta, çubuğun üstünde konumlandırılır;
+            // büyük ekranda (alt çubuk yok) sağ-altta yer alır.
+            Positioned(
+              bottom: isLargeScreen ? 30 : 110,
+              left: isLargeScreen ? null : AppSpacing.xl,
+              right: isLargeScreen ? AppSpacing.xl : null,
+              child: ShowChatBubbleButton(
+                  showId: state.show.id, showName: state.show.name),
+            ),
+          ],
+        ),
       ),
     );
   }
