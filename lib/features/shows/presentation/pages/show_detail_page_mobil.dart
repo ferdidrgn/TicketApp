@@ -202,6 +202,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                               child: ShowInfoSection(
                                 title: "",
                                 description: state.show.description,
+                                type: state.show.type,
+                                duration: state.show.duration,
                               ),
                             ),
                             const SizedBox(height: AppSpacing.xxxl),

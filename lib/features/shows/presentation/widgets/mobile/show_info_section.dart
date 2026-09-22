@@ -6,11 +6,15 @@ import '../../../../../core/common/extentions/app_context_ui_extension.dart';
 class ShowInfoSection extends StatefulWidget {
   final String title;
   final String description;
+  final String type;
+  final String duration;
 
   const ShowInfoSection({
     super.key,
     required this.title,
     required this.description,
+    this.type = '',
+    this.duration = '',
   });
 
   @override
@@ -66,26 +70,37 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(Icons.star, color: brandColor, size: 20),
-              const SizedBox(width: 5),
-              Text(
-                "4.8 (120 İnceleme)",
-                style: TextStyle(
-                    color: textColor.withOpacity(0.7), fontSize: 14),
-              ),
-              const SizedBox(width: 20),
-              Icon(Icons.timer,
-                  color: textColor.withOpacity(0.5), size: 18),
-              const SizedBox(width: 5),
-              Text(
-                "120 Dk",
-                style: TextStyle(
-                    color: textColor.withOpacity(0.7), fontSize: 14),
-              ),
-            ],
-          ),
+          // Önceden burada "4.8 (120 İnceleme)" sabit/sahte bir puan vardı —
+          // uygulamada gerçek bir değerlendirme sistemi yok, o yüzden
+          // uydurma bir sayıyı başka bir sahte sayıyla değiştirmek yerine
+          // gerçek verilerle (tür + süre) değiştirildi.
+          if (widget.type.isNotEmpty || widget.duration.isNotEmpty)
+            Row(
+              children: [
+                if (widget.type.isNotEmpty) ...[
+                  Icon(Icons.theater_comedy_rounded,
+                      color: brandColor, size: 20),
+                  const SizedBox(width: 5),
+                  Text(
+                    widget.type,
+                    style: TextStyle(
+                        color: textColor.withOpacity(0.7), fontSize: 14),
+                  ),
+                ],
+                if (widget.type.isNotEmpty && widget.duration.isNotEmpty)
+                  const SizedBox(width: 20),
+                if (widget.duration.isNotEmpty) ...[
+                  Icon(Icons.timer,
+                      color: textColor.withOpacity(0.5), size: 18),
+                  const SizedBox(width: 5),
+                  Text(
+                    widget.duration,
+                    style: TextStyle(
+                        color: textColor.withOpacity(0.7), fontSize: 14),
+                  ),
+                ],
+              ],
+            ),
           const SizedBox(height: 25),
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
