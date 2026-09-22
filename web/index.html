@@ -60,17 +60,12 @@
     </script>
 
 
-    <!--
-    TODO(maps): GERÇEK bir Google Maps JavaScript API anahtarı YOK
-    (sahte/uydurma bir anahtar bilerek eklenmedi). `google_maps_flutter_web`
-    (bkz. lib/features/discovery/presentation/widgets/nearby_events_map.dart,
-    stage_details.dart) web'de bu script/anahtar olmadan haritayı gösteremez.
-    Kurulum: Google Cloud Console'da "Maps JavaScript API" için bir anahtar
-    oluştur ve aşağıdaki gibi bir script etiketi ekle (anahtarı repoya değil,
-    build zamanı bir ortam değişkeninden/gizli değerden geçir):
-
-    <script src="https://maps.googleapis.com/maps/api/js?key=GERÇEK_ANAHTAR"></script>
-    -->
+    <!-- Google Maps JavaScript API: "Websites" kısıtlamasıyla (ticketapp.web.app/*)
+    oluşturulmuş bir anahtar. Web anahtarları zaten sayfa kaynağında herkese
+    görünür oluyor (View Source) — gizlilik burada değil, HTTP referrer
+    kısıtlamasında; Android anahtarının aksine gitignore'lu bir dosyadan
+    okumaya gerek yok, aynı reCAPTCHA site key mantığı. -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCsM4QiUuK2gtXUnns5c2gctBJuPNdjPuo"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-62RLP74TV0"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
