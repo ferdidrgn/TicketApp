@@ -6,6 +6,7 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
@@ -95,6 +96,9 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
                     ]),
                   ),
                 ),
+                // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
+                if (context.isDesktop)
+                  const SliverToBoxAdapter(child: Footer()),
               ],
             ),
           ),
