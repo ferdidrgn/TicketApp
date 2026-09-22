@@ -10,6 +10,7 @@ import '../../../../shared/widgets/section_header.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
@@ -168,23 +169,37 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       );
 
-  PreferredSizeWidget _buildWebAppBar(final BuildContext context) => AppBar(
-        backgroundColor: context.colors.surface.withOpacity(0.8),
-        elevation: 0,
-        title: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: CustomSearchbar(onTap: _openSearch, isCompact: true),
+  PreferredSizeWidget _buildWebAppBar(final BuildContext context) {
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final uid = ref.watch(currentUserIdProvider) ?? '';
+    final unreadCount =
+        isLoggedIn ? ref.watch(unreadNotificationCountProvider(uid)) : 0;
+
+    return AppBar(
+      backgroundColor: context.colors.surface.withOpacity(0.8),
+      elevation: 0,
+      title: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: CustomSearchbar(onTap: _openSearch, isCompact: true),
+      ),
+      actions: [
+        IconButton(
+          onPressed: () => isLoggedIn
+              ? NavigationHandler.goToNotifications(context)
+              : NavigationHandler.goToLogin(context),
+          icon: Badge(
+            isLabelVisible: unreadCount > 0,
+            label: Text(unreadCount > 9 ? '9+' : '$unreadCount'),
+            child: const Icon(Icons.notifications_none_rounded),
+          ),
         ),
-        actions: [
-          IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications_none_rounded)),
-          IconButton(
-              onPressed: () => NavigationHandler.goToSettings(context),
-              icon: const Icon(Icons.person_outline_rounded)),
-          const SizedBox(width: 20),
-        ],
-      );
+        IconButton(
+            onPressed: () => NavigationHandler.goToSettings(context),
+            icon: const Icon(Icons.person_outline_rounded)),
+        const SizedBox(width: 20),
+      ],
+    );
+  }
 
   Widget _buildErrorWidget(final BuildContext context, final WidgetRef ref) =>
       Center(
@@ -307,19 +322,31 @@ class _PerformantQuickActionsGridSection extends ConsumerWidget {
   const _PerformantQuickActionsGridSection();
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) => Padding(
-        padding: const EdgeInsets.only(top: 32.0),
-        child: QuickActionsGrid(
-          onNotificationsTap: () => NavigationHandler.goToSettings(context),
-          onFavoritesTap: () => NavigationHandler.goToFavorites(context),
-          onTicketsTap: () {
-            if (ref.read(isLoggedInProvider)) {
-              final uid = ref.read(currentUserIdProvider);
-              NavigationHandler.goToMyTickets(context, uid ?? "");
-            } else
-              NavigationHandler.goToLogin(context);
-          },
-          onCalendarTap: () {},
-        ),
-      );
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final uid = ref.watch(currentUserIdProvider) ?? '';
+    final unreadCount =
+        isLoggedIn ? ref.watch(unreadNotificationCountProvider(uid)) : 0;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 32.0),
+      child: QuickActionsGrid(
+        notificationBadgeCount: unreadCount,
+        onNotificationsTap: () {
+          if (isLoggedIn)
+            NavigationHandler.goToNotifications(context);
+          else
+            NavigationHandler.goToLogin(context);
+        },
+        onFavoritesTap: () => NavigationHandler.goToFavorites(context),
+        onTicketsTap: () {
+          if (isLoggedIn)
+            NavigationHandler.goToMyTickets(context, uid);
+          else
+            NavigationHandler.goToLogin(context);
+        },
+        onCalendarTap: () {},
+      ),
+    );
+  }
 }

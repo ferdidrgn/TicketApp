@@ -19,6 +19,7 @@ import '../../../features/discovery/presentation/pages/discovery_page.dart';
 import '../../../features/discovery/presentation/pages/nearby_events_page.dart';
 import '../../../features/favorite/presentation/pages/favorite_screen.dart';
 import '../../../features/home/presentation/pages/home_page_mobile.dart';
+import '../../../features/notifications/presentation/pages/notification_inbox_page.dart';
 import '../../../features/onboarding/presentation/pages/onboarding_container.dart';
 import '../../../features/search/presentation/pages/search_page.dart';
 import '../../../features/seat/presentation/pages/seat_details.dart';
@@ -85,7 +86,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       final path = state.uri.path;
 
       // Korumalı sayfalar
-      final protectedRoutes = ['/favorites', '/my-tickets'];
+      final protectedRoutes = ['/favorites', '/my-tickets', '/notifications'];
 
       // Login değilse korumalı sayfaya giremez
       if (!loggedIn && protectedRoutes.any((final r) => path.startsWith(r)))
@@ -263,6 +264,17 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: AppSettingsPage(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const NotificationInboxPage(),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),

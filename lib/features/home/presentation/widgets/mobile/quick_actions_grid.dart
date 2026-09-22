@@ -9,12 +9,17 @@ class QuickActionsGrid extends StatelessWidget {
   final VoidCallback? onTicketsTap;
   final VoidCallback? onCalendarTap;
 
+  /// Okunmamış bildirim sayısı — "Bildirimler" kartının üzerinde gerçek bir
+  /// rozet (badge) olarak gösterilir. 0 ise rozet gizlenir.
+  final int notificationBadgeCount;
+
   const QuickActionsGrid({
     super.key,
     this.onNotificationsTap,
     this.onFavoritesTap,
     this.onTicketsTap,
     this.onCalendarTap,
+    this.notificationBadgeCount = 0,
   });
 
   @override
@@ -43,6 +48,7 @@ class QuickActionsGrid extends StatelessWidget {
                   label: "Bildirimler",
                   color: const Color(0xFFFFB7B2),
                   onTap: onNotificationsTap,
+                  badgeCount: notificationBadgeCount,
                 ),
                 _QuickActionCard(
                   icon: Icons.favorite_outline,
@@ -74,12 +80,14 @@ class _QuickActionCard extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback? onTap;
+  final int badgeCount;
 
   const _QuickActionCard({
     required this.icon,
     required this.label,
     required this.color,
     this.onTap,
+    this.badgeCount = 0,
   });
 
   @override
@@ -97,17 +105,21 @@ class _QuickActionCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 26,
+              Badge(
+                isLabelVisible: badgeCount > 0,
+                label: Text(badgeCount > 9 ? '9+' : '$badgeCount'),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 26,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
