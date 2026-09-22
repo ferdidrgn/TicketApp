@@ -7,17 +7,22 @@ import 'package:ticketapp/features/splash/presentation/widgets/splash_data_guard
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../events/domain/entities/event.dart';
 import '../../../players/domain/entities/player.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../domain/entities/show.dart';
 import '../providers/show_detail_provider.dart';
+import '../providers/show_provider.dart';
 import '../widgets/show_team_credit.dart';
 import '../widgets/web/player_section.dart';
 import '../widgets/web/show_detail_hero.dart';
@@ -52,17 +57,19 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
   }
 
   void _initControllers() {
-    _heroController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
-    _contentController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
+    // 800ms/500ms: `AppMotion.slow`/`AppMotion.normal` bu iki "sahne anı"
+    // ve "standart geçiş" süresinin zaten geldiği kaynaklardan biri
+    // (bkz. `app_motion.dart` yorum: "dramatik/sahne anları ~650-800ms").
+    _heroController = AnimationController(vsync: this, duration: AppMotion.slow);
+    _contentController =
+        AnimationController(vsync: this, duration: AppMotion.normal);
     _floatingController =
         AnimationController(vsync: this, duration: const Duration(seconds: 3));
 
     _heroFade = CurvedAnimation(parent: _heroController, curve: Curves.easeOut);
     _heroSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
         .animate(CurvedAnimation(
-            parent: _heroController, curve: Curves.easeOutCubic));
+            parent: _heroController, curve: AppMotion.standard));
     _contentFade =
         CurvedAnimation(parent: _contentController, curve: Curves.easeOut);
   }
@@ -232,7 +239,8 @@ class _MainContent extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxl, vertical: 60),
       // landing/style.css bölümlerinde olduğu gibi geniş masaüstü
       // ekranlarında içerik ~1360px'te sınırlanır, aksi halde satır
       // uzunluğu ve poster/açıklama oranı ultra geniş monitörlerde bozulur.
@@ -291,7 +299,7 @@ class _DesktopLayout extends StatelessWidget {
               _ShowMetaChips(showData: showData),
               const SizedBox(height: 28),
               _GlassDescriptionCard(description: showData.description),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               ShowTeamCredit(teamId: showData.teamId),
             ],
           ),
@@ -311,25 +319,27 @@ class _DesktopLayout extends StatelessWidget {
                         title: 'Etkinlik Takvimi',
                         icon: Icons.calendar_today_rounded),
                     _EventRuleNote(eventRule: showData.eventRule),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xxl),
                     _EventDateList(events: events, stages: stages),
                   ],
                 ),
               ),
               const SizedBox(height: 50),
               const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               PlayerSection(players: nowPlayers, isOld: false),
               const SizedBox(height: 50),
               const _SectionTitle(
                   title: 'Eski Ekip', icon: Icons.history_rounded),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               PlayerSection(players: oldPlayers, isOld: true),
               const SizedBox(height: 50),
               const _SectionTitle(
                   title: 'Galeri', icon: Icons.photo_library_rounded),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               GallerySection(photos: showData.photosShowId),
+              const SizedBox(height: 50),
+              _SimilarShowsSection(currentShow: showData),
             ],
           ),
         ),
@@ -365,11 +375,11 @@ class _MobileLayout extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ShowMetaChips(showData: showData),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.xxl),
         _GlassDescriptionCard(description: showData.description),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
         ShowTeamCredit(teamId: showData.teamId),
-        const SizedBox(height: 40),
+        const SizedBox(height: AppSpacing.huge),
         KeyedSubtree(
           key: eventsSectionKey,
           child: Column(
@@ -379,24 +389,89 @@ class _MobileLayout extends StatelessWidget {
                   title: 'Etkinlik Takvimi',
                   icon: Icons.calendar_today_rounded),
               _EventRuleNote(eventRule: showData.eventRule),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               _EventDateList(events: events, stages: stages),
             ],
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: AppSpacing.huge),
         const _SectionTitle(title: 'Ekip', icon: Icons.people_rounded),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
         PlayerSection(players: nowPlayers, isOld: false),
-        const SizedBox(height: 40),
+        const SizedBox(height: AppSpacing.huge),
         const _SectionTitle(title: 'Eski Ekip', icon: Icons.history_rounded),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
         PlayerSection(players: oldPlayers, isOld: true),
-        const SizedBox(height: 40),
+        const SizedBox(height: AppSpacing.huge),
         const _SectionTitle(title: 'Galeri', icon: Icons.photo_library_rounded),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
         GallerySection(photos: showData.photosShowId),
+        const SizedBox(height: AppSpacing.huge),
+        _SimilarShowsSection(currentShow: showData),
       ],
+    );
+  }
+}
+
+/// "Benzer Oyunlar" — ana sayfa/keşfet ızgaralarıyla AYNI paylaşılan
+/// `TheatreShowCard`'ı (hover'da perde açılışıyla beliren rastgele galeri
+/// fotoğrafı) kullanır, böylece bu tiyatronun en fotoğraf-zengin sayfasında
+/// da aynı imza etkileşim uygulanmış olur. Aynı kategoride (`Show.category`)
+/// bu gösteri hariç başka oyun yoksa (ya da kategori boşsa) SESSİZCE
+/// gizlenir — uydurma bir "önerilen" listesi asla gösterilmez.
+class _SimilarShowsSection extends ConsumerWidget {
+  final Show currentShow;
+
+  const _SimilarShowsSection({required this.currentShow});
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final showsAsync = ref.watch(showsActiveFirstProvider(true));
+
+    return showsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (final _, final __) => const SizedBox.shrink(),
+      data: (final allShows) {
+        final category = currentShow.category.trim();
+        final similar = allShows
+            .where((final s) =>
+                s.id != currentShow.id &&
+                category.isNotEmpty &&
+                s.category.trim() == category)
+            .take(8)
+            .toList();
+        if (similar.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _SectionTitle(
+                title: 'Benzer Oyunlar', icon: Icons.auto_awesome_rounded),
+            const SizedBox(height: AppSpacing.xxl),
+            SizedBox(
+              height: 360,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: similar.length,
+                separatorBuilder: (final _, final __) =>
+                    const SizedBox(width: AppSpacing.lg),
+                itemBuilder: (final context, final index) {
+                  final show = similar[index];
+                  return SizedBox(
+                    width: 240,
+                    child: TheatreShowCard(
+                      show: show,
+                      onTap: () =>
+                          NavigationHandler.goToShow(context, show.id, show.name),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -455,8 +530,8 @@ class _EventItemTile extends StatelessWidget {
     final venueName = (stage?.name ?? '').trim();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: WebColors.darkBlueSurface.withOpacity(0.8),
         borderRadius: const BorderRadius.only(
@@ -471,7 +546,8 @@ class _EventItemTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
               color: WebColors.primaryGold.withOpacity(0.2),
               borderRadius: const BorderRadius.only(
@@ -494,7 +570,7 @@ class _EventItemTile extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -504,22 +580,22 @@ class _EventItemTile extends StatelessWidget {
                         color: WebColors.whiteText,
                         fontSize: 16,
                         fontWeight: FontWeight.w500)),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Row(
                   children: [
                     Icon(Icons.access_time,
                         color: WebColors.whiteText.withOpacity(0.6), size: 14),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(saat,
                         style: TextStyle(
                             color: WebColors.whiteText.withOpacity(0.6),
                             fontSize: 14)),
                     if (venueName.isNotEmpty) ...[
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.md),
                       Icon(Icons.place_outlined,
                           color: WebColors.whiteText.withOpacity(0.6),
                           size: 14),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xs),
                       Flexible(
                         child: Text(venueName,
                             style: TextStyle(
@@ -765,14 +841,14 @@ class _SectionTitle extends StatelessWidget {
             child: Icon(icon,
                 color: WebColors.darkBlueBackground, size: 22),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           Text(title,
               style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: WebColors.whiteText,
                   letterSpacing: 1)),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           Expanded(
               child: Container(
                   height: 1,
