@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/decorative_elements.dart';
 import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../../../shared/widgets/theatre_show_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -66,6 +68,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     // Hiçbir oyun gizlenmiyor: önce aktif (takviminde gelecek etkinliği
     // olan) oyunlar, ardından (yer kaldıysa) aktif olmayanlar.
     final showState = ref.watch(showsActiveFirstProvider(true));
+    // "Aktif Oyunlar" şeridinin gerçek verisi — SADECE takviminde gelecek
+    // etkinliği olan oyunlar (`showsActiveFirstProvider`'ın TÜM sonucu
+    // DEĞİL). İkincil bir bölüm; sayfanın genel loading/error durumunu
+    // etkilemez, boşsa (henüz yüklenmemiş ya da gerçekten aktif oyun yoksa)
+    // bölüm build() içinde tamamen gizlenir.
+    final activeShowState = ref.watch(activeShowsProvider(true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
@@ -109,6 +117,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
 
                       const SizedBox(height: 32),
+
+                      // 0. Aktif Oyunlar — takviminde gelecek etkinliği
+                      // olan gerçek oyunlar (web'deki `_HeroBand`/"sıradaki
+                      // oyun" kavramının mobildeki karşılığı, ama mobilin
+                      // kendi collage/şerit diliyle). Hiç aktif oyun yoksa
+                      // (`activeShowState.value` boş/null) bölüm ve
+                      // ayırıcısı tamamen gizlenir — sahte/placeholder
+                      // içerik gösterilmez.
+                      if ((activeShowState.value ?? const []).isNotEmpty) ...[
+                        _PerformantActiveShowsSection(
+                            shows: activeShowState.value!),
+                        const DividerWithAccent(),
+                      ],
 
                       // 1. Öne Çıkanlar (Story) - Performans Sınıfına Bölündü
                       _PerformantStorySection(
@@ -276,6 +297,64 @@ class _PerformantCategorySection extends StatelessWidget {
           const CategoryGrid(),
         ],
       );
+}
+
+/// "Aktif Oyunlar" — sadece takviminde GELECEK tarihli en az bir etkinliği
+/// olan oyunlar (`activeShowsProvider(true)`'dan gelen gerçek liste,
+/// `showsActiveFirstProvider`'ın toplam uzunluğu DEĞİL). Bu widget'a
+/// verilen `shows` her zaman zaten filtrelenmiş/gerçek "aktif" listedir —
+/// aktiflik mantığı burada tekrar YAZILMIYOR, `show_provider.dart`'taki
+/// `_activeShowIdsFromEvents`'ten türeyen provider'lar tüketiliyor.
+///
+/// Kart tasarımı `theatre_show_card.dart`'taki paylaşılan
+/// `TheatreShowCard`'ı birebir kullanıyor (aynı gölge/köşe/hover dili) —
+/// web'in hover-perde tekniği dokunmatik'te tetiklenmez ama kart zaten
+/// dokunma ile `onTap` üzerinden çalışır, tasarım dili tutarlı kalır.
+class _PerformantActiveShowsSection extends StatelessWidget {
+  final List<Show> shows;
+
+  const _PerformantActiveShowsSection({required this.shows});
+
+  @override
+  Widget build(final BuildContext context) {
+    if (shows.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+            title: "Aktif Oyunlar",
+            subtitle: "Şu An Sahnede",
+            onTap: () => NavigationHandler.goToDiscover(context)),
+        SizedBox(
+          height: 248,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+            physics: const BouncingScrollPhysics(),
+            itemCount: shows.length,
+            separatorBuilder: (final _, final __) =>
+                const SizedBox(width: AppSpacing.md),
+            itemBuilder: (final context, final index) {
+              final show = shows[index];
+              return SizedBox(
+                width: 168,
+                child: Semantics(
+                  button: true,
+                  label: '${show.name}, ${show.category}',
+                  child: TheatreShowCard(
+                    show: show,
+                    onTap: () => NavigationHandler.goToShow(
+                        context, show.id, show.name),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _PerformantCollageSection extends StatelessWidget {
