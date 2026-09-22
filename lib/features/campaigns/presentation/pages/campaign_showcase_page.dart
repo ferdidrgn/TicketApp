@@ -9,6 +9,7 @@ import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/widgets/custom_dots_indicator.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../campaigns/domain/entities/campaign.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
 import '../widgets/web/campaign_showcase_desktop_view.dart';
@@ -127,6 +128,9 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
 
         // 2. DYNAMIC CONTENT SECTION
         _buildDetailedContent(context, currentCampaign),
+
+        // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
+        if (context.isDesktop) const Footer(),
       ],
     );
   }

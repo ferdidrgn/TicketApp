@@ -8,6 +8,7 @@ import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../providers/player_provider.dart';
@@ -720,6 +721,8 @@ class _PlayerDetailDesktopBodyState
                 ),
               ),
             ),
+            // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
+            const SliverToBoxAdapter(child: Footer()),
           ],
         ),
         _buildFloatingChip(context, state),

@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
@@ -393,6 +394,8 @@ class _StageDetailDesktopPageState
             ),
           ),
         ),
+        // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
+        const SliverToBoxAdapter(child: Footer()),
       ],
     );
   }

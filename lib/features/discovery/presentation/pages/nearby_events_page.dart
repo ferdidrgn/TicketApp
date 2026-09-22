@@ -5,6 +5,7 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
@@ -533,6 +534,8 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
           child: _buildStagesSection(context, stagesState),
         ),
         const SizedBox(height: 100),
+        // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
+        const Footer(),
       ],
     );
   }
