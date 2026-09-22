@@ -81,9 +81,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(final BuildContext context) {
     final campaignState = ref.watch(campaignsProvider);
-    // Sadece takviminde gelecek etkinliği olan ("aktif") oyunlar — geçmiş
-    // sezonlarda kalmış oyunlar ana sayfada/önerilerde görünmemeli.
-    final showState = ref.watch(activeShowsProvider(true));
+    // Hiçbir oyun tamamen gizlenmiyor: önce takviminde gelecek etkinliği
+    // olan ("aktif") oyunlar, ardından (yer kaldıysa) aktif olmayanlar —
+    // aktif oyun sayısı azsa liste yine de boş/yarım görünmüyor.
+    final showState = ref.watch(showsActiveFirstProvider(true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
 
     final bool isLoading =
@@ -117,7 +118,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               message: 'Sahne verileri yüklenirken bir sorun oluştu.',
               onRetry: () {
                 ref.invalidate(campaignsProvider);
-                ref.invalidate(activeShowsProvider);
+                ref.invalidate(showsActiveFirstProvider);
                 ref.invalidate(stagesProvider);
               },
             )
@@ -694,9 +695,10 @@ class _HeroBandState extends ConsumerState<_HeroBand>
 
   @override
   Widget build(final BuildContext context) {
-    // Firestore okumasını sınırlı tutmak için en fazla ilk 12 aktif oyunun
-    // etkinliklerine bakılır — `activeShowsProvider` zaten `isLimit: true`
-    // ile üst sınırlı bir listeden geliyor. Bu hesap eskiden ayrı bir
+    // Firestore okumasını sınırlı tutmak için en fazla ilk 12 oyunun
+    // etkinliklerine bakılır — `widget.shows` zaten `showsActiveFirstProvider`
+    // ile aktif oyunlar önde olacak şekilde sıralı ve `isLimit: true` ile
+    // üst sınırlı bir listeden geliyor. Bu hesap eskiden ayrı bir
     // `_HeroFeaturedPanel` (ConsumerWidget) içindeydi; artık burada,
     // çünkü sayfalama noktaları ile öne çıkan panel/hotspot AYNI seçili
     // oyunu paylaşmak zorunda.

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
 import '../providers/auth_provider.dart';
 
@@ -130,10 +131,7 @@ class LoginScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildGradientButton(
-                  text: 'GOOGLE İLE BAĞLAN',
-                  icon: Icons.g_mobiledata_rounded,
-                  colors: [const Color(0xFF4285F4), const Color(0xFF34A853)],
+                _buildGoogleButton(
                   onTap: () => _handleGoogleSignIn(context, ref),
                 ),
                 const SizedBox(height: 16),
@@ -143,6 +141,47 @@ class LoginScreen extends ConsumerWidget {
                   colors: [context.colors.primary, context.colors.secondary],
                   onTap: () => NavigationHandler.goToPhoneLogin(context),
                 ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  /// Google'ın kendi marka yönergeleri, "Google ile Oturum Aç" düğmesi için
+  /// uygulamanın serbest bir renk paleti (burada olduğu gibi mavi-yeşil bir
+  /// gradyan) kullanmasına İZİN VERMEZ — nötr (beyaz/açık gri) bir zemin
+  /// üzerinde gerçek çok renkli "G" markası ve koyu metin şart. Önceden bu
+  /// düğme hem yanlış (Google logosu olmayan bir Material ikonu) hem de
+  /// marka dışı bir gradyan kullanıyordu; artık ikisi de gerçek.
+  Widget _buildGoogleButton({required final VoidCallback onTap}) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: double.infinity,
+          height: 64,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.black.withOpacity(0.12)),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8))
+            ],
+          ),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const GoogleLogo(size: 22),
+                const SizedBox(width: 14),
+                const Text('Google ile Bağlan',
+                    style: TextStyle(
+                        color: Color(0xFF1F1F1F),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                        fontSize: 15)),
               ],
             ),
           ),

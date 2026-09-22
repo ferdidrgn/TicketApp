@@ -431,17 +431,18 @@ class _DiscoveryDesktopBrowserState
 
   @override
   Widget build(final BuildContext context) {
-    // Varsayılan/ana tarama listesi artık `activeShowsProvider` — takviminde
-    // en az bir GELECEK etkinliği olan oyunlar (bkz. show_provider.dart).
-    // Geçmişi/arşivi gösteren "Geçmiş Oyunlar" moduna geçildiğinde aynı
-    // AsyncValue<List<Show>> şeklini koruyan `pastShowsProvider`e geçilir —
-    // her iki provider de `showsProvider`in "en yeni N oyun" limitini
-    // (isLimit) miras alır; burada tam listeyi istediğimiz için `false`
-    // geçiyoruz (aynı `showsProvider(isLimit: false)` çağrısının yerini
-    // alıyor).
+    // Varsayılan/ana tarama listesi `showsActiveFirstProvider` — HİÇBİR
+    // oyun gizlenmez, sadece takviminde gelecek etkinliği olan (aktif)
+    // oyunlar öne alınır, ardından (yer kaldıysa) aktif olmayanlar gelir
+    // (bkz. show_provider.dart). Kullanıcı bilerek "Geçmiş Oyunlar"
+    // moduna geçtiğinde SADECE geçmiş oyunları gösteren `pastShowsProvider`e
+    // geçilir — bu, kullanıcının kendi seçtiği bir filtre, gizlenen bir
+    // şey değil. Her iki provider de `showsProvider`in "en yeni N oyun"
+    // limitini (isLimit) miras alır; burada tam listeyi istediğimiz için
+    // `false` geçiyoruz.
     final showsState = _showPast
         ? ref.watch(pastShowsProvider(false))
-        : ref.watch(activeShowsProvider(false));
+        : ref.watch(showsActiveFirstProvider(false));
 
     return showsState.when(
       loading: () => _buildLoading(),

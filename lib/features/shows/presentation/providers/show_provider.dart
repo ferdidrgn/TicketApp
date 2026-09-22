@@ -178,9 +178,11 @@ Future<Set<String>> _activeShowIdsFromEvents(
 }
 
 /// 🟢 AKTİF OYUNLAR — takviminde en az bir gelecek etkinliği olanlar.
-/// Ana sayfa/öneriler/keşfet'in VARSAYILAN listesi bu olmalı, ham
-/// `showsProvider` değil.
-/// Kullanım: `ref.watch(activeShowsProvider(true))`
+/// Sadece SAHNEDE OLANI göstermek gereken dar bağlamlar için (ör. arama
+/// sayfasının "Etkinlikler" filtresi) — genel oyun listeleme/keşfet
+/// ekranlarının VARSAYILANI artık bu DEĞİL, aşağıdaki
+/// `showsActiveFirstProvider`: hiçbir oyunu tamamen gizlemeden aktifleri
+/// öne alıyor. Kullanım: `ref.watch(activeShowsProvider(true))`
 final activeShowsProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
@@ -199,4 +201,25 @@ final pastShowsProvider =
   if (shows.isEmpty) return [];
   final activeIds = await _activeShowIdsFromEvents(ref, shows);
   return shows.where((final s) => !activeIds.contains(s.id)).toList();
+});
+
+/// 🟢➡️🔴 TÜM OYUNLAR, AKTİF ÖNCE — genel oyun listeleme/keşfet
+/// ekranlarının (ana sayfa, keşfet, arama'nın boş-sorgu göz atma hâli)
+/// GERÇEK varsayılanı. Hiçbir oyun listeden tamamen düşürülmez — önce
+/// takviminde gelecek etkinliği olan (aktif) oyunlar, ardından (varsa
+/// yer kaldıysa) aktif olmayanlar gelir. `isLimit: true` iken
+/// `showsProvider`ın kendi "en yeni N oyun" sınırı içinde aynı sıralama
+/// uygulanır — yani aktif oyun sayısı az olduğunda liste boş görünmez,
+/// geri kalanı aktif olmayan oyunlarla dolar.
+/// Kullanım: `ref.watch(showsActiveFirstProvider(true))`
+final showsActiveFirstProvider =
+    FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
+  final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
+  if (shows.isEmpty) return [];
+  final activeIds = await _activeShowIdsFromEvents(ref, shows);
+  final active = <Show>[];
+  final inactive = <Show>[];
+  for (final show in shows)
+    (activeIds.contains(show.id) ? active : inactive).add(show);
+  return [...active, ...inactive];
 });

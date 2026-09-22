@@ -62,7 +62,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(final BuildContext context) {
     // Orijinal Riverpod Sağlayıcı hatlarınız %100 aynen korunuyor
     final campaignState = ref.watch(campaignsProvider);
-    final showState = ref.watch(showsProvider(isLimit: true));
+    // Hiçbir oyun gizlenmiyor: önce aktif (takviminde gelecek etkinliği
+    // olan) oyunlar, ardından (yer kaldıysa) aktif olmayanlar.
+    final showState = ref.watch(showsActiveFirstProvider(true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 

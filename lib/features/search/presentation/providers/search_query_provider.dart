@@ -50,28 +50,18 @@ Future<SearchResultState> searchResult(final Ref ref) async {
   final filterIndex = ref.watch(searchFilterProvider);
 
   // Gösteriler (shows) için kaynak, sorgu durumuna göre değişir:
-  // - Kutu boşken (göz atma / "önerilenler" hâli): ÖNCE aktif oyunlar,
-  //   SONRA (varsa yer kaldıysa) aktif olmayanlar — arşivlenmiş bir oyun
-  //   listeden tamamen kaybolmasın, sadece öncelik aktif oyunlarda olsun.
-  //   Aşağıdaki sayfa/kart bileşenleri zaten `.take(N)` ile listeyi kısıyor;
-  //   aktif oyunlar başta olduğu için hangi N seçilirse seçilsin önce onlar
-  //   gösterilmiş olur, eksik kalan yerler aktif olmayanlarla dolar.
+  // - Kutu boşken (göz atma / "önerilenler" hâli): `showsActiveFirstProvider`
+  //   — ÖNCE aktif oyunlar, SONRA (varsa yer kaldıysa) aktif olmayanlar;
+  //   arşivlenmiş bir oyun listeden tamamen kaybolmaz, sadece öncelik aktif
+  //   oyunlarda olur. Aşağıdaki sayfa/kart bileşenleri zaten `.take(N)` ile
+  //   listeyi kısıyor; aktif oyunlar başta olduğu için hangi N seçilirse
+  //   seçilsin önce onlar gösterilmiş olur, eksik kalan yerler aktif
+  //   olmayanlarla dolar.
   // - Kullanıcı bir şey yazdığında (açık arama): TÜM oyunlar aranır —
   //   geçmiş bir oyunu ismiyle arayan biri onu hâlâ bulabilmeli.
   final Future<List<Show>> showsFuture;
   if (query.isEmpty) {
-    showsFuture = () async {
-      final results = await Future.wait([
-        ref.watch(activeShowsProvider(false).future),
-        ref.watch(showsProvider(isLimit: false).future),
-      ]);
-      final active = results[0];
-      final all = results[1];
-      final activeIds = active.map((final s) => s.id).toSet();
-      final inactive =
-          all.where((final s) => !activeIds.contains(s.id)).toList();
-      return [...active, ...inactive];
-    }();
+    showsFuture = ref.watch(showsActiveFirstProvider(false).future);
   } else {
     showsFuture = ref.watch(showsProvider(isLimit: false).future);
   }
