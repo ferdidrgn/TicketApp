@@ -201,6 +201,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                 shape: BoxShape.circle,
               ),
               child: IconButton(
+                tooltip: 'Paylaş',
                 padding: EdgeInsets.zero,
                 icon: Icon(Icons.share_outlined,
                     size: 22, color: context.colors.onSurface),

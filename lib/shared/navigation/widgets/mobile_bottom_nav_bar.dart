@@ -98,11 +98,28 @@ class MobileBottomNavBarState extends State<MobileBottomNavBar> {
             key: _navKey,
             index: _currentIndex,
             // 🔧 FIX: Dinamik index hesaplama
-            items: const [
-              Icon(Icons.home, size: 30, color: Colors.white),
-              Icon(Icons.event_seat_sharp, size: 30, color: Colors.white),
-              Icon(Icons.location_city, size: 30, color: Colors.white),
-              Icon(Icons.people, size: 30, color: Colors.white),
+            items: [
+              Semantics(
+                label: 'Ana Sayfa',
+                button: true,
+                child: Icon(Icons.home, size: 30, color: Colors.white),
+              ),
+              Semantics(
+                label: 'Keşfet',
+                button: true,
+                child: Icon(Icons.event_seat_sharp,
+                    size: 30, color: Colors.white),
+              ),
+              Semantics(
+                label: 'Yakındakiler',
+                button: true,
+                child: Icon(Icons.location_city, size: 30, color: Colors.white),
+              ),
+              Semantics(
+                label: 'Profil',
+                button: true,
+                child: Icon(Icons.people, size: 30, color: Colors.white),
+              ),
             ],
             onTap: _onItemTapped,
           ),

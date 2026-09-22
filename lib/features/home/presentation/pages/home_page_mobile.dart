@@ -186,9 +186,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         actions: [
           IconButton(
+              tooltip: 'Bildirimler',
               onPressed: () {},
               icon: const Icon(Icons.notifications_none_rounded)),
           IconButton(
+              tooltip: 'Ayarlar',
               onPressed: () => NavigationHandler.goToSettings(context),
               icon: const Icon(Icons.person_outline_rounded)),
           const SizedBox(width: 20),
