@@ -9,6 +9,7 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/gallery_section.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
@@ -186,6 +187,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   ),
                 ),
               ),
+              const SliverToBoxAdapter(child: Footer()),
             ],
           ),
           // Sabit Butonlar
