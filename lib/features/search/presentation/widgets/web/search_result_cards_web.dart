@@ -743,13 +743,31 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
                                 color: accent[0].withOpacity(0.9),
                                 borderRadius: kSearchBadgeCorner,
                               ),
-                              child: Text(
-                                widget.isStage ? 'MEKAN' : 'EKİP',
-                                style: const TextStyle(
+                              // Rozet artık salt renkle değil, bir ikonla da
+                              // "mekan mı ekip mi" ayrımını taşıyor — Mekan
+                              // (fiziksel yer) vs. Ekip (topluluk/organizasyon)
+                              // arasındaki gerçek kavramsal farkı sessizce
+                              // vurgular.
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    widget.isStage
+                                        ? Icons.location_city_rounded
+                                        : Icons.groups_rounded,
+                                    size: 10,
                                     color: WebColors.veryDarkBlue,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.isStage ? 'MEKAN' : 'EKİP',
+                                    style: const TextStyle(
+                                        color: WebColors.veryDarkBlue,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -761,6 +779,7 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                     height: 1.2)),
+                            _buildRealInfoLine(),
                           ],
                         ),
                       ),
@@ -772,6 +791,53 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
           ),
         ),
       );
+  }
+
+  /// Mekanlar (yerler) ve Ekipler (topluluklar) farklı türde şeylerdir —
+  /// Show/Player kartlarının "editoryal" hissinden ayrı, kısa bir
+  /// "bilgi" (informational) satırı ekler. SADECE zaten entity üzerinde
+  /// var olan GERÇEK alanları kullanır: Mekan için `Stage.address`
+  /// (konum ipucu), Ekip için `Team.showsId`/`Stage.showsId` uzunluğu
+  /// (kaç gösteriyle ilişkili — gerçek, zaten hesaplanmış bir sayı).
+  /// Uydurma bir koltuk sayısı, kuruluş yılı vb. EKLENMEZ; alan boş/sıfırsa
+  /// satır hiç render edilmez.
+  Widget _buildRealInfoLine() {
+    final IconData icon;
+    final String label;
+    if (widget.isStage) {
+      final String address = ((widget.item.address as String?) ?? '').trim();
+      if (address.isEmpty) return const SizedBox.shrink();
+      icon = Icons.location_on_rounded;
+      label = address;
+    } else {
+      final List<dynamic> showsId =
+          (widget.item.showsId as List<dynamic>?) ?? const [];
+      if (showsId.isEmpty) return const SizedBox.shrink();
+      icon = Icons.theater_comedy_rounded;
+      label = '${showsId.length} gösteri';
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: WebColors.textTertiary),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: WebColors.textSecondary,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
