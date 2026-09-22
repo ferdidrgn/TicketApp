@@ -9,23 +9,35 @@ mixin DateFormatter {
   static String nowFormatDateTime() =>
       DateFormat('dd.MM.yyyy, HH:mm').format(DateTime.now());
 
-  /// Uygulamanın kendi "dd.MM.yyyy, HH:mm" string formatını VE Firestore'dan
+  /// Uygulamanın kendi "dd.MM.yyyy,HH:mm" string formatını VE Firestore'dan
   /// gelen ISO8601 string'lerini (bkz. `EventModel.fromFirestore` — bir
   /// `Event.date` alanı Firebase Console'dan elle bir Timestamp olarak
   /// girildiyse, model onu ISO8601'e çeviriyor, uygulamanın kendi
   /// dd.MM.yyyy formatına değil) birlikte anlayan ortak ayrıştırıcı.
-  /// Önce asıl formatı dener, o başarısız olursa ISO8601'e düşer — bir
-  /// etkinliğin sadece Firebase Console'dan elle eklenmiş olması yüzünden
-  /// "aktif" hesaplamalarından sessizce düşmesini engeller.
+  ///
+  /// 🔥 KRİTİK DÜZELTME: Gerçek Firestore verisi virgülden SONRA BOŞLUK
+  /// OLMADAN geliyor (ör. "15.10.2026,22:00"), ama bu fonksiyon önceden
+  /// `'dd.MM.yyyy, HH:mm'` (boşluklu) deniyordu — `intl`'in `DateFormat.parse`
+  /// literal karakterlerde (virgül+boşluk) TAM eşleşme istiyor, boşluk
+  /// eksik olunca FormatException fırlatıyordu, ISO8601 düşüşü de bu formatı
+  /// anlamadığı için `null` dönüyordu. Sonuç: HER etkinliğin tarihi `null`
+  /// okunuyor, hiçbiri "gelecek" sayılmıyordu — "0 aktif oyun" ve hero
+  /// panelinin rastgele ilk oyuna düşmesinin kök nedeni buydu. Artık önce
+  /// boşluksuz (gerçek veri formatı), olmazsa boşluklu, o da olmazsa
+  /// ISO8601 deneniyor.
   static DateTime? _parseAny(final String? raw) {
     if (raw == null || raw.isEmpty) return null;
     try {
-      return DateFormat('dd.MM.yyyy, HH:mm').parse(raw);
+      return DateFormat('dd.MM.yyyy,HH:mm').parse(raw);
     } catch (_) {
-      final iso = DateTime.tryParse(raw);
-      if (iso != null) return iso;
-      print("DateFormatter: tarih ayrıştırılamadı: $raw");
-      return null;
+      try {
+        return DateFormat('dd.MM.yyyy, HH:mm').parse(raw);
+      } catch (_) {
+        final iso = DateTime.tryParse(raw);
+        if (iso != null) return iso;
+        print("DateFormatter: tarih ayrıştırılamadı: $raw");
+        return null;
+      }
     }
   }
 
