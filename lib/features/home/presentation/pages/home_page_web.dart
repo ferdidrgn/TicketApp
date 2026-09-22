@@ -697,17 +697,31 @@ class _HeroBandState extends ConsumerState<_HeroBand>
     // oyunu paylaşmak zorunda.
     final candidates =
         widget.shows.length > 12 ? widget.shows.sublist(0, 12) : widget.shows;
-    final eventIds = candidates
+    // Show <-> Event ilişkisi iki bağımsız yönde tutuluyor (`Show.eventsId`
+    // ve `Event.showId`) — bu panel önceden SADECE `Show.eventsId` dizisini
+    // kullanıyordu, `Event.showId` üzerinden doğrudan bağlı (ama dizide
+    // listelenmeyen) gerçek bir etkinliği asla göremiyordu. Sonuç: hiçbir
+    // adayın dizisi dolu değilse, gerçek bir gelecek etkinliği olan bir
+    // oyun varken bile "sıradaki oyun" sessizce ilk (etkinliksiz) oyuna
+    // düşüyordu. Artık `show_provider.dart`'taki
+    // `_activeShowIdsFromEvents` ile AYNI mantıkla iki kaynak birleştirilir.
+    final candidateIds = candidates.map((final s) => s.id).toList();
+    final eventIdsFromArrays = candidates
         .expand((final s) => s.eventsId)
         .where((final id) => id.isNotEmpty)
         .toSet()
         .toList();
-    final eventsAsync = eventIds.isEmpty
+    final eventsByShowIdAsync = ref.watch(eventsByShowIdsProvider(candidateIds));
+    final eventsByArrayIdAsync = eventIdsFromArrays.isEmpty
         ? const AsyncValue<List<Event>>.data(<Event>[])
-        : ref.watch(eventsByIdsProvider(eventIds));
+        : ref.watch(eventsByIdsProvider(eventIdsFromArrays));
     // Riverpod 3'te `AsyncValue.valueOrNull` yok — nullable `.value` kullan.
+    final mergedEventsById = <String, Event>{
+      for (final e in eventsByArrayIdAsync.value ?? const <Event>[]) e.id: e,
+      for (final e in eventsByShowIdAsync.value ?? const <Event>[]) e.id: e,
+    };
     final featuredEntries = _pickFeaturedShows(
-        candidates, eventsAsync.value ?? const [], widget.stages);
+        candidates, mergedEventsById.values.toList(), widget.stages);
     final bool hasFeatured = featuredEntries.isNotEmpty;
     final int selectedIndex = featuredEntries.isEmpty
         ? 0

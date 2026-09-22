@@ -22,32 +22,52 @@ class SeasonCalendarEntry {
 /// olarak döner. Sezon takvimi gibi "tüm oyunlar" görünümleri bunu kullanır.
 ///
 /// Gerçek Firestore verisini kullanır: sahte/placeholder oyun adı göstermez.
-/// ÖNEMLİ: Firestore'daki `Event` dokümanlarının `showId` alanı YOK — ilişki
-/// tersten kuruluyor: her `Show` dokümanı kendi etkinliklerinin ID'lerini
-/// `eventsId` dizisinde tutuyor (ör. "Gözlerimi Kaparım Vazifemi Yaparım
-/// Event1"). O yüzden eşleştirmeyi event.showId üzerinden değil, hangi
-/// show'un eventsId'sinde bu event'in ID'si geçiyorsa ona göre yapıyoruz.
+/// Show <-> Event ilişkisi iki bağımsız yönde tutuluyor (`Show.eventsId`
+/// dizisi VE `Event.showId` alanı) — biri senkron kalmayı unutabilir. Bu
+/// fonksiyon önceden SADECE `Show.eventsId` dizisini kullanıyordu; bir
+/// event'in kendi `showId` alanı dolu ama hiçbir gösterinin dizisinde
+/// listelenmemişse o event burada sessizce hiç görünmüyordu (tam olarak
+/// "ana sayfada hâlâ yanlış oyun gösteriliyor" hatasının kök nedeniyle
+/// aynı mekanizma — bkz. `show_provider.dart`'taki
+/// `_activeShowIdsFromEvents`). Artık her iki yoldan gelen sonuçlar
+/// birleştiriliyor.
 @riverpod
 Future<List<SeasonCalendarEntry>> seasonCalendarEntries(final Ref ref) async {
   final shows = await ref.watch(showsProvider(isLimit: false).future);
+  if (shows.isEmpty) return [];
 
-  final Set<String> allEventIds = shows.expand((final s) => s.eventsId).toSet();
-  if (allEventIds.isEmpty) return [];
+  final showIds = shows.map((final s) => s.id).toList();
+  final eventIdsFromArrays =
+      shows.expand((final s) => s.eventsId).where((final id) => id.isNotEmpty).toSet().toList();
 
-  final events =
-      await ref.watch(eventsByIdsProvider(allEventIds.toList()).future);
+  final results = await Future.wait([
+    ref.watch(eventsByShowIdsProvider(showIds).future),
+    eventIdsFromArrays.isNotEmpty
+        ? ref.watch(eventsByIdsProvider(eventIdsFromArrays).future)
+        : Future.value(<Event>[]),
+  ]);
 
-  // eventId -> show eşlemesini Show.eventsId üzerinden kuruyoruz.
+  final Map<String, Event> eventsById = {};
+  for (final event in [...results[0], ...results[1]]) {
+    eventsById[event.id] = event;
+  }
+
+  // eventId -> show eşlemesi: önce `Event.showId` (doluysa tek doğruluk
+  // kaynağı), yoksa `Show.eventsId` dizisi üzerinden yedek.
+  final showById = {for (final s in shows) s.id: s};
   final Map<String, Show> showByEventId = {};
   for (final show in shows) {
     for (final eventId in show.eventsId) {
-      showByEventId[eventId] = show;
+      if (eventId.isNotEmpty) showByEventId[eventId] = show;
     }
   }
 
-  final entries = events
-      .map((final e) =>
-          SeasonCalendarEntry(event: e, show: showByEventId[e.id]))
+  final entries = eventsById.values
+      .map((final e) => SeasonCalendarEntry(
+          event: e,
+          show: e.showId.isNotEmpty
+              ? (showById[e.showId] ?? showByEventId[e.id])
+              : showByEventId[e.id]))
       .where((final entry) => entry.dateTime != null)
       .toList()
     ..sort((final a, final b) => a.dateTime!.compareTo(b.dateTime!));
