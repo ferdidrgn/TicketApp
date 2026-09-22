@@ -12,6 +12,7 @@ import 'core/config/router/app_router.dart';
 import 'core/localization/locale_provider.dart';
 import 'core/network/connectivity_wrapper.dart';
 import 'core/services/deeplink/deeplink_listener_service.dart';
+import 'core/services/fcm_manager_service.dart';
 import 'core/theme/theme_manager.dart';
 import 'core/theme/theme_notifier.dart';
 import 'core/theme/web_theme.dart';
@@ -63,6 +64,12 @@ class _MyAppState extends ConsumerState<MyApp> {
     final authMutation = ref.watch(authMutationProvider);
     final isWeb = PlatformChecker.isWeb;
     final themeManager = ThemeManager(currentStyle);
+
+    // 🔔 PUSH/FCM: İzinleri iste, cihaz token'ını al ve dinleyicileri
+    // (onMessage / onMessageOpenedApp / onTokenRefresh) kur. Daha önce bu
+    // provider hiçbir yerden watch/read edilmediği için servis fiilen hiç
+    // çalışmıyordu — artık uygulama açılışında bir kez tetikleniyor.
+    ref.watch(fcmInitializerProvider);
 
     return DynamicColorBuilder(builder:
         (final ColorScheme? lightDynamic, final ColorScheme? darkDynamic) {

@@ -1,6 +1,11 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
+import '../../../../core/util/date_formatter.dart';
+import '../../../notifications/domain/entities/app_notification.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
+import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../tickets/domain/entities/ticket.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../data/repositories/event_repository_provider.dart';
@@ -154,4 +159,50 @@ Future<void> purchaseAction(
 
   // 3. Başarılı alımdan sonra bilet listesini yenile
   ref.invalidate(myTicketsProvider(customerId));
+
+  // 4. Bilet onay bildirimi oluştur (uygulama içi gelen kutusu + gelecekteki
+  // push altyapısı için). Bu adım BEST-EFFORT'tur: bildirim yazılamazsa
+  // (ör. geçici bir Firestore hatası) satın alma akışı zaten tamamlanmış
+  // olduğundan kullanıcıya hata GÖSTERİLMEZ, sadece loglanır.
+  //
+  // NOT (PUSH KAPSAM DIŞI): Bu satır sadece Firestore'a bir `Notification`
+  // dökümanı yazar — bu, kullanıcının BAŞKA bir cihazına gerçek bir FCM push
+  // bildirimi GÖNDERMEZ. Cihazlar arası push göndermek için bu dökümanı
+  // dinleyen bir Cloud Function (functions/) gerekir; bu repoda Cloud
+  // Functions altyapısı yok ve bu sandbox'ta deploy kimlik bilgisi de yok,
+  // dolayısıyla kapsam dışı bırakıldı. Şu an sadece aynı cihazda/oturumda
+  // uygulama içi gelen kutusu (bkz. NotificationInboxPage) çalışır.
+  try {
+    final shows = await ref.read(showsByIdsProvider([showId]).future);
+    final events = await ref.read(eventsByIdsProvider([eventId]).future);
+
+    final showName = shows.isNotEmpty ? shows.first.name : 'Gösteri';
+    final rawEventDate = events.isNotEmpty ? events.first.date : '';
+
+    final dateInfo = rawEventDate.isNotEmpty
+        ? DateFormatter.parseFormattedDateTime(rawEventDate)
+        : null;
+    final formattedDate =
+        dateInfo != null ? '${dateInfo['date']} ${dateInfo['time']}' : '';
+
+    final notification = AppNotification(
+      id: '',
+      userId: customerId,
+      title: 'Biletin Onaylandı!',
+      body: '$showName'
+          '${formattedDate.isNotEmpty ? ' — $formattedDate' : ''}'
+          ' — Koltuklar: ${seatIds.join(', ')} için biletin onaylandı.',
+      type: NotificationType.bookingConfirmation,
+      showId: showId,
+      showName: showName,
+      eventDate: rawEventDate,
+      seats: seatIds,
+      isRead: false,
+      createdAt: DateTime.now().toIso8601String(),
+    );
+
+    await ref.read(createNotificationUseCaseProvider).call(notification);
+  } catch (e) {
+    debugPrint('Bildirim oluşturulamadı (satın alma etkilenmedi): $e');
+  }
 }

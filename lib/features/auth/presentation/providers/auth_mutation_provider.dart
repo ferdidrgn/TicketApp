@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/common/enum/enums.dart';
 import '../../../../core/errors/failures.dart';
@@ -102,6 +104,18 @@ class AuthMutation extends _$AuthMutation {
     // DOĞRULAMA: Null safety hatasını aşmak için ham Firebase Auth örneği güvenle okunuyor
     final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
 
+    // 🔔 PUSH BİLDİRİM ALTYAPISI: Bu cihazın gerçek FCM token'ını al ki
+    // kullanıcı dökümanına yazılsın (User.fcmToken). Token alınamazsa
+    // (izin verilmedi, emülatörde Play Services yok vb.) login akışını
+    // BLOKLAMAMAK için sessizce boş string ile devam edilir — kullanıcı
+    // yine giriş yapabilir, sadece push hedeflemesi o cihaz için pasif kalır.
+    String fcmToken = '';
+    try {
+      fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+    } catch (e) {
+      debugPrint('FCM token alınamadı (login akışı etkilenmedi): $e');
+    }
+
     final existingUser =
         await ref.read(getUserByIdUseCaseProvider).call(uid).getOrThrow();
 
@@ -112,11 +126,16 @@ class AuthMutation extends _$AuthMutation {
         lastName: firebaseUser?.displayName?.split(' ').last ?? 'Kullanıcı',
         imageUrl: firebaseUser?.photoURL ?? '',
         role: role,
+        fcmToken: fcmToken,
       );
       await ref.read(saveUserUseCaseProvider).call(newUser, newUser.imageUrl);
     } else {
-      final updatedUser =
-          existingUser.copyWith(updatedAt: DateTime.now().toIso8601String());
+      final updatedUser = existingUser.copyWith(
+        updatedAt: DateTime.now().toIso8601String(),
+        // Mevcut kullanıcıda token boşsa veya değiştiyse günceli yaz;
+        // yeni bir token alınamadıysa eski (varsa) token korunur.
+        fcmToken: fcmToken.isNotEmpty ? fcmToken : existingUser.fcmToken,
+      );
       await ref
           .read(saveUserUseCaseProvider)
           .call(updatedUser, updatedUser.imageUrl, isUpdate: true);
