@@ -87,12 +87,23 @@ Future<PlayerDetailState> playerDetail(
 /// herhangi bir hata (network, Firestore whereIn limiti, silinmiş döküman
 /// vb.) oluşursa sayfanın tamamını çökertmek yerine sessizce boş liste
 /// döner; ilgili sekme "gösteri yok" durumunu gösterir.
+///
+/// 🔧 `[""]` GİBİ BOŞ-STRING İÇEREN LİSTELER: Firestore'da elle düzenlenen
+/// (ör. admin panelinden bir öğe silinip dizi tamamen boşaltılmak yerine
+/// yanlışlıkla tek boş string bırakılan) `oldShowsId`/`nowShowsId` alanları
+/// `[""]` gibi TEKNİK OLARAK boş olmayan ama anlamsız bir liste üretebilir.
+/// Eskiden bu durum `showIds.isEmpty` kontrolünü atlatıp gereksiz/hatalı bir
+/// Firestore sorgusuna (ve try/catch'e) gidiyordu; artık boş string ID'ler
+/// sorgudan ÖNCE filtreleniyor, böylece bu durum gerçek bir "boş liste"
+/// gibi davranır ve hiçbir zaman ağ isteğine bile gitmez.
 Future<List<Show>> _safeFetchShows(
     final Ref ref, final List<String> showIds) async {
-  if (showIds.isEmpty) return <Show>[];
+  final cleanIds =
+      showIds.where((final id) => id.trim().isNotEmpty).toList();
+  if (cleanIds.isEmpty) return <Show>[];
   try {
-    final shows = await ref.watch(showsByIdsProvider(showIds).future);
-    return shows.where((final s) => showIds.contains(s.id)).toList();
+    final shows = await ref.watch(showsByIdsProvider(cleanIds).future);
+    return shows.where((final s) => cleanIds.contains(s.id)).toList();
   } catch (_) {
     // Kasıtlı olarak yutuluyor: bir kategori gösterisi çekilemese bile
     // oyuncu detay sayfasının geri kalanı çalışmaya devam etmeli.

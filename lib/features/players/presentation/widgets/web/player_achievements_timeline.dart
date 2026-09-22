@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'player_section_heading.dart';
 import 'scroll_reveal.dart';
 
@@ -22,10 +23,10 @@ class PlayerAchievementsTimeline extends StatelessWidget {
           child: PlayerSectionHeading(
               title: 'Başarılar', icon: Icons.emoji_events_rounded),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppSpacing.xxxl),
         if (achievements.isEmpty)
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Text(
               'Başarı hikayesi henüz yazılmamış.',
               style: TextStyle(
@@ -114,7 +115,7 @@ class _TimelineEntry extends StatelessWidget {
           const SizedBox(width: 28),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 40, top: 2),
+              padding: const EdgeInsets.only(bottom: AppSpacing.huge, top: 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

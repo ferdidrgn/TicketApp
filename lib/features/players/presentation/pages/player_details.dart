@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/base/base_page_wrapper.dart';
@@ -175,7 +179,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.white.withOpacity(0.5)),
-                      borderRadius: BorderRadius.circular(100),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                     child: const Text("U S T A   S A N A T Ç I",
                         style: TextStyle(
@@ -217,32 +221,41 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           filter: ImageFilter.blur(
               sigmaX: _isScrolled ? 20 : 0, sigmaY: _isScrolled ? 20 : 0),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 400),
+            duration: AppMotion.normal,
             color: _isScrolled
                 ? colors.surface.withOpacity(0.7)
                 : Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.md),
             child: SafeArea(
               bottom: false,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _artisticIconBtn(Icons.queue_play_next, () {}),
+                  _artisticIconBtn(
+                    Icons.queue_play_next,
+                    () {},
+                    semanticLabel: 'Oynatma listesine ekle',
+                  ),
                   AnimatedOpacity(
                     opacity: _isScrolled ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 300),
+                    duration: AppMotion.normal,
                     child: Text(
                         "${state.player.firstName} ${state.player.lastName}",
                         style: context.textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.bold)),
                   ),
-                  _artisticIconBtn(Icons.share_outlined, () {
-                    TiyatrolDeeplinkService.shareActor(
-                      id: state.player.id,
-                      name:
-                          '${state.player.firstName} ${state.player.lastName}',
-                    );
-                  }),
+                  _artisticIconBtn(
+                    Icons.share_outlined,
+                    () {
+                      TiyatrolDeeplinkService.shareActor(
+                        id: state.player.id,
+                        name:
+                            '${state.player.firstName} ${state.player.lastName}',
+                      );
+                    },
+                    semanticLabel: 'Sanatçı profilini paylaş',
+                  ),
                 ],
               ),
             ),
@@ -252,21 +265,26 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     );
   }
 
-  Widget _artisticIconBtn(final IconData icon, final VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(100),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _isScrolled
-              ? context.colors.onSurface.withOpacity(0.05)
-              : Colors.black26,
-          shape: BoxShape.circle,
+  Widget _artisticIconBtn(final IconData icon, final VoidCallback onTap,
+      {required final String semanticLabel}) {
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: _isScrolled
+                ? context.colors.onSurface.withOpacity(0.05)
+                : Colors.black26,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon,
+              color: _isScrolled ? context.colors.onSurface : Colors.white,
+              size: 20),
         ),
-        child: Icon(icon,
-            color: _isScrolled ? context.colors.onSurface : Colors.white,
-            size: 20),
       ),
     );
   }
@@ -286,7 +304,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         children: [
           _buildPremiumStatsGrid(
               activeShows.length, pastShows.length, achievements.length),
-          const SizedBox(height: 48),
+          const SizedBox(height: AppSpacing.massive),
           _buildEliteModernTabs(activeShows, pastShows, achievements,
               collaborations, state.player.bio),
           const SizedBox(height: 120),
@@ -298,13 +316,13 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   Widget _buildPremiumStatsGrid(
       final int active, final int past, final int awards) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       child: Row(
         children: [
           _premiumStatCard("AKTİF", active.toString(), context.colors.primary),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           _premiumStatCard("ARŞİV", past.toString(), context.colors.secondary),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           _premiumStatCard("ÖDÜL", awards.toString(), Colors.amber[700]!),
         ],
       ),
@@ -315,7 +333,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
       final String label, final String value, final Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
           color: color.withOpacity(0.05),
@@ -354,12 +372,12 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             labelColor: context.colors.onSurface,
             unselectedLabelColor: context.colors.onSurface.withOpacity(0.3),
             indicator: UnderlineTabIndicator(
               borderSide: BorderSide(width: 4, color: context.colors.primary),
-              insets: const EdgeInsets.symmetric(horizontal: 16),
+              insets: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             ),
             dividerColor: Colors.transparent,
             labelStyle: const TextStyle(
@@ -371,7 +389,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
               Tab(text: "Başarılar")
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xxxl),
           SizedBox(
             height: 650,
             child: TabBarView(
@@ -391,7 +409,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
   // --- 🖋️ TAB: BİO & COLLABS ---
   Widget _eliteBioTab(final String bio, final List<String> collabs) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -401,26 +419,23 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                   fontSize: 17,
                   color: context.colors.onSurface.withOpacity(0.7),
                   letterSpacing: 0.2)),
-          const SizedBox(height: 48),
+          const SizedBox(height: AppSpacing.massive),
           const Text("GÜÇLÜ İŞBİRLİKLERİ",
               style: TextStyle(
                   fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 2)),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.xl),
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
             children: collabs
                 .map((final c) => Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
+                          horizontal: AppSpacing.xl, vertical: AppSpacing.md),
                       decoration: BoxDecoration(
                         color: context.colors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 10)
-                        ],
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        boxShadow:
+                            AppShadows.level1(context.colors.shadow),
                       ),
                       child: Text(c,
                           style: const TextStyle(
@@ -440,12 +455,12 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           child: Text(emptyMsg,
               style: const TextStyle(fontStyle: FontStyle.italic)));
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       itemCount: shows.length,
       itemBuilder: (final context, final i) => Container(
-        margin: const EdgeInsets.only(bottom: 20),
+        margin: const EdgeInsets.only(bottom: AppSpacing.xl),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           color: context.colors.surface,
           border:
               Border.all(color: context.colors.outlineVariant.withOpacity(0.5)),
@@ -453,20 +468,20 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
         child: InkWell(
           onTap: () =>
               NavigationHandler.goToShow(context, shows[i].id, shows[i].name),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   child: OptimizedCachedImage(
                       imageUrl: shows[i].imageUrl,
                       width: 80,
                       height: 100,
                       fit: BoxFit.cover),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: AppSpacing.xl),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +491,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                               fontWeight: FontWeight.w900,
                               fontSize: 16,
                               letterSpacing: -0.5)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text("TİYATRO PERFORMANSI",
                           style: TextStyle(
                               color: context.colors.primary,
@@ -488,7 +503,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                 ),
                 Icon(Icons.arrow_forward_ios_rounded,
                     size: 14, color: context.colors.onSurface.withOpacity(0.3)),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
               ],
             ),
           ),
@@ -502,7 +517,7 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
     if (awards.isEmpty)
       return const Center(child: Text("Başarı hikayesi henüz yazılmamış."));
     return ListView.builder(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       itemCount: awards.length,
       itemBuilder: (final context, final i) {
         return IntrinsicHeight(
@@ -527,10 +542,10 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                             color: context.colors.primary.withOpacity(0.1))),
                 ],
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: AppSpacing.xxl),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 32),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xxxl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -539,14 +554,14 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                               fontWeight: FontWeight.w900,
                               color: context.colors.primary,
                               fontSize: 18)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(awards[i]['title'] ?? '',
                           style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               height: 1.3)),
                       if (awards[i]['detail'] != null) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.sm),
                         Text(awards[i]['detail'],
                             style: TextStyle(
                                 color:
@@ -746,26 +761,20 @@ class _PlayerDetailDesktopBodyState
       child: IgnorePointer(
         ignoring: !_isScrolled,
         child: AnimatedSlide(
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.normal,
+          curve: AppMotion.standard,
           offset: _isScrolled ? Offset.zero : const Offset(0, 0.4),
           child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 300),
+            duration: AppMotion.normal,
             opacity: _isScrolled ? 1.0 : 0.0,
             child: Container(
               padding: const EdgeInsets.fromLTRB(10, 10, 16, 10),
               decoration: BoxDecoration(
                 color: WebColors.veryDarkBlue.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
                 border:
                     Border.all(color: WebColors.primaryGold.withOpacity(0.4)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.35),
-                    blurRadius: 26,
-                    offset: const Offset(0, 14),
-                  ),
-                ],
+                boxShadow: AppShadows.level4(Colors.black),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -778,7 +787,7 @@ class _PlayerDetailDesktopBodyState
                       fit: BoxFit.cover,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Text(
                     fullName,
                     style: const TextStyle(
@@ -788,14 +797,18 @@ class _PlayerDetailDesktopBodyState
                     ),
                   ),
                   const SizedBox(width: 14),
-                  InkWell(
-                    onTap: () => TiyatrolDeeplinkService.shareActor(
-                      id: state.player.id,
-                      name: fullName,
+                  Semantics(
+                    label: 'Sanatçı profilini paylaş',
+                    button: true,
+                    child: InkWell(
+                      onTap: () => TiyatrolDeeplinkService.shareActor(
+                        id: state.player.id,
+                        name: fullName,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      child: const Icon(Icons.share_rounded,
+                          size: 18, color: WebColors.primaryGoldLight),
                     ),
-                    borderRadius: BorderRadius.circular(100),
-                    child: const Icon(Icons.share_rounded,
-                        size: 18, color: WebColors.primaryGoldLight),
                   ),
                 ],
               ),

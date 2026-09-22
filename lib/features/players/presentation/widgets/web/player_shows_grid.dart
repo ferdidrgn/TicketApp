@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
@@ -30,10 +33,10 @@ class PlayerShowsGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ScrollReveal(child: PlayerSectionHeading(title: title, icon: icon)),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppSpacing.xxxl),
         if (shows.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Text(
               emptyMessage,
               style: const TextStyle(
@@ -81,8 +84,8 @@ class _ArchiveShowCardState extends State<_ArchiveShowCard> {
         onTap: () => NavigationHandler.goToShow(
             context, widget.show.id, widget.show.name),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
+          duration: AppMotion.fast,
+          curve: AppMotion.standard,
           width: 260,
           transform: Matrix4.identity()..translate(0.0, _hovered ? -8.0 : 0.0),
           decoration: BoxDecoration(
@@ -93,15 +96,9 @@ class _ArchiveShowCardState extends State<_ArchiveShowCard> {
                   ? WebColors.primaryGold.withOpacity(0.6)
                   : WebColors.primaryGold.withOpacity(0.15),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: _hovered
-                    ? WebColors.primaryGold.withOpacity(0.25)
-                    : Colors.black.withOpacity(0.2),
-                blurRadius: _hovered ? 26 : 14,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            boxShadow: _hovered
+                ? AppShadows.level3(WebColors.primaryGold)
+                : AppShadows.level1(Colors.black),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,7 +109,7 @@ class _ArchiveShowCardState extends State<_ArchiveShowCard> {
                 child: AspectRatio(
                   aspectRatio: 4 / 3,
                   child: AnimatedScale(
-                    duration: const Duration(milliseconds: 300),
+                    duration: AppMotion.normal,
                     scale: _hovered ? 1.05 : 1.0,
                     child: ColorFiltered(
                       colorFilter: ColorFilter.mode(

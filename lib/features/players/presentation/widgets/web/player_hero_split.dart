@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import 'scroll_reveal.dart';
@@ -93,8 +96,8 @@ class _PortraitImageState extends State<_PortraitImage> {
               AspectRatio(
                 aspectRatio: 3 / 4,
                 child: AnimatedScale(
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeOutCubic,
+                  duration: AppMotion.normal,
+                  curve: AppMotion.standard,
                   scale: _hovered ? 1.05 : 1.0,
                   child: OptimizedCachedImage(
                     imageUrl: widget.imageUrl,
@@ -128,7 +131,7 @@ class _PortraitImageState extends State<_PortraitImage> {
                   decoration: BoxDecoration(
                     border: Border.all(
                         color: WebColors.whiteText.withOpacity(0.35)),
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   child: const Text(
                     'U S T A   S A N A T Ç I',
@@ -165,15 +168,16 @@ class _HeroCopy extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
               gradient: WebColors.goldGradient,
-              borderRadius: BorderRadius.circular(100),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
               boxShadow: [
                 BoxShadow(
                   color: WebColors.primaryGold.withOpacity(0.35),
@@ -206,9 +210,9 @@ class _HeroCopy extends StatelessWidget {
           Row(
             children: [
               _StatPill(label: 'AKTİF', value: activeShowCount),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               _StatPill(label: 'ARŞİV', value: pastShowCount),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               _StatPill(label: 'ÖDÜL', value: player.achievements.length),
             ],
           ),
@@ -229,7 +233,7 @@ class _HeroCopy extends StatelessWidget {
             ),
           ],
           if (player.collaborations.isNotEmpty) ...[
-            const SizedBox(height: 40),
+            const SizedBox(height: AppSpacing.huge),
             const Text(
               'GÜÇLÜ İŞBİRLİKLERİ',
               style: TextStyle(
@@ -241,8 +245,8 @@ class _HeroCopy extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.md,
               children: player.collaborations
                   .map((final c) => _CollabChip(label: c))
                   .toList(),
@@ -263,7 +267,8 @@ class _StatPill extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 14),
       decoration: BoxDecoration(
         color: WebColors.darkBlueSurface.withOpacity(0.6),
         borderRadius: BorderRadius.circular(18),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
@@ -30,10 +32,10 @@ class PlayerShowsEditorial extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ScrollReveal(child: PlayerSectionHeading(title: title, icon: icon)),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppSpacing.xxxl),
         if (shows.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Text(
               emptyMessage,
               style: const TextStyle(
@@ -96,12 +98,12 @@ class _EditorialShowRowState extends State<_EditorialShowRow> {
           children: widget.imageOnLeft
               ? [
                   Expanded(flex: 5, child: image),
-                  const SizedBox(width: 48),
+                  const SizedBox(width: AppSpacing.massive),
                   Expanded(flex: 6, child: text),
                 ]
               : [
                   Expanded(flex: 6, child: text),
-                  const SizedBox(width: 48),
+                  const SizedBox(width: AppSpacing.massive),
                   Expanded(flex: 5, child: image),
                 ],
         ),
@@ -123,8 +125,8 @@ class _ShowImage extends StatelessWidget {
       child: AspectRatio(
         aspectRatio: 4 / 3,
         child: AnimatedScale(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOut,
+          duration: AppMotion.normal,
+          curve: AppMotion.standard,
           scale: hovered ? 1.06 : 1.0,
           child: OptimizedCachedImage(imageUrl: imageUrl, fit: BoxFit.cover),
         ),
@@ -182,7 +184,7 @@ class _ShowCopy extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
+              duration: AppMotion.fast,
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
@@ -192,9 +194,9 @@ class _ShowCopy extends StatelessWidget {
               ),
               child: const Text('Detayları Gör'),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             AnimatedSlide(
-              duration: const Duration(milliseconds: 200),
+              duration: AppMotion.fast,
               offset: hovered ? const Offset(0.3, 0) : Offset.zero,
               child: const Icon(Icons.arrow_forward_rounded,
                   color: WebColors.primaryGold, size: 18),
@@ -202,7 +204,7 @@ class _ShowCopy extends StatelessWidget {
           ],
         ),
         AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: AppMotion.fast,
           margin: const EdgeInsets.only(top: 6),
           height: 2,
           width: hovered ? 120 : 0,

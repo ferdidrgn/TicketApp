@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'player_achievements_timeline.dart';
@@ -32,7 +33,8 @@ class PlayerDetailDesktopView extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1300),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 56),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.huge, vertical: 56),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
