@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../auth/presentation/widgets/sign_out_delete_handler.dart';
 import '../../../users/domain/entities/user.dart' as entity;
 import '../providers/user_provider.dart';
@@ -28,13 +31,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ProfilePhoneLinkHandler,
         ProfileGoogleLinkHandler,
         GlobalScrollMixin {
-  // Gölgeler ve renkler için getter'lar tanımlayarak metot parametrelerini azalttık
-  Color get _lightShadow =>
-      context.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.white;
+  // Gölgeler ve renkler için getter'lar tanımlayarak metot parametrelerini azalttık.
+  // Tema paletindeki `surface`/`shadow` tonlarından türetilir — ham
+  // `Colors.grey`/`Colors.black` yok.
+  Color get _lightShadow => context.isDarkMode
+      ? context.colors.onSurface.withOpacity(0.08)
+      : context.colors.surface;
 
   Color get _darkShadow => context.isDarkMode
-      ? Colors.black.withOpacity(0.5)
-      : Colors.grey.withOpacity(0.4);
+      ? context.colors.shadow.withOpacity(0.5)
+      : context.colors.shadow.withOpacity(0.35);
 
   Color get _bgColor => context.colors.surface;
 
@@ -61,7 +67,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         customScrollController: scrollController,
         layoutConfig: BasePageLayoutConfig(
             backgroundColor: context.colors.surface,
-            ambientColor: Colors.black.withOpacity(0.05)),
+            ambientColor: context.colors.shadow.withOpacity(0.05)),
         child: userProfileAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (final err, final stack) =>
@@ -81,7 +87,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                             padding: const EdgeInsets.all(25),
                             sliver: SliverList(
                               delegate: SliverChildListDelegate([
-                                const SizedBox(height: 20),
+                                const SizedBox(height: AppSpacing.xl),
                                 _buildArtisticHeader(!isLoggedIn),
 
                                 if (isLoggedIn)
@@ -89,11 +95,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 else
                                   _buildSilentStageInvitation(),
 
-                                const SizedBox(height: 40),
+                                const SizedBox(height: AppSpacing.huge),
 
                                 _buildSectionLabel("ATMOSFER VE TEKNİK"),
                                 const ThemeSelectorCard(),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: AppSpacing.lg),
                                 _buildSculptedTile(
                                   icon: Icons.settings_suggest_rounded,
                                   title: 'Atölye Ayarları',
@@ -104,7 +110,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                       NavigationHandler.goToSettings(context),
                                 ),
 
-                                const SizedBox(height: 40),
+                                const SizedBox(height: AppSpacing.huge),
 
                                 _buildSectionLabel("RUHUN İZLERİ"),
                                 _buildSculptedTile(
@@ -117,7 +123,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   onTap: () => NavigationHandler.goToMyTickets(
                                       context, userData?.id ?? ""),
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: AppSpacing.lg),
                                 _buildSculptedTile(
                                   icon: Icons.auto_awesome_mosaic_rounded,
                                   title: 'İlham Galerisi',
@@ -129,7 +135,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                       NavigationHandler.goToFavorites(context),
                                 ),
 
-                                const SizedBox(height: 40),
+                                const SizedBox(height: AppSpacing.huge),
 
                                 _buildSectionLabel("KİMLİK ATÖLYESİ"),
                                 _buildSculptedTile(
@@ -142,7 +148,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   onTap: () => context.push(
                                       '/profile-edit/${userData?.id ?? ""}'),
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: AppSpacing.lg),
                                 _buildSculptedTile(
                                   icon: Icons.map_rounded,
                                   title: 'Serüven Rehberi',
@@ -154,7 +160,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                           context),
                                 ),
 
-                                const SizedBox(height: 40),
+                                const SizedBox(height: AppSpacing.huge),
 
                                 _buildSectionLabel("YASAL YÜKÜMLÜLÜKLER"),
                                 _buildSculptedTile(
@@ -167,7 +173,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 ),
 
                                 if (isLoggedIn) ...[
-                                  const SizedBox(height: 40),
+                                  const SizedBox(height: AppSpacing.huge),
                                   _buildSectionLabel("SON DOKUNUŞLAR"),
                                   _buildSculptedTile(
                                     icon: Icons.logout_rounded,
@@ -178,7 +184,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                     onTap: () =>
                                         showSignOutDialog(context, ref),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: AppSpacing.lg),
                                   _buildSculptedTile(
                                     icon: Icons.delete_forever_rounded,
                                     title: 'Koleksiyonu Yak',
@@ -211,52 +217,59 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     required final Color color,
     required final VoidCallback onTap,
   }) =>
-      Opacity(
-        opacity: isLocked ? 0.5 : 1.0,
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(24),
-            onTap:
-                isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: _neuBox(borderRadius: 24),
-              child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: _neuBox(borderRadius: 16, invert: true),
-                  child: Icon(icon, color: color, size: 26),
+      Semantics(
+        button: true,
+        label: isLocked ? '$title (kilitli). $subtitle' : '$title. $subtitle',
+        child: Opacity(
+          opacity: isLocked ? 0.5 : 1.0,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              onTap: isLocked
+                  ? () => NavigationHandler.goToLogin(context)
+                  : onTap,
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                decoration: _neuBox(borderRadius: AppRadius.lg),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration:
+                          _neuBox(borderRadius: AppRadius.md, invert: true),
+                      child: Icon(icon, color: color, size: 26),
+                    ),
+                    const SizedBox(width: AppSpacing.xl),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                  color: context.colors.onSurface,
+                                  letterSpacing: 0.5)),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(subtitle,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: context.colors.onSurface
+                                      .withOpacity(0.7),
+                                  fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                        isLocked
+                            ? Icons.lock_person_rounded
+                            : Icons.chevron_right_rounded,
+                        size: 24,
+                        color: color.withOpacity(0.8)),
+                  ],
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                              color: context.colors.onSurface,
-                              letterSpacing: 0.5)),
-                      const SizedBox(height: 4),
-                      Text(subtitle,
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: context.colors.onSurface.withOpacity(0.7),
-                              fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-                Icon(
-                    isLocked
-                        ? Icons.lock_person_rounded
-                        : Icons.chevron_right_rounded,
-                    size: 24,
-                    color: color.withOpacity(0.8)),
-              ],
               ),
             ),
           ),
@@ -264,20 +277,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       );
 
   Widget _buildNeumorphicPortrait(final entity.User user) => Container(
-        padding: const EdgeInsets.all(32),
-        decoration: _neuBox(borderRadius: 32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        decoration: _neuBox(borderRadius: AppRadius.xl),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: _neuBox(borderRadius: 100, invert: true),
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: _neuBox(borderRadius: AppRadius.pill, invert: true),
               child: CircleAvatar(
                 radius: 55,
                 backgroundColor: context.colors.primary.withOpacity(0.1),
                 backgroundImage: NetworkImage(user.imageUrl),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xxl),
             Text('${user.firstName} ${user.lastName}'.toUpperCase().trim(),
                 style: TextStyle(
                     fontWeight: FontWeight.w900,
@@ -290,7 +303,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     color: context.colors.primary,
                     fontWeight: FontWeight.w800,
                     fontSize: 13)),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xxxl),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -321,7 +334,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget _buildSectionLabel(final String text) => Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 16, top: 8),
+        padding: const EdgeInsets.only(
+            left: AppSpacing.xs, bottom: AppSpacing.lg, top: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
                 color: context.isDarkMode
@@ -333,7 +347,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       ));
 
   BoxDecoration _neuBox(
-          {final double borderRadius = 15, final bool invert = false}) =>
+          {final double borderRadius = AppRadius.sm,
+          final bool invert = false}) =>
       BoxDecoration(
         color: _bgColor,
         borderRadius: BorderRadius.circular(borderRadius),
@@ -376,37 +391,44 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         : context.colors.onPrimary;
 
     return Container(
-      padding: const EdgeInsets.all(40),
-      decoration: _neuBox(borderRadius: 32),
+      padding: const EdgeInsets.all(AppSpacing.huge),
+      decoration: _neuBox(borderRadius: AppRadius.xl),
       child: Column(
         children: [
           Icon(Icons.theater_comedy_rounded,
               size: 56, color: context.colors.primary.withOpacity(0.4)),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
           const Text("SAHNE ŞİMDİLİK SESSİZ",
               style: TextStyle(
                   letterSpacing: 2, fontWeight: FontWeight.w900, fontSize: 18)),
-          const SizedBox(height: 12),
-          const Text(
+          const SizedBox(height: AppSpacing.md),
+          Text(
               "Işıkları açmak ve kendi hikayeni başlatmak için galerinin anahtarını teslim al.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.6)),
-          const SizedBox(height: 32),
+              style: TextStyle(
+                  color: context.colors.onSurfaceVariant,
+                  fontSize: 12,
+                  height: 1.6)),
+          const SizedBox(height: AppSpacing.xxxl),
 
           // BUTON GÜNCELLEMESİ
-          ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                elevation: 0,
-                backgroundColor: buttonColor,
-                foregroundColor: buttonTextColor,
-              ),
-              onPressed: () => NavigationHandler.goToLogin(context),
-              child: const Text("SAHNEYİ UYANDIR",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, letterSpacing: 2))),
+          Semantics(
+            button: true,
+            label: 'Sahneyi uyandır, giriş yap',
+            child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
+                  elevation: 0,
+                  backgroundColor: buttonColor,
+                  foregroundColor: buttonTextColor,
+                ),
+                onPressed: () => NavigationHandler.goToLogin(context),
+                child: const Text("SAHNEYİ UYANDIR",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, letterSpacing: 2))),
+          ),
         ],
       ),
     );
@@ -415,16 +437,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget _buildArtisticHeader(final bool isGuest) => Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: _neuBox(borderRadius: 100),
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: _neuBox(borderRadius: AppRadius.pill),
             child: Icon(Icons.auto_awesome,
                 size: 32, color: context.colors.primary.withOpacity(0.4)),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
           Text('DENEYİM KÜRATÖRÜ',
               style: context.textTheme.labelMedium?.copyWith(
-                  letterSpacing: 5, fontSize: 10, color: Colors.grey)),
-          const SizedBox(height: 12),
+                  letterSpacing: 5,
+                  fontSize: 10,
+                  color: context.colors.onSurfaceVariant)),
+          const SizedBox(height: AppSpacing.md),
           Text(
               isGuest
                   ? 'Kendi Hikayeni\nKaleme Al'
@@ -448,13 +472,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     fontSize: 12,
                     letterSpacing: 2,
                     height: 1.5)),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
                 "Tanık olduğun her sahne, ruhundaki o büyük yapbozun bir parçasıdır.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontStyle: FontStyle.italic,
-                    color: Colors.grey.shade600,
+                    color: context.colors.onSurfaceVariant,
                     fontSize: 12,
                     height: 1.5)),
           ],
@@ -479,112 +503,125 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           ),
           data: (final userData) {
             final bool isLoggedIn = userData != null;
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: ListView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    _buildDesktopHeader(!isLoggedIn),
-                    const SizedBox(height: 32),
-                    if (isLoggedIn)
-                      _buildDesktopPortrait(userData)
-                    else
-                      _buildDesktopInvitation(context),
-                    const SizedBox(height: 48),
-                    _buildDesktopSectionLabel('ATMOSFER VE TEKNİK'),
-                    const SizedBox(height: 16),
-                    const ThemeSelectorCard(),
-                    const SizedBox(height: 12),
-                    _buildDesktopTile(
-                      context,
-                      icon: Icons.settings_suggest_rounded,
-                      title: 'Atölye Ayarları',
-                      subtitle: 'Bildirimler, dil ve teknik tercihler',
-                      onTap: () => NavigationHandler.goToSettings(context),
-                    ),
-                    const SizedBox(height: 40),
-                    _buildDesktopSectionLabel('RUHUN İZLERİ'),
-                    const SizedBox(height: 16),
-                    _buildDesktopTile(
-                      context,
-                      icon: Icons.auto_stories_rounded,
-                      title: 'Tanıklık Günlüğü',
-                      subtitle: 'Sahne tozunu yuttuğun tüm anların dökümü',
-                      isLocked: !isLoggedIn,
-                      onTap: () => NavigationHandler.goToMyTickets(
-                          context, userData?.id ?? ""),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildDesktopTile(
-                      context,
-                      icon: Icons.auto_awesome_mosaic_rounded,
-                      title: 'İlham Galerisi',
-                      subtitle: 'Zihninde yankılanan seçilmiş eserler',
-                      isLocked: !isLoggedIn,
-                      onTap: () => NavigationHandler.goToFavorites(context),
-                    ),
-                    const SizedBox(height: 40),
-                    _buildDesktopSectionLabel('KİMLİK ATÖLYESİ'),
-                    const SizedBox(height: 16),
-                    _buildDesktopTile(
-                      context,
-                      icon: Icons.brush_rounded,
-                      title: 'Fırça İzlerim',
-                      subtitle: 'Kendi portreni ve sanatsal kimliğini yorumla',
-                      isLocked: !isLoggedIn,
-                      onTap: () =>
-                          context.push('/profile-edit/${userData?.id ?? ""}'),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildDesktopTile(
-                      context,
-                      icon: Icons.map_rounded,
-                      title: 'Serüven Rehberi',
-                      subtitle: 'Soruların için küratörle temas kur',
-                      onTap: () =>
-                          NavigationHandler.goToHelpSupport(context),
-                    ),
-                    const SizedBox(height: 40),
-                    _buildDesktopSectionLabel('YASAL YÜKÜMLÜLÜKLER'),
-                    const SizedBox(height: 16),
-                    _buildDesktopTile(
-                      context,
-                      icon: Icons.gavel_rounded,
-                      title: 'Atölye Sözleşmesi',
-                      subtitle: 'Kullanım şartları ve KVKK rehberi',
-                      onTap: () => NavigationHandler.goToContracts(context),
-                    ),
-                    if (isLoggedIn) ...[
-                      const SizedBox(height: 40),
-                      _buildDesktopSectionLabel('SON DOKUNUŞLAR'),
-                      const SizedBox(height: 16),
-                      _buildDesktopTile(
-                        context,
-                        icon: Icons.logout_rounded,
-                        title: 'Atölyeyi Kapat',
-                        subtitle: 'Serüveni şimdilik mühürle ve ayrıl',
-                        onTap: () => showSignOutDialog(context, ref),
+            return ListView(
+              padding: EdgeInsets.zero,
+              physics: const BouncingScrollPhysics(),
+              children: [
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xxxl, vertical: 56),
+                      child: Column(
+                        children: [
+                          _buildDesktopHeader(!isLoggedIn),
+                          const SizedBox(height: AppSpacing.xxxl),
+                          if (isLoggedIn)
+                            _buildDesktopPortrait(userData)
+                          else
+                            _buildDesktopInvitation(context),
+                          const SizedBox(height: AppSpacing.massive),
+                          _buildDesktopSectionLabel('ATMOSFER VE TEKNİK'),
+                          const SizedBox(height: AppSpacing.lg),
+                          const ThemeSelectorCard(),
+                          const SizedBox(height: AppSpacing.md),
+                          _buildDesktopTile(
+                            context,
+                            icon: Icons.settings_suggest_rounded,
+                            title: 'Atölye Ayarları',
+                            subtitle: 'Bildirimler, dil ve teknik tercihler',
+                            onTap: () =>
+                                NavigationHandler.goToSettings(context),
+                          ),
+                          const SizedBox(height: AppSpacing.huge),
+                          _buildDesktopSectionLabel('RUHUN İZLERİ'),
+                          const SizedBox(height: AppSpacing.lg),
+                          _buildDesktopTile(
+                            context,
+                            icon: Icons.auto_stories_rounded,
+                            title: 'Tanıklık Günlüğü',
+                            subtitle:
+                                'Sahne tozunu yuttuğun tüm anların dökümü',
+                            isLocked: !isLoggedIn,
+                            onTap: () => NavigationHandler.goToMyTickets(
+                                context, userData?.id ?? ""),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          _buildDesktopTile(
+                            context,
+                            icon: Icons.auto_awesome_mosaic_rounded,
+                            title: 'İlham Galerisi',
+                            subtitle: 'Zihninde yankılanan seçilmiş eserler',
+                            isLocked: !isLoggedIn,
+                            onTap: () =>
+                                NavigationHandler.goToFavorites(context),
+                          ),
+                          const SizedBox(height: AppSpacing.huge),
+                          _buildDesktopSectionLabel('KİMLİK ATÖLYESİ'),
+                          const SizedBox(height: AppSpacing.lg),
+                          _buildDesktopTile(
+                            context,
+                            icon: Icons.brush_rounded,
+                            title: 'Fırça İzlerim',
+                            subtitle:
+                                'Kendi portreni ve sanatsal kimliğini yorumla',
+                            isLocked: !isLoggedIn,
+                            onTap: () => context
+                                .push('/profile-edit/${userData?.id ?? ""}'),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          _buildDesktopTile(
+                            context,
+                            icon: Icons.map_rounded,
+                            title: 'Serüven Rehberi',
+                            subtitle: 'Soruların için küratörle temas kur',
+                            onTap: () =>
+                                NavigationHandler.goToHelpSupport(context),
+                          ),
+                          const SizedBox(height: AppSpacing.huge),
+                          _buildDesktopSectionLabel('YASAL YÜKÜMLÜLÜKLER'),
+                          const SizedBox(height: AppSpacing.lg),
+                          _buildDesktopTile(
+                            context,
+                            icon: Icons.gavel_rounded,
+                            title: 'Atölye Sözleşmesi',
+                            subtitle: 'Kullanım şartları ve KVKK rehberi',
+                            onTap: () =>
+                                NavigationHandler.goToContracts(context),
+                          ),
+                          if (isLoggedIn) ...[
+                            const SizedBox(height: AppSpacing.huge),
+                            _buildDesktopSectionLabel('SON DOKUNUŞLAR'),
+                            const SizedBox(height: AppSpacing.lg),
+                            _buildDesktopTile(
+                              context,
+                              icon: Icons.logout_rounded,
+                              title: 'Atölyeyi Kapat',
+                              subtitle: 'Serüveni şimdilik mühürle ve ayrıl',
+                              onTap: () => showSignOutDialog(context, ref),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            _buildDesktopTile(
+                              context,
+                              icon: Icons.delete_forever_rounded,
+                              title: 'Koleksiyonu Yak',
+                              subtitle:
+                                  'Tüm izlerini ve hatıralarını kalıcı olarak sil',
+                              onTap: () => showDeleteAccountDialog(
+                                  context, ref, userData.id),
+                            ),
+                          ],
+                          const SizedBox(height: 56),
+                          _buildDesktopReflection(),
+                          const SizedBox(height: AppSpacing.huge),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      _buildDesktopTile(
-                        context,
-                        icon: Icons.delete_forever_rounded,
-                        title: 'Koleksiyonu Yak',
-                        subtitle:
-                            'Tüm izlerini ve hatıralarını kalıcı olarak sil',
-                        onTap: () =>
-                            showDeleteAccountDialog(context, ref, userData.id),
-                      ),
-                    ],
-                    const SizedBox(height: 56),
-                    _buildDesktopReflection(),
-                    const SizedBox(height: 40),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
+                const Footer(),
+              ],
             );
           },
         ),
@@ -615,12 +652,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
           gradient: WebColors.cardGradient,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(28),
-            bottomRight: Radius.circular(28),
-            topRight: Radius.circular(8),
-            bottomLeft: Radius.circular(8),
-          ),
+          borderRadius: AppRadius.asymLg,
           border:
               Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
         ),
@@ -631,7 +663,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               backgroundColor: WebColors.darkBlueAccent,
               backgroundImage: NetworkImage(user.imageUrl),
             ),
-            const SizedBox(width: 24),
+            const SizedBox(width: AppSpacing.xxl),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,15 +710,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       );
 
   Widget _buildDesktopInvitation(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         decoration: BoxDecoration(
           gradient: WebColors.cardGradient,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(28),
-            bottomRight: Radius.circular(28),
-            topRight: Radius.circular(8),
-            bottomLeft: Radius.circular(8),
-          ),
+          borderRadius: AppRadius.asymLg,
           border:
               Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
         ),
@@ -694,7 +721,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           children: [
             const Icon(Icons.theater_comedy_rounded,
                 size: 44, color: WebColors.primaryGold),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             const Text('SAHNE ŞİMDİLİK SESSİZ',
                 style: TextStyle(
                     color: WebColors.whiteText,
@@ -709,27 +736,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     color: WebColors.textSecondary,
                     fontSize: 12,
                     height: 1.6)),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xxl),
             SizedBox(
               width: 260,
               height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                    topRight: Radius.circular(4),
-                    bottomLeft: Radius.circular(4),
-                  )),
-                  elevation: 0,
-                  backgroundColor: WebColors.primaryGold,
-                  foregroundColor: WebColors.whiteText,
+              child: Semantics(
+                button: true,
+                label: 'Sahneyi uyandır, giriş yap',
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.asymSm),
+                    elevation: 0,
+                    backgroundColor: WebColors.primaryGold,
+                    foregroundColor: WebColors.whiteText,
+                  ),
+                  onPressed: () => NavigationHandler.goToLogin(context),
+                  child: const Text('SAHNEYİ UYANDIR',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, letterSpacing: 2)),
                 ),
-                onPressed: () => NavigationHandler.goToLogin(context),
-                child: const Text('SAHNEYİ UYANDIR',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
               ),
             ),
           ],
@@ -753,56 +779,53 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final bool isLocked = false,
     required final VoidCallback onTap,
   }) =>
-      Opacity(
-        opacity: isLocked ? 0.5 : 1.0,
-        child: InkWell(
-          onTap: isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            bottomRight: Radius.circular(20),
-            topRight: Radius.circular(6),
-            bottomLeft: Radius.circular(6),
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            decoration: BoxDecoration(
-              color: WebColors.darkBlueSurface,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-                topRight: Radius.circular(6),
-                bottomLeft: Radius.circular(6),
+      Semantics(
+        button: true,
+        label: isLocked ? '$title (kilitli). $subtitle' : '$title. $subtitle',
+        child: Opacity(
+          opacity: isLocked ? 0.5 : 1.0,
+          child: InkWell(
+            onTap:
+                isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
+            borderRadius: AppRadius.asymSm,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl, vertical: 18),
+              decoration: BoxDecoration(
+                color: WebColors.darkBlueSurface,
+                borderRadius: AppRadius.asymSm,
+                border: Border.all(
+                    color: WebColors.darkBlueAccent.withOpacity(0.8),
+                    width: 1),
               ),
-              border: Border.all(
-                  color: WebColors.darkBlueAccent.withOpacity(0.8), width: 1),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: WebColors.primaryGold, size: 22),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: const TextStyle(
-                              color: WebColors.whiteText,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14)),
-                      const SizedBox(height: 2),
-                      Text(subtitle,
-                          style: const TextStyle(
-                              color: WebColors.textSecondary, fontSize: 12)),
-                    ],
+              child: Row(
+                children: [
+                  Icon(icon, color: WebColors.primaryGold, size: 22),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title,
+                            style: const TextStyle(
+                                color: WebColors.whiteText,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14)),
+                        const SizedBox(height: 2),
+                        Text(subtitle,
+                            style: const TextStyle(
+                                color: WebColors.textSecondary, fontSize: 12)),
+                      ],
+                    ),
                   ),
-                ),
-                Icon(
-                    isLocked
-                        ? Icons.lock_person_rounded
-                        : Icons.chevron_right_rounded,
-                    color: WebColors.textTertiary,
-                    size: 20),
-              ],
+                  Icon(
+                      isLocked
+                          ? Icons.lock_person_rounded
+                          : Icons.chevron_right_rounded,
+                      color: WebColors.textTertiary,
+                      size: 20),
+                ],
+              ),
             ),
           ),
         ),
