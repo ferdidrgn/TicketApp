@@ -356,6 +356,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                       ],
                     ),
                     child: IconButton(
+                      tooltip: 'Favorilere ekle',
                       padding: EdgeInsets.zero,
                       icon: Icon(
                         Icons.favorite_border_rounded,
@@ -387,6 +388,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                       ],
                     ),
                     child: IconButton(
+                      tooltip: 'Paylaş',
                       padding: EdgeInsets.zero,
                       icon: Icon(
                         Icons.share_rounded,

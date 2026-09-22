@@ -418,6 +418,7 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
         children: [
           if (!widget.isMobile)
             IconButton(
+              tooltip: 'Önceki',
               icon: const Icon(Icons.arrow_back_ios,
                   color: Colors.white, size: 20),
               onPressed: () => _scroll(false),
@@ -466,6 +467,7 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
           ),
           if (!widget.isMobile)
             IconButton(
+              tooltip: 'Sonraki',
               icon: const Icon(Icons.arrow_forward_ios,
                   color: Colors.white, size: 20),
               onPressed: () => _scroll(true),

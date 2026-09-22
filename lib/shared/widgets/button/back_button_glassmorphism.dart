@@ -66,58 +66,62 @@ class _GlassmorphismBackButtonState extends State<GlassmorphismBackButton>
     final Color glassColor =
         isDark ? AppDarkColors.secondary : AppLightColors.primary;
 
-    return MouseRegion(
-      onEnter: (final _) => setState(() => _isHovered = true),
-      onExit: (final _) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTapDown: _handleTapDown,
-        onTapUp: _handleTapUp,
-        onTapCancel: _handleTapCancel,
-        onTap: () {
-          // Custom callback varsa onu çalıştır, yoksa NavigationHandler kullan
-          if (widget.onPressed != null)
-            widget.onPressed!();
-          else
-            NavigationHandler.smartGoBack(context);
-        },
-        child: ScaleTransition(
-          scale: _scaleAnimation,
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.size / 4),
-              border: widget.showBorder
-                  ? Border.all(color: baseColor.withOpacity(0.2), width: 1.5)
-                  : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(widget.size / 4),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        (widget.backgroundColor ?? glassColor)
-                            .withOpacity(_isHovered ? 0.25 : 0.15),
-                        (widget.backgroundColor ?? glassColor)
-                            .withOpacity(_isHovered ? 0.15 : 0.05),
-                      ],
-                    ),
+    return Semantics(
+      label: 'Geri',
+      button: true,
+      child: MouseRegion(
+        onEnter: (final _) => setState(() => _isHovered = true),
+        onExit: (final _) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTapDown: _handleTapDown,
+          onTapUp: _handleTapUp,
+          onTapCancel: _handleTapCancel,
+          onTap: () {
+            // Custom callback varsa onu çalıştır, yoksa NavigationHandler kullan
+            if (widget.onPressed != null)
+              widget.onPressed!();
+            else
+              NavigationHandler.smartGoBack(context);
+          },
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Container(
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(widget.size / 4),
+                border: widget.showBorder
+                    ? Border.all(color: baseColor.withOpacity(0.2), width: 1.5)
+                    : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  child: Center(
-                    child: Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: widget.iconColor ?? baseColor,
-                      size: widget.size * 0.5,
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(widget.size / 4),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          (widget.backgroundColor ?? glassColor)
+                              .withOpacity(_isHovered ? 0.25 : 0.15),
+                          (widget.backgroundColor ?? glassColor)
+                              .withOpacity(_isHovered ? 0.15 : 0.05),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: widget.iconColor ?? baseColor,
+                        size: widget.size * 0.5,
+                      ),
                     ),
                   ),
                 ),

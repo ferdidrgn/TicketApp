@@ -73,7 +73,10 @@ class _CustomSearchbarState extends State<CustomSearchbar>
         builder: (final context, final child) {
           return Transform.scale(
             scale: _scaleAnimation.value,
-            child: GestureDetector(
+            child: Semantics(
+              label: widget.hintText,
+              button: true,
+              child: GestureDetector(
               onTap: widget.onTap,
               child: Container(
                 height: height,
@@ -211,6 +214,7 @@ class _CustomSearchbarState extends State<CustomSearchbar>
                     ),
                   ),
                 ),
+              ),
               ),
             ),
           );
