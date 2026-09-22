@@ -2,6 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/features/shows/presentation/providers/show_detail_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
@@ -49,14 +53,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     });
 
     // Animations
-    _animationController = AnimationController(
-        duration: const Duration(milliseconds: 800), vsync: this);
+    _animationController =
+        AnimationController(duration: AppMotion.slow, vsync: this);
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _animationController, curve: AppMotion.standard),
     );
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _animationController, curve: AppMotion.standard),
     );
     _animationController.forward();
   }
@@ -91,13 +95,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.error_outline_rounded, size: 64, color: colors.error),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Text("Bir hata oluştu",
                   style: context.textTheme.titleLarge?.copyWith(
                     color: colors.error,
                     fontWeight: FontWeight.bold,
                   )),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text("$err",
                   textAlign: TextAlign.center,
                   style: context.textTheme.bodyMedium?.copyWith(
@@ -140,15 +144,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                       decoration: BoxDecoration(
                         color: colors.surface,
                         borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(32),
+                          top: Radius.circular(AppRadius.xl),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: colors.shadow.withOpacity(0.08),
-                            blurRadius: 20,
-                            offset: const Offset(0, -5),
-                          ),
-                        ],
+                        boxShadow: AppShadows.level2(colors.shadow),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,17 +154,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                           // Drag Handle
                           Center(
                             child: Container(
-                              margin: const EdgeInsets.only(top: 12, bottom: 8),
+                              margin: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.sm),
                               width: 40,
                               height: 4,
                               decoration: BoxDecoration(
                                 color: colors.onSurfaceVariant.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: AppRadius.asymSm,
                               ),
                             ),
                           ),
 
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
 
                           // Header Section
                           _buildMobileHeaderSection(context, state),
@@ -174,38 +172,38 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                           // Quick Stats
                           _buildMobileQuickStats(context, state),
 
-                          const SizedBox(height: 32),
+                          const SizedBox(height: AppSpacing.xxxl),
 
                           // Description
                           if (state.show.description.isNotEmpty) ...[
                             _buildSectionHeader(
                                 context, "Hikaye", Icons.auto_stories_rounded),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.lg),
                             Padding(
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 24),
+                                  const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
                               child: ShowInfoSection(
                                 title: "",
                                 description: state.show.description,
                               ),
                             ),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: AppSpacing.xxxl),
                           ],
 
                           // Events
                           if (state.events.isNotEmpty) ...[
                             _buildSectionHeader(context, "Seanslar & Biletler",
                                 Icons.event_rounded),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.lg),
                             _buildMobileEventsList(context, state),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: AppSpacing.xxxl),
                           ],
 
                           // Current Cast
                           if (state.show.nowPlayersId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Oyuncu Kadrosu",
                                 Icons.people_rounded),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.lg),
                             PlayersBubbleCard(
                               players: (state.players as List<Player>)
                                   .where((final p) =>
@@ -213,14 +211,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                                   .toList(),
                               isGrayscale: false,
                             ),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: AppSpacing.xxxl),
                           ],
 
                           // Past Cast
                           if (state.show.oldPlayersId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Geçmiş Kadrolar",
                                 Icons.history_rounded),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.lg),
                             PlayersBubbleCard(
                               players: (state.players as List<Player>)
                                   .where((final p) =>
@@ -228,17 +226,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                                   .toList(),
                               isGrayscale: true,
                             ),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: AppSpacing.xxxl),
                           ],
 
                           // Gallery
                           if (state.show.photosShowId.isNotEmpty) ...[
                             _buildSectionHeader(context, "Sahne Arkası",
                                 Icons.photo_library_rounded),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.lg),
                             Padding(
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
+                                  const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                               child: GallerySection(
                                   photos: state.show.photosShowId),
                             ),
@@ -329,7 +327,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       right: 0,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -337,75 +335,71 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               Row(
                 children: [
                   // Favorite Button
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _isScrolled
-                          ? colors.surfaceContainerHighest.withOpacity(0.95)
-                          : Colors.black.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                      border: Border.all(
+                  Semantics(
+                    label: 'Favorilere ekle',
+                    button: true,
+                    child: Container(
+                      decoration: BoxDecoration(
                         color: _isScrolled
-                            ? colors.outline.withOpacity(0.1)
-                            : Colors.white.withOpacity(0.2),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                            ? colors.surfaceContainerHighest.withOpacity(0.95)
+                            : Colors.black.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _isScrolled
+                              ? colors.outline.withOpacity(0.1)
+                              : Colors.white.withOpacity(0.2),
                         ),
-                      ],
-                    ),
-                    child: IconButton(
-                      tooltip: 'Favorilere ekle',
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        Icons.favorite_border_rounded,
-                        size: 22,
-                        color: _isScrolled ? colors.primary : Colors.white,
+                        boxShadow: AppShadows.level1(colors.shadow),
                       ),
-                      onPressed: () {},
+                      child: IconButton(
+                        tooltip: 'Favorilere ekle',
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.favorite_border_rounded,
+                          size: 22,
+                          color: _isScrolled ? colors.primary : Colors.white,
+                        ),
+                        onPressed: () {},
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   // Share Button
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _isScrolled
-                          ? colors.surfaceContainerHighest.withOpacity(0.95)
-                          : Colors.black.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                      border: Border.all(
+                  Semantics(
+                    label: 'Bu gösteriyi paylaş',
+                    button: true,
+                    child: Container(
+                      decoration: BoxDecoration(
                         color: _isScrolled
-                            ? colors.outline.withOpacity(0.1)
-                            : Colors.white.withOpacity(0.2),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                            ? colors.surfaceContainerHighest.withOpacity(0.95)
+                            : Colors.black.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _isScrolled
+                              ? colors.outline.withOpacity(0.1)
+                              : Colors.white.withOpacity(0.2),
                         ),
-                      ],
-                    ),
-                    child: IconButton(
-                      tooltip: 'Paylaş',
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        Icons.share_rounded,
-                        size: 22,
-                        color: _isScrolled ? colors.onSurface : Colors.white,
+                        boxShadow: AppShadows.level1(colors.shadow),
                       ),
-                      onPressed: () {
-                        final currentState =
-                            ref.read(showDetailProvider(widget.showId));
-                        if (currentState.hasValue &&
-                            currentState.value != null) {
-                          final show = currentState.value!.show;
-                          TiyatrolDeeplinkService.shareShow(
-                              id: show.id, name: show.name);
-                        }
-                      },
+                      child: IconButton(
+                        tooltip: 'Paylaş',
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.share_rounded,
+                          size: 22,
+                          color: _isScrolled ? colors.onSurface : Colors.white,
+                        ),
+                        onPressed: () {
+                          final currentState =
+                              ref.read(showDetailProvider(widget.showId));
+                          if (currentState.hasValue &&
+                              currentState.value != null) {
+                            final show = currentState.value!.show;
+                            TiyatrolDeeplinkService.shareShow(
+                                id: show.id, name: show.name);
+                          }
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -422,7 +416,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final colors = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -432,10 +426,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               // Category Chip
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.pill,
                   border: Border.all(
                     color: colors.primary.withOpacity(0.3),
                     width: 1,
@@ -462,14 +456,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               // Rating Badge
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: colors.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.pill,
                   border: Border.all(
                     color: colors.tertiary.withOpacity(0.3),
                     width: 1,
@@ -479,7 +473,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.star_rounded, color: colors.tertiary, size: 18),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(
                       "4.8",
                       style: TextStyle(
@@ -493,7 +487,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.xl),
 
           // Title
           Text(
@@ -505,7 +499,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           // Prodüksiyon / Topluluk
           ShowTeamCredit(teamId: state.show.teamId),
@@ -519,22 +513,16 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final colors = context.colors;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.xl, AppSpacing.xxl, 0),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: colors.outlineVariant.withOpacity(0.5),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppShadows.level1(colors.shadow),
       ),
       child: Column(
         children: [
@@ -544,24 +532,24 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             "Süre",
             "120 dakika",
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           Divider(
             color: colors.outlineVariant.withOpacity(0.3),
             height: 1,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           _buildStatRow(
             context,
             Icons.language_rounded,
             "Dil",
             "Türkçe",
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           Divider(
             color: colors.outlineVariant.withOpacity(0.3),
             height: 1,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           _buildStatRow(
             context,
             Icons.child_care_rounded,
@@ -584,10 +572,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
             color: colors.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Icon(
             icon,
@@ -595,7 +583,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             color: colors.primary,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -630,18 +618,18 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final colors = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
               color: colors.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(icon, size: 20, color: colors.primary),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Text(
             title,
             style: context.textTheme.titleLarge?.copyWith(
@@ -660,7 +648,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       SizedBox(
         height: 340,
         child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: state.events.length,
@@ -700,7 +688,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
             return EventsCard(
               width: 270,
-              margin: const EdgeInsets.only(right: 16),
+              margin: const EdgeInsets.only(right: AppSpacing.lg),
               imageUrl: state.show.imageUrl,
               showName: state.show.name,
               category: "TİYATRO",
@@ -727,7 +715,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       minPrice = double.tryParse(state.events.first.price.toString()) ?? 0;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      margin: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xxl),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -735,34 +723,27 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             colors.surfaceContainerHighest.withOpacity(0.95),
           ],
         ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow.withOpacity(0.15),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-            spreadRadius: 0,
-          ),
-        ],
+        borderRadius: AppRadius.asymLg,
+        boxShadow: AppShadows.level4(colors.shadow),
         border: Border.all(
           color: colors.outlineVariant.withOpacity(0.3),
           width: 1,
         ),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: AppRadius.asymLg,
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
               children: [
                 // Price Section
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
                     color: colors.primaryContainer.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -787,32 +768,26 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 // Button
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colors.primary.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      borderRadius: AppRadius.md,
+                      boxShadow: AppShadows.level3(colors.primary),
                     ),
                     child: ElevatedButton(
                       onPressed: () => scrollController.animateTo(
                         800,
-                        duration: const Duration(milliseconds: 800),
-                        curve: Curves.easeInOutCubic,
+                        duration: AppMotion.slow,
+                        curve: AppMotion.dramatic,
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,
                         foregroundColor: colors.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: AppRadius.md,
                         ),
                         elevation: 0,
                       ),
@@ -826,7 +801,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                               fontSize: 16,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           Icon(Icons.arrow_forward_rounded, size: 20),
                         ],
                       ),
@@ -854,15 +829,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: Padding(
-                padding: const EdgeInsets.all(40),
+                padding: const EdgeInsets.all(AppSpacing.huge),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpacing.xl),
                     _buildWebHeader(context, state),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: AppSpacing.massive),
                     _buildWebContent(context, state),
-                    const SizedBox(height: 60),
+                    const SizedBox(height: AppSpacing.section),
                   ],
                 ),
               ),
@@ -884,17 +859,11 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             tag: 'show_${widget.showId}',
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: colors.shadow.withOpacity(0.15),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                boxShadow: AppShadows.level3(colors.shadow),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
+                borderRadius: BorderRadius.circular(AppRadius.xl),
                 child: AspectRatio(
                   aspectRatio: 2 / 3,
                   child: OptimizedCachedImage(
@@ -906,7 +875,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             ),
           ),
         ),
-        const SizedBox(width: 48),
+        const SizedBox(width: AppSpacing.massive),
         // Info
         Expanded(
           flex: 3,
@@ -918,10 +887,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
+                        horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
                     decoration: BoxDecoration(
                       color: colors.primaryContainer,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                       border:
                           Border.all(color: colors.primary.withOpacity(0.3)),
                     ),
@@ -930,7 +899,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                       children: [
                         Icon(Icons.theater_comedy_rounded,
                             size: 20, color: colors.primary),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppSpacing.sm),
                         Text(
                           "TİYATRO",
                           style: context.textTheme.titleSmall?.copyWith(
@@ -941,13 +910,13 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppSpacing.lg),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                        horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
                     decoration: BoxDecoration(
                       color: colors.tertiaryContainer,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                     child: Row(
                       children: [
@@ -966,7 +935,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               // Title
               Text(
                 state.show.name,
@@ -976,10 +945,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   letterSpacing: -1,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               // Prodüksiyon / Topluluk
               ShowTeamCredit(teamId: state.show.teamId),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               // Description
               Text(
                 state.show.description,
@@ -990,18 +959,18 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               // Stats
               _buildWebQuickStats(context, state),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               // CTA Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () => scrollController.animateTo(
                     800,
-                    duration: const Duration(milliseconds: 800),
-                    curve: Curves.easeInOutCubic,
+                    duration: AppMotion.slow,
+                    curve: AppMotion.dramatic,
                   ),
                   icon: const Icon(Icons.confirmation_number_rounded),
                   label: const Text(
@@ -1014,9 +983,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.primary,
                     foregroundColor: colors.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: AppRadius.lg,
                     ),
                   ),
                 ),
@@ -1032,10 +1001,10 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     final colors = context.colors;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
       ),
       child: Row(
@@ -1080,20 +1049,20 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: colors.primaryContainer,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           child: Icon(icon, size: 24, color: colors.primary),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Text(
           label,
           style: context.textTheme.labelMedium
               ?.copyWith(color: colors.onSurfaceVariant),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           value,
           style: context.textTheme.titleMedium
@@ -1114,9 +1083,9 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             "Seanslar & Biletler",
             Icons.event_rounded,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
           _buildWebEventsList(context, state),
-          const SizedBox(height: 48),
+          const SizedBox(height: AppSpacing.massive),
         ],
 
         // Cast
@@ -1126,14 +1095,14 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             "Oyuncu Kadrosu",
             Icons.people_rounded,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
           PlayersBubbleCard(
             players: (state.players as List<Player>)
                 .where((final p) => state.show.nowPlayersId.contains(p.id))
                 .toList(),
             isGrayscale: false,
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: AppSpacing.massive),
         ],
 
         // Gallery
@@ -1143,7 +1112,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
             "Sahne Arkası",
             Icons.photo_library_rounded,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
           GallerySection(photos: state.show.photosShowId),
         ],
       ],
