@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/common/extentions/app_context_ui_extension.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_motion.dart';
+import '../../core/theme/app_radius.dart';
+import '../../core/theme/app_shadows.dart';
 import '../../features/shows/presentation/providers/gallery_provider.dart';
 import 'optimized_cached_image.dart';
 
@@ -141,7 +145,15 @@ class _GallerySectionState extends ConsumerState<GallerySection> {
 /// ------------------------------------------------------------
 /// TEKİL GALERİ ÖĞESİ
 /// ------------------------------------------------------------
-class _GalleryItem extends ConsumerWidget {
+/// Masaüstünde hover'da — `theatre_show_card.dart` ile AYNI teknik —
+/// bağlanırken bir kez rastgele seçilmiş (bu tekil karo bağlı kaldığı
+/// sürece sabit, her hover'da yeniden zar atılmayan) başka bir gerçek
+/// galeri fotoğrafını `curtainTransition`'ın "perde açılışı" tarzıyla
+/// (`ClipRect` + ortadan büyüyen `Align(widthFactor: ...)`) üzerine açar.
+/// Galeride başka fotoğraf yoksa (tek kare) sadece kaldırma/kenarlık/
+/// gölge hover geri bildirimi uygulanır, görsel değişmez. Dokunmatik
+/// cihazlarda hover hiç tetiklenmediği için mobil kullanım etkilenmez.
+class _GalleryItem extends ConsumerStatefulWidget {
   final String url;
   final int index;
   final List<String> allPhotos;
@@ -155,45 +167,109 @@ class _GalleryItem extends ConsumerWidget {
   });
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) => Hero(
-        tag: 'gallery_image_$index',
+  ConsumerState<_GalleryItem> createState() => _GalleryItemState();
+}
+
+class _GalleryItemState extends ConsumerState<_GalleryItem> {
+  bool _hovered = false;
+
+  /// Bu karo bağlı kaldığı sürece sabit kalan "sürpriz" ikinci fotoğraf.
+  String? _revealUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final others =
+        widget.allPhotos.where((final p) => p != widget.url).toList();
+    if (others.isNotEmpty) {
+      _revealUrl = others[math.Random().nextInt(others.length)];
+    }
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final hasReveal = _revealUrl != null;
+
+    return Hero(
+      tag: 'gallery_image_${widget.index}',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (final _) => setState(() => _hovered = true),
+        onExit: (final _) => setState(() => _hovered = false),
         child: GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
             ref
-                .read(galleryProvider(allPhotos.length).notifier)
-                .setCurrentIndex(index);
+                .read(galleryProvider(widget.allPhotos.length).notifier)
+                .setCurrentIndex(widget.index);
 
             showDialog(
               context: context,
               barrierColor: Colors.black.withOpacity(0.9),
               builder: (final _) => GalleryViewerDialog(
-                images: allPhotos,
-                isMobile: isMobile,
+                images: widget.allPhotos,
+                isMobile: widget.isMobile,
               ),
             );
           },
-          child: Container(
+          child: AnimatedContainer(
+            duration: AppMotion.fast,
+            curve: AppMotion.standard,
+            transform: Matrix4.translationValues(0, _hovered ? -4 : 0, 0),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ],
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: _hovered
+                    ? WebColors.primaryGold.withOpacity(0.5)
+                    : Colors.transparent,
+                width: 1.2,
+              ),
+              boxShadow: _hovered
+                  ? AppShadows.level3(WebColors.primaryGold)
+                  : AppShadows.level1(Colors.black),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: OptimizedCachedImage(
-                imageUrl: url,
-                fit: BoxFit.cover,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  OptimizedCachedImage(
+                    imageUrl: widget.url,
+                    fit: BoxFit.cover,
+                  ),
+                  if (hasReveal)
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(
+                        begin: 0,
+                        end: _hovered ? 1.0 : 0.0,
+                      ),
+                      duration: AppMotion.normal,
+                      curve: AppMotion.dramatic,
+                      builder: (final context, final t, final child) {
+                        if (t <= 0) return const SizedBox.shrink();
+                        return ClipRect(
+                          child: Align(
+                            alignment: Alignment.center,
+                            widthFactor: t,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: SizedBox.expand(
+                        child: OptimizedCachedImage(
+                          imageUrl: _revealUrl!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 /// ------------------------------------------------------------
