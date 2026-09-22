@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/features/players/domain/entities/player.dart';
 import 'package:ticketapp/features/shows/domain/entities/show.dart';
 import 'package:ticketapp/features/search/presentation/widgets/web/search_category_palette.dart';
@@ -541,81 +545,94 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
   }
 
   @override
-  Widget build(final BuildContext context) => SearchRevealOnScroll(
-        index: widget.index,
-        // Avatar boyutu, grid hücresinin gerçek genişliğine göre hesaplanır
-        // (sabit piksel yerine) — böylece dar masaüstü genişliklerinde veya
-        // yüksek sütun sayılarında taşma (overflow) yaşanmaz.
-        child: LayoutBuilder(
-          builder: (final context, final constraints) {
-            final double maxW =
-                constraints.maxWidth.isFinite ? constraints.maxWidth : 132;
-            final double baseSize = (maxW * 0.86).clamp(56.0, 132.0);
-            final double avatarSize = _hovered ? baseSize * 1.05 : baseSize;
+  Widget build(final BuildContext context) {
+    final Color accent =
+        SearchCategoryPalette.tints[SearchCategoryPalette.players][1];
 
-            return MouseRegion(
-              cursor: SystemMouseCursors.click,
-              onEnter: (final _) => _setHovered(true),
-              onExit: (final _) => _setHovered(false),
-              child: GestureDetector(
-                onTap: () => NavigationHandler.goToPlayer(context,
-                    widget.player.id,
-                    '${widget.player.firstName} ${widget.player.lastName}'),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOut,
-                      width: avatarSize,
-                      height: avatarSize,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _hovered
-                              ? WebColors.primaryGold
-                              : SearchCategoryPalette
-                                  .tints[SearchCategoryPalette.players][1]
-                                  .withOpacity(0.35),
-                          width: _hovered ? 3 : 1.5,
-                        ),
-                        boxShadow: _hovered
-                            ? [
-                                BoxShadow(
-                                    color:
-                                        WebColors.primaryGold.withOpacity(0.35),
-                                    blurRadius: 24,
-                                    spreadRadius: 2),
-                              ]
-                            : const [],
-                      ),
-                      child: ClipOval(
-                        child: OptimizedCachedImage(
-                            imageUrl: widget.player.imageUrl,
-                            fit: BoxFit.cover),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      '${widget.player.firstName}\n${widget.player.lastName}',
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: _hovered
-                            ? WebColors.primaryGoldLight
-                            : WebColors.whiteText,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
-                      ),
-                    ),
-                  ],
-                ),
+    return SearchRevealOnScroll(
+      index: widget.index,
+      // "Cast fotoğrafı" çerçevesi: bir oyuncu bir kimlik/yüz'dür, bir
+      // gösteri değil — bu yüzden artık `DesktopShowCard`'la (0.72 poster
+      // oranı + görsele bindirilmiş metin) AYNI kalıbı KULLANMAZ. Burada
+      // (a) belirgin şekilde daha dikey/"headshot" bir oran (0.85) ve
+      // (b) görselin üzerine değil, ALTINA ayrı, kendi arka planı olan bir
+      // isim PLAKETİ (`_buildNamePlate`) var — Show/Mekan kartlarının
+      // "görsele bindirilmiş gradyan + metin" diliyle karıştırılmayan,
+      // oyuncuya özgü bir kompozisyon. Şekil artık `ClipOval`/
+      // `BoxShape.circle` değil, AppRadius'un asimetrik köşe imzası
+      // (`AppRadius.asymSm`) ile kesilmiş bir dikdörtgen — eski hover
+      // parıltısı/kenarlığı/ölçek davranışı birebir korunuyor.
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (final _) => _setHovered(true),
+        onExit: (final _) => _setHovered(false),
+        child: GestureDetector(
+          onTap: () => NavigationHandler.goToPlayer(context, widget.player.id,
+              '${widget.player.firstName} ${widget.player.lastName}'),
+          child: AnimatedContainer(
+            duration: AppMotion.fast,
+            curve: AppMotion.standard,
+            transform: Matrix4.identity()
+              ..translate(0.0, _hovered ? -6.0 : 0.0),
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.asymSm,
+              border: Border.all(
+                color: _hovered
+                    ? WebColors.primaryGold
+                    : accent.withOpacity(0.35),
+                width: _hovered ? 2.5 : 1.5,
               ),
-            );
-          },
+              boxShadow: _hovered
+                  ? AppShadows.level3(WebColors.primaryGold)
+                  : AppShadows.level1(Colors.black),
+            ),
+            child: ClipRRect(
+              borderRadius: AppRadius.asymSm,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AspectRatio(
+                    aspectRatio: 0.85,
+                    child: AnimatedScale(
+                      scale: _hovered ? 1.06 : 1.0,
+                      duration: AppMotion.normal,
+                      curve: AppMotion.standard,
+                      child: OptimizedCachedImage(
+                        imageUrl: widget.player.imageUrl,
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      ),
+                    ),
+                  ),
+                  _buildNamePlate(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Show/Mekan/Ekip kartlarının aksine isim, görselin üzerine bindirilmiş
+  /// bir gradyanda DEĞİL, görselin altında ayrı, kendi arka planı olan bir
+  /// plaket üzerinde durur — bir kimlik/cast kartı hissi.
+  Widget _buildNamePlate() => Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+        color: WebColors.darkBlueSurface,
+        child: Text(
+          '${widget.player.firstName}\n${widget.player.lastName}',
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: _hovered ? WebColors.primaryGoldLight : WebColors.whiteText,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            height: 1.2,
+          ),
         ),
       );
 }
@@ -726,13 +743,31 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
                                 color: accent[0].withOpacity(0.9),
                                 borderRadius: kSearchBadgeCorner,
                               ),
-                              child: Text(
-                                widget.isStage ? 'MEKAN' : 'EKİP',
-                                style: const TextStyle(
+                              // Rozet artık salt renkle değil, bir ikonla da
+                              // "mekan mı ekip mi" ayrımını taşıyor — Mekan
+                              // (fiziksel yer) vs. Ekip (topluluk/organizasyon)
+                              // arasındaki gerçek kavramsal farkı sessizce
+                              // vurgular.
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    widget.isStage
+                                        ? Icons.location_city_rounded
+                                        : Icons.groups_rounded,
+                                    size: 10,
                                     color: WebColors.veryDarkBlue,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.isStage ? 'MEKAN' : 'EKİP',
+                                    style: const TextStyle(
+                                        color: WebColors.veryDarkBlue,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -744,6 +779,7 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                     height: 1.2)),
+                            _buildRealInfoLine(),
                           ],
                         ),
                       ),
@@ -755,6 +791,53 @@ class _DesktopPlaceCardState extends State<DesktopPlaceCard> {
           ),
         ),
       );
+  }
+
+  /// Mekanlar (yerler) ve Ekipler (topluluklar) farklı türde şeylerdir —
+  /// Show/Player kartlarının "editoryal" hissinden ayrı, kısa bir
+  /// "bilgi" (informational) satırı ekler. SADECE zaten entity üzerinde
+  /// var olan GERÇEK alanları kullanır: Mekan için `Stage.address`
+  /// (konum ipucu), Ekip için `Team.showsId`/`Stage.showsId` uzunluğu
+  /// (kaç gösteriyle ilişkili — gerçek, zaten hesaplanmış bir sayı).
+  /// Uydurma bir koltuk sayısı, kuruluş yılı vb. EKLENMEZ; alan boş/sıfırsa
+  /// satır hiç render edilmez.
+  Widget _buildRealInfoLine() {
+    final IconData icon;
+    final String label;
+    if (widget.isStage) {
+      final String address = ((widget.item.address as String?) ?? '').trim();
+      if (address.isEmpty) return const SizedBox.shrink();
+      icon = Icons.location_on_rounded;
+      label = address;
+    } else {
+      final List<dynamic> showsId =
+          (widget.item.showsId as List<dynamic>?) ?? const [];
+      if (showsId.isEmpty) return const SizedBox.shrink();
+      icon = Icons.theater_comedy_rounded;
+      label = '${showsId.length} gösteri';
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: WebColors.textTertiary),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: WebColors.textSecondary,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
