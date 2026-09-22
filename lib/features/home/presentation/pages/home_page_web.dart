@@ -723,6 +723,21 @@ class _HeroBandState extends ConsumerState<_HeroBand>
     final featuredEntries = _pickFeaturedShows(
         candidates, mergedEventsById.values.toList(), widget.stages);
     final bool hasFeatured = featuredEntries.isNotEmpty;
+    // Gerçek "aktif oyun" sayısı: takviminde gelecek tarihli en az bir
+    // etkinliği olan DİSTİNCT oyun sayısı — `_pickFeaturedShows`'un
+    // `earliestByShow` ile aynı mantık, sadece burada sayıya indirgeniyor.
+    final DateTime _now = DateTime.now();
+    final Set<String> candidateIdSet = candidateIds.toSet();
+    final int activeShowCount = mergedEventsById.values
+        .where((final e) =>
+            e.showId.isNotEmpty && candidateIdSet.contains(e.showId))
+        .where((final e) {
+          final date = DateFormatter.parseDateString(e.date);
+          return date != null && date.isAfter(_now);
+        })
+        .map((final e) => e.showId)
+        .toSet()
+        .length;
     final int selectedIndex = featuredEntries.isEmpty
         ? 0
         : _selectedFeaturedIndex.clamp(0, featuredEntries.length - 1);
@@ -831,7 +846,11 @@ class _HeroBandState extends ConsumerState<_HeroBand>
                               onSearchTap: widget.onSearchTap,
                               onDiscoverTap: widget.onDiscoverTap,
                               onNearbyTap: widget.onNearbyTap,
-                              showCount: widget.shows.length,
+                              // `widget.shows.length`, discovery_page.dart'taki
+                              // aynı hatanın bir başka örneğiydi: TÜM (aktif +
+                              // aktif olmayan) oyun sayısını "aktif" diye
+                              // etiketliyordu. Gerçek aktif sayı aşağıda.
+                              showCount: activeShowCount,
                               stageCount: widget.stages.length,
                             ),
                           ),
