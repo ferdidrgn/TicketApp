@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
@@ -10,8 +13,9 @@ import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../stages/domain/entities/stage.dart';
-import '../../../stages/presentation/providers/stage_provider.dart';
 import '../providers/nearby_events_provider.dart';
+import '../widgets/nearby_events_map.dart';
+import '../widgets/nearby_location_permission_view.dart';
 
 class NearbyEventsPage extends ConsumerWidget {
   const NearbyEventsPage({super.key});
@@ -20,26 +24,91 @@ class NearbyEventsPage extends ConsumerWidget {
   Widget build(final BuildContext context, final WidgetRef ref) {
     // Masaüstünde (>=1024px) gerçek Firestore verisiyle çalışan, ayrı bir
     // "premium" web deneyimi kullanılır (bkz. _NearbyEventsDesktopPage).
-    // Mobil/tablet gövdesi aşağıda AYNEN kalır — bu görevin kapsamı sadece
-    // masaüstü deneyimini eklemek, mobili yeniden yazmak değil.
     if (context.isDesktop) return const _NearbyEventsDesktopPage();
+    return const _NearbyEventsMobileBody();
+  }
+}
 
+// =============================================================================
+// GERÇEK KONUM/MESAFE HAKKINDA
+// =============================================================================
+//
+// Bu sayfa artık cihazın GERÇEK konumunu istiyor (`devicePositionProvider`,
+// bkz. ../providers/location_provider.dart -> lib/core/services/
+// location_service.dart) ve gösterilen her etkinliği İKİ GERÇEK filtreden
+// geçiriyor (bkz. ../providers/nearby_events_provider.dart ->
+// `nearbyEventsProvider`): sahnenin gerçek koordinatı kullanıcıya 50 km
+// içinde OLMALI, VE etkinlik takvimde en fazla 30 gün içinde OLMALI. İzin
+// reddedilirse/GPS kapalıysa sahte bir konum/mesafe ASLA üretilmiyor —
+// bunun yerine `NearbyLocationPermissionView` gerçek bir izin isteme/
+// ayarlara yönlendirme ekranı gösteriyor.
+
+/// Sahnede sistemin çektiği yaklaşan etkinlik LİSTESİNİ, bir hızlı filtreye
+/// ("Tümü" / "Bugün" / "Bu Hafta" / gerçek bir kategori adı) göre süzer.
+/// Kategori listesi UYDURULMUYOR — `discovery_page.dart`'taki
+/// `_buildBrowser` ile AYNI desen: gerçek `entries`'ten (`show.category`)
+/// türetiliyor.
+List<NearbyEventEntry> _applyQuickFilter(
+    final List<NearbyEventEntry> entries, final String filter) {
+  if (filter == 'Tümü') return entries;
+  if (filter == 'Bugün') {
+    final now = DateTime.now();
+    return entries
+        .where((final e) =>
+            e.dateTime.year == now.year &&
+            e.dateTime.month == now.month &&
+            e.dateTime.day == now.day)
+        .toList();
+  }
+  if (filter == 'Bu Hafta') {
+    final cutoff = DateTime.now().add(const Duration(days: 7));
+    return entries.where((final e) => e.dateTime.isBefore(cutoff)).toList();
+  }
+  return entries.where((final e) => e.show.category == filter).toList();
+}
+
+/// Gerçek `entries`'ten türetilen dinamik hızlı filtre listesi — sabit
+/// `['Tiyatro','Komedi',...]` gibi UYDURMA bir dizi değil.
+List<String> _quickFilterOptions(final List<NearbyEventEntry> entries) {
+  final categories = <String>{
+    for (final entry in entries)
+      if (entry.show.category.trim().isNotEmpty) entry.show.category,
+  }.toList()
+    ..sort();
+  return ['Tümü', 'Bugün', 'Bu Hafta', ...categories];
+}
+
+class _NearbyEventsMobileBody extends ConsumerStatefulWidget {
+  const _NearbyEventsMobileBody();
+
+  @override
+  ConsumerState<_NearbyEventsMobileBody> createState() =>
+      _NearbyEventsMobileBodyState();
+}
+
+class _NearbyEventsMobileBodyState
+    extends ConsumerState<_NearbyEventsMobileBody> {
+  String _activeFilter = 'Tümü';
+
+  @override
+  Widget build(final BuildContext context) {
     final bool isLargeScreen = context.isTablet || context.isDesktop;
     final double cardWidth = isLargeScreen ? 400 : context.screenWidth - 48;
 
-    // Mobil gövde de artık aynı `nearby_events_provider.dart` sağlayıcılarını
-    // kullanıyor (masaüstü ile aynı gerçek Firestore verisi). "Popüler Sahne
-    // ve Mekanlar" bölümü için ise `stagesProvider` (bkz.
-    // ../../../stages/presentation/providers/stage_provider.dart) kullanılıyor
-    // — home sayfasındaki "popüler sahneler" rayı ile aynı desen
-    // (`stagesProvider(isLimit: true)`), çünkü burası "yaklaşan etkinliği
-    // olan sahneler" değil, genel popüler sahne/mekan listesi.
-    final eventsState = ref.watch(upcomingNearbyEventsProvider);
-    final stagesState = ref.watch(stagesProvider(isLimit: true));
+    final eventsState = ref.watch(nearbyEventsProvider);
+    final stagesState =
+        ref.watch(nearbyStageGroupsProvider).whenData((final groups) {
+      return groups.map((final g) => g.stage).toList();
+    });
+
+    final List<NearbyEventEntry> entriesForFilters = eventsState.value ?? [];
+    final List<String> filterOptions = _quickFilterOptions(entriesForFilters);
+    final String activeFilter =
+        filterOptions.contains(_activeFilter) ? _activeFilter : 'Tümü';
 
     return BasePageWrapper(
       title: 'YAKININIZDAKİ ETKİNLİKLER',
-      subtitle: 'Size en yakın sahnelerde bu hafta neler var?',
+      subtitle: 'Size en yakın sahnelerde önümüzdeki 30 günde neler var?',
       showBackButton: false,
       rightIcon: Icons.tune_rounded,
       showFab: true,
@@ -51,25 +120,43 @@ class NearbyEventsPage extends ConsumerWidget {
           // HERO BANNER
           SliverToBoxAdapter(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxl, vertical: AppSpacing.lg),
               child: _buildDiscoveryBanner(context),
             ),
           ),
 
-          // HIZLI FİLTRELER
+          // GERÇEK HARİTA — kullanıcının konumu + yakındaki gerçek sahneler
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxl, vertical: AppSpacing.md),
+              child: NearbyEventsMap(
+                borderColor: context.colors.outlineVariant,
+                surfaceColor: context.colors.surfaceContainer,
+                foregroundColor: context.colors.onSurface,
+                mutedColor: context.colors.onSurfaceVariant,
+                accentColor: context.primaryColor,
+              ),
+            ),
+          ),
+
+          // HIZLI FİLTRELER — gerçek verideki kategorilerden türetilir
           SliverToBoxAdapter(
             child: Container(
               height: 60,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  _buildFilterChip('Tümü', true, context),
-                  _buildFilterChip('Tiyatro', false, context),
-                  _buildFilterChip('Konser', false, context),
-                  _buildFilterChip('Sahne', false, context),
-                  _buildFilterChip('Bugün', false, context),
-                  _buildFilterChip('Yakında', false, context),
+                  for (final option in filterOptions)
+                    _buildFilterChip(
+                      option,
+                      option == activeFilter,
+                      context,
+                      () => setState(() => _activeFilter = option),
+                    ),
                 ],
               ),
             ),
@@ -78,7 +165,8 @@ class NearbyEventsPage extends ConsumerWidget {
           // BAŞLIK
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxl, vertical: AppSpacing.xxl),
               child: SectionHeader(
                 title: 'Sizin İçin Önerilenler',
                 subtitle: 'Konumunuza göre en uygun etkinlikler',
@@ -89,16 +177,18 @@ class NearbyEventsPage extends ConsumerWidget {
 
           // ETKİNLİK LİSTESİ - YATAY KAYDIRMA
           SliverToBoxAdapter(
-            child: _buildEventsSection(context, eventsState, cardWidth),
+            child: _buildEventsSection(
+                context, eventsState, cardWidth, activeFilter),
           ),
 
           // POPÜLER MEKANLAR BAŞLIĞI
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxl, vertical: AppSpacing.xxxl),
               child: SectionHeader(
-                title: 'Popüler Sahne ve Mekanlar',
-                subtitle: 'En çok tercih edilen yerler',
+                title: 'Yakınınızdaki Sahne ve Mekanlar',
+                subtitle: 'Önümüzdeki 30 günde etkinliği olan gerçek sahneler',
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -119,7 +209,7 @@ class NearbyEventsPage extends ConsumerWidget {
         height: 160,
         width: double.infinity,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           gradient: LinearGradient(
             colors: [
               context.primaryColor,
@@ -159,7 +249,7 @@ class NearbyEventsPage extends ConsumerWidget {
             ),
 
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppSpacing.xxl),
               child: Row(
                 children: [
                   Expanded(
@@ -177,9 +267,9 @@ class NearbyEventsPage extends ConsumerWidget {
                             height: 1.2,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.sm),
                         Text(
-                          '15+ tiyatro oyunu ve 20+ konser sizi bekliyor.',
+                          'Gerçek konumunuza göre 50 km içindeki, önümüzdeki 30 gündeki etkinlikler.',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 14,
@@ -215,57 +305,83 @@ class NearbyEventsPage extends ConsumerWidget {
         ),
       );
 
-  Widget _buildFilterChip(
-      final String text, final bool isActive, final BuildContext context) {
+  Widget _buildFilterChip(final String text, final bool isActive,
+      final BuildContext context, final VoidCallback onTap) {
     return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(
-          text,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: isActive
-                ? context.colors.onPrimary
-                : context.colors.onSurfaceVariant,
-          ),
-        ),
+      margin: const EdgeInsets.only(right: AppSpacing.sm),
+      child: Semantics(
+        button: true,
         selected: isActive,
-        onSelected: (final selected) {},
-        backgroundColor: context.colors.surfaceContainerHighest,
-        selectedColor: context.primaryColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+        label: '$text filtresi',
+        child: ChoiceChip(
+          label: Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isActive
+                  ? context.colors.onPrimary
+                  : context.colors.onSurfaceVariant,
+            ),
+          ),
+          selected: isActive,
+          onSelected: (final selected) {
+            if (selected) onTap();
+          },
+          backgroundColor: context.colors.surfaceContainerHighest,
+          selectedColor: context.primaryColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
   }
 
-  /// "Sizin İçin Önerilenler" — gerçek, yaklaşan etkinlikler.
-  /// `upcomingNearbyEventsProvider` masaüstü sürümünün de kullandığı AYNI
-  /// sağlayıcı (bkz. ../providers/nearby_events_provider.dart) — burada
-  /// ikinci bir sahte veri kaynağı icat edilmiyor.
-  Widget _buildEventsSection(final BuildContext context,
-      final AsyncValue<List<NearbyEventEntry>> state, final double cardWidth) {
+  /// "Sizin İçin Önerilenler" — GERÇEK konuma göre yakındaki etkinlikler.
+  Widget _buildEventsSection(
+      final BuildContext context,
+      final AsyncValue<List<NearbyEventEntry>> state,
+      final double cardWidth,
+      final String activeFilter) {
     return state.when(
       loading: () => const SizedBox(
         height: 320,
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (final err, final stack) => const _MobileNearbyEmptyNotice(
-        message: 'Etkinlikler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
-      ),
-      data: (final entries) {
+      error: (final err, final stack) {
+        if (err is LocationFailure) {
+          return SizedBox(
+            height: 320,
+            child: Center(
+              child: NearbyLocationPermissionView(
+                error: err,
+                foregroundColor: context.colors.onSurface,
+                mutedColor: context.colors.onSurfaceVariant,
+                accentColor: context.primaryColor,
+              ),
+            ),
+          );
+        }
+        return const _MobileNearbyEmptyNotice(
+          message: 'Etkinlikler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+        );
+      },
+      data: (final allEntries) {
+        final entries = _applyQuickFilter(allEntries, activeFilter);
         if (entries.isEmpty)
-          return const _MobileNearbyEmptyNotice(
-            message: 'Şu anda yaklaşan bir etkinlik bulunmuyor.',
+          return _MobileNearbyEmptyNotice(
+            message: allEntries.isEmpty
+                ? 'Önümüzdeki 30 gün içinde, 50 km çevrenizde bir etkinlik bulunmuyor.'
+                : 'Bu filtreye uyan bir etkinlik bulunmuyor.',
           );
 
         return SizedBox(
           height: 320, // Sabit yükseklik - butonlar için yeterli alan
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             physics: const BouncingScrollPhysics(),
             itemCount: entries.length,
             itemBuilder: (final context, final index) {
@@ -275,7 +391,7 @@ class NearbyEventsPage extends ConsumerWidget {
               return Container(
                 width: cardWidth * 0.85, // Daha dar kartlar
                 margin: EdgeInsets.only(
-                  right: index < entries.length - 1 ? 16 : 0,
+                  right: index < entries.length - 1 ? AppSpacing.lg : 0,
                 ),
                 child: EventsCard(
                   key: ValueKey('nearby-mobile-event-${entry.event.id}'),
@@ -299,39 +415,41 @@ class NearbyEventsPage extends ConsumerWidget {
     );
   }
 
-  /// "Popüler Sahne ve Mekanlar" — gerçek sahneler.
-  /// Ana sayfadaki popüler sahne rayı ile aynı `stagesProvider(isLimit:
-  /// true)` sağlayıcısı kullanılıyor (bkz.
-  /// ../../../stages/presentation/providers/stage_provider.dart).
+  /// "Yakınınızdaki Sahne ve Mekanlar" — GERÇEK konuma göre süzülmüş,
+  /// önümüzdeki 30 günde etkinliği olan sahneler (bkz.
+  /// `nearbyStageGroupsProvider`).
   Widget _buildVenuesSliver(final BuildContext context,
       final AsyncValue<List<Stage>> state, final bool isLargeScreen) {
     return state.when(
       loading: () => const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.huge),
           child: Center(child: CircularProgressIndicator()),
         ),
       ),
-      error: (final err, final stack) => const SliverToBoxAdapter(
+      error: (final err, final stack) => SliverToBoxAdapter(
         child: _MobileNearbyEmptyNotice(
-          message: 'Sahneler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+          message: err is LocationFailure
+              ? 'Sahneleri gösterebilmemiz için yukarıdaki konum iznini vermeniz gerekiyor.'
+              : 'Sahneler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
         ),
       ),
       data: (final stages) {
         if (stages.isEmpty)
           return const SliverToBoxAdapter(
             child: _MobileNearbyEmptyNotice(
-              message: 'Şu anda gösterilecek bir sahne bulunmuyor.',
+              message:
+                  'Önümüzdeki 30 gün içinde, 50 km çevrenizde etkinliği olan bir sahne bulunmuyor.',
             ),
           );
 
         return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: isLargeScreen ? 3 : 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              crossAxisSpacing: AppSpacing.md,
+              mainAxisSpacing: AppSpacing.md,
               childAspectRatio: 1.2,
             ),
             delegate: SliverChildBuilderDelegate(
@@ -348,77 +466,81 @@ class NearbyEventsPage extends ConsumerWidget {
   Widget _buildVenueCard(final BuildContext context, final Stage stage) {
     return GestureDetector(
       onTap: () => NavigationHandler.goToStage(context, stage.id, stage.name),
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.colors.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: context.colors.shadow.withOpacity(0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+      child: Semantics(
+        button: true,
+        label: '${stage.name}, ${stage.address}',
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            boxShadow: [
+              BoxShadow(
+                color: context.colors.shadow.withOpacity(0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            border: Border.all(
+              color: context.colors.outlineVariant,
+              width: 1,
             ),
-          ],
-          border: Border.all(
-            color: context.colors.outlineVariant,
-            width: 1,
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 50,
-              height: 50,
-              child: OptimizedCachedImage(
-                imageUrl: stage.imageUrl,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
                 width: 50,
                 height: 50,
-                isCircular: true,
-                errorBuilder: (final ctx, final url, final error) =>
-                    Container(
-                  decoration: BoxDecoration(
-                    color: context.primaryColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
+                child: OptimizedCachedImage(
+                  imageUrl: stage.imageUrl,
+                  width: 50,
+                  height: 50,
+                  isCircular: true,
+                  errorBuilder: (final ctx, final url, final error) =>
+                      Container(
+                    decoration: BoxDecoration(
+                      color: context.primaryColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.theater_comedy_rounded,
+                      color: context.primaryColor,
+                      size: 24,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.theater_comedy_rounded,
-                    color: context.primaryColor,
-                    size: 24,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: Text(
+                  stage.name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: context.colors.onSurface,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                stage.name,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: context.colors.onSurface,
+              const SizedBox(height: AppSpacing.xs),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: Text(
+                  stage.address,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                stage.address,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: context.colors.onSurfaceVariant,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -436,7 +558,8 @@ class _MobileNearbyEmptyNotice extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxl, vertical: AppSpacing.xxl),
         child: Text(
           message,
           style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 15),
@@ -445,32 +568,16 @@ class _MobileNearbyEmptyNotice extends StatelessWidget {
 }
 
 // =============================================================================
-// MASAÜSTÜ (WEB) YAKINDAKİLER SAYFASI — GERÇEK VERİ
+// MASAÜSTÜ (WEB) YAKINDAKİLER SAYFASI — GERÇEK KONUM + GERÇEK VERİ
 // =============================================================================
 //
-// Mobil gövde de artık gerçek veriyle çalışıyor (eskiden burada kurgusal
-// `staticEvents`/`venues` listeleri vardı — tamamen kaldırıldı). Bu sayfa
-// `upcomingNearbyEventsProvider` / `nearbyStagesProvider` (bkz.
-// ../providers/nearby_events_provider.dart) üzerinden Firestore'dan gelen
-// gerçek Show/Event/Stage verisiyle çalışır.
-//
-// GERÇEK KONUM/MESAFE HAKKINDA: `pubspec.yaml`'da `geolocator` (ya da
-// tarayıcının coğrafi konum API'sine erişim sağlayan başka bir paket) HENÜZ
-// bağımlılık olarak yok, ve bu sandbox'ta yeni bir paket eklenip
-// `flutter pub get` çalıştırılamıyor. Sahte "X km uzakta" etiketleri
-// uydurmak yerine — ki bu projede kesinlikle yasak — dürüst bir alternatif
-// seçildi: etkinlikler gerçek tarihlerine göre (en yakın tarih en önce)
-// sıralanıyor ve gerçek sahne/mekân bilgisine göre açıkça gruplanıyor.
-// Sayfa `geolocator` eklendiğinde mesafeye göre sıralamaya kolayca
-// genişletilebilir (bkz. `Stage.locationLat`/`locationLng` — bu alanlar
-// zaten gerçek ve kullanılabilir durumda).
-/// `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR — o mobil uygulama
-/// çatısıdır (geri tuşu başlık çubuğu, "yukarı kaydır" FAB'ı, pull-to-
-/// refresh, `CustomAppBackground`'ın rastgele renkli parçacık noktaları).
-/// Bunlar `home_page_web.dart`'ta "Android uygulaması gibi görünüyor"
-/// şikayetinin asıl sebebiydi (bkz. o dosyadaki aynı gerekçe). Üst
-/// navigasyon zaten `WebTopNavigationBar`'dan geliyor; burada ikinci bir
-/// başlık çubuğuna gerek yok. Sade, düz zeminli bir kaydırma alanı.
+// `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR — o mobil uygulama
+// çatısıdır (geri tuşu başlık çubuğu, "yukarı kaydır" FAB'ı, pull-to-
+// refresh, `CustomAppBackground`'ın rastgele renkli parçacık noktaları).
+// Bunlar `home_page_web.dart`'ta "Android uygulaması gibi görünüyor"
+// şikayetinin asıl sebebiydi (bkz. o dosyadaki aynı gerekçe). Üst
+// navigasyon zaten `WebTopNavigationBar`'dan geliyor; burada ikinci bir
+// başlık çubuğuna gerek yok. Sade, düz zeminli bir kaydırma alanı.
 class _NearbyEventsDesktopPage extends StatelessWidget {
   const _NearbyEventsDesktopPage();
 
@@ -495,42 +602,64 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final eventsState = ref.watch(upcomingNearbyEventsProvider);
-    final stagesState = ref.watch(nearbyStagesProvider);
+    final eventsState = ref.watch(nearbyEventsProvider);
+    final stagesState = ref.watch(nearbyStageGroupsProvider);
 
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 36),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: _NearbyDesktopBanner(eventCount: eventsState.value?.length),
         ),
-        const SizedBox(height: 48),
+        const SizedBox(height: AppSpacing.section - 16),
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: SectionHeader(
+            title: 'Haritada Yakınınızdakiler',
+            subtitle: 'Konumunuz ve önümüzdeki 30 gündeki gerçek sahneler',
+            titleColor: Colors.white,
+            accentColor: WebColors.primaryGold,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: NearbyEventsMap(
+            height: 320,
+            borderColor: WebColors.primaryGold.withOpacity(0.2),
+            surfaceColor: WebColors.darkBlueSurface,
+            foregroundColor: Colors.white,
+            mutedColor: WebColors.textSecondary,
+            accentColor: WebColors.primaryGold,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.section - 8),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: SectionHeader(
             title: 'Yaklaşan Etkinlikler',
-            subtitle: 'Tarihe göre sıralı',
+            subtitle: 'Konumunuza 50 km, takviminize 30 gün içinde',
             titleColor: Colors.white,
             accentColor: WebColors.primaryGold,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         _buildEventsSection(context, eventsState),
-        const SizedBox(height: 56),
+        const SizedBox(height: AppSpacing.section - 8),
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: SectionHeader(
             title: 'Sahne ve Mekanlar',
-            subtitle: 'Yaklaşan etkinliği olan gerçek sahneler',
+            subtitle: 'Yakınınızdaki, yaklaşan etkinliği olan gerçek sahneler',
             titleColor: Colors.white,
             accentColor: WebColors.primaryGold,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: _buildStagesSection(context, stagesState),
         ),
         const SizedBox(height: 100),
@@ -547,7 +676,7 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
         height: 320,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           physics: const NeverScrollableScrollPhysics(),
           itemCount: 3,
           itemBuilder: (final context, final index) => Container(
@@ -560,13 +689,26 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
           ),
         ),
       ),
-      error: (final err, final stack) => const _NearbyEmptyNotice(
-        message: 'Etkinlikler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
-      ),
+      error: (final err, final stack) {
+        if (err is LocationFailure) {
+          return Center(
+            child: NearbyLocationPermissionView(
+              error: err,
+              foregroundColor: Colors.white,
+              mutedColor: WebColors.textSecondary,
+              accentColor: WebColors.primaryGold,
+            ),
+          );
+        }
+        return const _NearbyEmptyNotice(
+          message: 'Etkinlikler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+        );
+      },
       data: (final entries) {
         if (entries.isEmpty)
           return const _NearbyEmptyNotice(
-            message: 'Şu anda yaklaşan bir etkinlik bulunmuyor.',
+            message:
+                'Önümüzdeki 30 gün içinde, 50 km çevrenizde bir etkinlik bulunmuyor.',
           );
 
         return SizedBox(
@@ -574,13 +716,13 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             itemCount: entries.length,
             itemBuilder: (final context, final index) {
               final entry = entries[index];
               final formatted = DateFormatter.formatForEventCard(entry.event.date);
               return Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(right: AppSpacing.lg),
                 child: EventsCard(
                   key: ValueKey('nearby-event-${entry.event.id}'),
                   width: 280,
@@ -614,13 +756,16 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
           ),
         ),
       ),
-      error: (final err, final stack) => const _NearbyEmptyNotice(
-        message: 'Sahneler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+      error: (final err, final stack) => _NearbyEmptyNotice(
+        message: err is LocationFailure
+            ? 'Sahneleri gösterebilmemiz için yukarıdaki konum iznini vermeniz gerekiyor.'
+            : 'Sahneler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
       ),
       data: (final groups) {
         if (groups.isEmpty)
           return const _NearbyEmptyNotice(
-            message: 'Şu anda gösterilecek bir sahne bulunmuyor.',
+            message:
+                'Önümüzdeki 30 gün içinde, 50 km çevrenizde etkinliği olan bir sahne bulunmuyor.',
           );
 
         return GridView.builder(
@@ -648,9 +793,9 @@ class _NearbyDesktopBanner extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           gradient: WebColors.cardGradient,
           border: Border.all(color: WebColors.primaryGold.withOpacity(0.25)),
         ),
@@ -673,10 +818,10 @@ class _NearbyDesktopBanner extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     eventCount == null
-                        ? 'Gerçek etkinlik takvimi yükleniyor…'
+                        ? 'Gerçek konumunuz ve etkinlik takviminiz kontrol ediliyor…'
                         : eventCount == 0
-                            ? 'Şu anda takvimde yaklaşan bir etkinlik yok.'
-                            : '$eventCount yaklaşan etkinlik, gerçek sahne bilgileriyle listeleniyor.',
+                            ? 'Konumunuza 50 km, takvime 30 gün içinde yaklaşan bir etkinlik yok.'
+                            : '$eventCount yaklaşan etkinlik, gerçek konumunuza ve sahne bilgilerinize göre listeleniyor.',
                     style: TextStyle(
                       color: WebColors.textSecondary,
                       fontSize: 15,
@@ -717,7 +862,10 @@ class _NearbyStageCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => NavigationHandler.goToStage(context, stage.id, stage.name),
-      child: Container(
+      child: Semantics(
+        button: true,
+        label: '${stage.name}, ${stage.address}',
+        child: Container(
         decoration: BoxDecoration(
           color: WebColors.darkBlueSurface,
           // Asimetrik köşeler — show_detail_page_web / discovery kartlarıyla
@@ -851,6 +999,7 @@ class _NearbyStageCard extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -863,7 +1012,8 @@ class _NearbyEmptyNotice extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxl, vertical: AppSpacing.xxl),
         child: Text(
           message,
           style: TextStyle(color: WebColors.textSecondary, fontSize: 15),

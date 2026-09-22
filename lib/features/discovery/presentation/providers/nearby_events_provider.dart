@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../events/domain/entities/event.dart';
 import '../../../events/presentation/providers/event_provider.dart';
@@ -6,6 +7,7 @@ import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import 'location_provider.dart';
 
 // ==============================================================================
 // "YAKINDAKİLER" (NEARBY) İÇİN GERÇEK VERİ SAĞLAYICILARI
@@ -134,12 +136,80 @@ final upcomingNearbyEventsProvider =
   return entries;
 });
 
-/// 🏛️ SAHNEYE GÖRE GRUPLANMIŞ YAKLAŞAN ETKİNLİKLER
-/// `upcomingNearbyEventsProvider` sonucunu sahneye göre gruplar. Gruplar, en
-/// yakın etkinliğe sahip sahne en önde olacak şekilde sıralanır.
-final nearbyStagesProvider =
-    FutureProvider<List<NearbyStageGroup>>((final ref) async {
+// ==============================================================================
+// 📍 GERÇEK KONUMA GÖRE "YAKINIMDAKİLER" — asıl özellik burada
+// ==============================================================================
+//
+// Kullanıcının kendi talebi (birebir): "yakınınızdaki etkinlikler dediğimde
+// konum sormamız gerekiyor. konumu neresi o konuma göre oyunlar bulmalıyız.
+// oyunların sahneleri hangi şehirde ise ve 1 ay içerisinde oyun var ise
+// yakın kısma eklemeliyiz." Yukarıdaki `upcomingNearbyEventsProvider` KONUM
+// KULLANMIYOR (kasıtlı — `discovery_page.dart`'taki "Sizin İçin
+// Önerilenler" ve `home_page_web.dart`'taki hero paneli de aynı provider'ı
+// izliyor; o iki yer konum izni istemeyen genel bir "yaklaşan etkinlikler"
+// vitrinidir, dokunulmadı). Bu bölüm SADECE "Yakınımdakiler" sayfası
+// (`nearby_events_page.dart`) için, GERÇEK cihaz konumu + GERÇEK sahne
+// koordinatı + GERÇEK 1 aylık takvim penceresiyle çalışan ayrı bir katman.
+//
+// Mesafe mi, şehir metni mi: `Stage.address` serbest metin bir adres
+// string'i (örn. "Kadıköy, İstanbul") — güvenilir bir şehir alanı/kod YOK,
+// metin eşleştirmesi ("İstanbul" geçiyor mu?) kırılgan ve YANLIŞ sonuç
+// üretebilir (ör. "İstanbul Caddesi, Ankara"). `Stage.locationLat/locationLng`
+// ise zaten gerçek, sayısal ve güvenilir — bu yüzden mesafe
+// (`Geolocator.distanceBetween`, Haversine) tercih edildi. Koordinatı
+// girilmemiş (0.0/0.0) bir sahne, kullanıcının GERÇEK konumundan pratikte
+// binlerce km hesaplanır ve doğal olarak yarıçap dışında kalıp listeden
+// düşer — sahte bir "yakın" varsayımı asla üretilmiyor.
+
+/// "Yakın" sayılan yarıçap — 50 km. Türkiye'deki bir ilin/büyükşehrin
+/// metropol alanını makul biçimde kapsıyor, aynı zamanda komşu şehirdeki
+/// bir sahneyi de (mantıklıysa) dışarıda bırakmıyor.
+const double kNearbyRadiusMeters = 50000;
+
+/// 📍 GERÇEK KONUMA VE GERÇEK 1 AYLIK TAKVİME GÖRE SÜZÜLMÜŞ YAKLAŞAN
+/// ETKİNLİKLER. `upcomingNearbyEventsProvider`'ın (Show/Event/Stage
+/// birleştirme mantığı — bkz. yukarısı) sonucunu, cihazın GERÇEK konumuna
+/// (`devicePositionProvider`) göre iki GERÇEK filtreden geçirir:
+///   1) Etkinlik tarihi bugünden itibaren en fazla 30 GÜN içinde olmalı.
+///   2) Sahnenin GERÇEK koordinatı, kullanıcının GERÇEK konumuna
+///      `kNearbyRadiusMeters` içinde olmalı.
+/// Konum alınamazsa (izin reddedildi / GPS kapalı) bu future ilgili
+/// `LocationFailure`'ı OLDUĞU GİBİ fırlatır — UI bunu `AsyncValue.error`
+/// dalında yakalayıp gerçek bir izin isteme ekranı gösterir.
+final nearbyEventsProvider =
+    FutureProvider<List<NearbyEventEntry>>((final ref) async {
+  // `.future` — konum alınamazsa (LocationFailure) burada fırlar, provider
+  // hatayı olduğu gibi yukarı taşır.
+  final position = await ref.watch(devicePositionProvider.future);
   final entries = await ref.watch(upcomingNearbyEventsProvider.future);
+  if (entries.isEmpty) return [];
+
+  final DateTime cutoff = DateTime.now().add(const Duration(days: 30));
+
+  final nearby = entries.where((final entry) {
+    if (entry.dateTime.isAfter(cutoff)) return false; // 1 aydan uzak
+    final double distance = LocationService.distanceInMeters(
+      position.latitude,
+      position.longitude,
+      entry.stage.locationLat,
+      entry.stage.locationLng,
+    );
+    return distance <= kNearbyRadiusMeters;
+  }).toList();
+
+  // `entries` zaten tarihe göre sıralı geliyor ama `where` sırayı bozmaz —
+  // yine de açıkça garanti altına alıyoruz.
+  nearby.sort((final a, final b) => a.dateTime.compareTo(b.dateTime));
+  return nearby;
+});
+
+/// 🏛️ SAHNEYE GÖRE GRUPLANMIŞ, GERÇEK KONUMA GÖRE YAKINDAKİLER
+/// `nearbyEventsProvider` sonucunu sahneye göre gruplar (harita
+/// marker'ları ve "Popüler Sahne ve Mekanlar" bölümü bunun üzerine kurulu).
+/// Gruplar, en yakın etkinliğe sahip sahne en önde olacak şekilde sıralanır.
+final nearbyStageGroupsProvider =
+    FutureProvider<List<NearbyStageGroup>>((final ref) async {
+  final entries = await ref.watch(nearbyEventsProvider.future);
   if (entries.isEmpty) return [];
 
   final Map<String, List<NearbyEventEntry>> grouped = {};
@@ -151,8 +221,6 @@ final nearbyStagesProvider =
       .map((final list) => NearbyStageGroup(stage: list.first.stage, entries: list))
       .toList();
 
-  // `entries` zaten tarihe göre sıralı geldiğinden her grubun ilk öğesi o
-  // sahnenin en yakın etkinliğidir.
   groups.sort((final a, final b) =>
       a.entries.first.dateTime.compareTo(b.entries.first.dateTime));
 

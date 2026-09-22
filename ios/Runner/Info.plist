@@ -46,6 +46,11 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
+	<!-- 📍 Konum — "Yakınımdakiler" GERÇEK cihaz konumu istiyor (geolocator).
+	     Bu açıklama olmadan iOS izin diyaloğunu HİÇ göstermez, uygulama
+	     konum isteği anında çöker. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Yakınınızdaki tiyatro etkinliklerini ve sahneleri gösterebilmemiz için konumunuza ihtiyacımız var.</string>
 
 <!-- 🔗 Universal Links (HTTPS Deep Links) -->
 <key>com.apple.developer.associated-domains</key>

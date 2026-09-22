@@ -54,6 +54,9 @@ dependencies:
   google_sign_in: ^5.0.0
   google_maps_flutter:
   google_mobile_ads:
+  # "Yakınımdakiler" için GERÇEK cihaz konumu (izin + GPS koordinatı) —
+  # bkz. lib/core/services/location_service.dart
+  geolocator: ^13.0.2
 
   app_links: ^6.1.1
 
