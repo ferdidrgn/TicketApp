@@ -72,6 +72,24 @@ final class TiyatrolCommunicationActions {
     }
   }
 
+  // --- 🔎 SAHNEYİ GOOGLE'DA (ADRESİYLE) AÇ ---
+  // `openStageLocation` enlem/boylam ile Google Maps'i navigasyon niyetiyle
+  // açıyor; bu ise "Yakınımdakiler" kartlarındaki "Google'da Gör/Fotoğraflar"
+  // aksiyonu için ayrı bir GERÇEK giriş noktası — sahnenin gerçek adıyla
+  // gerçek adresini bir Google Maps arama URL'sine (`/maps/search`) taşıyor.
+  // Stage entity'sinde bir Google Place ID alanı YOK (bkz.
+  // `lib/features/stages/domain/entities/stage.dart`) — uydurma bir Place
+  // ID icat etmek yerine, Google'ın kendi arama/eşleştirmesine bırakılıyor;
+  // Google o adresi kendi kayıtlı bir işletmeyle eşleştirirse kullanıcı
+  // orada Google'ın kendi (gerçek, bizim üretmediğimiz) fotoğraflarını da
+  // görebilir.
+  static Future<void> openAddressOnGoogleMaps(final String query) async {
+    if (query.trim().isEmpty) return;
+    final Uri googleMapsUrl = Uri.parse(
+        "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}");
+    await _launch(googleMapsUrl);
+  }
+
   // --- 🛠 YARDIMCI METOTLAR ---
 
   /// Önce uygulama (native) denemesi yapar, başarısız olursa tarayıcıda açar.

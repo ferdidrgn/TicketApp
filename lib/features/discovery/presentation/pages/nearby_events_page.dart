@@ -11,9 +11,9 @@ import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 import '../../../../shared/widgets/section_header.dart';
-import '../../../events/presentation/widgets/events_card.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../providers/nearby_events_provider.dart';
+import '../widgets/nearby_event_map_card.dart';
 import '../widgets/nearby_events_map.dart';
 import '../widgets/nearby_location_permission_view.dart';
 
@@ -90,6 +90,11 @@ class _NearbyEventsMobileBodyState
     extends ConsumerState<_NearbyEventsMobileBody> {
   String _activeFilter = 'Tümü';
 
+  /// Kart listesinden seçilen, haritanın şu an odaklandığı GERÇEK sahne —
+  /// bir karta dokunmak bunu günceller, `NearbyEventsMap` da kamerayı
+  /// oraya kaydırır (bkz. `nearby_events_map.dart`'taki `focusedStage`).
+  Stage? _focusedStage;
+
   @override
   Widget build(final BuildContext context) {
     final bool isLargeScreen = context.isTablet || context.isDesktop;
@@ -137,6 +142,7 @@ class _NearbyEventsMobileBodyState
                 foregroundColor: context.colors.onSurface,
                 mutedColor: context.colors.onSurfaceVariant,
                 accentColor: context.primaryColor,
+                focusedStage: _focusedStage,
               ),
             ),
           ),
@@ -386,25 +392,26 @@ class _NearbyEventsMobileBodyState
             itemCount: entries.length,
             itemBuilder: (final context, final index) {
               final entry = entries[index];
-              final formatted =
-                  DateFormatter.formatForEventCard(entry.event.date);
               return Container(
                 width: cardWidth * 0.85, // Daha dar kartlar
                 margin: EdgeInsets.only(
                   right: index < entries.length - 1 ? AppSpacing.lg : 0,
                 ),
-                child: EventsCard(
+                child: NearbyEventMapCard(
                   key: ValueKey('nearby-mobile-event-${entry.event.id}'),
+                  entry: entry,
                   width: cardWidth * 0.85,
-                  imageUrl: entry.show.imageUrl,
-                  showName: entry.show.name,
-                  category: entry.show.category,
-                  fullDateString:
-                      '${formatted['day']} ${formatted['monthName']}',
-                  timeString: formatted['time'] ?? '',
-                  stage: entry.stage.name,
-                  price: double.tryParse(entry.event.price) ?? 0.0,
-                  onTap: () => NavigationHandler.goToShow(
+                  isSelected: entry.stage.id == _focusedStage?.id,
+                  surfaceColor: context.colors.surfaceContainer,
+                  borderColor: context.colors.outlineVariant,
+                  selectedColor: context.primaryColor,
+                  foregroundColor: context.colors.onSurface,
+                  mutedColor: context.colors.onSurfaceVariant,
+                  accentColor: context.primaryColor,
+                  onAccentColor: context.colors.onPrimary,
+                  onSelect: () =>
+                      setState(() => _focusedStage = entry.stage),
+                  onOpenShow: () => NavigationHandler.goToShow(
                       context, entry.show.id, entry.show.name),
                 ),
               );
@@ -597,11 +604,22 @@ class _NearbyEventsDesktopPage extends StatelessWidget {
       );
 }
 
-class _NearbyEventsDesktopBody extends ConsumerWidget {
+class _NearbyEventsDesktopBody extends ConsumerStatefulWidget {
   const _NearbyEventsDesktopBody();
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<_NearbyEventsDesktopBody> createState() =>
+      _NearbyEventsDesktopBodyState();
+}
+
+class _NearbyEventsDesktopBodyState
+    extends ConsumerState<_NearbyEventsDesktopBody> {
+  /// Kart listesinden seçilen, haritanın şu an odaklandığı GERÇEK sahne —
+  /// bkz. mobil taraftaki aynı isimli alanın yorumu.
+  Stage? _focusedStage;
+
+  @override
+  Widget build(final BuildContext context) {
     final eventsState = ref.watch(nearbyEventsProvider);
     final stagesState = ref.watch(nearbyStageGroupsProvider);
 
@@ -633,6 +651,7 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
             foregroundColor: Colors.white,
             mutedColor: WebColors.textSecondary,
             accentColor: WebColors.primaryGold,
+            focusedStage: _focusedStage,
           ),
         ),
         const SizedBox(height: AppSpacing.section - 8),
@@ -720,22 +739,23 @@ class _NearbyEventsDesktopBody extends ConsumerWidget {
             itemCount: entries.length,
             itemBuilder: (final context, final index) {
               final entry = entries[index];
-              final formatted = DateFormatter.formatForEventCard(entry.event.date);
               return Padding(
                 padding: const EdgeInsets.only(right: AppSpacing.lg),
-                child: EventsCard(
+                child: NearbyEventMapCard(
                   key: ValueKey('nearby-event-${entry.event.id}'),
+                  entry: entry,
                   width: 280,
-                  imageUrl: entry.show.imageUrl,
-                  showName: entry.show.name,
-                  category: entry.show.category,
-                  stage: entry.stage.name,
-                  price: double.tryParse(entry.event.price) ?? 0.0,
-                  fullDateString: '${formatted['day']} ${formatted['monthName']}',
-                  timeString: formatted['time'] ?? '',
-                  premium: true,
-                  onTap: () =>
-                      NavigationHandler.goToShow(context, entry.show.id, entry.show.name),
+                  isSelected: entry.stage.id == _focusedStage?.id,
+                  surfaceColor: WebColors.darkBlueSurface,
+                  borderColor: WebColors.primaryGold.withOpacity(0.2),
+                  selectedColor: WebColors.primaryGold,
+                  foregroundColor: Colors.white,
+                  mutedColor: WebColors.textSecondary,
+                  accentColor: WebColors.primaryGoldLight,
+                  onSelect: () =>
+                      setState(() => _focusedStage = entry.stage),
+                  onOpenShow: () => NavigationHandler.goToShow(
+                      context, entry.show.id, entry.show.name),
                 ),
               );
             },
