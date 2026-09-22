@@ -11,6 +11,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/util/comminucation_actions.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../campaigns/presentation/providers/campaign_provider.dart';
@@ -296,6 +297,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
                       ),
                       const RevealOnScroll(child: _ClosingQuoteBand()),
+                      const Footer(),
                     ],
                   ),
                 ),
@@ -2494,10 +2496,11 @@ class _ClosingQuoteBand extends StatelessWidget {
                   ),
                   const SizedBox(height: 26),
                   Text(
-                    // Mobildeki BottomQuote ile birebir aynı metin
-                    // (decorative_elements.dart) — iki platformda da aynı
-                    // kapanış alıntısı görünsün diye.
-                    '"Sanat, hayatın kendisidir."',
+                    // Hippokrates'in ünlü aforizması — "Ars longa, vita
+                    // brevis" — İngilizce yerleşik hâliyle önce, altında
+                    // Türkçesi daha küçük puntoyla (bkz. mobildeki
+                    // BottomQuote, decorative_elements.dart — aynı metin).
+                    '"Life is short, art is long."',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: WebColors.lightWhite,
@@ -2505,6 +2508,19 @@ class _ClosingQuoteBand extends StatelessWidget {
                       fontSize: context.responsive(
                           mobile: 18.0, tablet: 21.0, desktop: 24.0),
                       height: 1.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '"Hayat kısadır, sanat uzun."',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: WebColors.textSecondary,
+                      fontStyle: FontStyle.italic,
+                      fontSize: context.responsive(
+                          mobile: 13.0, tablet: 14.0, desktop: 15.0),
+                      height: 1.4,
                       fontWeight: FontWeight.w400,
                     ),
                   ),

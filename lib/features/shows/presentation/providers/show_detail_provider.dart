@@ -59,10 +59,18 @@ Future<ShowDetailState> showDetail(final Ref ref, final String showId) async {
   ]);
 
   final eventsById = <String, Event>{};
-  for (final event in [
-    ...results[0] as List<Event>,
-    ...results[1] as List<Event>,
-  ]) {
+  for (final event in results[0] as List<Event>) {
+    eventsById[event.id] = event;
+  }
+  for (final event in results[1] as List<Event>) {
+    // `show.eventsId` dizisinden gelen bir etkinlik, kendi `event.showId`
+    // alanında AÇIKÇA BAŞKA bir gösteriye işaret ediyorsa (etkinlik gerçekte
+    // başka bir gösteriye taşınmış ama bu gösterinin eski `eventsId`
+    // dizisinden temizlenmemiş) buraya eklenmez — aksi hâlde bu gösterinin
+    // takviminde ona ait olmayan bir etkinlik (ve dolayısıyla yanlış
+    // gösteri bilgisi) görünebilirdi. `event.showId` boşsa (henüz hiç
+    // ayarlanmamışsa) dizi referansı hâlâ tek kaynak, eklenir.
+    if (event.showId.isNotEmpty && event.showId != show.id) continue;
     eventsById[event.id] = event;
   }
   final events = eventsById.values.toList();

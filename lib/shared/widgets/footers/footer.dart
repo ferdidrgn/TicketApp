@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/util/comminucation_actions.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
 
+/// Web sayfalarının ortak alt bilgisi. Önceden yazılmıştı ama hiçbir
+/// gerçek sayfaya bağlanmamıştı — kodda duruyordu, kullanıcı hiç görmüyordu.
+/// İletişim/sosyal medya butonları artık gerçekten çalışıyor
+/// (`TiyatrolCommunicationActions` — sitenin başka yerlerinde de kullandığı
+/// aynı gerçek Instagram/Facebook/e-posta bağlantıları), süs değil.
 class Footer extends StatelessWidget {
   const Footer({super.key});
 
   @override
   Widget build(final BuildContext context) {
     return Container(
-      // Responsive Padding
       padding: context.responsive(
         mobile: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
         desktop: const EdgeInsets.symmetric(vertical: 50, horizontal: 60),
@@ -24,7 +30,6 @@ class Footer extends StatelessWidget {
           ],
         ),
       ),
-      // Mobil ise Column, Desktop ise Row kullan
       child: context.isMobile
           ? _buildMobileFooter(context)
           : _buildDesktopFooter(context),
@@ -36,7 +41,6 @@ class Footer extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Marka
         Expanded(
           flex: 2,
           child: Column(
@@ -53,15 +57,34 @@ class Footer extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '© 2025 TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır. - Ferdi Durgun',
+                '© 2026 TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır.',
                 style: TextStyle(
                     color: Colors.white70, fontSize: context.captionSize),
               ),
             ],
           ),
         ),
-
-        // 2. Konum
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Kurumsal',
+                style: TextStyle(
+                  color: WebColors.primaryGoldLight,
+                  fontWeight: FontWeight.bold,
+                  fontSize: context.bodySize + 2,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _linkRow(context, 'Sözleşmeler',
+                  () => NavigationHandler.goToContracts(context)),
+              _linkRow(context, 'Yardım & Destek',
+                  () => NavigationHandler.goToHelpSupport(context)),
+            ],
+          ),
+        ),
         Expanded(
           flex: 3,
           child: Row(
@@ -78,8 +101,6 @@ class Footer extends StatelessWidget {
             ],
           ),
         ),
-
-        // 3. İletişim
         Expanded(
           flex: 3,
           child: Column(
@@ -88,20 +109,19 @@ class Footer extends StatelessWidget {
               Text(
                 'İletişim',
                 style: TextStyle(
-                  color: Colors.amberAccent,
+                  color: WebColors.primaryGoldLight,
                   fontWeight: FontWeight.bold,
                   fontSize: context.bodySize + 2,
                 ),
               ),
               const SizedBox(height: 10),
-              _contactRow(context, 'E-posta:', '----@----.com'),
-              _contactRow(context, 'Telefon:', '+90 -----'),
-              _contactRow(context, 'Adres:', 'Ataşehir, İSTANBUL, Türkiye'),
+              _actionRow(context, Icons.mail_outline, 'E-posta gönder',
+                  TiyatrolCommunicationActions.sendEmail),
+              _actionRow(context, Icons.chat_bubble_outline, 'WhatsApp',
+                  TiyatrolCommunicationActions.contactWhatsApp),
             ],
           ),
         ),
-
-        // 4. Sosyal Medya
         Expanded(
           flex: 2,
           child: Column(
@@ -110,7 +130,7 @@ class Footer extends StatelessWidget {
               Text(
                 'Bizi Takip Edin',
                 style: TextStyle(
-                  color: Colors.amberAccent,
+                  color: WebColors.primaryGoldLight,
                   fontWeight: FontWeight.bold,
                   fontSize: context.bodySize + 2,
                 ),
@@ -120,11 +140,10 @@ class Footer extends StatelessWidget {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  _socialIcon(context, Icons.facebook),
-                  _socialIcon(context, Icons.access_alarm),
-                  // Örnek icon, değiştirebilirsiniz
-                  _socialIcon(context, Icons.theater_comedy),
-                  _socialIcon(context, Icons.youtube_searched_for),
+                  _socialIcon(context, Icons.facebook,
+                      TiyatrolCommunicationActions.openFacebook),
+                  _socialIcon(context, Icons.camera_alt_outlined,
+                      TiyatrolCommunicationActions.openInstagram),
                 ],
               ),
             ],
@@ -149,7 +168,7 @@ class Footer extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '© 2025 TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır.',
+          '© 2026 TiyatRol Sahne Sanatları - Tüm Hakları Saklıdır.',
           style:
               TextStyle(color: Colors.white70, fontSize: context.captionSize),
         ),
@@ -170,21 +189,37 @@ class Footer extends StatelessWidget {
         ),
         const Divider(color: Colors.white24, height: 30),
         Text(
-          'İletişim',
+          'Kurumsal',
           style: TextStyle(
-            color: Colors.amberAccent,
+            color: WebColors.primaryGoldLight,
             fontWeight: FontWeight.bold,
             fontSize: context.bodySize + 1,
           ),
         ),
         const SizedBox(height: 10),
-        _contactRow(context, 'E-posta:', '----@----.com'),
-        _contactRow(context, 'Telefon:', '+90 -----'),
+        _linkRow(context, 'Sözleşmeler',
+            () => NavigationHandler.goToContracts(context)),
+        _linkRow(context, 'Yardım & Destek',
+            () => NavigationHandler.goToHelpSupport(context)),
+        const Divider(color: Colors.white24, height: 30),
+        Text(
+          'İletişim',
+          style: TextStyle(
+            color: WebColors.primaryGoldLight,
+            fontWeight: FontWeight.bold,
+            fontSize: context.bodySize + 1,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _actionRow(context, Icons.mail_outline, 'E-posta gönder',
+            TiyatrolCommunicationActions.sendEmail),
+        _actionRow(context, Icons.chat_bubble_outline, 'WhatsApp',
+            TiyatrolCommunicationActions.contactWhatsApp),
         const Divider(color: Colors.white24, height: 30),
         Text(
           'Bizi Takip Edin',
           style: TextStyle(
-            color: Colors.amberAccent,
+            color: WebColors.primaryGoldLight,
             fontWeight: FontWeight.bold,
             fontSize: context.bodySize + 1,
           ),
@@ -193,43 +228,62 @@ class Footer extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            _socialIcon(context, Icons.facebook),
+            _socialIcon(context, Icons.facebook,
+                TiyatrolCommunicationActions.openFacebook),
             const SizedBox(width: 12),
-            _socialIcon(context, Icons.theater_comedy_rounded),
-            const SizedBox(width: 12),
-            _socialIcon(context, Icons.youtube_searched_for),
+            _socialIcon(context, Icons.camera_alt_outlined,
+                TiyatrolCommunicationActions.openInstagram),
           ],
         ),
       ],
     );
   }
 
-  Widget _contactRow(final BuildContext context, final String label, final String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: RichText(
-        text: TextSpan(
-          style: TextStyle(
-              fontSize: context.captionSize + 1, color: Colors.white70),
-          children: [
-            TextSpan(
-                text: '$label ',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-            TextSpan(text: value),
-          ],
+  Widget _linkRow(
+          final BuildContext context, final String label, final VoidCallback onTap) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: InkWell(
+          onTap: onTap,
+          child: Text(label,
+              style:
+                  TextStyle(fontSize: context.bodySize, color: Colors.white70)),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _socialIcon(final BuildContext context, final IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.amberAccent.withOpacity(0.15),
-        shape: BoxShape.circle,
+  Widget _actionRow(final BuildContext context, final IconData icon,
+          final String label, final VoidCallback onTap) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: InkWell(
+          onTap: onTap,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: context.iconSmall, color: Colors.white70),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: context.bodySize, color: Colors.white70)),
+            ],
+          ),
+        ),
+      );
+
+  Widget _socialIcon(
+      final BuildContext context, final IconData icon, final VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        decoration: BoxDecoration(
+          color: WebColors.primaryGoldLight.withOpacity(0.15),
+          shape: BoxShape.circle,
+        ),
+        padding: const EdgeInsets.all(8),
+        child:
+            Icon(icon, color: WebColors.primaryGoldLight, size: context.iconSmall),
       ),
-      padding: const EdgeInsets.all(8),
-      child: Icon(icon, color: Colors.amberAccent, size: context.iconSmall),
     );
   }
 }

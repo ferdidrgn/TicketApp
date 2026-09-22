@@ -170,9 +170,18 @@ Future<Set<String>> _activeShowIdsFromEvents(
   for (final event in eventsById.values) {
     final date = DateFormatter.parseDateString(event.date);
     if (date == null || !date.isAfter(now)) continue;
-    if (event.showId.isNotEmpty) activeIds.add(event.showId);
-    final linkedShowIds = showIdsByEventId[event.id];
-    if (linkedShowIds != null) activeIds.addAll(linkedShowIds);
+    // `event.showId` (etkinliğin kendi doğrudan referansı) VARSA tek
+    // doğruluk kaynağı odur. `Show.eventsId` dizisi SADECE bu alan boşsa
+    // yedek olarak kullanılır — aksi hâlde bir gösteri, başka bir
+    // gösterinin ESKİ/senkron dışı kalmış `eventsId` referansı yüzünden
+    // (etkinlik gerçekte başka bir gösteriye taşınmış olsa bile) yanlışlıkla
+    // "bu etkinliğe sahip" görünebiliyordu.
+    if (event.showId.isNotEmpty) {
+      activeIds.add(event.showId);
+    } else {
+      final linkedShowIds = showIdsByEventId[event.id];
+      if (linkedShowIds != null) activeIds.addAll(linkedShowIds);
+    }
   }
   return activeIds;
 }

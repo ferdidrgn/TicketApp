@@ -168,7 +168,11 @@ class BottomQuote extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              "\"Sanat, hayatın kendisidir\"",
+              // Hippokrates'in ünlü aforizması — "Ars longa, vita brevis"
+              // — İngilizce yerleşik hâliyle önce, altında Türkçesi daha
+              // küçük puntoyla (bkz. web'deki _ClosingQuoteBand — aynı
+              // metin, iki platformda tutarlı).
+              "\"Life is short, art is long.\"",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -178,6 +182,20 @@ class BottomQuote extends StatelessWidget {
                     ? Colors.white.withOpacity(0.6)
                     : Colors.black.withOpacity(0.5),
                 letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "\"Hayat kısadır, sanat uzun.\"",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w400,
+                color: context.isDarkMode
+                    ? Colors.white.withOpacity(0.45)
+                    : Colors.black.withOpacity(0.38),
+                letterSpacing: 0.3,
               ),
             ),
             const SizedBox(height: 10),
