@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -52,7 +53,11 @@ class _SplashPageState extends State<SplashPage>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF0F2318), Color(0xFF1B3A26), Color(0xFF24402C)],
+            colors: [
+              WebColors.veryDarkBlue,
+              WebColors.darkBlueBackground,
+              WebColors.darkBlueAccent,
+            ],
           ),
         ),
         child: Column(
@@ -66,7 +71,7 @@ class _SplashPageState extends State<SplashPage>
                 height: isMobile ? 120 : 160,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: AppShadows.level5(const Color(0xFFE85C3F)),
+                  boxShadow: AppShadows.level5(WebColors.primaryGold),
                 ),
                 child: ClipOval(
                   child: Image.asset(
@@ -77,7 +82,7 @@ class _SplashPageState extends State<SplashPage>
                       return const Icon(
                         Icons.theater_comedy,
                         size: 80,
-                        color: Color(0xFFE85C3F),
+                        color: WebColors.primaryGold,
                       );
                     },
                   ),
@@ -93,7 +98,7 @@ class _SplashPageState extends State<SplashPage>
               style: TextStyle(
                 fontSize: isMobile ? 40 : 56,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFFE85C3F),
+                color: WebColors.primaryGold,
                 letterSpacing: 3,
               ),
             ),
@@ -109,11 +114,11 @@ class _SplashPageState extends State<SplashPage>
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
-                    color: const Color(0xFFE85C3F).withOpacity(0.3),
+                    color: WebColors.primaryGold.withOpacity(0.3),
                     width: 1,
                   ),
                   bottom: BorderSide(
-                    color: const Color(0xFFE85C3F).withOpacity(0.3),
+                    color: WebColors.primaryGold.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -123,7 +128,7 @@ class _SplashPageState extends State<SplashPage>
                 style: TextStyle(
                   fontSize: isMobile ? 14 : 16,
                   fontWeight: FontWeight.w400,
-                  color: const Color(0xFFEAE1C8).withOpacity(0.9),
+                  color: WebColors.lightWhite.withOpacity(0.9),
                   letterSpacing: 1.5,
                   fontStyle: FontStyle.italic,
                 ),
@@ -140,8 +145,8 @@ class _SplashPageState extends State<SplashPage>
               child: SizedBox(
                 width: isMobile ? 200 : 300,
                 child: const LinearProgressIndicator(
-                  backgroundColor: Color(0xFF1B3A26),
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE85C3F)),
+                  backgroundColor: WebColors.darkBlueSurface,
+                  valueColor: AlwaysStoppedAnimation<Color>(WebColors.primaryGold),
                   minHeight: 2,
                 ),
               ),
@@ -155,7 +160,7 @@ class _SplashPageState extends State<SplashPage>
               style: TextStyle(
                 fontSize: isMobile ? 12 : 14,
                 fontWeight: FontWeight.w300,
-                color: const Color(0xFFE85C3F).withOpacity(0.8),
+                color: WebColors.primaryGold.withOpacity(0.8),
                 letterSpacing: 1.0,
               ),
             ),

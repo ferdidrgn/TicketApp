@@ -459,6 +459,16 @@ class _DiscoveryDesktopBrowserState
   }
 
   Widget _buildBrowser(final BuildContext context, final List<Show> shows) {
+    // `shows` burada `showsActiveFirstProvider`'ın TÜM sonucu (aktif +
+    // aktif olmayan, hiçbiri gizlenmiyor) — rozetin "AKTİF OYUN" yazıp
+    // bu listenin tam uzunluğunu (ör. 5) göstermesi yanıltıcıydı, çünkü
+    // gerçekte bunların çoğu aktif olmayabilir. Rozet için gerçek aktif
+    // sayıyı ayrıca `activeShowsProvider`dan okuyoruz; arşiv modunda zaten
+    // etiket "GEÇMİŞ OYUN"a dönüyor ve `shows` doğrudan geçmiş oyunlar
+    // olduğu için orada bu ayrıma gerek yok.
+    final int activeCount = _showPast
+        ? shows.length
+        : (ref.watch(activeShowsProvider(false)).value?.length ?? shows.length);
     final categories = <String>{
       for (final show in shows)
         if (show.category.trim().isNotEmpty) show.category,
@@ -498,7 +508,7 @@ class _DiscoveryDesktopBrowserState
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: DiscoveryHero(
               categoryLabel: activeCategory,
-              showCount: shows.length,
+              showCount: activeCount,
               archiveMode: _showPast,
             ),
           ),
