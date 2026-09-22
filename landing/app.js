@@ -212,6 +212,7 @@ async function boot() {
   renderRepertoire(shows);
   renderTeam(curatedCast(shows, players), shows);
   renderCalendar(events, shows);
+  renderTimeline(events, shows);
   renderNotes(shows);
   renderGallery(shows);
   renderVenues(stages);
@@ -421,6 +422,45 @@ function renderCalendarRow() {
         <p class="ticket__name">${name}</p>
       </div>
     </${tag}>`;
+  }).join('');
+}
+
+/** Sahne kronolojisi — takvimdeki tüm yaklaşan gerçek etkinlikleri (birden
+ * fazla oyundan, tarihe göre karışık sırada) tek bir dikey zaman
+ * çizelgesinde, en yakından en uzağa doğru gösterir. `renderCalendarRow`
+ * ile aynı veri kaynağını (CAL_EVENTS/CAL_SHOW_MAP yerine kendi
+ * parametreleri) kullanır, sadece "aylık" değil "kronolojik" bir görünüm. */
+function renderTimeline(events, shows) {
+  const rail = document.getElementById('timelineRail');
+  if (!rail) return;
+  const showMap = showByEventIdMap(shows);
+  const upcoming = upcomingEvents(events).slice(0, 10);
+
+  if (!upcoming.length) {
+    rail.innerHTML = `<div class="empty">Şu an takvimde yaklaşan bir etkinlik yok.</div>`;
+    return;
+  }
+
+  rail.innerHTML = upcoming.map((e) => {
+    const show = showMap[e.id];
+    const name = esc(show?.name || 'Gösteri');
+    const img = show?.imageUrl
+      ? `<img class="timeline__img" src="${esc(show.imageUrl)}" alt="${name}" loading="lazy" />`
+      : `<div class="timeline__img--ph">${name}</div>`;
+    const meta = [show?.category, e.price ? `${e.price} ₺` : null].filter(Boolean).join(' · ');
+    const tag = show ? 'a' : 'div';
+    const hrefAttr = show ? ` href="${showHref(show)}?scrollTo=etkinlikler" data-cursor-hover` : '';
+    return `<div class="timeline__item">
+      <span class="timeline__dot"></span>
+      <div class="timeline__date">${esc(formatDateTr(e._date))}</div>
+      <${tag} class="timeline__card"${hrefAttr}>
+        ${img}
+        <div class="timeline__body">
+          <p class="timeline__name">${name}</p>
+          ${meta ? `<p class="timeline__meta">${esc(meta)}</p>` : ''}
+        </div>
+      </${tag}>
+    </div>`;
   }).join('');
 }
 

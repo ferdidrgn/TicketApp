@@ -246,6 +246,33 @@ section{position:relative;}
 .ticket__rest{font-size:10.5px; font-weight:700; color:var(--ink-dim); text-transform:uppercase; line-height:1.3;}
 .ticket__name{margin-top:6px; font-size:13px; font-weight:700; color:var(--ink);}
 
+/* ═══════════════ KRONOLOJİ (dikey zaman çizelgesi) ═══════════════ */
+.timeline{background:var(--ivory-2); padding:clamp(70px,9vw,110px) clamp(20px,4vw,56px);}
+.timeline__rail{position:relative; max-width:900px; margin:50px auto 0;}
+.timeline__rail::before{content:''; position:absolute; left:50%; top:6px; bottom:6px; width:1px; background:var(--ink-line); transform:translateX(-50%);}
+.timeline__item{position:relative; width:50%; padding:0 40px 56px; box-sizing:border-box;}
+.timeline__item:nth-child(odd){margin-left:0; text-align:right;}
+.timeline__item:nth-child(even){margin-left:50%; text-align:left;}
+.timeline__dot{position:absolute; top:6px; width:10px; height:10px; border-radius:50%; background:var(--coral); box-shadow:0 0 0 5px var(--ivory-2), 0 0 0 6px var(--ink-line);}
+.timeline__item:nth-child(odd) .timeline__dot{right:-5px;}
+.timeline__item:nth-child(even) .timeline__dot{left:-5px;}
+.timeline__date{font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--coral-deep); margin-bottom:8px;}
+.timeline__card{display:inline-flex; gap:14px; align-items:center; background:var(--ivory); border:1px solid var(--ink-line); border-radius:2px 18px; padding:12px; text-decoration:none; transition:transform .3s var(--ease), box-shadow .3s var(--ease); max-width:100%;}
+.timeline__item:nth-child(odd) .timeline__card{flex-direction:row-reverse;}
+a.timeline__card:hover{transform:translateY(-3px); box-shadow:0 14px 30px rgba(18,32,26,.14);}
+.timeline__img{width:64px; height:64px; border-radius:2px 10px; object-fit:cover; flex:none;}
+.timeline__img--ph{width:64px; height:64px; border-radius:2px 10px; background:var(--pine-mid); color:var(--ivory-dim); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:10px; text-align:center; padding:4px; flex:none;}
+.timeline__body{min-width:0;}
+.timeline__name{font-family:var(--serif); font-size:16px; color:var(--ink); font-weight:600; line-height:1.25;}
+.timeline__meta{font-size:11.5px; color:var(--ink-faint); margin-top:3px;}
+
+@media (max-width:760px){
+  .timeline__rail::before{left:19px;}
+  .timeline__item,.timeline__item:nth-child(odd),.timeline__item:nth-child(even){width:100%; margin-left:0; text-align:left; padding:0 0 44px 50px;}
+  .timeline__item:nth-child(odd) .timeline__dot,.timeline__item:nth-child(even) .timeline__dot{left:14px; right:auto;}
+  .timeline__item:nth-child(odd) .timeline__card{flex-direction:row;}
+}
+
 /* ═══════════════ KULİSTEN NOTLAR (yapışkan not panosu) ═══════════════ */
 .notes{background:var(--ivory-2); padding:clamp(60px,8vw,90px) 0;}
 .notes__board{max-width:1200px; margin:0 auto; padding:10px clamp(20px,4vw,56px) 0; display:flex; flex-wrap:wrap; gap:26px 22px; justify-content:center;}
