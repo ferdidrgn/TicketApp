@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:dartz/dartz.dart';
-import '../../../../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
 import '../entities/show.dart';
 
 abstract class ShowRepository {

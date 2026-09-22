@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/util/comminucation_actions.dart';
-import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/util/comminucation_actions.dart';
+import '../../navigation/widgets/nav_handler.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
 
 /// Web sayfalarının ortak alt bilgisi. Önceden yazılmıştı ama hiçbir

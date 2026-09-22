@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../../../core/errors/failures.dart';
+import '../../../../core/errors/failures.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../events/data/repositories/event_repository_provider.dart';
 import '../../../events/domain/entities/event.dart';
