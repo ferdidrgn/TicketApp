@@ -1,6 +1,10 @@
-import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
@@ -21,40 +25,11 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   // UI Kontrolü: Kod gönderildi mi?
   bool _isCodeSent = false;
 
-  // Sayaç için
-  Timer? _timer;
-  int _start = 60;
-  bool _canResend = false;
-
   @override
   void dispose() {
     _phoneController.dispose();
     _otpController.dispose();
-    _timer?.cancel();
     super.dispose();
-  }
-
-  // --- SAYAÇ METODLARI ---
-
-  void _startTimer() {
-    setState(() {
-      _isCodeSent = true;
-      _start = 60;
-      _canResend = false;
-    });
-
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (final timer) {
-      if (_start == 0)
-        setState(() {
-          _canResend = true;
-          timer.cancel();
-        });
-      else
-        setState(() {
-          _start--;
-        });
-    });
   }
 
   // --- MANTIKSAL METODLAR ---
@@ -102,64 +77,90 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
     // State Dinleyicisi: Başarılı işlemleri yakala
     ref.listen<AsyncValue<void>>(authMutationProvider,
-            (final previous, final next) {
-          next.whenOrNull(
-            error: (final error, final stack) {
-              _showSnackBar("Hata: ${error.toString()}");
-              // Hata olursa ve kod ekranındaysak belki geri atmak isteyebiliriz
-              // Ama genelde kullanıcı tekrar denesin diye kalırız.
-            },
-            data: (final _) {
-              // Eğer işlem başarılıysa ve henüz kod ekranına geçmediysek (Telefon doğrulama başarılıysa)
-              if (!_isCodeSent) {
-                _startTimer(); // Kod gönderildi, sayacı başlat ve ekranı değiştir
-              } else {
-                // Zaten kod ekranındayız ve işlem başarılı olduysa -> Login bitti
-                if (context.mounted) NavigationHandler.goToHome(context);
-              }
-            },
-          );
-        });
+        (final previous, final next) {
+      next.whenOrNull(
+        error: (final error, final stack) {
+          _showSnackBar("Hata: ${error.toString()}");
+          // Hata olursa ve kod ekranındaysak belki geri atmak isteyebiliriz
+          // Ama genelde kullanıcı tekrar denesin diye kalırız.
+        },
+        data: (final _) {
+          // Eğer işlem başarılıysa ve henüz kod ekranına geçmediysek (Telefon doğrulama başarılıysa)
+          if (!_isCodeSent) {
+            // Not: Geri sayım gerçek zamanlayıcısı otpTimerProvider üzerinden
+            // (auth_mutation_provider'daki onCodeSent) zaten başlatıldı; burada
+            // sadece ekranı OTP adımına geçiriyoruz.
+            setState(() => _isCodeSent = true);
+          } else {
+            // Zaten kod ekranındayız ve işlem başarılı olduysa -> Login bitti
+            if (context.mounted) NavigationHandler.goToHome(context);
+          }
+        },
+      );
+    });
 
     return BasePageWrapper(
-      title: _isCodeSent ? 'DOĞRULAMA' : 'SERÜVENE KATIL',
-      subtitle: _isCodeSent
-          ? 'Telefonuna gelen kodu gir.'
-          : 'Kimliğini doğrula ve sanata başla...',
       showBackButton: true,
-      // Geri butonuna basınca eğer kod ekranındaysak telefon ekranına dönmeli
-      // BasePageWrapper'ın onBack parametresi varsa oraya bağlayın, yoksa WillPopScope kullanın
       showFab: false,
       isOverlayLoading: authMutation.isLoading,
-      layoutConfig: BasePageLayoutConfig(
-        backgroundColor: context.colors.surface,
+      layoutConfig: const BasePageLayoutConfig(
         safeAreaTop: true,
+        safeAreaBottom: false,
       ),
       child: PopScope(
         canPop: !_isCodeSent, // Kod ekranındaysak direkt çıkmasın
         onPopInvokedWithResult: (final didPop, final result) {
           if (didPop) return;
-          if (_isCodeSent) {
-            setState(() {
-              _isCodeSent = false;
-              _timer?.cancel();
-            });
-          }
+          if (_isCodeSent) setState(() => _isCodeSent = false);
         },
-        child: Center(
-          child: ConstrainedBox(
-            constraints:
-            BoxConstraints(maxWidth: isLargeScreen ? 500 : double.infinity),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                transitionBuilder: (final child, final animation) =>
-                    FadeTransition(opacity: animation, child: child),
-                child: _isCodeSent ? _buildOtpUI() : _buildPhoneUI(),
+        child: Stack(
+          children: [
+            // 1. ARKA PLAN — login_screen ile aynı görsel dil
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/book_logo.jpg',
+                fit: BoxFit.cover,
               ),
             ),
-          ),
+
+            // 2. KARARTMA
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.1),
+                      Colors.black.withOpacity(0.4),
+                      Colors.black.withOpacity(0.9),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 3. İÇERİK
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: isLargeScreen ? 500 : double.infinity),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xxl, vertical: AppSpacing.xxl),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeaderText(context),
+                      const SizedBox(height: AppSpacing.xxxl),
+                      _buildCard(context),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -167,126 +168,243 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
   // --- UI BİLEŞENLERİ ---
 
+  /// login_screen'in "SANATIN\nDÜNYASI" başlık dilini bu adıma taşır: büyük,
+  /// beyaz, kalın başlık + altında ince renkli vurgu çizgisi.
+  Widget _buildHeaderText(final BuildContext context) => AnimatedSwitcher(
+        duration: AppMotion.normal,
+        switchInCurve: AppMotion.standard,
+        switchOutCurve: AppMotion.standard,
+        transitionBuilder: (final child, final animation) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        child: Column(
+          key: ValueKey(_isCodeSent),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _isCodeSent ? 'KODU\nDOĞRULA' : 'SERÜVENE\nKATIL',
+              style: const TextStyle(
+                fontSize: 40,
+                height: 0.95,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: -1.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              width: 60,
+              height: 6,
+              decoration: BoxDecoration(
+                color: context.colors.primary,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              _isCodeSent
+                  ? 'Telefonuna gelen 6 haneli kodu gir.'
+                  : 'Kimliğini doğrula ve sanata başla...',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  /// login_screen'deki bulanık cam kart ile aynı dil: blur + yarı saydam
+  /// beyaz zemin + ince beyaz çerçeve.
+  Widget _buildCard(final BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.xxl),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: AnimatedSwitcher(
+              duration: AppMotion.normal,
+              switchInCurve: AppMotion.standard,
+              switchOutCurve: AppMotion.standard,
+              transitionBuilder: (final child, final animation) =>
+                  FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.04),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: _isCodeSent ? _buildOtpUI() : _buildPhoneUI(),
+            ),
+          ),
+        ),
+      );
+
   Widget _buildPhoneUI() {
     return Column(
       key: const ValueKey('phone_ui'),
+      mainAxisSize: MainAxisSize.min,
       children: [
         _buildIconHeader(Icons.phonelink_ring_rounded),
-        const SizedBox(height: 40),
+        const SizedBox(height: AppSpacing.huge),
         _buildTextField(
           _phoneController,
           "5XX XXX XX XX",
           label: "TELEFON NUMARASI",
           prefix: "+90 ",
           isPhone: true,
+          semanticLabel:
+              'Telefon numarası girişi, başında sıfır olmadan on hane',
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppSpacing.xxxl),
         _buildArtisticButton("KOD GÖNDER", _verifyPhone),
       ],
     );
   }
 
   Widget _buildOtpUI() {
-    final timerText = "00:${_start.toString().padLeft(2, '0')}";
+    final remainingSeconds = ref.watch(otpTimerProvider);
+    final bool canResend = remainingSeconds <= 0;
+    final timerText = "00:${remainingSeconds.toString().padLeft(2, '0')}";
 
     return Column(
       key: const ValueKey('otp_ui'),
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          timerText,
-          style: context.textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w900,
-            color: _start < 10 ? context.colors.error : context.colors.primary,
+        Semantics(
+          label: canResend
+              ? 'Kodun süresi doldu'
+              : 'Kodun süresi dolmasına $remainingSeconds saniye kaldı',
+          child: Text(
+            timerText,
+            style: context.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: remainingSeconds < 10
+                  ? context.colors.error
+                  : context.colors.primary,
+            ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         _buildSectionTitle("SMS KODUNU GİR"),
-        const SizedBox(height: 40),
+        const SizedBox(height: AppSpacing.huge),
         _buildTextField(
           _otpController,
           "000000",
           label: "6 HANELİ KOD",
           textAlign: TextAlign.center,
           maxLength: 6,
+          semanticLabel: 'Doğrulama kodu, 6 haneli',
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppSpacing.xxxl),
         _buildArtisticButton("DOĞRULA VE BAŞLA", _signInWithOTP),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.xxl),
         AnimatedOpacity(
-          duration: const Duration(milliseconds: 300),
-          opacity: _canResend ? 1.0 : 0.5,
-          child: TextButton(
-            onPressed: _canResend ? _verifyPhone : null,
-            child: Text(
-              "Kodu Yeniden Gönder",
-              style: TextStyle(
-                  color: context.colors.secondary, fontWeight: FontWeight.bold),
+          duration: AppMotion.fast,
+          opacity: canResend ? 1.0 : 0.5,
+          child: Semantics(
+            button: true,
+            enabled: canResend,
+            label: 'Kodu yeniden gönder',
+            child: TextButton(
+              onPressed: canResend ? _verifyPhone : null,
+              child: Text(
+                "Kodu Yeniden Gönder",
+                style: TextStyle(
+                    color: context.colors.secondary,
+                    fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              _isCodeSent = false;
-              _timer?.cancel();
-            });
-          },
-          child: Text(
-            "Numarayı Düzenle",
-            style: TextStyle(
-                color: context.colors.onSurface.withOpacity(0.6), fontSize: 12),
+        Semantics(
+          button: true,
+          label: 'Telefon numarasını düzenle',
+          child: TextButton(
+            onPressed: () => setState(() => _isCodeSent = false),
+            child: const Text(
+              "Numarayı Düzenle",
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildIconHeader(final IconData icon) =>
-      Container(
-        padding: const EdgeInsets.all(24),
+  Widget _buildIconHeader(final IconData icon) => Container(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         decoration: BoxDecoration(
-          color: context.colors.primary.withOpacity(0.1),
+          color: context.colors.primary.withOpacity(0.15),
           shape: BoxShape.circle,
+          boxShadow: AppShadows.level2(context.colors.primary),
         ),
         child: Icon(icon, size: 48, color: context.colors.primary),
       );
 
-  Widget _buildTextField(final TextEditingController controller,
-      final String hint, {
-        required final String label,
-        final String? prefix,
-        final TextAlign textAlign = TextAlign.start,
-        final int? maxLength,
-        final bool isPhone = false,
-      }) =>
+  Widget _buildTextField(
+    final TextEditingController controller,
+    final String hint, {
+    required final String label,
+    required final String semanticLabel,
+    final String? prefix,
+    final TextAlign textAlign = TextAlign.start,
+    final int? maxLength,
+    final bool isPhone = false,
+  }) =>
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 8),
+            padding: const EdgeInsets.only(left: AppSpacing.sm, bottom: AppSpacing.sm),
             child: Text(label,
-                style: context.textTheme.labelSmall
-                    ?.copyWith(letterSpacing: 2, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.bold,
+                )),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: context.colors.surfaceVariant.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: context.colors.outlineVariant),
-            ),
-            child: TextField(
-              controller: controller,
-              textAlign: textAlign,
-              keyboardType: TextInputType.number,
-              maxLength: maxLength,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              decoration: InputDecoration(
-                hintText: hint,
-                prefixText: prefix,
-                counterText: "",
-                // Sayacı gizle
-                contentPadding: const EdgeInsets.all(20),
-                border: InputBorder.none,
+          Semantics(
+            label: semanticLabel,
+            textField: true,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(color: Colors.white.withOpacity(0.16)),
+              ),
+              child: TextField(
+                controller: controller,
+                textAlign: textAlign,
+                keyboardType: TextInputType.number,
+                maxLength: maxLength,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+                decoration: InputDecoration(
+                  hintText: hint,
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+                  prefixText: prefix,
+                  prefixStyle: const TextStyle(
+                      color: Colors.white70, fontWeight: FontWeight.bold),
+                  counterText: "",
+                  // Sayacı gizle
+                  contentPadding: const EdgeInsets.all(AppSpacing.xl),
+                  border: InputBorder.none,
+                ),
               ),
             ),
           ),
@@ -294,38 +412,40 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       );
 
   Widget _buildArtisticButton(final String label, final VoidCallback onTap) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          height: 60,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                colors: [context.colors.primary, context.colors.secondary]),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: context.colors.primary.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10)),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2),
+      Semantics(
+        button: true,
+        label: label,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            height: 60,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  colors: [context.colors.primary, context.colors.secondary]),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: AppShadows.level3(context.colors.primary),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2),
+              ),
             ),
           ),
         ),
       );
 
-  Widget _buildSectionTitle(final String title) =>
-      Text(
+  Widget _buildSectionTitle(final String title) => Text(
         title,
-        style: context.textTheme.labelLarge
-            ?.copyWith(letterSpacing: 2, fontWeight: FontWeight.w900),
+        style: const TextStyle(
+          color: Colors.white,
+          letterSpacing: 2,
+          fontWeight: FontWeight.w900,
+          fontSize: 13,
+        ),
       );
 }
