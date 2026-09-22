@@ -207,7 +207,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
                                     horizontal: _sectionPad(context)),
-                                child: const HomePromoBanner(),
+                                child: HomePromoBanner(
+                                  campaign: campaigns.isNotEmpty
+                                      ? campaigns.first
+                                      : null,
+                                ),
                               ),
                             ),
                           ),

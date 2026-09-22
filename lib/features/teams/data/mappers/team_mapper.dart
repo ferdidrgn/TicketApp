@@ -9,7 +9,7 @@ extension TeamModelMapper on TeamModel {
         updatedAt: updatedAt ?? '',
         name: name ?? 'İsimsiz Takım',
         description: description ?? 'Açıklama bulunamadı.',
-        imageUrl: imageUrl ?? 'https://example.com/default-image.png',
+        imageUrl: imageUrl ?? '',
         photosId: photosId?.whereType<String>().toList() ?? [],
         showsId: showsId?.whereType<String>().toList() ?? [],
       );

@@ -135,7 +135,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       const DividerWithAccent(),
 
                       // 5. Özel Kartlar, Aksiyonlar ve Kapanış Alanı
-                      const _PerformantSpecialCardsAndActionsSection(),
+                      _PerformantSpecialCardsAndActionsSection(
+                          campaigns: campaignState.value ?? []),
 
                       _PerformantQuickActionsGridSection(),
 
@@ -311,18 +312,32 @@ class _PerformantTeamsSection extends StatelessWidget {
 }
 
 class _PerformantSpecialCardsAndActionsSection extends StatelessWidget {
-  const _PerformantSpecialCardsAndActionsSection();
+  final List<Campaign> campaigns;
+
+  const _PerformantSpecialCardsAndActionsSection({required this.campaigns});
 
   @override
-  Widget build(final BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
-        child: TicketStubCard(
-          title: "Romeo & Juliet",
-          subtitle: "%20 İndirim Fırsatı",
-          imageUrl:
-              'https://img.freepik.com/premium-vector/theatre2_1189973-28.jpg?semt=ais_hybrid&w=740&q=80',
-        ),
-      );
+  Widget build(final BuildContext context) {
+    // Daha önce burada sabit/uydurma bir "Romeo & Juliet %20 İndirim"
+    // kartı vardı (gerçek bir Firestore kampanyasına bağlı değildi, stok
+    // görsel kullanıyordu, tıklanamazdı). Artık `campaignsProvider`'dan
+    // (bu sayfa zaten build() başında çekiyor) gelen gerçek ilk kampanya
+    // gösteriliyor; hiç kampanya yoksa kart tamamen gizleniyor — sahte bir
+    // yer tutucuyla doldurulmuyor.
+    if (campaigns.isEmpty) return const SizedBox.shrink();
+    final campaign = campaigns.first;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: TicketStubCard(
+        title: campaign.title,
+        subtitle: "Kampanyayı Keşfet",
+        imageUrl: campaign.imageUrl,
+        onTap: () => NavigationHandler.goToCampaigns(
+            context, index: campaigns.indexOf(campaign)),
+      ),
+    );
+  }
 }
 
 class _PerformantQuickActionsGridSection extends ConsumerWidget {

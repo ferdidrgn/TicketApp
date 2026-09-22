@@ -7,7 +7,7 @@ extension CampaignModelMapper on CampaignModel {
         createdAt: createdAt ?? '',
         updatedAt: updatedAt ?? '',
         endDate: endDate ?? '',
-        imageUrl: imageUrl ?? 'https://example.com/default-image.png',
+        imageUrl: imageUrl ?? '',
         startDate: startDate ?? '',
         title: title ?? 'İsimsiz Kampanya',
         url: url ?? '',

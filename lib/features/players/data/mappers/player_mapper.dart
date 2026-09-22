@@ -9,7 +9,7 @@ extension PlayerModelMapper on PlayerModel {
         firstName: firstName ?? 'İsimsiz',
         lastName: lastName ?? 'Oyuncu',
         bio: bio ?? 'Bio bulunamadı.',
-        imageUrl: imageUrl ?? 'https://example.com/default-image.png',
+        imageUrl: imageUrl ?? '',
         quote: quote ?? "Sahne hayattır.",
         // Alan yoksa varsayılan metin
         collaborations:

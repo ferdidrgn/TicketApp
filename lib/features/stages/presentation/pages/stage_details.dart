@@ -7,9 +7,9 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../shows/domain/entities/show.dart';
-import '../../../shows/presentation/pages/show_detail_page_mobil.dart';
 import '../../../shows/presentation/widgets/mobile/show_card.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../domain/entities/stage.dart';
@@ -170,11 +170,8 @@ class _StageDetailPageState extends ConsumerState<StageDetailPage>
             child: ShowCard(
               imageUrl: shows[index].imageUrl,
               gameName: shows[index].name,
-              onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (final _) =>
-                          ShowDetailPage(showId: shows[index].id))),
+              onTap: () => NavigationHandler.goToShow(
+                  context, shows[index].id, shows[index].name),
             ),
           ),
         ),
@@ -445,10 +442,8 @@ class _StageDetailDesktopPageState
           ...displayedShows.map(
             (final show) => StageUpcomingShowTile(
               show: show,
-              onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (final _) => ShowDetailPage(showId: show.id))),
+              onTap: () =>
+                  NavigationHandler.goToShow(context, show.id, show.name),
             ),
           ),
         ],

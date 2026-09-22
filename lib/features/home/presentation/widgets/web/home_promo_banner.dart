@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../campaigns/domain/entities/campaign.dart';
 
-/// Web karşılığı: mobildeki `TicketStubCard` ("GÜNÜN FIRSATI / Romeo &
-/// Juliet / %20 İndirim Fırsatı").
+/// Web karşılığı: mobildeki `TicketStubCard` ("GÜNÜN FIRSATI" kartı).
 ///
-/// UYARI (ileride çözülmesi gereken, burada YENİ eklenmeyen bir eksik):
-/// mobildeki kaynağında bu kart zaten sabit/statik içerik taşıyor — sahte
-/// bir stok görsel URL'i ve elle yazılmış "Romeo & Juliet %20 İndirim"
-/// metni, `onTap` bile verilmemiş (tıklanamaz). Firestore'dan gelen gerçek
-/// bir kampanya değil. Burada AYNI mevcut içerik birebir taşındı (yeni bir
-/// şey uydurulmadı, sadece iki platformda tutarlı olsun diye kopyalandı) —
-/// ama gerçek bir kampanyaya bağlanması gereken kalıcı bir borç.
+/// Artık `campaignsProvider`'dan gelen gerçek ilk kampanyayı gösterir
+/// (bkz. `home_page_web.dart`'ın `campaigns` değişkeni) — daha önce burada
+/// sabit "Romeo & Juliet %20 İndirim" metni ve tıklanamayan bir stok görsel
+/// vardı. Hiç kampanya yoksa banner tamamen gizlenir.
 class HomePromoBanner extends StatelessWidget {
-  const HomePromoBanner({super.key});
+  final Campaign? campaign;
+  final int campaignIndex;
+
+  const HomePromoBanner({super.key, this.campaign, this.campaignIndex = 0});
 
   static const _radius = BorderRadius.only(
     topLeft: Radius.circular(6),
@@ -22,7 +23,14 @@ class HomePromoBanner extends StatelessWidget {
   );
 
   @override
-  Widget build(final BuildContext context) => Container(
+  Widget build(final BuildContext context) {
+    final campaign = this.campaign;
+    if (campaign == null) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => NavigationHandler.goToCampaigns(context,
+          index: campaignIndex),
+      child: Container(
         height: 132,
         decoration: BoxDecoration(
           borderRadius: _radius,
@@ -34,7 +42,7 @@ class HomePromoBanner extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               Image.network(
-                'https://img.freepik.com/premium-vector/theatre2_1189973-28.jpg?semt=ais_hybrid&w=740&q=80',
+                campaign.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (final context, final error, final stack) =>
                     const ColoredBox(color: WebColors.darkBlueSurface),
@@ -57,8 +65,8 @@ class HomePromoBanner extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'GÜNÜN FIRSATI',
                       style: TextStyle(
                         color: WebColors.primaryGoldLight,
@@ -67,18 +75,20 @@ class HomePromoBanner extends StatelessWidget {
                         letterSpacing: 2,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Romeo & Juliet',
-                      style: TextStyle(
+                      campaign.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         color: WebColors.whiteText,
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      '%20 İndirim Fırsatı',
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Kampanyayı Keşfet',
                       style: TextStyle(
                         color: WebColors.textSecondary,
                         fontSize: 13,
@@ -90,5 +100,7 @@ class HomePromoBanner extends StatelessWidget {
             ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
