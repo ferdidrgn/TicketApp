@@ -6,7 +6,12 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
+import '../../../../shared/widgets/footers/footer.dart';
 
 class AppSettingsPage extends StatelessWidget {
   const AppSettingsPage({super.key});
@@ -43,7 +48,7 @@ class AppSettingsPage extends StatelessWidget {
       // 💡 İçerik artık doğrudan ListView veya SingleChildScrollView olabilir
       child: ListView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         children: [
           // 🕊️ İLHAM KARTI
           const InspirationalQuoteView(
@@ -53,9 +58,9 @@ class AppSettingsPage extends StatelessWidget {
                 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xxxl),
           _buildSectionTitle(context, 'DUYUSAL AYARLAR'),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           _buildAtelierTile(
             context,
@@ -74,9 +79,9 @@ class AppSettingsPage extends StatelessWidget {
             onTap: () => _handlePermission(Permission.notification),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xxxl),
           _buildSectionTitle(context, 'GALERİ YAYILIMI'),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           _buildCreativeAction(
             context,
@@ -84,19 +89,21 @@ class AppSettingsPage extends StatelessWidget {
             desc: 'Bu koleksiyonu yıldızlarla parlat.',
             icon: Icons.auto_awesome_rounded,
             gradient: [colors.primary, colors.primaryContainer],
+            textColor: colors.onPrimary,
             onTap: () => TiyatrolDeeplinkService.shareApp(),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           _buildCreativeAction(
             context,
             title: 'İlhamı Paylaş',
             desc: 'Sanatı bir dostunun kalbine bırak.',
             icon: Icons.send_rounded,
             gradient: [colors.secondary, colors.secondaryContainer],
+            textColor: colors.onSecondary,
             onTap: _shareApp,
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: AppSpacing.huge),
           Center(
             child: Text(
               'Versiyon 1.0.4 - Sanatla Tasarlandı',
@@ -106,7 +113,7 @@ class AppSettingsPage extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: AppSpacing.huge),
         ],
       ),
     );
@@ -122,61 +129,59 @@ class AppSettingsPage extends StatelessWidget {
     required final VoidCallback onTap,
   }) {
     final colors = context.colors;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              // Sanatçı fırçası darbesi gibi dikey bar
-              Container(
-                width: 6,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
+    return Semantics(
+      button: true,
+      label: '$title. $subtitle',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
+            boxShadow: AppShadows.level1(color),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                // Sanatçı fırçası darbesi gibi dikey bar
+                Container(
+                  width: 6,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(AppRadius.lg),
+                      bottomLeft: Radius.circular(AppRadius.lg),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 15)),
-                    Text(subtitle,
-                        style: TextStyle(
-                            color: colors.onSurface.withOpacity(0.5),
-                            fontSize: 11,
-                            fontStyle: FontStyle.italic)),
-                  ],
+                const SizedBox(width: AppSpacing.lg),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: colors.outline),
-              const SizedBox(width: 12),
-            ],
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 15)),
+                      Text(subtitle,
+                          style: TextStyle(
+                              color: colors.onSurface.withOpacity(0.5),
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: colors.outline),
+                const SizedBox(width: AppSpacing.md),
+              ],
+            ),
           ),
         ),
       ),
@@ -189,43 +194,48 @@ class AppSettingsPage extends StatelessWidget {
     required final String desc,
     required final IconData icon,
     required final List<Color> gradient,
+    required final Color textColor,
     required final VoidCallback onTap,
   }) =>
-      InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                colors: gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white, size: 28),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
-                    Text(desc,
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 12)),
-                  ],
+      Semantics(
+        button: true,
+        label: '$title. $desc',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  colors: gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: textColor, size: 28),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16)),
+                      Text(desc,
+                          style: TextStyle(
+                              color: textColor.withOpacity(0.8),
+                              fontSize: 12)),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.open_in_new_rounded,
-                  color: Colors.white70, size: 18),
-            ],
+                Icon(Icons.open_in_new_rounded,
+                    color: textColor.withOpacity(0.7), size: 18),
+              ],
+            ),
           ),
         ),
       );
@@ -243,81 +253,92 @@ class AppSettingsPage extends StatelessWidget {
   // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
   // Mobil sohbet chrome'undan (TopHeaderWithBackButton, FAB, parçacıklar)
   // bağımsız, sade, ortalanmış ve dar bir sütun. Aynı ayarlar/aksiyonlar,
-  // aynı callback'ler; sadece görsel kabuk değişiyor.
+  // aynı callback'ler; sadece görsel kabuk değişiyor. Sayfanın en altına,
+  // sitenin diğer masaüstü sayfalarıyla aynı tam genişlikte paylaşılan
+  // `Footer` eklenir.
   Widget _buildDesktopPage(final BuildContext context) => ColoredBox(
         color: WebColors.darkBlueBackground,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: ListView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
-              physics: const BouncingScrollPhysics(),
-              children: [
-                Text(
-                  'ATÖLYE PANELİ',
-                  style: TextStyle(
-                    color: WebColors.whiteText,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 28,
-                    letterSpacing: -0.5,
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xxxl,
+                      vertical: AppSpacing.section),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ATÖLYE PANELİ',
+                        style: TextStyle(
+                          color: WebColors.whiteText,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 28,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Serüvenin teknik detaylarını restore et...',
+                        style: TextStyle(
+                          color: WebColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.huge),
+                      _buildDesktopSectionTitle('DUYUSAL AYARLAR'),
+                      const SizedBox(height: AppSpacing.lg),
+                      _DesktopHoverTile(
+                        icon: Icons.location_searching_rounded,
+                        title: 'Mekansal Rezonans',
+                        subtitle: 'Çevrendeki sanat duraklarını hisset.',
+                        onTap: () => _handlePermission(Permission.location),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _DesktopHoverTile(
+                        icon: Icons.vibration_rounded,
+                        title: 'Sanat Fısıltıları',
+                        subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
+                        onTap: () =>
+                            _handlePermission(Permission.notification),
+                      ),
+                      const SizedBox(height: AppSpacing.huge),
+                      _buildDesktopSectionTitle('GALERİ YAYILIMI'),
+                      const SizedBox(height: AppSpacing.lg),
+                      _DesktopHoverAction(
+                        icon: Icons.auto_awesome_rounded,
+                        title: 'Atölyeyi Puanla',
+                        desc: 'Bu koleksiyonu yıldızlarla parlat.',
+                        onTap: () => TiyatrolDeeplinkService.shareApp(),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _DesktopHoverAction(
+                        icon: Icons.send_rounded,
+                        title: 'İlhamı Paylaş',
+                        desc: 'Sanatı bir dostunun kalbine bırak.',
+                        onTap: _shareApp,
+                      ),
+                      const SizedBox(height: AppSpacing.massive),
+                      Center(
+                        child: Text(
+                          'Versiyon 1.0.4 - Sanatla Tasarlandı',
+                          style: TextStyle(
+                            color: WebColors.textTertiary,
+                            fontSize: 11,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Serüvenin teknik detaylarını restore et...',
-                  style: TextStyle(
-                    color: WebColors.textSecondary,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                _buildDesktopSectionTitle('DUYUSAL AYARLAR'),
-                const SizedBox(height: 16),
-                _buildDesktopTile(
-                  title: 'Mekansal Rezonans',
-                  subtitle: 'Çevrendeki sanat duraklarını hisset.',
-                  icon: Icons.location_searching_rounded,
-                  onTap: () => _handlePermission(Permission.location),
-                ),
-                const SizedBox(height: 12),
-                _buildDesktopTile(
-                  title: 'Sanat Fısıltıları',
-                  subtitle: 'Yeni bir eser doğduğunda haberin olsun.',
-                  icon: Icons.vibration_rounded,
-                  onTap: () => _handlePermission(Permission.notification),
-                ),
-                const SizedBox(height: 40),
-                _buildDesktopSectionTitle('GALERİ YAYILIMI'),
-                const SizedBox(height: 16),
-                _buildDesktopAction(
-                  title: 'Atölyeyi Puanla',
-                  desc: 'Bu koleksiyonu yıldızlarla parlat.',
-                  icon: Icons.auto_awesome_rounded,
-                  onTap: () => TiyatrolDeeplinkService.shareApp(),
-                ),
-                const SizedBox(height: 12),
-                _buildDesktopAction(
-                  title: 'İlhamı Paylaş',
-                  desc: 'Sanatı bir dostunun kalbine bırak.',
-                  icon: Icons.send_rounded,
-                  onTap: _shareApp,
-                ),
-                const SizedBox(height: 48),
-                Center(
-                  child: Text(
-                    'Versiyon 1.0.4 - Sanatla Tasarlandı',
-                    style: TextStyle(
-                      color: WebColors.textTertiary,
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-              ],
+              ),
             ),
-          ),
+            const Footer(),
+          ],
         ),
       );
 
@@ -330,109 +351,158 @@ class AppSettingsPage extends StatelessWidget {
           fontSize: 12,
         ),
       );
+}
 
-  Widget _buildDesktopTile({
-    required final String title,
-    required final String subtitle,
-    required final IconData icon,
-    required final VoidCallback onTap,
-  }) =>
-      InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-          topRight: Radius.circular(6),
-          bottomLeft: Radius.circular(6),
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          decoration: BoxDecoration(
-            color: WebColors.darkBlueSurface,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              bottomRight: Radius.circular(20),
-              topRight: Radius.circular(6),
-              bottomLeft: Radius.circular(6),
-            ),
-            border: Border.all(
-                color: WebColors.darkBlueAccent.withOpacity(0.8), width: 1),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: WebColors.primaryGold, size: 22),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: TextStyle(
-                            color: WebColors.whiteText,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14)),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                            color: WebColors.textSecondary, fontSize: 12)),
-                  ],
+/// Masaüstü ayar satırı — fareyle üzerine gelindiğinde ("Sahne Köşesi"
+/// imzası `AppRadius.asymSm` ile) hafifçe parlar. `TheatreShowCard`'daki
+/// aynı hover diliyle (`AppMotion.fast` + `AppShadows`) tutarlı.
+class _DesktopHoverTile extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _DesktopHoverTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  State<_DesktopHoverTile> createState() => _DesktopHoverTileState();
+}
+
+class _DesktopHoverTileState extends State<_DesktopHoverTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(final BuildContext context) => Semantics(
+        button: true,
+        label: '${widget.title}. ${widget.subtitle}',
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (final _) => setState(() => _hovered = true),
+          onExit: (final _) => setState(() => _hovered = false),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: AppMotion.fast,
+              curve: AppMotion.standard,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: WebColors.darkBlueSurface,
+                borderRadius: AppRadius.asymSm,
+                border: Border.all(
+                  color: _hovered
+                      ? WebColors.primaryGold.withOpacity(0.8)
+                      : WebColors.darkBlueAccent.withOpacity(0.8),
+                  width: 1,
                 ),
+                boxShadow: _hovered
+                    ? AppShadows.level2(WebColors.primaryGold)
+                    : AppShadows.level0,
               ),
-              Icon(Icons.chevron_right_rounded,
-                  color: WebColors.textTertiary, size: 20),
-            ],
+              child: Row(
+                children: [
+                  Icon(widget.icon, color: WebColors.primaryGold, size: 22),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.title,
+                            style: TextStyle(
+                                color: WebColors.whiteText,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14)),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(widget.subtitle,
+                            style: TextStyle(
+                                color: WebColors.textSecondary,
+                                fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: WebColors.textTertiary, size: 20),
+                ],
+              ),
+            ),
           ),
         ),
       );
+}
 
-  Widget _buildDesktopAction({
-    required final String title,
-    required final String desc,
-    required final IconData icon,
-    required final VoidCallback onTap,
-  }) =>
-      InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-          topRight: Radius.circular(8),
-          bottomLeft: Radius.circular(8),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: WebColors.goldGradient,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              bottomRight: Radius.circular(24),
-              topRight: Radius.circular(8),
-              bottomLeft: Radius.circular(8),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: WebColors.whiteText, size: 26),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: TextStyle(
-                            color: WebColors.whiteText,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15)),
-                    Text(desc,
-                        style: TextStyle(
-                            color: WebColors.whiteText.withOpacity(0.85),
-                            fontSize: 12)),
-                  ],
-                ),
+/// Masaüstü "önerilen aksiyon" kartı — büyük ölçekli "Sahne Köşesi"
+/// (`AppRadius.asymLg`) ve hover'da `AppShadows.level3` ile yükselir.
+class _DesktopHoverAction extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String desc;
+  final VoidCallback onTap;
+
+  const _DesktopHoverAction({
+    required this.icon,
+    required this.title,
+    required this.desc,
+    required this.onTap,
+  });
+
+  @override
+  State<_DesktopHoverAction> createState() => _DesktopHoverActionState();
+}
+
+class _DesktopHoverActionState extends State<_DesktopHoverAction> {
+  bool _hovered = false;
+
+  @override
+  Widget build(final BuildContext context) => Semantics(
+        button: true,
+        label: '${widget.title}. ${widget.desc}',
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (final _) => setState(() => _hovered = true),
+          onExit: (final _) => setState(() => _hovered = false),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: AppMotion.fast,
+              curve: AppMotion.standard,
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              decoration: BoxDecoration(
+                gradient: WebColors.goldGradient,
+                borderRadius: AppRadius.asymLg,
+                boxShadow: _hovered
+                    ? AppShadows.level3(WebColors.primaryGold)
+                    : AppShadows.level1(WebColors.primaryGold),
               ),
-              Icon(Icons.open_in_new_rounded,
-                  color: WebColors.whiteText.withOpacity(0.7), size: 18),
-            ],
+              child: Row(
+                children: [
+                  Icon(widget.icon, color: WebColors.whiteText, size: 26),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.title,
+                            style: TextStyle(
+                                color: WebColors.whiteText,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15)),
+                        Text(widget.desc,
+                            style: TextStyle(
+                                color: WebColors.whiteText.withOpacity(0.85),
+                                fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.open_in_new_rounded,
+                      color: WebColors.whiteText.withOpacity(0.7), size: 18),
+                ],
+              ),
+            ),
           ),
         ),
       );
