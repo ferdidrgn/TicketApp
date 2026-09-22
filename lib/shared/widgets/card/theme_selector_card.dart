@@ -14,6 +14,9 @@ class ThemeSelectorCard extends ConsumerWidget {
 
     // Sistemden gelen dinamik renk (Yoksa varsayılan tema rengi)
     final systemColor = context.colors.primary;
+    // Kullanıcının Ayarlar > Tema Rengi'nden seçtiği özel renk (henüz
+    // seçilmediyse null — bu durumda systemColor'a düşer)
+    final customColor = ref.watch(customAccentColorProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start, // Başlığı sola alır
@@ -92,14 +95,15 @@ class ThemeSelectorCard extends ConsumerWidget {
                   ),
                 ),
 
-                // 2. KATMAN: BUTONLAR (5 ADET)
+                // 2. KATMAN: BUTONLAR (6 ADET — 5 hazır stil + Özel renk)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: AppThemeStyle.values.map((final style) {
                     return _ArtisticButton(
                       style: style,
                       isSelected: currentStyle == style,
-                      activeColor: style.getGlowColor(systemColor),
+                      activeColor:
+                          style.getGlowColor(systemColor, customColor: customColor),
                       onTap: () =>
                           ref.read(themeProvider.notifier).setTheme(style),
                     );
@@ -117,19 +121,21 @@ class ThemeSelectorCard extends ConsumerWidget {
 /// --- CODE REFACTORING: EXTENSION MANTIĞI ---
 /// UI Lojiğini Widget'tan ayırıp Veri Tipine (Enum) yüklüyoruz.
 extension AppThemeStyleUI on AppThemeStyle {
-  // 1. Hizalama Pozisyonu (5 Buton için matematiksel dağılım)
+  // 1. Hizalama Pozisyonu (6 Buton için matematiksel dağılım)
   Alignment get alignment {
     switch (this) {
       case AppThemeStyle.appLight:
-        return const Alignment(-0.95, 0);
+        return const Alignment(-1.0, 0);
       case AppThemeStyle.appDark:
-        return const Alignment(-0.5, 0);
+        return const Alignment(-0.6, 0);
       case AppThemeStyle.system:
-        return const Alignment(0.0, 0);
+        return const Alignment(-0.2, 0);
       case AppThemeStyle.materialLight:
-        return const Alignment(0.5, 0);
+        return const Alignment(0.2, 0);
       case AppThemeStyle.materialDark:
-        return const Alignment(0.95, 0);
+        return const Alignment(0.6, 0);
+      case AppThemeStyle.custom:
+        return const Alignment(1.0, 0);
     }
   }
 
@@ -146,6 +152,8 @@ extension AppThemeStyleUI on AppThemeStyle {
         return Icons.palette_outlined; // Monet Light
       case AppThemeStyle.materialDark:
         return Icons.blur_on_rounded; // Atmosferik
+      case AppThemeStyle.custom:
+        return Icons.colorize_rounded; // Kullanıcının kendi seçtiği renk
     }
   }
 
@@ -162,11 +170,14 @@ extension AppThemeStyleUI on AppThemeStyle {
         return 'Doğa';
       case AppThemeStyle.materialDark:
         return 'Ahenk';
+      case AppThemeStyle.custom:
+        return 'Özel';
     }
   }
 
-  // 4. Renk (Glow Rengi)
-  Color getGlowColor(final Color systemDynamicColor) {
+  // 4. Renk (Glow Rengi). `customColor`, kullanıcının Ayarlar > Tema
+  // Rengi'nden seçtiği renktir; sadece `custom` stili için kullanılır.
+  Color getGlowColor(final Color systemDynamicColor, {final Color? customColor}) {
     switch (this) {
       case AppThemeStyle.appLight:
         return Colors.orangeAccent;
@@ -178,6 +189,8 @@ extension AppThemeStyleUI on AppThemeStyle {
         return systemDynamicColor; // Duvar kağıdı
       case AppThemeStyle.materialDark:
         return systemDynamicColor; // Duvar kağıdı
+      case AppThemeStyle.custom:
+        return customColor ?? systemDynamicColor;
     }
   }
 }

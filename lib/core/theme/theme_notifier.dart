@@ -6,6 +6,38 @@ import '../services/local_storage_service.dart';
 final themeProvider =
     NotifierProvider<ThemeNotifier, AppThemeStyle>(ThemeNotifier.new);
 
+/// Kullanıcının "Tema Rengi" ekranından seçtiği özel vurgu rengi.
+/// `AppThemeStyle.custom` seçiliyken `ThemeManager` bu rengi `seedColor`
+/// olarak kullanır. `ThemeNotifier.setCustomAccentColor()` ile senkron
+/// tutulur — biri diğerini set etmeden yalnız başına anlamlı değildir.
+final customAccentColorProvider =
+    NotifierProvider<CustomAccentColorNotifier, Color?>(
+        CustomAccentColorNotifier.new);
+
+class CustomAccentColorNotifier extends Notifier<Color?> {
+  static const String _colorKey = 'app_custom_accent_color_v1';
+
+  @override
+  Color? build() {
+    Future.microtask(() => _loadColor());
+    return null; // Kayıtlı özel renk yüklenene / seçilene kadar null
+  }
+
+  Future<void> _loadColor() async {
+    final saved = await LocalStorageService.readSecureData(_colorKey);
+    if (saved != null) {
+      final value = int.tryParse(saved);
+      if (value != null) state = Color(value);
+    }
+  }
+
+  Future<void> setColor(final Color color) async {
+    state = color;
+    await LocalStorageService.writeSecureData(
+        _colorKey, color.value.toString());
+  }
+}
+
 class ThemeNotifier extends Notifier<AppThemeStyle> {
   static const String _themeKey = 'app_theme_style_v2';
 
@@ -27,6 +59,15 @@ class ThemeNotifier extends Notifier<AppThemeStyle> {
     await LocalStorageService.writeSecureData(_themeKey, style.name);
   }
 
+  /// Kullanıcının Ayarlar'dan renk ızgarasından seçtiği rengi kalıcı tutar
+  /// ve temayı otomatik olarak `AppThemeStyle.custom`'a geçirir. İki
+  /// provider'ı (`themeProvider` + `customAccentColorProvider`) senkron
+  /// tutan tek giriş noktası budur.
+  Future<void> setCustomAccentColor(final Color color) async {
+    await ref.read(customAccentColorProvider.notifier).setColor(color);
+    await setTheme(AppThemeStyle.custom);
+  }
+
   // --- Helper Getters ---
   ThemeMode get themeMode {
     switch (state) {
@@ -36,6 +77,7 @@ class ThemeNotifier extends Notifier<AppThemeStyle> {
       case AppThemeStyle.appDark:
       case AppThemeStyle.materialDark:
         return ThemeMode.dark;
+      case AppThemeStyle.custom:
       case AppThemeStyle.system:
         return ThemeMode.system;
     }

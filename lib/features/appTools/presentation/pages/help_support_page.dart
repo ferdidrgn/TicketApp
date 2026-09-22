@@ -25,8 +25,8 @@ class HelpSupportPage extends StatelessWidget {
         backgroundColor: context.colors.surface,
         safeAreaTop: true,
       ),
-      title: 'DANIŞMA MASASI',
-      subtitle: 'Serüveninde sana rehberlik edelim...',
+      title: 'Yardım ve Destek',
+      subtitle: 'Sorularına hızlıca cevap bul.',
       rightIcon: Icons.support_agent_rounded,
       child: Center(
         // ✅ Web'de içeriği ortalamak için
@@ -84,11 +84,11 @@ class HelpSupportPage extends StatelessWidget {
         children: [
           Expanded(
               child: _buildActionCard(context, Icons.chat_bubble_outline,
-                  'Canlı Destek', 'Küratörle Konuş')),
+                  'Canlı Destek', 'Temsilciyle Konuş')),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
               child: _buildActionCard(
-                  context, Icons.mail_outline, 'E-posta', 'Mektup Gönder')),
+                  context, Icons.mail_outline, 'E-posta', 'Bize Yaz')),
         ],
       );
 
@@ -166,7 +166,7 @@ class HelpSupportPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'DANIŞMA MASASI',
+                        'Yardım ve Destek',
                         style: TextStyle(
                           color: WebColors.whiteText,
                           fontWeight: FontWeight.w900,
@@ -176,7 +176,7 @@ class HelpSupportPage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Serüveninde sana rehberlik edelim...',
+                        'Sorularına hızlıca cevap bul.',
                         style: TextStyle(
                           color: WebColors.textSecondary,
                           fontSize: 14,
@@ -229,11 +229,11 @@ class HelpSupportPage extends StatelessWidget {
         children: [
           Expanded(
               child: _buildDesktopActionCard(Icons.chat_bubble_outline,
-                  'Canlı Destek', 'Küratörle Konuş')),
+                  'Canlı Destek', 'Temsilciyle Konuş')),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
               child: _buildDesktopActionCard(
-                  Icons.mail_outline, 'E-posta', 'Mektup Gönder')),
+                  Icons.mail_outline, 'E-posta', 'Bize Yaz')),
         ],
       );
 
