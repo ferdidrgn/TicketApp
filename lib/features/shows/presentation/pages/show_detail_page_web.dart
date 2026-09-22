@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
+import '../../../chatbot/presentation/widgets/show_chat_bubble_button.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/footers/footer.dart';
@@ -218,7 +219,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
                     id: showData.id, name: showData.name),
               ),
             ),
-          )
+          ),
+          // Gösteriye özel SSS sohbet balonu — yerel anahtar kelime
+          // eşleştirmesi, ağ çağrısı yok (bkz. ShowFaqMatcher).
+          Positioned(
+            bottom: 40,
+            right: 20,
+            child: ShowChatBubbleButton(
+                showId: showData.id, showName: showData.name),
+          ),
         ],
       );
 }
