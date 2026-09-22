@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 
 /// Premium keşif kartı: posterin üzerine gelindiğinde (hover) ikinci bir
-/// prodüksiyon fotoğrafına yumuşakça geçer ve özet/CTA metni yukarı kayarak
-/// belirir. `landing/style.css`'teki `.show`/`.show__img--secondary` ve
-/// `.show__desc` hover davranışının Flutter karşılığıdır
-/// (bkz. `landing/index.html` "Repertuar" bölümü).
+/// prodüksiyon fotoğrafına `lib/shared/widgets/theatre_show_card.dart` ile
+/// AYNI "perde açılışı" tekniğiyle (bkz. `page_transitions.dart`
+/// `curtainTransition`) geçer ve özet/CTA metni yukarı kayarak belirir.
+/// `landing/style.css`'teki `.show`/`.show__img--secondary` ve
+/// `.show__desc` hover davranışının Flutter karşılığıdır (bkz.
+/// `landing/index.html` "Repertuar" bölümü).
+///
+/// Bu widget'ın kendi genel API'si (tekil `imageUrl`/`secondaryImageUrl`,
+/// hover'da beliren `description` + CTA) `TheatreShowCard`'ınkinden
+/// kasıtlı olarak farklı — çağıranları (`discovery_page.dart`) bir `Show`
+/// değil, önceden seçilmiş ayrı alanlar veriyor ve bu kart açıklama/CTA
+/// gösteriyor, `TheatreShowCard` ise süre/yaş sınırı gösteriyor. Bu yüzden
+/// burada `TheatreShowCard`'a devretmek yerine AYNI tasarım dilini
+/// (`AppMotion`, `AppShadows`, perde-açılışı hover geçişi, tek büyük
+/// "taç yaprağı" köşe) kendi içinde uyguluyor — iki ızgara da görsel
+/// olarak tutarlı, ama bu kartın kendine özgü açıklama/CTA davranışı
+/// korunuyor.
 ///
 /// Boyuttan bağımsızdır: ebeveyn tarafından verilen kısıtlara (SizedBox,
 /// AspectRatio, GridView hücresi vb.) göre şekillenir, böylece hem yatay
@@ -40,10 +55,23 @@ class DiscoveryShowCard extends StatefulWidget {
 class _DiscoveryShowCardState extends State<DiscoveryShowCard> {
   final ValueNotifier<bool> _isHovered = ValueNotifier(false);
 
+  /// "Taç yaprağı" köşesi — `TheatreShowCard`'daki büyük köşeyle AYNI
+  /// değer, iki kartın köşe dili tutarlı görünsün diye. Diğer üç köşe
+  /// çağıranın verdiği `borderRadius`'u kullanır (varsayılan kullanım
+  /// zaten `AppRadius.lg`'ye yakın).
+  static const double _petalCorner = 72;
+
   bool get _hasSecondary =>
       widget.secondaryImageUrl != null &&
       widget.secondaryImageUrl!.isNotEmpty &&
       widget.secondaryImageUrl != widget.imageUrl;
+
+  BorderRadius get _cardRadius => BorderRadius.only(
+        topLeft: Radius.circular(widget.borderRadius),
+        topRight: Radius.circular(_petalCorner),
+        bottomLeft: Radius.circular(widget.borderRadius),
+        bottomRight: Radius.circular(widget.borderRadius),
+      );
 
   @override
   void dispose() {
@@ -63,23 +91,16 @@ class _DiscoveryShowCardState extends State<DiscoveryShowCard> {
             builder: (final context, final isActive, final staticChild) =>
                 AnimatedScale(
               scale: isActive ? 1.025 : 1.0,
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOut,
+              duration: AppMotion.fast,
+              curve: AppMotion.standard,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOut,
+                duration: AppMotion.fast,
+                curve: AppMotion.standard,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(widget.borderRadius),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isActive
-                          ? WebColors.primaryGold.withOpacity(0.35)
-                          : Colors.black.withOpacity(0.35),
-                      blurRadius: isActive ? 32 : 16,
-                      spreadRadius: isActive ? 1 : 0,
-                      offset: Offset(0, isActive ? 18 : 8),
-                    ),
-                  ],
+                  borderRadius: _cardRadius,
+                  boxShadow: isActive
+                      ? AppShadows.level3(WebColors.primaryGold)
+                      : AppShadows.level2(WebColors.primaryGold),
                 ),
                 child: staticChild,
               ),
@@ -90,40 +111,58 @@ class _DiscoveryShowCardState extends State<DiscoveryShowCard> {
       );
 
   Widget _buildContent(final BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(widget.borderRadius),
+        borderRadius: _cardRadius,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. POSTER <-> İKİNCİL FOTOĞRAF (hover'da çapraz geçiş)
-            ValueListenableBuilder<bool>(
-              valueListenable: _isHovered,
-              builder: (final context, final isActive, final _) {
-                final bool showSecondary = isActive && _hasSecondary;
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 420),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  child: OptimizedCachedImage(
-                    key: ValueKey(
-                        showSecondary ? widget.secondaryImageUrl : widget.imageUrl),
-                    imageUrl:
-                        showSecondary ? widget.secondaryImageUrl! : widget.imageUrl,
-                    fit: BoxFit.cover,
-                    borderRadius: 0,
-                  ),
-                );
-              },
+            // 1. Ana poster (her zaman görünür taban katman).
+            OptimizedCachedImage(
+              imageUrl: widget.imageUrl,
+              fit: BoxFit.cover,
+              borderRadius: 0,
             ),
 
-            // 2. ALT GRADIENT + KENARLIK
+            // 2. Hover'da "perde açılışı" ile beliren ikincil fotoğraf —
+            // `TheatreShowCard`'daki ClipRect + ortadan büyüyen
+            // Align(widthFactor: ...) tekniğinin birebir aynısı.
+            if (_hasSecondary)
+              ValueListenableBuilder<bool>(
+                valueListenable: _isHovered,
+                builder: (final context, final isActive, final _) =>
+                    TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: isActive ? 1.0 : 0.0),
+                  duration: AppMotion.normal,
+                  curve: AppMotion.dramatic,
+                  builder: (final context, final t, final child) {
+                    if (t <= 0) return const SizedBox.shrink();
+                    return ClipRect(
+                      child: Align(
+                        alignment: Alignment.center,
+                        widthFactor: t,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: SizedBox.expand(
+                    child: OptimizedCachedImage(
+                      imageUrl: widget.secondaryImageUrl!,
+                      fit: BoxFit.cover,
+                      borderRadius: 0,
+                    ),
+                  ),
+                ),
+              ),
+
+            // 3. ALT GRADIENT + KENARLIK
             Positioned.fill(
               child: ValueListenableBuilder<bool>(
                 valueListenable: _isHovered,
                 builder: (final context, final isActive, final _) =>
                     AnimatedContainer(
-                  duration: const Duration(milliseconds: 260),
+                  duration: AppMotion.fast,
+                  curve: AppMotion.standard,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(widget.borderRadius),
+                    borderRadius: _cardRadius,
                     border: Border.all(
                       color: isActive
                           ? WebColors.primaryGold.withOpacity(0.7)
@@ -144,7 +183,7 @@ class _DiscoveryShowCardState extends State<DiscoveryShowCard> {
               ),
             ),
 
-            // 3. METİN + HOVER'DA BELİREN ÖZET/CTA
+            // 4. METİN + HOVER'DA BELİREN ÖZET/CTA
             Positioned(
               left: 18,
               right: 18,
@@ -186,7 +225,7 @@ class _DiscoveryShowCardState extends State<DiscoveryShowCard> {
                     valueListenable: _isHovered,
                     builder: (final context, final isActive, final _) =>
                         AnimatedCrossFade(
-                      duration: const Duration(milliseconds: 220),
+                      duration: AppMotion.fast,
                       crossFadeState: isActive
                           ? CrossFadeState.showSecond
                           : CrossFadeState.showFirst,
