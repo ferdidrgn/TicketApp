@@ -124,6 +124,10 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                     CustomTransitionPage(
                   key: state.pageKey,
                   child: const HomePage(),
+                  // "Perdenin açılışı" — uygulamanın TEK büyük reveal anı
+                  // (onboarding/login bitip ana sahneye geçerken). Bilerek
+                  // başka hiçbir rotada kullanılmıyor; her yerde olursa
+                  // özel olmaktan çıkar.
                   transitionsBuilder: curtainTransition,
                   transitionDuration: const Duration(milliseconds: 500),
                 ),
@@ -208,7 +212,10 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           key: state.pageKey,
           child: PlayerDetailPage(
               playerId: state.pathParameters['slugWithId']!.split('-').last),
-          transitionsBuilder: curtainTransition,
+          // Bir oyuncuya "spot ışığının odaklanması" — bkz. focalTransition.
+          // Perde açılışı (curtainTransition) tek, özel bir ana (bkz. /app)
+          // saklı kalsın diye her oyuncu tıklamasında tekrarlanmıyor.
+          transitionsBuilder: focalTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),
@@ -265,7 +272,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: FavoritesPage(),
-          transitionsBuilder: cinematicFadeTransition,
+          // Kişisel bir liste sayfası — dramatik bir "sahne kararması"
+          // hak etmiyor, nötr kalmalı.
+          transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),
@@ -300,7 +309,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: ContractsPage(),
-          transitionsBuilder: shadowGateTransition,
+          // Hukuki bir metin — netlik ister, "gizemli bir kapı" değil.
+          transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),
@@ -311,7 +321,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: HelpSupportPage(),
-          transitionsBuilder: shadowGateTransition,
+          // Destek sayfası — kullanıcı zaten bir sorunla geliyor, dramatik
+          // bir geçiş yerine hızlı ve nötr bir erişim daha doğru.
+          transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),
@@ -362,7 +374,11 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OnboardingContainer(),
-          transitionsBuilder: curtainTransition,
+          // Perde açılışı (curtainTransition) burada DEĞİL — onboarding
+          // henüz "fuayeye giriş"; gerçek "perde açılıyor" anı, onboarding
+          // bittiğinde ana sahneye (/app) geçerken yaşanıyor (bkz. yukarıda
+          // BRANCH 0). Buraya varışta yumuşak bir odaklanma yeterli.
+          transitionsBuilder: focalTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),
       ),
@@ -380,7 +396,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
               eventId: params[1],
               customerId: params[2],
             ),
-            transitionsBuilder: fadeTransition,
+            // Salona doğru odaklanma — brief'in en özel ekranlarından
+            // biri, düz bir fade'i hak etmiyor.
+            transitionsBuilder: focalTransition,
             transitionDuration: const Duration(milliseconds: 500),
           );
         },
