@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Deploy iOS — İSKELET (TicketApp / TiyatRol)
+#
+# BU WORKFLOW ŞU ANDA GERÇEK BİR TESTFLIGHT/APP STORE DAĞITIMI YAPMAZ.
+# Sadece `flutter build ios --release --no-codesign` ile derlenebilirliği
+# doğrular (bu adım imzalama GEREKTİRMEZ, dolayısıyla hiçbir Apple
+# kimlik bilgisi olmadan da çalışır).
+#
+# Gerçek bir TestFlight/App Store otomasyonu kurmak için aşağıdakiler
+# GEREKİR — hiçbiri bende yok ve olamaz, kullanıcı kendisi sağlamalı:
+#
+#   1. Apple Developer Program üyeliği (ücretli, yıllık).
+#   2. Dağıtım (distribution) imzalama sertifikası — bir `.p12` dosyası
+#      + parolası. Apple Developer > Certificates, Identifiers &
+#      Profiles'tan oluşturulur, .p12 olarak dışa aktarılır.
+#   3. Bir Provisioning Profile — uygulamanın bundle ID'sine
+#      (`ios/Runner.xcodeproj` içinde tanımlı) ve yukarıdaki sertifikaya
+#      bağlı, App Store dağıtım tipinde.
+#   4. App Store Connect API Key — App Store Connect > Users and Access >
+#      Integrations > App Store Connect API'den oluşturulan bir `.p8`
+#      dosyası + Key ID + Issuer ID. TestFlight'a otomatik yükleme
+#      (`fastlane pilot upload` / `gym`) bunu kullanır.
+#
+# Bunlar sağlandığında önerilen kurulum: Fastlane (`fastlane match` ile
+# sertifika/profil senkronizasyonu, `fastlane gym` ile imzalı build,
+# `fastlane pilot`/`fastlane deliver` ile TestFlight/App Store yükleme).
+# Bu durumda aşağıdaki placeholder secret'lar kullanılacaktır (adları
+# örnek — gerçek Fastlane kurulumuna göre uyarlanabilir):
+#
+#   - IOS_DIST_CERTIFICATE_BASE64   (.p12 sertifikasının base64 hâli)
+#   - IOS_DIST_CERTIFICATE_PASSWORD (.p12 parolası)
+#   - IOS_PROVISIONING_PROFILE_BASE64 (provisioning profile base64)
+#   - APP_STORE_CONNECT_API_KEY_ID
+#   - APP_STORE_CONNECT_API_ISSUER_ID
+#   - APP_STORE_CONNECT_API_KEY_BASE64 (.p8 dosyasının base64 hâli)
+#
+# Bu secret'lar bu repo'da TANIMLI DEĞİL ve bu workflow onları
+# KULLANMIYOR — sadece burada, ileride eklenmeleri için dokümante
+# ediliyor. `macos-latest` runner'da çalışır (iOS build için gereklidir,
+# GitHub-hosted Linux runner'larda mümkün değildir).
+# ─────────────────────────────────────────────────────────────────────────
+name: Deploy iOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios-no-codesign:
+    name: Build iOS (no codesign — derlenebilirlik kontrolü)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.5"
+          channel: "stable"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS (release, no codesign)
+        run: flutter build ios --release --no-codesign
+
+      # ── TestFlight / App Store dağıtımı burada YOK ──
+      # Yukarıdaki yorum bloğunda listelenen Apple kimlik bilgileri
+      # (sertifika, provisioning profile, App Store Connect API key)
+      # sağlandığında, buraya bir Fastlane (`fastlane gym` + `fastlane
+      # pilot upload`) adımı eklenerek gerçek bir imzalı build + otomatik
+      # TestFlight yüklemesi kurulabilir.
