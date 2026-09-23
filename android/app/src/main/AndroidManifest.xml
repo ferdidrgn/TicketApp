@@ -96,7 +96,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- 🔗 HTTPS Deep Links (App Links - Auto-verified) -->
+            <!--
+                🔗 HTTPS Deep Links (App Links - Auto-verified)
+                Flutter web uygulaması bu domain'de KÖKTE değil, "/app"
+                altında yayınlanıyor (bkz. scripts/deploy.sh,
+                firebase.json rewrite "/app/**" -> /app/index.html).
+                Domain kökü ("/", "/privacy", "/terms" ...) statik landing
+                sitesi - bunlar uygulamaya değil tarayıcıya açılmalı, o
+                yüzden pathPrefix ile sadece "/app" altı eşleniyor.
+            -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
@@ -106,7 +114,8 @@
                 <!-- Production Domain -->
                 <data
                     android:host="tiyatrol.web.app"
-                    android:scheme="https" />
+                    android:scheme="https"
+                    android:pathPrefix="/app" />
             </intent-filter>
 
             <!-- 🔗 Custom URL Scheme (Fallback) -->
