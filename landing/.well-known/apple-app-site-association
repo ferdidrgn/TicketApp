@@ -5,8 +5,12 @@
       {
         "appID": "REPLACE_WITH_APPLE_TEAM_ID.com.ferdidrgn.ticketapp",
         "paths": [
-          "/app",
-          "/app/*"
+          "/show/*",
+          "/player/*",
+          "/stage/*",
+          "/team/*",
+          "/my-tickets/*",
+          "/campaign-details"
         ]
       }
     ]

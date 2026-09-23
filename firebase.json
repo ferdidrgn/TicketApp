@@ -57,10 +57,28 @@
         }
       ],
       "rewrites": [
-        {
-          "source": "**",
-          "destination": "/app/index.html"
-        }
+        { "source": "/app", "destination": "/app-shell.html" },
+        { "source": "/app/**", "destination": "/app-shell.html" },
+        { "source": "/discover", "destination": "/app-shell.html" },
+        { "source": "/nearby", "destination": "/app-shell.html" },
+        { "source": "/profile", "destination": "/app-shell.html" },
+        { "source": "/show/**", "destination": "/app-shell.html" },
+        { "source": "/player/**", "destination": "/app-shell.html" },
+        { "source": "/stage/**", "destination": "/app-shell.html" },
+        { "source": "/team/**", "destination": "/app-shell.html" },
+        { "source": "/search", "destination": "/app-shell.html" },
+        { "source": "/settings", "destination": "/app-shell.html" },
+        { "source": "/notifications", "destination": "/app-shell.html" },
+        { "source": "/favorites", "destination": "/app-shell.html" },
+        { "source": "/my-tickets/**", "destination": "/app-shell.html" },
+        { "source": "/profile-edit/**", "destination": "/app-shell.html" },
+        { "source": "/contracts", "destination": "/app-shell.html" },
+        { "source": "/help-support", "destination": "/app-shell.html" },
+        { "source": "/campaign-details", "destination": "/app-shell.html" },
+        { "source": "/login", "destination": "/app-shell.html" },
+        { "source": "/phone-login", "destination": "/app-shell.html" },
+        { "source": "/onboarding", "destination": "/app-shell.html" },
+        { "source": "/seat-selection/**", "destination": "/app-shell.html" }
       ]
     },
     {
@@ -120,10 +138,28 @@
         }
       ],
       "rewrites": [
-        {
-          "source": "**",
-          "destination": "/app/index.html"
-        }
+        { "source": "/app", "destination": "/app-shell.html" },
+        { "source": "/app/**", "destination": "/app-shell.html" },
+        { "source": "/discover", "destination": "/app-shell.html" },
+        { "source": "/nearby", "destination": "/app-shell.html" },
+        { "source": "/profile", "destination": "/app-shell.html" },
+        { "source": "/show/**", "destination": "/app-shell.html" },
+        { "source": "/player/**", "destination": "/app-shell.html" },
+        { "source": "/stage/**", "destination": "/app-shell.html" },
+        { "source": "/team/**", "destination": "/app-shell.html" },
+        { "source": "/search", "destination": "/app-shell.html" },
+        { "source": "/settings", "destination": "/app-shell.html" },
+        { "source": "/notifications", "destination": "/app-shell.html" },
+        { "source": "/favorites", "destination": "/app-shell.html" },
+        { "source": "/my-tickets/**", "destination": "/app-shell.html" },
+        { "source": "/profile-edit/**", "destination": "/app-shell.html" },
+        { "source": "/contracts", "destination": "/app-shell.html" },
+        { "source": "/help-support", "destination": "/app-shell.html" },
+        { "source": "/campaign-details", "destination": "/app-shell.html" },
+        { "source": "/login", "destination": "/app-shell.html" },
+        { "source": "/phone-login", "destination": "/app-shell.html" },
+        { "source": "/onboarding", "destination": "/app-shell.html" },
+        { "source": "/seat-selection/**", "destination": "/app-shell.html" }
       ]
     }
   ]

@@ -5,13 +5,13 @@ import '../../common/extentions/reg_exp_extentions.dart';
 final class TiyatrolDeeplinkService {
   TiyatrolDeeplinkService._();
 
-  // 🔑 KRİTİK: Flutter web uygulaması bu domain'in KÖKÜNDE değil, "/app"
-  // alt yolunda yayınlanıyor (bkz. scripts/deploy.sh — statik landing
-  // sitesi domain kökünde, `flutter build web --base-href /app/` çıktısı
-  // "/app" altında; firebase.json'daki "/app/**" rewrite'ı bunu
-  // doğruluyor). Paylaşılan linkler "/app" önekini İÇERMEZSE tarayıcıda
-  // 404 döner — bu önek burada eksikse asla kaldırma.
-  static const String _baseUrl = "https://tiyatrol.web.app/app";
+  // Flutter web uygulaması artık domain KÖKÜNDE yayınlanıyor (bkz.
+  // scripts/deploy.sh — `flutter build web --base-href /`; firebase.json'da
+  // /show/**, /player/**, /my-tickets/** vb. rota-bazlı rewrite'lar
+  // /app-shell.html'e düşüyor). GoRouter'ın kendi route tablosu da bu
+  // yolları hiçbir önek OLMADAN tanımlıyor (bkz. app_router.dart —
+  // '/show/:slugWithId' gibi), o yüzden burada da önek YOK.
+  static const String _baseUrl = "https://tiyatrol.web.app";
 
   /// 🛠 URL Oluşturucu (Slug-ID yapısı)
   static String _createUrl(

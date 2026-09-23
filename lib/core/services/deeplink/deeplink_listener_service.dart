@@ -35,24 +35,16 @@ final class TiyatrolDeeplinkListener {
 
   /// 🎯 Navigasyon ve URL Senkronizasyonu
   static void _handleNavigation(final GoRouter router, final Uri uri) {
-    var path = uri.path;
+    final path = uri.path;
     if (path.isEmpty || path == '/') return;
 
-    // 🔑 KRİTİK: Gelen App Link/Universal Link URL'i her zaman gerçek web
-    // yapısını yansıtır (https://tiyatrol.web.app/app/show/...), çünkü
-    // AndroidManifest'teki pathPrefix ve iOS'taki AASA "paths" bilinçli
-    // olarak "/app" altını hedefliyor (bkz. android/app/src/main/
-    // AndroidManifest.xml, landing/.well-known/apple-app-site-association).
-    // Ancak native (mobil) tarafta GoRouter'ın route tablosu bu "/app"
-    // önekini TANIMIYOR — yalnızca ana sayfa route'u zaten literal olarak
-    // '/app' (bkz. app_router.dart), alt route'lar ise '/show/:id' gibi
-    // önek OLMADAN tanımlı. Bu yüzden burada önek soyuluyor; aksi halde
-    // her gelen deep link "sayfa bulunamadı"na düşer.
-    if (path.startsWith('/app/')) {
-      path = path.substring(4); // '/app/show/x' -> '/show/x'
-    }
-    if (path.isEmpty) return;
-
+    // Gelen App Link/Universal Link URL'i artık gerçek web yapısını birebir
+    // yansıtıyor (https://tiyatrol.web.app/show/..., "/app" öneki YOK —
+    // bkz. AndroidManifest.xml'deki pathPrefix'ler ve AASA "paths", ikisi
+    // de artık doğrudan /show, /player, /stage, /team, /my-tickets,
+    // /campaign-details hedefliyor). GoRouter'ın route tablosu da bu
+    // yolları hiç önek olmadan tanımlıyor (bkz. app_router.dart), o yüzden
+    // burada önek soyma YOK — path olduğu gibi kullanılıyor.
     debugPrint('🔗 Deeplink yakalandı: $path');
 
     final currentPath = router.routerDelegate.currentConfiguration.fullPath;

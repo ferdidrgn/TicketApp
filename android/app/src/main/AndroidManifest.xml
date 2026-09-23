@@ -98,12 +98,16 @@
 
             <!--
                 🔗 HTTPS Deep Links (App Links - Auto-verified)
-                Flutter web uygulaması bu domain'de KÖKTE değil, "/app"
-                altında yayınlanıyor (bkz. scripts/deploy.sh,
-                firebase.json rewrite "/app/**" -> /app/index.html).
-                Domain kökü ("/", "/privacy", "/terms" ...) statik landing
-                sitesi - bunlar uygulamaya değil tarayıcıya açılmalı, o
-                yüzden pathPrefix ile sadece "/app" altı eşleniyor.
+                Flutter web uygulaması artık domain KÖKÜNDE yayınlanıyor
+                (bkz. scripts/deploy.sh, firebase.json rota-bazlı
+                rewrite'lar -> /app-shell.html). Domain kökünün KENDİSİ
+                ("/", "/privacy.html", "/terms.html" ...) hâlâ statik
+                landing sitesi — bunlar uygulamaya değil tarayıcıya
+                açılmalı, o yüzden TEK bir geniş pathPrefix yerine sadece
+                gerçekten paylaşılabilir/uygulamada açılması gereken
+                içerik rotaları (show/player/stage/team detay, biletlerim,
+                kampanya detayı) tek tek eşleniyor — landing'in kendi
+                sayfaları asla bu intent-filter'a girmiyor.
             -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -111,11 +115,31 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <!-- Production Domain -->
+                <!-- Production Domain — gerçek paylaşılabilir içerik rotaları -->
                 <data
                     android:host="tiyatrol.web.app"
                     android:scheme="https"
-                    android:pathPrefix="/app" />
+                    android:pathPrefix="/show" />
+                <data
+                    android:host="tiyatrol.web.app"
+                    android:scheme="https"
+                    android:pathPrefix="/player" />
+                <data
+                    android:host="tiyatrol.web.app"
+                    android:scheme="https"
+                    android:pathPrefix="/stage" />
+                <data
+                    android:host="tiyatrol.web.app"
+                    android:scheme="https"
+                    android:pathPrefix="/team" />
+                <data
+                    android:host="tiyatrol.web.app"
+                    android:scheme="https"
+                    android:pathPrefix="/my-tickets" />
+                <data
+                    android:host="tiyatrol.web.app"
+                    android:scheme="https"
+                    android:pathPrefix="/campaign-details" />
             </intent-filter>
 
             <!-- 🔗 Custom URL Scheme (Fallback) -->
