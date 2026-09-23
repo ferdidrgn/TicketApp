@@ -74,30 +74,16 @@ abstract final class AppInitializer {
   /// `pubspec.yaml`: `dio` bağımlılığı ekli ama `lib/` içinde HİÇBİR yerde
   /// `import 'package:dio/dio.dart'` yok, fiilen kullanılmıyor).
   ///
-  /// Mobil/masaüstü ve web'de API'ler farklı:
-  /// - Mobil/masaüstü: `FirebaseFirestore.instance.settings` üzerinden
-  ///   `persistenceEnabled` + `cacheSizeBytes` (yerleşik SQLite tabanlı
-  ///   cache).
-  /// - Web: `settings.persistenceEnabled` web platformunda desteklenmiyor;
-  ///   onun yerine ayrı, web'e özel `enablePersistence()` çağrısı (IndexedDB
-  ///   tabanlı cache) gerekiyor.
+  /// `cloud_firestore: 6.1.0` — web'e özel ayrı `enablePersistence()`
+  /// metodu bu sürümde YOK (eski bir API varsayımıydı, kaldırılmış);
+  /// `Settings(persistenceEnabled: ...)` artık mobil/masaüstü VE web'de
+  /// aynı, tek/birleşik API. Platforma göre dallanmaya gerek kalmadı.
   static void _configureFirestorePersistence() {
     try {
-      if (kIsWeb) {
-        // ignore: unawaited_futures — init akışını bloklamasın; hata olursa
-        // aşağıdaki catch web'de senkron fırlatılan hatayı yakalar, asenkron
-        // reddi ise sessizce yutmamak için ayrıca ele alınır.
-        FirebaseFirestore.instance
-            .enablePersistence(const PersistenceSettings(synchronizeTabs: true))
-            .catchError((final Object e) {
-          debugPrint('🗄️ Firestore web persistence açılamadı: $e');
-        });
-      } else {
-        FirebaseFirestore.instance.settings = const Settings(
-          persistenceEnabled: true,
-          cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-        );
-      }
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
     } catch (e) {
       // Zaten açık (ör. hot-restart) ya da bu platformda desteklenmiyor —
       // persistence olmadan devam et, init akışını çökertme.

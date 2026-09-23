@@ -99,7 +99,7 @@ class _NearbyEventsMapState extends ConsumerState<NearbyEventsMap> {
   }
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  Widget build(final BuildContext context) {
     final positionState = ref.watch(devicePositionProvider);
     final groupsState = ref.watch(nearbyStageGroupsProvider);
 

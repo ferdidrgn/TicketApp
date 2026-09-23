@@ -204,9 +204,9 @@ class ShowFilterSheet extends ConsumerWidget {
       maxChildSize: 0.95,
       expand: false,
       builder: (final context, final scrollController) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: WebColors.darkBlueBackground,
-          borderRadius: BorderRadius.only(
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(AppRadius.lg),
             topRight: Radius.circular(AppRadius.lg),
           ),
