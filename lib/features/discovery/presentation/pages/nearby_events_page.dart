@@ -4,7 +4,9 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
@@ -131,6 +133,26 @@ class _NearbyEventsMobileBodyState
             ),
           ),
 
+          // GERÇEK VERİ İSTATİSTİK ŞERİDİ — "X sahne, Y etkinlik" (uydurma
+          // değil, `nearbyStageGroupsProvider`/`nearbyEventsProvider`'dan
+          // gerçek `.length`).
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxl, vertical: AppSpacing.sm),
+              child: _NearbyStatStrip(
+                stageCount: stagesState.value?.length,
+                eventCount: eventsState.value?.length,
+                foregroundColor: context.colors.onSurface,
+                mutedColor: context.colors.onSurfaceVariant,
+                accentColor: context.primaryColor,
+                surfaceColor: context.colors.surfaceContainer,
+                borderColor: context.colors.outlineVariant,
+                scrollable: true,
+              ),
+            ),
+          ),
+
           // GERÇEK HARİTA — kullanıcının konumu + yakındaki gerçek sahneler
           SliverToBoxAdapter(
             child: Padding(
@@ -211,105 +233,8 @@ class _NearbyEventsMobileBodyState
     );
   }
 
-  Widget _buildDiscoveryBanner(final BuildContext context) => Container(
-        height: 160,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          gradient: LinearGradient(
-            colors: [
-              context.primaryColor,
-              context.primaryColor.withOpacity(0.8),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: context.primaryColor.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // DEKORATİF ELEMENTLER
-            Positioned(
-              top: -20,
-              right: -20,
-              child: Icon(
-                Icons.star_rounded,
-                size: 120,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-            Positioned(
-              bottom: -10,
-              left: -10,
-              child: Icon(
-                Icons.location_on_rounded,
-                size: 80,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.xxl),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Şehrin Ritmini Keşfet',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          'Gerçek konumunuza göre 50 km içindeki, önümüzdeki 30 gündeki etkinlikler.',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.explore_rounded,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
+  Widget _buildDiscoveryBanner(final BuildContext context) =>
+      _NearbyHeroIntro(accentColor: context.primaryColor);
 
   Widget _buildFilterChip(final String text, final bool isActive,
       final BuildContext context, final VoidCallback onTap) {
@@ -381,6 +306,9 @@ class _NearbyEventsMobileBodyState
             message: allEntries.isEmpty
                 ? 'Önümüzdeki 30 gün içinde, 50 km çevrenizde bir etkinlik bulunmuyor.'
                 : 'Bu filtreye uyan bir etkinlik bulunmuyor.',
+            // Filtreden değil, ham veriden kaynaklı gerçek boşluksa Keşfet
+            // sayfasına yönlendiren CTA gösterilir.
+            showDiscoverCta: allEntries.isEmpty,
           );
 
         return SizedBox(
@@ -447,6 +375,7 @@ class _NearbyEventsMobileBodyState
             child: _MobileNearbyEmptyNotice(
               message:
                   'Önümüzdeki 30 gün içinde, 50 km çevrenizde etkinliği olan bir sahne bulunmuyor.',
+              showDiscoverCta: true,
             ),
           );
 
@@ -554,22 +483,362 @@ class _NearbyEventsMobileBodyState
   }
 }
 
+/// Sayfanın en üstündeki cinematik giriş bloğu — `home_page_web.dart`'taki
+/// `_HeroBand` tekniğinden ilham alır (birebir kopyalanmadı: burada tek
+/// seferlik `AnimationController` yerine hafif bir `TweenAnimationBuilder`
+/// giriş animasyonu, tam ekran fotoğraf yerine gradyan + "sahne ışığı"
+/// motifleri var). Kullanıcının GERÇEK konumundan güvenilir bir şehir adı
+/// çıkarılamıyor (`Stage.locationLat/Lng` sayısal ama cihaz konumu için
+/// bir reverse-geocoding paketi projede YOK — bkz.
+/// `nearby_events_provider.dart`'taki "Mesafe mi, şehir metni mi" yorumu),
+/// bu yüzden sahte bir şehir adı UYDURULMUYOR — jenerik ama gerçek bir
+/// başlık ("Yakınındaki Sahneler") kullanılıyor.
+class _NearbyHeroIntro extends StatelessWidget {
+  final Color accentColor;
+
+  const _NearbyHeroIntro({required this.accentColor});
+
+  @override
+  Widget build(final BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: AppMotion.slow,
+        curve: AppMotion.dramatic,
+        builder: (final context, final t, final child) => Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 16),
+            child: child,
+          ),
+        ),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            gradient: LinearGradient(
+              colors: [
+                accentColor,
+                accentColor.withOpacity(0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: AppShadows.level4(accentColor),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // DEKORATİF ELEMENTLER — "sahne ışığı" motifi
+              Positioned(
+                top: -20,
+                right: -20,
+                child: Icon(
+                  Icons.star_rounded,
+                  size: 120,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+              Positioned(
+                bottom: -10,
+                left: -10,
+                child: Icon(
+                  Icons.location_on_rounded,
+                  size: 80,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'YAKININIZDA',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        const Text(
+                          'Yakınındaki Sahneler',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'Gerçek konumunuza göre 50 km içindeki, önümüzdeki 30 gündeki etkinlikler.',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.explore_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+/// GERÇEK veri istatistik şeridi — "X sahne, Y etkinlik" (uydurma değil,
+/// `nearbyStageGroupsProvider`/`nearbyEventsProvider`'dan gerçek
+/// `.length`). Kullanıcının "içerikleri doldur... geniş yelpazelerimiz
+/// olsun" isteğine göre sayıların yanına gerçek filtre parametrelerini
+/// (`kNearbyRadiusMeters`/`kNearbyWindowDays`) de bilgi kartı olarak
+/// ekler — hem mobil (yatay kaydırılabilir) hem masaüstü (sabit satır)
+/// yerleşimini destekler.
+class _NearbyStatStrip extends StatelessWidget {
+  final int? stageCount;
+  final int? eventCount;
+  final Color foregroundColor;
+  final Color mutedColor;
+  final Color accentColor;
+  final Color surfaceColor;
+  final Color borderColor;
+  final bool scrollable;
+
+  const _NearbyStatStrip({
+    required this.stageCount,
+    required this.eventCount,
+    required this.foregroundColor,
+    required this.mutedColor,
+    required this.accentColor,
+    required this.surfaceColor,
+    required this.borderColor,
+    this.scrollable = false,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final List<_NearbyStatTile> tiles = [
+      _NearbyStatTile(
+        icon: Icons.theater_comedy_rounded,
+        value: stageCount == null ? '—' : '$stageCount',
+        label: 'Sahne',
+        foreground: foregroundColor,
+        muted: mutedColor,
+        accent: accentColor,
+        surface: surfaceColor,
+        border: borderColor,
+      ),
+      _NearbyStatTile(
+        icon: Icons.event_available_rounded,
+        value: eventCount == null ? '—' : '$eventCount',
+        label: 'Etkinlik',
+        foreground: foregroundColor,
+        muted: mutedColor,
+        accent: accentColor,
+        surface: surfaceColor,
+        border: borderColor,
+      ),
+      _NearbyStatTile(
+        icon: Icons.radar_rounded,
+        value: '${(kNearbyRadiusMeters / 1000).round()}',
+        label: 'km yarıçap',
+        foreground: foregroundColor,
+        muted: mutedColor,
+        accent: accentColor,
+        surface: surfaceColor,
+        border: borderColor,
+      ),
+      _NearbyStatTile(
+        icon: Icons.calendar_month_rounded,
+        value: '$kNearbyWindowDays',
+        label: 'gün pencere',
+        foreground: foregroundColor,
+        muted: mutedColor,
+        accent: accentColor,
+        surface: surfaceColor,
+        border: borderColor,
+      ),
+    ];
+
+    if (scrollable) {
+      return SizedBox(
+        height: 74,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: tiles.length,
+          separatorBuilder: (final context, final index) =>
+              const SizedBox(width: AppSpacing.sm),
+          itemBuilder: (final context, final index) =>
+              SizedBox(width: 150, child: tiles[index]),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        for (int i = 0; i < tiles.length; i++) ...[
+          if (i > 0) const SizedBox(width: AppSpacing.md),
+          Expanded(child: tiles[i]),
+        ],
+      ],
+    );
+  }
+}
+
+/// `_NearbyStatStrip` içindeki tek bir gerçek istatistik/bilgi kartı.
+class _NearbyStatTile extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color foreground;
+  final Color muted;
+  final Color accent;
+  final Color surface;
+  final Color border;
+
+  const _NearbyStatTile({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.foreground,
+    required this.muted,
+    required this.accent,
+    required this.surface,
+    required this.border,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Semantics(
+        label: '$value $label',
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 16, color: accent),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: foreground,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900),
+                    ),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: muted,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
 /// Mobil/tablet gövdesi için sade, temaya duyarlı "boş/hata" bildirimi.
 /// Masaüstündeki `_NearbyEmptyNotice` ile aynı fikir, ama sabit
 /// `WebColors` yerine mobil temanın `context.colors`'ını kullanır — o
 /// sınıf yalnızca masaüstü lacivert/altın temasında doğru görünür.
+/// `showDiscoverCta` — gerçekten hiçbir yakın etkinlik/sahne bulunamadığı
+/// (filtreden değil, ham veriden kaynaklı) durumlarda kullanıcıyı Keşfet
+/// sayfasına yönlendiren gerçek bir aksiyon ekler
+/// (`NavigationHandler.goToDiscover`) — sahte/boş bir buton değil.
 class _MobileNearbyEmptyNotice extends StatelessWidget {
   final String message;
+  final bool showDiscoverCta;
 
-  const _MobileNearbyEmptyNotice({required this.message});
+  const _MobileNearbyEmptyNotice(
+      {required this.message, this.showDiscoverCta = false});
 
   @override
   Widget build(final BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xxl, vertical: AppSpacing.xxl),
-        child: Text(
-          message,
-          style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style:
+                  TextStyle(color: context.colors.onSurfaceVariant, fontSize: 15),
+            ),
+            if (showDiscoverCta) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Semantics(
+                button: true,
+                label: 'Keşfet sayfasına git',
+                child: OutlinedButton.icon(
+                  onPressed: () => NavigationHandler.goToDiscover(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: context.primaryColor,
+                    side: BorderSide(color: context.primaryColor),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                  ),
+                  icon: const Icon(Icons.explore_rounded, size: 18),
+                  label: const Text("Keşfet'e Göz At"),
+                ),
+              ),
+            ],
+          ],
         ),
       );
 }
@@ -630,6 +899,22 @@ class _NearbyEventsDesktopBodyState
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: _NearbyDesktopBanner(eventCount: eventsState.value?.length),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        // GERÇEK VERİ İSTATİSTİK ŞERİDİ — "X sahne, Y etkinlik" (uydurma
+        // değil, `nearbyStageGroupsProvider`/`nearbyEventsProvider`'dan
+        // gerçek `.length`).
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: _NearbyStatStrip(
+            stageCount: stagesState.value?.length,
+            eventCount: eventsState.value?.length,
+            foregroundColor: Colors.white,
+            mutedColor: WebColors.textSecondary,
+            accentColor: WebColors.primaryGold,
+            surfaceColor: WebColors.darkBlueSurface,
+            borderColor: WebColors.primaryGold.withOpacity(0.2),
+          ),
         ),
         const SizedBox(height: AppSpacing.section - 16),
         const Padding(
@@ -728,6 +1013,7 @@ class _NearbyEventsDesktopBodyState
           return const _NearbyEmptyNotice(
             message:
                 'Önümüzdeki 30 gün içinde, 50 km çevrenizde bir etkinlik bulunmuyor.',
+            showDiscoverCta: true,
           );
 
         return SizedBox(
@@ -786,6 +1072,7 @@ class _NearbyEventsDesktopBodyState
           return const _NearbyEmptyNotice(
             message:
                 'Önümüzdeki 30 gün içinde, 50 km çevrenizde etkinliği olan bir sahne bulunmuyor.',
+            showDiscoverCta: true,
           );
 
         return GridView.builder(
@@ -818,6 +1105,7 @@ class _NearbyDesktopBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           gradient: WebColors.cardGradient,
           border: Border.all(color: WebColors.primaryGold.withOpacity(0.25)),
+          boxShadow: AppShadows.level3(WebColors.primaryGold),
         ),
         child: Row(
           children: [
@@ -1025,18 +1313,52 @@ class _NearbyStageCard extends StatelessWidget {
   }
 }
 
+/// `showDiscoverCta` — gerçekten hiçbir yakın etkinlik/sahne bulunamadığı
+/// durumlarda kullanıcıyı Keşfet sayfasına yönlendiren gerçek bir aksiyon
+/// ekler (`NavigationHandler.goToDiscover`) — mobildeki
+/// `_MobileNearbyEmptyNotice` ile aynı fikir, masaüstü lacivert/altın
+/// temasıyla.
 class _NearbyEmptyNotice extends StatelessWidget {
   final String message;
+  final bool showDiscoverCta;
 
-  const _NearbyEmptyNotice({required this.message});
+  const _NearbyEmptyNotice(
+      {required this.message, this.showDiscoverCta = false});
 
   @override
   Widget build(final BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xxl, vertical: AppSpacing.xxl),
-        child: Text(
-          message,
-          style: TextStyle(color: WebColors.textSecondary, fontSize: 15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style: TextStyle(color: WebColors.textSecondary, fontSize: 15),
+            ),
+            if (showDiscoverCta) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Semantics(
+                button: true,
+                label: 'Keşfet sayfasına git',
+                child: OutlinedButton.icon(
+                  onPressed: () => NavigationHandler.goToDiscover(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: WebColors.primaryGoldLight,
+                    side: BorderSide(
+                        color: WebColors.primaryGold.withOpacity(0.5)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                  ),
+                  icon: const Icon(Icons.explore_rounded, size: 18),
+                  label: const Text("Keşfet'e Göz At"),
+                ),
+              ),
+            ],
+          ],
         ),
       );
 }

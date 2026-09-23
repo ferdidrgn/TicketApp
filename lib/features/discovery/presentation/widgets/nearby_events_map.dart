@@ -108,7 +108,11 @@ class _NearbyEventsMapState extends ConsumerState<NearbyEventsMap> {
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        // Uygulamanın imza asimetrik köşesi ("Sahne Köşesi") — bu sayfanın
+        // en büyük, en dramatik panelinde (gerçek, etkileşimli harita)
+        // AppRadius'un `asymLg`'si kullanılıyor; `app_radius.dart`'taki
+        // doc-comment tam bu ölçeği ("hero panel") öneriyor.
+        borderRadius: AppRadius.asymLg,
         border: Border.all(color: widget.borderColor),
         color: widget.surfaceColor,
       ),
