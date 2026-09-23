@@ -132,7 +132,13 @@ final eventsByShowIdsProvider =
 // kayboluyordu — gerçek, tarihi geçmemiş bir etkinlik varken ana
 // sayfa/keşfet bomboş görünüyordu. Artık HER İKİ yön de birleştiriliyor;
 // bir etkinlik iki yoldan BİRİYLE bile bağlıysa yakalanır.
-Future<Set<String>> _activeShowIdsFromEvents(
+/// Her gösteri için GERÇEK, birleştirilmiş etkinlik listesi — `Event.showId`
+/// (doğrudan) ve `Show.eventsId` dizisi (yedek, sadece o alan boşsa) TEK bir
+/// haritada birleştirilir. `_activeShowIdsFromEvents` VE yeni
+/// `eventsByShowMapProvider` (filtreleme/sıralama için tarih+fiyat gerektiren
+/// tüketiciler) bu TEK fonksiyonu paylaşır — merge mantığı iki yerde ayrı
+/// ayrı YAZILMAZ.
+Future<Map<String, List<Event>>> _mergedEventsByShow(
     final Ref ref, final List<Show> shows) async {
   final showIds = shows.map((final s) => s.id).toList();
   if (showIds.isEmpty) return {};
@@ -165,26 +171,51 @@ Future<Set<String>> _activeShowIdsFromEvents(
     }
   }
 
-  final now = DateTime.now();
-  final activeIds = <String>{};
+  final merged = <String, List<Event>>{};
   for (final event in eventsById.values) {
-    final date = DateFormatter.parseDateString(event.date);
-    if (date == null || !date.isAfter(now)) continue;
     // `event.showId` (etkinliğin kendi doğrudan referansı) VARSA tek
     // doğruluk kaynağı odur. `Show.eventsId` dizisi SADECE bu alan boşsa
     // yedek olarak kullanılır — aksi hâlde bir gösteri, başka bir
     // gösterinin ESKİ/senkron dışı kalmış `eventsId` referansı yüzünden
     // (etkinlik gerçekte başka bir gösteriye taşınmış olsa bile) yanlışlıkla
     // "bu etkinliğe sahip" görünebiliyordu.
-    if (event.showId.isNotEmpty) {
-      activeIds.add(event.showId);
-    } else {
-      final linkedShowIds = showIdsByEventId[event.id];
-      if (linkedShowIds != null) activeIds.addAll(linkedShowIds);
+    final owningShowIds = event.showId.isNotEmpty
+        ? {event.showId}
+        : (showIdsByEventId[event.id] ?? const <String>{});
+    for (final showId in owningShowIds) {
+      merged.putIfAbsent(showId, () => []).add(event);
     }
   }
+  return merged;
+}
+
+Future<Set<String>> _activeShowIdsFromEvents(
+    final Ref ref, final List<Show> shows) async {
+  final merged = await _mergedEventsByShow(ref, shows);
+  final now = DateTime.now();
+  final activeIds = <String>{};
+  merged.forEach((final showId, final events) {
+    final hasFutureEvent = events.any((final event) {
+      final date = DateFormatter.parseDateString(event.date);
+      return date != null && date.isAfter(now);
+    });
+    if (hasFutureEvent) activeIds.add(showId);
+  });
   return activeIds;
 }
+
+/// Her gösteri için GERÇEK, birleştirilmiş (geçmiş dahil TÜM) etkinlik
+/// listesi — filtreleme/sıralama gibi tarih ve fiyat gerektiren yeni
+/// ihtiyaçlar için (bkz. `show_filter_provider.dart`). Aynı merge mantığını
+/// kullanır, asla yeniden uygulamaz.
+/// Kullanım: `ref.watch(eventsByShowMapProvider(false))`
+final eventsByShowMapProvider =
+    FutureProvider.family<Map<String, List<Event>>, bool>(
+        (final ref, final isLimit) async {
+  final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
+  if (shows.isEmpty) return {};
+  return _mergedEventsByShow(ref, shows);
+});
 
 /// 🟢 AKTİF OYUNLAR — takviminde en az bir gelecek etkinliği olanlar.
 /// Sadece SAHNEDE OLANI göstermek gereken dar bağlamlar için (ör. arama
