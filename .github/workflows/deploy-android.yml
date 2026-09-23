@@ -1,0 +1,123 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Deploy Android — Play Console (TicketApp / TiyatRol)
+#
+# Tetikleyiciler: manuel (`workflow_dispatch`) VEYA `main` dalına push.
+# Her iki durumda da `flutter build appbundle --release` çalışır (bunun
+# için imzalama gerekmez, appbundle imzasız da derlenebilir — ama gerçek
+# bir yayın için release keystore ile imzalanmış olması gerekir, o yüzden
+# aşağıda keystore kurulumu da var).
+#
+# Play Console'a otomatik yükleme adımı (r0adkll/upload-google-play)
+# BİLİNÇLİ OLARAK varsayılan kapalı (`if: false`) bırakıldı — kullanıcı
+# aşağıdaki secret'ları eklemeden bu adım tetiklenirse anlamsız bir
+# hata/başarısızlıkla karşılaşmasın diye. Kullanıcı secret'ları
+# ekledikten sonra bu satırı (`if: false`) silip devreye alabilir.
+#
+# GEREKLİ SECRET'LAR (hiçbiri bu dosyada gerçek değer İÇERMİYOR, sadece
+# `${{ secrets.XXX }}` referansı var):
+#
+#   1. ANDROID_KEYSTORE_BASE64
+#      Release imzalama keystore'unun (.jks / .keystore) base64 hâli.
+#      Elde etmek için (yerel makinende):
+#          keytool -genkey -v -keystore release-keystore.jks \
+#            -keyalg RSA -keysize 2048 -validity 10000 -alias <ALIAS_ADIN>
+#          base64 -i release-keystore.jks | tr -d '\n' > keystore_base64.txt
+#      `keystore_base64.txt` içeriğini GitHub repo > Settings > Secrets
+#      and variables > Actions > "New repository secret" ile
+#      ANDROID_KEYSTORE_BASE64 adıyla ekle.
+#
+#   2. ANDROID_KEYSTORE_PASSWORD — keystore'un store password'ü.
+#   3. ANDROID_KEY_ALIAS       — keystore içindeki key alias'ı.
+#   4. ANDROID_KEY_PASSWORD    — o key'in password'ü (store password ile
+#      aynı olabilir, keytool'a bağlı).
+#
+#   5. PLAY_STORE_SERVICE_ACCOUNT_JSON
+#      Play Console API erişimi için servis hesabı JSON key'i.
+#      Elde etmek için:
+#        a) Play Console > Setup > API access.
+#        b) "Create new service account" (Google Cloud Console'a
+#           yönlendirir) -> yeni bir servis hesabı oluştur, JSON key
+#           indir.
+#        c) Play Console > API access sayfasına dön, yeni servis
+#           hesabına en azından "Release manager" / "Release to
+#           production, exclude devices, and use Play App Signing"
+#           iznini ver.
+#        d) İndirilen JSON dosyasının TÜM içeriğini GitHub repo >
+#           Settings > Secrets and variables > Actions altında
+#           PLAY_STORE_SERVICE_ACCOUNT_JSON adıyla ekle.
+#
+# Bu secret'lar eklenmeden bu workflow (upload adımı hariç) yine de
+# appbundle'ı derler; sadece Play Console'a yükleme adımı atlanır.
+# ─────────────────────────────────────────────────────────────────────────
+name: Deploy Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-appbundle:
+    name: Build App Bundle (release)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.5"
+          channel: "stable"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Keystore + key.properties: sadece ANDROID_KEYSTORE_BASE64 secret'ı
+      # tanımlıysa çalışır. Secret yoksa bu adım atlanır ve appbundle
+      # imzasız derlenir (android/app/build.gradle: keystoreProperties
+      # boşsa signingConfig uygulanmaz) — bu, CI'nin secret eklenmeden de
+      # kırılmadan "derlenebilirlik" kontrolü yapmasını sağlar.
+      - name: Decode signing keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release-keystore.jks"
+          cat > android/key.properties <<EOF
+          storeFile=$RUNNER_TEMP/release-keystore.jks
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+
+      - name: Upload App Bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-bundle
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      # Play Console'a otomatik yükleme — VARSAYILAN OLARAK KAPALI.
+      # Yukarıdaki gerekli secret'ları (PLAY_STORE_SERVICE_ACCOUNT_JSON,
+      # ANDROID_KEYSTORE_BASE64 vb.) ekledikten sonra `if: false`
+      # satırını silip bu adımı devreye alabilirsin.
+      - name: Upload to Play Console (internal track)
+        if: false
+        continue-on-error: true
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: "${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}"
+          packageName: com.ferdidrgn.ticketapp
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: internal
+          status: draft

@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────────
+# CI — TicketApp (TiyatRol)
+#
+# Her pull request'te ve `main` / `claude/next-steps-20260916` dallarına
+# push'ta çalışır: bağımlılıkları çeker, statik analiz yapar ve testleri
+# koşar. Bu workflow gerçek/sahte bir kimlik bilgisi veya secret KULLANMAZ.
+# ─────────────────────────────────────────────────────────────────────────
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - claude/next-steps-20260916
+
+# Aynı branch/PR için eski çalışan bir CI varsa, yeni push geldiğinde onu
+# iptal et (gereksiz job'ları biriktirmemek için).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pubspec.yaml -> environment.sdk: '>=3.4.4 <4.0.0'.
+      # Flutter 3.24.5 stable, Dart 3.5.4 ile gelir ve bu kısıtı karşılar.
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.5"
+          channel: "stable"
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      # NOT: `test/` dizini repo'da mevcut (test/widget_test.dart), o
+      # yüzden bu adım normal şekilde çalıştırılıyor (continue-on-error
+      # YOK). Dikkat: test/widget_test.dart şu an hâlâ `flutter create`
+      # tarafından üretilen varsayılan "counter" şablon testi — uygulama
+      # artık bir sayaç değil, bu yüzden bu test gerçek UI'ye karşı
+      # BAŞARISIZ olabilir. Bu, CI kurulumunun kapsamı dışında, ayrı bir
+      # görev olarak test/widget_test.dart'ın güncellenmesi/gerçek
+      # testlerle değiştirilmesi gerekiyor.
+      - name: Run tests
+        run: flutter test
