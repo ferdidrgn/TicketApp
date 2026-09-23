@@ -21,6 +21,89 @@ Kural: yeni/değiştirilen her widget'ta ham `EdgeInsets`/`SizedBox` yerine
 `BoxShadow` yerine `AppShadows.levelN(tint)`, ham `Duration`/`Curves` yerine
 `AppMotion` kullanılır.
 
+## Tasarım felsefesi — "Perde açıldı" standardı
+
+Kullanıcının verdiği kapsamlı Flutter Product Designer/Engineer talimatının
+özeti — her yeni/redesign edilen ekranda bu süzgeçten geçir. Amaç "modern
+Flutter UI" değil: kullanıcı uygulamayı açtığında "bu sıradan bir bilet
+uygulaması" değil, "tiyatro dünyasına açılan dijital bir sahne" hissetmeli.
+Jenerik AI-dashboard görünümünden KAÇIN: rastgele mor/pembe gradyan, her
+yerde glassmorphism, her kartta border, her elemanda shadow, her yerde
+30+ rounded corner, 20 farklı font, rastgele animasyon, aşırı emoji,
+Bootstrap tarzı birbirinin aynı kartlar.
+
+- **Konsept zinciri** (açılış→perde→sahne→oyunlar→oyuncular→seanslar→
+  koltuk→bilet→sahneye giriş) UI'a ince/sofistike uygulanır: hafif curtain
+  reveal, spotlight-like focus, layered depth, subtle vignette, parallax —
+  zaten var olan `curtainTransition` (`page_transitions.dart`) ve
+  `theatre_show_card.dart`'ın hover reveal'ı bu dilin referans örnekleri,
+  yeni yerlerde bunlara benzer teknik kullan, kopyala yapıştır değil.
+- **Her ekranda 7 katman düşün**: structure, typography, color, depth,
+  motion, interaction, content hierarchy. Her UI elemanının bir amacı
+  olmalı — sırf güzel göründüğü için efekt yok.
+- **Typography hiyerarşisi**: display → headline → section title → card
+  title → body → metadata. Türkçe karakter desteği ve okunabilirlik
+  (özellikle web performansı ve mobil) her zaman öncelikli. Mevcut
+  `google_fonts` kurulumunu kullan, yeni font dependency ekleme.
+- **Derinlik/gölge**: `AppShadows.level0..level5` zaten bu hiyerarşiyi
+  temsil ediyor (flat→subtle→card→featured→modal→hero/floating). Aynı
+  anda çok fazla shadow üst üste kullanma; bazı yerlerde shadow yerine
+  contrast/blur/opacity/border/gradient/background-separation tercih et.
+- **Glass/blur**: ana tasarım dili DEĞİL — sadece overlay, bottom sheet,
+  floating controls, media controls, nav overlay, hero'da gerektiğinde.
+  "Her şeyi cam yapma."
+- **Responsive gerçek olmalı**: `if (width > 600)` ile aynı widget'ı
+  büyütmek DEĞİL — proje zaten bu prensibi uyguluyor (`home_page_mobile.
+  dart`/`home_page_web.dart`, `show_detail_page_mobil.dart`/
+  `show_detail_page_web.dart` gibi platforma özel gerçek dosya ayrımı) —
+  yeni/redesign edilen her sayfada bu ayrım korunur, "mobile'ı büyütüp web
+  diye sunma" kuralı geçerli. Web: geniş nav, multi-column, sidebar/filter,
+  hover state, büyük hero, klavye/mouse etkileşimi. Mobil: thumb-friendly,
+  bottom nav/sheet, gesture, dikey storytelling.
+- **Hero**: "büyük resim + başlık + buton" ile yetinme — layered
+  background, poster, gradient, hafif parallax/lighting, CTA + metadata
+  birlikte (bkz. `home_page_web.dart`'taki `_HeroBand`/
+  `_HeroBackdropPhoto` referans teknik).
+- **Animasyon felsefesi**: sadece 4 amaçtan birine hizmet ediyorsa kullan
+  — orientation, feedback, continuity, delight. Süreler kısa/kontrollü
+  (`AppMotion.fast/normal/slow`). Sayfa geçişlerinde sert kesim yerine
+  continuity (`Hero` widget: poster→detay hero gibi).
+- **Detay sayfası iskeleti** (oyun/oyuncu/sahne): fullscreen hero (poster+
+  başlık+tür+süre+CTA) → hikaye → kadro → fragman → mekân → tarihler →
+  seanslar → bilet CTA. Mobilde dikey storytelling, desktop'ta hero+bilgi
+  split layout.
+- **Koltuk seçimi**: salonun gerçek geometrisini yansıtan esnek sistem,
+  generic grid değil; state'ler available/selected/sold/blocked/premium/
+  accessible; seçimde scale+color transition+subtle glow+spring motion.
+- **Bilet**: bilgi kartı değil, fiziksel bilet hissi (QR reveal: fade+
+  scale).
+- **Boş/loading/hata durumları**: boş ekranlarda anlamlı metin + CTA
+  (ör. "Henüz favori oyunun yok. Sahneyi keşfetmeye ne dersin? [OYUNLARI
+  KEŞFET]"); her yerde çıplak `CircularProgressIndicator` yerine mevcut
+  `shimmer`/`skeletonizer` paketleri; hata durumunda "bir şeyler ters
+  gitti" ile bitirme — neden + ne yapılabilir + retry butonu birlikte.
+- **Erişilebilirlik**: contrast, text size, touch target, `Semantics`
+  label, web'de klavye navigasyonu, screen reader, reduced-motion desteği,
+  focus state — premium tasarım erişilebilirliği FEDA ETMEZ.
+- **Performans**: blur/shadow/büyük görsel/animasyon/parallax özellikle
+  web'de dikkatli kullanılır; listelerde gereksiz rebuild yok; image
+  caching (`cached_network_image`) zaten kullanılıyor, bundan yararlan.
+- **Paket felsefesi**: yeni dependency eklemeden önce önce mevcut
+  `pubspec.yaml`'daki paketleri değerlendir (`flutter_riverpod`,
+  `go_router`, `cached_network_image`, `video_player`, `google_fonts`,
+  `shimmer`, `skeletonizer`, `confetti`, `flutter_staggered_grid_view`,
+  `flutter_staggered_animations`, `visibility_detector`, `dynamic_color`,
+  `qr_flutter`, `url_launcher`, `share_plus`, `curved_navigation_bar`).
+  Flutter SDK zaten yapabiliyor mu / projede benzer paket zaten var mı diye
+  önce bak — yeni paket son çare.
+- **Kalite testi**: her ekran bitince sor — "Bu ekran gerçekten bir
+  tiyatro ürününe mi ait, yoksa herhangi bir Flutter template'i mi?"
+  İkinciyse yeniden düşün. Öncelik sırası: önce kullanılabilirlik, sonra
+  estetik, sonra motion, sonra delight — gösteriş kullanılabilirliğin
+  önüne geçemez.
+- **Teknik sınır**: Flutter/Dart dışına çıkma — React/Next.js/ayrı HTML-
+  CSS frontend YOK, Flutter Web birinci sınıf platform olarak ele alınır.
+
 ## SABİT KURAL — RENKLER ASLA DEĞİŞMEZ
 
 `lib/core/theme/app_colors.dart` içindeki `WebColors`, `AppLightColors`,
