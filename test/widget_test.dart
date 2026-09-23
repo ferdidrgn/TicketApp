@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
+// Bu dosya `flutter create`'in varsayılan sayaç (counter) widget testiydi —
+// uygulamada hiç var olmayan bir "+" ikonu ve "0"/"1" metnini arıyordu,
+// gerçek `MyApp()`'i pompalamak da Firebase/Riverpod başlatmasını test
+// ortamında mock'lamadan CI'da güvenilir şekilde çalışmazdı.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+// Onun yerine bu session'da bulunup düzeltilen en kritik regresyonu
+// (DateFormatter'ın gerçek Firestore tarih formatını hiç ayrıştıramaması —
+// "0 aktif oyun" ve hero panelinin yanlış gösteriye düşmesinin kök nedeni)
+// kilitleyen gerçek, Firebase gerektirmeyen bir birim testi konuldu.
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:ticketapp/main.dart';
+import 'package:ticketapp/core/util/date_formatter.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (final WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('DateFormatter.parseDateString', () {
+    test('gerçek Firestore formatını (virgülden sonra boşluksuz) ayrıştırır',
+        () {
+      final date = DateFormatter.parseDateString('15.10.2026,22:00');
+      expect(date, isNotNull);
+      expect(date!.year, 2026);
+      expect(date.month, 10);
+      expect(date.day, 15);
+      expect(date.hour, 22);
+      expect(date.minute, 0);
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('boşluklu varyantı da (geriye dönük uyumluluk) ayrıştırır', () {
+      final date = DateFormatter.parseDateString('15.10.2026, 22:00');
+      expect(date, isNotNull);
+      expect(date!.day, 15);
+      expect(date.hour, 22);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('geçersiz/boş girdide null döner, asla fırlatmaz', () {
+      expect(DateFormatter.parseDateString(null), isNull);
+      expect(DateFormatter.parseDateString(''), isNull);
+      expect(DateFormatter.parseDateString('geçersiz-tarih'), isNull);
+    });
   });
 }
