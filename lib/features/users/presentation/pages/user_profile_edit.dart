@@ -113,8 +113,8 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     return BasePageWrapper(
       showBackButton: true,
       showFab: true,
-      title: 'KİMLİK ATÖLYESİ',
-      subtitle: 'Sanatsal portreni biçimlendir...',
+      title: 'Profili Düzenle',
+      subtitle: 'Bilgilerini güncel tut.',
       isLoading: userAsync.isLoading || mutationState.isLoading,
       layoutConfig: BasePageLayoutConfig(
           backgroundColor: context.scaffoldBackgroundColor, safeAreaTop: true),
@@ -142,7 +142,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                 _buildAvatarSection(),
 
                 const SizedBox(height: AppSpacing.xxxl),
-                _buildSectionTitle('Öz Kimlik Bilgileri'),
+                _buildSectionTitle('Kişisel Bilgiler'),
 
                 Row(
                   children: [
@@ -220,7 +220,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Widget _buildHeaderTexts() => Column(
         children: [
           Text(
-            'Kimliğini Biçimlendir',
+            'Profilini Düzenle',
             style: context.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: context.colors.onSurface,
@@ -228,7 +228,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Sanatçı profilini dünyaya tanıt...',
+            'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle.',
             style: context.textTheme.bodyMedium?.copyWith(
               color: context.colors.onSurfaceVariant,
             ),
@@ -250,7 +250,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
               const SizedBox(height: AppSpacing.xxxl),
               _buildAvatarSection(),
               const SizedBox(height: AppSpacing.xxxl),
-              _buildSectionTitle('Öz Kimlik Bilgileri'),
+              _buildSectionTitle('Kişisel Bilgiler'),
               Row(
                 children: [
                   Expanded(
@@ -331,11 +331,11 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     final isLoading = ref.watch(userMutationProvider).isLoading;
     return Semantics(
       button: true,
-      label: 'Varlığını Güncelle, profili kaydet',
+      label: 'Kaydet, profil bilgilerini güncelle',
       child: SizedBox(
         width: double.infinity,
         child: CustomElevatedButton(
-          text: 'Varlığını Güncelle',
+          text: 'Kaydet',
           onPressed: isLoading ? () {} : () => _updateProfile(),
         ),
       ),
@@ -378,7 +378,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         context: context,
         barrierDismissible: false,
         builder: (final dialogContext) => CustomSuccessDialog(
-          message: 'Kimliğin başarıyla güncellendi!',
+          message: 'Profilin güncellendi.',
           onConfirm: () {
             // ✅ Sadece Pop-up'ı kapatıyoruz (Geri dönünce siyah ekran olmaması için)
             Navigator.of(dialogContext, rootNavigator: true).pop();
@@ -457,7 +457,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                           const SizedBox(height: AppSpacing.xxxl),
                           _buildDesktopAvatarSection(),
                           const SizedBox(height: AppSpacing.xxxl),
-                          _buildDesktopSectionTitle('Öz Kimlik Bilgileri'),
+                          _buildDesktopSectionTitle('Kişisel Bilgiler'),
                           Row(
                             children: [
                               Expanded(
@@ -533,7 +533,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
   Widget _buildDesktopHeaderTexts() => Column(
         children: [
           const Text(
-            'Kimliğini Biçimlendir',
+            'Profilini Düzenle',
             style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 26,
@@ -542,7 +542,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Sanatçı profilini dünyaya tanıt...',
+            'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle.',
             style: TextStyle(
               color: WebColors.textSecondary,
               fontSize: 14,
@@ -621,7 +621,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     final isLoading = ref.watch(userMutationProvider).isLoading;
     return Semantics(
       button: true,
-      label: 'Varlığını Güncelle, profili kaydet',
+      label: 'Kaydet, profil bilgilerini güncelle',
       child: SizedBox(
         width: double.infinity,
         height: 54,
@@ -642,7 +642,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: WebColors.whiteText),
                 )
-              : const Text('Varlığını Güncelle',
+              : const Text('Kaydet',
                   style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ),

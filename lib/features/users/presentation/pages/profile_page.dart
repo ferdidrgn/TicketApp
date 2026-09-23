@@ -1,10 +1,17 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
+import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
 import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
@@ -43,6 +50,40 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       : context.colors.shadow.withOpacity(0.35);
 
   Color get _bgColor => context.colors.surface;
+
+  // Sahne fotoğrafı — `home_page_web.dart`'taki `_HeroBackdropPhoto` ile
+  // AYNI, doğrulanmış Unsplash hotlink'i (misafir hero'sunun arkaplanı,
+  // giriş yapılmış kullanıcı için kendi `user.imageUrl`'i kullanılır).
+  // Aynı görsel iki hero anında da kullanılarak marka dili tutarlı kalıyor.
+  static const String _stageBackdropUrl =
+      'https://images.unsplash.com/photo-1503095396549-807759245b35'
+      '?auto=format&fit=crop&w=1600&q=80';
+
+  // Hero'nun bir kereye mahsus giriş animasyonu — `_HeroBandState` ile
+  // aynı teknik (fade + hafif kayma).
+  late final AnimationController _heroEntranceController = AnimationController(
+    vsync: this,
+    duration: AppMotion.normal,
+  )..forward();
+
+  Animation<double> get _heroFade => CurvedAnimation(
+      parent: _heroEntranceController, curve: AppMotion.standard);
+
+  /// `User.createdAt` Sanity'den ISO8601 string olarak gelir
+  /// (`DateFormatter.parseDateString` bunu zaten ISO8601 düşüşüyle
+  /// anlıyor). Ayrıştırılamazsa sessizce null döner — asla uydurma bir
+  /// tarih gösterilmez.
+  String? _memberSinceLabel(final String createdAt) {
+    final date = DateFormatter.parseDateString(createdAt);
+    if (date == null) return null;
+    return DateFormat('d MMMM yyyy', 'tr').format(date);
+  }
+
+  @override
+  void dispose() {
+    _heroEntranceController.dispose();
+    super.dispose();
+  }
 
   @override
   void onLoadMore() {}
@@ -87,24 +128,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                             padding: const EdgeInsets.all(25),
                             sliver: SliverList(
                               delegate: SliverChildListDelegate([
-                                const SizedBox(height: AppSpacing.xl),
-                                _buildArtisticHeader(!isLoggedIn),
-
-                                if (isLoggedIn)
-                                  _buildNeumorphicPortrait(userData)
-                                else
-                                  _buildSilentStageInvitation(),
+                                const SizedBox(height: AppSpacing.lg),
+                                _buildHeroSection(isLoggedIn, userData),
 
                                 const SizedBox(height: AppSpacing.huge),
 
-                                _buildSectionLabel("ATMOSFER VE TEKNİK"),
+                                _buildSectionLabel("GÖRÜNÜM"),
                                 const ThemeSelectorCard(),
                                 const SizedBox(height: AppSpacing.lg),
                                 _buildSculptedTile(
                                   icon: Icons.settings_suggest_rounded,
-                                  title: 'Atölye Ayarları',
+                                  title: 'Ayarlar',
                                   subtitle:
-                                      'Bildirimler, dil ve teknik tercihler',
+                                      'İzinlerini ve uygulama tercihlerini yönet',
                                   color: Colors.blueGrey,
                                   onTap: () =>
                                       NavigationHandler.goToSettings(context),
@@ -112,12 +148,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                                 const SizedBox(height: AppSpacing.huge),
 
-                                _buildSectionLabel("RUHUN İZLERİ"),
+                                _buildSectionLabel("GEÇMİŞİM"),
                                 _buildSculptedTile(
-                                  icon: Icons.auto_stories_rounded,
-                                  title: 'Tanıklık Günlüğü',
+                                  icon: Icons.confirmation_number_rounded,
+                                  title: 'Biletlerim',
                                   subtitle:
-                                      'Sahne tozunu yuttuğun tüm anların dökümü',
+                                      'Geçmiş ve gelecek etkinliklerinin tüm biletleri',
                                   isLocked: !isLoggedIn,
                                   color: const Color(0xFF6366F1),
                                   onTap: () => NavigationHandler.goToMyTickets(
@@ -125,10 +161,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 ),
                                 const SizedBox(height: AppSpacing.lg),
                                 _buildSculptedTile(
-                                  icon: Icons.auto_awesome_mosaic_rounded,
-                                  title: 'İlham Galerisi',
+                                  icon: Icons.favorite_rounded,
+                                  title: 'Favorilerim',
                                   subtitle:
-                                      'Zihninde yankılanan seçilmiş eserler',
+                                      'Favori oyunların, sahnelerin ve sanatçıların',
                                   isLocked: !isLoggedIn,
                                   color: const Color(0xFFEC4899),
                                   onTap: () =>
@@ -137,12 +173,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                                 const SizedBox(height: AppSpacing.huge),
 
-                                _buildSectionLabel("KİMLİK ATÖLYESİ"),
+                                _buildSectionLabel("PROFİLİM"),
                                 _buildSculptedTile(
-                                  icon: Icons.brush_rounded,
-                                  title: 'Fırça İzlerim',
+                                  icon: Icons.edit_rounded,
+                                  title: 'Profili Düzenle',
                                   subtitle:
-                                      'Kendi portreni ve sanatsal kimliğini yorumla',
+                                      'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle',
                                   isLocked: !isLoggedIn,
                                   color: context.colors.primary,
                                   onTap: () => context.push(
@@ -150,10 +186,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 ),
                                 const SizedBox(height: AppSpacing.lg),
                                 _buildSculptedTile(
-                                  icon: Icons.map_rounded,
-                                  title: 'Serüven Rehberi',
-                                  subtitle:
-                                      'Soruların için küratörle temas kur',
+                                  icon: Icons.help_outline_rounded,
+                                  title: 'Yardım ve Destek',
+                                  subtitle: 'Sorularına hızlıca cevap bul',
                                   color: const Color(0xFF10B981),
                                   onTap: () =>
                                       NavigationHandler.goToHelpSupport(
@@ -165,8 +200,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 _buildSectionLabel("YASAL YÜKÜMLÜLÜKLER"),
                                 _buildSculptedTile(
                                   icon: Icons.gavel_rounded,
-                                  title: 'Atölye Sözleşmesi',
-                                  subtitle: 'Kullanım şartları ve KVKK rehberi',
+                                  title: 'Yasal Bilgiler',
+                                  subtitle:
+                                      'Gizlilik politikası ve kullanım şartları',
                                   color: Colors.brown.shade400,
                                   onTap: () =>
                                       NavigationHandler.goToContracts(context),
@@ -174,12 +210,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                                 if (isLoggedIn) ...[
                                   const SizedBox(height: AppSpacing.huge),
-                                  _buildSectionLabel("SON DOKUNUŞLAR"),
+                                  _buildSectionLabel("HESAP İŞLEMLERİ"),
                                   _buildSculptedTile(
                                     icon: Icons.logout_rounded,
-                                    title: 'Atölyeyi Kapat',
+                                    title: 'Çıkış Yap',
                                     subtitle:
-                                        'Serüveni şimdilik mühürle ve ayrıl',
+                                        'Hesabından güvenle çıkış yap',
                                     color: Colors.orange.shade800,
                                     onTap: () =>
                                         showSignOutDialog(context, ref),
@@ -187,9 +223,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   const SizedBox(height: AppSpacing.lg),
                                   _buildSculptedTile(
                                     icon: Icons.delete_forever_rounded,
-                                    title: 'Koleksiyonu Yak',
+                                    title: 'Hesabı Sil',
                                     subtitle:
-                                        'Tüm izlerini ve hatıralarını kalıcı olarak sil',
+                                        'Hesabını ve tüm verilerini kalıcı olarak sil',
                                     color: Colors.red.shade900,
                                     onTap: () => showDeleteAccountDialog(
                                         context, ref, userData.id),
@@ -276,59 +312,279 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  Widget _buildNeumorphicPortrait(final entity.User user) => Container(
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
-        decoration: _neuBox(borderRadius: AppRadius.xl),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: _neuBox(borderRadius: AppRadius.pill, invert: true),
-              child: CircleAvatar(
-                radius: 55,
-                backgroundColor: context.colors.primary.withOpacity(0.1),
-                backgroundImage: NetworkImage(user.imageUrl),
+  // --- 🎬 MOBİL HERO — tam boy fotoğraf + karartma + üzerine gerçek
+  // veriyle iğnelenmiş kimlik kartı. Teknik `home_page_web.dart`'taki
+  // `_HeroBand`/`_HeroBackdropPhoto` ile AYNI: gerçek bir fotoğraf zemini
+  // (giriş yapılmışsa kullanıcının kendi `user.imageUrl`'i, misafirse
+  // `_stageBackdropUrl`), üzerine metnin her zaman okunur kalmasını
+  // sağlayan bir karartma (scrim) ve onun üstünde gerçek verilerle
+  // (ad, şehir, üyelik tarihi, bilet/favori sayıları) kurulu bir kimlik
+  // bloğu. Uydurma istatistik YOK — hepsi `entity.User` alanlarından.
+  Widget _buildHeroSection(
+          final bool isLoggedIn, final entity.User? user) =>
+      FadeTransition(
+        opacity: _heroFade,
+        child: SlideTransition(
+          position: _heroFade.drive(
+              Tween(begin: const Offset(0, 0.04), end: Offset.zero)),
+          child: Container(
+            height: isLoggedIn && user != null ? 440 : 400,
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.asymLg,
+              boxShadow: AppShadows.level5(
+                  context.isDarkMode ? Colors.black : context.colors.shadow),
+            ),
+            child: ClipRRect(
+              borderRadius: AppRadius.asymLg,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildHeroBackdrop(
+                      isLoggedIn && user != null ? user.imageUrl : null),
+                  _buildHeroScrim(),
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: isLoggedIn && user != null
+                          ? _buildHeroIdentityContent(user)
+                          : _buildHeroGuestContent(),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xxl),
-            Text('${user.firstName} ${user.lastName}'.toUpperCase().trim(),
-                style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 22,
-                    color: context.colors.onSurface,
-                    letterSpacing: 2)),
-            const SizedBox(height: 6),
-            Text(user.city,
-                style: TextStyle(
-                    color: context.colors.primary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13)),
-            const SizedBox(height: AppSpacing.xxxl),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStat('HAFIZA', '${user.ticketsId.length}'),
-                _buildStat('ŞAHİTLİK', '${user.favoriteShows.length}'),
-                _buildStat('DİKKAT', '${user.favoritePlayers.length}'),
-              ],
-            ),
-          ],
+          ),
         ),
       );
 
-  Widget _buildStat(final String label, final String value) =>
-      Column(children: [
-        Text(value,
-            style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 22,
-                color: context.colors.onSurface)),
+  /// Fotoğraf zemini — giriş yapılmışsa kullanıcının kendi fotoğrafı
+  /// (bulanıklaştırılmış, tüm hero'yu dolduran bir atmosfer olarak),
+  /// misafirse sabit bir sahne fotoğrafı. Ağ hatasında sessizce yüzey
+  /// rengine düşer, asla kırık görsel göstermez.
+  Widget _buildHeroBackdrop(final String? userPhotoUrl) {
+    final String url =
+        (userPhotoUrl != null && userPhotoUrl.isNotEmpty)
+            ? userPhotoUrl
+            : _stageBackdropUrl;
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (final _, final __, final ___) =>
+            ColoredBox(color: context.colors.surfaceVariant),
+        loadingBuilder: (final _, final child, final progress) =>
+            progress == null
+                ? child
+                : ColoredBox(color: context.colors.surfaceVariant),
+      ),
+    );
+  }
+
+  /// Metnin fotoğrafın üzerinde her zaman okunur kalmasını sağlayan
+  /// karartma. Bilerek AÇIK temada bile koyu tutuluyor — altta sayfanın
+  /// kendi (açık temada neredeyse beyaz olan) zeminine erimesine izin
+  /// verilirse, üstündeki beyaz metin açık temada okunmaz hale gelirdi.
+  Widget _buildHeroScrim() => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withOpacity(0.70),
+              Colors.black.withOpacity(0.40),
+              Colors.black.withOpacity(0.66),
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ),
+        ),
+      );
+
+  Widget _buildHeroIdentityContent(final entity.User user) {
+    final String? memberSince = _memberSinceLabel(user.createdAt);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          image: true,
+          label: 'Profil fotoğrafı',
+          child: Container(
+            width: 76,
+            height: 76,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(0.85), width: 2),
+            ),
+            child: CircleAvatar(
+              backgroundColor: Colors.white.withOpacity(0.15),
+              backgroundImage: user.imageUrl.isNotEmpty
+                  ? NetworkImage(user.imageUrl)
+                  : null,
+              child: user.imageUrl.isEmpty
+                  ? const Icon(Icons.person_rounded, color: Colors.white)
+                  : null,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(height: 2, width: 22, color: Colors.white70),
+            const SizedBox(width: AppSpacing.sm),
+            Text('HOŞ GELDİN',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    letterSpacing: 3)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '${user.firstName} ${user.lastName}'.trim(),
+          style: GoogleFonts.playfairDisplay(
+            textStyle: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 30,
+                height: 1.05),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.sm,
+          runSpacing: 4,
+          children: [
+            if (user.city.isNotEmpty)
+              _buildHeroMetaChip(Icons.place_rounded, user.city),
+            if (memberSince != null)
+              _buildHeroMetaChip(
+                  Icons.calendar_today_rounded, 'Üyelik: $memberSince'),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Row(
+          children: [
+            _buildStat(Icons.confirmation_number_rounded, 'BİLET',
+                '${user.ticketsId.length}'),
+            const SizedBox(width: AppSpacing.xxl),
+            _buildStat(Icons.favorite_rounded, 'OYUN',
+                '${user.favoriteShows.length}'),
+            const SizedBox(width: AppSpacing.xxl),
+            _buildStat(Icons.star_rounded, 'SANATÇI',
+                '${user.favoritePlayers.length}'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroMetaChip(final IconData icon, final String label) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: Colors.white70),
+          const SizedBox(width: 4),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
+        ],
+      );
+
+  Widget _buildHeroGuestContent() {
+    // Dark modda bile canlı kalacak renk seçimi
+    final Color buttonColor = context.isDarkMode
+        ? context.colors.primaryContainer
+        : context.colors.primary;
+    final Color buttonTextColor = context.isDarkMode
+        ? context.colors.onPrimaryContainer
+        : context.colors.onPrimary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(height: 2, width: 22, color: Colors.white70),
+            const SizedBox(width: AppSpacing.sm),
+            Text('PROFİLİN',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    letterSpacing: 3)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          'Henüz Giriş\nYapmadın',
+          style: GoogleFonts.playfairDisplay(
+            textStyle: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 30,
+                height: 1.05),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(
+          width: 280,
+          child: Text(
+            'Biletlerini, favori oyunlarını ve profilini görmek için giriş yap.',
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Semantics(
+          button: true,
+          label: 'Giriş yap',
+          child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(200, 52),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md)),
+                elevation: 0,
+                backgroundColor: buttonColor,
+                foregroundColor: buttonTextColor,
+              ),
+              onPressed: () => NavigationHandler.goToLogin(context),
+              child: const Text('Giriş Yap',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, letterSpacing: 0.5))),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStat(
+          final IconData icon, final String label, final String value) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: Colors.white70),
+            const SizedBox(width: 4),
+            Text(value,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: Colors.white)),
+          ],
+        ),
         Text(label,
             style: TextStyle(
                 fontSize: 10,
-                color: context.colors.primary.withOpacity(0.8),
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5)),
+                color: Colors.white.withOpacity(0.7),
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2)),
       ]);
 
   Widget _buildSectionLabel(final String text) => Align(
@@ -377,88 +633,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     blurRadius: 20,
                     spreadRadius: 2),
               ],
-      );
-
-  Widget _buildSilentStageInvitation() {
-    // Dark modda bile canlı kalacak renk seçimi
-    final Color buttonColor = context.isDarkMode
-        ? context.colors.primaryContainer // Koyu modda daha tok ve canlı durur
-        : context.colors.primary;
-
-    // Butonun üzerindeki yazı rengi
-    final Color buttonTextColor = context.isDarkMode
-        ? context.colors.onPrimaryContainer
-        : context.colors.onPrimary;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.huge),
-      decoration: _neuBox(borderRadius: AppRadius.xl),
-      child: Column(
-        children: [
-          Icon(Icons.theater_comedy_rounded,
-              size: 56, color: context.colors.primary.withOpacity(0.4)),
-          const SizedBox(height: AppSpacing.xxl),
-          const Text("SAHNE ŞİMDİLİK SESSİZ",
-              style: TextStyle(
-                  letterSpacing: 2, fontWeight: FontWeight.w900, fontSize: 18)),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-              "Işıkları açmak ve kendi hikayeni başlatmak için galerinin anahtarını teslim al.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: context.colors.onSurfaceVariant,
-                  fontSize: 12,
-                  height: 1.6)),
-          const SizedBox(height: AppSpacing.xxxl),
-
-          // BUTON GÜNCELLEMESİ
-          Semantics(
-            button: true,
-            label: 'Sahneyi uyandır, giriş yap',
-            child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md)),
-                  elevation: 0,
-                  backgroundColor: buttonColor,
-                  foregroundColor: buttonTextColor,
-                ),
-                onPressed: () => NavigationHandler.goToLogin(context),
-                child: const Text("SAHNEYİ UYANDIR",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, letterSpacing: 2))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildArtisticHeader(final bool isGuest) => Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: _neuBox(borderRadius: AppRadius.pill),
-            child: Icon(Icons.auto_awesome,
-                size: 32, color: context.colors.primary.withOpacity(0.4)),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Text('DENEYİM KÜRATÖRÜ',
-              style: context.textTheme.labelMedium?.copyWith(
-                  letterSpacing: 5,
-                  fontSize: 10,
-                  color: context.colors.onSurfaceVariant)),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-              isGuest
-                  ? 'Kendi Hikayeni\nKaleme Al'
-                  : 'Tanıklığın\nKarakterindir',
-              textAlign: TextAlign.center,
-              style: context.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 26,
-                  letterSpacing: -0.5)),
-        ],
       );
 
   Widget _buildSoulReflection() => Padding(
@@ -515,34 +689,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           horizontal: AppSpacing.xxxl, vertical: 56),
                       child: Column(
                         children: [
-                          _buildDesktopHeader(!isLoggedIn),
-                          const SizedBox(height: AppSpacing.xxxl),
-                          if (isLoggedIn)
-                            _buildDesktopPortrait(userData)
-                          else
-                            _buildDesktopInvitation(context),
+                          _buildDesktopHero(context, userData, isLoggedIn),
                           const SizedBox(height: AppSpacing.massive),
-                          _buildDesktopSectionLabel('ATMOSFER VE TEKNİK'),
+                          _buildDesktopSectionLabel('GÖRÜNÜM'),
                           const SizedBox(height: AppSpacing.lg),
                           const ThemeSelectorCard(),
                           const SizedBox(height: AppSpacing.md),
                           _buildDesktopTile(
                             context,
                             icon: Icons.settings_suggest_rounded,
-                            title: 'Atölye Ayarları',
-                            subtitle: 'Bildirimler, dil ve teknik tercihler',
+                            title: 'Ayarlar',
+                            subtitle:
+                                'İzinlerini ve uygulama tercihlerini yönet',
                             onTap: () =>
                                 NavigationHandler.goToSettings(context),
                           ),
                           const SizedBox(height: AppSpacing.huge),
-                          _buildDesktopSectionLabel('RUHUN İZLERİ'),
+                          _buildDesktopSectionLabel('GEÇMİŞİM'),
                           const SizedBox(height: AppSpacing.lg),
                           _buildDesktopTile(
                             context,
-                            icon: Icons.auto_stories_rounded,
-                            title: 'Tanıklık Günlüğü',
+                            icon: Icons.confirmation_number_rounded,
+                            title: 'Biletlerim',
                             subtitle:
-                                'Sahne tozunu yuttuğun tüm anların dökümü',
+                                'Geçmiş ve gelecek etkinliklerinin tüm biletleri',
                             isLocked: !isLoggedIn,
                             onTap: () => NavigationHandler.goToMyTickets(
                                 context, userData?.id ?? ""),
@@ -550,22 +720,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           const SizedBox(height: AppSpacing.md),
                           _buildDesktopTile(
                             context,
-                            icon: Icons.auto_awesome_mosaic_rounded,
-                            title: 'İlham Galerisi',
-                            subtitle: 'Zihninde yankılanan seçilmiş eserler',
+                            icon: Icons.favorite_rounded,
+                            title: 'Favorilerim',
+                            subtitle:
+                                'Favori oyunların, sahnelerin ve sanatçıların',
                             isLocked: !isLoggedIn,
                             onTap: () =>
                                 NavigationHandler.goToFavorites(context),
                           ),
                           const SizedBox(height: AppSpacing.huge),
-                          _buildDesktopSectionLabel('KİMLİK ATÖLYESİ'),
+                          _buildDesktopSectionLabel('PROFİLİM'),
                           const SizedBox(height: AppSpacing.lg),
                           _buildDesktopTile(
                             context,
-                            icon: Icons.brush_rounded,
-                            title: 'Fırça İzlerim',
+                            icon: Icons.edit_rounded,
+                            title: 'Profili Düzenle',
                             subtitle:
-                                'Kendi portreni ve sanatsal kimliğini yorumla',
+                                'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle',
                             isLocked: !isLoggedIn,
                             onTap: () => context
                                 .push('/profile-edit/${userData?.id ?? ""}'),
@@ -573,9 +744,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           const SizedBox(height: AppSpacing.md),
                           _buildDesktopTile(
                             context,
-                            icon: Icons.map_rounded,
-                            title: 'Serüven Rehberi',
-                            subtitle: 'Soruların için küratörle temas kur',
+                            icon: Icons.help_outline_rounded,
+                            title: 'Yardım ve Destek',
+                            subtitle: 'Sorularına hızlıca cevap bul',
                             onTap: () =>
                                 NavigationHandler.goToHelpSupport(context),
                           ),
@@ -585,29 +756,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           _buildDesktopTile(
                             context,
                             icon: Icons.gavel_rounded,
-                            title: 'Atölye Sözleşmesi',
-                            subtitle: 'Kullanım şartları ve KVKK rehberi',
+                            title: 'Yasal Bilgiler',
+                            subtitle: 'Gizlilik politikası ve kullanım şartları',
                             onTap: () =>
                                 NavigationHandler.goToContracts(context),
                           ),
                           if (isLoggedIn) ...[
                             const SizedBox(height: AppSpacing.huge),
-                            _buildDesktopSectionLabel('SON DOKUNUŞLAR'),
+                            _buildDesktopSectionLabel('HESAP İŞLEMLERİ'),
                             const SizedBox(height: AppSpacing.lg),
                             _buildDesktopTile(
                               context,
                               icon: Icons.logout_rounded,
-                              title: 'Atölyeyi Kapat',
-                              subtitle: 'Serüveni şimdilik mühürle ve ayrıl',
+                              title: 'Çıkış Yap',
+                              subtitle: 'Hesabından güvenle çıkış yap',
                               onTap: () => showSignOutDialog(context, ref),
                             ),
                             const SizedBox(height: AppSpacing.md),
                             _buildDesktopTile(
                               context,
                               icon: Icons.delete_forever_rounded,
-                              title: 'Koleksiyonu Yak',
+                              title: 'Hesabı Sil',
                               subtitle:
-                                  'Tüm izlerini ve hatıralarını kalıcı olarak sil',
+                                  'Hesabını ve tüm verilerini kalıcı olarak sil',
                               onTap: () => showDeleteAccountDialog(
                                   context, ref, userData.id),
                             ),
@@ -627,139 +798,242 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  Widget _buildDesktopHeader(final bool isGuest) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('DENEYİM KÜRATÖRÜ',
-              style: TextStyle(
-                  color: WebColors.textTertiary,
-                  letterSpacing: 4,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(
-            isGuest ? 'Kendi Hikayeni Kaleme Al' : 'Tanıklığın Karakterindir',
-            style: const TextStyle(
-                color: WebColors.whiteText,
-                fontWeight: FontWeight.w900,
-                fontSize: 28,
-                letterSpacing: -0.5),
-          ),
-        ],
-      );
-
-  Widget _buildDesktopPortrait(final entity.User user) => Container(
-        padding: const EdgeInsets.all(28),
+  // --- 🎬 MASAÜSTÜ HERO — `home_page_web.dart`'taki `_HeroBand`/
+  // `_HeroBackdropPhoto` ile AYNI teknik: tam boy gerçek fotoğraf zemini +
+  // çift yönlü karartma + üzerine gerçek kullanıcı verisiyle kurulu bir
+  // kimlik bloğu. Giriş yapılmışsa zemin kullanıcının kendi fotoğrafı,
+  // misafirse `_stageBackdropUrl` (home hero'suyla AYNI, doğrulanmış
+  // Unsplash görseli — marka dili tutarlı kalsın diye).
+  Widget _buildDesktopHero(final BuildContext context,
+          final entity.User? user, final bool isLoggedIn) =>
+      Container(
+        height: isLoggedIn && user != null ? 380 : 360,
         decoration: BoxDecoration(
-          gradient: WebColors.cardGradient,
           borderRadius: AppRadius.asymLg,
           border:
               Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
+          boxShadow: AppShadows.level5(WebColors.primaryGold),
         ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 44,
-              backgroundColor: WebColors.darkBlueAccent,
-              backgroundImage: NetworkImage(user.imageUrl),
-            ),
-            const SizedBox(width: AppSpacing.xxl),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${user.firstName} ${user.lastName}'.trim(),
-                      style: const TextStyle(
-                          color: WebColors.whiteText,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 20,
-                          letterSpacing: 0.5)),
-                  const SizedBox(height: 4),
-                  Text(user.city,
-                      style: const TextStyle(
-                          color: WebColors.primaryGoldLight,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13)),
-                ],
+        child: ClipRRect(
+          borderRadius: AppRadius.asymLg,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _buildDesktopHeroBackdrop(
+                  isLoggedIn && user != null ? user.imageUrl : null),
+              _buildDesktopHeroScrim(),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.massive),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: isLoggedIn && user != null
+                      ? _buildDesktopHeroIdentity(user)
+                      : _buildDesktopHeroGuest(context),
+                ),
               ),
-            ),
-            _buildDesktopStat('HAFIZA', '${user.ticketsId.length}'),
-            const SizedBox(width: 24),
-            _buildDesktopStat('ŞAHİTLİK', '${user.favoriteShows.length}'),
-            const SizedBox(width: 24),
-            _buildDesktopStat('DİKKAT', '${user.favoritePlayers.length}'),
-          ],
+            ],
+          ),
         ),
       );
 
-  Widget _buildDesktopStat(final String label, final String value) => Column(
+  /// Mobil `_buildHeroBackdrop` ile AYNI mantık, sadece hata/yükleme
+  /// düşüşü `WebColors.darkBlueSurface` — masaüstü kabuğu her zaman
+  /// `WebColors` temalı, `context.colors` değil.
+  Widget _buildDesktopHeroBackdrop(final String? userPhotoUrl) {
+    final String url = (userPhotoUrl != null && userPhotoUrl.isNotEmpty)
+        ? userPhotoUrl
+        : _stageBackdropUrl;
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (final _, final __, final ___) =>
+            const ColoredBox(color: WebColors.darkBlueSurface),
+        loadingBuilder: (final _, final child, final progress) =>
+            progress == null
+                ? child
+                : const ColoredBox(color: WebColors.darkBlueSurface),
+      ),
+    );
+  }
+
+  Widget _buildDesktopHeroScrim() => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withOpacity(0.72),
+              Colors.black.withOpacity(0.32),
+              WebColors.darkBlueBackground.withOpacity(0.94),
+            ],
+            stops: const [0.0, 0.55, 1.0],
+          ),
+        ),
+      );
+
+  Widget _buildDesktopHeroIdentity(final entity.User user) {
+    final String? memberSince = _memberSinceLabel(user.createdAt);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(height: 2, width: 26, color: WebColors.primaryGold),
+            const SizedBox(width: AppSpacing.sm),
+            const Text('HOŞ GELDİN',
+                style: TextStyle(
+                    color: WebColors.primaryGoldLight,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    letterSpacing: 3)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          '${user.firstName} ${user.lastName}'.trim(),
+          style: GoogleFonts.playfairDisplay(
+            textStyle: const TextStyle(
+                color: WebColors.whiteText,
+                fontWeight: FontWeight.w700,
+                fontSize: 38,
+                height: 1.05),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.lg,
+          runSpacing: 4,
+          children: [
+            if (user.city.isNotEmpty)
+              _buildDesktopHeroMetaChip(Icons.place_rounded, user.city),
+            if (memberSince != null)
+              _buildDesktopHeroMetaChip(
+                  Icons.calendar_today_rounded, 'Üyelik: $memberSince'),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        Row(
+          children: [
+            _buildDesktopStat(Icons.confirmation_number_rounded, 'BİLET',
+                '${user.ticketsId.length}'),
+            const SizedBox(width: 28),
+            _buildDesktopStat(Icons.favorite_rounded, 'OYUN',
+                '${user.favoriteShows.length}'),
+            const SizedBox(width: 28),
+            _buildDesktopStat(Icons.star_rounded, 'SANATÇI',
+                '${user.favoritePlayers.length}'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopHeroMetaChip(final IconData icon, final String label) =>
+      Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(value,
+          Icon(icon, size: 14, color: WebColors.textSecondary),
+          const SizedBox(width: 4),
+          Text(label,
               style: const TextStyle(
-                  color: WebColors.whiteText,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18)),
+                  color: WebColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600)),
+        ],
+      );
+
+  Widget _buildDesktopStat(
+          final IconData icon, final String label, final String value) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: WebColors.primaryGoldLight),
+              const SizedBox(width: 4),
+              Text(value,
+                  style: const TextStyle(
+                      color: WebColors.whiteText,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20)),
+            ],
+          ),
           const SizedBox(height: 2),
           Text(label,
               style: const TextStyle(
                   color: WebColors.textTertiary,
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1)),
         ],
       );
 
-  Widget _buildDesktopInvitation(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
-        decoration: BoxDecoration(
-          gradient: WebColors.cardGradient,
-          borderRadius: AppRadius.asymLg,
-          border:
-              Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.theater_comedy_rounded,
-                size: 44, color: WebColors.primaryGold),
-            const SizedBox(height: AppSpacing.lg),
-            const Text('SAHNE ŞİMDİLİK SESSİZ',
-                style: TextStyle(
-                    color: WebColors.whiteText,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15)),
-            const SizedBox(height: 10),
-            const Text(
-                'Işıkları açmak ve kendi hikayeni başlatmak için galerinin anahtarını teslim al.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: WebColors.textSecondary,
-                    fontSize: 12,
-                    height: 1.6)),
-            const SizedBox(height: AppSpacing.xxl),
-            SizedBox(
-              width: 260,
-              height: 50,
-              child: Semantics(
-                button: true,
-                label: 'Sahneyi uyandır, giriş yap',
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                        borderRadius: AppRadius.asymSm),
-                    elevation: 0,
-                    backgroundColor: WebColors.primaryGold,
-                    foregroundColor: WebColors.whiteText,
-                  ),
-                  onPressed: () => NavigationHandler.goToLogin(context),
-                  child: const Text('SAHNEYİ UYANDIR',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, letterSpacing: 2)),
+  Widget _buildDesktopHeroGuest(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(height: 2, width: 26, color: WebColors.primaryGold),
+              const SizedBox(width: AppSpacing.sm),
+              const Text('PROFİLİN',
+                  style: TextStyle(
+                      color: WebColors.primaryGoldLight,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      letterSpacing: 3)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'Henüz Giriş Yapmadın',
+            style: GoogleFonts.playfairDisplay(
+              textStyle: const TextStyle(
+                  color: WebColors.whiteText,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 34,
+                  height: 1.1),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(
+            width: 380,
+            child: Text(
+              'Biletlerini, favori oyunlarını ve profilini görmek için giriş yap.',
+              style: TextStyle(
+                  color: WebColors.textSecondary, fontSize: 14, height: 1.5),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          SizedBox(
+            width: 220,
+            height: 50,
+            child: Semantics(
+              button: true,
+              label: 'Giriş yap',
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.asymSm),
+                  elevation: 0,
+                  backgroundColor: WebColors.primaryGold,
+                  foregroundColor: WebColors.whiteText,
                 ),
+                onPressed: () => NavigationHandler.goToLogin(context),
+                child: const Text('Giriş Yap',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, letterSpacing: 0.5)),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       );
 
   Widget _buildDesktopSectionLabel(final String text) => Text(

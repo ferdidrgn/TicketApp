@@ -25,7 +25,7 @@ class ThemeSelectorCard extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 16.0, bottom: 16.0),
           child: Text(
-            "ATÖLYE IŞIĞI",
+            "TEMA",
             style: TextStyle(
               fontSize: 11,
               letterSpacing: 3,
