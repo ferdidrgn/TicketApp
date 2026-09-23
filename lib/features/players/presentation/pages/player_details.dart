@@ -237,13 +237,18 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
                     () {},
                     semanticLabel: 'Oynatma listesine ekle',
                   ),
-                  AnimatedOpacity(
-                    opacity: _isScrolled ? 1.0 : 0.0,
-                    duration: AppMotion.normal,
-                    child: Text(
-                        "${state.player.firstName} ${state.player.lastName}",
-                        style: context.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
+                  Flexible(
+                    child: AnimatedOpacity(
+                      opacity: _isScrolled ? 1.0 : 0.0,
+                      duration: AppMotion.normal,
+                      child: Text(
+                          "${state.player.firstName} ${state.player.lastName}",
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: context.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                    ),
                   ),
                   _artisticIconBtn(
                     Icons.share_outlined,
@@ -323,7 +328,8 @@ class _PlayerDetailPageState extends ConsumerState<PlayerDetailPage>
           const SizedBox(width: AppSpacing.lg),
           _premiumStatCard("ARŞİV", past.toString(), context.colors.secondary),
           const SizedBox(width: AppSpacing.lg),
-          _premiumStatCard("ÖDÜL", awards.toString(), Colors.amber[700]!),
+          _premiumStatCard(
+              "ÖDÜL", awards.toString(), context.colors.tertiary),
         ],
       ),
     );
