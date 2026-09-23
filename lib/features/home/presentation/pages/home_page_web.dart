@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/util/comminucation_actions.dart';
 import '../../../../core/util/date_formatter.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../../shared/widgets/global_error_widget.dart';
@@ -116,8 +117,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       child: hasError
           ? GlobalErrorWidget(
               isFullPage: false,
-              title: 'Perdeler Henüz Açılmadı',
-              message: 'Sahne verileri yüklenirken bir sorun oluştu.',
+              title: AppLocalizations.of(context)!.homeErrorTitleWeb,
+              message: AppLocalizations.of(context)!.homeErrorMessageWeb,
               onRetry: () {
                 ref.invalidate(campaignsProvider);
                 ref.invalidate(showsActiveFirstProvider);
@@ -149,8 +150,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                       if (campaigns.isNotEmpty)
                         RevealOnScroll(
                           child: _Section(
-                            kicker: 'VİTRİN',
-                            title: 'Öne Çıkanlar',
+                            kicker: AppLocalizations.of(context)!
+                                .homeFeaturedKicker,
+                            title: AppLocalizations.of(context)!
+                                .homeFeaturedTitle,
                             child: HomeCampaignRail(
                               campaigns: campaigns,
                               onCampaignTap: (final index) =>
@@ -164,8 +167,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                       RevealOnScroll(
                         delay: const Duration(milliseconds: 60),
                         child: _Section(
-                          kicker: 'SANATIN RENKLERİ',
-                          title: 'Kategoriler',
+                          kicker:
+                              AppLocalizations.of(context)!.homeCategoriesKicker,
+                          title:
+                              AppLocalizations.of(context)!.homeCategoriesTitle,
                           child: HomeCategoryStrip(
                             onCategoryTap: (final category) =>
                                 NavigationHandler.goToDiscoverWithCategory(
@@ -178,15 +183,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                       RevealOnScroll(
                         delay: const Duration(milliseconds: 80),
                         child: _Section(
-                          kicker: 'KEŞFET',
-                          title: 'Sana Özel Seçkiler',
-                          trailingLabel: shows.isEmpty ? null : 'Tümünü Gör',
+                          kicker: AppLocalizations.of(context)!.homeDiscoverKicker,
+                          title: AppLocalizations.of(context)!.homeCuratedForYou,
+                          trailingLabel: shows.isEmpty
+                              ? null
+                              : AppLocalizations.of(context)!.homeSeeAll,
                           onTrailingTap: () =>
                               NavigationHandler.goToDiscover(context),
                           child: shows.isEmpty
-                              ? const _EmptyHint(
-                                  text:
-                                      'Şu anda listelenecek bir oyun bulunmuyor. Yakında burada olacak.')
+                              ? _EmptyHint(
+                                  text: AppLocalizations.of(context)!
+                                      .homeEmptyShowsHint)
                               : HomeShowGrid(
                                   shows: shows,
                                   onShowTap: (final show) =>
@@ -201,8 +208,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                         RevealOnScroll(
                           delay: const Duration(milliseconds: 80),
                           child: _Section(
-                            kicker: 'MEKANLAR',
-                            title: 'Şehrin Sahneleri',
+                            kicker:
+                                AppLocalizations.of(context)!.homeVenuesKicker,
+                            title:
+                                AppLocalizations.of(context)!.homeVenuesSubtitle,
                             child: HomeStageRail(
                               stages: stages,
                               onStageTap: (final stage) =>
@@ -242,8 +251,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                       // gerçek veriye bağlı ve gerçekten çalışıyor.
                       RevealOnScroll(
                         child: _Section(
-                          kicker: 'HESABIM',
-                          title: 'Neye İhtiyacın Var?',
+                          kicker: AppLocalizations.of(context)!.homeAccountKicker,
+                          title: AppLocalizations.of(context)!
+                              .homeAccountSectionTitle,
                           child: _QuickLinksBand(
                             loggedIn: loggedIn,
                             upcomingTicketCount: ticketsAsync.value
@@ -272,8 +282,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       // 7. Şu An Popüler (mobildeki TrendingNowSection'ın aynısı)
                       RevealOnScroll(
                         child: _Section(
-                          kicker: 'GÜNDEM',
-                          title: 'Şu An Popüler',
+                          kicker: AppLocalizations.of(context)!.homeTrendingKicker,
+                          title: AppLocalizations.of(context)!.homeTrendingTitle,
                           child: const HomeTrendingChips(),
                         ),
                       ),
@@ -1055,7 +1065,7 @@ class _HeroBrandMark extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'TİYATROL',
+                AppLocalizations.of(context)!.homeHeroBrandMark,
                 style: GoogleFonts.playfairDisplay(
                   color: WebColors.whiteText,
                   fontSize: 17,
@@ -1065,7 +1075,7 @@ class _HeroBrandMark extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'SAHNE SANATLARI',
+                AppLocalizations.of(context)!.homeHeroBrandSubtitle,
                 style: TextStyle(
                   color: WebColors.textTertiary.withOpacity(0.85),
                   fontSize: 9,
@@ -1099,13 +1109,11 @@ class _HeroCopy extends StatelessWidget {
   /// planda ama hâlâ gerçek. Sayılar 0 ya da henüz bilinmiyorsa (yükleme
   /// sırasında geçici olarak `0` gelebilir) jenerik ama doğru bir cümleye
   /// düşer; asla uydurma bir rakam göstermez.
-  String get _lede {
+  String _lede(final BuildContext context) {
     if (showCount > 0 && stageCount > 0)
-      return 'Şehrin $stageCount sahnesinde bu sezon aktif $showCount '
-          'oyunu keşfet; sana en yakın gösterimlere göz at ve birkaç '
-          'dokunuşla biletini al.';
-    return 'Şehrin sahnelerinde bu sezon oynayan oyunları keşfet, '
-        'yakınındaki etkinliklere göz at ve biletini birkaç tıkla al.';
+      return AppLocalizations.of(context)!
+          .homeHeroLedeWithCounts(stageCount, showCount);
+    return AppLocalizations.of(context)!.homeHeroLedeFallback;
   }
 
   @override
@@ -1121,9 +1129,9 @@ class _HeroCopy extends StatelessWidget {
             children: [
               Container(height: 2, width: 34, color: WebColors.primaryGold),
               const SizedBox(width: 14),
-              const Text(
-                'SAHNE SANATLARI SEZONU',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.homeHeroEyebrow,
+                style: const TextStyle(
                   color: WebColors.primaryGoldLight,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -1134,7 +1142,7 @@ class _HeroCopy extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Bu akşam,\nhangi sahne seni bekliyor?',
+            AppLocalizations.of(context)!.homeHeroHeadline,
             style: GoogleFonts.playfairDisplay(
               textStyle:
                   (context.textTheme.displaySmall ?? const TextStyle())
@@ -1154,7 +1162,7 @@ class _HeroCopy extends StatelessWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
             child: Text(
-              _lede,
+              _lede(context),
               style: const TextStyle(
                 color: WebColors.textSecondary,
                 fontSize: 14.5,
@@ -1173,13 +1181,13 @@ class _HeroCopy extends StatelessWidget {
             runSpacing: 12,
             children: [
               _PillButton(
-                label: 'Sahneleri Keşfet',
+                label: AppLocalizations.of(context)!.homeHeroDiscoverButton,
                 icon: Icons.explore_rounded,
                 filled: true,
                 onTap: onDiscoverTap,
               ),
               _PillButton(
-                label: 'Yakınımdakiler',
+                label: AppLocalizations.of(context)!.homeHeroNearbyButton,
                 icon: Icons.near_me_rounded,
                 filled: false,
                 onTap: onNearbyTap,
@@ -1238,7 +1246,7 @@ class _WebSearchFieldState extends State<_WebSearchField> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Tiyatro, konser, sanatçı ara…',
+                    AppLocalizations.of(context)!.homeHeroSearchPlaceholder,
                     style: TextStyle(
                       color: WebColors.textSecondary.withOpacity(0.85),
                       fontSize: 14,
@@ -1246,7 +1254,7 @@ class _WebSearchFieldState extends State<_WebSearchField> {
                   ),
                 ),
                 Text(
-                  'ARA',
+                  AppLocalizations.of(context)!.homeHeroSearchLabel,
                   style: TextStyle(
                     color: WebColors.textTertiary
                         .withOpacity(_hovered ? 0.9 : 0.6),
@@ -1579,9 +1587,9 @@ class _FeaturedShowCardState extends State<_FeaturedShowCard> {
                     border: Border.all(
                         color: WebColors.primaryGold.withOpacity(0.4)),
                   ),
-                  child: const Text(
-                    'SIRADAKİ OYUN',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.homeNextShowLabel,
+                    style: const TextStyle(
                       color: WebColors.primaryGoldLight,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -1624,9 +1632,9 @@ class _FeaturedShowCardState extends State<_FeaturedShowCard> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'Detayları Gör',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.homeSeeDetails,
+                            style: const TextStyle(
                               color: WebColors.primaryGoldLight,
                               fontSize: 12.5,
                               fontWeight: FontWeight.w700,
@@ -1869,9 +1877,9 @@ class _HotspotCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'SIRADAKİ OYUN',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.homeNextShowLabel,
+              style: const TextStyle(
                 color: WebColors.primaryGoldLight,
                 fontSize: 9.5,
                 fontWeight: FontWeight.w800,
@@ -1927,19 +1935,19 @@ class _HotspotCard extends StatelessWidget {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onOpenShow,
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Detayları Gör',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.homeSeeDetails,
+                    style: const TextStyle(
                       color: WebColors.primaryGoldLight,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.arrow_forward_rounded,
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_rounded,
                       size: 12, color: WebColors.primaryGoldLight),
                 ],
               ),
@@ -2055,11 +2063,17 @@ class _HeroSideNavRail extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _HeroRailLabel(label: 'ARA', onTap: onSearchTap),
+            _HeroRailLabel(
+                label: AppLocalizations.of(context)!.homeHeroSearchLabel,
+                onTap: onSearchTap),
             _railDivider(),
-            _HeroRailLabel(label: 'KEŞFET', onTap: onDiscoverTap),
+            _HeroRailLabel(
+                label: AppLocalizations.of(context)!.homeDiscoverKicker,
+                onTap: onDiscoverTap),
             _railDivider(),
-            _HeroRailLabel(label: 'YAKINIMDA', onTap: onNearbyTap),
+            _HeroRailLabel(
+                label: AppLocalizations.of(context)!.homeNearMeLabel,
+                onTap: onNearbyTap),
           ],
         ),
       );
@@ -2308,21 +2322,22 @@ class _QuickLinksBand extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final String ticketsSubtitle = !loggedIn
-        ? 'Giriş yaparak biletlerini gör'
+        ? l10n.homeTicketsLoginPrompt
         : upcomingTicketCount == 0
-            ? 'Henüz yaklaşan bileğin yok'
+            ? l10n.homeTicketsNoneYet
             : nextTicketShowName == null
-                ? 'Bilet detaylarını gör'
-                : 'Sıradaki: $nextTicketShowName';
+                ? l10n.homeTicketsSeeDetails
+                : l10n.homeTicketsNext(nextTicketShowName!);
     final String favoritesSubtitle = !loggedIn
-        ? 'Giriş yaparak favorilerini gör'
+        ? l10n.homeFavoritesLoginPrompt
         : favoritesCount == 0
-            ? 'Henüz favori eklemedin'
-            : 'Kaydettiklerini görüntüle';
+            ? l10n.homeFavoritesNoneYet
+            : l10n.homeFavoritesView;
     final String nearbySubtitle = nearbyEventCount == 0
-        ? 'Şu an planlanan yeni etkinlik yok'
-        : 'Bu hafta sahnede neler var, gör';
+        ? l10n.homeNearbyNoneYet
+        : l10n.homeNearbyView;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -2339,21 +2354,21 @@ class _QuickLinksBand extends StatelessWidget {
             _DashboardCard(
               icon: Icons.confirmation_number_outlined,
               statValue: loggedIn ? '$upcomingTicketCount' : '—',
-              statLabel: 'Yaklaşan Bilet',
+              statLabel: l10n.homeStatUpcomingTicket,
               subtitle: ticketsSubtitle,
               onTap: onTicketsTap,
             ),
             _DashboardCard(
               icon: Icons.favorite_outline,
               statValue: loggedIn ? '$favoritesCount' : '—',
-              statLabel: 'Favori',
+              statLabel: l10n.homeStatFavorite,
               subtitle: favoritesSubtitle,
               onTap: onFavoritesTap,
             ),
             _DashboardCard(
               icon: Icons.event_available_outlined,
               statValue: '$nearbyEventCount',
-              statLabel: 'Yakında',
+              statLabel: l10n.homeStatNearby,
               subtitle: nearbySubtitle,
               onTap: onNearbyTap,
             ),
@@ -2361,8 +2376,8 @@ class _QuickLinksBand extends StatelessWidget {
               icon: Icons.settings_outlined,
               statValue: null,
               statLabel: null,
-              title: 'Hesap Ayarları',
-              subtitle: 'Profil, bildirim ve gizlilik tercihlerin',
+              title: l10n.homeAccountSettingsTitle,
+              subtitle: l10n.homeAccountSettingsSubtitle,
               onTap: onSettingsTap,
             ),
           ],
@@ -2533,8 +2548,7 @@ class _ClosingQuoteBand extends StatelessWidget {
                     // önce, altında tam Türkçe çevirisi daha küçük
                     // puntoyla (bkz. mobildeki BottomQuote,
                     // decorative_elements.dart — aynı metin).
-                    '"Ars longa, vita brevis, occasio praeceps, '
-                    'experimentum periculosum, iudicium difficile."',
+                    AppLocalizations.of(context)!.homeQuoteLatin,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: WebColors.lightWhite,
@@ -2547,8 +2561,7 @@ class _ClosingQuoteBand extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '"Sanat (zanaat/bilgi) uzun, hayat kısa, fırsat kaçıcı, '
-                    'deneyim yanıltıcı (tehlikeli), karar vermek zordur."',
+                    AppLocalizations.of(context)!.homeQuoteTranslation,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: WebColors.textSecondary,
@@ -2560,9 +2573,9 @@ class _ClosingQuoteBand extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'HER GÜN YENİ BİR KEŞİF',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.homeDailyDiscoveryTag,
+                    style: const TextStyle(
                       color: WebColors.textTertiary,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

@@ -42,5 +42,127 @@
   "searchSectionsShowsSubtitle": "Flow of Art",
   "searchSectionsPlayersSubtitle": "Stars of the Stage",
   "searchSectionsStagesSubtitle": "Heart of Art",
-  "searchSectionsTeamsSubtitle": "Creative Groups"
+  "searchSectionsTeamsSubtitle": "Creative Groups",
+
+  "loginHeroTitle": "WORLD OF\nART",
+  "loginPhoneButton": "CONTINUE WITH PHONE",
+  "loginGoogleButton": "Continue with Google",
+  "loginTermsNotice": "BY JOINING THE COLLECTION YOU ACCEPT THE TERMS",
+
+  "homeTooltipNotifications": "Notifications",
+  "homeTooltipSettings": "Settings",
+  "homeErrorTitleMobile": "The Curtains Haven't Opened Yet!",
+  "homeErrorRetryMobile": "Refresh the Stage",
+  "homeErrorTitleWeb": "The Curtains Haven't Opened Yet",
+  "homeErrorMessageWeb": "There was a problem loading the stage data.",
+  "homeFeaturedTitle": "Featured",
+  "homeFeaturedSubtitle": "Showcase",
+  "homeFeaturedKicker": "SHOWCASE",
+  "homeCategoriesTitle": "Categories",
+  "homeCategoriesSubtitle": "Colors of Art",
+  "homeCategoriesKicker": "COLORS OF ART",
+  "homeActiveShowsTitle": "Active Plays",
+  "homeActiveShowsSubtitle": "On Stage Now",
+  "homeDiscoverTitle": "Discover",
+  "homeDiscoverKicker": "DISCOVER",
+  "homeCuratedForYou": "Curated For You",
+  "homeVenuesTitle": "Venues",
+  "homeVenuesSubtitle": "Stages of the City",
+  "homeVenuesKicker": "VENUES",
+  "homeTeamsTitle": "Stage Communities",
+  "homeTeamsSubtitle": "Discover Teams",
+  "homeCampaignDiscoverSubtitle": "Discover the Campaign",
+  "homeSeeAll": "See All",
+  "homeEmptyShowsHint": "There are no plays to list right now. Check back soon.",
+  "homeAccountSectionTitle": "What Do You Need?",
+  "homeAccountKicker": "MY ACCOUNT",
+  "homeTrendingTitle": "Trending Now",
+  "homeTrendingKicker": "TRENDING",
+  "homeHeroBrandMark": "TIYATROL",
+  "homeHeroBrandSubtitle": "PERFORMING ARTS",
+  "homeHeroEyebrow": "PERFORMING ARTS SEASON",
+  "homeHeroHeadline": "Tonight,\nwhich stage awaits you?",
+  "homeHeroLedeWithCounts": "Discover {showCount} active plays this season across {stageCount} stages in the city; check out the shows nearest you and get your ticket in a few taps.",
+  "@homeHeroLedeWithCounts": {
+    "description": "Hero section lede when stage and show counts are known",
+    "placeholders": {
+      "stageCount": {
+        "type": "int"
+      },
+      "showCount": {
+        "type": "int"
+      }
+    }
+  },
+  "homeHeroLedeFallback": "Discover the plays showing this season on the city's stages, check out nearby events, and get your ticket in a few clicks.",
+  "homeHeroDiscoverButton": "Discover Stages",
+  "homeHeroNearbyButton": "Near Me",
+  "homeHeroSearchPlaceholder": "Search for theatre, concerts, artists…",
+  "homeHeroSearchLabel": "SEARCH",
+  "homeNextShowLabel": "NEXT SHOW",
+  "homeSeeDetails": "See Details",
+  "homeNearMeLabel": "NEARBY",
+  "homeTicketsLoginPrompt": "Sign in to see your tickets",
+  "homeTicketsNoneYet": "No upcoming tickets yet",
+  "homeTicketsSeeDetails": "See ticket details",
+  "homeTicketsNext": "Next: {showName}",
+  "@homeTicketsNext": {
+    "description": "Upcoming ticket's show name in the quick-links panel",
+    "placeholders": {
+      "showName": {
+        "type": "String"
+      }
+    }
+  },
+  "homeFavoritesLoginPrompt": "Sign in to see your favorites",
+  "homeFavoritesNoneYet": "You haven't added any favorites yet",
+  "homeFavoritesView": "View your saved items",
+  "homeNearbyNoneYet": "No new events planned right now",
+  "homeNearbyView": "See what's on stage this week",
+  "homeStatUpcomingTicket": "Upcoming Ticket",
+  "homeStatFavorite": "Favorite",
+  "homeStatNearby": "Nearby",
+  "homeAccountSettingsTitle": "Account Settings",
+  "homeAccountSettingsSubtitle": "Your profile, notification, and privacy preferences",
+  "homeQuoteLatin": "\"Ars longa, vita brevis, occasio praeceps, experimentum periculosum, iudicium difficile.\"",
+  "homeQuoteTranslation": "\"Art is long, life is short, opportunity fleeting, experience treacherous, judgment difficult.\"",
+  "homeDailyDiscoveryTag": "A NEW DISCOVERY EVERY DAY",
+
+  "settingsTitle": "Settings",
+  "settingsSubtitle": "Manage your permissions and app preferences.",
+  "settingsQuoteText": "Art washes away from the soul the dust of everyday life.",
+  "settingsQuoteAuthor": "Pablo Picasso",
+  "settingsSectionPermissions": "PERMISSIONS",
+  "settingsLocationPermissionTitle": "Location Permission",
+  "settingsLocationPermissionSubtitle": "Allow access so we can find shows near you.",
+  "settingsNotificationsPermissionTitle": "Notifications",
+  "settingsNotificationsPermissionSubtitle": "Get notified about new shows and campaigns.",
+  "settingsSectionAppearance": "APPEARANCE",
+  "settingsAccentColorTitle": "Accent Color",
+  "settingsAccentColorCustomSubtitle": "You're currently using your own custom color.",
+  "settingsAccentColorDefaultSubtitle": "Choose the app's accent color yourself.",
+  "settingsAccentColorPickerTitle": "Choose Accent Color",
+  "settingsAccentColorSemanticLabel": "Select as accent color",
+  "settingsCancel": "Cancel",
+  "settingsSectionLanguage": "LANGUAGE",
+  "settingsLanguageTitle": "App Language",
+  "settingsLanguageSubtitle": "Change the app's language.",
+  "settingsLanguageTurkish": "Turkish",
+  "settingsLanguageEnglish": "English",
+  "settingsSectionSupport": "SUPPORT THE APP",
+  "settingsRecommendAppTitle": "Recommend the App",
+  "settingsRecommendAppDesc": "Support us by sharing the store download link.",
+  "settingsShareWithFriendsTitle": "Share with Friends",
+  "settingsShareWithFriendsDesc": "Share TiyatRol via message or social media.",
+  "settingsVersionFooter": "Version 1.0.4 - Designed with Art",
+  "settingsShareMessage": "Join this adventure that will nourish your soul with art: {url}",
+  "@settingsShareMessage": {
+    "description": "Message sent when sharing the app",
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsShareSubject": "Art Adventure"
 }

@@ -6,6 +6,7 @@ import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
 import '../widgets/auth_stage_widgets.dart';
@@ -144,7 +145,7 @@ class _LoginOptionsPanel extends StatelessWidget {
             const AuthOrDivider(),
             const SizedBox(height: AppSpacing.lg),
             AuthActionButton(
-              label: 'TELEFON İLE DEVAM ET',
+              label: AppLocalizations.of(context)!.loginPhoneButton,
               icon: Icons.phone_iphone_rounded,
               semanticLabel: 'Telefon numarasıyla giriş yap',
               useAsymCorner: true,
@@ -181,14 +182,14 @@ class _GoogleButton extends StatelessWidget {
               border: Border.all(color: Colors.black.withOpacity(0.12)),
               boxShadow: AppShadows.level1(Colors.black),
             ),
-            child: const Center(
+            child: Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  GoogleLogo(size: 22),
-                  SizedBox(width: AppSpacing.md),
-                  Text('Google ile Bağlan',
-                      style: TextStyle(
+                  const GoogleLogo(size: 22),
+                  const SizedBox(width: AppSpacing.md),
+                  Text(AppLocalizations.of(context)!.loginGoogleButton,
+                      style: const TextStyle(
                           color: Color(0xFF1F1F1F),
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.2,
@@ -207,7 +208,7 @@ class _FinePrint extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => Center(
         child: Text(
-          'GİRİŞ YAPARAK ŞARTLARI KABUL EDERSİNİZ',
+          AppLocalizations.of(context)!.loginTermsNotice,
           textAlign: TextAlign.center,
           style: context.textTheme.labelSmall?.copyWith(
             color: context.colors.onSurface.withOpacity(0.45),
