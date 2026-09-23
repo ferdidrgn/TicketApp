@@ -46,13 +46,16 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
-
-<!-- 🔗 Universal Links (HTTPS Deep Links) -->
-<key>com.apple.developer.associated-domains</key>
-<array>
-    <string>applinks:tiyatrol.web.app</string>
-    <string>applinks:www.tiyatrol.web.app</string>
-</array>
+<!--
+	🔗 Universal Links (HTTPS Deep Links)
+	Not: "com.apple.developer.associated-domains" Info.plist'te İŞLEVSİZDİR —
+	bu bir entitlement'tır ve Runner.entitlements dosyasında tanımlanır
+	(bkz. ios/Runner/Runner.entitlements, CODE_SIGN_ENTITLEMENTS build
+	setting'i ile Runner target'ına bağlandı). Burada tekrar edilmiyor.
+	"www.tiyatrol.web.app" kaldırıldı: Firebase Hosting proje domaini
+	sadece "tiyatrol.web.app" — "www." alt alan adı yapılandırılmamış,
+	AASA orada servis edilmiyor.
+-->
 
 <!-- 🔗 Custom URL Scheme (Fallback) -->
 <key>CFBundleURLTypes</key>

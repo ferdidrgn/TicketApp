@@ -5,7 +5,13 @@ import '../../common/extentions/reg_exp_extentions.dart';
 final class TiyatrolDeeplinkService {
   TiyatrolDeeplinkService._();
 
-  static const String _baseUrl = "https://tiyatrol.web.app";
+  // 🔑 KRİTİK: Flutter web uygulaması bu domain'in KÖKÜNDE değil, "/app"
+  // alt yolunda yayınlanıyor (bkz. scripts/deploy.sh — statik landing
+  // sitesi domain kökünde, `flutter build web --base-href /app/` çıktısı
+  // "/app" altında; firebase.json'daki "/app/**" rewrite'ı bunu
+  // doğruluyor). Paylaşılan linkler "/app" önekini İÇERMEZSE tarayıcıda
+  // 404 döner — bu önek burada eksikse asla kaldırma.
+  static const String _baseUrl = "https://tiyatrol.web.app/app";
 
   /// 🛠 URL Oluşturucu (Slug-ID yapısı)
   static String _createUrl(
