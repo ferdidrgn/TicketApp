@@ -524,7 +524,7 @@ class _ThumbnailCarouselState extends ConsumerState<ThumbnailCarousel> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isActive
-                            ? const Color(0xFFE85C3F)
+                            ? WebColors.primaryGold
                             : Colors.transparent,
                         width: 2,
                       ),
@@ -596,7 +596,7 @@ class GalleryPaginationControls extends StatelessWidget {
         margin: const EdgeInsets.only(top: 24),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1B3A26).withOpacity(0.4),
+          color: WebColors.darkBlueSurface.withOpacity(0.4),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -644,13 +644,13 @@ class _PageButton extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: enabled
-                  ? const Color(0xFFE85C3F)
+                  ? WebColors.primaryGold
                   : Colors.grey.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
-              color: enabled ? const Color(0xFF0F2318) : Colors.white24,
+              color: enabled ? WebColors.darkBlueBackground : Colors.white24,
               size: 14,
             ),
           ),

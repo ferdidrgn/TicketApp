@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 
 class GlobalErrorWidget extends StatelessWidget {
   final String? title;
@@ -17,8 +18,8 @@ class GlobalErrorWidget extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     // Tasarımlarındaki ortak altın rengi
-    const goldColor = Color(0xFFE85C3F);
-    const darkBg = Color(0xFF0F2318);
+    const goldColor = WebColors.primaryGold;
+    const darkBg = WebColors.darkBlueBackground;
 
     final content = Center(
       child: Padding(
@@ -70,7 +71,7 @@ class GlobalErrorWidget extends StatelessWidget {
         decoration: BoxDecoration(
           // ErrorStateWidget'taki gradient
           gradient: LinearGradient(
-            colors: [goldColor, const Color(0xFFF0876F)],
+            colors: [goldColor, WebColors.primaryGoldLight],
           ),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
@@ -84,7 +85,7 @@ class GlobalErrorWidget extends StatelessWidget {
         child: const Text(
           'TEKRAR DENE',
           style: TextStyle(
-            color: Color(0xFF0F0F0F),
+            color: WebColors.darkBlueBackground,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
           ),
