@@ -22,10 +22,7 @@ class CustomAppBackground extends StatelessWidget {
           // 1. Zemin
           Positioned.fill(
             child: ColoredBox(
-              color: backgroundColor ??
-                  (context.isDarkMode
-                      ? const Color(0xFF0F0F0F)
-                      : const Color(0xFFFAFAFA)),
+              color: backgroundColor ?? context.colors.surface,
             ),
           ),
 

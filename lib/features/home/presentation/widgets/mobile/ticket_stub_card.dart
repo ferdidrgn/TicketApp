@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 class TicketStubCard extends StatelessWidget {
   final String title;
@@ -28,7 +29,7 @@ class TicketStubCard extends StatelessWidget {
             Container(
               height: 120,
               decoration: BoxDecoration(
-                color: const Color(0xFF2D2D2D),
+                color: AppDarkColors.surface,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
