@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
@@ -9,8 +8,16 @@ import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_pro
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../providers/auth_provider.dart';
+import '../widgets/auth_stage_widgets.dart';
 
+/// TELEFON İLE GİRİŞ — `login_screen.dart` ile AYNI "Sahne Kapısı" dilini
+/// paylaşır (`AuthStageScaffold`/`AuthCurtainStage`/`AuthHeadlineBlock`/
+/// `AuthActionButton` — bkz. `auth_stage_widgets.dart`), böylece iki sayfa
+/// arasında geçiş yaparken kompozisyon aniden değişmiyor: aynı sahne
+/// paneli, aynı başlık tipografisi, aynı gradyanlı buton dili — sadece
+/// içerik (form alanları) değişiyor. Gerçek OTP sayacı (`otpTimerProvider`)
+/// ve doğrulama akışı (`_verificationId`, `verifyPhone`/`verifyOtp`)
+/// BİREBİR AYNI kaldı, sadece görsel katman yenilendi.
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
 
@@ -73,7 +80,6 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   @override
   Widget build(final BuildContext context) {
     final authMutation = ref.watch(authMutationProvider);
-    final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     // State Dinleyicisi: Başarılı işlemleri yakala
     ref.listen<AsyncValue<void>>(authMutationProvider,
@@ -113,54 +119,33 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           if (didPop) return;
           if (_isCodeSent) setState(() => _isCodeSent = false);
         },
-        child: Stack(
-          children: [
-            // 1. ARKA PLAN — login_screen ile aynı görsel dil
-            Positioned.fill(
-              child: Image.asset(
-                'assets/images/book_logo.jpg',
-                fit: BoxFit.cover,
-              ),
-            ),
-
-            // 2. KARARTMA
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.1),
-                      Colors.black.withOpacity(0.4),
-                      Colors.black.withOpacity(0.9),
-                    ],
+        child: AuthStageScaffold(
+          stagePanelBuilder: (final stageContext, final isLargeScreen) =>
+              AuthCurtainStage(
+            imagePath: 'assets/images/book_logo.jpg',
+            borderRadius: AppRadius.asymLg,
+            curtainColor: stageContext.colors.primary,
+            overlay: isLargeScreen
+                ? StageEditorialCaption(
+                    eyebrow: 'Sahne Kapısı',
+                    title: _isCodeSent
+                        ? 'NEREDEYSE\nSAHNEDESİN'
+                        : 'KİMLİĞİNİ\nDOĞRULA',
+                    subtitle: _isCodeSent
+                        ? 'Telefonuna gelen 6 haneli kodu gir, perde senin '
+                            'için açılsın.'
+                        : 'Telefon numaranla devam et — sana özel tek '
+                            'kullanımlık bir kod gönderelim.',
+                  )
+                : StageBadge(
+                    icon: _isCodeSent
+                        ? Icons.mark_email_read_rounded
+                        : Icons.phonelink_ring_rounded,
+                    label: _isCodeSent ? 'KODU DOĞRULA' : 'TİYATROL',
                   ),
-                ),
-              ),
-            ),
-
-            // 3. İÇERİK
-            Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                    maxWidth: isLargeScreen ? 500 : double.infinity),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxl, vertical: AppSpacing.xxl),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeaderText(context),
-                      const SizedBox(height: AppSpacing.xxxl),
-                      _buildCard(context),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
+          headline: _buildHeaderText(context),
+          formCard: _buildCard(context),
         ),
       ),
     );
@@ -168,8 +153,8 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
 
   // --- UI BİLEŞENLERİ ---
 
-  /// login_screen'in "SANATIN\nDÜNYASI" başlık dilini bu adıma taşır: büyük,
-  /// beyaz, kalın başlık + altında ince renkli vurgu çizgisi.
+  /// `login_screen`'in `AuthHeadlineBlock`'unu bu adıma taşır; adım
+  /// (telefon <-> OTP) değiştiğinde `AnimatedSwitcher` ile yumuşak geçer.
   Widget _buildHeaderText(final BuildContext context) => AnimatedSwitcher(
         duration: AppMotion.normal,
         switchInCurve: AppMotion.standard,
@@ -178,75 +163,43 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           opacity: animation,
           child: child,
         ),
-        child: Column(
+        child: AuthHeadlineBlock(
           key: ValueKey(_isCodeSent),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _isCodeSent ? 'KODU\nDOĞRULA' : 'SERÜVENE\nKATIL',
-              style: const TextStyle(
-                fontSize: 40,
-                height: 0.95,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: -1.5,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Container(
-              width: 60,
-              height: 6,
-              decoration: BoxDecoration(
-                color: context.colors.primary,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _isCodeSent
-                  ? 'Telefonuna gelen 6 haneli kodu gir.'
-                  : 'Kimliğini doğrula ve sanata başla...',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                height: 1.3,
-              ),
-            ),
-          ],
+          kicker: _isCodeSent ? 'Son Adım' : 'Sahne Kapısı',
+          title: _isCodeSent ? 'KODU\nDOĞRULA' : 'SERÜVENE\nKATIL',
+          subtitle: _isCodeSent
+              ? 'Telefonuna gelen 6 haneli kodu gir.'
+              : 'Kimliğini doğrula ve sanata başla...',
         ),
       );
 
-  /// login_screen'deki bulanık cam kart ile aynı dil: blur + yarı saydam
-  /// beyaz zemin + ince beyaz çerçeve.
-  Widget _buildCard(final BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: AnimatedSwitcher(
-              duration: AppMotion.normal,
-              switchInCurve: AppMotion.standard,
-              switchOutCurve: AppMotion.standard,
-              transitionBuilder: (final child, final animation) =>
-                  FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.04),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
-                ),
-              ),
-              child: _isCodeSent ? _buildOtpUI() : _buildPhoneUI(),
+  /// Eskiden bulanık cam kart (BackdropFilter) idi — artık düz, tema-uyumlu
+  /// bir form paneli. İçerik (telefon/OTP adımı) yine `AnimatedSwitcher`
+  /// ile geçiyor.
+  Widget _buildCard(final BuildContext context) => Container(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: context.colors.primary.withOpacity(0.14)),
+          boxShadow: AppShadows.level2(context.colors.shadow),
+        ),
+        child: AnimatedSwitcher(
+          duration: AppMotion.normal,
+          switchInCurve: AppMotion.standard,
+          switchOutCurve: AppMotion.standard,
+          transitionBuilder: (final child, final animation) =>
+              FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.04),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
             ),
           ),
+          child: _isCodeSent ? _buildOtpUI() : _buildPhoneUI(),
         ),
       );
 
@@ -267,7 +220,12 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
               'Telefon numarası girişi, başında sıfır olmadan on hane',
         ),
         const SizedBox(height: AppSpacing.xxxl),
-        _buildArtisticButton("KOD GÖNDER", _verifyPhone),
+        AuthActionButton(
+          label: 'KOD GÖNDER',
+          icon: Icons.send_rounded,
+          semanticLabel: 'Doğrulama kodu gönder',
+          onTap: _verifyPhone,
+        ),
       ],
     );
   }
@@ -307,7 +265,13 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           semanticLabel: 'Doğrulama kodu, 6 haneli',
         ),
         const SizedBox(height: AppSpacing.xxxl),
-        _buildArtisticButton("DOĞRULA VE BAŞLA", _signInWithOTP),
+        AuthActionButton(
+          label: 'DOĞRULA VE BAŞLA',
+          icon: Icons.check_circle_rounded,
+          semanticLabel: 'Kodu doğrula ve giriş yap',
+          useAsymCorner: true,
+          onTap: _signInWithOTP,
+        ),
         const SizedBox(height: AppSpacing.xxl),
         AnimatedOpacity(
           duration: AppMotion.fast,
@@ -332,9 +296,11 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           label: 'Telefon numarasını düzenle',
           child: TextButton(
             onPressed: () => setState(() => _isCodeSent = false),
-            child: const Text(
+            child: Text(
               "Numarayı Düzenle",
-              style: TextStyle(color: Colors.white70, fontSize: 12),
+              style: TextStyle(
+                  color: context.colors.onSurface.withOpacity(0.6),
+                  fontSize: 12),
             ),
           ),
         ),
@@ -366,10 +332,11 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: AppSpacing.sm, bottom: AppSpacing.sm),
+            padding: const EdgeInsets.only(
+                left: AppSpacing.sm, bottom: AppSpacing.sm),
             child: Text(label,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: context.colors.onSurface.withOpacity(0.6),
                   fontSize: 11,
                   letterSpacing: 2,
                   fontWeight: FontWeight.bold,
@@ -380,26 +347,29 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
             textField: true,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: Colors.white.withOpacity(0.16)),
+                color: context.colors.onSurface.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                    color: context.colors.onSurface.withOpacity(0.14)),
               ),
               child: TextField(
                 controller: controller,
                 textAlign: textAlign,
                 keyboardType: TextInputType.number,
                 maxLength: maxLength,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: Colors.white,
+                  color: context.colors.onSurface,
                 ),
                 decoration: InputDecoration(
                   hintText: hint,
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+                  hintStyle: TextStyle(
+                      color: context.colors.onSurface.withOpacity(0.35)),
                   prefixText: prefix,
-                  prefixStyle: const TextStyle(
-                      color: Colors.white70, fontWeight: FontWeight.bold),
+                  prefixStyle: TextStyle(
+                      color: context.colors.onSurface.withOpacity(0.7),
+                      fontWeight: FontWeight.bold),
                   counterText: "",
                   // Sayacı gizle
                   contentPadding: const EdgeInsets.all(AppSpacing.xl),
@@ -411,38 +381,10 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         ],
       );
 
-  Widget _buildArtisticButton(final String label, final VoidCallback onTap) =>
-      Semantics(
-        button: true,
-        label: label,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: double.infinity,
-            height: 60,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  colors: [context.colors.primary, context.colors.secondary]),
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              boxShadow: AppShadows.level3(context.colors.primary),
-            ),
-            child: Center(
-              child: Text(
-                label,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2),
-              ),
-            ),
-          ),
-        ),
-      );
-
   Widget _buildSectionTitle(final String title) => Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: context.colors.onSurface,
           letterSpacing: 2,
           fontWeight: FontWeight.w900,
           fontSize: 13,

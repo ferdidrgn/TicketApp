@@ -1,19 +1,46 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
+import '../widgets/auth_stage_widgets.dart';
 
+/// GİRİŞ EKRANI — "Sahne Kapısı" (Stage Door)
+///
+/// Eski tasarım (tam ekran fotoğraf + karartma gradyanı + üzerinde bulanık
+/// cam kart, ortalanmış dikey stack) tamamen terk edildi. Bunun yerine:
+///
+/// - **Mobil**: tek sütun ama sahneye "giriş anı" hissi veren bir açılış —
+///   üstte küçük bir sahne paneli, sayfa mount olur olmaz gerçek bir tiyatro
+///   perdesi gibi ortadan açılıp `book_logo.jpg`'yi ortaya çıkarıyor
+///   (`AuthCurtainStage` — teknik `page_transitions.dart`'taki
+///   `curtainTransition` ve `theatre_show_card.dart`'ın hover reveal'ıyla
+///   birebir aynı `ClipRect(Align(widthFactor: t))`), altında başlık ve
+///   düz bir form paneli (artık glassmorphism yok).
+/// - **Masaüstü/web**: GERÇEK split-screen — solda sahne panelinin BÜYÜK
+///   versiyonu + üzerine oturan editoryal marka hikayesi ("SAHNE IŞIKLARI
+///   SENİ BEKLİYOR"), sağda dar ve dikey ortalanmış form sütunu. Bu,
+///   `home_page_web.dart`/`home_page_mobile.dart` ikilisindeki "aynı
+///   widget'ı responsive yapmak yerine platforma özel gerçek kompozisyon"
+///   prensibinin giriş akışına uygulanmış hali (`AuthStageScaffold`, hem bu
+///   dosyada hem `phone_login_page.dart`'ta kullanılıyor — ikisi otomatik
+///   tutarlı).
+///
+/// Google/telefon aksiyonlarının GERÇEK mantığı (authMutationProvider,
+/// ref.listen hata/başarı yakalama, NavigationHandler) hiç değişmedi —
+/// sadece görsel/yapısal katman yenilendi. Renkler yalnızca mevcut
+/// `context.colors.*` paletinden — hiçbir yeni hex değeri icat edilmedi.
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     final authMutation = ref.watch(authMutationProvider);
-    final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     ref.listen<AsyncValue<void>>(authMutationProvider,
         (final previous, final next) {
@@ -47,208 +74,38 @@ class LoginScreen extends ConsumerWidget {
         safeAreaTop: true, // 💡 Status bar çakışmasını önlemek için true yaptık
         safeAreaBottom: false,
       ),
-      child: Stack(
-        children: [
-          // 1. ARKA PLAN (Stack içinde olduğu için tüm alanı kaplar)
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/book_logo.jpg',
-              fit: BoxFit.cover,
-            ),
-          ),
-
-          // 2. KARARTMA
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.4),
-                    Colors.black.withOpacity(0.9),
-                  ],
+      child: AuthStageScaffold(
+        stagePanelBuilder: (final stageContext, final isLargeScreen) =>
+            AuthCurtainStage(
+          imagePath: 'assets/images/book_logo.jpg',
+          borderRadius: AppRadius.asymLg,
+          curtainColor: stageContext.colors.primary,
+          overlay: isLargeScreen
+              ? const StageEditorialCaption(
+                  eyebrow: 'Perde Aralanıyor',
+                  title: 'SAHNE IŞIKLARI\nSENİ BEKLİYOR',
+                  subtitle:
+                      'Şehrin en iyi oyunları, oyuncuları ve sahneleri tek '
+                      'çatı altında — girişini yap, bilet almaya başla.',
+                )
+              : const StageBadge(
+                  icon: Icons.theater_comedy_rounded,
+                  label: 'TİYATROL',
                 ),
-              ),
-            ),
-          ),
-
-          // 3. İÇERİK
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                  maxWidth: isLargeScreen ? 500 : double.infinity),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Spacer(flex: 3),
-                    _buildArtisticTitle(context),
-                    const Spacer(flex: 4),
-                    _buildLoginCard(context, ref, authMutation.isLoading),
-                    const SizedBox(height: 24),
-                    _buildFooterText(context),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
+        headline: const AuthHeadlineBlock(
+          kicker: 'Perde Aralanıyor',
+          title: 'SAHNEYE\nHOŞ GELDİN',
+          subtitle: 'Giriş yap, ışıklar senin için yansın.',
+        ),
+        formCard: _LoginOptionsPanel(
+          onGoogleTap: () => _handleGoogleSignIn(context, ref),
+          onPhoneTap: () => NavigationHandler.goToPhoneLogin(context),
+        ),
+        finePrint: const _FinePrint(),
       ),
     );
   }
-
-  // ... (Diğer _build metodların (title, card, button) aynı kalabilir)
-
-  Widget _buildArtisticTitle(final BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'SANATIN\nDÜNYASI',
-            style: TextStyle(
-              fontSize: 48,
-              height: 0.9,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: -2,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-              width: 60,
-              height: 6,
-              decoration: BoxDecoration(
-                  color: context.colors.primary,
-                  borderRadius: BorderRadius.circular(3))),
-        ],
-      );
-
-  Widget _buildLoginCard(final BuildContext context, final WidgetRef ref,
-          final bool isLoading) =>
-      ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildGoogleButton(
-                  onTap: () => _handleGoogleSignIn(context, ref),
-                ),
-                const SizedBox(height: 16),
-                _buildGradientButton(
-                  text: 'TELEFON İLE DEVAM ET',
-                  icon: Icons.phone_iphone_rounded,
-                  colors: [context.colors.primary, context.colors.secondary],
-                  onTap: () => NavigationHandler.goToPhoneLogin(context),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-  /// Google'ın kendi marka yönergeleri, "Google ile Oturum Aç" düğmesi için
-  /// uygulamanın serbest bir renk paleti (burada olduğu gibi mavi-yeşil bir
-  /// gradyan) kullanmasına İZİN VERMEZ — nötr (beyaz/açık gri) bir zemin
-  /// üzerinde gerçek çok renkli "G" markası ve koyu metin şart. Önceden bu
-  /// düğme hem yanlış (Google logosu olmayan bir Material ikonu) hem de
-  /// marka dışı bir gradyan kullanıyordu; artık ikisi de gerçek.
-  Widget _buildGoogleButton({required final VoidCallback onTap}) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: double.infinity,
-          height: 64,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.black.withOpacity(0.12)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8))
-            ],
-          ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const GoogleLogo(size: 22),
-                const SizedBox(width: 14),
-                const Text('Google ile Bağlan',
-                    style: TextStyle(
-                        color: Color(0xFF1F1F1F),
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                        fontSize: 15)),
-              ],
-            ),
-          ),
-        ),
-      );
-
-  Widget _buildGradientButton(
-          {required final String text,
-          required final IconData icon,
-          required final List<Color> colors,
-          required final VoidCallback onTap}) =>
-      InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: double.infinity,
-          height: 64,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: colors),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: colors.first.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10))
-            ],
-          ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: Colors.white, size: 30),
-                const SizedBox(width: 12),
-                Text(text,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                        fontSize: 14)),
-              ],
-            ),
-          ),
-        ),
-      );
-
-  Widget _buildFooterText(final BuildContext context) => Center(
-        child: Opacity(
-          opacity: 0.5,
-          child: Text(
-            'KOLEKSİYONA KATILARAK ŞARTLARI KABUL EDERSİNİZ',
-            textAlign: TextAlign.center,
-            style: context.textTheme.labelSmall?.copyWith(
-                color: Colors.white, letterSpacing: 1.2, fontSize: 9),
-          ),
-        ),
-      );
 
   Future<void> _handleGoogleSignIn(
           final BuildContext context, final WidgetRef ref) async =>
@@ -259,4 +116,104 @@ class LoginScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(msg),
           backgroundColor: isError ? Colors.red : Colors.green));
+}
+
+/// Google + telefon seçeneklerini barındıran düz (artık cam efektsiz) panel.
+class _LoginOptionsPanel extends StatelessWidget {
+  final VoidCallback onGoogleTap;
+  final VoidCallback onPhoneTap;
+
+  const _LoginOptionsPanel({
+    required this.onGoogleTap,
+    required this.onPhoneTap,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: context.colors.primary.withOpacity(0.14)),
+          boxShadow: AppShadows.level2(context.colors.shadow),
+        ),
+        child: Column(
+          children: [
+            _GoogleButton(onTap: onGoogleTap),
+            const SizedBox(height: AppSpacing.lg),
+            const AuthOrDivider(),
+            const SizedBox(height: AppSpacing.lg),
+            AuthActionButton(
+              label: 'TELEFON İLE DEVAM ET',
+              icon: Icons.phone_iphone_rounded,
+              semanticLabel: 'Telefon numarasıyla giriş yap',
+              useAsymCorner: true,
+              onTap: onPhoneTap,
+            ),
+          ],
+        ),
+      );
+}
+
+/// Google'ın kendi marka yönergeleri, "Google ile Oturum Aç" düğmesi için
+/// uygulamanın serbest bir renk paleti kullanmasına İZİN VERMEZ — nötr
+/// (beyaz/açık gri) bir zemin üzerinde gerçek çok renkli "G" markası ve
+/// koyu metin şart. Bu kısıt bilinçli olarak korunuyor; sadece köşe/gölge
+/// tokenlarla yeniden giydirildi.
+class _GoogleButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _GoogleButton({required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) => Semantics(
+        button: true,
+        label: 'Google ile giriş yap',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Container(
+            width: double.infinity,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: Colors.black.withOpacity(0.12)),
+              boxShadow: AppShadows.level1(Colors.black),
+            ),
+            child: const Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GoogleLogo(size: 22),
+                  SizedBox(width: AppSpacing.md),
+                  Text('Google ile Bağlan',
+                      style: TextStyle(
+                          color: Color(0xFF1F1F1F),
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                          fontSize: 15)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _FinePrint extends StatelessWidget {
+  const _FinePrint();
+
+  @override
+  Widget build(final BuildContext context) => Center(
+        child: Text(
+          'GİRİŞ YAPARAK ŞARTLARI KABUL EDERSİNİZ',
+          textAlign: TextAlign.center,
+          style: context.textTheme.labelSmall?.copyWith(
+            color: context.colors.onSurface.withOpacity(0.45),
+            letterSpacing: 1.2,
+            fontSize: 9,
+          ),
+        ),
+      );
 }
