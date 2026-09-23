@@ -1,0 +1,312 @@
+// =============================================================================
+// TiyatRol (TicketApp) — Cloud Firestore Güvenlik Kuralları
+// =============================================================================
+//
+// !!! BU DOSYA STATİK OLARAK YAZILDI, EMULATOR/DEPLOY İLE TEST EDİLMEDİ !!!
+// Bu Claude Code oturumunun çalıştığı sandbox'ta Firebase CLI / Firebase
+// Emulator Suite YOK (bkz. repo kökündeki CLAUDE.md — "Mimari notlar").
+// Kurallar, koddaki gerçek Entity/DataSource dosyaları (lib/features/*/
+// domain/entities/*.dart, lib/features/*/data/datasources/
+// *_remote_data_source_and_impl.dart) okunarak elle çıkarıldı ve sadece
+// dengeli parantez / temel sözdizimi açısından gözden geçirildi. Deploy
+// ETMEDEN ÖNCE MUTLAKA:
+//
+//   1) `firebase emulators:start --only firestore` ile ayağa kaldırıp gerçek
+//      senaryoları deneyin: kendi hesabınızla / başka bir kullanıcı hesabıyla
+//      Ticket-Notification okuma, admin olmayan kullanıcı ile Show/Event/
+//      Stage/Team/Player/Campaign yazma, koltuk (Event.seats) rezervasyon /
+//      iptal / satın-alma akışları.
+//   2) Mümkünse `@firebase/rules-unit-testing` ile bu senaryoları otomatik
+//      teste bağlayın (özellikle "başkasının koltuğunu/biletini/bildirimini
+//      okuyabiliyor/değiştirebiliyor mu" negatif testleri).
+//   3) Sadece bunlardan SONRA `firebase deploy --only firestore:rules`
+//      çalıştırın. Bu commit'ten önce repo'da hiç `firestore.rules` yoktu ve
+//      `firebase.json`'da da `firestore` anahtarı tanımlı değildi — yani bu
+//      proje güvenlik kurallarını kaynak kontrolünde HİÇ tutmuyordu; konsolda
+//      şu an ne deploy edili olduğu bu dosyadan bağımsızdır, ilk deploy'dan
+//      önce konsoldaki mevcut kuralları da gözden geçirin.
+//
+// =============================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------
+    // Ortak yardımcı fonksiyonlar
+    // -------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 🔥 UserRole — bkz. lib/core/common/enum/enums.dart:
+    //   enum UserRole { admin, curator, user, guest, unknown }
+    // User.role, Firestore'a `role.name` ile yazılıyor (bkz. user.dart ->
+    // `_userRoleToString`), yani dokümanda tam olarak küçük harfli
+    // 'admin' / 'curator' / 'user' / 'guest' / 'unknown' string'i bulunur.
+    // NOT: Görev tanımında sadece admin/kullanıcı ayrımı istendi; 'curator'
+    // rolüne genel içerik yazma yetkisi BİLİNÇLİ OLARAK verilmedi (ürün
+    // gereksinimi netleşirse `|| role == 'curator'` eklenebilir).
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/User/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // -------------------------------------------------------------------
+    // User — lib/features/users/domain/entities/user.dart
+    // Koleksiyon adı: 'User' (bkz. user_remote_data_source_and_impl.dart,
+    // docRef = collection('User').doc(user.id) — doküman ID'si = auth uid).
+    // -------------------------------------------------------------------
+    match /User/{userId} {
+      allow read: if isOwner(userId);
+
+      // Create: kullanıcı SADECE kendi uid'siyle kendi dokümanını
+      // oluşturabilir (bkz. UserRemoteDataSourceImpl.saveUser, isUpdate:
+      // false dalı — zaten var olan bir dokümanın üzerine yazmıyor).
+      allow create: if isOwner(userId);
+
+      // Update: kendi dokümanını güncelleyebilir AMA 'role' alanını
+      // ASLA kendi kendine değiştiremez — aksi halde herhangi bir kullanıcı
+      // kendini 'admin' yaparak tüm Show/Event/Stage/... içeriğini
+      // değiştirebilirdi (klasik privilege-escalation açığı). role
+      // değişimi (ör. birini admin/curator yapmak) bu kural setinde
+      // BİLİNÇLİ OLARAK hiçbir client yoluna açılmadı — bu işlem Firebase
+      // Console / Admin SDK (custom claim veya doğrudan doküman düzenleme)
+      // üzerinden, geliştirici tarafından elle yapılmalı.
+      allow update: if isOwner(userId) &&
+        request.resource.data.role == resource.data.role;
+
+      // Delete: hesap silme akışı var (bkz. delete_user_use_case_impl.dart
+      // -> UserRemoteDataSourceImpl.deleteUser) — sadece kendi hesabı.
+      allow delete: if isOwner(userId);
+    }
+
+    // -------------------------------------------------------------------
+    // Ticket — lib/features/tickets/domain/entities/ticket.dart
+    // Koleksiyon adı: 'Ticket' (bkz. ticket_remote_data_source_and_impl.dart)
+    // Bilet sahibi `customerId` alanıdır. Client bileti DOĞRUDAN (Cloud
+    // Function/Admin SDK aracı OLMADAN) transaction sonrası set() ile
+    // yazıyor (bkz. TicketRemoteDataSourceImpl.createTicket ve
+    // event_provider.dart -> confirmPurchase sonrası createTicket çağrısı).
+    // -------------------------------------------------------------------
+    match /Ticket/{ticketId} {
+      // Okuma: sadece kendi bileti. getTicketsByCustomerId sorgusu zaten
+      // customerId == auth.uid ile filtrelediği için bu kural query
+      // sonuçlarıyla uyumludur (Firestore, `where` sorgularında dönen HER
+      // dokümanın da read kuralını sağlamasını ister).
+      allow read: if isSignedIn() && resource.data.customerId == request.auth.uid;
+
+      // Create: fiyat/koltuk gibi kritik alanlar client'tan geliyor ve bu
+      // proje bir Cloud Function/backend katmanı içermiyor (functions/
+      // dizini yok) — yani bu üretim mühendisliği kararı client-side
+      // transaction'a güvenmek zorunda. Bunu asgari düzeyde doğrulamak
+      // için: bilet SADECE, listelenen koltuklardan en az biri (ilk koltuk)
+      // ilgili Event.seats içinde GERÇEKTEN bu kullanıcı adına 'sold'
+      // olarak işaretlenmişse oluşturulabilir. buySeats listesindeki TÜM
+      // koltukların tek tek doğrulanması rules dilinde pratik değil (bkz.
+      // aşağıdaki Event.seats notundaki aynı kısıt — dinamik anahtarlı
+      // map'lerde genel amaçlı eleman-bazlı iterasyon desteklenmiyor);
+      // yine de bu kontrol, hiç satın alma yapmadan sıfırdan sahte bir
+      // Ticket dokümanı üretilmesini (fiyat/koltuk uydurmayı) engeller.
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.eventId is string &&
+        request.resource.data.eventId.size() > 0 &&
+        request.resource.data.buySeats is list &&
+        request.resource.data.buySeats.size() > 0 &&
+        request.resource.data.buySeats[0] in
+          get(/databases/$(database)/documents/Event/$(request.resource.data.eventId)).data.seats &&
+        get(/databases/$(database)/documents/Event/$(request.resource.data.eventId))
+          .data.seats[request.resource.data.buySeats[0]].status == 'sold' &&
+        get(/databases/$(database)/documents/Event/$(request.resource.data.eventId))
+          .data.seats[request.resource.data.buySeats[0]].customerId == request.auth.uid;
+
+      // Update/Delete: kod tabanında bilet güncelleme/silme YOK (satış
+      // sonrası bilet immutable kabul ediliyor) — bu yüzden ikisi de
+      // kapalı. `isPast` gibi otomasyonla değişmesi gereken alanlar
+      // ileride bir Cloud Function/Admin SDK job'ı ile (rules'u atlayarak)
+      // güncellenmelidir, client'a asla açılmamalı.
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // Notification — lib/features/notifications/domain/entities/
+    // app_notification.dart (bu oturumda eklendi). Koleksiyon adı:
+    // 'Notification' (bkz. notification_remote_data_source_and_impl.dart).
+    // Düz koleksiyon, `userId` alanına göre sorgulanıyor.
+    // -------------------------------------------------------------------
+    match /Notification/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      // Create: satın alma sonrası kullanıcı KENDİ bildirimini oluşturuyor
+      // (bkz. event_provider.dart -> createNotification, userId: customerId
+      // = mevcut kullanıcı). Başkası adına bildirim oluşturulamaz.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      // Update: tek gerçek kullanım `markNotificationRead` — sadece
+      // `isRead` alanını değiştiriyor. Sahipliği (`userId`) veya
+      // içeriği (title/body/...) değiştirmeye izin verilmiyor.
+      allow update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+
+      // Delete: kod tabanında kullanılmıyor ama kullanıcının kendi
+      // bildirimini silebilmesi (gelen kutusu temizleme) makul bir gelecek
+      // özellik — kendi verisi olduğu için risksiz, açık bırakıldı.
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------
+    // Show / Stage / Team / Player / Campaign — genel/herkese açık içerik.
+    // Koleksiyon adları: 'Show', 'Stage', 'Team', 'Player', 'Campaign'
+    // (bkz. ilgili *_remote_data_source_and_impl.dart dosyaları).
+    // Uygulama GİRİŞ YAPILMADAN (misafir akışı) da gösteri/oyuncu/mekan
+    // içeriğini listeleyebilmeli — bu bilinçli bir ürün kararı, bu yüzden
+    // okuma herkese açık. Yazma SADECE admin panelinden yapılmalı.
+    // -------------------------------------------------------------------
+    match /Show/{showId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /Stage/{stageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /Team/{teamId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /Player/{playerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /Campaign/{campaignId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 'Seats' koleksiyonu Event.seats ile KARIŞTIRILMAMALI: bu, bir sahnenin
+    // statik koltuk DÜZENİ/planıdır (satır -> koltuk etiketleri listesi),
+    // bkz. seat_remote_data_source_and_impl.dart (_collection = 'Seats',
+    // doküman ID'si = stageId). Sadece
+    // `EventRemoteDataSourceImpl.initializeAndGetEventSeats` tarafından
+    // OKUNUYOR; kod tabanında client-side hiçbir yazma yok — admin/seed
+    // script'i tarafından doldurulduğu varsayılıyor.
+    match /Seats/{stageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // AppTools: gizlilik politikası / kullanım koşulları gibi statik uygulama
+    // ayarları (bkz. app_tools_remote_data_source_and_impl.dart). Kayıt
+    // ol/giriş akışından ÖNCE de okunabilmesi gerekiyor (KVKK/kullanım
+    // koşulları onayı), bu yüzden herkese açık okuma.
+    match /AppTools/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // -------------------------------------------------------------------
+    // Event — lib/features/events/domain/entities/event.dart
+    // Koleksiyon adı: 'Event' (bkz. event_remote_data_source_and_impl.dart).
+    // `seats`: Map<seatId, { status: 'available'|'reserved'|'sold',
+    // customerId: String?, reservedAt/soldAt: Timestamp }>.
+    //
+    // Bu proje bir Cloud Functions katmanı İÇERMİYOR — attemptReservation /
+    // releaseReservation / confirmPurchase hepsi CLIENT SDK'dan doğrudan
+    // Firestore transaction'ı ile `seats.$seatId.*` dot-path update()
+    // çağırıyor. Yani koltuk bütünlüğünün TEK güvenlik sınırı bu rules
+    // dosyasıdır — istemci tarafındaki transaction içi kontroller (ör.
+    // "bu koltuk zaten reserved mı") sadece iyi niyetli/normal uygulama
+    // akışı içindir, ham Firestore SDK ile doğrudan yazan kötü niyetli bir
+    // istemciye karşı HİÇBİR koruma sağlamaz — onu SADECE bu rules
+    // sağlayabilir.
+    // -------------------------------------------------------------------
+    match /Event/{eventId} {
+      allow read: if true;
+
+      // Create: yeni etkinlik/takvim girişi sadece admin panelinden.
+      allow create: if isAdmin();
+
+      // Update: ya admin (her alanı değiştirebilir: price/date/stageId/
+      // showId/seats — takvim düzenleme, iptal, fiyat güncelleme vb.),
+      // ya da giriş yapmış herhangi bir kullanıcının KENDİ koltuk
+      // rezervasyon/iptal/satın-alma yazımı.
+      allow update: if isAdmin() || isValidSeatUpdate();
+
+      allow delete: if isAdmin();
+    }
+
+    // Giriş yapmış bir kullanıcının Event.seats üzerindeki yazımını
+    // doğrular. request.resource.data / resource.data karşılaştırması ile
+    // MÜMKÜN OLDUĞUNCA sıkı tutuluyor, ancak Firestore Rules dilinin bilinen
+    // bir kısıtı var: dinamik (önceden bilinmeyen) anahtarlı bir map'in
+    // (`seats`, anahtarları koltuk ID'leri) HER elemanı için ayrı ayrı
+    // "eski değer -> yeni değer geçişi geçerli mi" kontrolü YAPILAMIYOR —
+    // rules dilinde map anahtarları üzerinde genel amaçlı bir for-each/
+    // recursion mekanizması yok (sadece sabit/bilinen anahtarlarla
+    // çalışılabiliyor, koltuk ID'leri ise sahneye göre dinamik).
+    //
+    // Bu yüzden burada UYGULANAN kontroller (kesin/garanti):
+    //   1) Sadece 'seats' alanı değişebilir — price/date/stageId/showId
+    //      gibi diğer Event alanları bu yoldan ASLA değiştirilemez.
+    //   2) Koltuk haritasının ANAHTAR KÜMESİ sabit kalmalı — yeni bir
+    //      "hayalet" koltuk eklenemez, mevcut bir koltuk silinemez (var
+    //      olan koltukların İÇ alanları değişebilir, koltuk sayısı/kimliği
+    //      değişemez).
+    //   3) Tek bir yazımda değişen koltuk sayısı en fazla 3 olabilir —
+    //      bu, uygulamanın kendi iş kuralıyla (bkz. seats_provider.dart
+    //      `canSelectMore`: kullanıcı başına aktif rezervasyon/satış < 3)
+    //      tutarlı bir üst sınır; "blast radius"ı (tek yazımda kaç koltuğun
+    //      etkilenebileceğini) sınırlar.
+    //
+    // BİLİNÇLİ OLARAK UYGULANAMAYAN (residual risk — AŞAĞIDAKİ ÖNERİYE
+    // BAKIN): yukarıdaki 3 kontrolü geçen, kimliği doğrulanmış (giriş
+    // yapmış) kötü niyetli bir kullanıcı, teorik olarak BAŞKASINA AİT
+    // 'reserved'/'sold' bir koltuğun customerId'sini kendi uid'sine
+    // yazabilir (çünkü rules, hangi koltuk anahtarının değiştiğini VE o
+    // koltuğun ÖNCEKİ sahibinin kim olduğunu aynı anda, anahtar adını
+    // bilmeden doğrulayacak bir mekanizmaya sahip değil). İYİLEŞTİRME
+    // ÖNERİSİ (üretime almadan önce ciddiye alınmalı): koltuk
+    // rezervasyon/satın alma yazımlarını bir Cloud Functions callable
+    // fonksiyonuna taşıyıp (Admin SDK + gerçek sunucu-taraflı transaction,
+    // tıpkı şu an client'ta yapılan attemptReservation/confirmPurchase
+    // mantığı gibi ama sunucuda), bu rules dosyasında `Event.seats`
+    // alanına DOĞRUDAN client yazımını tamamen kapatmak (yalnızca admin
+    // yazabilsin) en sağlam çözümdür. Alternatif: `seats` map'ini
+    // `Event/{eventId}/seats/{seatId}` alt koleksiyonuna taşımak — o zaman
+    // her koltuk KENDİ dokümanı olur ve bu fonksiyon burada anlatılan
+    // kısıt olmadan (resource.data / request.resource.data doğrudan tek
+    // bir koltuğu işaret eder) tam güvenle yazılabilir. Bu görev kapsamında
+    // MEVCUT veri modeli (tek Event dokümanında map) korunduğu için bu
+    // değişiklik yapılmadı.
+    function isValidSeatUpdate() {
+      return isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seats']) &&
+        request.resource.data.seats.keys().hasAll(resource.data.seats.keys()) &&
+        resource.data.seats.keys().hasAll(request.resource.data.seats.keys()) &&
+        request.resource.data.seats.diff(resource.data.seats).affectedKeys().size() <= 3;
+    }
+
+    // -------------------------------------------------------------------
+    // Varsayılan: yukarıda AÇIKÇA tanımlanmamış her yol için tümüyle kapalı
+    // (deny-by-default). Firestore rules zaten eşleşmeyen yollarda örtük
+    // olarak reddeder; bu blok niyeti açıkça belgelemek için var.
+    // -------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
