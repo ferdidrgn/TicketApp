@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart';
@@ -51,6 +52,7 @@ class EventSection extends StatelessWidget {
           eventId: entry.value.id,
           showId: showData.id,
           stageName: stage.name,
+          stageAddress: stage.address,
           index: entry.key,
         );
       }).toList(),
@@ -63,6 +65,7 @@ class AnimatedEventCard extends ConsumerWidget {
   final String eventId;
   final String showId;
   final String stageName;
+  final String stageAddress;
   final int index;
 
   const AnimatedEventCard({
@@ -71,6 +74,7 @@ class AnimatedEventCard extends ConsumerWidget {
     required this.eventId,
     required this.showId,
     required this.stageName,
+    required this.stageAddress,
     required this.index,
   });
 
@@ -97,14 +101,14 @@ class AnimatedEventCard extends ConsumerWidget {
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF1B3A26), //
+              color: WebColors.darkBlueSurface,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFFE85C3F).withOpacity(0.3), //
+                color: WebColors.primaryGold.withOpacity(0.3),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFE85C3F).withOpacity(0.1), //
+                  color: WebColors.primaryGold.withOpacity(0.1),
                   blurRadius: 20,
                 ),
               ],
@@ -122,6 +126,8 @@ class AnimatedEventCard extends ConsumerWidget {
                     children: [
                       Text(
                         stageName,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -129,22 +135,25 @@ class AnimatedEventCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      EventLocationRow(time: formatted['time'] ?? '--:--'),
+                      EventLocationRow(
+                        location: stageAddress,
+                        time: formatted['time'] ?? '--:--',
+                      ),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE85C3F).withOpacity(0.15),
+                    color: WebColors.primaryGold.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: const Color(0xFFE85C3F).withOpacity(0.3),
+                      color: WebColors.primaryGold.withOpacity(0.3),
                     ),
                   ),
                   child: const Icon(
                     Icons.arrow_forward_rounded,
-                    color: Color(0xFFE85C3F),
+                    color: WebColors.primaryGold,
                   ),
                 ),
               ],
@@ -188,10 +197,10 @@ class DateBox extends StatelessWidget {
         width: 85,
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [
-              Color(0xFFE85C3F),
-              Color(0xFFF0876F),
+              WebColors.primaryGold,
+              WebColors.primaryGoldLight,
             ],
           ),
           borderRadius: BorderRadius.circular(16),
@@ -203,7 +212,7 @@ class DateBox extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w900,
-                color: Color(0xFF0F2318),
+                color: WebColors.darkBlueBackground,
               ),
             ),
             Text(
@@ -211,7 +220,7 @@ class DateBox extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0F2318),
+                color: WebColors.darkBlueBackground,
               ),
             ),
           ],
@@ -220,40 +229,57 @@ class DateBox extends StatelessWidget {
 }
 
 class EventLocationRow extends StatelessWidget {
+  final String location;
   final String time;
 
-  const EventLocationRow({super.key, required this.time});
+  const EventLocationRow({super.key, required this.location, required this.time});
 
   @override
-  Widget build(final BuildContext context) => Row(
-        children: [
-          Icon(
+  Widget build(final BuildContext context) {
+    final trimmedLocation = location.trim();
+    final metaStyle = TextStyle(
+      fontSize: 14,
+      color: Colors.white.withOpacity(0.6),
+    );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Sahnenin gerçek adresi yoksa (Stage.address boşsa) konum
+        // ikonu/metni SESSİZCE gizlenir — uydurma bir şehir asla
+        // gösterilmez.
+        if (trimmedLocation.isNotEmpty) ...[
+          const Icon(
             Icons.location_on,
             size: 16,
-            color: Color(0xFFE85C3F),
+            color: WebColors.primaryGold,
           ),
           const SizedBox(width: 4),
-          Text(
-            "İstanbul",
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withOpacity(0.6),
+          Flexible(
+            child: Text(
+              trimmedLocation,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: metaStyle,
             ),
           ),
           const SizedBox(width: 16),
-          Icon(
-            Icons.access_time,
-            size: 16,
-            color: Color(0xFFE85C3F),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            time,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withOpacity(0.6),
-            ),
-          ),
         ],
-      );
+        const Icon(
+          Icons.access_time,
+          size: 16,
+          color: WebColors.primaryGold,
+        ),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            time,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: metaStyle,
+          ),
+        ),
+      ],
+    );
+  }
 }
