@@ -166,6 +166,13 @@ final upcomingNearbyEventsProvider =
 /// bir sahneyi de (mantıklıysa) dışarıda bırakmıyor.
 const double kNearbyRadiusMeters = 50000;
 
+/// "Yakında" sayılan takvim penceresi — 30 gün. Sayfadaki gerçek
+/// istatistik şeridinde (`_NearbyStatStrip`, bkz. `nearby_events_page.dart`)
+/// ve aşağıdaki `cutoff` hesabında AYNI kaynak kullanılır — iki ayrı yerde
+/// aynı "30" değerinin birbirinden bağımsız, senkronsuz kopyalanmasını
+/// önler.
+const int kNearbyWindowDays = 30;
+
 /// 📍 GERÇEK KONUMA VE GERÇEK 1 AYLIK TAKVİME GÖRE SÜZÜLMÜŞ YAKLAŞAN
 /// ETKİNLİKLER. `upcomingNearbyEventsProvider`'ın (Show/Event/Stage
 /// birleştirme mantığı — bkz. yukarısı) sonucunu, cihazın GERÇEK konumuna
@@ -184,7 +191,8 @@ final nearbyEventsProvider =
   final entries = await ref.watch(upcomingNearbyEventsProvider.future);
   if (entries.isEmpty) return [];
 
-  final DateTime cutoff = DateTime.now().add(const Duration(days: 30));
+  final DateTime cutoff =
+      DateTime.now().add(const Duration(days: kNearbyWindowDays));
 
   final nearby = entries.where((final entry) {
     if (entry.dateTime.isAfter(cutoff)) return false; // 1 aydan uzak
