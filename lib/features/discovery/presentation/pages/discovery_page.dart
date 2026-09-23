@@ -1,9 +1,14 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import 'package:ticketapp/shared/widgets/background/shimmer_components.dart';
@@ -13,11 +18,19 @@ import '../../../../shared/widgets/footers/footer.dart';
 import '../../../events/presentation/widgets/events_card.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
+import '../../../stages/domain/entities/stage.dart';
+import '../../../stages/presentation/providers/stage_provider.dart';
+import '../../../teams/domain/entities/team.dart';
+import '../../../teams/presentation/providers/team_provider.dart';
 import '../providers/nearby_events_provider.dart';
+import '../utils/category_stats.dart';
 import '../widgets/web/discovery_category_filter.dart';
+import '../widgets/web/discovery_category_showcase.dart';
 import '../widgets/web/discovery_featured_show.dart';
 import '../widgets/web/discovery_hero.dart';
 import '../widgets/web/discovery_show_card.dart';
+import '../widgets/web/discovery_stage_showcase.dart';
+import '../widgets/web/discovery_team_showcase.dart';
 import '../widgets/web/scroll_reveal.dart';
 
 class DiscoveryPage extends ConsumerStatefulWidget {
@@ -74,7 +87,17 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               // türeyen) aynen tüketiliyor.
               _buildActiveOtherShowSections(premium),
 
-              const SizedBox(height: 40),
+              // 1b. KATEGORİLER — gerçek `show.category` dağılımından
+              // türetilen ("uydurma" bir kategori listesi DEĞİL), yatay
+              // kaydırmalı bir "yelpaze" şeridi (bkz. `category_stats.dart`
+              // — masaüstüyle AYNI hesap fonksiyonu). Kategorisi olan
+              // gerçek oyun yoksa hiçbir şey render etmez.
+              _buildCategoryShowcaseSection(),
+
+              // 1c. SAHNELER — gerçek `stagesProvider`'dan, her sahne için
+              // GERÇEK "kaç oyun sahnelendi" sayısıyla (`Stage.showsId`)
+              // yatay kaydırmalı bir şerit. Gerçek sahne yoksa gizlenir.
+              _buildStageShowcaseSection(),
 
               // 2. KEŞİF LİSTESİ BAŞLIĞI
               Row(
@@ -197,6 +220,87 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               _buildTrendingCard(shows[index], premium),
         ),
       );
+
+  // Kategoriler ve Sahneler şeritleri her ikisi de GERÇEK, bu sayfada
+  // başka amaçla zaten kullanılan verilerden geliyor — hiçbir yeni
+  // Firestore sorgusu/provider icat edilmedi:
+  //   * Kategoriler: `showsActiveFirstProvider(false)` (TAM katalog, hiçbir
+  //     oyun gizlenmez) + `category_stats.dart`'taki paylaşılan
+  //     `buildCategoryStats` (masaüstüyle AYNI hesap).
+  //   * Sahneler: `stagesProvider(isLimit: false)` — `Stage.showsId.length`
+  //     GERÇEK "kaç oyun sahnelendi" sayısı.
+  //
+  // İkisi de veri boşsa (ya da henüz yüklenmediyse) sessizce hiçbir şey
+  // render etmez — sahte/placeholder bir bölüm göstermez.
+
+  Widget _buildCategoryShowcaseSection() {
+    final showsState = ref.watch(showsActiveFirstProvider(false));
+    final List<CategoryStat> stats =
+        buildCategoryStats(showsState.value ?? const <Show>[]);
+    if (stats.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.huge),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(title: 'Kategoriler', subtitle: 'Yelpazemiz'),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            height: 150,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: stats.length,
+              separatorBuilder: (final _, final __) =>
+                  const SizedBox(width: AppSpacing.md),
+              itemBuilder: (final context, final index) =>
+                  _MobileCategoryCard(
+                stat: stats[index],
+                onTap: () => NavigationHandler.goToDiscoverWithCategory(
+                    context, stats[index].category),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStageShowcaseSection() {
+    final stagesState = ref.watch(stagesProvider(isLimit: false));
+    final List<Stage> stages = stagesState.value ?? const <Stage>[];
+    if (stages.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.huge),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(title: 'Sahneler', subtitle: 'Mekanlar'),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            height: 150,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: stages.length,
+              separatorBuilder: (final _, final __) =>
+                  const SizedBox(width: AppSpacing.md),
+              itemBuilder: (final context, final index) {
+                final stage = stages[index];
+                return _MobileStageCard(
+                  stage: stage,
+                  onTap: () => NavigationHandler.goToStage(
+                      context, stage.id, stage.name),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTrendingCard(final Show show, final bool premium) =>
       GestureDetector(
@@ -419,6 +523,177 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       );
 }
 
+/// Mobil "Kategoriler" şeridinin tek kartı — GERÇEK `show.category`
+/// dağılımından gelen bir `CategoryStat` (kategori adı + o kategorideki
+/// GERÇEK oyun sayısı + kategorideki bir oyunun GERÇEK afişi). Mobil
+/// tarafın kendi Material temasını (`context.colors`) kullanır — bu sayfa
+/// masaüstündeki gibi `WebColors` ile "premium" temalanmıyor (bkz. dosya
+/// başındaki mobil/masaüstü ayrımı).
+class _MobileCategoryCard extends StatelessWidget {
+  final CategoryStat stat;
+  final VoidCallback onTap;
+
+  const _MobileCategoryCard({required this.stat, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Semantics(
+          button: true,
+          label: '${stat.category} kategorisi, ${stat.count} oyun',
+          child: Container(
+            width: 150,
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.asymSm,
+              boxShadow: AppShadows.level1(context.colors.shadow),
+            ),
+            child: ClipRRect(
+              borderRadius: AppRadius.asymSm,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  OptimizedCachedImage(
+                    imageUrl: stat.sampleImageUrl,
+                    fit: BoxFit.cover,
+                    borderRadius: 0,
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.72),
+                        ],
+                        stops: const [0.4, 1.0],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: AppSpacing.md,
+                    right: AppSpacing.md,
+                    bottom: AppSpacing.md,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          stat.category,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '${stat.count} oyun',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+/// Mobil "Sahneler" şeridinin tek kartı — GERÇEK `Stage` verisi + o
+/// sahnede sahnelenen GERÇEK oyun sayısı (`Stage.showsId.length`).
+class _MobileStageCard extends StatelessWidget {
+  final Stage stage;
+  final VoidCallback onTap;
+
+  const _MobileStageCard({required this.stage, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) {
+    final int showCount = stage.showsId.length;
+    return GestureDetector(
+      onTap: onTap,
+      child: Semantics(
+        button: true,
+        label: '${stage.name} sahnesi, $showCount oyun sahnelendi',
+        child: Container(
+          width: 170,
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.asymSm,
+            boxShadow: AppShadows.level1(context.colors.shadow),
+          ),
+          child: ClipRRect(
+            borderRadius: AppRadius.asymSm,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                OptimizedCachedImage(
+                  imageUrl: stage.imageUrl,
+                  fit: BoxFit.cover,
+                  borderRadius: 0,
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.72),
+                      ],
+                      stops: const [0.4, 1.0],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: AppSpacing.md,
+                  right: AppSpacing.md,
+                  bottom: AppSpacing.md,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        stage.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14.5,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        showCount == 1
+                            ? '1 oyun sahnelendi'
+                            : '$showCount oyun sahnelendi',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // =============================================================================
 // MASAÜSTÜ (WEB) KEŞİF SAYFASI
 // =============================================================================
@@ -476,6 +751,30 @@ class _DiscoveryDesktopBrowserState
   // arasındaki anahtar. Kategori seçimi her iki listede de kalıcı — sadece
   // hangi Show listesinin süzüldüğü değişir.
   bool _showPast = false;
+
+  // Hero'nun arka plan fotoğrafı — `TheatreShowCard`'daki ("bir kez
+  // rastgele seç, sonra state yaşadığı sürece sabit kal") ilkesiyle AYNI:
+  // bu widget state'i canlı kaldığı sürece BİR KEZ seçilir, mod/kategori
+  // değiştikçe (rebuild'lerde) tekrar zar atılmaz — aksi halde kullanıcı
+  // "Geçmiş Oyunlar"a geçtiğinde hero fotoğrafı rahatsız edici şekilde
+  // değişirdi.
+  String? _heroBackdropUrl;
+  final Random _random = Random();
+
+  String? _pickHeroBackdrop(final List<Show> shows) {
+    if (_heroBackdropUrl != null) return _heroBackdropUrl;
+    if (shows.isEmpty) return null;
+    final withPhotos =
+        shows.where((final s) => s.photosShowId.isNotEmpty).toList();
+    if (withPhotos.isNotEmpty) {
+      final show = withPhotos[_random.nextInt(withPhotos.length)];
+      return _heroBackdropUrl =
+          show.photosShowId[_random.nextInt(show.photosShowId.length)];
+    }
+    // Hiçbir oyunun galeri fotoğrafı yoksa gerçek afişine (imageUrl) düş —
+    // asla uydurma bir görsel değil.
+    return _heroBackdropUrl = shows[_random.nextInt(shows.length)].imageUrl;
+  }
 
   @override
   void initState() {
@@ -571,6 +870,25 @@ class _DiscoveryDesktopBrowserState
         ? gridShows
         : gridShows.where((final s) => !realActiveIds.contains(s.id)).toList();
 
+    // Kategoriler vitrini HER ZAMAN uygulamanın TAM kataloğundan türetilir
+    // (mod/kategori filtresinden bağımsız) — "Geçmiş Oyunlar" modundayken
+    // bile gerçek geniş yelpazeyi göstersin diye. `!_showPast` durumunda
+    // `shows` zaten bu tam katalog (bkz. yukarıdaki `showsState` yorumu),
+    // `_showPast` durumunda ayrıca watch ediliyor.
+    final List<Show> categoryOverviewShows = _showPast
+        ? (ref.watch(showsActiveFirstProvider(false)).value ?? shows)
+        : shows;
+    final List<CategoryStat> categoryStats =
+        buildCategoryStats(categoryOverviewShows);
+
+    // Sahneler/Topluluklar vitrinleri — gerçek `stagesProvider`/
+    // `teamsProvider`, tam liste (`isLimit: false`). Bu sayfada başka bir
+    // amaçla zaten kullanılan bir Firestore sorgusu icat edilmedi.
+    final List<Stage> allStages =
+        ref.watch(stagesProvider(isLimit: false)).value ?? const <Stage>[];
+    final List<Team> allTeams =
+        ref.watch(teamsProvider(isLimit: false)).value ?? const <Team>[];
+
     return ListView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 36),
@@ -582,6 +900,7 @@ class _DiscoveryDesktopBrowserState
               categoryLabel: activeCategory,
               showCount: activeCount,
               archiveMode: _showPast,
+              backdropImageUrl: _pickHeroBackdrop(shows),
             ),
           ),
         ),
@@ -594,6 +913,43 @@ class _DiscoveryDesktopBrowserState
           ),
         ),
         const SizedBox(height: 36),
+        // KATEGORİLER — GERÇEK `Show.category` dağılımından türetilen bir
+        // vitrin şeridi (kategori + kategorideki GERÇEK oyun sayısı +
+        // kategoriden bir GERÇEK afiş). Mod (Aktif/Geçmiş) değişse bile
+        // uygulamanın TAM yelpazesini gösterir (bkz. `categoryStats`
+        // yorumu). Gerçek kategorili oyun yoksa hiçbir şey render etmez.
+        if (categoryStats.isNotEmpty) ...[
+          ScrollReveal(
+            delay: const Duration(milliseconds: 60),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SectionHeader(
+                title: 'Kategoriler',
+                subtitle: 'Yelpazemiz',
+                titleColor: Colors.white,
+                accentColor: WebColors.primaryGold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ScrollReveal(
+            delay: const Duration(milliseconds: 100),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: DiscoveryCategoryShowcase(
+                stats: categoryStats,
+                // Gerçek, çalışan bir filtre: mevcut kategori hap
+                // filtresiyle (`DiscoveryCategoryFilter`) AYNI
+                // `_activeCategory` state'ini paylaşır — yeni bir
+                // navigasyon icat etmiyor, sayfanın kendi filtresini
+                // kullanıyor.
+                onCategoryTap: (final category) =>
+                    setState(() => _activeCategory = category),
+              ),
+            ),
+          ),
+          const SizedBox(height: 64),
+        ],
         if (!_showPast) ...[
           ScrollReveal(
             delay: const Duration(milliseconds: 80),
@@ -701,7 +1057,70 @@ class _DiscoveryDesktopBrowserState
           if (activeGridShows.isEmpty && otherGridShows.isEmpty)
             _buildEmptyCategoryNotice(showPast: false),
         ],
+        // SAHNELER — GERÇEK `stagesProvider`'dan, her sahne için GERÇEK
+        // "kaç oyun sahnelendi" sayısıyla (`Stage.showsId.length`) bir
+        // vitrin şeridi. Gerçek sahne yoksa hiçbir şey render etmez.
+        if (allStages.isNotEmpty) ...[
+          const SizedBox(height: 64),
+          ScrollReveal(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SectionHeader(
+                title: 'Sahneler',
+                subtitle: 'Mekanlar',
+                titleColor: Colors.white,
+                accentColor: WebColors.primaryGold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ScrollReveal(
+            delay: const Duration(milliseconds: 60),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: DiscoveryStageShowcase(
+                stages: allStages,
+                onStageTap: (final stage) => NavigationHandler.goToStage(
+                    context, stage.id, stage.name),
+              ),
+            ),
+          ),
+        ],
+        // TOPLULUKLAR — GERÇEK `teamsProvider`'dan, her topluluk için
+        // GERÇEK gösteri sayısıyla (`Team.showsId.length`) bir vitrin
+        // şeridi. Gerçek topluluk yoksa hiçbir şey render etmez.
+        if (allTeams.isNotEmpty) ...[
+          const SizedBox(height: 64),
+          ScrollReveal(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SectionHeader(
+                title: 'Topluluklar',
+                subtitle: 'Kadro',
+                titleColor: Colors.white,
+                accentColor: WebColors.primaryGold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ScrollReveal(
+            delay: const Duration(milliseconds: 60),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: DiscoveryTeamShowcase(
+                teams: allTeams,
+                onTeamTap: (final team) =>
+                    NavigationHandler.goToTeam(context, team.id, team.name),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 100),
+        // Masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir
+        // (`home_page_web.dart`/`nearby_events_page.dart` desktop
+        // sayfalarıyla AYNI yerleşik desen) — bu sayfada daha önce
+        // eksikti.
+        const Footer(),
       ],
     );
   }
