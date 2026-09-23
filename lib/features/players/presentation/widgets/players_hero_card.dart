@@ -43,8 +43,8 @@ class PlayerHeroCard extends StatelessWidget {
       );
 
     return GestureDetector(
-      onTap: () => NavigationHandler.goToPlayer(context, player?.id ?? "",
-          (player?.firstName ?? "" + player!.lastName)),
+      onTap: () => NavigationHandler.goToPlayer(
+          context, player!.id, "${player!.firstName} ${player!.lastName}"),
       child: Container(
         width: 120,
         margin: const EdgeInsets.only(right: 12),
