@@ -42,5 +42,127 @@
   "searchSectionsShowsSubtitle": "Sanatın Akışı",
   "searchSectionsPlayersSubtitle": "Sahne Yıldızları",
   "searchSectionsStagesSubtitle": "Sanatın Kalbi",
-  "searchSectionsTeamsSubtitle": "Yaratıcı Gruplar"
+  "searchSectionsTeamsSubtitle": "Yaratıcı Gruplar",
+
+  "loginHeroTitle": "SANATIN\nDÜNYASI",
+  "loginPhoneButton": "TELEFON İLE DEVAM ET",
+  "loginGoogleButton": "Google ile Bağlan",
+  "loginTermsNotice": "KOLEKSİYONA KATILARAK ŞARTLARI KABUL EDERSİNİZ",
+
+  "homeTooltipNotifications": "Bildirimler",
+  "homeTooltipSettings": "Ayarlar",
+  "homeErrorTitleMobile": "Perdeler Henüz Açılmadı!",
+  "homeErrorRetryMobile": "Sahneyi Yenile",
+  "homeErrorTitleWeb": "Perdeler Henüz Açılmadı",
+  "homeErrorMessageWeb": "Sahne verileri yüklenirken bir sorun oluştu.",
+  "homeFeaturedTitle": "Öne Çıkanlar",
+  "homeFeaturedSubtitle": "Vitrin",
+  "homeFeaturedKicker": "VİTRİN",
+  "homeCategoriesTitle": "Kategoriler",
+  "homeCategoriesSubtitle": "Sanatın Renkleri",
+  "homeCategoriesKicker": "SANATIN RENKLERİ",
+  "homeActiveShowsTitle": "Aktif Oyunlar",
+  "homeActiveShowsSubtitle": "Şu An Sahnede",
+  "homeDiscoverTitle": "Keşfet",
+  "homeDiscoverKicker": "KEŞFET",
+  "homeCuratedForYou": "Sana Özel Seçkiler",
+  "homeVenuesTitle": "Mekanlar",
+  "homeVenuesSubtitle": "Şehrin Sahneleri",
+  "homeVenuesKicker": "MEKANLAR",
+  "homeTeamsTitle": "Sahne Toplulukları",
+  "homeTeamsSubtitle": "Ekipleri Keşfet",
+  "homeCampaignDiscoverSubtitle": "Kampanyayı Keşfet",
+  "homeSeeAll": "Tümünü Gör",
+  "homeEmptyShowsHint": "Şu anda listelenecek bir oyun bulunmuyor. Yakında burada olacak.",
+  "homeAccountSectionTitle": "Neye İhtiyacın Var?",
+  "homeAccountKicker": "HESABIM",
+  "homeTrendingTitle": "Şu An Popüler",
+  "homeTrendingKicker": "GÜNDEM",
+  "homeHeroBrandMark": "TİYATROL",
+  "homeHeroBrandSubtitle": "SAHNE SANATLARI",
+  "homeHeroEyebrow": "SAHNE SANATLARI SEZONU",
+  "homeHeroHeadline": "Bu akşam,\nhangi sahne seni bekliyor?",
+  "homeHeroLedeWithCounts": "Şehrin {stageCount} sahnesinde bu sezon aktif {showCount} oyunu keşfet; sana en yakın gösterimlere göz at ve birkaç dokunuşla biletini al.",
+  "@homeHeroLedeWithCounts": {
+    "description": "Hero bölümündeki tanıtım cümlesi, sahne ve oyun sayısı bilindiğinde",
+    "placeholders": {
+      "stageCount": {
+        "type": "int"
+      },
+      "showCount": {
+        "type": "int"
+      }
+    }
+  },
+  "homeHeroLedeFallback": "Şehrin sahnelerinde bu sezon oynayan oyunları keşfet, yakınındaki etkinliklere göz at ve biletini birkaç tıkla al.",
+  "homeHeroDiscoverButton": "Sahneleri Keşfet",
+  "homeHeroNearbyButton": "Yakınımdakiler",
+  "homeHeroSearchPlaceholder": "Tiyatro, konser, sanatçı ara…",
+  "homeHeroSearchLabel": "ARA",
+  "homeNextShowLabel": "SIRADAKİ OYUN",
+  "homeSeeDetails": "Detayları Gör",
+  "homeNearMeLabel": "YAKINIMDA",
+  "homeTicketsLoginPrompt": "Giriş yaparak biletlerini gör",
+  "homeTicketsNoneYet": "Henüz yaklaşan bileğin yok",
+  "homeTicketsSeeDetails": "Bilet detaylarını gör",
+  "homeTicketsNext": "Sıradaki: {showName}",
+  "@homeTicketsNext": {
+    "description": "Hızlı erişim panelinde bir sonraki biletin oyun adı",
+    "placeholders": {
+      "showName": {
+        "type": "String"
+      }
+    }
+  },
+  "homeFavoritesLoginPrompt": "Giriş yaparak favorilerini gör",
+  "homeFavoritesNoneYet": "Henüz favori eklemedin",
+  "homeFavoritesView": "Kaydettiklerini görüntüle",
+  "homeNearbyNoneYet": "Şu an planlanan yeni etkinlik yok",
+  "homeNearbyView": "Bu hafta sahnede neler var, gör",
+  "homeStatUpcomingTicket": "Yaklaşan Bilet",
+  "homeStatFavorite": "Favori",
+  "homeStatNearby": "Yakında",
+  "homeAccountSettingsTitle": "Hesap Ayarları",
+  "homeAccountSettingsSubtitle": "Profil, bildirim ve gizlilik tercihlerin",
+  "homeQuoteLatin": "\"Ars longa, vita brevis, occasio praeceps, experimentum periculosum, iudicium difficile.\"",
+  "homeQuoteTranslation": "\"Sanat (zanaat/bilgi) uzun, hayat kısa, fırsat kaçıcı, deneyim yanıltıcı (tehlikeli), karar vermek zordur.\"",
+  "homeDailyDiscoveryTag": "HER GÜN YENİ BİR KEŞİF",
+
+  "settingsTitle": "Ayarlar",
+  "settingsSubtitle": "İzinlerini ve uygulama tercihlerini yönet.",
+  "settingsQuoteText": "Sanat, ruhun üzerindeki günlük yaşamın tozunu siler.",
+  "settingsQuoteAuthor": "Pablo Picasso",
+  "settingsSectionPermissions": "İZİNLER",
+  "settingsLocationPermissionTitle": "Konum İzni",
+  "settingsLocationPermissionSubtitle": "Yakınındaki gösterileri bulabilmemiz için izin ver.",
+  "settingsNotificationsPermissionTitle": "Bildirimler",
+  "settingsNotificationsPermissionSubtitle": "Yeni gösteriler ve kampanyalardan haberdar ol.",
+  "settingsSectionAppearance": "GÖRÜNÜM",
+  "settingsAccentColorTitle": "Tema Rengi",
+  "settingsAccentColorCustomSubtitle": "Şu an kendi seçtiğin renk kullanılıyor.",
+  "settingsAccentColorDefaultSubtitle": "Uygulamanın vurgu rengini kendin seç.",
+  "settingsAccentColorPickerTitle": "Tema Rengini Seç",
+  "settingsAccentColorSemanticLabel": "Tema rengi olarak seç",
+  "settingsCancel": "Vazgeç",
+  "settingsSectionLanguage": "DİL",
+  "settingsLanguageTitle": "Uygulama Dili",
+  "settingsLanguageSubtitle": "Uygulamanın dilini değiştir.",
+  "settingsLanguageTurkish": "Türkçe",
+  "settingsLanguageEnglish": "İngilizce",
+  "settingsSectionSupport": "UYGULAMAYI DESTEKLE",
+  "settingsRecommendAppTitle": "Uygulamayı Öner",
+  "settingsRecommendAppDesc": "Mağaza indirme bağlantısını paylaşarak bize destek ol.",
+  "settingsShareWithFriendsTitle": "Arkadaşlarınla Paylaş",
+  "settingsShareWithFriendsDesc": "TiyatRol'ü mesajla ya da sosyal medyada paylaş.",
+  "settingsVersionFooter": "Versiyon 1.0.4 - Sanatla Tasarlandı",
+  "settingsShareMessage": "Ruhunu sanatla besleyecek bu serüvene sen de katıl: {url}",
+  "@settingsShareMessage": {
+    "description": "Uygulamayı paylaşırken gönderilen mesaj",
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsShareSubject": "Sanat Serüveni"
 }

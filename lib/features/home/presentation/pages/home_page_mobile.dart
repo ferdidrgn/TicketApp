@@ -6,6 +6,7 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/decorative_elements.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/custom_search_bar.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/theatre_show_card.dart';
@@ -214,7 +215,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       actions: [
         IconButton(
-          tooltip: 'Bildirimler',
+          tooltip: AppLocalizations.of(context)!.homeTooltipNotifications,
           onPressed: () => isLoggedIn
               ? NavigationHandler.goToNotifications(context)
               : NavigationHandler.goToLogin(context),
@@ -225,7 +226,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
         IconButton(
-            tooltip: 'Ayarlar',
+            tooltip: AppLocalizations.of(context)!.homeTooltipSettings,
             onPressed: () => NavigationHandler.goToSettings(context),
             icon: const Icon(Icons.person_outline_rounded)),
         const SizedBox(width: 20),
@@ -243,7 +244,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               Icon(Icons.theater_comedy_outlined,
                   size: 80, color: context.colors.outline),
               const SizedBox(height: 24),
-              Text("Perdeler Henüz Açılmadı!",
+              Text(AppLocalizations.of(context)!.homeErrorTitleMobile,
                   textAlign: TextAlign.center,
                   style: context.textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.bold)),
@@ -255,7 +256,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ref.invalidate(stagesProvider);
                 },
                 icon: const Icon(Icons.refresh),
-                label: const Text("Sahneyi Yenile"),
+                label: Text(AppLocalizations.of(context)!.homeErrorRetryMobile),
               ),
             ],
           ),
@@ -275,8 +276,8 @@ class _PerformantStorySection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
-              title: "Öne Çıkanlar",
-              subtitle: "Vitrin",
+              title: AppLocalizations.of(context)!.homeFeaturedTitle,
+              subtitle: AppLocalizations.of(context)!.homeFeaturedSubtitle,
               onTap: () => NavigationHandler.goToCampaigns(context)),
           StoryCircles(
               campaigns: campaigns,
@@ -293,7 +294,9 @@ class _PerformantCategorySection extends StatelessWidget {
   Widget build(final BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(title: "Kategoriler", subtitle: "Sanatın Renkleri"),
+          SectionHeader(
+              title: AppLocalizations.of(context)!.homeCategoriesTitle,
+              subtitle: AppLocalizations.of(context)!.homeCategoriesSubtitle),
           const CategoryGrid(),
         ],
       );
@@ -323,8 +326,8 @@ class _PerformantActiveShowsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
-            title: "Aktif Oyunlar",
-            subtitle: "Şu An Sahnede",
+            title: AppLocalizations.of(context)!.homeActiveShowsTitle,
+            subtitle: AppLocalizations.of(context)!.homeActiveShowsSubtitle,
             onTap: () => NavigationHandler.goToDiscover(context)),
         SizedBox(
           height: 248,
@@ -366,7 +369,9 @@ class _PerformantCollageSection extends StatelessWidget {
   Widget build(final BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(title: "Keşfet", subtitle: "Sana Özel Seçkiler"),
+          SectionHeader(
+              title: AppLocalizations.of(context)!.homeDiscoverTitle,
+              subtitle: AppLocalizations.of(context)!.homeCuratedForYou),
           ShowCollage(shows: shows),
         ],
       );
@@ -381,7 +386,9 @@ class _PerformantStageCarouselSection extends StatelessWidget {
   Widget build(final BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(title: "Mekanlar", subtitle: "Şehrin Sahneleri"),
+          SectionHeader(
+              title: AppLocalizations.of(context)!.homeVenuesTitle,
+              subtitle: AppLocalizations.of(context)!.homeVenuesSubtitle),
           StageCarousel(
             stages: stages,
             onStageTap: (final stageId) {
@@ -401,8 +408,8 @@ class _PerformantTeamsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
-              title: "Sahne Toplulukları",
-              subtitle: "Ekipleri Keşfet",
+              title: AppLocalizations.of(context)!.homeTeamsTitle,
+              subtitle: AppLocalizations.of(context)!.homeTeamsSubtitle,
               onTap: () => NavigationHandler.goToSearch(context)),
           const HomeTeamsStrip(),
         ],
@@ -429,7 +436,7 @@ class _PerformantSpecialCardsAndActionsSection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: TicketStubCard(
         title: campaign.title,
-        subtitle: "Kampanyayı Keşfet",
+        subtitle: AppLocalizations.of(context)!.homeCampaignDiscoverSubtitle,
         imageUrl: campaign.imageUrl,
         onTap: () => NavigationHandler.goToCampaigns(
             context, index: campaigns.indexOf(campaign)),

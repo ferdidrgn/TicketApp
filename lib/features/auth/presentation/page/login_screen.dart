@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
 
@@ -106,9 +107,9 @@ class LoginScreen extends ConsumerWidget {
   Widget _buildArtisticTitle(final BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'SANATIN\nDÜNYASI',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.loginHeroTitle,
+            style: const TextStyle(
               fontSize: 48,
               height: 0.9,
               fontWeight: FontWeight.w900,
@@ -143,11 +144,12 @@ class LoginScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildGoogleButton(
+                  context: context,
                   onTap: () => _handleGoogleSignIn(context, ref),
                 ),
                 const SizedBox(height: 16),
                 _buildGradientButton(
-                  text: 'TELEFON İLE DEVAM ET',
+                  text: AppLocalizations.of(context)!.loginPhoneButton,
                   icon: Icons.phone_iphone_rounded,
                   colors: [context.colors.primary, context.colors.secondary],
                   onTap: () => NavigationHandler.goToPhoneLogin(context),
@@ -164,7 +166,10 @@ class LoginScreen extends ConsumerWidget {
   /// üzerinde gerçek çok renkli "G" markası ve koyu metin şart. Önceden bu
   /// düğme hem yanlış (Google logosu olmayan bir Material ikonu) hem de
   /// marka dışı bir gradyan kullanıyordu; artık ikisi de gerçek.
-  Widget _buildGoogleButton({required final VoidCallback onTap}) => InkWell(
+  Widget _buildGoogleButton(
+          {required final BuildContext context,
+          required final VoidCallback onTap}) =>
+      InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
@@ -187,8 +192,8 @@ class LoginScreen extends ConsumerWidget {
               children: [
                 const GoogleLogo(size: 22),
                 const SizedBox(width: 14),
-                const Text('Google ile Bağlan',
-                    style: TextStyle(
+                Text(AppLocalizations.of(context)!.loginGoogleButton,
+                    style: const TextStyle(
                         color: Color(0xFF1F1F1F),
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.2,
@@ -242,7 +247,7 @@ class LoginScreen extends ConsumerWidget {
         child: Opacity(
           opacity: 0.5,
           child: Text(
-            'KOLEKSİYONA KATILARAK ŞARTLARI KABUL EDERSİNİZ',
+            AppLocalizations.of(context)!.loginTermsNotice,
             textAlign: TextAlign.center,
             style: context.textTheme.labelSmall?.copyWith(
                 color: Colors.white, letterSpacing: 1.2, fontSize: 9),

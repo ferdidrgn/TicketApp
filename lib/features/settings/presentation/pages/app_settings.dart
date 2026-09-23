@@ -7,12 +7,14 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/constants/app_constants.dart';
 import '../../../../core/common/enum/enums.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/theme_notifier.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 
@@ -42,9 +44,10 @@ class AppSettingsPage extends ConsumerWidget {
     await openAppSettings();
   }
 
-  void _shareApp() => Share.share(
-      'Ruhunu sanatla besleyecek bu serüvene sen de katıl: ${AppConstants.shareUrl}',
-      subject: 'Sanat Serüveni');
+  void _shareApp(final BuildContext context) => Share.share(
+      AppLocalizations.of(context)!
+          .settingsShareMessage(AppConstants.shareUrl),
+      subject: AppLocalizations.of(context)!.settingsShareSubject);
 
   Future<void> _showAccentColorPicker(
       final BuildContext context, final WidgetRef ref) async {
@@ -57,7 +60,7 @@ class AppSettingsPage extends ConsumerWidget {
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg)),
-        title: const Text('Tema Rengini Seç'),
+        title: Text(AppLocalizations.of(context)!.settingsAccentColorPickerTitle),
         content: SizedBox(
           width: 320,
           child: Wrap(
@@ -67,7 +70,8 @@ class AppSettingsPage extends ConsumerWidget {
               final isSelected = currentColor?.value == swatch.value;
               return Semantics(
                 button: true,
-                label: 'Tema rengi olarak seç',
+                label:
+                    AppLocalizations.of(context)!.settingsAccentColorSemanticLabel,
                 selected: isSelected,
                 child: GestureDetector(
                   onTap: () {
@@ -102,7 +106,7 @@ class AppSettingsPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Vazgeç'),
+            child: Text(AppLocalizations.of(context)!.settingsCancel),
           ),
         ],
       ),
@@ -115,17 +119,19 @@ class AppSettingsPage extends ConsumerWidget {
     // parçacık arkaplanı) yerine kendi sade web kabuğunu kullanır. Tema
     // rengi seçimi bilinçli olarak sadece mobil/app tarafında — web renkleri
     // (`WebColors`) sabit kalmaya devam eder.
-    if (context.isDesktop) return _buildDesktopPage(context);
+    if (context.isDesktop) return _buildDesktopPage(context, ref);
 
     final theme = context.theme;
     final colors = context.colors;
     final currentThemeStyle = ref.watch(themeProvider);
     final currentAccentColor = ref.watch(customAccentColorProvider);
 
+    final l10n = AppLocalizations.of(context)!;
+
     return BasePageWrapper(
       // 🎯 Header Parametreleri (Artık Wrapper tarafından otomatik yönetiliyor)
-      title: 'Ayarlar',
-      subtitle: 'İzinlerini ve uygulama tercihlerini yönet.',
+      title: l10n.settingsTitle,
+      subtitle: l10n.settingsSubtitle,
       rightIcon: Icons.handyman_rounded,
       showBackButton: true,
       showFab: false,
@@ -139,36 +145,36 @@ class AppSettingsPage extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         children: [
           // 🕊️ İLHAM KARTI
-          const InspirationalQuoteView(
-            word: "Sanat, ruhun üzerindeki günlük yaşamın tozunu siler.",
-            author: "Pablo Picasso",
+          InspirationalQuoteView(
+            word: l10n.settingsQuoteText,
+            author: l10n.settingsQuoteAuthor,
             imageUrl:
                 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
           ),
 
           const SizedBox(height: AppSpacing.xxxl),
-          _buildSectionTitle(context, 'İZİNLER'),
+          _buildSectionTitle(context, l10n.settingsSectionPermissions),
           const SizedBox(height: AppSpacing.lg),
 
           _buildAtelierTile(
             context,
-            title: 'Konum İzni',
-            subtitle: 'Yakınındaki gösterileri bulabilmemiz için izin ver.',
+            title: l10n.settingsLocationPermissionTitle,
+            subtitle: l10n.settingsLocationPermissionSubtitle,
             icon: Icons.location_searching_rounded,
             color: colors.primary,
             onTap: () => _handlePermission(Permission.location),
           ),
           _buildAtelierTile(
             context,
-            title: 'Bildirimler',
-            subtitle: 'Yeni gösteriler ve kampanyalardan haberdar ol.',
+            title: l10n.settingsNotificationsPermissionTitle,
+            subtitle: l10n.settingsNotificationsPermissionSubtitle,
             icon: Icons.vibration_rounded,
             color: colors.secondary,
             onTap: () => _handlePermission(Permission.notification),
           ),
 
           const SizedBox(height: AppSpacing.xxxl),
-          _buildSectionTitle(context, 'GÖRÜNÜM'),
+          _buildSectionTitle(context, l10n.settingsSectionAppearance),
           const SizedBox(height: AppSpacing.lg),
 
           _buildAccentColorTile(
@@ -179,13 +185,19 @@ class AppSettingsPage extends ConsumerWidget {
           ),
 
           const SizedBox(height: AppSpacing.xxxl),
-          _buildSectionTitle(context, 'UYGULAMAYI DESTEKLE'),
+          _buildSectionTitle(context, l10n.settingsSectionLanguage),
+          const SizedBox(height: AppSpacing.lg),
+
+          _buildLanguageTile(context, ref),
+
+          const SizedBox(height: AppSpacing.xxxl),
+          _buildSectionTitle(context, l10n.settingsSectionSupport),
           const SizedBox(height: AppSpacing.lg),
 
           _buildCreativeAction(
             context,
-            title: 'Uygulamayı Öner',
-            desc: 'Mağaza indirme bağlantısını paylaşarak bize destek ol.',
+            title: l10n.settingsRecommendAppTitle,
+            desc: l10n.settingsRecommendAppDesc,
             icon: Icons.auto_awesome_rounded,
             gradient: [colors.primary, colors.primaryContainer],
             textColor: colors.onPrimary,
@@ -194,18 +206,18 @@ class AppSettingsPage extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           _buildCreativeAction(
             context,
-            title: 'Arkadaşlarınla Paylaş',
-            desc: 'TiyatRol\'ü mesajla ya da sosyal medyada paylaş.',
+            title: l10n.settingsShareWithFriendsTitle,
+            desc: l10n.settingsShareWithFriendsDesc,
             icon: Icons.send_rounded,
             gradient: [colors.secondary, colors.secondaryContainer],
             textColor: colors.onSecondary,
-            onTap: _shareApp,
+            onTap: () => _shareApp(context),
           ),
 
           const SizedBox(height: AppSpacing.huge),
           Center(
             child: Text(
-              'Versiyon 1.0.4 - Sanatla Tasarlandı',
+              l10n.settingsVersionFooter,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: colors.onSurface.withOpacity(0.3),
                 letterSpacing: 1.5,
@@ -296,15 +308,16 @@ class AppSettingsPage extends ConsumerWidget {
     required final VoidCallback onTap,
   }) {
     final colors = context.colors;
+    final l10n = AppLocalizations.of(context)!;
     final isCustomActive = currentThemeStyle == AppThemeStyle.custom;
     final swatchColor = currentAccentColor ?? colors.primary;
     final subtitle = isCustomActive && currentAccentColor != null
-        ? 'Şu an kendi seçtiğin renk kullanılıyor.'
-        : 'Uygulamanın vurgu rengini kendin seç.';
+        ? l10n.settingsAccentColorCustomSubtitle
+        : l10n.settingsAccentColorDefaultSubtitle;
 
     return Semantics(
       button: true,
-      label: 'Tema Rengi. $subtitle',
+      label: '${l10n.settingsAccentColorTitle}. $subtitle',
       child: GestureDetector(
         onTap: onTap,
         child: Container(
@@ -347,8 +360,8 @@ class AppSettingsPage extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Tema Rengi',
-                          style: TextStyle(
+                      Text(l10n.settingsAccentColorTitle,
+                          style: const TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 15)),
                       Text(subtitle,
                           style: TextStyle(
@@ -361,6 +374,124 @@ class AppSettingsPage extends ConsumerWidget {
                 Icon(Icons.chevron_right_rounded, color: colors.outline),
                 const SizedBox(width: AppSpacing.md),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // "Uygulama Dili" satırı — `localeControllerProvider` (gerçek, kalıcı
+  // şifreli depolamaya yazan altyapı, bkz. `locale_provider.dart`) ile TR/EN
+  // arasında gerçekten geçiş yapan iki seçenekli bir seçici. Diğer atölye
+  // satırlarıyla aynı tasarım dili (kart + dikey vurgu barı), ama chevron
+  // yerine seçili dili vurgulayan iki pill buton taşıyor.
+  Widget _buildLanguageTile(final BuildContext context, final WidgetRef ref) {
+    final colors = context.colors;
+    final l10n = AppLocalizations.of(context)!;
+    final localeAsync = ref.watch(localeControllerProvider);
+    final currentLanguageCode = localeAsync.value?.languageCode ?? 'tr';
+
+    return Semantics(
+      label: '${l10n.settingsLanguageTitle}. ${l10n.settingsLanguageSubtitle}',
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
+          boxShadow: AppShadows.level1(colors.primary),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Container(
+                width: 6,
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(AppRadius.lg),
+                    bottomLeft: Radius.circular(AppRadius.lg),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                child: Icon(Icons.translate_rounded,
+                    color: colors.primary, size: 24),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.settingsLanguageTitle,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 15)),
+                    Text(l10n.settingsLanguageSubtitle,
+                        style: TextStyle(
+                            color: colors.onSurface.withOpacity(0.5),
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic)),
+                  ],
+                ),
+              ),
+              _buildLanguageOption(
+                context,
+                ref: ref,
+                label: l10n.settingsLanguageTurkish,
+                languageCode: 'tr',
+                isSelected: currentLanguageCode == 'tr',
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _buildLanguageOption(
+                context,
+                ref: ref,
+                label: l10n.settingsLanguageEnglish,
+                languageCode: 'en',
+                isSelected: currentLanguageCode == 'en',
+              ),
+              const SizedBox(width: AppSpacing.md),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(
+    final BuildContext context, {
+    required final WidgetRef ref,
+    required final String label,
+    required final String languageCode,
+    required final bool isSelected,
+  }) {
+    final colors = context.colors;
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      child: GestureDetector(
+        onTap: () => ref
+            .read(localeControllerProvider.notifier)
+            .setLocale(Locale(languageCode)),
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          curve: AppMotion.standard,
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+          decoration: BoxDecoration(
+            color: isSelected ? colors.primary : colors.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? colors.onPrimary : colors.onSurface,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
             ),
           ),
         ),
@@ -436,7 +567,12 @@ class AppSettingsPage extends ConsumerWidget {
   // aynı callback'ler; sadece görsel kabuk değişiyor. Sayfanın en altına,
   // sitenin diğer masaüstü sayfalarıyla aynı tam genişlikte paylaşılan
   // `Footer` eklenir.
-  Widget _buildDesktopPage(final BuildContext context) => ColoredBox(
+  Widget _buildDesktopPage(final BuildContext context, final WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final currentLanguageCode =
+        ref.watch(localeControllerProvider).value?.languageCode ?? 'tr';
+
+    return ColoredBox(
         color: WebColors.darkBlueBackground,
         child: ListView(
           physics: const BouncingScrollPhysics(),
@@ -452,8 +588,8 @@ class AppSettingsPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Ayarlar',
-                        style: TextStyle(
+                        l10n.settingsTitle,
+                        style: const TextStyle(
                           color: WebColors.whiteText,
                           fontWeight: FontWeight.w900,
                           fontSize: 28,
@@ -462,52 +598,63 @@ class AppSettingsPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'İzinlerini ve uygulama tercihlerini yönet.',
-                        style: TextStyle(
+                        l10n.settingsSubtitle,
+                        style: const TextStyle(
                           color: WebColors.textSecondary,
                           fontSize: 14,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.huge),
-                      _buildDesktopSectionTitle('İZİNLER'),
+                      _buildDesktopSectionTitle(l10n.settingsSectionPermissions),
                       const SizedBox(height: AppSpacing.lg),
                       _DesktopHoverTile(
                         icon: Icons.location_searching_rounded,
-                        title: 'Konum İzni',
-                        subtitle:
-                            'Yakınındaki gösterileri bulabilmemiz için izin ver.',
+                        title: l10n.settingsLocationPermissionTitle,
+                        subtitle: l10n.settingsLocationPermissionSubtitle,
                         onTap: () => _handlePermission(Permission.location),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       _DesktopHoverTile(
                         icon: Icons.vibration_rounded,
-                        title: 'Bildirimler',
-                        subtitle: 'Yeni gösteriler ve kampanyalardan haberdar ol.',
+                        title: l10n.settingsNotificationsPermissionTitle,
+                        subtitle: l10n.settingsNotificationsPermissionSubtitle,
                         onTap: () =>
                             _handlePermission(Permission.notification),
                       ),
                       const SizedBox(height: AppSpacing.huge),
-                      _buildDesktopSectionTitle('UYGULAMAYI DESTEKLE'),
+                      _buildDesktopSectionTitle(l10n.settingsSectionLanguage),
+                      const SizedBox(height: AppSpacing.lg),
+                      _DesktopLanguageTile(
+                        title: l10n.settingsLanguageTitle,
+                        subtitle: l10n.settingsLanguageSubtitle,
+                        turkishLabel: l10n.settingsLanguageTurkish,
+                        englishLabel: l10n.settingsLanguageEnglish,
+                        currentLanguageCode: currentLanguageCode,
+                        onSelect: (final code) => ref
+                            .read(localeControllerProvider.notifier)
+                            .setLocale(Locale(code)),
+                      ),
+                      const SizedBox(height: AppSpacing.huge),
+                      _buildDesktopSectionTitle(l10n.settingsSectionSupport),
                       const SizedBox(height: AppSpacing.lg),
                       _DesktopHoverAction(
                         icon: Icons.auto_awesome_rounded,
-                        title: 'Uygulamayı Öner',
-                        desc:
-                            'Mağaza indirme bağlantısını paylaşarak bize destek ol.',
+                        title: l10n.settingsRecommendAppTitle,
+                        desc: l10n.settingsRecommendAppDesc,
                         onTap: () => TiyatrolDeeplinkService.shareApp(),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       _DesktopHoverAction(
                         icon: Icons.send_rounded,
-                        title: 'Arkadaşlarınla Paylaş',
-                        desc: 'TiyatRol\'ü mesajla ya da sosyal medyada paylaş.',
-                        onTap: _shareApp,
+                        title: l10n.settingsShareWithFriendsTitle,
+                        desc: l10n.settingsShareWithFriendsDesc,
+                        onTap: () => _shareApp(context),
                       ),
                       const SizedBox(height: AppSpacing.massive),
                       Center(
                         child: Text(
-                          'Versiyon 1.0.4 - Sanatla Tasarlandı',
-                          style: TextStyle(
+                          l10n.settingsVersionFooter,
+                          style: const TextStyle(
                             color: WebColors.textTertiary,
                             fontSize: 11,
                             letterSpacing: 1.5,
@@ -523,6 +670,7 @@ class AppSettingsPage extends ConsumerWidget {
           ],
         ),
       );
+  }
 
   Widget _buildDesktopSectionTitle(final String title) => Text(
         title,
@@ -683,6 +831,140 @@ class _DesktopHoverActionState extends State<_DesktopHoverAction> {
                   Icon(Icons.open_in_new_rounded,
                       color: WebColors.whiteText.withOpacity(0.7), size: 18),
                 ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+/// Masaüstü "Uygulama Dili" satırı — `_DesktopHoverTile` ile aynı kart
+/// dilini taşır ama chevron yerine seçili dili vurgulayan iki pill buton
+/// gösterir; dokununca `localeControllerProvider` üzerinden gerçekten dil
+/// değiştirir (`onSelect` callback'i `app_settings.dart`'taki
+/// `_buildDesktopPage`'den geliyor).
+class _DesktopLanguageTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String turkishLabel;
+  final String englishLabel;
+  final String currentLanguageCode;
+  final ValueChanged<String> onSelect;
+
+  const _DesktopLanguageTile({
+    required this.title,
+    required this.subtitle,
+    required this.turkishLabel,
+    required this.englishLabel,
+    required this.currentLanguageCode,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(final BuildContext context) => Semantics(
+        label: '$title. $subtitle',
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: AppRadius.asymSm,
+            border: Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.translate_rounded,
+                  color: WebColors.primaryGold, size: 22),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            color: WebColors.whiteText,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14)),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(subtitle,
+                        style: const TextStyle(
+                            color: WebColors.textSecondary, fontSize: 12)),
+                  ],
+                ),
+              ),
+              _DesktopLanguageOption(
+                label: turkishLabel,
+                isSelected: currentLanguageCode == 'tr',
+                onTap: () => onSelect('tr'),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _DesktopLanguageOption(
+                label: englishLabel,
+                isSelected: currentLanguageCode == 'en',
+                onTap: () => onSelect('en'),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _DesktopLanguageOption extends StatefulWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _DesktopLanguageOption({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_DesktopLanguageOption> createState() =>
+      _DesktopLanguageOptionState();
+}
+
+class _DesktopLanguageOptionState extends State<_DesktopLanguageOption> {
+  bool _hovered = false;
+
+  @override
+  Widget build(final BuildContext context) => Semantics(
+        button: true,
+        selected: widget.isSelected,
+        label: widget.label,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (final _) => setState(() => _hovered = true),
+          onExit: (final _) => setState(() => _hovered = false),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: AppMotion.fast,
+              curve: AppMotion.standard,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              decoration: BoxDecoration(
+                gradient: widget.isSelected ? WebColors.goldGradient : null,
+                color: widget.isSelected
+                    ? null
+                    : (_hovered
+                        ? WebColors.darkBlueAccent.withOpacity(0.6)
+                        : Colors.transparent),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: widget.isSelected
+                    ? null
+                    : Border.all(color: WebColors.darkBlueAccent, width: 1),
+              ),
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.isSelected
+                      ? WebColors.veryDarkBlue
+                      : WebColors.whiteText,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
