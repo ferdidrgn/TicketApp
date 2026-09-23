@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
+import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 
 /// Keşif sayfasının masaüstü sürümü için sinematik/editoryal giriş bloğu.
 /// Mobilin sıkışık uygulama çubuğu yerine, büyük başlık tipografisi ve
@@ -14,11 +18,21 @@ class DiscoveryHero extends StatelessWidget {
   /// yeniden kullanılır.
   final bool archiveMode;
 
+  /// Tam-genişlik, nefes alan bir fotoğraf zemini — GERÇEK bir oyunun
+  /// `photosShowId`'sinden (yoksa `imageUrl`'inden) ÇAĞIRANIN (bkz.
+  /// `discovery_page.dart` `_DiscoveryDesktopBrowserState._pickHeroBackdrop`)
+  /// bir KEZ rastgele seçtiği fotoğraf — `theatre_show_card.dart`'taki
+  /// "initState'te bir kez seç, sonra sabit kal" ilkesiyle aynı. null/boş
+  /// ise (gerçek bir görsel yoksa) sessizce eski, fotoğrafsız düzene düşer
+  /// — asla uydurma bir görsel göstermez.
+  final String? backdropImageUrl;
+
   const DiscoveryHero({
     super.key,
     this.categoryLabel,
     required this.showCount,
     this.archiveMode = false,
+    this.backdropImageUrl,
   });
 
   @override
@@ -38,7 +52,7 @@ class DiscoveryHero extends StatelessWidget {
             : 'Küratörlerimizin özenle seçtiği prodüksiyonlar arasında dolaş; '
                 'her perde farklı bir hikâye anlatıyor.');
 
-    return LayoutBuilder(
+    final Widget content = LayoutBuilder(
       builder: (final context, final constraints) {
         final bool stacked = constraints.maxWidth < 760;
 
@@ -110,6 +124,80 @@ class DiscoveryHero extends StatelessWidget {
           ],
         );
       },
+    );
+
+    final bool hasBackdrop =
+        backdropImageUrl != null && backdropImageUrl!.isNotEmpty;
+
+    // Gerçek bir arka plan fotoğrafı yoksa (ör. hiçbir oyunun ne galerisi
+    // ne de afişi varsa — pratikte olmaz ama savunmacı davranıyoruz) sade,
+    // fotoğrafsız eski düzene sessizce düşer.
+    if (!hasBackdrop) return content;
+
+    // Referans lüks/editoryal sitelerdeki "büyük, tek güçlü, nefes alan
+    // görsel" hissi: gerçek fotoğraf zemini + okunurluğu garanti eden çift
+    // yönlü koyu "scrim" (bkz. `home_page_web.dart`'taki `_HeroBackdropPhoto`
+    // ile AYNI teknik) + bol iç boşluk (`AppSpacing.section`).
+    return ClipRRect(
+      borderRadius: AppRadius.asymLg,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          boxShadow: AppShadows.level4(WebColors.veryDarkBlue),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: OptimizedCachedImage(
+                imageUrl: backdropImageUrl!,
+                fit: BoxFit.cover,
+                borderRadius: 0,
+              ),
+            ),
+            // Yatay scrim: metnin durduğu sol taraf koyu, sağ taraf
+            // (rozetin arkası) fotoğrafın nefes almasına izin verecek
+            // kadar açık.
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      WebColors.veryDarkBlue.withOpacity(0.95),
+                      WebColors.veryDarkBlue.withOpacity(0.8),
+                      WebColors.veryDarkBlue.withOpacity(0.5),
+                    ],
+                    stops: const [0.0, 0.55, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            // Dikey scrim: üst/alt kenarlarda ek okunurluk.
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      WebColors.veryDarkBlue.withOpacity(0.45),
+                      Colors.transparent,
+                      WebColors.veryDarkBlue.withOpacity(0.55),
+                    ],
+                    stops: const [0.0, 0.4, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl,
+                  AppSpacing.section, AppSpacing.xxxl, AppSpacing.section),
+              child: content,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

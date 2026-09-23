@@ -96,6 +96,10 @@ class _DiscoveryShowCardState extends State<DiscoveryShowCard> {
               child: AnimatedContainer(
                 duration: AppMotion.fast,
                 curve: AppMotion.standard,
+                // `TheatreShowCard`'daki hover'da hafif kaldırma
+                // (`Matrix4.translationValues(0, -5, 0)`) ile AYNI teknik —
+                // iki ızgaranın hover hissi tutarlı kalsın diye.
+                transform: Matrix4.translationValues(0, isActive ? -6 : 0, 0),
                 decoration: BoxDecoration(
                   borderRadius: _cardRadius,
                   boxShadow: isActive
