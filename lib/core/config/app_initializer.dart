@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -50,6 +51,11 @@ abstract final class AppInitializer {
       ).timeout(const Duration(seconds: 10));
 
       if (Firebase.apps.isNotEmpty) {
+        // Firestore'un ilk sorgusundan ÖNCE, offline persistence ayarını
+        // yap — `settings` bir kez okunduktan/ilk sorgu yapıldıktan sonra
+        // değiştirilemez, bu yüzden bu çağrı burada, uygulamanın herhangi
+        // bir Firestore erişiminden önceki tek yerde duruyor.
+        _configureFirestorePersistence();
         await AppCheckService.init();
         if (!kIsWeb) {
           _setupCrashlytics();
@@ -57,6 +63,45 @@ abstract final class AppInitializer {
       }
     } catch (e) {
       debugPrint('🔥 Firebase hata: $e');
+    }
+  }
+
+  /// Firestore'un yerleşik çevrimdışı önbelleğini (offline persistence)
+  /// açar. Bu SDK-seviyesinde bir özellik ve varsayılan olarak KAPALI
+  /// geliyor — açılmadığı sürece, `cloud_firestore` üzerinden yapılan her
+  /// sorgu bağlantı koptuğunda direkt hata fırlatır (uygulamanın kendi ağ
+  /// katmanı yok, tüm veri Firestore SDK'sı üzerinden geliyor — bkz.
+  /// `pubspec.yaml`: `dio` bağımlılığı ekli ama `lib/` içinde HİÇBİR yerde
+  /// `import 'package:dio/dio.dart'` yok, fiilen kullanılmıyor).
+  ///
+  /// Mobil/masaüstü ve web'de API'ler farklı:
+  /// - Mobil/masaüstü: `FirebaseFirestore.instance.settings` üzerinden
+  ///   `persistenceEnabled` + `cacheSizeBytes` (yerleşik SQLite tabanlı
+  ///   cache).
+  /// - Web: `settings.persistenceEnabled` web platformunda desteklenmiyor;
+  ///   onun yerine ayrı, web'e özel `enablePersistence()` çağrısı (IndexedDB
+  ///   tabanlı cache) gerekiyor.
+  static void _configureFirestorePersistence() {
+    try {
+      if (kIsWeb) {
+        // ignore: unawaited_futures — init akışını bloklamasın; hata olursa
+        // aşağıdaki catch web'de senkron fırlatılan hatayı yakalar, asenkron
+        // reddi ise sessizce yutmamak için ayrıca ele alınır.
+        FirebaseFirestore.instance
+            .enablePersistence(const PersistenceSettings(synchronizeTabs: true))
+            .catchError((final Object e) {
+          debugPrint('🗄️ Firestore web persistence açılamadı: $e');
+        });
+      } else {
+        FirebaseFirestore.instance.settings = const Settings(
+          persistenceEnabled: true,
+          cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+        );
+      }
+    } catch (e) {
+      // Zaten açık (ör. hot-restart) ya da bu platformda desteklenmiyor —
+      // persistence olmadan devam et, init akışını çökertme.
+      debugPrint('🗄️ Firestore persistence ayarlanamadı: $e');
     }
   }
 
