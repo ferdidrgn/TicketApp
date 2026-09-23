@@ -164,11 +164,20 @@ class _ShowCard extends StatelessWidget {
                           const Icon(Icons.schedule_rounded,
                               size: 15, color: WebColors.secondaryAccentLight),
                           const SizedBox(width: 6),
-                          Text(
-                            show.duration,
-                            style: TextStyle(
-                              color: WebColors.textSecondary,
-                              fontSize: 13,
+                          // show.duration serbest metin bir alan (CMS'te
+                          // uzunluğu garanti edilmiyor); dar kart genişliğinde
+                          // (Positioned(left:24,right:24) ile sıkıca
+                          // sınırlanmış) Expanded/Flexible olmadan
+                          // RenderFlex taşmasına yol açabilirdi.
+                          Flexible(
+                            child: Text(
+                              show.duration,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: WebColors.textSecondary,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
