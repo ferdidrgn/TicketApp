@@ -317,6 +317,27 @@ Future<List<FilteredShow>> filteredShows(final Ref ref) async {
   return results;
 }
 
+/// Fiyat aralığı slider'ının GERÇEK alt/üst sınırı — sabit bir "0-2000 TL"
+/// tahmini DEĞİL, o an var olan tüm gerçek etkinliklerin (`Event.price`)
+/// en düşük/en yüksek değerinden hesaplanır. Hiç fiyatlı etkinlik yoksa
+/// `null` döner — UI bu durumda fiyat filtresini tamamen gizlemeli.
+@riverpod
+Future<({double min, double max})?> priceRangeBounds(final Ref ref) async {
+  final eventsByShow = await ref.watch(eventsByShowMapProvider(false).future);
+  double? min;
+  double? max;
+  for (final events in eventsByShow.values) {
+    for (final event in events) {
+      final price = double.tryParse(event.price);
+      if (price == null) continue;
+      if (min == null || price < min) min = price;
+      if (max == null || price > max) max = price;
+    }
+  }
+  if (min == null || max == null) return null;
+  return (min: min, max: max);
+}
+
 /// Filtre UI'ının kategori/tür seçeneklerini doldurmak için — sabit,
 /// uydurma bir liste DEĞİL; o an gerçekten var olan gösterilerin kendi
 /// `category`/`type` alanlarından türetilir. Yeni bir kategori Firestore'a
