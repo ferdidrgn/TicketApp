@@ -430,6 +430,15 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     );
   }
 
+  /// Gerçek `Show.category`, boşsa `Show.type` — ikisi de boşsa kategori
+  /// çipi tamamen gizlenir (uydurma bir "TİYATRO" sabiti asla gösterilmez).
+  String _categoryLabel(final dynamic show) {
+    final category = (show.category as String).trim();
+    if (category.isNotEmpty) return category.toUpperCase();
+    final type = (show.type as String).trim();
+    return type.isNotEmpty ? type.toUpperCase() : '';
+  }
+
   Widget _buildMobileHeaderSection(
       final BuildContext context, final dynamic state) {
     final colors = context.colors;
@@ -439,73 +448,47 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Category & Rating
-          Row(
-            children: [
-              // Category Chip
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  border: Border.all(
-                    color: colors.primary.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.theater_comedy_rounded,
-                      size: 16,
-                      color: colors.primary,
+          // Kategori — gerçek Show.category/type, sabit "TİYATRO" DEĞİL.
+          // Uydurma bir "4.8" reyting rozeti vardı; Show entity'sinde hiç
+          // rating alanı yok, uydurma veri göstermek yerine tamamen
+          // kaldırıldı (bkz. show_info_section.dart'taki aynı düzeltme).
+          if (_categoryLabel(state.show).isNotEmpty)
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: colors.primaryContainer,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(
+                      color: colors.primary.withOpacity(0.3),
+                      width: 1,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      "TİYATRO",
-                      style: TextStyle(
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.theater_comedy_rounded,
+                        size: 16,
                         color: colors.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              // Rating Badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: colors.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  border: Border.all(
-                    color: colors.tertiary.withOpacity(0.3),
-                    width: 1,
+                      const SizedBox(width: 6),
+                      Text(
+                        _categoryLabel(state.show),
+                        style: TextStyle(
+                          color: colors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.star_rounded, color: colors.tertiary, size: 18),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      "4.8",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: colors.tertiary,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
           const SizedBox(height: AppSpacing.xl),
 
           // Title
@@ -710,7 +693,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               margin: const EdgeInsets.only(right: AppSpacing.lg),
               imageUrl: state.show.imageUrl,
               showName: state.show.name,
-              category: "TİYATRO",
+              category: _categoryLabel(state.show),
               fullDateString: dateText,
               timeString: timeText,
               stage: stage.name,
@@ -901,59 +884,38 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Category & Rating
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: colors.primaryContainer,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      border:
-                          Border.all(color: colors.primary.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.theater_comedy_rounded,
-                            size: 20, color: colors.primary),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          "TİYATRO",
-                          style: context.textTheme.titleSmall?.copyWith(
-                            color: colors.primary,
-                            fontWeight: FontWeight.bold,
+              // Kategori — gerçek Show.category/type. Uydurma "4.8" reyting
+              // rozeti kaldırıldı (Show entity'sinde rating alanı yok).
+              if (_categoryLabel(state.show).isNotEmpty)
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: colors.primaryContainer,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(
+                            color: colors.primary.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.theater_comedy_rounded,
+                              size: 20, color: colors.primary),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(
+                            _categoryLabel(state.show),
+                            style: context.textTheme.titleSmall?.copyWith(
+                              color: colors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: colors.tertiaryContainer,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.star_rounded,
-                            size: 22, color: colors.tertiary),
-                        const SizedBox(width: 6),
-                        Text(
-                          "4.8",
-                          style: context.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colors.tertiary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               const SizedBox(height: AppSpacing.xxl),
               // Title
               Text(
@@ -1186,7 +1148,7 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
           return EventsCard(
             imageUrl: state.show.imageUrl,
             showName: state.show.name,
-            category: "TİYATRO",
+            category: _categoryLabel(state.show),
             fullDateString: dateText,
             timeString: timeText,
             stage: stage.name,
