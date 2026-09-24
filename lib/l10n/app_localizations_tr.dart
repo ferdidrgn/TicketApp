@@ -312,11 +312,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get homeQuoteLatin =>
-      '"Ars longa, vita brevis, occasio praeceps, experimentum periculosum, iudicium difficile."';
+      '\"Ars longa, vita brevis, occasio praeceps, experimentum periculosum, iudicium difficile.\"';
 
   @override
   String get homeQuoteTranslation =>
-      '"Sanat (zanaat/bilgi) uzun, hayat kısa, fırsat kaçıcı, deneyim yanıltıcı (tehlikeli), karar vermek zordur."';
+      '\"Sanat (zanaat/bilgi) uzun, hayat kısa, fırsat kaçıcı, deneyim yanıltıcı (tehlikeli), karar vermek zordur.\"';
 
   @override
   String get homeDailyDiscoveryTag => 'HER GÜN YENİ BİR KEŞİF';

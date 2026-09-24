@@ -137,4 +137,4 @@ final class SearchResultProvider extends $FunctionalProvider<
   }
 }
 
-String _$searchResultHash() => r'7afa4922851aa4ef993dc9b209c231122b0edfb1';
+String _$searchResultHash() => r'30db65808b7348c23f89a2f37510422b09072398';

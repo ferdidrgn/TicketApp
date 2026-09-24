@@ -363,11 +363,27 @@ final class PlayerByIdFamily extends $Family
 }
 
 /// 🔥 OYUNCU DETAY VE GÖSTERİLERİNİ BİRLEŞTİREN ANA PROVIDER
+///
+/// ⚠️ ÖNEMLİ: nowShowsId / oldShowsId listelerinden biri boşsa (veya o
+/// listedeki gösteriler artık Firestore'da yoksa / çekilirken hata verirse)
+/// sayfanın TAMAMI kilitlenmemeli. Bu yüzden aktif ve geçmiş gösteriler
+/// birbirinden BAĞIMSIZ ve hataya karşı toleranslı şekilde çekilir; biri
+/// başarısız olsa bile diğeri ve oyuncunun kendi bilgileri (bio, ödüller vb.)
+/// normal şekilde gösterilir. Boş/başarısız taraf sadece "gösteri yok"
+/// mesajıyla boş liste döner.
 
 @ProviderFor(playerDetail)
 const playerDetailProvider = PlayerDetailFamily._();
 
 /// 🔥 OYUNCU DETAY VE GÖSTERİLERİNİ BİRLEŞTİREN ANA PROVIDER
+///
+/// ⚠️ ÖNEMLİ: nowShowsId / oldShowsId listelerinden biri boşsa (veya o
+/// listedeki gösteriler artık Firestore'da yoksa / çekilirken hata verirse)
+/// sayfanın TAMAMI kilitlenmemeli. Bu yüzden aktif ve geçmiş gösteriler
+/// birbirinden BAĞIMSIZ ve hataya karşı toleranslı şekilde çekilir; biri
+/// başarısız olsa bile diğeri ve oyuncunun kendi bilgileri (bio, ödüller vb.)
+/// normal şekilde gösterilir. Boş/başarısız taraf sadece "gösteri yok"
+/// mesajıyla boş liste döner.
 
 final class PlayerDetailProvider extends $FunctionalProvider<
         AsyncValue<PlayerDetailState>,
@@ -377,6 +393,14 @@ final class PlayerDetailProvider extends $FunctionalProvider<
         $FutureModifier<PlayerDetailState>,
         $FutureProvider<PlayerDetailState> {
   /// 🔥 OYUNCU DETAY VE GÖSTERİLERİNİ BİRLEŞTİREN ANA PROVIDER
+  ///
+  /// ⚠️ ÖNEMLİ: nowShowsId / oldShowsId listelerinden biri boşsa (veya o
+  /// listedeki gösteriler artık Firestore'da yoksa / çekilirken hata verirse)
+  /// sayfanın TAMAMI kilitlenmemeli. Bu yüzden aktif ve geçmiş gösteriler
+  /// birbirinden BAĞIMSIZ ve hataya karşı toleranslı şekilde çekilir; biri
+  /// başarısız olsa bile diğeri ve oyuncunun kendi bilgileri (bio, ödüller vb.)
+  /// normal şekilde gösterilir. Boş/başarısız taraf sadece "gösteri yok"
+  /// mesajıyla boş liste döner.
   const PlayerDetailProvider._(
       {required PlayerDetailFamily super.from, required String super.argument})
       : super(
@@ -423,9 +447,17 @@ final class PlayerDetailProvider extends $FunctionalProvider<
   }
 }
 
-String _$playerDetailHash() => r'f1a41df6ca983ab3188581d581b44620354346ff';
+String _$playerDetailHash() => r'833eddd8b1b54084da099143f9e87afdcb06a5eb';
 
 /// 🔥 OYUNCU DETAY VE GÖSTERİLERİNİ BİRLEŞTİREN ANA PROVIDER
+///
+/// ⚠️ ÖNEMLİ: nowShowsId / oldShowsId listelerinden biri boşsa (veya o
+/// listedeki gösteriler artık Firestore'da yoksa / çekilirken hata verirse)
+/// sayfanın TAMAMI kilitlenmemeli. Bu yüzden aktif ve geçmiş gösteriler
+/// birbirinden BAĞIMSIZ ve hataya karşı toleranslı şekilde çekilir; biri
+/// başarısız olsa bile diğeri ve oyuncunun kendi bilgileri (bio, ödüller vb.)
+/// normal şekilde gösterilir. Boş/başarısız taraf sadece "gösteri yok"
+/// mesajıyla boş liste döner.
 
 final class PlayerDetailFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<PlayerDetailState>, String> {
@@ -439,6 +471,14 @@ final class PlayerDetailFamily extends $Family
         );
 
   /// 🔥 OYUNCU DETAY VE GÖSTERİLERİNİ BİRLEŞTİREN ANA PROVIDER
+  ///
+  /// ⚠️ ÖNEMLİ: nowShowsId / oldShowsId listelerinden biri boşsa (veya o
+  /// listedeki gösteriler artık Firestore'da yoksa / çekilirken hata verirse)
+  /// sayfanın TAMAMI kilitlenmemeli. Bu yüzden aktif ve geçmiş gösteriler
+  /// birbirinden BAĞIMSIZ ve hataya karşı toleranslı şekilde çekilir; biri
+  /// başarısız olsa bile diğeri ve oyuncunun kendi bilgileri (bio, ödüller vb.)
+  /// normal şekilde gösterilir. Boş/başarısız taraf sadece "gösteri yok"
+  /// mesajıyla boş liste döner.
 
   PlayerDetailProvider call(
     String playerId,

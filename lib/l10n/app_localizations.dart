@@ -671,13 +671,13 @@ abstract class AppLocalizations {
   /// No description provided for @homeQuoteLatin.
   ///
   /// In tr, this message translates to:
-  /// **'"Ars longa, vita brevis, occasio praeceps, experimentum periculosum, iudicium difficile."'**
+  /// **'\"Ars longa, vita brevis, occasio praeceps, experimentum periculosum, iudicium difficile.\"'**
   String get homeQuoteLatin;
 
   /// No description provided for @homeQuoteTranslation.
   ///
   /// In tr, this message translates to:
-  /// **'"Sanat (zanaat/bilgi) uzun, hayat kısa, fırsat kaçıcı, deneyim yanıltıcı (tehlikeli), karar vermek zordur."'**
+  /// **'\"Sanat (zanaat/bilgi) uzun, hayat kısa, fırsat kaçıcı, deneyim yanıltıcı (tehlikeli), karar vermek zordur.\"'**
   String get homeQuoteTranslation;
 
   /// No description provided for @homeDailyDiscoveryTag.
