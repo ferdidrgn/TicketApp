@@ -94,14 +94,23 @@ jobs:
       # boşsa signingConfig uygulanmaz) — bu, CI'nin secret eklenmeden de
       # kırılmadan "derlenebilirlik" kontrolü yapmasını sağlar.
       - name: Decode signing keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        # 🔥 DÜZELTME: GitHub Actions `if:` koşulunda doğrudan `secrets`
+        # context'ine izin vermiyor ("Unrecognized named-value: 'secrets'"
+        # ile workflow doğrulama hatası veriyor) — secret önce bir `env:`
+        # değişkenine atanıp `if:` koşulunda `env.*` üzerinden okunuyor.
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release-keystore.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release-keystore.jks"
           cat > android/key.properties <<EOF
           storeFile=$RUNNER_TEMP/release-keystore.jks
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
           EOF
 
       - name: Build App Bundle
