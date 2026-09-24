@@ -222,7 +222,7 @@ Future<Map<String, DateTime>> _nearestFutureEventDatesByShow(
 /// "dd.MM.yyyy,HH:mm" formatıyla KARIŞTIRILMAZ, o farklı bir alan/format.
 /// Ayrıştırılamayan (null) tarihler listenin sonuna düşer, asla listeyi
 /// bozmaz.
-void _sortByCreatedAtDescending(final List<Show> shows) {
+void sortShowsByCreatedAtDescending(final List<Show> shows) {
   shows.sort((final a, final b) {
     final ca = DateTime.tryParse(a.createdAt);
     final cb = DateTime.tryParse(b.createdAt);
@@ -279,7 +279,7 @@ final pastShowsProvider =
   final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
   final past =
       shows.where((final s) => !nearestByShow.containsKey(s.id)).toList();
-  _sortByCreatedAtDescending(past);
+  sortShowsByCreatedAtDescending(past);
   return past;
 });
 
@@ -304,6 +304,6 @@ final showsActiveFirstProvider =
     (nearestByShow.containsKey(show.id) ? active : inactive).add(show);
   active.sort((final a, final b) =>
       nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
-  _sortByCreatedAtDescending(inactive);
+  sortShowsByCreatedAtDescending(inactive);
   return [...active, ...inactive];
 });

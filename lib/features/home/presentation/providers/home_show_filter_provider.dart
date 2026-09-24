@@ -58,19 +58,41 @@ List<Show> _filterToHomeTeams(
             allowedTeamIds.contains(show.teamId) || show.hasExternalTicketing)
         .toList();
 
-/// `showsActiveFirstProvider`in ana sayfaya süzülmüş hâli — aktif oyunlar
-/// önde, sıralama aynı, ama sadece izinli takımların gösterileri.
+// Kullanıcının kendi talebi (birebir): "en son yaratılan aktif oyunluğa
+// göre filtrelemeler yap önce en yeniler ve aktfiler ekrana gelsin."
+// Ana sayfa artık `showsActiveFirstProvider`in kendi "gerçek etkinliği
+// olan aktif oyun önce, kalanlar eklenme tarihine göre" sıralamasını
+// KULLANMIYOR — bunun yerine TÜMÜ (harici biletli dahil) tek bir listede
+// gerçek `Show.createdAt`'a göre azalan sırada (en yeni en üstte)
+// gösteriliyor. Harici biletli oyunların (bkz. `hasExternalTicketing`)
+// bizim sistemimizde asla gerçek `Event` kaydı olmayacağı için eski
+// mantıkla hep "aktif olmayan" sayılıp en dibe düşmesi bu isteğin asıl
+// nedeni — ör. az önce eklenen "Herkes Farklı Ölür" en üstte görünmeli.
+List<Show> _sortHomeShowsByRecency(final List<Show> shows) {
+  final sorted = List<Show>.of(shows);
+  sortShowsByCreatedAtDescending(sorted);
+  return sorted;
+}
+
+/// `showsActiveFirstProvider`in ana sayfaya süzülmüş hâli — artık en son
+/// eklenen oyun en üstte, sadece izinli takımların (+ harici biletli
+/// konuk oyunların) gösterileri.
 final homeShowsActiveFirstProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final allowedTeamIds = await ref.watch(homeAllowedTeamIdsProvider.future);
   if (allowedTeamIds.isEmpty) return [];
   final shows =
       await ref.watch(showsActiveFirstProvider(isLimit).future);
-  return _filterToHomeTeams(shows, allowedTeamIds);
+  return _sortHomeShowsByRecency(_filterToHomeTeams(shows, allowedTeamIds));
 });
 
 /// `activeShowsProvider`ın ana sayfaya süzülmüş hâli — mobil ana
-/// sayfanın "Aktif Oyunlar" şeridi bunu kullanır.
+/// sayfanın "Aktif Oyunlar" şeridi bunu kullanır. Bu şerit ÖZELLİKLE
+/// "takviminde gerçek yaklaşan etkinliği olan" oyunları anlatıyor, bu
+/// yüzden kendi orijinal sıralamasını (en yakın etkinlik tarihine göre
+/// artan) korur — harici biletli oyunlar zaten gerçek `Event` kaydı
+/// olmadığından bu şeride hiç girmez, recency sıralaması burada
+/// gerekmiyor.
 final homeActiveShowsProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final allowedTeamIds = await ref.watch(homeAllowedTeamIdsProvider.future);

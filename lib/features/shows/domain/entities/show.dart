@@ -33,6 +33,15 @@ class Show extends Equatable {
 
   bool get hasExternalTicketing => externalTicketUrl.trim().isNotEmpty;
 
+  /// Son 21 gün içinde eklenmiş mi — "YENİ" rozeti için TEK doğruluk
+  /// kaynağı `createdAt`'ın kendisi; ayrı, senkron tutulması gereken bir
+  /// "isNew"/"isTrend" alanı YOK (aynı `hasExternalTicketing` prensibi).
+  bool get isRecentlyAdded {
+    final created = DateTime.tryParse(createdAt);
+    if (created == null) return false;
+    return DateTime.now().difference(created).inDays <= 21;
+  }
+
   const Show({
     required this.id,
     required this.createdAt,

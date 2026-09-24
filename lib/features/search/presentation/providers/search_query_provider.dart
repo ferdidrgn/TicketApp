@@ -50,18 +50,23 @@ Future<SearchResultState> searchResult(final Ref ref) async {
   final filterIndex = ref.watch(searchFilterProvider);
 
   // Gösteriler (shows) için kaynak, sorgu durumuna göre değişir:
-  // - Kutu boşken (göz atma / "önerilenler" hâli): `showsActiveFirstProvider`
-  //   — ÖNCE aktif oyunlar, SONRA (varsa yer kaldıysa) aktif olmayanlar;
-  //   arşivlenmiş bir oyun listeden tamamen kaybolmaz, sadece öncelik aktif
-  //   oyunlarda olur. Aşağıdaki sayfa/kart bileşenleri zaten `.take(N)` ile
-  //   listeyi kısıyor; aktif oyunlar başta olduğu için hangi N seçilirse
-  //   seçilsin önce onlar gösterilmiş olur, eksik kalan yerler aktif
-  //   olmayanlarla dolar.
+  // - Kutu boşken (göz atma / "önerilenler" hâli): kullanıcının kendi
+  //   talebi ("en son yaratılan aktif oyunluğa göre filtrelemeler yap
+  //   önce en yeniler ve aktifler ekrana gelsin") gereği en son eklenen
+  //   oyun en üstte — bkz. `home_show_filter_provider.dart`'taki AYNI
+  //   `sortShowsByCreatedAtDescending` mantığı (ana sayfayla tutarlı
+  //   davranış). Hiçbir oyun listeden tamamen kaybolmaz, sadece sıra
+  //   değişir.
   // - Kullanıcı bir şey yazdığında (açık arama): TÜM oyunlar aranır —
-  //   geçmiş bir oyunu ismiyle arayan biri onu hâlâ bulabilmeli.
+  //   geçmiş bir oyunu ismiyle arayan biri onu hâlâ bulabilmeli, sıralama
+  //   burada önemsiz (query eşleşmesiyle zaten daralıyor).
   final Future<List<Show>> showsFuture;
   if (query.isEmpty) {
-    showsFuture = ref.watch(showsActiveFirstProvider(false).future);
+    showsFuture = ref.watch(showsActiveFirstProvider(false).future).then((final shows) {
+      final sorted = List<Show>.of(shows);
+      sortShowsByCreatedAtDescending(sorted);
+      return sorted;
+    });
   } else {
     showsFuture = ref.watch(showsProvider(isLimit: false).future);
   }

@@ -222,6 +222,46 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
                           ],
                         ),
                       ),
+
+                      // ✨ Son eklenen (son 21 gün) oyunlar için ayırt
+                      // edici "YENİ" rozeti — sol-üstteki kategori/harici
+                      // bilet rozetleriyle çakışmaması için sağ-üstte.
+                      // `show.isRecentlyAdded`, gerçek `createdAt`'tan
+                      // türetilir — uydurma bir "trend" bayrağı yok.
+                      if (show.isRecentlyAdded)
+                        Positioned(
+                          right: 12,
+                          top: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [
+                                WebColors.warning,
+                                WebColors.primaryGoldLight,
+                              ]),
+                              borderRadius: AppRadius.asymSm,
+                              boxShadow: AppShadows.level1(WebColors.warning),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.bolt_rounded,
+                                    size: 12, color: WebColors.veryDarkBlue),
+                                SizedBox(width: 3),
+                                Text(
+                                  'YENİ',
+                                  style: TextStyle(
+                                    color: WebColors.veryDarkBlue,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
