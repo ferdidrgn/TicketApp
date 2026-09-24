@@ -145,19 +145,26 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     return SplashDataGuard(
       isLoading: detailAsync.isLoading,
       loadingMessage: 'Sanat dolu detaylar hazırlanıyor...',
-      child: ColoredBox(
-        color: WebColors.darkBlueBackground,
-        child: detailAsync.when(
-          loading: () => const SizedBox.shrink(),
-          error: (final err, final stack) => const SizedBox.shrink(),
-          data: (final state) {
-            WidgetsBinding.instance.addPostFrameCallback((final _) {
-              _startPageAnimations();
-              _maybeScrollToEvents();
-            });
-            return _buildSuccessState(
-                state.show, state.events, state.players, state.stages);
-          },
+      // 🔥 DÜZELTME: `BasePageWrapper` (Scaffold → Material sağlar)
+      // bilerek atlanıyor, ama aşağıdaki `Footer`'ın `InkWell`'leri hiçbir
+      // Material atasına sahip değildi — web konsolunda "No Material
+      // widget found" ile çöküyordu.
+      child: Material(
+        type: MaterialType.transparency,
+        child: ColoredBox(
+          color: WebColors.darkBlueBackground,
+          child: detailAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (final err, final stack) => const SizedBox.shrink(),
+            data: (final state) {
+              WidgetsBinding.instance.addPostFrameCallback((final _) {
+                _startPageAnimations();
+                _maybeScrollToEvents();
+              });
+              return _buildSuccessState(
+                  state.show, state.events, state.players, state.stages);
+            },
+          ),
         ),
       ),
     );
@@ -199,6 +206,16 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
               ),
               const SliverToBoxAdapter(child: Footer()),
             ],
+          ),
+          // 🔥 DÜZELTME: `GlassmorphismBackButton` import edilmişti ama hiç
+          // kullanılmıyordu — bu sayfada geri dönmenin tek yolu tarayıcının
+          // kendi geri tuşuydu. Diğer sabit butonlarla (paylaş, SSS) aynı
+          // dilde, sol üstte eklendi.
+          const Positioned(
+            top: 40,
+            left: 20,
+            child: GlassmorphismBackButton(
+                backgroundColor: WebColors.primaryGold),
           ),
           // Sabit Butonlar
           Positioned(

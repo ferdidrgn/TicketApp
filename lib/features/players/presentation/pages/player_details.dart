@@ -12,6 +12,7 @@ import 'package:ticketapp/shared/widgets/optimized_cached_image.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/services/deeplink/deeplink_service.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
@@ -611,17 +612,23 @@ class _PlayerDetailDesktopPage extends StatelessWidget {
   const _PlayerDetailDesktopPage({required this.playerId});
 
   @override
-  Widget build(final BuildContext context) => ColoredBox(
-        // NOT: `_PlayerDetailDesktopBody` kendi `CustomScrollView`'ı ile
-        // zaten kaydırılabilir — ikinci bir SingleChildScrollView SARMAK
+  // 🔥 DÜZELTME: `BasePageWrapper` (Scaffold → Material sağlar) bilerek
+  // atlanıyor, ama aşağıdaki `Footer`'ın `InkWell`'leri hiçbir Material
+  // atasına sahip değildi — web konsolunda "No Material widget found"
+  // ile çöküyordu.
+  Widget build(final BuildContext context) => Material(
+        type: MaterialType.transparency,
+        // NOT: `PlayerDetailDesktopView` (bkz. player_detail_desktop_view.
+        // dart) içeriği zaten kendi 1300px `ConstrainedBox`'ıyla ortalıyor
+        // — burada İKİNCİ bir merkezleme/genişlik sınırı (eskiden 1180-
+        // 1360px) eklemek, "içerik ekranın ortasında küçük bir şerit gibi
+        // duruyor" görünümüne katkı yapan gereksiz bir çift kısıttı.
+        // `_PlayerDetailDesktopBody` kendi `CustomScrollView`'ı ile zaten
+        // kaydırılabilir — ikinci bir SingleChildScrollView SARMAK
         // "unbounded height" hatasına yol açar, bilerek eklenmedi.
-        color: WebColors.darkBlueBackground,
-        child: Center(
-          child: ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
-            child: _PlayerDetailDesktopBody(playerId: playerId),
-          ),
+        child: ColoredBox(
+          color: WebColors.darkBlueBackground,
+          child: _PlayerDetailDesktopBody(playerId: playerId),
         ),
       );
 }
@@ -745,6 +752,15 @@ class _PlayerDetailDesktopBodyState
             // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
             const SliverToBoxAdapter(child: Footer()),
           ],
+        ),
+        // 🔥 DÜZELTME: Masaüstü sanatçı sayfasında geri dönmenin tek yolu
+        // tarayıcının kendi geri tuşuydu — diğer web detay sayfalarıyla
+        // (show/team) tutarlı, cam efektli bir geri butonu yoktu.
+        const Positioned(
+          top: 40,
+          left: 20,
+          child: GlassmorphismBackButton(
+              backgroundColor: WebColors.primaryGold),
         ),
         _buildFloatingChip(context, state),
       ],

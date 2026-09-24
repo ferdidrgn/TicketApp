@@ -342,25 +342,35 @@ class _StageDetailDesktopPageState
   Widget build(final BuildContext context) {
     final detailAsync = ref.watch(stageDetailProvider(widget.stageId));
 
-    return ColoredBox(
-      // NOT: Aşağıdaki `CustomScrollView` kendi kendine kaydırılabilir
-      // (kendi `controller`'ı ile) — burada ikinci bir
-      // `SingleChildScrollView` SARMAK "unbounded height" hatasına yol
-      // açar, bilerek eklenmedi.
-      color: WebColors.darkBlueBackground,
-      child: detailAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(WebColors.primaryGold),
+    // 🔥 DÜZELTME: Bu sayfa (diğer "Shell dışında" masaüstü detay
+    // sayfaları gibi — bkz. show/player/team) `BasePageWrapper`'ın
+    // Scaffold'unu kasıtlı atlıyor, ama hiçbir zaman kendi `Material`
+    // ataları yoktu. Sonuç: aşağıdaki `Footer`'ın `InkWell`'leri web
+    // konsolunda "No Material widget found" hatasıyla çöküyordu — `Ink`/
+    // `InkWell` gerektiren HERHANGİ bir alt widget için geçerli bir
+    // ata gerekiyor.
+    return Material(
+      type: MaterialType.transparency,
+      child: ColoredBox(
+        // NOT: Aşağıdaki `CustomScrollView` kendi kendine kaydırılabilir
+        // (kendi `controller`'ı ile) — burada ikinci bir
+        // `SingleChildScrollView` SARMAK "unbounded height" hatasına yol
+        // açar, bilerek eklenmedi.
+        color: WebColors.darkBlueBackground,
+        child: detailAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(WebColors.primaryGold),
+            ),
           ),
-        ),
-        error: (final err, final _) => Center(
-          child: Text(
-            'Veri yüklenemedi: $err',
-            style: const TextStyle(color: WebColors.whiteText),
+          error: (final err, final _) => Center(
+            child: Text(
+              'Veri yüklenemedi: $err',
+              style: const TextStyle(color: WebColors.whiteText),
+            ),
           ),
+          data: (final state) => _buildBody(context, state),
         ),
-        data: (final state) => _buildBody(context, state),
       ),
     );
   }
@@ -368,17 +378,19 @@ class _StageDetailDesktopPageState
   Widget _buildBody(final BuildContext context, final StageDetailState state) {
     _startHeroAnimationOnce();
 
-    return CustomScrollView(
-      controller: _scrollController,
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverToBoxAdapter(
-          child: StageHeroSection(
-            stage: state.stage,
-            fadeAnimation: _heroFade,
-            slideAnimation: _heroSlide,
-          ),
-        ),
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: StageHeroSection(
+                stage: state.stage,
+                fadeAnimation: _heroFade,
+                slideAnimation: _heroSlide,
+              ),
+            ),
         SliverToBoxAdapter(
           child: Center(
             child: ConstrainedBox(
@@ -414,6 +426,14 @@ class _StageDetailDesktopPageState
         ),
         // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
         const SliverToBoxAdapter(child: Footer()),
+          ],
+        ),
+        const Positioned(
+          top: 40,
+          left: 20,
+          child: GlassmorphismBackButton(
+              backgroundColor: WebColors.primaryGold),
+        ),
       ],
     );
   }

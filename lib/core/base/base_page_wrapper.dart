@@ -227,19 +227,18 @@ class _BasePageWrapperState extends ConsumerState<BasePageWrapper>
     );
   }
 
-  Widget _buildFloatingScrollButton() => ValueListenableBuilder<bool>(
-        valueListenable: _showFabNotifier,
-        builder: (final context, final show, final child) {
-          if (!show) return const SizedBox.shrink();
-          return Positioned(
-            bottom: 20, // Bottom bar varsa 100 yapabilirsin
-            right: 20,
-            child: ScrollUpButton(
-              scrollController: widget.customScrollController!,
-              visibleNotifier: _showFabNotifier,
-            ),
-          );
-        },
+  // 🔥 DÜZELTME: `ScrollUpButton.build()` zaten kendi kökünde bir
+  // `AnimatedPositioned` (right/bottom sabit) döndürüyor VE görünürlüğünü
+  // aynı `_showFabNotifier`'ı dinleyen kendi `ValueListenableBuilder<bool>`'ı
+  // ile yönetiyor. Burada onu ikinci bir `Positioned` + ikinci bir
+  // `ValueListenableBuilder<bool>` ile sarmak, aynı Stack çocuğuna iki
+  // `StackParentData` yazan iki ParentDataWidget'a yol açıyordu — web
+  // konsolunda "Incorrect use of ParentDataWidget" hatasıyla sayfa
+  // çöküyordu. Widget zaten kendi konumunu ve görünürlüğünü yönettiği için
+  // burada sadece doğrudan döndürülür.
+  Widget _buildFloatingScrollButton() => ScrollUpButton(
+        scrollController: widget.customScrollController!,
+        visibleNotifier: _showFabNotifier,
       );
 
   Widget _buildContent() => Padding(
