@@ -14,8 +14,17 @@
 # ANDROID
 # -----------------------
 # Derleme ve Önbellek Dosyaları
+# 🔥 DÜZELTME: Kök `/build/` sadece Flutter'ın kendi build klasörünü
+# yakalıyordu — Gradle'ın ayrı modül build klasörleri (android/app/build,
+# android/build) burada YOKTU. Sonuç: `git add -A` çalıştıran biri farkında
+# olmadan içindeki APK/AAR/kernel_blob.bin gibi 100MB+ üretilmiş dosyaları
+# commit'e ekleyebiliyordu — GitHub'ın 100MB push limitini aşıp push'u
+# tamamen reddetmesinin kök nedeni buydu.
+/android/app/build/
+/android/build/
 /android/.gradle
 /android/captures/
+/android/.cxx/
 .gradle/
 
 # Android Studio IDE Ayarları
