@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../../../../core/theme/app_colors.dart';
@@ -44,6 +46,7 @@ class _SpotlightRevealState extends State<SpotlightReveal>
   late final Animation<double> _flash;
   final Key _visibilityKey = UniqueKey();
   bool _triggered = false;
+  Timer? _fallbackTimer;
 
   @override
   void initState() {
@@ -61,11 +64,23 @@ class _SpotlightRevealState extends State<SpotlightReveal>
       parent: _controller,
       curve: const Interval(0.3, 0.75, curve: Curves.easeOut),
     );
+    // 🛟 GÜVENLİK AĞI: `VisibilityDetector` bazı düzen durumlarında (ör.
+    // içeriği zaten ekranda olan, hiç scroll edilmeyen bir kart) beklenen
+    // sürede tetiklenmeyebiliyor — bu da kartın kalıcı olarak opacity 0'da
+    // ("boş kart" görünümü) kalmasına yol açar. Görünürlük tespiti bir
+    // süre içinde gelmezse kart yine de kendini gösterir.
+    _fallbackTimer = Timer(const Duration(milliseconds: 900), _trigger);
   }
 
   void _maybeTrigger(final VisibilityInfo info) {
     if (_triggered || info.visibleFraction < 0.12) return;
+    _trigger();
+  }
+
+  void _trigger() {
+    if (_triggered) return;
     _triggered = true;
+    _fallbackTimer?.cancel();
     final delay = widget.staggerStep * widget.index;
     Future.delayed(delay, () {
       if (mounted) _controller.forward();
@@ -74,6 +89,7 @@ class _SpotlightRevealState extends State<SpotlightReveal>
 
   @override
   void dispose() {
+    _fallbackTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
