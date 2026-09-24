@@ -31,7 +31,15 @@ import '../../../../core/theme/app_spacing.dart';
 /// sürülüyor — widget kendi animasyonunu yönetir, çağıran taraf sadece
 /// boyut/renk/overlay verir.
 class AuthCurtainStage extends StatefulWidget {
-  final String imagePath;
+  /// Klasik davranış: statik bir görsel. `revealChild` verildiğinde
+  /// KULLANILMAZ.
+  final String? imagePath;
+
+  /// Perde açılışıyla ortaya çıkan içerik statik bir görsel DEĞİL de canlı
+  /// bir widget (ör. `AnimatedStageMotif`) olsun istendiğinde — `imagePath`
+  /// yerine geçer. İkisinden biri verilmelidir.
+  final Widget? revealChild;
+
   final BorderRadius borderRadius;
   final Color curtainColor;
 
@@ -41,11 +49,13 @@ class AuthCurtainStage extends StatefulWidget {
 
   const AuthCurtainStage({
     super.key,
-    required this.imagePath,
+    this.imagePath,
+    this.revealChild,
     required this.borderRadius,
     required this.curtainColor,
     this.overlay,
-  });
+  }) : assert(imagePath != null || revealChild != null,
+            'imagePath ya da revealChild\'dan biri verilmeli');
 
   @override
   State<AuthCurtainStage> createState() => _AuthCurtainStageState();
@@ -116,7 +126,8 @@ class _AuthCurtainStageState extends State<AuthCurtainStage>
                   );
                 },
                 child: SizedBox.expand(
-                  child: Image.asset(widget.imagePath, fit: BoxFit.cover),
+                  child: widget.revealChild ??
+                      Image.asset(widget.imagePath!, fit: BoxFit.cover),
                 ),
               ),
 

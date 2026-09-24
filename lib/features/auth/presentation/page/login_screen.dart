@@ -9,6 +9,7 @@ import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
+import '../widgets/animated_stage_motif.dart';
 import '../widgets/auth_stage_widgets.dart';
 
 /// GİRİŞ EKRANI — "Sahne Kapısı" (Stage Door)
@@ -78,7 +79,7 @@ class LoginScreen extends ConsumerWidget {
       child: AuthStageScaffold(
         stagePanelBuilder: (final stageContext, final isLargeScreen) =>
             AuthCurtainStage(
-          imagePath: 'assets/images/book_logo.jpg',
+          revealChild: const AnimatedStageMotif(),
           borderRadius: AppRadius.asymLg,
           curtainColor: stageContext.colors.primary,
           overlay: isLargeScreen

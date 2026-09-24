@@ -8,6 +8,7 @@ import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_pro
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../widgets/animated_stage_motif.dart';
 import '../widgets/auth_stage_widgets.dart';
 
 /// TELEFON İLE GİRİŞ — `login_screen.dart` ile AYNI "Sahne Kapısı" dilini
@@ -122,7 +123,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         child: AuthStageScaffold(
           stagePanelBuilder: (final stageContext, final isLargeScreen) =>
               AuthCurtainStage(
-            imagePath: 'assets/images/book_logo.jpg',
+            revealChild: const AnimatedStageMotif(),
             borderRadius: AppRadius.asymLg,
             curtainColor: stageContext.colors.primary,
             overlay: isLargeScreen
