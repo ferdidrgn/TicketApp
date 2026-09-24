@@ -14,6 +14,7 @@ import '../../../../shared/widgets/custom_art_words_card.dart';
 import '../../../../shared/widgets/custom_pop_up.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../../shared/widgets/footers/footer.dart';
+import '../../../auth/presentation/providers/storage_service.dart';
 import '../../domain/entities/user.dart';
 import '../providers/user_mutation_provider.dart';
 import '../providers/user_provider.dart';
@@ -41,6 +42,7 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
 
   String _profileImageUrl = 'https://via.placeholder.com/150';
   bool _isInitialized = false;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -236,59 +238,6 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
         ],
       );
 
-  Widget _buildForm(final BuildContext context, final User? currentUser) =>
-      SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-        physics: const BouncingScrollPhysics(),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const CustomArtWordsCard(
-                  word: 'Gelecek, güzelliğe inananlarındır.',
-                  author: 'Eleanor Roosevelt'),
-              const SizedBox(height: AppSpacing.xxxl),
-              _buildAvatarSection(),
-              const SizedBox(height: AppSpacing.xxxl),
-              _buildSectionTitle('Kişisel Bilgiler'),
-              Row(
-                children: [
-                  Expanded(
-                      child: CustomTextField(
-                          controller: _firstNameController,
-                          label: 'Ad',
-                          isRequired: true)),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                      child: CustomTextField(
-                          controller: _lastNameController,
-                          label: 'Soyad',
-                          isRequired: true)),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              CustomTextField(
-                  controller: _emailController,
-                  label: 'E-Posta Adresi',
-                  isRequired: false),
-              const SizedBox(height: AppSpacing.lg),
-              CustomTextField(
-                  controller: _phoneController,
-                  label: 'Telefon Numarası',
-                  isRequired: false),
-              const SizedBox(height: AppSpacing.lg),
-              CustomTextField(
-                  controller: _cityController,
-                  label: 'Yaşadığın Şehir',
-                  isRequired: false),
-              const SizedBox(height: AppSpacing.huge),
-              _buildSaveButton(),
-              const SizedBox(height: AppSpacing.huge),
-            ],
-          ),
-        ),
-      );
-
   Widget _buildAvatarSection() => Center(
         child: Stack(
           children: [
@@ -328,14 +277,15 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       );
 
   Widget _buildSaveButton() {
-    final isLoading = ref.watch(userMutationProvider).isLoading;
+    final isLoading =
+        ref.watch(userMutationProvider).isLoading || _isUploadingImage;
     return Semantics(
       button: true,
       label: 'Kaydet, profil bilgilerini güncelle',
       child: SizedBox(
         width: double.infinity,
         child: CustomElevatedButton(
-          text: 'Kaydet',
+          text: _isUploadingImage ? 'Fotoğraf yükleniyor...' : 'Kaydet',
           onPressed: isLoading ? () {} : () => _updateProfile(),
         ),
       ),
@@ -348,6 +298,37 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     final currentUser = ref.read(userProfileProvider).value;
     if (currentUser == null) return;
 
+    // 🔥 DÜZELTME: Burada `_selectedImageFile?.path` (cihazdaki YEREL dosya
+    // yolu) doğrudan `.save()`e "downloadUrl" olarak veriliyordu —
+    // user_mutation_provider.dart/save_user_use_case_impl.dart/
+    // user_repository_impl.dart zincirinin HİÇBİRİ Storage'a yükleme
+    // yapmıyor, parametreyi olduğu gibi Firestore'un `imageUrl` alanına
+    // yazıyor (bkz. user_remote_data_source_and_impl.dart). Sonuç: yeni
+    // bir profil fotoğrafı seçip kaydedince Firestore'a cihaza özel,
+    // dışarıdan asla erişilemeyen bir yol yazılıyordu — avatar başka
+    // cihazda/oturumda, hatta aynı cihazda uygulama yeniden başlatılınca
+    // bile kırık görünüyordu. Gerçek yükleme fonksiyonu
+    // (`storageServiceProvider.uploadProfileImage`) zaten vardı ama hiçbir
+    // yerden çağrılmıyordu — artık burada gerçekten kullanılıyor.
+    String photoUrl = _profileImageUrl;
+    if (_selectedImageFile != null) {
+      setState(() => _isUploadingImage = true);
+      try {
+        final uploadedUrl = await ref
+            .read(storageServiceProvider)
+            .uploadProfileImage(currentUser.id, _selectedImageFile!);
+        if (uploadedUrl != null && uploadedUrl.isNotEmpty)
+          photoUrl = uploadedUrl;
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isUploadingImage = false);
+          _showSnackBar(e.toString(), isError: true);
+        }
+        return;
+      }
+      if (mounted) setState(() => _isUploadingImage = false);
+    }
+
     // 1. Yeni veriyi hazırla
     final updatedUser = currentUser.copyWith(
       firstName: _firstNameController.text.trim(),
@@ -357,11 +338,12 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     );
 
     // 2. ⚡ TEK SATIRDA GÜNCELLEME:
-    // Bu metod hem Storage'ı, hem Firestore'u hem de LocalStorage'ı senkronize eder.
+    // Bu metod Firestore'u ve LocalStorage'ı senkronize eder — Storage
+    // yüklemesi artık yukarıda AYRI/açıkça yapılıyor, gerçek download
+    // URL'i buraya veriliyor.
     await ref.read(userMutationProvider.notifier).save(
           updatedUser,
-          _selectedImageFile?.path ?? _profileImageUrl,
-          // Yeni dosya yolu veya eski URL
+          photoUrl,
           isUpdate: true,
         );
 
@@ -369,7 +351,10 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
     final state = ref.read(userMutationProvider);
     if (!state.hasError && mounted) {
       _showSuccessDialog();
-      setState(() => _selectedImageFile = null);
+      setState(() {
+        _selectedImageFile = null;
+        _profileImageUrl = photoUrl;
+      });
     } else if (state.hasError)
       _showSnackBar(state.error.toString(), isError: true);
   }
@@ -618,7 +603,8 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
       );
 
   Widget _buildDesktopSaveButton() {
-    final isLoading = ref.watch(userMutationProvider).isLoading;
+    final isLoading =
+        ref.watch(userMutationProvider).isLoading || _isUploadingImage;
     return Semantics(
       button: true,
       label: 'Kaydet, profil bilgilerini güncelle',
