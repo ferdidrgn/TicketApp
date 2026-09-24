@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -445,26 +446,44 @@ class _MobileLayout extends StatelessWidget {
 /// da aynı imza etkileşim uygulanmış olur. Aynı kategoride (`Show.category`)
 /// bu gösteri hariç başka oyun yoksa (ya da kategori boşsa) SESSİZCE
 /// gizlenir — uydurma bir "önerilen" listesi asla gösterilmez.
-class _SimilarShowsSection extends ConsumerWidget {
+class _SimilarShowsSection extends ConsumerStatefulWidget {
   final Show currentShow;
 
   const _SimilarShowsSection({required this.currentShow});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<_SimilarShowsSection> createState() =>
+      _SimilarShowsSectionState();
+}
+
+class _SimilarShowsSectionState extends ConsumerState<_SimilarShowsSection> {
+  // Fare tekerleği (dikey delta) yatay kaydırmaya çevriliyor — diğer
+  // keşif şeritleriyle (bkz. `discovery_category_showcase.dart`) aynı
+  // teknik; bu bölüm o düzeltme yapılırken atlanmıştı, web'de fare
+  // tekerleğiyle kaydırılamıyordu.
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
     final showsAsync = ref.watch(showsActiveFirstProvider(true));
 
     return showsAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (final _, final __) => const SizedBox.shrink(),
       data: (final allShows) {
-        final category = currentShow.category.trim();
+        final category = widget.currentShow.category.trim();
         final similar = allShows
             .where((final s) =>
-                s.id != currentShow.id &&
+                s.id != widget.currentShow.id &&
                 category.isNotEmpty &&
                 s.category.trim() == category)
-            .take(8)
+            .take(10)
             .toList();
         if (similar.isEmpty) return const SizedBox.shrink();
 
@@ -476,23 +495,38 @@ class _SimilarShowsSection extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xxl),
             SizedBox(
               height: 360,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                itemCount: similar.length,
-                separatorBuilder: (final _, final __) =>
-                    const SizedBox(width: AppSpacing.lg),
-                itemBuilder: (final context, final index) {
-                  final show = similar[index];
-                  return SizedBox(
-                    width: 240,
-                    child: TheatreShowCard(
-                      show: show,
-                      onTap: () =>
-                          NavigationHandler.goToShow(context, show.id, show.name),
-                    ),
+              child: Listener(
+                onPointerSignal: (final event) {
+                  if (event is! PointerScrollEvent ||
+                      !_scrollController.hasClients) {
+                    return;
+                  }
+                  final double target =
+                      (_scrollController.offset + event.scrollDelta.dy).clamp(
+                    _scrollController.position.minScrollExtent,
+                    _scrollController.position.maxScrollExtent,
                   );
+                  _scrollController.jumpTo(target);
                 },
+                child: ListView.separated(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: similar.length,
+                  separatorBuilder: (final _, final __) =>
+                      const SizedBox(width: AppSpacing.lg),
+                  itemBuilder: (final context, final index) {
+                    final show = similar[index];
+                    return SizedBox(
+                      width: 240,
+                      child: TheatreShowCard(
+                        show: show,
+                        onTap: () => NavigationHandler.goToShow(
+                            context, show.id, show.name),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ],
