@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ticketapp/core/services/deeplink/deeplink_service.dart';
@@ -142,10 +143,16 @@ class AppSettingsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return BasePageWrapper(
-      // 🎯 Header Parametreleri (Artık Wrapper tarafından otomatik yönetiliyor)
-      title: l10n.settingsTitle,
-      subtitle: l10n.settingsSubtitle,
-      rightIcon: Icons.handyman_rounded,
+      // 🔥 DÜZELTME: Kullanıcı bu sayfanın "en üst tasarımı"nı açıkça
+      // iğrenç buldu — sorumlusu `BasePageWrapper`'ın title/subtitle
+      // verilince çizdiği PAYLAŞILAN, jenerik `TopHeaderWithBackButton`
+      // (her redesign edilmemiş sayfada birebir aynı ShaderMask serif
+      // başlık) idi. `login_screen.dart`/`profile_page.dart` gibi zaten
+      // redesign edilmiş sayfalar bu paylaşılan başlığı hiç kullanmıyor,
+      // kendi kimliklerini sayfa içeriğinde kuruyor — ayarlar da aynı
+      // yolu izliyor: wrapper'a title/subtitle VERİLMEZ (sadece geri
+      // butonu kalır), gerçek başlık aşağıda `_SettingsHeroHeader` olarak
+      // inşa edilir.
       showBackButton: true,
       showFab: false,
       layoutConfig: BasePageLayoutConfig(
@@ -157,6 +164,12 @@ class AppSettingsPage extends ConsumerWidget {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         children: [
+          _SettingsHeroHeader(
+            title: l10n.settingsTitle,
+            subtitle: l10n.settingsSubtitle,
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+
           // 🕊️ İLHAM KARTI
           InspirationalQuoteView(
             word: l10n.settingsQuoteText,
@@ -600,22 +613,66 @@ class AppSettingsPage extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        l10n.settingsTitle,
-                        style: const TextStyle(
-                          color: WebColors.whiteText,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 28,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        l10n.settingsSubtitle,
-                        style: const TextStyle(
-                          color: WebColors.textSecondary,
-                          fontSize: 14,
-                        ),
+                      // 🔥 DÜZELTME: Önceden burası düz, ikon/rozet/kicker'sız
+                      // iki satır metindi — sayfanın geri kalanı (bölüm
+                      // etiketleri, gold gradyanlı aksiyon kartları) görsel
+                      // kimlik taşırken bu başlık "unutulmuş" duruyordu.
+                      // Artık `_buildDesktopSectionLabel`'daki rozet dili
+                      // büyütülmüş hâliyle: gold gradyanlı ikon rozeti +
+                      // eyebrow + Playfair Display başlık.
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              gradient: WebColors.goldButtonGradient,
+                              borderRadius: AppRadius.asymLg,
+                              boxShadow:
+                                  AppShadows.level3(WebColors.primaryGold),
+                            ),
+                            child: const Icon(Icons.tune_rounded,
+                                color: WebColors.darkBlueBackground, size: 26),
+                          ),
+                          const SizedBox(width: AppSpacing.lg),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'SAHNE ARKASI',
+                                  style: TextStyle(
+                                    color: WebColors.primaryGoldLight,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 3,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  l10n.settingsTitle,
+                                  style: GoogleFonts.playfairDisplay(
+                                    textStyle: const TextStyle(
+                                      color: WebColors.whiteText,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 34,
+                                      letterSpacing: -0.5,
+                                      height: 1.05,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  l10n.settingsSubtitle,
+                                  style: const TextStyle(
+                                    color: WebColors.textSecondary,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: AppSpacing.huge),
                       _buildDesktopSectionTitle(l10n.settingsSectionPermissions),
@@ -983,4 +1040,94 @@ class _DesktopLanguageOptionState extends State<_DesktopLanguageOption> {
           ),
         ),
       );
+}
+
+/// 🔥 DÜZELTME: Mobil sayfanın en tepesi önceden `BasePageWrapper`'ın
+/// PAYLAŞILAN, jenerik `TopHeaderWithBackButton`'ıydı — uygulamadaki
+/// redesign edilmemiş HER sayfada birebir aynı görünen bir ShaderMask
+/// serif başlık. Kullanıcı bunu özellikle "settings ... en üst tasarımı
+/// aşırı iğrenç" diye işaretledi. `login_screen.dart`/`profile_page.dart`
+/// gibi zaten redesign edilmiş sayfalar bu paylaşılan başlığı hiç
+/// kullanmıyor, kendi kimliklerini kuruyor — ayarlar sayfası da aynı yolu
+/// izliyor: spot ışığı gölgeli ikon rozeti + küçük harfli "SAHNE ARKASI"
+/// kicker'ı (bu sayfanın izin/görünüm/dil kontrollerini bir tiyatronun
+/// "sahne arkası" kontrol odası gibi çerçeveleyen, uygulamanın kendi
+/// metaforuna sadık bir isimlendirme) + büyük Playfair Display başlık +
+/// ince vurgu çizgisi + alt başlık. Aynı tipografi hiyerarşisi
+/// `AuthHeadlineBlock`/profil hero kimliğinde de kullanılıyor.
+class _SettingsHeroHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _SettingsHeroHeader({required this.title, required this.subtitle});
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: colors.primary.withOpacity(0.14),
+              shape: BoxShape.circle,
+              boxShadow: AppShadows.level2(colors.primary),
+            ),
+            child: Icon(Icons.tune_rounded, color: colors.primary, size: 24),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SAHNE ARKASI',
+                  style: TextStyle(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2.5,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  title,
+                  style: GoogleFonts.playfairDisplay(
+                    textStyle: TextStyle(
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 26,
+                      height: 1.05,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Container(
+                  width: 40,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: colors.primary,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: colors.onSurface.withOpacity(0.6),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

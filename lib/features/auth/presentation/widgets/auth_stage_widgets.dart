@@ -483,6 +483,109 @@ class StageEditorialCaption extends StatelessWidget {
       );
 }
 
+/// 🔥 DÜZELTME: `login_screen.dart` (`_LoginOptionsPanel`) ve
+/// `phone_login_page.dart` (`_buildCard`) BİREBİR AYNI düz beyaz/surface
+/// kutuyu (border + level2 gölge) iki kez elle kopyalamıştı — sahne
+/// panelinin (perde açılışı, spot ışığı, parçacıklar) hemen yanında/
+/// altında duran bu jenerik "form kartı" tam olarak "hâlâ sıradan"
+/// hissinin kaynağıydı: elaborate bir tiyatro sahnesinin bitişiğinde
+/// isimsiz bir Material kutusu. Artık ikisi de bunu paylaşıyor:
+/// - panelin üstünde perdeden sızan bir ışık huzmesi (spotlight glow) —
+///   panel sahne panelinden KOPUK değil, aynı ışığın devamıymış gibi
+///   duruyor;
+/// - panel köşesi sahne panelininkiyle AYNI `AppRadius.asymLg` — hero ve
+///   form arasında bilinçli bir köşe-dili sürekliliği (imzanın "bir-iki
+///   vurgu noktası"ndan biri, sadece bu ikisinde kullanılıyor);
+/// - bir kicker (eyebrowIcon/eyebrowLabel) panelin ne olduğunu (giriş
+///   seçenekleri / telefon doğrulama) küçük bir başlıkla tanıtıyor —
+///   önceden panel "isimsiz" bir kutuydu.
+class AuthFormPanel extends StatelessWidget {
+  final IconData eyebrowIcon;
+  final String eyebrowLabel;
+  final Widget child;
+
+  const AuthFormPanel({
+    super.key,
+    required this.eyebrowIcon,
+    required this.eyebrowLabel,
+    required this.child,
+  });
+
+  @override
+  Widget build(final BuildContext context) {
+    final colors = context.colors;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Perdeden sızan ışık — panelin sahne panelinden bağımsız bir kutu
+        // değil, aynı ışığın devamı olduğunu hissettiren yumuşak bir glow.
+        Positioned(
+          top: -18,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              width: 120,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.primary.withOpacity(0.30),
+                    blurRadius: 40,
+                    spreadRadius: 6,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                colors.surface,
+                Color.alphaBlend(
+                    colors.primary.withOpacity(0.035), colors.surface),
+              ],
+            ),
+            borderRadius: AppRadius.asymLg,
+            border: Border.all(color: colors.primary.withOpacity(0.14)),
+            boxShadow: AppShadows.level3(colors.primary),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(eyebrowIcon, size: 15, color: colors.primary),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    eyebrowLabel.toUpperCase(),
+                    style: TextStyle(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              child,
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// İki-kollu "veya" ayracı — Google ve telefon seçeneklerini birbirinden
 /// ayırmak için.
 class AuthOrDivider extends StatelessWidget {

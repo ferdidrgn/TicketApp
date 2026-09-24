@@ -214,17 +214,17 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         ),
       );
 
-  /// Eskiden bulanık cam kart (BackdropFilter) idi — artık düz, tema-uyumlu
-  /// bir form paneli. İçerik (telefon/OTP adımı) yine `AnimatedSwitcher`
-  /// ile geçiyor.
-  Widget _buildCard(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: context.colors.primary.withOpacity(0.14)),
-          boxShadow: AppShadows.level2(context.colors.shadow),
-        ),
+  /// Eskiden bulanık cam kart (BackdropFilter), sonra düz izole bir
+  /// Material kutusuydu — artık `login_screen.dart` ile paylaşılan
+  /// `AuthFormPanel` (bkz. `auth_stage_widgets.dart`): sahne panelinden
+  /// sızan ışık + AYNI asimetrik köşe dili + adıma göre değişen bir kicker
+  /// ("Telefon Doğrulama" -> "Kodu Doğrula"). İçerik (telefon/OTP adımı)
+  /// yine `AnimatedSwitcher` ile geçiyor.
+  Widget _buildCard(final BuildContext context) => AuthFormPanel(
+        eyebrowIcon: _isCodeSent
+            ? Icons.mark_email_read_rounded
+            : Icons.phonelink_ring_rounded,
+        eyebrowLabel: _isCodeSent ? 'Kodu Doğrula' : 'Telefon Doğrulama',
         child: AnimatedSwitcher(
           duration: AppMotion.normal,
           switchInCurve: AppMotion.standard,

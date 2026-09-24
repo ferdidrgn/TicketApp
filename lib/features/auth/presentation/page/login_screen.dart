@@ -131,14 +131,9 @@ class _LoginOptionsPanel extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: context.colors.primary.withOpacity(0.14)),
-          boxShadow: AppShadows.level2(context.colors.shadow),
-        ),
+  Widget build(final BuildContext context) => AuthFormPanel(
+        eyebrowIcon: Icons.confirmation_number_rounded,
+        eyebrowLabel: 'Giriş Seçenekleri',
         child: Column(
           children: [
             _GoogleButton(onTap: onGoogleTap),

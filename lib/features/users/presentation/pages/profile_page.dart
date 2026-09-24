@@ -138,10 +138,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         physics: const BouncingScrollPhysics(),
                         slivers: [
                           SliverPadding(
-                            padding: const EdgeInsets.all(25),
+                            padding: const EdgeInsets.all(AppSpacing.xxl),
                             sliver: SliverList(
                               delegate: SliverChildListDelegate([
                                 const SizedBox(height: AppSpacing.lg),
+                                // 🔥 DÜZELTME: Kullanıcı önceki geçişten
+                                // sonra bile sayfanın "en üst"ünü kötü
+                                // buldu — bakınca sebebi net: hero'nun
+                                // ÜSTÜNDE gerçekten hiçbir şey yoktu
+                                // (`BasePageWrapper`'a title/subtitle hiç
+                                // verilmiyor, `TopHeaderWithBackButton`
+                                // boş dönüyor), kullanıcı direkt devasa
+                                // bir fotoğrafın içine düşüyordu. Diğer
+                                // hero'lu sayfalardaki (`AuthHeadlineBlock`
+                                // kicker'ı) dille aynı, sade bir üst
+                                // başlık ekliyoruz — aşağıdaki
+                                // GÖRÜNÜM/GEÇMİŞİM/PROFİLİM bölüm
+                                // etiketleriyle (`_buildSectionLabel`,
+                                // ikon rozetli) KARIŞMASIN diye bilinçli
+                                // olarak daha sade (rozetsiz, tek satır)
+                                // tutuldu.
+                                _buildPageKicker(),
+                                const SizedBox(height: AppSpacing.md),
                                 _buildHeroSection(isLoggedIn, userData),
 
                                 const SizedBox(height: AppSpacing.huge),
@@ -262,6 +280,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   }
 
   // --- MODÜLER YARDIMCI METOTLAR (Parametresiz ve Optimize) ---
+
+  /// Hero'nun bile üstünde oturan, sayfayı tanıtan minik üst başlık —
+  /// bkz. yukarıdaki 🔥 DÜZELTME yorumu.
+  Widget _buildPageKicker() => Row(
+        children: [
+          Container(height: 2, width: 18, color: context.colors.primary),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            'PROFİLİM',
+            style: TextStyle(
+              color: context.colors.primary,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 3,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      );
+
+  /// Hero kimlik bloğundaki istatistikler (BİLET/OYUN/SANATÇI) arasına
+  /// giren ince ayraç — bir "playbill" kadro listesindeki gibi bölünmüş
+  /// bir kayıt hissi versin diye düz `SizedBox` boşluğunun yerine geçti.
+  /// Hem mobil hem masaüstü hero kimliğinde (aynı sınıf) paylaşılıyor.
+  Widget _buildStatDivider() => Container(
+        width: 1,
+        height: 26,
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        color: Colors.white.withOpacity(0.22),
+      );
 
   Widget _buildSculptedTile({
     required final IconData icon,
@@ -425,25 +472,42 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        // 🔥 DÜZELTME: Önceden ince, düz beyaz bir çerçeveydi — hero'nun
+        // geri kalanındaki gold/gradyan diliyle bağlantısızdı. Artık
+        // gerçek bir "spot ışığı" portre çerçevesi: `primary->secondary`
+        // gradyan halka (uygulamanın zaten `AuthActionButton`'da kullandığı
+        // AYNI gradyan, yeni bir renk icat edilmedi) + arkasında yumuşak
+        // bir glow (`AppShadows.level3`) — sahnedeki bir oyuncunun
+        // spot ışığı altında durması gibi.
         Semantics(
           image: true,
           label: 'Profil fotoğrafı',
           child: Container(
-            width: 76,
-            height: 76,
+            width: 84,
+            height: 84,
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.85), width: 2),
+              gradient: LinearGradient(
+                colors: [context.colors.primary, context.colors.secondary],
+              ),
+              boxShadow: AppShadows.level3(context.colors.primary),
             ),
-            child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.15),
-              backgroundImage: user.imageUrl.isNotEmpty
-                  ? NetworkImage(user.imageUrl)
-                  : null,
-              child: user.imageUrl.isEmpty
-                  ? const Icon(Icons.person_rounded, color: Colors.white)
-                  : null,
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: CircleAvatar(
+                backgroundColor: Colors.white.withOpacity(0.15),
+                backgroundImage: user.imageUrl.isNotEmpty
+                    ? NetworkImage(user.imageUrl)
+                    : null,
+                child: user.imageUrl.isEmpty
+                    ? const Icon(Icons.person_rounded, color: Colors.white)
+                    : null,
+              ),
             ),
           ),
         ),
@@ -490,10 +554,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           children: [
             _buildStat(Icons.confirmation_number_rounded, 'BİLET',
                 '${user.ticketsId.length}'),
-            const SizedBox(width: AppSpacing.xxl),
+            _buildStatDivider(),
             _buildStat(Icons.favorite_rounded, 'OYUN',
                 '${user.favoriteShows.length}'),
-            const SizedBox(width: AppSpacing.xxl),
+            _buildStatDivider(),
             _buildStat(Icons.star_rounded, 'SANATÇI',
                 '${user.favoritePlayers.length}'),
           ],
@@ -1027,10 +1091,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           children: [
             _buildDesktopStat(Icons.confirmation_number_rounded, 'BİLET',
                 '${user.ticketsId.length}'),
-            const SizedBox(width: 28),
+            _buildStatDivider(),
             _buildDesktopStat(Icons.favorite_rounded, 'OYUN',
                 '${user.favoriteShows.length}'),
-            const SizedBox(width: 28),
+            _buildStatDivider(),
             _buildDesktopStat(Icons.star_rounded, 'SANATÇI',
                 '${user.favoritePlayers.length}'),
           ],

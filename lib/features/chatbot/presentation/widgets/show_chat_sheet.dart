@@ -253,18 +253,47 @@ class _InputRow extends StatelessWidget {
   }
 }
 
-class _ChatBubble extends StatelessWidget {
+/// 🔥 DÜZELTME: Önceden mesajlar birdenbire, hiç hareketsiz beliriyordu ve
+/// bot balonlarının kimden geldiğini gösteren bir kimliği (avatar) yoktu —
+/// yalnızca renk/köşe farkıyla ayrılıyorlardı. Araştırılan chat-UI
+/// paketlerinin (flutter_chat_ui, chat_ui_kit) ortak dili iki şeydi: (1)
+/// her bot mesajının yanında küçük bir kimlik rozeti, (2) yeni mesajın
+/// yumuşak bir giriş hareketiyle belirmesi. Burada da AYNI iki fikir,
+/// paket eklemeden, mevcut token'larla: bot balonlarının yanında küçük bir
+/// "SSS" ikon rozeti + her balonun BİR KEZ fade+kaymayla girişi
+/// (`AppMotion.normal`/`standard` — sohbetin kendi hızı, `curtainTransition`
+/// gibi "sahne anı" değil, sıradan bir içerik geçişi).
+class _ChatBubble extends StatefulWidget {
   final ShowChatMessage message;
 
   const _ChatBubble({required this.message});
 
   @override
+  State<_ChatBubble> createState() => _ChatBubbleState();
+}
+
+class _ChatBubbleState extends State<_ChatBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entranceController = AnimationController(
+    vsync: this,
+    duration: AppMotion.normal,
+  )..forward();
+  late final Animation<double> _entrance = CurvedAnimation(
+      parent: _entranceController, curve: AppMotion.standard);
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(final BuildContext context) {
     final colors = context.colors;
-    final isUser = message.isUser;
+    final isUser = widget.message.isUser;
 
     final bubble = Container(
-      constraints: const BoxConstraints(maxWidth: 320),
+      constraints: const BoxConstraints(maxWidth: 260),
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       decoration: BoxDecoration(
@@ -280,7 +309,7 @@ class _ChatBubble extends StatelessWidget {
         ),
       ),
       child: Text(
-        message.text,
+        widget.message.text,
         style: context.textTheme.bodyMedium?.copyWith(
           color: isUser ? colors.onPrimary : colors.onSurface,
           height: 1.4,
@@ -288,33 +317,67 @@ class _ChatBubble extends StatelessWidget {
       ),
     );
 
+    // Bot mesajının yanındaki küçük kimlik rozeti — kullanıcı balonunda
+    // yok (kendi mesajı, kimden geldiği zaten belli).
+    final Widget row = isUser
+        ? bubble
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                margin: const EdgeInsets.only(right: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.forum_rounded,
+                    size: 14, color: colors.primary),
+              ),
+              Flexible(child: bubble),
+            ],
+          );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-            child: bubble,
-          ),
-          if (!isUser && message.offerWhatsApp)
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.sm),
-              child: OutlinedButton.icon(
-                onPressed: TiyatrolCommunicationActions.contactWhatsApp,
-                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-                label: const Text("WhatsApp'tan Sor"),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: colors.primary,
-                  side: BorderSide(color: colors.primary.withOpacity(0.5)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: FadeTransition(
+        opacity: _entrance,
+        child: SlideTransition(
+          position: _entrance.drive(
+              Tween(begin: const Offset(0, 0.08), end: Offset.zero)),
+          child: Column(
+            crossAxisAlignment:
+                isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment:
+                    isUser ? Alignment.centerRight : Alignment.centerLeft,
+                child: row,
+              ),
+              if (!isUser && widget.message.offerWhatsApp)
+                Padding(
+                  padding: const EdgeInsets.only(
+                      top: AppSpacing.sm, left: AppSpacing.xxl),
+                  child: OutlinedButton.icon(
+                    onPressed: TiyatrolCommunicationActions.contactWhatsApp,
+                    icon: const Icon(Icons.chat_bubble_outline_rounded,
+                        size: 16),
+                    label: const Text("WhatsApp'tan Sor"),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.primary,
+                      side:
+                          BorderSide(color: colors.primary.withOpacity(0.5)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
