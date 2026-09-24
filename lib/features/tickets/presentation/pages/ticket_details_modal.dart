@@ -6,6 +6,7 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/util/calendar_actions.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/magic_box.dart';
@@ -500,6 +501,12 @@ class _NavigationActionsSection extends StatelessWidget {
   Widget build(final BuildContext context) {
     final show = ticket.show;
     final stage = ticket.stage;
+    final event = ticket.event;
+    // Geçmiş bir etkinliği takvime eklemenin bir anlamı yok — sadece
+    // yaklaşan, gerçek bir tarihi olan biletlerde gösterilir.
+    final eventDate =
+        event != null ? DateFormatter.parseDateString(event.date) : null;
+    final canAddToCalendar = !ticket.isPast && show != null && eventDate != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -522,6 +529,21 @@ class _NavigationActionsSection extends StatelessWidget {
               Navigator.pop(context);
               NavigationHandler.goToStage(context, stage.id, stage.name);
             },
+          ),
+        if (canAddToCalendar) const SizedBox(height: AppSpacing.md),
+        if (canAddToCalendar)
+          _NavigationActionButton(
+            icon: Icons.calendar_month_rounded,
+            label: 'Takvime Ekle',
+            onTap: () => TiyatrolCalendarActions.addShowEventToCalendar(
+              showName: show.name,
+              eventStart: eventDate,
+              location: stage?.address ?? '',
+              showDuration: show.duration,
+              description: stage != null && stage.name.isNotEmpty
+                  ? '${stage.name} — TiyatRol bileti'
+                  : 'TiyatRol bileti',
+            ),
           ),
       ],
     );
