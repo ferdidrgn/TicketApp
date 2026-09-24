@@ -8,8 +8,20 @@ import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_pro
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/animated_stage_motif.dart';
 import '../widgets/auth_stage_widgets.dart';
+
+/// `authMutationProvider`'ın `data` state'ine geçmesi iki BAMBAŞKA gerçek
+/// eylemin sonucu olabilir: kod (yeniden) gönderildi mi, yoksa kod
+/// doğrulandı mı? Eskiden bu ayrım `_isCodeSent`e bakılarak tahmin
+/// ediliyordu — ama "Kodu Yeniden Gönder" de `_isCodeSent == true` iken
+/// aynı `verifyPhone`'u tetiklediği için bir yeniden-gönderim başarısı
+/// yanlışlıkla "doğrulandı" sanılıp kullanıcı kodu hiç girmeden ana
+/// sayfaya atılıyordu. Artık HANGİ eylemin başlatıldığı, sonucunu
+/// yorumlamadan hemen önce burada açıkça tutuluyor — Firebase'in kendi
+/// (gecikmeli olabilen) stream state'ine güvenmiyoruz.
+enum _PendingAuthAction { none, sendCode, verifyCode }
 
 /// TELEFON İLE GİRİŞ — `login_screen.dart` ile AYNI "Sahne Kapısı" dilini
 /// paylaşır (`AuthStageScaffold`/`AuthCurtainStage`/`AuthHeadlineBlock`/
@@ -33,6 +45,10 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   // UI Kontrolü: Kod gönderildi mi?
   bool _isCodeSent = false;
 
+  // Hangi eylemin sonucunu beklediğimiz — bkz. yukarıdaki _PendingAuthAction
+  // yorumu.
+  _PendingAuthAction _pendingAction = _PendingAuthAction.none;
+
   @override
   void dispose() {
     _phoneController.dispose();
@@ -53,6 +69,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     // Numarayı +90 formatına çevir (Eğer kullanıcı girmediyse)
     final formattedPhone = phone.startsWith("+90") ? phone : "+90$phone";
 
+    _pendingAction = _PendingAuthAction.sendCode;
     // Firebase'e istek at
     await ref.read(authMutationProvider.notifier).verifyPhone(formattedPhone);
 
@@ -66,6 +83,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       _showSnackBar("Lütfen 6 haneli kodu eksiksiz girin");
       return;
     }
+    _pendingAction = _PendingAuthAction.verifyCode;
     await ref.read(authMutationProvider.notifier).verifyOtp(otp);
   }
 
@@ -92,16 +110,38 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           // Ama genelde kullanıcı tekrar denesin diye kalırız.
         },
         data: (final _) {
-          // Eğer işlem başarılıysa ve henüz kod ekranına geçmediysek (Telefon doğrulama başarılıysa)
-          if (!_isCodeSent) {
-            // Not: Geri sayım gerçek zamanlayıcısı otpTimerProvider üzerinden
-            // (auth_mutation_provider'daki onCodeSent) zaten başlatıldı; burada
-            // sadece ekranı OTP adımına geçiriyoruz.
-            setState(() => _isCodeSent = true);
-          } else {
-            // Zaten kod ekranındayız ve işlem başarılı olduysa -> Login bitti
-            if (context.mounted) NavigationHandler.goToHome(context);
+          // 🔥 DÜZELTME: Eskiden burada sadece `_isCodeSent`e bakılıyordu —
+          // ama "Kodu Yeniden Gönder" de `_isCodeSent == true` iken
+          // `verifyPhone()`i tekrar çağırıyor; bu yüzden başarılı bir
+          // yeniden-gönderim yanlışlıkla "doğrulandı" sanılıp kullanıcı
+          // kodu hiç girmeden ana sayfaya atılıyordu. Artık hangi eylemin
+          // sonucunu beklediğimiz (_pendingAction) açıkça biliniyor.
+          switch (_pendingAction) {
+            case _PendingAuthAction.sendCode:
+              // Kod gönderildi. TEK istisna: Android'in "otomatik/instant
+              // doğrulama"sı (SMS'i kod girilmeden okuyup doğrulaması) bu
+              // AYNI verifyPhone çağrısı sırasında kullanıcıyı zaten
+              // giriş yaptırmış olabilir (bkz. auth_mutation_provider.
+              // dart'taki onVerificationCompleted düzeltmesi) — o
+              // durumda OTP ekranını hiç göstermeden direkt ana sayfaya
+              // geçilir.
+              if (ref.read(isLoggedInProvider)) {
+                if (context.mounted) NavigationHandler.goToHome(context);
+              } else {
+                // Not: Geri sayım gerçek zamanlayıcısı otpTimerProvider
+                // üzerinden (auth_mutation_provider'daki onCodeSent) zaten
+                // başlatıldı; burada sadece ekranı OTP adımına geçiriyoruz.
+                setState(() => _isCodeSent = true);
+              }
+              break;
+            case _PendingAuthAction.verifyCode:
+              // Kod doğrulandı -> Login bitti.
+              if (context.mounted) NavigationHandler.goToHome(context);
+              break;
+            case _PendingAuthAction.none:
+              break;
           }
+          _pendingAction = _PendingAuthAction.none;
         },
       );
     });

@@ -69,8 +69,26 @@ class AuthMutation extends _$AuthMutation {
         .read(verifyPhoneUseCaseProvider)
         .call(
           phoneNumber: phoneNumber,
-          onVerificationCompleted: (final credential) {
-            ref.invalidate(authFirebaseUserProvider);
+          onVerificationCompleted: (final credential) async {
+            // 🔥 DÜZELTME: Android'in "otomatik/instant doğrulama"sı
+            // (kod elle girilmeden SMS'in okunup doğrulanması) bu callback'i
+            // tetiklediğinde datasource kullanıcıyı zaten signInWithCredential/
+            // linkWithCredential ile oturum açtırıyor — ama burası sadece
+            // authFirebaseUserProvider'ı invalidate ediyordu.
+            // `verifyOtp()`'un kullandığı `_handlePostLogin` (Firestore
+            // kullanıcı dokümanı oluşturma/güncelleme, LocalStorageService
+            // kaydı ve authStateProvider/currentUserIdProvider/
+            // isLoggedInProvider/userProfileProvider invalidate'leri) HİÇ
+            // ÇALIŞMIYORDU — sonuç: otomatik doğrulanan telefon girişlerinde
+            // kullanıcı Firestore'da hiç oluşmuyor, ve UI (yukarıdaki
+            // _handlePostLogin yorumunun da anlattığı sınıftan bir sebeple)
+            // hâlâ "giriş yapılmamış" gibi davranabiliyordu. Aynı post-login
+            // akışı artık burada da çalıştırılıyor.
+            final uid = firebase_auth.FirebaseAuth.instance.currentUser?.uid;
+            if (uid != null && uid.isNotEmpty)
+              await _handlePostLogin(uid, UserRole.user);
+            else
+              ref.invalidate(authFirebaseUserProvider);
           },
           onCodeSent: (final id, final token) {
             _verificationId = id;
