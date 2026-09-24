@@ -9,6 +9,7 @@ import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../core/util/global_scroll_mixin.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
 import '../providers/my_ticket_provider.dart';
 import '../widgets/web/my_tickets_desktop_view.dart';
@@ -29,13 +30,29 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
         GlobalScrollMixin {
   late final TabController _tabController;
 
+  // 🔥 DÜZELTME: GlobalScrollMixin'in tek `scrollController`'ı önceden HER
+  // İKİ `_TicketList`e (Sıradakiler + Anılar) birden veriliyordu. TabBarView
+  // komşu sekmeyi de canlı tutar (PageView'ın varsayılan cache davranışı),
+  // yani iki ListView AYNI ANDA aynı controller'a bağlanmaya çalışıyor —
+  // Flutter bunu "ScrollController attached to multiple scroll views"
+  // hatasıyla reddedip sayfayı çökertiyordu (hem yaklaşan hem geçmiş bileti
+  // olan HER kullanıcı için garanti bir çökme). Gerçek/paylaşılan
+  // controller (BasePageWrapper'ın FAB/scroll davranışı için) artık SADECE
+  // o an görünen sekmeye veriliyor; diğeri kendi tek kullanımlık
+  // controller'ını kullanıyor.
+  final ScrollController _upcomingFallbackController = ScrollController();
+  final ScrollController _pastFallbackController = ScrollController();
+
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(() {
+        if (mounted) setState(() {});
+      });
   }
 
   @override
@@ -44,6 +61,8 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
   @override
   void dispose() {
     _tabController.dispose();
+    _upcomingFallbackController.dispose();
+    _pastFallbackController.dispose();
     super.dispose();
   }
 
@@ -121,8 +140,35 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
                   itemCount: 3,
                   itemBuilder: (final _, final __) => const ShimmerCard(),
                 ),
-                error: (final err, final stack) =>
-                    Center(child: Text('Hata: $err')),
+                error: (final err, final stack) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline_rounded,
+                            size: 48, color: context.colors.error),
+                        const SizedBox(height: AppSpacing.lg),
+                        Text('Biletlerin yüklenirken bir sorun oluştu.',
+                            textAlign: TextAlign.center,
+                            style: context.textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(err.toString(),
+                            textAlign: TextAlign.center,
+                            style: context.textTheme.bodySmall?.copyWith(
+                                color: context.colors.onSurfaceVariant)),
+                        const SizedBox(height: AppSpacing.xl),
+                        FilledButton.icon(
+                          onPressed: () => ref
+                              .invalidate(myTicketsProvider(widget.userId)),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Tekrar Dene'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 data: (final tickets) {
                   if (tickets.isEmpty) return const _EmptyState();
 
@@ -132,13 +178,17 @@ class _MyTicketPageState extends ConsumerState<MyTicketPage>
                       _TicketList(
                         tickets: tickets.upcoming,
                         onTicketTap: _showTicketDetails,
-                        scrollController: scrollController,
+                        scrollController: _tabController.index == 0
+                            ? scrollController
+                            : _upcomingFallbackController,
                       ),
                       _TicketList(
                         tickets: tickets.past,
                         isPast: true,
                         onTicketTap: _showTicketDetails,
-                        scrollController: scrollController,
+                        scrollController: _tabController.index == 1
+                            ? scrollController
+                            : _pastFallbackController,
                       ),
                     ],
                   );
@@ -417,18 +467,35 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Semantics(
-              label: 'Henüz bilet yok',
-              child: Icon(Icons.palette_outlined,
-                  size: 60, color: context.colors.outline),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const Text("Sahne henüz boş...",
-                style: TextStyle(fontWeight: FontWeight.w600)),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Semantics(
+                label: 'Henüz bilet yok',
+                child: Icon(Icons.confirmation_number_outlined,
+                    size: 60, color: context.colors.outline),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text("Henüz hiç biletin yok",
+                  style: context.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                "Sahneyi keşfetmeye ne dersin?",
+                textAlign: TextAlign.center,
+                style: context.textTheme.bodyMedium
+                    ?.copyWith(color: context.colors.onSurfaceVariant),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              FilledButton.icon(
+                onPressed: () => NavigationHandler.goToDiscover(context),
+                icon: const Icon(Icons.explore_rounded),
+                label: const Text('OYUNLARI KEŞFET'),
+              ),
+            ],
+          ),
         ),
       );
 }

@@ -38,8 +38,16 @@ class _LuxuryTicketDetails extends StatelessWidget {
   Widget build(final BuildContext context) {
     final themeColors = context.colors;
     final dateInfo = DateFormatter.formatForEventCard(ticket.event?.date ?? '');
+    // 🔥 DÜZELTME: Burada her zaman DateTime.now().year kullanılıyordu —
+    // yani bu yılın dışındaki (geçen yıldan kalma, ya da ocak ayında
+    // aralık için alınmış) HER bilette, kullanıcının kimlik/QR kanıtı olan
+    // bu ekranda YANLIŞ yıl gösteriliyordu. Artık gerçek etkinlik
+    // tarihinden ayrıştırılan yıl kullanılıyor; ayrıştırılamazsa (bozuk/
+    // eksik veri) sessizce şu anki yıla düşülüyor.
+    final parsedEventDate =
+        DateFormatter.parseDateString(ticket.event?.date ?? '');
     final dateText =
-        "${dateInfo['day']} ${dateInfo['monthName']} ${DateTime.now().year}";
+        "${dateInfo['day']} ${dateInfo['monthName']} ${parsedEventDate?.year ?? DateTime.now().year}";
 
     return Container(
       decoration: BoxDecoration(

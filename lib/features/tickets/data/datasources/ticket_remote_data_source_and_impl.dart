@@ -20,14 +20,24 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
     if (ticketIds.isEmpty) return [];
 
     try {
-      // Firestore whereIn en fazla 10 eleman alır.
-      // Büyük listeler için chunk logic gerekir ama şimdilik basit tutuyoruz.
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where(FieldPath.documentId, whereIn: ticketIds)
-          .get();
+      // 🔥 DÜZELTME: Firestore 'whereIn' sorgusu en fazla 30 eleman alır
+      // (yorum burada yanlışlıkla 10 diyordu) — show/event/stage
+      // datasource'larındaki aynı düzeltmeyle tutarlı hale getirildi.
+      const chunkSize = 30;
+      final uniqueIds = ticketIds.toSet().toList();
+      final chunks = <List<String>>[
+        for (var i = 0; i < uniqueIds.length; i += chunkSize)
+          uniqueIds.sublist(
+              i, i + chunkSize > uniqueIds.length ? uniqueIds.length : i + chunkSize),
+      ];
 
-      return _mapSnapshot(snapshot);
+      final snapshots = await Future.wait(chunks.map((final chunk) =>
+          _firestore
+              .collection(_collection)
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get()));
+
+      return snapshots.expand(_mapSnapshot).toList();
     } catch (e) {
       throw Exception('Failed to fetch tickets: $e');
     }
