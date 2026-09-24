@@ -33,15 +33,22 @@
 #
 #   5. PLAY_STORE_SERVICE_ACCOUNT_JSON
 #      Play Console API erişimi için servis hesabı JSON key'i.
-#      Elde etmek için:
-#        a) Play Console > Setup > API access.
-#        b) "Create new service account" (Google Cloud Console'a
-#           yönlendirir) -> yeni bir servis hesabı oluştur, JSON key
-#           indir.
-#        c) Play Console > API access sayfasına dön, yeni servis
-#           hesabına en azından "Release manager" / "Release to
-#           production, exclude devices, and use Play App Signing"
-#           iznini ver.
+#      🔥 DÜZELTME: Play Console > API access sayfasındaki eski
+#      "Create new service account" (Google Cloud Console'a otomatik
+#      yönlendiren) akışı artık YOK/değişti — bu yüzden doğrudan Google
+#      Cloud Console'dan oluşturulup Play Console'a "Users and
+#      permissions" üzerinden kullanıcı olarak davet edilmesi gerekiyor:
+#        a) Google Cloud Console (console.cloud.google.com) > IAM &
+#           Admin > Service Accounts > "Create Service Account" -> isim
+#           ver -> Cloud rolü atlanabilir (gerekmiyor) -> Done.
+#        b) Oluşan servis hesabına tıkla > Keys sekmesi > "Add Key" >
+#           "Create new key" > JSON -> dosya iner.
+#        c) Play Console > Users and permissions (Kullanıcılar ve
+#           izinler) > "Invite new users" -> servis hesabının e-postasını
+#           (...@...iam.gserviceaccount.com) yapıştır -> release
+#           izinlerini ver (bu yöntemde, eski API access akışından
+#           farklı olarak, istenirse "uygulama ekleyebilir" hakkı da
+#           verilebiliyor).
 #        d) İndirilen JSON dosyasının TÜM içeriğini GitHub repo >
 #           Settings > Secrets and variables > Actions altında
 #           PLAY_STORE_SERVICE_ACCOUNT_JSON adıyla ekle.
