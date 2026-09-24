@@ -63,6 +63,13 @@ String _$getCampaignsUseCaseHash() =>
 /// 2. 🔥 KAMPANYA LİSTESİ (FutureProvider)
 /// Fonksiyon ismi 'campaigns' -> Üretilen: 'campaignsProvider'
 /// @riverpod default olarak 'autoDispose'dur.
+///
+/// Firestore'daki yarım/taslak bir kampanya kaydı (başlığı ve/veya görseli
+/// boş bırakılmış) her tüketicide (ana sayfa web/mobil, promo banner,
+/// kampanya vitrini) aynı kırık görünümü üretiyordu: boş, metinsiz, gri bir
+/// "resim yüklenemedi" kutusu. Böyle eksik kayıtlar burada, TEK bir yerde,
+/// listeden çıkarılıyor — sahte bir başlık/görsel uydurulmuyor, sadece
+/// gösterilecek kadar tam olmayan kayıt sessizce düşürülüyor.
 
 @ProviderFor(campaigns)
 const campaignsProvider = CampaignsProvider._();
@@ -70,6 +77,13 @@ const campaignsProvider = CampaignsProvider._();
 /// 2. 🔥 KAMPANYA LİSTESİ (FutureProvider)
 /// Fonksiyon ismi 'campaigns' -> Üretilen: 'campaignsProvider'
 /// @riverpod default olarak 'autoDispose'dur.
+///
+/// Firestore'daki yarım/taslak bir kampanya kaydı (başlığı ve/veya görseli
+/// boş bırakılmış) her tüketicide (ana sayfa web/mobil, promo banner,
+/// kampanya vitrini) aynı kırık görünümü üretiyordu: boş, metinsiz, gri bir
+/// "resim yüklenemedi" kutusu. Böyle eksik kayıtlar burada, TEK bir yerde,
+/// listeden çıkarılıyor — sahte bir başlık/görsel uydurulmuyor, sadece
+/// gösterilecek kadar tam olmayan kayıt sessizce düşürülüyor.
 
 final class CampaignsProvider extends $FunctionalProvider<
         AsyncValue<List<Campaign>>, List<Campaign>, FutureOr<List<Campaign>>>
@@ -77,6 +91,13 @@ final class CampaignsProvider extends $FunctionalProvider<
   /// 2. 🔥 KAMPANYA LİSTESİ (FutureProvider)
   /// Fonksiyon ismi 'campaigns' -> Üretilen: 'campaignsProvider'
   /// @riverpod default olarak 'autoDispose'dur.
+  ///
+  /// Firestore'daki yarım/taslak bir kampanya kaydı (başlığı ve/veya görseli
+  /// boş bırakılmış) her tüketicide (ana sayfa web/mobil, promo banner,
+  /// kampanya vitrini) aynı kırık görünümü üretiyordu: boş, metinsiz, gri bir
+  /// "resim yüklenemedi" kutusu. Böyle eksik kayıtlar burada, TEK bir yerde,
+  /// listeden çıkarılıyor — sahte bir başlık/görsel uydurulmuyor, sadece
+  /// gösterilecek kadar tam olmayan kayıt sessizce düşürülüyor.
   const CampaignsProvider._()
       : super(
           from: null,
@@ -103,4 +124,4 @@ final class CampaignsProvider extends $FunctionalProvider<
   }
 }
 
-String _$campaignsHash() => r'9cd66054f2febfa0f325493bdc69dfc33bd1b442';
+String _$campaignsHash() => r'878cd41f47328feec7eb1702d8114996dbe0cb67';

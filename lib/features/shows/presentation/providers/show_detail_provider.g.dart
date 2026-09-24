@@ -65,7 +65,7 @@ final class ShowDetailProvider extends $FunctionalProvider<
   }
 }
 
-String _$showDetailHash() => r'a70bb8024c9984e7ec5793041e4f38659cdedb73';
+String _$showDetailHash() => r'848a8f76563d5e4bc21655872be8b859997c73cc';
 
 /// 🔥 COMPOSITE PROVIDER (Tüm veriyi burada topluyoruz)
 

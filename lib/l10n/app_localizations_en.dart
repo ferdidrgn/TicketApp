@@ -313,11 +313,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeQuoteLatin =>
-      '"Ars longa, vita brevis, occasio praeceps, experimentum periculosum, iudicium difficile."';
+      '\"Ars longa, vita brevis, occasio praeceps, experimentum periculosum, iudicium difficile.\"';
 
   @override
   String get homeQuoteTranslation =>
-      '"Art is long, life is short, opportunity fleeting, experience treacherous, judgment difficult."';
+      '\"Art is long, life is short, opportunity fleeting, experience treacherous, judgment difficult.\"';
 
   @override
   String get homeDailyDiscoveryTag => 'A NEW DISCOVERY EVERY DAY';
