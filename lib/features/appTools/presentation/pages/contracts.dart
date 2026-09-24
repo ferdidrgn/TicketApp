@@ -126,8 +126,6 @@ class ContractsPage extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           _buildHtmlContent(context, content),
-          const SizedBox(height: AppSpacing.xxl),
-          _buildLastUpdated(context),
           const SizedBox(height: AppSpacing.huge),
         ],
       ),
@@ -158,21 +156,14 @@ class ContractsPage extends ConsumerWidget {
         ),
       );
 
-  Widget _buildLastUpdated(final BuildContext context) => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.history_rounded,
-              size: 14, color: context.colors.onSurfaceVariant),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            'Son Güncelleme: ${DateTime.now().toString().split(' ')[0]}',
-            style: context.textTheme.labelSmall?.copyWith(
-              color: context.colors.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      );
+  // 🔥 DÜZELTME: Burada eskiden "Son Güncelleme: ${DateTime.now()...}"
+  // vardı — yani Gizlilik Politikası/Kullanım Şartları sayfası, belge
+  // gerçekte ne zaman değiştiğinden bağımsız olarak HER ZAMAN "bugün"
+  // güncellenmiş gibi gösteriyordu. Firestore'daki AppTools dokümanında
+  // gerçek bir "son güncelleme" alanı yok (sadece ham içerik metni
+  // tutuluyor) — uydurma bir tarih göstermek yerine bu satır tamamen
+  // kaldırıldı. Gerçek bir zaman damgası eklemek Firestore şemasına yeni
+  // bir alan eklemeyi gerektiren ayrı bir ürün/veri kararı.
 
   Widget _buildErrorState(
           final BuildContext context, final String message, final VoidCallback onRetry) =>
@@ -315,8 +306,6 @@ class ContractsPage extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           _buildDesktopHtmlContent(context, content),
-          const SizedBox(height: AppSpacing.xxl),
-          _buildDesktopLastUpdated(),
           const SizedBox(height: AppSpacing.massive),
           // Web masaüstü deneyiminde sekme içeriğinin sonuna site geneli
           // footer eklenir.
@@ -349,23 +338,6 @@ class ContractsPage extends ConsumerWidget {
             ),
           ),
         ),
-      );
-
-  Widget _buildDesktopLastUpdated() => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.history_rounded,
-              size: 14, color: WebColors.textTertiary),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            'Son Güncelleme: ${DateTime.now().toString().split(' ')[0]}',
-            style: const TextStyle(
-              color: WebColors.textTertiary,
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
       );
 
   Widget _buildDesktopErrorState(

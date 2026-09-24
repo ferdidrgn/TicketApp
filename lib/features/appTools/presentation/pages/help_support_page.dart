@@ -4,10 +4,60 @@ import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/util/comminucation_actions.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 
-class HelpSupportPage extends StatelessWidget {
+/// SSS listesi — gerçek arama filtrelemesi bunun üzerinde çalışır.
+const List<(String, String)> _kFaqEntries = [
+  (
+    'Biletimi nasıl bulabilirim?',
+    'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'
+  ),
+  (
+    'Sanatçı profili nasıl açılır?',
+    'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'
+  ),
+];
+
+// 🔥 DÜZELTME: Bu sayfa StatelessWidget'tı — "Canlı Destek"/"E-posta"
+// kartlarının onTap'i YOKTU (sadece buton gibi süslenmiş, tıklanamaz
+// kutulardı), arama kutusunun controller'ı/onChanged'i YOKTU (yazmak
+// hiçbir şey yapmıyordu), ve SSS listesi 2 satır sabit metindi. Artık
+// gerçek `TiyatrolCommunicationActions` (footer.dart'ın da kullandığı
+// aynı gerçek WhatsApp/e-posta aksiyonları) bağlı, arama kutusu SSS
+// listesini gerçekten canlı süzüyor.
+class HelpSupportPage extends StatefulWidget {
   const HelpSupportPage({super.key});
+
+  @override
+  State<HelpSupportPage> createState() => _HelpSupportPageState();
+}
+
+class _HelpSupportPageState extends State<HelpSupportPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _query = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<(String, String)> get _filteredFaq => _query.isEmpty
+      ? _kFaqEntries
+      : _kFaqEntries
+          .where((final entry) =>
+              entry.$1.toLowerCase().contains(_query) ||
+              entry.$2.toLowerCase().contains(_query))
+          .toList();
 
   @override
   Widget build(final BuildContext context) {
@@ -17,6 +67,7 @@ class HelpSupportPage extends StatelessWidget {
 
     // 💡 Senin responsive utils uzantılarını kullanarak web/tablet kontrolü yapıyoruz
     final bool isLargeScreen = context.isTablet || context.isDesktop;
+    final faq = _filteredFaq;
 
     return BasePageWrapper(
       showBackButton: true,
@@ -46,10 +97,11 @@ class HelpSupportPage extends StatelessWidget {
               const SizedBox(height: AppSpacing.massive),
               _buildSectionTitle(context, 'SIKÇA SORULANLAR'),
               const SizedBox(height: AppSpacing.lg),
-              _buildFaqItem(context, 'Biletimi nasıl bulabilirim?',
-                  'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
-              _buildFaqItem(context, 'Sanatçı profili nasıl açılır?',
-                  'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
+              if (faq.isEmpty)
+                _buildFaqEmptyState(context)
+              else
+                for (final entry in faq)
+                  _buildFaqItem(context, entry.$1, entry.$2),
               const SizedBox(height: AppSpacing.huge),
             ],
           ),
@@ -69,13 +121,35 @@ class HelpSupportPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(color: context.colors.outlineVariant),
           ),
-          child: const TextField(
+          child: TextField(
+            controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Sorunun cevabını burada ara...',
               border: InputBorder.none,
-              icon: Icon(Icons.search),
+              icon: const Icon(Icons.search),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      tooltip: 'Aramayı temizle',
+                      onPressed: _searchController.clear,
+                    ),
             ),
           ),
+        ),
+      );
+
+  Widget _buildFaqEmptyState(final BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+        child: Column(
+          children: [
+            Icon(Icons.search_off_rounded,
+                size: 40, color: context.colors.onSurfaceVariant),
+            const SizedBox(height: AppSpacing.md),
+            Text('Bu aramaya uyan bir soru bulunamadı.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.colors.onSurfaceVariant)),
+          ],
         ),
       );
 
@@ -83,35 +157,54 @@ class HelpSupportPage extends StatelessWidget {
   Widget _buildSupportActions(final BuildContext context) => Row(
         children: [
           Expanded(
-              child: _buildActionCard(context, Icons.chat_bubble_outline,
-                  'Canlı Destek', 'Temsilciyle Konuş')),
+              child: _buildActionCard(
+                  context,
+                  Icons.chat_bubble_outline,
+                  'Canlı Destek',
+                  'Temsilciyle Konuş',
+                  TiyatrolCommunicationActions.contactWhatsApp)),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
               child: _buildActionCard(
-                  context, Icons.mail_outline, 'E-posta', 'Bize Yaz')),
+                  context,
+                  Icons.mail_outline,
+                  'E-posta',
+                  'Bize Yaz',
+                  () => TiyatrolCommunicationActions.sendEmail())),
         ],
       );
 
-  Widget _buildActionCard(final BuildContext context, final IconData icon,
-          final String title, final String sub) =>
+  Widget _buildActionCard(
+          final BuildContext context,
+          final IconData icon,
+          final String title,
+          final String sub,
+          final VoidCallback onTap) =>
       Semantics(
+        button: true,
         label: '$title. $sub',
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            color: context.colors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: context.colors.primary.withOpacity(0.2)),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: context.colors.primary, size: 32),
-              const SizedBox(height: AppSpacing.md),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(sub,
-                  style: TextStyle(
-                      fontSize: 10, color: context.colors.onSurfaceVariant)),
-            ],
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: context.colors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border:
+                  Border.all(color: context.colors.primary.withOpacity(0.2)),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: context.colors.primary, size: 32),
+                const SizedBox(height: AppSpacing.md),
+                Text(title,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(sub,
+                    style: TextStyle(
+                        fontSize: 10, color: context.colors.onSurfaceVariant)),
+              ],
+            ),
           ),
         ),
       );
@@ -150,58 +243,62 @@ class HelpSupportPage extends StatelessWidget {
   // mobil BasePageWrapper zırhı yerine sade, WebColors temalı bir kabuk.
   // Sayfanın en altına, sitenin diğer masaüstü sayfalarıyla aynı tam
   // genişlikte paylaşılan `Footer` eklenir.
-  Widget _buildDesktopPage(final BuildContext context) => ColoredBox(
-        color: WebColors.darkBlueBackground,
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxxl,
-                      vertical: AppSpacing.section),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Yardım ve Destek',
-                        style: TextStyle(
-                          color: WebColors.whiteText,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 26,
-                          letterSpacing: -0.5,
-                        ),
+  Widget _buildDesktopPage(final BuildContext context) {
+    final faq = _filteredFaq;
+    return ColoredBox(
+      color: WebColors.darkBlueBackground,
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxxl,
+                    vertical: AppSpacing.section),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Yardım ve Destek',
+                      style: TextStyle(
+                        color: WebColors.whiteText,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 26,
+                        letterSpacing: -0.5,
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        'Sorularına hızlıca cevap bul.',
-                        style: TextStyle(
-                          color: WebColors.textSecondary,
-                          fontSize: 14,
-                        ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Sorularına hızlıca cevap bul.',
+                      style: TextStyle(
+                        color: WebColors.textSecondary,
+                        fontSize: 14,
                       ),
-                      const SizedBox(height: AppSpacing.xxxl),
-                      _buildDesktopSearchBox(),
-                      const SizedBox(height: AppSpacing.xxxl),
-                      _buildDesktopSupportActions(),
-                      const SizedBox(height: AppSpacing.massive),
-                      _buildDesktopSectionTitle('SIKÇA SORULANLAR'),
-                      const SizedBox(height: AppSpacing.lg),
-                      _buildDesktopFaqItem(context, 'Biletimi nasıl bulabilirim?',
-                          'Biletlerim sekmesinden geçmiş ve gelecek tüm biletlerine ulaşabilirsin.'),
-                      _buildDesktopFaqItem(context, 'Sanatçı profili nasıl açılır?',
-                          'Profil düzenleme ekranından yeteneklerini belirterek başlayabilirsin.'),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxxl),
+                    _buildDesktopSearchBox(),
+                    const SizedBox(height: AppSpacing.xxxl),
+                    _buildDesktopSupportActions(),
+                    const SizedBox(height: AppSpacing.massive),
+                    _buildDesktopSectionTitle('SIKÇA SORULANLAR'),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (faq.isEmpty)
+                      _buildDesktopFaqEmptyState()
+                    else
+                      for (final entry in faq)
+                        _buildDesktopFaqItem(context, entry.$1, entry.$2),
+                  ],
                 ),
               ),
             ),
-            const Footer(),
-          ],
-        ),
-      );
+          ),
+          const Footer(),
+        ],
+      ),
+    );
+  }
 
   Widget _buildDesktopSearchBox() => Semantics(
         textField: true,
@@ -214,50 +311,85 @@ class HelpSupportPage extends StatelessWidget {
             border: Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
           ),
           child: TextField(
+            controller: _searchController,
             style: const TextStyle(color: WebColors.whiteText),
             decoration: InputDecoration(
               hintText: 'Sorunun cevabını burada ara...',
               hintStyle: TextStyle(color: WebColors.textTertiary),
               border: InputBorder.none,
               icon: const Icon(Icons.search, color: WebColors.textSecondary),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close_rounded,
+                          size: 18, color: WebColors.textSecondary),
+                      tooltip: 'Aramayı temizle',
+                      onPressed: _searchController.clear,
+                    ),
             ),
           ),
+        ),
+      );
+
+  Widget _buildDesktopFaqEmptyState() => Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+        child: Column(
+          children: [
+            const Icon(Icons.search_off_rounded,
+                size: 40, color: WebColors.textSecondary),
+            const SizedBox(height: AppSpacing.md),
+            Text('Bu aramaya uyan bir soru bulunamadı.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: WebColors.textSecondary)),
+          ],
         ),
       );
 
   Widget _buildDesktopSupportActions() => Row(
         children: [
           Expanded(
-              child: _buildDesktopActionCard(Icons.chat_bubble_outline,
-                  'Canlı Destek', 'Temsilciyle Konuş')),
+              child: _buildDesktopActionCard(
+                  Icons.chat_bubble_outline,
+                  'Canlı Destek',
+                  'Temsilciyle Konuş',
+                  TiyatrolCommunicationActions.contactWhatsApp)),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
               child: _buildDesktopActionCard(
-                  Icons.mail_outline, 'E-posta', 'Bize Yaz')),
+                  Icons.mail_outline,
+                  'E-posta',
+                  'Bize Yaz',
+                  () => TiyatrolCommunicationActions.sendEmail())),
         ],
       );
 
-  Widget _buildDesktopActionCard(
-          final IconData icon, final String title, final String sub) =>
+  Widget _buildDesktopActionCard(final IconData icon, final String title,
+          final String sub, final VoidCallback onTap) =>
       Semantics(
+        button: true,
         label: '$title. $sub',
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            color: WebColors.darkBlueSurface,
-            borderRadius: AppRadius.asymLg,
-            border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: WebColors.primaryGold, size: 32),
-              const SizedBox(height: AppSpacing.md),
-              Text(title,
-                  style: const TextStyle(
-                      color: WebColors.whiteText, fontWeight: FontWeight.bold)),
-              Text(sub,
-                  style: TextStyle(fontSize: 10, color: WebColors.textSecondary)),
-            ],
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.asymLg,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: WebColors.darkBlueSurface,
+              borderRadius: AppRadius.asymLg,
+              border: Border.all(color: WebColors.primaryGold.withOpacity(0.3)),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: WebColors.primaryGold, size: 32),
+                const SizedBox(height: AppSpacing.md),
+                Text(title,
+                    style: const TextStyle(
+                        color: WebColors.whiteText, fontWeight: FontWeight.bold)),
+                Text(sub,
+                    style:
+                        TextStyle(fontSize: 10, color: WebColors.textSecondary)),
+              ],
+            ),
           ),
         ),
       );

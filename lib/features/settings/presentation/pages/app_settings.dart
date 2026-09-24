@@ -39,9 +39,22 @@ class AppSettingsPage extends ConsumerWidget {
     Colors.blueGrey,
   ];
 
+  // 🔥 DÜZELTME: Önceden `request()`'ten SONRA koşulsuz `openAppSettings()`
+  // çağrılıyordu — yani izin zaten verilmişse ya da uygulama içi istek
+  // az önce normal şekilde onaylanmışsa bile, "Mekansal Rezonans"
+  // (konum) veya "Sanat Fısıltıları" (bildirim) satırına her dokunuşta
+  // kullanıcı uygulamadan atılıp OS Ayarları'na fırlatılıyordu. Artık
+  // sadece GERÇEKTEN kalıcı olarak reddedilmiş (bir daha uygulama içi
+  // sorulamayan) izinlerde Ayarlar'a yönlendiriliyor; aksi halde normal
+  // uygulama içi izin isteği yeterli.
   Future<void> _handlePermission(final Permission permission) async {
-    if (await permission.isDenied) await permission.request();
-    await openAppSettings();
+    final status = await permission.status;
+    if (status.isGranted) return;
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+      return;
+    }
+    await permission.request();
   }
 
   void _shareApp(final BuildContext context) => Share.share(
