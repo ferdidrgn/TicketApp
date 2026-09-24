@@ -134,7 +134,7 @@ final eventsByShowIdsProvider =
 // bir etkinlik iki yoldan BİRİYLE bile bağlıysa yakalanır.
 /// Her gösteri için GERÇEK, birleştirilmiş etkinlik listesi — `Event.showId`
 /// (doğrudan) ve `Show.eventsId` dizisi (yedek, sadece o alan boşsa) TEK bir
-/// haritada birleştirilir. `_activeShowIdsFromEvents` VE yeni
+/// haritada birleştirilir. `_nearestFutureEventDatesByShow` VE
 /// `eventsByShowMapProvider` (filtreleme/sıralama için tarih+fiyat gerektiren
 /// tüketiciler) bu TEK fonksiyonu paylaşır — merge mantığı iki yerde ayrı
 /// ayrı YAZILMAZ.
@@ -189,19 +189,48 @@ Future<Map<String, List<Event>>> _mergedEventsByShow(
   return merged;
 }
 
-Future<Set<String>> _activeShowIdsFromEvents(
+/// Show.id -> o gösterinin en yakın GERÇEK gelecek etkinlik tarihi. Bir
+/// gösteri bu haritada varsa "aktif"tir (tanım `_mergedEventsByShow`'un
+/// birleştirdiği GERÇEK etkinliklerden, uydurma bir "isActive" bayrağından
+/// DEĞİL). Aynı zamanda "aktif oyunları en yakın etkinlik tarihine göre
+/// sırala" ihtiyacının (bkz. `showsActiveFirstProvider`/
+/// `activeShowsProvider`) kaynağı — tek bir yerde hesaplanır, iki kez
+/// YAZILMAZ.
+Future<Map<String, DateTime>> _nearestFutureEventDatesByShow(
     final Ref ref, final List<Show> shows) async {
   final merged = await _mergedEventsByShow(ref, shows);
   final now = DateTime.now();
-  final activeIds = <String>{};
+  final nearestByShow = <String, DateTime>{};
   merged.forEach((final showId, final events) {
-    final hasFutureEvent = events.any((final event) {
+    DateTime? nearest;
+    for (final event in events) {
       final date = DateFormatter.parseDateString(event.date);
-      return date != null && date.isAfter(now);
-    });
-    if (hasFutureEvent) activeIds.add(showId);
+      if (date == null || !date.isAfter(now)) continue;
+      if (nearest == null || date.isBefore(nearest)) nearest = date;
+    }
+    if (nearest != null) nearestByShow[showId] = nearest;
   });
-  return activeIds;
+  return nearestByShow;
+}
+
+/// Gerçek eklenme tarihine (`Show.createdAt`) göre azalan (en yeni eklenen
+/// önce) sıralama — "aktif olmayan" oyunlar için. `Show.createdAt`,
+/// `ShowModel.fromFirestore`'da HER ZAMAN ISO8601 string'e normalize
+/// edilir (Firestore'daki gerçek alan `Timestamp` TÜRÜNDE olsa da, ham
+/// string olsa da) — bu yüzden burada `DateTime.tryParse` yeterli;
+/// `DateFormatter.parseDateString`'in `Event.date` için kullandığı
+/// "dd.MM.yyyy,HH:mm" formatıyla KARIŞTIRILMAZ, o farklı bir alan/format.
+/// Ayrıştırılamayan (null) tarihler listenin sonuna düşer, asla listeyi
+/// bozmaz.
+void _sortByCreatedAtDescending(final List<Show> shows) {
+  shows.sort((final a, final b) {
+    final ca = DateTime.tryParse(a.createdAt);
+    final cb = DateTime.tryParse(b.createdAt);
+    if (ca == null && cb == null) return 0;
+    if (ca == null) return 1;
+    if (cb == null) return -1;
+    return cb.compareTo(ca);
+  });
 }
 
 /// Her gösteri için GERÇEK, birleştirilmiş (geçmiş dahil TÜM) etkinlik
@@ -223,43 +252,58 @@ final eventsByShowMapProvider =
 /// ekranlarının VARSAYILANI artık bu DEĞİL, aşağıdaki
 /// `showsActiveFirstProvider`: hiçbir oyunu tamamen gizlemeden aktifleri
 /// öne alıyor. Kullanım: `ref.watch(activeShowsProvider(true))`
+/// Sıralama: en yakın GERÇEK etkinlik tarihine göre artan (yaklaşan en
+/// üstte) — kullanıcının isteği: "aktif oyunları etkinlik tarihine göre...
+/// göster".
 final activeShowsProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
-  final activeIds = await _activeShowIdsFromEvents(ref, shows);
-  return shows.where((final s) => activeIds.contains(s.id)).toList();
+  final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
+  final active =
+      shows.where((final s) => nearestByShow.containsKey(s.id)).toList();
+  active.sort((final a, final b) =>
+      nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
+  return active;
 });
 
 /// 🔴 GEÇMİŞ OYUNLAR — tüm etkinlikleri geçmişte kalmış (ya da hiç
 /// etkinliği hiç olmamış) oyunlar. "Geçmiş Oyunlar" arşiv görünümü gibi
-/// bir yer için — varsayılan listelerde KULLANILMAMALI.
+/// bir yer için — varsayılan listelerde KULLANILMAMALI. Sıralama: gerçek
+/// eklenme tarihine göre azalan (en yeni eklenen en üstte).
 /// Kullanım: `ref.watch(pastShowsProvider(false))`
 final pastShowsProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
-  final activeIds = await _activeShowIdsFromEvents(ref, shows);
-  return shows.where((final s) => !activeIds.contains(s.id)).toList();
+  final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
+  final past =
+      shows.where((final s) => !nearestByShow.containsKey(s.id)).toList();
+  _sortByCreatedAtDescending(past);
+  return past;
 });
 
 /// 🟢➡️🔴 TÜM OYUNLAR, AKTİF ÖNCE — genel oyun listeleme/keşfet
 /// ekranlarının (ana sayfa, keşfet, arama'nın boş-sorgu göz atma hâli)
-/// GERÇEK varsayılanı. Hiçbir oyun listeden tamamen düşürülmez — önce
-/// takviminde gelecek etkinliği olan (aktif) oyunlar, ardından (varsa
-/// yer kaldıysa) aktif olmayanlar gelir. `isLimit: true` iken
-/// `showsProvider`ın kendi "en yeni N oyun" sınırı içinde aynı sıralama
-/// uygulanır — yani aktif oyun sayısı az olduğunda liste boş görünmez,
-/// geri kalanı aktif olmayan oyunlarla dolar.
+/// GERÇEK varsayılanı. Hiçbir oyun listeden tamamen düşürülmez. Sıralama
+/// (kullanıcı isteği): önce takviminde gelecek etkinliği olan (aktif)
+/// oyunlar — KENDİ ARALARINDA en yakın gerçek etkinlik tarihine göre artan
+/// (yaklaşan en üstte); ardından aktif olmayanlar — KENDİ ARALARINDA gerçek
+/// eklenme tarihine (`Show.createdAt`) göre azalan (en yeni eklenen en
+/// üstte). `isLimit: true` iken `showsProvider`ın kendi "en yeni N oyun"
+/// sınırı içinde aynı sıralama uygulanır.
 /// Kullanım: `ref.watch(showsActiveFirstProvider(true))`
 final showsActiveFirstProvider =
     FutureProvider.family<List<Show>, bool>((final ref, final isLimit) async {
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
-  final activeIds = await _activeShowIdsFromEvents(ref, shows);
+  final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
   final active = <Show>[];
   final inactive = <Show>[];
   for (final show in shows)
-    (activeIds.contains(show.id) ? active : inactive).add(show);
+    (nearestByShow.containsKey(show.id) ? active : inactive).add(show);
+  active.sort((final a, final b) =>
+      nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
+  _sortByCreatedAtDescending(inactive);
   return [...active, ...inactive];
 });
