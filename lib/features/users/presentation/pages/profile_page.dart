@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -69,6 +70,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Animation<double> get _heroFade => CurvedAnimation(
       parent: _heroEntranceController, curve: AppMotion.standard);
 
+  // 🎨 Masaüstü zemin parçacıkları — show_detail_page_web.dart'taki
+  // `_BackgroundParticles` ile aynı teknik (yavaş, sinüs dalgalı, sahne
+  // tozu hissi veren noktalar). Profil sayfası önceden düz tek renk bir
+  // zemin üzerinde duran, sayfanın geri kalanına göre "yarım kalmış"
+  // hisseden tek web sayfasıydı — bu, diğer detay sayfalarıyla aynı
+  // atmosferi kurar.
+  late final AnimationController _particlesController = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 3),
+  )..repeat(reverse: true);
+
   /// `User.createdAt` Sanity'den ISO8601 string olarak gelir
   /// (`DateFormatter.parseDateString` bunu zaten ISO8601 düşüşüyle
   /// anlıyor). Ayrıştırılamazsa sessizce null döner — asla uydurma bir
@@ -82,6 +94,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   @override
   void dispose() {
     _heroEntranceController.dispose();
+    _particlesController.dispose();
     super.dispose();
   }
 
@@ -668,135 +681,170 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   ) =>
       ColoredBox(
         color: WebColors.darkBlueBackground,
-        child: userProfileAsync.when(
-          loading: () => const Center(
-              child: CircularProgressIndicator(color: WebColors.primaryGold)),
-          error: (final err, final stack) => Center(
-            child: Text('Hata: $err',
-                style: const TextStyle(color: WebColors.whiteText)),
-          ),
-          data: (final userData) {
-            final bool isLoggedIn = userData != null;
-            return ListView(
-              padding: EdgeInsets.zero,
-              physics: const BouncingScrollPhysics(),
-              children: [
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 900),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xxxl, vertical: 56),
-                      child: Column(
-                        children: [
-                          _buildDesktopHero(context, userData, isLoggedIn),
-                          const SizedBox(height: AppSpacing.massive),
-                          _buildDesktopSectionLabel('GÖRÜNÜM'),
-                          const SizedBox(height: AppSpacing.lg),
-                          const ThemeSelectorCard(),
-                          const SizedBox(height: AppSpacing.md),
-                          _buildDesktopTile(
-                            context,
-                            icon: Icons.settings_suggest_rounded,
-                            title: 'Ayarlar',
-                            subtitle:
-                                'İzinlerini ve uygulama tercihlerini yönet',
-                            onTap: () =>
-                                NavigationHandler.goToSettings(context),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _ProfileAmbientParticles(animation: _particlesController),
+            ),
+            userProfileAsync.when(
+              loading: () => const Center(
+                  child:
+                      CircularProgressIndicator(color: WebColors.primaryGold)),
+              error: (final err, final stack) => Center(
+                child: Text('Hata: $err',
+                    style: const TextStyle(color: WebColors.whiteText)),
+              ),
+              data: (final userData) {
+                final bool isLoggedIn = userData != null;
+                return ListView(
+                  padding: EdgeInsets.zero,
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 980),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xxxl, vertical: 56),
+                          child: Column(
+                            children: [
+                              _buildDesktopHero(context, userData, isLoggedIn),
+                              const SizedBox(height: AppSpacing.massive),
+                              _buildDesktopSectionLabel(
+                                  'GÖRÜNÜM', Icons.palette_rounded),
+                              const SizedBox(height: AppSpacing.lg),
+                              const ThemeSelectorCard(),
+                              const SizedBox(height: AppSpacing.md),
+                              _buildDesktopTile(
+                                context,
+                                icon: Icons.settings_suggest_rounded,
+                                title: 'Ayarlar',
+                                subtitle:
+                                    'İzinlerini ve uygulama tercihlerini yönet',
+                                onTap: () =>
+                                    NavigationHandler.goToSettings(context),
+                              ),
+                              const SizedBox(height: AppSpacing.huge),
+                              _buildDesktopSectionLabel(
+                                  'GEÇMİŞİM', Icons.history_edu_rounded),
+                              const SizedBox(height: AppSpacing.lg),
+                              _buildDesktopTileGrid([
+                                _buildDesktopTile(
+                                  context,
+                                  icon: Icons.confirmation_number_rounded,
+                                  title: 'Biletlerim',
+                                  subtitle:
+                                      'Geçmiş ve gelecek etkinliklerinin tüm biletleri',
+                                  isLocked: !isLoggedIn,
+                                  onTap: () => NavigationHandler.goToMyTickets(
+                                      context, userData?.id ?? ""),
+                                ),
+                                _buildDesktopTile(
+                                  context,
+                                  icon: Icons.favorite_rounded,
+                                  title: 'Favorilerim',
+                                  subtitle:
+                                      'Favori oyunların, sahnelerin ve sanatçıların',
+                                  isLocked: !isLoggedIn,
+                                  onTap: () =>
+                                      NavigationHandler.goToFavorites(context),
+                                ),
+                              ]),
+                              const SizedBox(height: AppSpacing.huge),
+                              _buildDesktopSectionLabel(
+                                  'PROFİLİM', Icons.person_rounded),
+                              const SizedBox(height: AppSpacing.lg),
+                              _buildDesktopTileGrid([
+                                _buildDesktopTile(
+                                  context,
+                                  icon: Icons.edit_rounded,
+                                  title: 'Profili Düzenle',
+                                  subtitle:
+                                      'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle',
+                                  isLocked: !isLoggedIn,
+                                  onTap: () => context.push(
+                                      '/profile-edit/${userData?.id ?? ""}'),
+                                ),
+                                _buildDesktopTile(
+                                  context,
+                                  icon: Icons.help_outline_rounded,
+                                  title: 'Yardım ve Destek',
+                                  subtitle: 'Sorularına hızlıca cevap bul',
+                                  onTap: () => NavigationHandler
+                                      .goToHelpSupport(context),
+                                ),
+                              ]),
+                              const SizedBox(height: AppSpacing.huge),
+                              _buildDesktopSectionLabel(
+                                  'YASAL YÜKÜMLÜLÜKLER', Icons.gavel_rounded),
+                              const SizedBox(height: AppSpacing.lg),
+                              _buildDesktopTile(
+                                context,
+                                icon: Icons.gavel_rounded,
+                                title: 'Yasal Bilgiler',
+                                subtitle:
+                                    'Gizlilik politikası ve kullanım şartları',
+                                onTap: () =>
+                                    NavigationHandler.goToContracts(context),
+                              ),
+                              if (isLoggedIn) ...[
+                                const SizedBox(height: AppSpacing.huge),
+                                _buildDesktopSectionLabel('HESAP İŞLEMLERİ',
+                                    Icons.manage_accounts_rounded),
+                                const SizedBox(height: AppSpacing.lg),
+                                _buildDesktopTileGrid([
+                                  _buildDesktopTile(
+                                    context,
+                                    icon: Icons.logout_rounded,
+                                    title: 'Çıkış Yap',
+                                    subtitle: 'Hesabından güvenle çıkış yap',
+                                    onTap: () =>
+                                        showSignOutDialog(context, ref),
+                                  ),
+                                  _buildDesktopTile(
+                                    context,
+                                    icon: Icons.delete_forever_rounded,
+                                    title: 'Hesabı Sil',
+                                    subtitle:
+                                        'Hesabını ve tüm verilerini kalıcı olarak sil',
+                                    onTap: () => showDeleteAccountDialog(
+                                        context, ref, userData.id),
+                                  ),
+                                ]),
+                              ],
+                              const SizedBox(height: 56),
+                              _buildDesktopReflection(),
+                              const SizedBox(height: AppSpacing.huge),
+                            ],
                           ),
-                          const SizedBox(height: AppSpacing.huge),
-                          _buildDesktopSectionLabel('GEÇMİŞİM'),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildDesktopTile(
-                            context,
-                            icon: Icons.confirmation_number_rounded,
-                            title: 'Biletlerim',
-                            subtitle:
-                                'Geçmiş ve gelecek etkinliklerinin tüm biletleri',
-                            isLocked: !isLoggedIn,
-                            onTap: () => NavigationHandler.goToMyTickets(
-                                context, userData?.id ?? ""),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          _buildDesktopTile(
-                            context,
-                            icon: Icons.favorite_rounded,
-                            title: 'Favorilerim',
-                            subtitle:
-                                'Favori oyunların, sahnelerin ve sanatçıların',
-                            isLocked: !isLoggedIn,
-                            onTap: () =>
-                                NavigationHandler.goToFavorites(context),
-                          ),
-                          const SizedBox(height: AppSpacing.huge),
-                          _buildDesktopSectionLabel('PROFİLİM'),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildDesktopTile(
-                            context,
-                            icon: Icons.edit_rounded,
-                            title: 'Profili Düzenle',
-                            subtitle:
-                                'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle',
-                            isLocked: !isLoggedIn,
-                            onTap: () => context
-                                .push('/profile-edit/${userData?.id ?? ""}'),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          _buildDesktopTile(
-                            context,
-                            icon: Icons.help_outline_rounded,
-                            title: 'Yardım ve Destek',
-                            subtitle: 'Sorularına hızlıca cevap bul',
-                            onTap: () =>
-                                NavigationHandler.goToHelpSupport(context),
-                          ),
-                          const SizedBox(height: AppSpacing.huge),
-                          _buildDesktopSectionLabel('YASAL YÜKÜMLÜLÜKLER'),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildDesktopTile(
-                            context,
-                            icon: Icons.gavel_rounded,
-                            title: 'Yasal Bilgiler',
-                            subtitle: 'Gizlilik politikası ve kullanım şartları',
-                            onTap: () =>
-                                NavigationHandler.goToContracts(context),
-                          ),
-                          if (isLoggedIn) ...[
-                            const SizedBox(height: AppSpacing.huge),
-                            _buildDesktopSectionLabel('HESAP İŞLEMLERİ'),
-                            const SizedBox(height: AppSpacing.lg),
-                            _buildDesktopTile(
-                              context,
-                              icon: Icons.logout_rounded,
-                              title: 'Çıkış Yap',
-                              subtitle: 'Hesabından güvenle çıkış yap',
-                              onTap: () => showSignOutDialog(context, ref),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _buildDesktopTile(
-                              context,
-                              icon: Icons.delete_forever_rounded,
-                              title: 'Hesabı Sil',
-                              subtitle:
-                                  'Hesabını ve tüm verilerini kalıcı olarak sil',
-                              onTap: () => showDeleteAccountDialog(
-                                  context, ref, userData.id),
-                            ),
-                          ],
-                          const SizedBox(height: 56),
-                          _buildDesktopReflection(),
-                          const SizedBox(height: AppSpacing.huge),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                const Footer(),
-              ],
-            );
-          },
+                    const Footer(),
+                  ],
+                );
+              },
+            ),
+          ],
         ),
       );
+
+  /// İki döşemeli (Biletlerim/Favorilerim gibi) bölümleri masaüstünde yan
+  /// yana yerleştirir — önceden hepsi tek sütunda alt alta dizilip 980px'lik
+  /// içerik genişliğinin çoğu boş kalıyordu. Tek döşemeli bölümler (Ayarlar,
+  /// Yasal Bilgiler) olduğu gibi tam genişlikte kalır.
+  Widget _buildDesktopTileGrid(final List<Widget> tiles) {
+    if (tiles.length == 1) return tiles.first;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < tiles.length; i++) ...[
+          if (i != 0) const SizedBox(width: AppSpacing.lg),
+          Expanded(child: tiles[i]),
+        ],
+      ],
+    );
+  }
 
   // --- 🎬 MASAÜSTÜ HERO — `home_page_web.dart`'taki `_HeroBand`/
   // `_HeroBackdropPhoto` ile AYNI teknik: tam boy gerçek fotoğraf zemini +
@@ -1036,13 +1084,47 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ],
       );
 
-  Widget _buildDesktopSectionLabel(final String text) => Text(
-        text,
-        style: const TextStyle(
-            color: WebColors.primaryGoldLight,
-            fontWeight: FontWeight.w900,
-            fontSize: 12,
-            letterSpacing: 3),
+  /// 🔥 DÜZELTME: Önceden sadece küçük altın renkli bir metindi — sayfanın
+  /// geri kalanına (show/team detay sayfalarındaki ikon rozetli, gradyan
+  /// çizgili `_SectionTitle` dili) göre "yarım kalmış" duruyordu. Artık
+  /// aynı dili kullanıyor: ikon rozeti + başlık + sağa doğru solan çizgi.
+  Widget _buildDesktopSectionLabel(final String text, final IconData icon) =>
+      Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              gradient: WebColors.goldButtonGradient,
+              borderRadius: AppRadius.asymSm,
+              boxShadow: [
+                BoxShadow(
+                    color: WebColors.primaryGold.withOpacity(0.35),
+                    blurRadius: 14),
+              ],
+            ),
+            child:
+                Icon(icon, color: WebColors.darkBlueBackground, size: 18),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Text(text,
+              style: const TextStyle(
+                  color: WebColors.whiteText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 15,
+                  letterSpacing: 2)),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  WebColors.primaryGold.withOpacity(0.4),
+                  Colors.transparent,
+                ]),
+              ),
+            ),
+          ),
+        ],
       );
 
   Widget _buildDesktopTile(
@@ -1074,7 +1156,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               ),
               child: Row(
                 children: [
-                  Icon(icon, color: WebColors.primaryGold, size: 22),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: WebColors.primaryGold.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child:
+                        Icon(icon, color: WebColors.primaryGold, size: 20),
+                  ),
                   const SizedBox(width: AppSpacing.lg),
                   Expanded(
                     child: Column(
@@ -1126,4 +1216,39 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   height: 1.5)),
         ],
       );
+}
+
+/// show_detail_page_web.dart'taki `_BackgroundParticles` ile aynı teknik —
+/// sabit tohumla (42) üretilen, sinüs dalgasıyla yavaşça salınan 15 nokta.
+class _ProfileAmbientParticles extends StatelessWidget {
+  final Animation<double> animation;
+
+  const _ProfileAmbientParticles({required this.animation});
+
+  @override
+  Widget build(final BuildContext context) {
+    final random = math.Random(42);
+    final size = MediaQuery.of(context).size;
+    return Stack(
+      children: List.generate(15, (final i) {
+        final x = random.nextDouble() * size.width;
+        final baseY = random.nextDouble() * size.height;
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (final context, final _) {
+            final y = baseY + math.sin(animation.value * math.pi * 2 + i) * 30;
+            return Positioned(
+                left: x,
+                top: y,
+                child: Container(
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: WebColors.primaryGold)));
+          },
+        );
+      }),
+    );
+  }
 }

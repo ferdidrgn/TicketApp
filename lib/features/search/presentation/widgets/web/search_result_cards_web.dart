@@ -548,7 +548,7 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
   Widget build(final BuildContext context) {
     final fullName = '${widget.player.firstName} ${widget.player.lastName}';
 
-    // Küçük, yuvarlak "kimlik rozeti" — mobil uygulamanın kendi oyuncu
+    // Küçük, oval "kimlik rozeti" — mobil uygulamanın kendi oyuncu
     // şeridiyle (bkz. players_bubble_card.dart: 120px genişlik, ClipOval,
     // isim altta) AYNI minimal dil, web'e uyarlanmış hâli. Önceki sürüm
     // (büyük dikdörtgen "headshot" + ayrı koyu isim plaketi, 6 sütunlu
@@ -557,6 +557,13 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
     // bir daire + tek satırlık isim var. Grid, search_page.dart'ta bu
     // kartın küçük boyutuna uygun şekilde çok daha yoğun bir
     // crossAxisCount kullanıyor.
+    //
+    // 🔥 DÜZELTME: Mobildeki gibi tam yuvarlak (72x72) olması istenmedi —
+    // "oval, uzun, ayna gibi" bir siluet istendi. `BoxShape.circle`
+    // (ve `ClipOval`) kutunun ORANINA göre elips çizer — kutu artık
+    // kareden ziyade dikey dikdörtgen (68x92) olduğu için otomatik olarak
+    // uzun bir el aynası ovaline dönüşüyor, ekstra bir path/clipper
+    // gerekmiyor.
     return SearchRevealOnScroll(
       index: widget.index,
       child: MouseRegion(
@@ -572,8 +579,8 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
               AnimatedContainer(
                 duration: AppMotion.fast,
                 curve: AppMotion.standard,
-                width: 72,
-                height: 72,
+                width: 68,
+                height: 92,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
