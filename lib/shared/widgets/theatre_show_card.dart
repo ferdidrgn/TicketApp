@@ -199,29 +199,47 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
                       ),
                     ),
                     const SizedBox(height: 6),
+                    // 🔥 DÜZELTME: Ne `show.duration` ("2 perde / 145dk"
+                    // gibi) ne de `show.ageLimit` metni hiçbir esnek/ellipsis
+                    // koruması olmadan sabit bir Row'a yazılıyordu — kart dar
+                    // ekranlarda (ör. ana sayfa mobil şeridi) bu iki metin
+                    // birlikte sığmayınca "RenderFlex overflowed" hatasıyla
+                    // sağdan taşıyordu. Süre metni (daha değişken/uzun
+                    // olan) artık Flexible + ellipsis; yaş sınırı rozeti de
+                    // aynı korumayla güvence altına alındı.
                     Row(
                       children: [
                         const Icon(Icons.schedule_rounded,
                             size: 13, color: WebColors.textTertiary),
                         const SizedBox(width: 4),
-                        Text(
-                          show.duration,
-                          style: const TextStyle(
-                            color: WebColors.textSecondary,
-                            fontSize: 12,
+                        Flexible(
+                          child: Text(
+                            show.duration,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: WebColors.textSecondary,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        const Icon(Icons.shield_outlined,
-                            size: 13, color: WebColors.textTertiary),
-                        const SizedBox(width: 4),
-                        Text(
-                          show.ageLimit,
-                          style: const TextStyle(
-                            color: WebColors.textSecondary,
-                            fontSize: 12,
+                        if (show.ageLimit.trim().isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          const Icon(Icons.shield_outlined,
+                              size: 13, color: WebColors.textTertiary),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              show.ageLimit,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: WebColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ],
