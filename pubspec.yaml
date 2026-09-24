@@ -93,6 +93,7 @@ dev_dependencies:
   freezed:
   riverpod_generator: ^3.0.3
   json_serializable:
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
@@ -104,6 +105,7 @@ flutter:
     - assets/images/book_logo.jpg
     - assets/images/tiyatrol_logo.png
     - assets/images/main_theatre.png
+    - assets/images/app_icon_master.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -133,25 +135,51 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
 # ================================================
+# APP ICON — TÜM PLATFORMLAR (Android/iOS/Web)
+# ================================================
+# Kaynak: assets/images/app_icon_master.png (2000x2000, düz köşeli, arka
+# planı zaten koyu lacivert #0A1628 dolu kare — flutter_launcher_icons
+# kendi platform maskelerini/köşe yuvarlamasını uyguluyor, ayrı bir
+# "adaptive icon" foreground/background ayrımına gerek yok).
+# ÇALIŞTIRMAK GEREKİYOR (bu sandbox'ta Flutter SDK yok, derlenemedi):
+#   flutter pub get
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon_master.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/app_icon_master.png"
+    background_color: "#0A1628"
+    theme_color: "#0A1628"
+
+# ================================================
 # NATIVE SPLASH SCREEN CONFIGURATION
 # ================================================
+# 🔥 DÜZELTME: `background_image` eskiden var olmayan bir dosyaya
+# ("app_logo.jpg.png" — gerçek asset "app_logo.jpg", .png uzantısı
+# yanlışlıkla eklenmişti) işaret ediyordu; flutter_native_splash bunu
+# sessizce atlayıp düz beyaz arka plana düşüyordu ("küçücük bembeyaz"
+# şikayetinin kök nedeni). Artık yeni logo (zaten kendi koyu lacivert
+# arka planıyla geliyor) tek başına yeterli — ayrı bir background_image
+# katmanına hiç gerek yok, `color` onunla birebir eşleşiyor (#0A1628).
+# ÇALIŞTIRMAK GEREKİYOR: dart run flutter_native_splash:create
 flutter_native_splash:
   color: "#0A1628"
-  background_image: "assets/images/app_logo.jpg.png"
-  image: "assets/images/tiyatrol_logo.png"
+  image: "assets/images/app_icon_master.png"
 
   android_12:
-    image: "assets/images/tiyatrol_logo.png"
+    image: "assets/images/app_icon_master.png"
     color: "#0A1628"
-    image_dark: "assets/images/tiyatrol_logo.png"
+    image_dark: "assets/images/app_icon_master.png"
     color_dark: "#0A1628"
     icon_background_color: "#0A1628"
 
   color_dark: "#0A1628"
-  background_image_dark: "assets/images/app_logo.jpg"
-  image_dark: "assets/images/tiyatrol_logo.png"
+  image_dark: "assets/images/app_icon_master.png"
   android_navbar_color: "#0A1628"
-
 
   android: true
   ios: true
