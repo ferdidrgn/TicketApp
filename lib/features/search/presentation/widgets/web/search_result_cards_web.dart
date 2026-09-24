@@ -559,11 +559,11 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
     // crossAxisCount kullanıyor.
     //
     // 🔥 DÜZELTME: Mobildeki gibi tam yuvarlak (72x72) olması istenmedi —
-    // "oval, uzun, ayna gibi" bir siluet istendi. `BoxShape.circle`
+    // "oval, uzun, ayna gibi" bir siluet istendi (sonradan hem yandan hem
+    // alttan biraz daha uzatılıp büyütüldü: 84x128). `BoxShape.circle`
     // (ve `ClipOval`) kutunun ORANINA göre elips çizer — kutu artık
-    // kareden ziyade dikey dikdörtgen (68x92) olduğu için otomatik olarak
-    // uzun bir el aynası ovaline dönüşüyor, ekstra bir path/clipper
-    // gerekmiyor.
+    // kareden ziyade dikey dikdörtgen olduğu için otomatik olarak uzun
+    // bir el aynası ovaline dönüşüyor, ekstra bir path/clipper gerekmiyor.
     return SearchRevealOnScroll(
       index: widget.index,
       child: MouseRegion(
@@ -579,8 +579,8 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
               AnimatedContainer(
                 duration: AppMotion.fast,
                 curve: AppMotion.standard,
-                width: 68,
-                height: 92,
+                width: 84,
+                height: 128,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
@@ -610,7 +610,7 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
               ),
               const SizedBox(height: AppSpacing.sm),
               SizedBox(
-                width: 92,
+                width: 104,
                 child: Text(
                   fullName,
                   textAlign: TextAlign.center,

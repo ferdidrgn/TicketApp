@@ -389,12 +389,12 @@ class _SearchPageState extends ConsumerState<SearchPage>
             // Kart artık küçük/oval (bkz. DesktopPlayerCard) — mobil
             // uygulamanın kendi oyuncu şeridi kadar minimal; bu yüzden
             // eskisinden (6 sütun, 0.62 oran) çok daha yoğun bir ızgara.
-            // Avatar artık 68x92 uzun oval (eskiden 72x72 tam yuvarlak) —
-            // kart oranı bu ek yüksekliğe göre 0.68'e düşürüldü, aksi
+            // Avatar artık 84x128 uzun oval (eskiden 72x72 tam yuvarlak) —
+            // kart oranı bu ek yüksekliğe göre 0.60'a düşürüldü, aksi
             // halde isim satırı hücreden taşabilirdi.
             crossAxisCount: context.responsive(
                 mobile: 4, tablet: 6, desktop: 9, largeDesktop: 10),
-            aspectRatio: 0.68,
+            aspectRatio: 0.60,
             itemCount: state.players.take(20).length,
             itemBuilder: (final i) =>
                 DesktopPlayerCard(player: state.players[i], index: i),
