@@ -53,12 +53,15 @@ class _TeamDetailsPageState extends ConsumerState<TeamDetailsPage>
       layoutConfig: BasePageLayoutConfig(
           ambientColor: context.colors.primary.withOpacity(0.05),
           safeAreaTop: true),
+      // NOT: Buraya ulaşıldığında zaten mobil/tablet dalındayız (masaüstü
+      // yukarıdaki erken dönüşle _TeamDetailDesktopPage'e gidiyor) — bu
+      // yüzden içerik doğrudan mobil gövde, ayrıca context.isDesktop dalı
+      // gerekmiyor (eskiden burada artık var olmayan _buildDesktopContent'e
+      // çağrı yapan ölü bir dal vardı).
       child: teamDetailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (final err, final _) => Center(child: Text("Hata: $err")),
-        data: (final state) => context.isDesktop
-            ? _buildDesktopContent(context, state)
-            : _buildMobileContent(context, state),
+        data: (final state) => _buildMobileContent(context, state),
       ),
     );
   }
