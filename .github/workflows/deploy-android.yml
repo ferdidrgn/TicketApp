@@ -114,12 +114,13 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
-      # Play Console'a otomatik yükleme — VARSAYILAN OLARAK KAPALI.
-      # Yukarıdaki gerekli secret'ları (PLAY_STORE_SERVICE_ACCOUNT_JSON,
-      # ANDROID_KEYSTORE_BASE64 vb.) ekledikten sonra `if: false`
-      # satırını silip bu adımı devreye alabilirsin.
+      # Play Console'a otomatik yükleme — tüm gerekli secret'lar
+      # (ANDROID_KEYSTORE_BASE64, PLAY_STORE_SERVICE_ACCOUNT_JSON vb.)
+      # eklendi, artık aktif. `continue-on-error: true` bilerek kalıyor:
+      # bu adım (ör. Play Console'da uygulama henüz hiç manuel
+      # yayınlanmamışsa "no application found" gibi) başarısız olsa bile
+      # asıl appbundle build+upload-artifact adımları etkilenmesin diye.
       - name: Upload to Play Console (internal track)
-        if: false
         continue-on-error: true
         uses: r0adkll/upload-google-play@v1
         with:
