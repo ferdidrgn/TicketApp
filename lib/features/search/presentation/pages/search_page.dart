@@ -386,10 +386,13 @@ class _SearchPageState extends ConsumerState<SearchPage>
             icon: SearchCategoryPalette.icons[SearchCategoryPalette.players],
             accentColors: SearchCategoryPalette.tints[SearchCategoryPalette.players],
             onSeeAll: () => _onSeeAll(2),
+            // Kart artık küçük/yuvarlak (bkz. DesktopPlayerCard) — mobil
+            // uygulamanın kendi oyuncu şeridi kadar minimal; bu yüzden
+            // eskisinden (6 sütun, 0.62 oran) çok daha yoğun bir ızgara.
             crossAxisCount: context.responsive(
-                mobile: 3, tablet: 4, desktop: 6, largeDesktop: 6),
-            aspectRatio: 0.62,
-            itemCount: state.players.take(12).length,
+                mobile: 4, tablet: 6, desktop: 9, largeDesktop: 10),
+            aspectRatio: 0.78,
+            itemCount: state.players.take(20).length,
             itemBuilder: (final i) =>
                 DesktopPlayerCard(player: state.players[i], index: i),
           ),
@@ -436,8 +439,8 @@ class _SearchPageState extends ConsumerState<SearchPage>
       case 2:
         grid = _buildDesktopGrid(
           crossAxisCount: context.responsive(
-              mobile: 3, tablet: 4, desktop: 6, largeDesktop: 7),
-          aspectRatio: 0.62,
+              mobile: 4, tablet: 6, desktop: 9, largeDesktop: 11),
+          aspectRatio: 0.78,
           itemCount: state.players.length,
           itemBuilder: (final i) =>
               DesktopPlayerCard(player: state.players[i], index: i),

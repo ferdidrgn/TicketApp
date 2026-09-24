@@ -99,7 +99,19 @@ class ShowRemoteDataSourceImpl implements ShowRemoteDataSource {
   Future<bool> addShow(final ShowModel show, final File? imageFile) async {
     try {
       // 1. Dökümanı oluştur (ID otomatik)
-      final docRef = await _showCollection.add(show.toFirestore());
+      // 🔥 DÜZELTME: `show.toFirestore()` çağıranın (entity) elindeki
+      // `createdAt`/`updatedAt` string'lerini (yeni oluşturulan bir
+      // gösteride bunlar henüz yok, çoğu zaman '') OLDUĞU GİBİ yazıyordu —
+      // Firestore'da `_createdAt` gerçek bir Timestamp değil, boş string
+      // olarak kalıyordu. Sonuç: `orderBy('_createdAt', ...)` sorgusu bu
+      // dökümanı listeden düşürüyor, `ShowModel.fromFirestore` de boş
+      // string okuyordu ("hepsi boş string dönüyor" hatası). Artık
+      // oluşturma anında SUNUCU zaman damgası zorunlu tutuluyor; çağıranın
+      // gönderdiği değer ne olursa olsun ezilir.
+      final data = show.toFirestore()
+        ..['_createdAt'] = FieldValue.serverTimestamp()
+        ..['_updatedAt'] = FieldValue.serverTimestamp();
+      final docRef = await _showCollection.add(data);
 
       // 2. ID'yi güncelle
       await docRef.update({'_id': docRef.id});

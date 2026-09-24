@@ -546,95 +546,85 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
 
   @override
   Widget build(final BuildContext context) {
-    final Color accent =
-        SearchCategoryPalette.tints[SearchCategoryPalette.players][1];
+    final fullName = '${widget.player.firstName} ${widget.player.lastName}';
 
+    // Küçük, yuvarlak "kimlik rozeti" — mobil uygulamanın kendi oyuncu
+    // şeridiyle (bkz. players_bubble_card.dart: 120px genişlik, ClipOval,
+    // isim altta) AYNI minimal dil, web'e uyarlanmış hâli. Önceki sürüm
+    // (büyük dikdörtgen "headshot" + ayrı koyu isim plaketi, 6 sütunlu
+    // devasa kartlar) kullanıcı tarafından "berbat" olarak işaretlendi —
+    // burada TAMAMEN kaldırıldı, ağır kenarlık/gölge/plaket yerine sade
+    // bir daire + tek satırlık isim var. Grid, search_page.dart'ta bu
+    // kartın küçük boyutuna uygun şekilde çok daha yoğun bir
+    // crossAxisCount kullanıyor.
     return SearchRevealOnScroll(
       index: widget.index,
-      // "Cast fotoğrafı" çerçevesi: bir oyuncu bir kimlik/yüz'dür, bir
-      // gösteri değil — bu yüzden artık `DesktopShowCard`'la (0.72 poster
-      // oranı + görsele bindirilmiş metin) AYNI kalıbı KULLANMAZ. Burada
-      // (a) belirgin şekilde daha dikey/"headshot" bir oran (0.85) ve
-      // (b) görselin üzerine değil, ALTINA ayrı, kendi arka planı olan bir
-      // isim PLAKETİ (`_buildNamePlate`) var — Show/Mekan kartlarının
-      // "görsele bindirilmiş gradyan + metin" diliyle karıştırılmayan,
-      // oyuncuya özgü bir kompozisyon. Şekil artık `ClipOval`/
-      // `BoxShape.circle` değil, AppRadius'un asimetrik köşe imzası
-      // (`AppRadius.asymSm`) ile kesilmiş bir dikdörtgen — eski hover
-      // parıltısı/kenarlığı/ölçek davranışı birebir korunuyor.
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (final _) => _setHovered(true),
         onExit: (final _) => _setHovered(false),
         child: GestureDetector(
-          onTap: () => NavigationHandler.goToPlayer(context, widget.player.id,
-              '${widget.player.firstName} ${widget.player.lastName}'),
-          child: AnimatedContainer(
-            duration: AppMotion.fast,
-            curve: AppMotion.standard,
-            transform: Matrix4.identity()
-              ..translate(0.0, _hovered ? -6.0 : 0.0),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.asymSm,
-              border: Border.all(
-                color: _hovered
-                    ? WebColors.primaryGold
-                    : accent.withOpacity(0.35),
-                width: _hovered ? 2.5 : 1.5,
-              ),
-              boxShadow: _hovered
-                  ? AppShadows.level3(WebColors.primaryGold)
-                  : AppShadows.level1(Colors.black),
-            ),
-            child: ClipRRect(
-              borderRadius: AppRadius.asymSm,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AspectRatio(
-                    aspectRatio: 0.85,
+          onTap: () => NavigationHandler.goToPlayer(
+              context, widget.player.id, fullName),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: AppMotion.fast,
+                curve: AppMotion.standard,
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _hovered
+                        ? WebColors.primaryGold
+                        : WebColors.primaryGold.withOpacity(0.25),
+                    width: _hovered ? 2 : 1,
+                  ),
+                  boxShadow: _hovered
+                      ? AppShadows.level2(WebColors.primaryGold)
+                      : AppShadows.level0,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: ClipOval(
                     child: AnimatedScale(
-                      scale: _hovered ? 1.06 : 1.0,
+                      scale: _hovered ? 1.08 : 1.0,
                       duration: AppMotion.normal,
                       curve: AppMotion.standard,
                       child: OptimizedCachedImage(
                         imageUrl: widget.player.imageUrl,
                         fit: BoxFit.cover,
-                        borderRadius: 0,
                       ),
                     ),
                   ),
-                  _buildNamePlate(),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: 92,
+                child: Text(
+                  fullName,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _hovered
+                        ? WebColors.primaryGoldLight
+                        : WebColors.whiteText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-
-  /// Show/Mekan/Ekip kartlarının aksine isim, görselin üzerine bindirilmiş
-  /// bir gradyanda DEĞİL, görselin altında ayrı, kendi arka planı olan bir
-  /// plaket üzerinde durur — bir kimlik/cast kartı hissi.
-  Widget _buildNamePlate() => Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
-        color: WebColors.darkBlueSurface,
-        child: Text(
-          '${widget.player.firstName}\n${widget.player.lastName}',
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: _hovered ? WebColors.primaryGoldLight : WebColors.whiteText,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w700,
-            height: 1.2,
-          ),
-        ),
-      );
 }
 
 // =============================================================================
