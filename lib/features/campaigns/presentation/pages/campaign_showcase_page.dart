@@ -102,7 +102,19 @@ class _CampaignShowcasePageState extends ConsumerState<CampaignShowcasePage>
 
   Widget _buildBody(
       final BuildContext context, final List<Campaign> campaigns) {
-    final currentCampaign = campaigns[_currentPage];
+    // 🔥 DÜZELTME: `_currentPage` — URL'deki `?index=` parametresinden
+    // (bkz. app_router.dart) ya da `PageView.onPageChanged`'tan geliyor,
+    // hiçbir şekilde `campaigns.length`e karşı doğrulanmıyordu. Kampanya
+    // listesi filtrelendiği (bkz. `campaign_provider.dart` — taslak
+    // kayıtlar elenir) ya da URL'deki index artık geçersiz olduğu an
+    // `campaigns[_currentPage]` doğrudan bir `RangeError` fırlatıp bu
+    // sayfayı çökertiyordu. Masaüstü sürümü (`campaign_showcase_desktop_
+    // view.dart`) bunu zaten `clamp` ile güvenceye almıştı — mobil aynı
+    // korumadan yoksundu.
+    final int safeIndex = campaigns.isEmpty
+        ? 0
+        : _currentPage.clamp(0, campaigns.length - 1);
+    final currentCampaign = campaigns[safeIndex];
 
     return ListView(
       // 💡 ListView kullanarak scrollController'ı buraya bağlıyoruz

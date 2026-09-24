@@ -36,8 +36,17 @@ class StageModel {
         description: data['description'] as String?,
         communication: data['communication'] as String?,
         address: data['address'] as String?,
-        locationLat: data['locationLat'] as double?,
-        locationLng: data['locationLng'] as double?,
+        // 🔥 DÜZELTME: Firestore, ondalık kısmı olmayan bir sayı alanını
+        // (ör. bir sahnenin enlemi/boylamı yuvarlak bir değerse) `double`
+        // değil `int` olarak döndürebilir. `as double?` bu durumda null
+        // DEĞİL, doğrudan bir `TypeError` fırlatıyordu — bu da
+        // `StageModel.fromFirestore`'u (dolayısıyla `getStages`/
+        // `getStagesByIds`'i, "Yakınımdakiler" dahil onu tüketen HER
+        // ekranı) o tek sahne yüzünden tamamen hataya düşürebiliyordu.
+        // `num?` + `toDouble()` hem `int` hem `double` gelen değeri
+        // güvenle kabul eder.
+        locationLat: (data['locationLat'] as num?)?.toDouble(),
+        locationLng: (data['locationLng'] as num?)?.toDouble(),
         createdAt: data['_createdAt'] is Timestamp
             ? (data['_createdAt'] as Timestamp).toDate().toIso8601String()
             : data['_createdAt']?.toString(),

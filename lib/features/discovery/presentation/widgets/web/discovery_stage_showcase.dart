@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
@@ -11,7 +12,7 @@ import '../../../../stages/domain/entities/stage.dart';
 /// sahne adı + GERÇEK fotoğrafı + o sahnede sahnelenen GERÇEK oyun sayısı
 /// (`Stage.showsId.length` — uydurma bir rakam DEĞİL). `stages` boşsa
 /// hiçbir şey render etmez.
-class DiscoveryStageShowcase extends StatelessWidget {
+class DiscoveryStageShowcase extends StatefulWidget {
   final List<Stage> stages;
   final ValueChanged<Stage> onStageTap;
 
@@ -22,19 +23,51 @@ class DiscoveryStageShowcase extends StatelessWidget {
   });
 
   @override
+  State<DiscoveryStageShowcase> createState() =>
+      _DiscoveryStageShowcaseState();
+}
+
+class _DiscoveryStageShowcaseState extends State<DiscoveryStageShowcase> {
+  // Fare tekerleği (dikey delta) yatay kaydırmaya çevriliyor — bkz.
+  // `discovery_page.dart`'taki `_trendingScrollController` üzerindeki aynı
+  // yorum/teknik.
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(final BuildContext context) {
-    if (stages.isEmpty) return const SizedBox.shrink();
+    if (widget.stages.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: 210,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: stages.length,
-        separatorBuilder: (final _, final __) =>
-            const SizedBox(width: AppSpacing.lg),
-        itemBuilder: (final context, final index) => _StageCard(
-          stage: stages[index],
-          onTap: () => onStageTap(stages[index]),
+      child: Listener(
+        onPointerSignal: (final event) {
+          if (event is! PointerScrollEvent ||
+              !_scrollController.hasClients) {
+            return;
+          }
+          final double target =
+              (_scrollController.offset + event.scrollDelta.dy).clamp(
+            _scrollController.position.minScrollExtent,
+            _scrollController.position.maxScrollExtent,
+          );
+          _scrollController.jumpTo(target);
+        },
+        child: ListView.separated(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: widget.stages.length,
+          separatorBuilder: (final _, final __) =>
+              const SizedBox(width: AppSpacing.lg),
+          itemBuilder: (final context, final index) => _StageCard(
+            stage: widget.stages[index],
+            onTap: () => widget.onStageTap(widget.stages[index]),
+          ),
         ),
       ),
     );

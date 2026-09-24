@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/base/base_page_wrapper.dart';
@@ -889,6 +890,18 @@ class _NearbyEventsDesktopBodyState
   /// bkz. mobil taraftaki aynı isimli alanın yorumu.
   Stage? _focusedStage;
 
+  // "Yaklaşan Etkinlikler" şeridi (bkz. `_buildEventsSection`) dikey
+  // kaydırılan sayfanın İÇİNDE yatay bir `ListView` — `discovery_page.dart`
+  // `_trendingScrollController` ile AYNI teknik: dikey fare tekerleği
+  // delta'sı bu listenin yatay kaydırmasına çevriliyor.
+  final ScrollController _eventsScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _eventsScrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(final BuildContext context) {
     final eventsState = ref.watch(nearbyEventsProvider);
@@ -1031,33 +1044,49 @@ class _NearbyEventsDesktopBodyState
 
         return SizedBox(
           height: 340,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-            itemCount: entries.length,
-            itemBuilder: (final context, final index) {
-              final entry = entries[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: AppSpacing.lg),
-                child: NearbyEventMapCard(
-                  key: ValueKey('nearby-event-${entry.event.id}'),
-                  entry: entry,
-                  width: 280,
-                  isSelected: entry.stage.id == _focusedStage?.id,
-                  surfaceColor: WebColors.darkBlueSurface,
-                  borderColor: WebColors.primaryGold.withOpacity(0.2),
-                  selectedColor: WebColors.primaryGold,
-                  foregroundColor: Colors.white,
-                  mutedColor: WebColors.textSecondary,
-                  accentColor: WebColors.primaryGoldLight,
-                  onSelect: () =>
-                      setState(() => _focusedStage = entry.stage),
-                  onOpenShow: () => NavigationHandler.goToShow(
-                      context, entry.show.id, entry.show.name),
-                ),
+          child: Listener(
+            onPointerSignal: (final event) {
+              if (event is! PointerScrollEvent ||
+                  !_eventsScrollController.hasClients) {
+                return;
+              }
+              final double target = (_eventsScrollController.offset +
+                      event.scrollDelta.dy)
+                  .clamp(
+                _eventsScrollController.position.minScrollExtent,
+                _eventsScrollController.position.maxScrollExtent,
               );
+              _eventsScrollController.jumpTo(target);
             },
+            child: ListView.builder(
+              controller: _eventsScrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+              itemCount: entries.length,
+              itemBuilder: (final context, final index) {
+                final entry = entries[index];
+                return Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.lg),
+                  child: NearbyEventMapCard(
+                    key: ValueKey('nearby-event-${entry.event.id}'),
+                    entry: entry,
+                    width: 280,
+                    isSelected: entry.stage.id == _focusedStage?.id,
+                    surfaceColor: WebColors.darkBlueSurface,
+                    borderColor: WebColors.primaryGold.withOpacity(0.2),
+                    selectedColor: WebColors.primaryGold,
+                    foregroundColor: Colors.white,
+                    mutedColor: WebColors.textSecondary,
+                    accentColor: WebColors.primaryGoldLight,
+                    onSelect: () =>
+                        setState(() => _focusedStage = entry.stage),
+                    onOpenShow: () => NavigationHandler.goToShow(
+                        context, entry.show.id, entry.show.name),
+                  ),
+                );
+              },
+            ),
           ),
         );
       },

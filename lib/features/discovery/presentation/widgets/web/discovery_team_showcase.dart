@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
@@ -10,7 +11,7 @@ import '../../../../teams/domain/entities/team.dart';
 /// "Topluluklar" vitrin şeridi — GERÇEK `teamsProvider`'dan gelen tiyatro
 /// toplulukları: takım adı + GERÇEK fotoğrafı + GERÇEK gösteri sayısı
 /// (`Team.showsId.length`). `teams` boşsa hiçbir şey render etmez.
-class DiscoveryTeamShowcase extends StatelessWidget {
+class DiscoveryTeamShowcase extends StatefulWidget {
   final List<Team> teams;
   final ValueChanged<Team> onTeamTap;
 
@@ -21,19 +22,50 @@ class DiscoveryTeamShowcase extends StatelessWidget {
   });
 
   @override
+  State<DiscoveryTeamShowcase> createState() => _DiscoveryTeamShowcaseState();
+}
+
+class _DiscoveryTeamShowcaseState extends State<DiscoveryTeamShowcase> {
+  // Fare tekerleği (dikey delta) yatay kaydırmaya çevriliyor — bkz.
+  // `discovery_page.dart`'taki `_trendingScrollController` üzerindeki aynı
+  // yorum/teknik.
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(final BuildContext context) {
-    if (teams.isEmpty) return const SizedBox.shrink();
+    if (widget.teams.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: 200,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: teams.length,
-        separatorBuilder: (final _, final __) =>
-            const SizedBox(width: AppSpacing.lg),
-        itemBuilder: (final context, final index) => _TeamCard(
-          team: teams[index],
-          onTap: () => onTeamTap(teams[index]),
+      child: Listener(
+        onPointerSignal: (final event) {
+          if (event is! PointerScrollEvent ||
+              !_scrollController.hasClients) {
+            return;
+          }
+          final double target =
+              (_scrollController.offset + event.scrollDelta.dy).clamp(
+            _scrollController.position.minScrollExtent,
+            _scrollController.position.maxScrollExtent,
+          );
+          _scrollController.jumpTo(target);
+        },
+        child: ListView.separated(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: widget.teams.length,
+          separatorBuilder: (final _, final __) =>
+              const SizedBox(width: AppSpacing.lg),
+          itemBuilder: (final context, final index) => _TeamCard(
+            team: widget.teams[index],
+            onTap: () => widget.onTeamTap(widget.teams[index]),
+          ),
         ),
       ),
     );
