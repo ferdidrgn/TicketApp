@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/optimized_cached_image.dart';
 
 /// Giriş akışının (`login_screen.dart`/`phone_login_page.dart`) sahne
 /// panelinde statik bir logo görseli yerine geçen, tamamen programatik
@@ -21,6 +22,19 @@ class AnimatedStageMotif extends StatefulWidget {
 
 class _AnimatedStageMotifState extends State<AnimatedStageMotif>
     with TickerProviderStateMixin {
+  // 🔥 DÜZELTME: Bu panel bilerek tamamen programatikti (yukarıdaki sınıf
+  // yorumu) — ama kullanıcı bunu "berbat, boş" olarak işaretledi ve gerçek,
+  // telifsiz bir HD fotoğraf istedi. `profile_page.dart`/`home_page_web.
+  // dart`'taki `_stageBackdropUrl` ile AYNI, bu kodda zaten birden fazla
+  // yerde doğrulanmış Unsplash hotlink'i (gerçek bir tiyatro/sahne fotoğrafı,
+  // ücretsiz/telifsiz Unsplash lisansı) — yeni bir kaynak icat edilmedi,
+  // markanın zaten kullandığı görselle tutarlı kalındı. Animasyonlu
+  // spot ışığı/parçacık/perde katmanları KALDIRILMADI, artık düz gradyan
+  // yerine bu fotoğrafın üzerine biniyor.
+  static const String _stageBackdropUrl =
+      'https://images.unsplash.com/photo-1503095396549-807759245b35'
+      '?auto=format&fit=crop&w=1600&q=80';
+
   late final AnimationController _sweepController;
   late final AnimationController _pulseController;
   late final AnimationController _driftController;
@@ -54,14 +68,22 @@ class _AnimatedStageMotifState extends State<AnimatedStageMotif>
   Widget build(final BuildContext context) => Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
+          const OptimizedCachedImage(
+            imageUrl: _stageBackdropUrl,
+            fit: BoxFit.cover,
+            borderRadius: 0,
+          ),
+          // Fotoğrafın üzerine, metnin/ikonun her zaman okunur kalmasını
+          // sağlayan aynı marka rengi karartma — artık düz zemin değil,
+          // gerçek fotoğrafın üstünde bir "sahne perdesi" katmanı.
+          DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  WebColors.darkBlueAccent,
-                  WebColors.darkBlueBackground,
+                  WebColors.darkBlueAccent.withOpacity(0.55),
+                  WebColors.darkBlueBackground.withOpacity(0.88),
                 ],
               ),
             ),

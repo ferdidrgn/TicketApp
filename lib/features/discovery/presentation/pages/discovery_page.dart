@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -773,6 +774,22 @@ class _DiscoveryDesktopBrowserState
   String? _heroBackdropUrl;
   final Random _random = Random();
 
+  // 🔥 DÜZELTME: "Haftanın Başyapıtları" şeridi (bkz. `_buildTrendingRow`)
+  // dikey kaydırılan sayfanın İÇİNDE yatay bir `ListView` — web'de fare
+  // tekerleği varsayılan olarak SADECE dikey kaydırmayı bu iç listeye değil
+  // dış sayfaya yönlendiriyor, bu yüzden yatay kaydırma fare tekerleğiyle
+  // "çalışmıyor" gibi görünüyordu (sürükleme ile teknik olarak mümkündü
+  // ama masaüstü kullanıcısının beklediği davranış bu değil). Kendi
+  // `ScrollController`'ı + aşağıdaki `Listener` ile dikey tekerlek
+  // delta'sı bu listenin yatay kaydırmasına çevriliyor.
+  final ScrollController _trendingScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _trendingScrollController.dispose();
+    super.dispose();
+  }
+
   String? _pickHeroBackdrop(final List<Show> shows) {
     if (_heroBackdropUrl != null) return _heroBackdropUrl;
     if (shows.isEmpty) return null;
@@ -1190,35 +1207,89 @@ class _DiscoveryDesktopBrowserState
     if (shows.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: 360,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: shows.length,
-        itemBuilder: (final context, final index) {
-          final show = shows[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 24),
-            child: ScrollReveal(
-              delay: Duration(milliseconds: 60 * index),
-              offsetY: 18,
-              child: SizedBox(
-                width: 260,
-                child: DiscoveryShowCard(
-                  key: ValueKey('trending-${show.id}'),
-                  imageUrl: show.imageUrl,
-                  secondaryImageUrl: show.photosShowId.isNotEmpty
-                      ? show.photosShowId.first
-                      : null,
-                  title: show.name,
-                  category: show.category,
-                  description: show.description,
-                  onTap: () => _openShow(show),
-                ),
-              ),
+      child: Stack(
+        children: [
+          // 🔥 Fare tekerleği (dikey delta) yatay kaydırmaya çevriliyor —
+          // bkz. `_trendingScrollController` üzerindeki yorum.
+          Listener(
+            onPointerSignal: (final event) {
+              if (event is! PointerScrollEvent ||
+                  !_trendingScrollController.hasClients) return;
+              final double target = (_trendingScrollController.offset +
+                      event.scrollDelta.dy)
+                  .clamp(
+                _trendingScrollController.position.minScrollExtent,
+                _trendingScrollController.position.maxScrollExtent,
+              );
+              _trendingScrollController.jumpTo(target);
+            },
+            child: ListView.builder(
+              controller: _trendingScrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              itemCount: shows.length,
+              itemBuilder: (final context, final index) {
+                final show = shows[index];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 24),
+                  child: ScrollReveal(
+                    delay: Duration(milliseconds: 60 * index),
+                    offsetY: 18,
+                    child: SizedBox(
+                      width: 260,
+                      child: DiscoveryShowCard(
+                        key: ValueKey('trending-${show.id}'),
+                        imageUrl: show.imageUrl,
+                        secondaryImageUrl: show.photosShowId.isNotEmpty
+                            ? show.photosShowId.first
+                            : null,
+                        title: show.name,
+                        category: show.category,
+                        description: show.description,
+                        onTap: () => _openShow(show),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+          // Kaydırılabilir olduğunu (daha fazla kart olduğunu) ima eden
+          // ince kenar solması — boş/durağan görünen kenarlar yerine
+          // "burada daha fazlası var" hissi verir.
+          IgnorePointer(
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        WebColors.darkBlueBackground,
+                        WebColors.darkBlueBackground.withOpacity(0),
+                      ],
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  width: 64,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        WebColors.darkBlueBackground.withOpacity(0),
+                        WebColors.darkBlueBackground,
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
