@@ -862,14 +862,16 @@ class _NearbyEventsDesktopPage extends StatelessWidget {
         // NOT: `_NearbyEventsDesktopBody` kendi `ListView`'ı ile zaten
         // kaydırılabilir — burada ikinci bir SingleChildScrollView SARMAK
         // "unbounded height" hatasına yol açar, bilerek eklenmedi.
+        //
+        // KRİTİK: genişlik kısıtı (max-width) artık `ListView`'ın KENDİSİNİ
+        // sarmıyor — `_NearbyEventsDesktopBody`'nin İÇİNDEKİ ListView'ın
+        // TEK çocuğunu sarıyor (bkz. discovery_page.dart'taki AYNI
+        // düzeltme). Eskiden Center+ConstrainedBox ListView'ı dıştan
+        // sarıyordu, bu yüzden scrollbar 1180-1360px'lik kutunun kenarına
+        // (ekranın ortasına yakın) düşüyordu — diğer web sayfalarından
+        // farklı davranmasının sebebi buydu.
         color: WebColors.darkBlueBackground,
-        child: Center(
-          child: ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
-            child: const _NearbyEventsDesktopBody(),
-          ),
-        ),
+        child: const _NearbyEventsDesktopBody(),
       );
 }
 
@@ -896,6 +898,13 @@ class _NearbyEventsDesktopBodyState
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
       children: [
+        Center(
+          child: ConstrainedBox(
+            constraints:
+                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: _NearbyDesktopBanner(eventCount: eventsState.value?.length),
@@ -969,6 +978,10 @@ class _NearbyEventsDesktopBodyState
         const SizedBox(height: 100),
         // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
         const Footer(),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

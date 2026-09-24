@@ -22,6 +22,7 @@ import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
+import '../../../shows/presentation/widgets/recommended_shows_section.dart';
 import '../providers/nearby_events_provider.dart';
 import '../utils/category_stats.dart';
 import '../widgets/web/discovery_category_filter.dart';
@@ -86,6 +87,12 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               // `showsActiveFirstProvider` (`_activeShowIdsFromEvents`den
               // türeyen) aynen tüketiliyor.
               _buildActiveOtherShowSections(premium),
+
+              // 1a. SANA ÖZEL — kullanıcının GERÇEK favori/satın alma
+              // geçmişinden türetilmiş öneriler (bkz.
+              // recommended_shows_provider.dart). Gerçek sinyal yoksa
+              // (misafir/yeni kullanıcı) sessizce hiçbir şey render etmez.
+              const RecommendedShowsSection(),
 
               // 1b. KATEGORİLER — gerçek `show.category` dağılımından
               // türetilen ("uydurma" bir kategori listesi DEĞİL), yatay
@@ -722,14 +729,19 @@ class _DiscoveryDesktopPage extends StatelessWidget {
         // NOT: `_DiscoveryDesktopBrowser` kendi `ListView`'ı ile zaten
         // kaydırılabilir — ikinci bir SingleChildScrollView SARMAK
         // "unbounded height" hatasına yol açar, bilerek eklenmedi.
+        //
+        // KRİTİK: genişlik kısıtı (max-width) BURADA, `ListView`'ın
+        // KENDİSİNİ sarmıyor artık — `ListView` (scroll edilen katman)
+        // tam genişlikte kalmalı ki tarayıcı scrollbar'ı gerçek sağ
+        // kenarda otursun. Eskiden Center+ConstrainedBox ListView'ın
+        // DIŞINI sarıyordu; bu da scrollbar'ı 1180-1360px'lik kutunun
+        // kenarına (yani ekranın ortasına yakın bir yere) düşürüyordu —
+        // diğer web sayfalarından (home_page_web.dart vb., hep dış
+        // scrollable TAM genişlikte) farklı davranmasının sebebi buydu.
+        // Genişlik kısıtı artık `_buildBrowser`'ın İÇİNDE, ListView'ın
+        // TEK çocuğunu (tüm içerik Column'ı) sarıyor.
         color: WebColors.darkBlueBackground,
-        child: Center(
-          child: ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
-            child: _DiscoveryDesktopBrowser(initialCategory: selectedCategory),
-          ),
-        ),
+        child: _DiscoveryDesktopBrowser(initialCategory: selectedCategory),
       );
 }
 
@@ -889,10 +901,21 @@ class _DiscoveryDesktopBrowserState
     final List<Team> allTeams =
         ref.watch(teamsProvider(isLimit: false)).value ?? const <Team>[];
 
+    // Genişlik kısıtı (max-width) burada, TEK bir çocuğu (bütün içerik
+    // Column'ı) sarıyor — `ListView`'ın kendisi tam genişlikte kalıyor ki
+    // scrollbar gerçek sağ kenarda otursun (bkz. yukarıdaki `_DiscoveryDesktopPage`
+    // yorumu).
     return ListView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 36),
       children: [
+        Center(
+          child: ConstrainedBox(
+            constraints:
+                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
         ScrollReveal(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -913,6 +936,14 @@ class _DiscoveryDesktopBrowserState
           ),
         ),
         const SizedBox(height: 36),
+        // SANA ÖZEL — kullanıcının GERÇEK favori/satın alma geçmişinden
+        // türetilmiş öneriler (bkz. recommended_shows_provider.dart).
+        // Gerçek sinyal yoksa (misafir/yeni kullanıcı) widget'ın kendisi
+        // sessizce hiçbir şey render etmez.
+        ScrollReveal(
+          delay: const Duration(milliseconds: 80),
+          child: const RecommendedShowsSection(),
+        ),
         // KATEGORİLER — GERÇEK `Show.category` dağılımından türetilen bir
         // vitrin şeridi (kategori + kategorideki GERÇEK oyun sayısı +
         // kategoriden bir GERÇEK afiş). Mod (Aktif/Geçmiş) değişse bile
@@ -1121,6 +1152,10 @@ class _DiscoveryDesktopBrowserState
         // sayfalarıyla AYNI yerleşik desen) — bu sayfada daha önce
         // eksikti.
         const Footer(),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
