@@ -25,6 +25,7 @@ import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
 import '../../../tickets/presentation/providers/my_ticket_provider.dart';
 import '../../../users/presentation/providers/user_provider.dart';
+import '../providers/home_show_filter_provider.dart';
 import '../widgets/web/home_campaign_rail.dart';
 import '../widgets/web/home_category_strip.dart';
 import '../widgets/web/home_newsletter_band.dart';
@@ -84,10 +85,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(final BuildContext context) {
     final campaignState = ref.watch(campaignsProvider);
+    // 🔥 DÜZELTME: Ana sayfa artık TÜM Firestore kataloğunu değil, SADECE
+    // TiyatRol ve Ataşehir Tiyatro Topluluğu'na ait gösterileri gösteriyor
+    // (bkz. home_show_filter_provider.dart) — "dışarıdan aldığımız
+    // oyunlar ana sayfada görünmemeli" talebi. Arama/keşfet sayfaları
+    // BİLEREK bu filtreye tabi DEĞİL, tüm katalog orada kalıyor.
     // Hiçbir oyun tamamen gizlenmiyor: önce takviminde gelecek etkinliği
     // olan ("aktif") oyunlar, ardından (yer kaldıysa) aktif olmayanlar —
     // aktif oyun sayısı azsa liste yine de boş/yarım görünmüyor.
-    final showState = ref.watch(showsActiveFirstProvider(true));
+    final showState = ref.watch(homeShowsActiveFirstProvider(true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
 
     final bool isLoading =

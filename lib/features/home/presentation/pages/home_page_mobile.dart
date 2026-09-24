@@ -18,6 +18,7 @@ import '../../../shows/domain/entities/show.dart';
 import '../../../shows/presentation/providers/show_provider.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../stages/presentation/providers/stage_provider.dart';
+import '../providers/home_show_filter_provider.dart';
 import '../widgets/mobile/category_grid.dart';
 import '../widgets/mobile/home_teams_strip.dart';
 import '../widgets/mobile/quick_actions_grid.dart';
@@ -66,15 +67,20 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(final BuildContext context) {
     // Orijinal Riverpod Sağlayıcı hatlarınız %100 aynen korunuyor
     final campaignState = ref.watch(campaignsProvider);
-    // Hiçbir oyun gizlenmiyor: önce aktif (takviminde gelecek etkinliği
-    // olan) oyunlar, ardından (yer kaldıysa) aktif olmayanlar.
-    final showState = ref.watch(showsActiveFirstProvider(true));
+    // 🔥 DÜZELTME: Ana sayfa artık TÜM Firestore kataloğunu değil, SADECE
+    // TiyatRol ve Ataşehir Tiyatro Topluluğu'na ait gösterileri gösteriyor
+    // (bkz. home_show_filter_provider.dart) — "dışarıdan aldığımız
+    // oyunlar ana sayfada görünmemeli" talebi. Arama/keşfet sayfaları
+    // BİLEREK bu filtreye tabi DEĞİL, tüm katalog orada kalıyor.
+    // Önce aktif (takviminde gelecek etkinliği olan) oyunlar, ardından
+    // (yer kaldıysa) aktif olmayanlar.
+    final showState = ref.watch(homeShowsActiveFirstProvider(true));
     // "Aktif Oyunlar" şeridinin gerçek verisi — SADECE takviminde gelecek
-    // etkinliği olan oyunlar (`showsActiveFirstProvider`'ın TÜM sonucu
+    // etkinliği olan oyunlar (`homeShowsActiveFirstProvider`'ın TÜM sonucu
     // DEĞİL). İkincil bir bölüm; sayfanın genel loading/error durumunu
     // etkilemez, boşsa (henüz yüklenmemiş ya da gerçekten aktif oyun yoksa)
     // bölüm build() içinde tamamen gizlenir.
-    final activeShowState = ref.watch(activeShowsProvider(true));
+    final activeShowState = ref.watch(homeActiveShowsProvider(true));
     final stageState = ref.watch(stagesProvider(isLimit: true));
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
