@@ -334,7 +334,14 @@ class AuthStageScaffold extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: 280, child: stagePanelBuilder(context, false)),
+            // 🔥 DÜZELTME: 280px, ekranın büyük çoğunluğunu boş/düz bırakan
+            // küçük bir kutuydu — sahne panelinin (gerçek fotoğraf + spot
+            // ışığı + perde/parçacık animasyonu) daha baskın, "tam ekran"a
+            // yakın bir varlığı olması istendi.
+            SizedBox(
+              height: context.screenHeight * 0.42,
+              child: stagePanelBuilder(context, false),
+            ),
             const SizedBox(height: AppSpacing.xxxl),
             headline,
             const SizedBox(height: AppSpacing.section),

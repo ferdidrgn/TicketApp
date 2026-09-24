@@ -146,7 +146,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                                 const SizedBox(height: AppSpacing.huge),
 
-                                _buildSectionLabel("GÖRÜNÜM"),
+                                _buildSectionLabel(
+                                    "GÖRÜNÜM", Icons.palette_rounded),
                                 const ThemeSelectorCard(),
                                 const SizedBox(height: AppSpacing.lg),
                                 _buildSculptedTile(
@@ -161,7 +162,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                                 const SizedBox(height: AppSpacing.huge),
 
-                                _buildSectionLabel("GEÇMİŞİM"),
+                                _buildSectionLabel(
+                                    "GEÇMİŞİM", Icons.history_edu_rounded),
                                 _buildSculptedTile(
                                   icon: Icons.confirmation_number_rounded,
                                   title: 'Biletlerim',
@@ -186,7 +188,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                                 const SizedBox(height: AppSpacing.huge),
 
-                                _buildSectionLabel("PROFİLİM"),
+                                _buildSectionLabel(
+                                    "PROFİLİM", Icons.person_rounded),
                                 _buildSculptedTile(
                                   icon: Icons.edit_rounded,
                                   title: 'Profili Düzenle',
@@ -210,7 +213,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                                 const SizedBox(height: AppSpacing.huge),
 
-                                _buildSectionLabel("YASAL YÜKÜMLÜLÜKLER"),
+                                _buildSectionLabel("YASAL YÜKÜMLÜLÜKLER",
+                                    Icons.gavel_rounded),
                                 _buildSculptedTile(
                                   icon: Icons.gavel_rounded,
                                   title: 'Yasal Bilgiler',
@@ -223,7 +227,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
                                 if (isLoggedIn) ...[
                                   const SizedBox(height: AppSpacing.huge),
-                                  _buildSectionLabel("HESAP İŞLEMLERİ"),
+                                  _buildSectionLabel("HESAP İŞLEMLERİ",
+                                      Icons.manage_accounts_rounded),
                                   _buildSculptedTile(
                                     icon: Icons.logout_rounded,
                                     title: 'Çıkış Yap',
@@ -600,20 +605,49 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 letterSpacing: 1.2)),
       ]);
 
-  Widget _buildSectionLabel(final String text) => Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
+  /// 🔥 DÜZELTME: Önceden sadece küçük, harcanmış bir altın/bordo metindi —
+  /// sayfanın geri kalanı (hero, döşemeler) görsel ağırlık taşırken bu
+  /// başlıklar "unutulmuş" gibi duruyordu. Artık masaüstündeki
+  /// `_buildDesktopSectionLabel` ile aynı dilde: ikon rozeti + başlık +
+  /// sağa doğru solan ince bir vurgu çizgisi — mobilin kendi Material
+  /// temasına (context.colors) uyarlanmış hâli.
+  Widget _buildSectionLabel(final String text, final IconData icon) => Padding(
         padding: const EdgeInsets.only(
             left: AppSpacing.xs, bottom: AppSpacing.lg, top: AppSpacing.sm),
-        child: Text(text,
-            style: TextStyle(
-                color: context.isDarkMode
-                    ? context.colors.onPrimary
-                    : context.colors.primary,
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 3)),
-      ));
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: context.colors.primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(icon, size: 16, color: context.colors.primary),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(text,
+                style: TextStyle(
+                    color: context.isDarkMode
+                        ? context.colors.onPrimary
+                        : context.colors.primary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    letterSpacing: 3)),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                    context.colors.primary.withOpacity(0.25),
+                    Colors.transparent,
+                  ]),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 
   BoxDecoration _neuBox(
           {final double borderRadius = AppRadius.sm,
