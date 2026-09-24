@@ -700,6 +700,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   padding: EdgeInsets.zero,
                   physics: const BouncingScrollPhysics(),
                   children: [
+                    // 🔥 Hero artık 980px'lik sütunun DIŞINDA — tam
+                    // genişlikte, kenardan kenara akan bir banner.
+                    _buildDesktopHero(context, userData, isLoggedIn),
                     Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 980),
@@ -708,8 +711,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                               horizontal: AppSpacing.xxxl, vertical: 56),
                           child: Column(
                             children: [
-                              _buildDesktopHero(context, userData, isLoggedIn),
-                              const SizedBox(height: AppSpacing.massive),
                               _buildDesktopSectionLabel(
                                   'GÖRÜNÜM', Icons.palette_rounded),
                               const SizedBox(height: AppSpacing.lg),
@@ -852,57 +853,80 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   // kimlik bloğu. Giriş yapılmışsa zemin kullanıcının kendi fotoğrafı,
   // misafirse `_stageBackdropUrl` (home hero'suyla AYNI, doğrulanmış
   // Unsplash görseli — marka dili tutarlı kalsın diye).
+  /// 🔥 DÜZELTME: Önceden 980px'lik içerik sütununun İÇİNDE, yuvarlak
+  /// köşeli, 360-380px yükseklikte küçük bir kart olarak duruyordu —
+  /// "tam ekran görsel kaplasın, yatay olarak" isteğiyle uyuşmuyordu ve
+  /// arkaplan fotoğrafı ağır bulanıklaştırma (sigma 26) yüzünden neredeyse
+  /// soyut bir renk lekesine dönüşüyordu. Artık ekranın tam genişliğinde
+  /// (viewport kenarından kenarına) akan, çok daha uzun boylu, NET
+  /// (bulanıksız) bir fotoğraf banner'ı — `TeamHeroWeb`/`ShowDetailHero`
+  /// ile aynı "tam ekran sahne" dili. İçerik (isim/CTA) yine okunabilir
+  /// genişlikte (1400px) ortalanıyor, ama fotoğrafın kendisi kenarlara
+  /// kadar uzanıyor. `_buildDesktopPage` artık bunu 980px'lik sütunun
+  /// DIŞINDA, doğrudan ListView'in tam genişlikte bir çocuğu olarak
+  /// yerleştiriyor.
   Widget _buildDesktopHero(final BuildContext context,
           final entity.User? user, final bool isLoggedIn) =>
-      Container(
-        height: isLoggedIn && user != null ? 380 : 360,
-        decoration: BoxDecoration(
-          borderRadius: AppRadius.asymLg,
-          border:
-              Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
-          boxShadow: AppShadows.level5(WebColors.primaryGold),
-        ),
-        child: ClipRRect(
-          borderRadius: AppRadius.asymLg,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              _buildDesktopHeroBackdrop(
-                  isLoggedIn && user != null ? user.imageUrl : null),
-              _buildDesktopHeroScrim(),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.massive),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: isLoggedIn && user != null
-                      ? _buildDesktopHeroIdentity(user)
-                      : _buildDesktopHeroGuest(context),
+      SizedBox(
+        height: isLoggedIn && user != null ? 640 : 600,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildDesktopHeroBackdrop(
+                isLoggedIn && user != null ? user.imageUrl : null),
+            _buildDesktopHeroScrim(),
+            // Sahne spotu — TeamHeroWeb'deki ile aynı yumuşak ışık huzmesi,
+            // düz bir fotoğrafın "yassı" durmasını önler.
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -0.5),
+                  radius: 1.2,
+                  colors: [
+                    Color(0x1AE8B84B), // primaryGold @ ~10%
+                    Colors.transparent,
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1400),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.massive, 0, AppSpacing.massive, 64),
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: isLoggedIn && user != null
+                        ? _buildDesktopHeroIdentity(user)
+                        : _buildDesktopHeroGuest(context),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
 
-  /// Mobil `_buildHeroBackdrop` ile AYNI mantık, sadece hata/yükleme
-  /// düşüşü `WebColors.darkBlueSurface` — masaüstü kabuğu her zaman
-  /// `WebColors` temalı, `context.colors` değil.
+  /// Mobil `_buildHeroBackdrop` ile AYNI kaynak fotoğraf, ama artık
+  /// bulanıklaştırılmıyor — tam ekran bir banner'da net bir fotoğraf çok
+  /// daha etkileyici duruyor, metin okunabilirliği zaten `_buildDesktopHeroScrim`
+  /// ile sağlanıyor.
   Widget _buildDesktopHeroBackdrop(final String? userPhotoUrl) {
     final String url = (userPhotoUrl != null && userPhotoUrl.isNotEmpty)
         ? userPhotoUrl
         : _stageBackdropUrl;
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-      child: Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (final _, final __, final ___) =>
-            const ColoredBox(color: WebColors.darkBlueSurface),
-        loadingBuilder: (final _, final child, final progress) =>
-            progress == null
-                ? child
-                : const ColoredBox(color: WebColors.darkBlueSurface),
-      ),
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (final _, final __, final ___) =>
+          const ColoredBox(color: WebColors.darkBlueSurface),
+      loadingBuilder: (final _, final child, final progress) =>
+          progress == null
+              ? child
+              : const ColoredBox(color: WebColors.darkBlueSurface),
     );
   }
 
