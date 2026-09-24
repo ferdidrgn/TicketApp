@@ -608,9 +608,17 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               SizedBox(
                 width: 104,
+                // Sabit yükseklik: iki satıra sarılan uzun isimlerde
+                // (ör. "Mualla Sürezlioğlu") grid hücresinin hesaplanan
+                // yüksekliği metnin doğal yüksekliğinden birkaç piksel az
+                // kalıp "BOTTOM OVERFLOWED" hatası veriyordu — Text'i
+                // `mainAxisSize: min` bir Column içinde serbest bırakmak
+                // yerine sabit bir yüksekliğe oturtmak taşmayı kesin olarak
+                // önlüyor (grid oranı ne olursa olsun).
+                height: 32,
                 child: Text(
                   fullName,
                   textAlign: TextAlign.center,
@@ -622,7 +630,8 @@ class _DesktopPlayerCardState extends State<DesktopPlayerCard> {
                         : WebColors.whiteText,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    height: 1.2,
+                    height: 1.25,
+                    letterSpacing: 0.1,
                   ),
                 ),
               ),
