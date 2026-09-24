@@ -150,8 +150,17 @@ class ShowEventList extends StatelessWidget {
                                     fontSize: 15),
                               ),
                               const SizedBox(height: 5),
+                              // Önceden burada sabit "• İstanbul" vardı —
+                              // gerçek sahne şehir bilgisi olmadan uydurma
+                              // bir şehir gösteriliyordu. Artık gerçek
+                              // Stage.address kullanılıyor, boşsa sadece
+                              // saat gösteriliyor.
                               Text(
-                                "${dateInfo['time']} • İstanbul",
+                                stage.address.trim().isEmpty
+                                    ? '${dateInfo['time']}'
+                                    : '${dateInfo['time']} • ${stage.address}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                     color: textColor.withOpacity(0.6),
                                     fontSize: 13),

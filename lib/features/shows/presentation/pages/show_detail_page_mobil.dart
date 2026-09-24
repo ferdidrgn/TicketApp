@@ -510,9 +510,26 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     );
   }
 
+  /// Önceden burada HER oyunda sabit "Süre: 120 dakika" / "Dil: Türkçe" /
+  /// "Yaş Sınırı: 13+" gösteriliyordu — üçü de uydurma/sabit veriydi.
+  /// "Dil" için Show entity'sinde hiç gerçek bir alan olmadığından tamamen
+  /// kaldırıldı; "Süre" ve "Yaş Sınırı" artık gerçek `Show.duration`/
+  /// `Show.ageLimit` alanlarından geliyor. Gerçek veri hiç yoksa kart
+  /// tamamen gizlenir.
   Widget _buildMobileQuickStats(
       final BuildContext context, final dynamic state) {
     final colors = context.colors;
+    final String duration = (state.show.duration as String).trim();
+    final String ageLimit = (state.show.ageLimit as String).trim();
+
+    final rows = <Widget>[
+      if (duration.isNotEmpty)
+        _buildStatRow(context, Icons.access_time_rounded, "Süre", duration),
+      if (ageLimit.isNotEmpty)
+        _buildStatRow(
+            context, Icons.child_care_rounded, "Yaş Sınırı", ageLimit),
+    ];
+    if (rows.isEmpty) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.xl, AppSpacing.xxl, 0),
@@ -528,36 +545,17 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
       ),
       child: Column(
         children: [
-          _buildStatRow(
-            context,
-            Icons.access_time_rounded,
-            "Süre",
-            "120 dakika",
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Divider(
-            color: colors.outlineVariant.withOpacity(0.3),
-            height: 1,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _buildStatRow(
-            context,
-            Icons.language_rounded,
-            "Dil",
-            "Türkçe",
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Divider(
-            color: colors.outlineVariant.withOpacity(0.3),
-            height: 1,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _buildStatRow(
-            context,
-            Icons.child_care_rounded,
-            "Yaş Sınırı",
-            "13+",
-          ),
+          for (int i = 0; i < rows.length; i++) ...[
+            if (i > 0) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Divider(
+                color: colors.outlineVariant.withOpacity(0.3),
+                height: 1,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+            rows[i],
+          ],
         ],
       ),
     );
@@ -980,6 +978,8 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
 
   Widget _buildWebQuickStats(final BuildContext context, final dynamic state) {
     final colors = context.colors;
+    final items = _buildWebStatItems(context, state);
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -989,34 +989,29 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
         border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
       ),
       child: Row(
-        children: [
-          Expanded(
-            child: _buildWebStatItem(
-              context,
-              Icons.access_time_rounded,
-              "Süre",
-              "120 dk",
-            ),
-          ),
-          Expanded(
-            child: _buildWebStatItem(
-              context,
-              Icons.language_rounded,
-              "Dil",
-              "Türkçe",
-            ),
-          ),
-          Expanded(
-            child: _buildWebStatItem(
-              context,
-              Icons.child_care_rounded,
-              "Yaş",
-              "13+",
-            ),
-          ),
-        ],
+        children: items,
       ),
     );
+  }
+
+  /// Önceden burada HER oyunda sabit "Süre: 120 dk" / "Dil: Türkçe" /
+  /// "Yaş: 13+" gösteriliyordu (aynı sahte veri, mobil sürümüyle -bkz.
+  /// _buildMobileQuickStats- birebir aynı bug). "Dil" için gerçek bir
+  /// Show alanı olmadığından kaldırıldı; "Süre"/"Yaş" artık gerçek
+  /// Show.duration/Show.ageLimit. Gerçek veri yoksa o öğe hiç render
+  /// edilmez.
+  List<Widget> _buildWebStatItems(
+      final BuildContext context, final dynamic state) {
+    final String duration = (state.show.duration as String).trim();
+    final String ageLimit = (state.show.ageLimit as String).trim();
+    final items = <Widget>[
+      if (duration.isNotEmpty)
+        _buildWebStatItem(
+            context, Icons.access_time_rounded, "Süre", duration),
+      if (ageLimit.isNotEmpty)
+        _buildWebStatItem(context, Icons.child_care_rounded, "Yaş", ageLimit),
+    ];
+    return items.map((final item) => Expanded(child: item)).toList();
   }
 
   Widget _buildWebStatItem(

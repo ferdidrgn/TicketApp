@@ -260,20 +260,31 @@ class EventsCard extends StatelessWidget {
                           margin: const EdgeInsets.symmetric(horizontal: 12),
                         ),
 
-                        // Saat Bilgisi
-                        Row(
-                          children: [
-                            Icon(Icons.access_time_filled_rounded,
-                                size: 16, color: colors.secondary),
-                            const SizedBox(width: 4),
-                            Text(
-                              timeString,
-                              style: context.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: colors.secondary,
+                        // Saat Bilgisi — `timeString` de serbest metin
+                        // olduğundan (bkz. Flexible'sız hâliyle dar
+                        // kartlarda -ör. show_detail_page_mobil.dart'ın
+                        // width:270 EventsCard'ı- RenderFlex taşmasına yol
+                        // açabiliyordu) burada da koruma var.
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.access_time_filled_rounded,
+                                  size: 16, color: colors.secondary),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  timeString,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: colors.secondary,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),

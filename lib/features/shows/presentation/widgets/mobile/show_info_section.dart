@@ -74,6 +74,12 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
           // uygulamada gerçek bir değerlendirme sistemi yok, o yüzden
           // uydurma bir sayıyı başka bir sahte sayıyla değiştirmek yerine
           // gerçek verilerle (tür + süre) değiştirildi.
+          // NOT: `type`/`duration` serbest metin Show alanları (uzunluğu
+          // garanti değil) — her ikisi de doluyken Row'un ikisini de sabit
+          // genişlikte göstermeye çalışması dar telefon ekranlarında
+          // RenderFlex taşmasına yol açıyordu. Her ikisi de `Flexible` +
+          // ellipsis ile korunuyor (event_section.dart'taki referans
+          // düzeltmeyle aynı desen).
           if (widget.type.isNotEmpty || widget.duration.isNotEmpty)
             Row(
               children: [
@@ -81,10 +87,14 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
                   Icon(Icons.theater_comedy_rounded,
                       color: brandColor, size: 20),
                   const SizedBox(width: 5),
-                  Text(
-                    widget.type,
-                    style: TextStyle(
-                        color: textColor.withOpacity(0.7), fontSize: 14),
+                  Flexible(
+                    child: Text(
+                      widget.type,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: textColor.withOpacity(0.7), fontSize: 14),
+                    ),
                   ),
                 ],
                 if (widget.type.isNotEmpty && widget.duration.isNotEmpty)
@@ -93,10 +103,14 @@ class _ShowInfoSectionState extends State<ShowInfoSection>
                   Icon(Icons.timer,
                       color: textColor.withOpacity(0.5), size: 18),
                   const SizedBox(width: 5),
-                  Text(
-                    widget.duration,
-                    style: TextStyle(
-                        color: textColor.withOpacity(0.7), fontSize: 14),
+                  Flexible(
+                    child: Text(
+                      widget.duration,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: textColor.withOpacity(0.7), fontSize: 14),
+                    ),
                   ),
                 ],
               ],
