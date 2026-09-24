@@ -918,33 +918,44 @@ class _DiscoveryDesktopBrowserState
     final List<Team> allTeams =
         ref.watch(teamsProvider(isLimit: false)).value ?? const <Team>[];
 
-    // Genişlik kısıtı (max-width) burada, TEK bir çocuğu (bütün içerik
-    // Column'ı) sarıyor — `ListView`'ın kendisi tam genişlikte kalıyor ki
-    // scrollbar gerçek sağ kenarda otursun (bkz. yukarıdaki `_DiscoveryDesktopPage`
-    // yorumu).
+    // 🔥 DÜZELTME ("yarım/ortada duruyor" şikayeti): genişlik kısıtı
+    // (max-width) artık HERO'yu sarmıyor — hero, `ListView`'ın doğrudan
+    // çocuğu olarak (`_DiscoveryDesktopPage`'in tam genişlikteki
+    // `ColoredBox`'ı içinde) tarayıcının TAM genişliğine yayılan, gerçek
+    // bir "fullscreen editorial" bant (bkz. `DiscoveryHero(fullBleed:
+    // true)` ve `home_page_web.dart`'taki `_HeroBand` referans tekniği).
+    // Genişlik kısıtı sadece HERO'DAN SONRAKİ içerik Column'ını sarıyor —
+    // `ListView`'ın kendisi hâlâ tam genişlikte kalıyor ki scrollbar
+    // gerçek sağ kenarda otursun (bkz. yukarıdaki `_DiscoveryDesktopPage`
+    // yorumu). `Footer` de aynı sebeple bu ConstrainedBox'ın DIŞINDA, en
+    // altta ayrı bir `ListView` çocuğu olarak eklenir (bkz. metodun sonu).
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 36),
+      padding: EdgeInsets.zero,
       children: [
+        const SizedBox(height: 32),
+        ScrollReveal(
+          child: DiscoveryHero(
+            categoryLabel: activeCategory,
+            showCount: activeCount,
+            archiveMode: _showPast,
+            backdropImageUrl: _pickHeroBackdrop(shows),
+            fullBleed: true,
+          ),
+        ),
+        const SizedBox(height: 36),
+        // Geniş monitörlerde (>=1440px) içerik genişliği artık 1360 değil
+        // 1680 — ızgara (`_buildGrid`) `maxCrossAxisExtent: 300` kullandığı
+        // için bu genişleme kart boyutunu ŞİŞİRMEK yerine otomatik olarak
+        // DAHA FAZLA SÜTUN açar (5-6 sütun), yani gerçekten daha fazla
+        // içerik gösterir — sadece boş kenar boşluğu büyümez.
         Center(
           child: ConstrainedBox(
             constraints:
-                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
+                BoxConstraints(maxWidth: context.isLargeDesktop ? 1680 : 1180),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-        ScrollReveal(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: DiscoveryHero(
-              categoryLabel: activeCategory,
-              showCount: activeCount,
-              archiveMode: _showPast,
-              backdropImageUrl: _pickHeroBackdrop(shows),
-            ),
-          ),
-        ),
-        const SizedBox(height: 28),
         ScrollReveal(
           delay: const Duration(milliseconds: 40),
           child: Padding(
@@ -1163,16 +1174,20 @@ class _DiscoveryDesktopBrowserState
             ),
           ),
         ],
-        const SizedBox(height: 100),
-        // Masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir
-        // (`home_page_web.dart`/`nearby_events_page.dart` desktop
-        // sayfalarıyla AYNI yerleşik desen) — bu sayfada daha önce
-        // eksikti.
-        const Footer(),
               ],
             ),
           ),
         ),
+        const SizedBox(height: 100),
+        // Masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir
+        // (`home_page_web.dart`/`nearby_events_page.dart` desktop
+        // sayfalarıyla AYNI yerleşik desen). `Footer` artık ÜSTTEKİ
+        // ConstrainedBox'ın DIŞINDA — tam genişlikte, diğer web
+        // sayfalarındaki gibi kenardan kenara yayılır; eskiden 1180-1360px
+        // kutunun İÇİNE hapsolmuştu, bu da footer'ın (ve onunla birlikte
+        // tüm sayfanın) ekranın ortasında küçük durduğu şikayetinin bir
+        // parçasıydı.
+        const Footer(),
       ],
     );
   }

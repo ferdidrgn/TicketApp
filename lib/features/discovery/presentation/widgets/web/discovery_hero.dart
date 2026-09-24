@@ -27,12 +27,23 @@ class DiscoveryHero extends StatelessWidget {
   /// — asla uydurma bir görsel göstermez.
   final String? backdropImageUrl;
 
+  /// true iken hero, çevresindeki `ConstrainedBox`'tan bağımsız, tarayıcı
+  /// penceresinin TAM genişliğini kaplayan bir "editoryal bant" olarak
+  /// çizilir (bkz. `home_page_web.dart`'taki `_HeroBand`/
+  /// `_HeroBackdropPhoto` referans tekniği) — köşe yuvarlaması/kart gölgesi
+  /// kalkar, fotoğraf/scrim kenardan kenara uzanır, sadece İÇERİK
+  /// (başlık/rozet) kendi içinde okunabilir bir genişliğe ortalanır. false
+  /// iken (kullanılmıyor ama API'yi kırmamak için korunuyor) eski, kart
+  /// görünümlü davranış aynen sürer.
+  final bool fullBleed;
+
   const DiscoveryHero({
     super.key,
     this.categoryLabel,
     required this.showCount,
     this.archiveMode = false,
     this.backdropImageUrl,
+    this.fullBleed = false,
   });
 
   @override
@@ -131,8 +142,95 @@ class DiscoveryHero extends StatelessWidget {
 
     // Gerçek bir arka plan fotoğrafı yoksa (ör. hiçbir oyunun ne galerisi
     // ne de afişi varsa — pratikte olmaz ama savunmacı davranıyoruz) sade,
-    // fotoğrafsız eski düzene sessizce düşer.
+    // fotoğrafsız eski düzene sessizce düşer. `fullBleed` modunda bile,
+    // gerçek görsel yoksa kart görünümü korunur — asla uydurma bir görsel
+    // ya da boş bir tam-genişlik zemin göstermez.
     if (!hasBackdrop) return content;
+
+    final Widget scrimmedPhoto = Stack(
+      fit: StackFit.expand,
+      children: [
+        OptimizedCachedImage(
+          imageUrl: backdropImageUrl!,
+          fit: BoxFit.cover,
+          borderRadius: 0,
+        ),
+        // Yatay scrim: metnin durduğu sol taraf koyu, sağ taraf
+        // (rozetin arkası) fotoğrafın nefes almasına izin verecek
+        // kadar açık.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                WebColors.veryDarkBlue.withOpacity(0.95),
+                WebColors.veryDarkBlue.withOpacity(0.8),
+                WebColors.veryDarkBlue.withOpacity(0.5),
+              ],
+              stops: const [0.0, 0.55, 1.0],
+            ),
+          ),
+        ),
+        // Dikey scrim: üst/alt kenarlarda ek okunurluk.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                WebColors.veryDarkBlue.withOpacity(0.45),
+                Colors.transparent,
+                WebColors.veryDarkBlue.withOpacity(0.55),
+              ],
+              stops: const [0.0, 0.4, 1.0],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (fullBleed) {
+      // Referans lüks/editoryal sitelerdeki "büyük, tek güçlü, nefes alan
+      // görsel" hissi — ama artık `home_page_web.dart`'taki `_HeroBand` ile
+      // AYNI ilkede: fotoğraf/scrim tarayıcının TAM genişliğine (kenardan
+      // kenara) yayılır, köşe yuvarlaması/kart gölgesi YOK (bir "sahne"
+      // değil, sahnenin kendisi); sadece başlık/rozet İÇERİĞİ kendi içinde
+      // okunabilir bir genişliğe (`_kFullBleedContentMaxWidth`) ortalanır.
+      return SizedBox(
+        height: 560,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            scrimmedPhoto,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxxl, vertical: AppSpacing.section),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(maxWidth: _kFullBleedContentMaxWidth),
+                  child: content,
+                ),
+              ),
+            ),
+            // Sahne kenarlığı motifi — perdenin altındaki ince "eşik"
+            // çizgisi; süs değil, hero'nun kenardan kenara bittiğini
+            // hissettiren tek bir ince altın çizgi.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: 2,
+                decoration: BoxDecoration(gradient: WebColors.goldGradient),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     // Referans lüks/editoryal sitelerdeki "büyük, tek güçlü, nefes alan
     // görsel" hissi: gerçek fotoğraf zemini + okunurluğu garanti eden çift
@@ -147,49 +245,7 @@ class DiscoveryHero extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Positioned.fill(
-              child: OptimizedCachedImage(
-                imageUrl: backdropImageUrl!,
-                fit: BoxFit.cover,
-                borderRadius: 0,
-              ),
-            ),
-            // Yatay scrim: metnin durduğu sol taraf koyu, sağ taraf
-            // (rozetin arkası) fotoğrafın nefes almasına izin verecek
-            // kadar açık.
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      WebColors.veryDarkBlue.withOpacity(0.95),
-                      WebColors.veryDarkBlue.withOpacity(0.8),
-                      WebColors.veryDarkBlue.withOpacity(0.5),
-                    ],
-                    stops: const [0.0, 0.55, 1.0],
-                  ),
-                ),
-              ),
-            ),
-            // Dikey scrim: üst/alt kenarlarda ek okunurluk.
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      WebColors.veryDarkBlue.withOpacity(0.45),
-                      Colors.transparent,
-                      WebColors.veryDarkBlue.withOpacity(0.55),
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-              ),
-            ),
+            scrimmedPhoto,
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl,
                   AppSpacing.section, AppSpacing.xxxl, AppSpacing.section),
@@ -201,6 +257,12 @@ class DiscoveryHero extends StatelessWidget {
     );
   }
 }
+
+/// `fullBleed` modunda başlık/rozet içeriğinin ortalandığı okunabilir üst
+/// sınır — `home_page_web.dart`'taki hero/section'ların kullandığı 1400
+/// ile aynı ailede, ama bu hero'nun daha az (iki bloklu) içeriği için biraz
+/// daha geniş nefes payı bırakan 1680.
+const double _kFullBleedContentMaxWidth = 1680;
 
 class _CountBadge extends StatelessWidget {
   final int count;

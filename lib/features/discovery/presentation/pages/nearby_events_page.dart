@@ -907,14 +907,27 @@ class _NearbyEventsDesktopBodyState
     final eventsState = ref.watch(nearbyEventsProvider);
     final stagesState = ref.watch(nearbyStageGroupsProvider);
 
+    // Geniş monitörlerde (>=1440px) harita ile "Yaklaşan Etkinlikler"
+    // artık üst üste dizilmiş TEK bir sütun değil — gerçek bir "harita
+    // solda, sonuçlar sağda" bölünmüş yerleşim (bkz. `_buildMapEventsSplit`)
+    // — CLAUDE.md'nin "web ≠ büyütülmüş mobil" kuralının somut bir
+    // uygulaması. Standart masaüstünde (1024-1440px) eski üst-alt yerleşim
+    // (tam genişlik harita + yatay kaydırmalı kart şeridi) aynen korunuyor.
+    final bool splitLayout = context.isLargeDesktop;
+
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+      padding: EdgeInsets.zero,
       children: [
+        const SizedBox(height: AppSpacing.xxxl),
+        // 🔥 DÜZELTME ("yarım/ortada duruyor" şikayeti): genişlik kısıtı
+        // (max-width) geniş monitörde artık 1360 değil 1680 — VE artık
+        // `Footer`'ı SARMIYOR (bkz. metodun sonu) — `discovery_page.dart`
+        // `_DiscoveryDesktopBrowser._buildBrowser`'daki AYNI düzeltme.
         Center(
           child: ConstrainedBox(
             constraints:
-                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
+                BoxConstraints(maxWidth: context.isLargeDesktop ? 1680 : 1180),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -939,40 +952,44 @@ class _NearbyEventsDesktopBodyState
           ),
         ),
         const SizedBox(height: AppSpacing.section - 16),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: SectionHeader(
-            title: 'Haritada Yakınınızdakiler',
-            subtitle: 'Konumunuz ve önümüzdeki 30 gündeki gerçek sahneler',
-            titleColor: Colors.white,
-            accentColor: WebColors.primaryGold,
+        if (splitLayout)
+          _buildMapEventsSplit(context, eventsState)
+        else ...[
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+            child: SectionHeader(
+              title: 'Haritada Yakınınızdakiler',
+              subtitle: 'Konumunuz ve önümüzdeki 30 gündeki gerçek sahneler',
+              titleColor: Colors.white,
+              accentColor: WebColors.primaryGold,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: NearbyEventsMap(
-            height: 320,
-            borderColor: WebColors.primaryGold.withOpacity(0.2),
-            surfaceColor: WebColors.darkBlueSurface,
-            foregroundColor: Colors.white,
-            mutedColor: WebColors.textSecondary,
-            accentColor: WebColors.primaryGold,
-            focusedStage: _focusedStage,
+          const SizedBox(height: AppSpacing.lg),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+            child: NearbyEventsMap(
+              height: 320,
+              borderColor: WebColors.primaryGold.withOpacity(0.2),
+              surfaceColor: WebColors.darkBlueSurface,
+              foregroundColor: Colors.white,
+              mutedColor: WebColors.textSecondary,
+              accentColor: WebColors.primaryGold,
+              focusedStage: _focusedStage,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.section - 8),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: SectionHeader(
-            title: 'Yaklaşan Etkinlikler',
-            subtitle: 'Konumunuza 50 km, takviminize 30 gün içinde',
-            titleColor: Colors.white,
-            accentColor: WebColors.primaryGold,
+          const SizedBox(height: AppSpacing.section - 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+            child: SectionHeader(
+              title: 'Yaklaşan Etkinlikler',
+              subtitle: 'Konumunuza 50 km, takviminize 30 gün içinde',
+              titleColor: Colors.white,
+              accentColor: WebColors.primaryGold,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        _buildEventsSection(context, eventsState),
+          const SizedBox(height: AppSpacing.lg),
+          _buildEventsSection(context, eventsState),
+        ],
         const SizedBox(height: AppSpacing.section - 8),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
@@ -988,14 +1005,156 @@ class _NearbyEventsDesktopBodyState
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: _buildStagesSection(context, stagesState),
         ),
-        const SizedBox(height: 100),
-        // Web masaüstü deneyiminde sayfanın sonuna site geneli footer eklenir.
-        const Footer(),
               ],
             ),
           ),
         ),
+        const SizedBox(height: 100),
+        // Web masaüstü deneyiminde sayfanın sonuna site geneli footer
+        // eklenir. `Footer` artık ÜSTTEKİ ConstrainedBox'ın DIŞINDA — tam
+        // genişlikte, diğer web sayfalarındaki (`home_page_web.dart`,
+        // `search_page.dart`) gibi kenardan kenara yayılır.
+        const Footer(),
       ],
+    );
+  }
+
+  /// Geniş monitörde (>=1440px) harita ile "Yaklaşan Etkinlikler" listesini
+  /// yan yana gösteren bölünmüş panel — solda büyük, gerçek etkileşimli
+  /// harita; sağda GERÇEK yaklaşan etkinliklerin dikey bir listesi (yatay
+  /// kaydırmalı şerit DEĞİL — genişlik artık buna izin veriyor, bkz.
+  /// `_buildEventsPanelVertical`). Her iki panel de kendi `SectionHeader`'ını
+  /// taşır; ikisi de AYNI `eventsState`/`_focusedStage` senkronunu paylaşır
+  /// (bir karta dokunmak haritanın kamerasını GERÇEK koordinata kaydırır).
+  Widget _buildMapEventsSplit(final BuildContext context,
+      final AsyncValue<List<NearbyEventEntry>> eventsState) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 6,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader(
+                  title: 'Haritada Yakınınızdakiler',
+                  subtitle:
+                      'Konumunuz ve önümüzdeki 30 gündeki gerçek sahneler',
+                  titleColor: Colors.white,
+                  accentColor: WebColors.primaryGold,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                NearbyEventsMap(
+                  height: 560,
+                  borderColor: WebColors.primaryGold.withOpacity(0.2),
+                  surfaceColor: WebColors.darkBlueSurface,
+                  foregroundColor: Colors.white,
+                  mutedColor: WebColors.textSecondary,
+                  accentColor: WebColors.primaryGold,
+                  focusedStage: _focusedStage,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xxl),
+          Expanded(
+            flex: 5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader(
+                  title: 'Yaklaşan Etkinlikler',
+                  subtitle: 'Konumunuza 50 km, takviminize 30 gün içinde',
+                  titleColor: Colors.white,
+                  accentColor: WebColors.primaryGold,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                _buildEventsPanelVertical(context, eventsState),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// `_buildEventsSection`'ın (yatay kaydırmalı şerit) dikey/sütun
+  /// karşılığı — SADECE geniş monitörde harita ile yan yana gösterildiğinde
+  /// kullanılır. AYNI GERÇEK veriyi (`eventsState`) ve AYNI harita senkronunu
+  /// (`onSelect` -> `_focusedStage`) paylaşır; sadece yerleşimi farklı.
+  /// Kartlar bağımsız bir iç scroll'a hapsedilmiyor — sağ sütun, tıpkı sol
+  /// haritanın altındaki gerçek içerik gibi, sayfanın kendi dikey
+  /// kaydırmasıyla akar; kart sayısı haritadan fazlaysa sütun sadece
+  /// haritadan daha uzun olur (iki panelin eşit yükseklikte olması
+  /// ZORUNLU değil, gerçek bir editoryal düzende de olmaz).
+  Widget _buildEventsPanelVertical(final BuildContext context,
+      final AsyncValue<List<NearbyEventEntry>> state) {
+    return state.when(
+      loading: () => Column(
+        children: List.generate(
+          3,
+          (final _) => Container(
+            height: 190,
+            margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: WebColors.darkBlueSurface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+          ),
+        ),
+      ),
+      error: (final err, final stack) {
+        if (err is LocationFailure) {
+          return NearbyLocationPermissionView(
+            error: err,
+            foregroundColor: Colors.white,
+            mutedColor: WebColors.textSecondary,
+            accentColor: WebColors.primaryGold,
+          );
+        }
+        return const _NearbyEmptyNotice(
+          message: 'Etkinlikler yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+        );
+      },
+      data: (final entries) {
+        if (entries.isEmpty)
+          return const _NearbyEmptyNotice(
+            message:
+                'Önümüzdeki 30 gün içinde, 50 km çevrenizde bir etkinlik bulunmuyor.',
+            showDiscoverCta: true,
+          );
+
+        return LayoutBuilder(
+          builder: (final context, final constraints) => Column(
+            children: [
+              for (int i = 0; i < entries.length; i++)
+                Padding(
+                  padding: EdgeInsets.only(
+                      bottom: i == entries.length - 1 ? 0 : AppSpacing.lg),
+                  child: NearbyEventMapCard(
+                    key: ValueKey(
+                        'nearby-split-event-${entries[i].event.id}'),
+                    entry: entries[i],
+                    width: constraints.maxWidth,
+                    isSelected: entries[i].stage.id == _focusedStage?.id,
+                    surfaceColor: WebColors.darkBlueSurface,
+                    borderColor: WebColors.primaryGold.withOpacity(0.2),
+                    selectedColor: WebColors.primaryGold,
+                    foregroundColor: Colors.white,
+                    mutedColor: WebColors.textSecondary,
+                    accentColor: WebColors.primaryGoldLight,
+                    onSelect: () =>
+                        setState(() => _focusedStage = entries[i].stage),
+                    onOpenShow: () => NavigationHandler.goToShow(context,
+                        entries[i].show.id, entries[i].show.name),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
