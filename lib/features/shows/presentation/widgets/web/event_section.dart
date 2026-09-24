@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
+import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../events/domain/entities/event.dart';
 import '../../../../stages/domain/entities/stage.dart';
@@ -22,6 +25,13 @@ class EventSection extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    // Biletleri harici bir platformda satılan "konuk" oyunlarda kendi
+    // Event/koltuk-seçimi akışımız hiç devreye girmez — burada varsa bile
+    // uygulama içi etkinlik listesi yerine doğrudan o platforma yönlendiren
+    // tek bir CTA gösterilir.
+    if (showData.hasExternalTicketing)
+      return _ExternalTicketCta(url: showData.externalTicketUrl);
+
     // Veri zaten showDetailProvider'dan hazır geldiği için isLoading kontrolüne gerek yok
     if (events.isEmpty)
       return const Center(
@@ -58,6 +68,88 @@ class EventSection extends StatelessWidget {
       }).toList(),
     );
   }
+}
+
+/// 🔗 Biletleri bizim sistemimiz dışında, başka bir platformda satılan
+/// oyunlar için tek CTA: kullanıcıyı doğrudan o platformun bilet/etkinlik
+/// sayfasına götürür — uydurma bir "yakında" mesajı ya da sahte bir
+/// uygulama-içi akış YOK.
+class _ExternalTicketCta extends StatelessWidget {
+  final String url;
+
+  const _ExternalTicketCta({required this.url});
+
+  Future<void> _open() async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // Sessizce yut — buton her koşulda tekrar denenebilir kalır.
+    }
+  }
+
+  @override
+  Widget build(final BuildContext context) => Container(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: WebColors.info.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: WebColors.info.withOpacity(0.4)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: WebColors.info.withOpacity(0.15),
+                borderRadius: AppRadius.asymSm,
+              ),
+              child: const Icon(Icons.open_in_new_rounded,
+                  color: WebColors.info, size: 22),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Bu oyunun biletleri başka bir platformda satılıyor',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Etkinlik takvimini ve biletleri görmek için karşı platforma yönlendirileceksin.',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            ElevatedButton.icon(
+              onPressed: _open,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: WebColors.info,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: const Icon(Icons.confirmation_number_outlined, size: 18),
+              label: const Text('Biletleri Görüntüle'),
+            ),
+          ],
+        ),
+      );
 }
 
 class AnimatedEventCard extends ConsumerWidget {

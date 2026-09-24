@@ -44,9 +44,19 @@ final homeAllowedTeamIdsProvider = FutureProvider<Set<String>>((final ref) async
       .toSet();
 });
 
+// Kendi takımlarımızın oyunlarının yanı sıra, biletleri harici bir
+// platformda satılan "konuk" oyunlar da (bkz. `Show.externalTicketUrl`)
+// ana sayfada gösterilir — bunlar hangi takıma ait olursa olsun, kartında
+// "BAŞKA PLATFORMDA" rozetiyle işaretlenip o platforma yönlendirilirler.
+// Kullanıcının kendi talebi: "herkes farklı ölür gibi oyunlar başka
+// platformlarda... status ve link ekleyelim... o linke tıklayıp o siteden
+// oyun etkinliklerini alsınlar."
 List<Show> _filterToHomeTeams(
         final List<Show> shows, final Set<String> allowedTeamIds) =>
-    shows.where((final show) => allowedTeamIds.contains(show.teamId)).toList();
+    shows
+        .where((final show) =>
+            allowedTeamIds.contains(show.teamId) || show.hasExternalTicketing)
+        .toList();
 
 /// `showsActiveFirstProvider`in ana sayfaya süzülmüş hâli — aktif oyunlar
 /// önde, sıralama aynı, ama sadece izinli takımların gösterileri.

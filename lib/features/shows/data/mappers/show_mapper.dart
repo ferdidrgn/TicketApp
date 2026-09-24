@@ -20,6 +20,7 @@ extension ShowModelMapper on ShowModel {
         nowPlayersId: nowPlayersId?.whereType<String>().toList() ?? [],
         oldPlayersId: oldPlayersId?.whereType<String>().toList() ?? [],
         photosShowId: photosShowId?.whereType<String>().toList() ?? [],
+        externalTicketUrl: externalTicketUrl ?? '',
       );
 }
 
@@ -42,5 +43,6 @@ extension ShowEntityMapper on Show {
         nowPlayersId: nowPlayersId,
         oldPlayersId: oldPlayersId,
         photosShowId: photosShowId,
+        externalTicketUrl: externalTicketUrl,
       );
 }

@@ -21,6 +21,18 @@ class Show extends Equatable {
   final List<String> oldPlayersId;
   final List<String> photosShowId;
 
+  /// Biletlerin bu uygulama içinde değil, harici bir platformda satıldığı
+  /// oyunlar için o platformun bilet/etkinlik sayfası URL'i. Boşsa bilet
+  /// akışı her zamanki gibi uygulama içi (koltuk seçimi/Event) — dolu
+  /// olmak, ayrı bir "durum" bayrağı tutmak yerine, bu oyunun harici bir
+  /// oyun/bilet kaynağı olduğunun TEK doğruluk kaynağıdır (bkz.
+  /// `show_provider.dart`'taki "isActive" bayrağı eklenmeme gerekçesiyle
+  /// aynı prensip: senkron tutulması gereken ayrı bir alan yerine, zaten
+  /// var olan veriden türetilen tek kaynak).
+  final String externalTicketUrl;
+
+  bool get hasExternalTicketing => externalTicketUrl.trim().isNotEmpty;
+
   const Show({
     required this.id,
     required this.createdAt,
@@ -38,6 +50,7 @@ class Show extends Equatable {
     required this.nowPlayersId,
     required this.oldPlayersId,
     required this.photosShowId,
+    this.externalTicketUrl = '',
   });
 
   @override
@@ -58,5 +71,6 @@ class Show extends Equatable {
         nowPlayersId,
         oldPlayersId,
         photosShowId,
+        externalTicketUrl,
       ];
 }

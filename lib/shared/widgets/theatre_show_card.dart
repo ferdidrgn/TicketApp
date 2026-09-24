@@ -157,25 +157,69 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
                       Positioned(
                         left: 12,
                         top: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: WebColors.veryDarkBlue.withOpacity(0.72),
-                            borderRadius: AppRadius.asymSm,
-                            border: Border.all(
-                              color: WebColors.primaryGold.withOpacity(0.5),
-                            ),
-                          ),
-                          child: Text(
-                            show.category.toUpperCase(),
-                            style: const TextStyle(
-                              color: WebColors.primaryGoldLight,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
+                        right: 12,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // 🔗 Biletleri başka bir platformda satılan
+                            // "konuk" oyunlar için ayırt edici rozet —
+                            // kategori rozetinden farklı bir renkte
+                            // (WebColors.info: mavi), her zaman en üstte.
+                            if (show.hasExternalTicketing)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color:
+                                      WebColors.info.withOpacity(0.85),
+                                  borderRadius: AppRadius.asymSm,
+                                  border: Border.all(
+                                    color: WebColors.info,
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.open_in_new_rounded,
+                                        size: 11, color: Colors.white),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'BAŞKA PLATFORMDA',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.6,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (show.category.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color:
+                                      WebColors.veryDarkBlue.withOpacity(0.72),
+                                  borderRadius: AppRadius.asymSm,
+                                  border: Border.all(
+                                    color: WebColors.primaryGold.withOpacity(0.5),
+                                  ),
+                                ),
+                                child: Text(
+                                  show.category.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: WebColors.primaryGoldLight,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],

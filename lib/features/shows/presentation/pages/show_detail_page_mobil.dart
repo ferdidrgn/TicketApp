@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
@@ -23,6 +24,7 @@ import '../../../players/presentation/widgets/players_bubble_card.dart';
 import '../../../stages/domain/entities/stage.dart';
 import '../../../users/presentation/providers/user_provider.dart'
     show userProfileProvider;
+import '../../domain/entities/show.dart';
 import '../widgets/mobile/show_info_section.dart';
 import '../widgets/show_team_credit.dart';
 
@@ -643,9 +645,74 @@ class _ShowDetailPageState extends ConsumerState<ShowDetailPage>
     );
   }
 
+  // 🔗 Biletleri bizim sistemimiz dışında, başka bir platformda satılan
+  // "konuk" oyunlar için: kendi Event/koltuk-seçimi akışımız yerine
+  // doğrudan o platforma yönlendiren tek bir CTA kartı.
+  Widget _buildExternalTicketCta(
+      final BuildContext context, final Show show) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: colors.tertiaryContainer.withOpacity(0.5),
+          borderRadius: AppRadius.asymLg,
+          border: Border.all(color: colors.tertiary.withOpacity(0.4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.open_in_new_rounded, color: colors.tertiary),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Bu oyunun biletleri başka bir platformda satılıyor',
+                    style: context.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colors.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final uri = Uri.tryParse(show.externalTicketUrl);
+                  if (uri == null) return;
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (_) {}
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.tertiary,
+                  foregroundColor: colors.onTertiary,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
+                ),
+                icon: const Icon(Icons.confirmation_number_outlined),
+                label: const Text('Biletleri Görüntüle'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMobileEventsList(
           final BuildContext context, final dynamic state) =>
-      SizedBox(
+      state.show.hasExternalTicketing
+          ? _buildExternalTicketCta(context, state.show)
+          : SizedBox(
         height: 340,
         child: ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
