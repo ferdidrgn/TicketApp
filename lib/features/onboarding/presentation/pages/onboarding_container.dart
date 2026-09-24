@@ -123,9 +123,16 @@ class _OnboardingContainerState extends ConsumerState<OnboardingContainer>
     );
   }
 
+  // 🔥 DÜZELTME: `assets/images/onboarding_hero.jpg` HİÇ VAR OLMAYAN bir
+  // dosyaydı ("Kendi görselinle değiştir abi" yorumu bunun bilinçli bir
+  // yer tutucu olduğunu gösteriyor) — bu yüzden uygulamanın ilk açılış
+  // ekranı her zaman kırık/boş bir görselle render ediliyordu. `pubspec.
+  // yaml`'da zaten deklare edilmiş ama kodda HİÇBİR YERDE kullanılmayan
+  // gerçek bir tiyatro fotoğrafı (`main_theatre.png`) vardı — yeni bir
+  // görsel icat etmek yerine onu bağladık.
   Widget _buildHeroBackground() => Positioned.fill(
         child: Image.asset(
-          'assets/images/onboarding_hero.jpg', // Kendi görselinle değiştir abi
+          'assets/images/main_theatre.png',
           fit: BoxFit.cover,
         ),
       );
