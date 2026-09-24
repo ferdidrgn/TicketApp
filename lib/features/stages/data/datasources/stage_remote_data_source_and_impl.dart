@@ -54,11 +54,26 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
     if (stageIds.isEmpty) return [];
 
     try {
-      final snapshot = await _stageCollection
-          .where(FieldPath.documentId, whereIn: stageIds)
-          .get();
+      // 🔥 DÜZELTME: Firestore 'whereIn' sorgusu en fazla 30 eleman alır —
+      // show/event datasource'larındaki aynı düzeltmeyle tutarlı (bkz.
+      // show_remote_data_source_and_impl.dart/event_remote_data_source_
+      // and_impl.dart). Eski kod tüm `stageIds`'i tek seferde `whereIn`'e
+      // gönderiyordu; 30'dan fazla sahne olan bir sorgu (ör. "yakındakiler"
+      // özelliğinin geniş bir yarıçapta çok sayıda sahneyi çözmesi
+      // gerektiğinde) Firestore'un invalid-argument hatası fırlatmasına ve
+      // tüm listenin sessizce boş/hatalı dönmesine yol açabiliyordu.
+      const chunkSize = 30;
+      final uniqueIds = stageIds.toSet().toList();
+      final chunks = <List<String>>[
+        for (var i = 0; i < uniqueIds.length; i += chunkSize)
+          uniqueIds.sublist(
+              i, i + chunkSize > uniqueIds.length ? uniqueIds.length : i + chunkSize),
+      ];
 
-      return _mapToStages(snapshot);
+      final snapshots = await Future.wait(chunks.map((final chunk) =>
+          _stageCollection.where(FieldPath.documentId, whereIn: chunk).get()));
+
+      return snapshots.expand(_mapToStages).toList();
     } on FirebaseException catch (e) {
       throw Exception('Firestore hatası (getStagesByIds): ${e.message}');
     } catch (e) {
