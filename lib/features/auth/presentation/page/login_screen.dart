@@ -2,41 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
-import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../core/base/base_page_wrapper.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
-import '../widgets/animated_stage_motif.dart';
-import '../widgets/auth_stage_widgets.dart';
 
-/// GİRİŞ EKRANI — "Sahne Kapısı" (Stage Door)
+/// GİRİŞ EKRANI — Sanatsal Tiyatro & Sahne Atmosferli Tasarım
 ///
-/// Eski tasarım (tam ekran fotoğraf + karartma gradyanı + üzerinde bulanık
-/// cam kart, ortalanmış dikey stack) tamamen terk edildi. Bunun yerine:
-///
-/// - **Mobil**: tek sütun ama sahneye "giriş anı" hissi veren bir açılış —
-///   üstte küçük bir sahne paneli, sayfa mount olur olmaz gerçek bir tiyatro
-///   perdesi gibi ortadan açılıp `book_logo.jpg`'yi ortaya çıkarıyor
-///   (`AuthCurtainStage` — teknik `page_transitions.dart`'taki
-///   `curtainTransition` ve `theatre_show_card.dart`'ın hover reveal'ıyla
-///   birebir aynı `ClipRect(Align(widthFactor: t))`), altında başlık ve
-///   düz bir form paneli (artık glassmorphism yok).
-/// - **Masaüstü/web**: GERÇEK split-screen — solda sahne panelinin BÜYÜK
-///   versiyonu + üzerine oturan editoryal marka hikayesi ("SAHNE IŞIKLARI
-///   SENİ BEKLİYOR"), sağda dar ve dikey ortalanmış form sütunu. Bu,
-///   `home_page_web.dart`/`home_page_mobile.dart` ikilisindeki "aynı
-///   widget'ı responsive yapmak yerine platforma özel gerçek kompozisyon"
-///   prensibinin giriş akışına uygulanmış hali (`AuthStageScaffold`, hem bu
-///   dosyada hem `phone_login_page.dart`'ta kullanılıyor — ikisi otomatik
-///   tutarlı).
-///
-/// Google/telefon aksiyonlarının GERÇEK mantığı (authMutationProvider,
-/// ref.listen hata/başarı yakalama, NavigationHandler) hiç değişmedi —
-/// sadece görsel/yapısal katman yenilendi. Renkler yalnızca mevcut
-/// `context.colors.*` paletinden — hiçbir yeni hex değeri icat edilmedi.
+/// Pexels'in büyüleyici tiyatro/sahne HD görseli, vurucu tipografi ve
+/// modern, göz alıcı form butonları ile yeniden tasarlandı.
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
@@ -45,157 +21,280 @@ class LoginScreen extends ConsumerWidget {
     final authMutation = ref.watch(authMutationProvider);
 
     ref.listen<AsyncValue<void>>(authMutationProvider,
-        (final previous, final next) {
-      next.whenOrNull(
-        error: (final error, final stack) =>
-            _showSnackBar(context, error.toString(), isError: true),
-        data: (final _) {
-          // Not: Burada önceden `ref.read(isLoggedInProvider)` ile ekstra bir
-          // kontrol yapılıyordu. isLoggedInProvider, authStateProvider'ın
-          // (FirebaseAuth.userChanges() stream'i) senkron `.value`'sunu okur;
-          // ama _handlePostLogin sonunda bu provider invalidate edildiğinde
-          // stream'in yeni değeri (özellikle web'de, IndexedDB/JS SDK
-          // round-trip'i nedeniyle) HENÜZ senkron olarak gelmemiş olabiliyor.
-          // Bu da başarılı bir Google girişinde bu okumanın an itibarıyla
-          // hâlâ eski/boş state döndürüp yönlendirmenin sessizce atlanmasına
-          // yol açabiliyordu (kullanıcı login ekranında "asılı" kalıyordu).
-          // authMutationProvider zaten yalnızca _handlePostLogin TAMAMEN
-          // BAŞARILI olduğunda `data` state'ine geçtiği için (aksi halde
-          // `error` dalı tetiklenir) bu noktada giriş kesinlikle başarılıdır;
-          // ekstra provider kontrolüne gerek yok.
-          if (context.mounted) NavigationHandler.goToHome(context);
-        },
-      );
-    });
+            (final previous, final next) {
+          next.whenOrNull(
+            error: (final error, final stack) =>
+                _showSnackBar(context, error.toString(), isError: true),
+            data: (final _) {
+              if (context.mounted) NavigationHandler.goToHome(context);
+            },
+          );
+        });
 
     return BasePageWrapper(
       showBackButton: true,
       showFab: false,
       isOverlayLoading: authMutation.isLoading,
       layoutConfig: const BasePageLayoutConfig(
-        safeAreaTop: true, // 💡 Status bar çakışmasını önlemek için true yaptık
+        safeAreaTop: false,
         safeAreaBottom: false,
       ),
-      child: AuthStageScaffold(
-        stagePanelBuilder: (final stageContext, final isLargeScreen) =>
-            AuthCurtainStage(
-          revealChild: const AnimatedStageMotif(),
-          borderRadius: AppRadius.asymLg,
-          curtainColor: stageContext.colors.primary,
-          overlay: isLargeScreen
-              ? const StageEditorialCaption(
-                  eyebrow: 'Perde Aralanıyor',
-                  title: 'SAHNE IŞIKLARI\nSENİ BEKLİYOR',
-                  subtitle:
-                      'Şehrin en iyi oyunları, oyuncuları ve sahneleri tek '
-                      'çatı altında — girişini yap, bilet almaya başla.',
-                )
-              : const StageBadge(
-                  icon: Icons.theater_comedy_rounded,
-                  label: 'TİYATROL',
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // --- 1. PEXELS HD TİYATRO/SAHNE GÖRSELİ VE SİNEMATİK PERDE ---
+          Positioned.fill(
+            child: Image.network(
+              'https://images.pexels.com/photos/10880679/pexels-photo-10880679.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Tipografinin ve butonların kusursuz okunması için derinleştirilmiş gradyan
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.3),
+                    Colors.black.withOpacity(0.6),
+                    Colors.black.withOpacity(0.96),
+                  ],
+                  stops: const [0.0, 0.45, 1.0],
                 ),
-        ),
-        headline: const AuthHeadlineBlock(
-          kicker: 'Perde Aralanıyor',
-          title: 'SAHNEYE\nHOŞ GELDİN',
-          subtitle: 'Giriş yap, ışıklar senin için yansın.',
-        ),
-        formCard: _LoginOptionsPanel(
-          onGoogleTap: () => _handleGoogleSignIn(context, ref),
-          onPhoneTap: () => NavigationHandler.goToPhoneLogin(context),
-        ),
-        finePrint: const _FinePrint(),
+              ),
+            ),
+          ),
+
+          // --- 2. ÖN PLAN İÇERİK ---
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.lg,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Üst Sol Sanatsal Tiyatro Rozeti
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.xs + 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(
+                        color: const Color(0xFFF59E0B).withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFF59E0B).withOpacity(0.2),
+                          blurRadius: 15,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.theater_comedy_rounded,
+                          color: Color(0xFFF59E0B),
+                          size: 16,
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          'Tiyatro & Sahne Sanatları',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(flex: 3),
+
+                  // --- ÇARPICI SANATSAL TİPOGRAFİ VE AÇIKLAMA ---
+                  Text(
+                    'Perde Açılıyor,\nYerin Sizi Bekliyor.',
+                    style: TextStyle(
+                      fontFamily: 'serif',
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.15,
+                      letterSpacing: -0.5,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.6),
+                          offset: const Offset(0, 3),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Şehrin en seçkin oyunlarına, konserlerine ve sahnelerine anında kapı arala. Sanata ilk adımı at.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.75),
+                      height: 1.5,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const Spacer(flex: 4),
+
+                  // --- EN ALT ŞIK VE ZARİF BUTONLAR (Overlay Yok, Saf Görsel Üstü) ---
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ArtisticGoogleButton(
+                        onTap: () => _handleGoogleSignIn(context, ref),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _ArtisticPhoneButton(
+                        label: AppLocalizations.of(context)!.loginPhoneButton,
+                        onTap: () => NavigationHandler.goToPhoneLogin(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Alt Sözleşme Bilgisi
+                  const _FinePrint(),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Future<void> _handleGoogleSignIn(
-          final BuildContext context, final WidgetRef ref) async =>
+      final BuildContext context, final WidgetRef ref) async =>
       ref.read(authMutationProvider.notifier).signInWithGoogle();
 
   void _showSnackBar(final BuildContext context, final String msg,
-          {final bool isError = false}) =>
+      {final bool isError = false}) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(msg),
-          backgroundColor: isError ? Colors.red : Colors.green));
+          backgroundColor: isError ? Colors.red.shade800 : Colors.green.shade800,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md))));
 }
 
-/// Google + telefon seçeneklerini barındıran düz (artık cam efektsiz) panel.
-class _LoginOptionsPanel extends StatelessWidget {
-  final VoidCallback onGoogleTap;
-  final VoidCallback onPhoneTap;
-
-  const _LoginOptionsPanel({
-    required this.onGoogleTap,
-    required this.onPhoneTap,
-  });
-
-  @override
-  Widget build(final BuildContext context) => AuthFormPanel(
-        eyebrowIcon: Icons.confirmation_number_rounded,
-        eyebrowLabel: 'Giriş Seçenekleri',
-        child: Column(
-          children: [
-            _GoogleButton(onTap: onGoogleTap),
-            const SizedBox(height: AppSpacing.lg),
-            const AuthOrDivider(),
-            const SizedBox(height: AppSpacing.lg),
-            AuthActionButton(
-              label: AppLocalizations.of(context)!.loginPhoneButton,
-              icon: Icons.phone_iphone_rounded,
-              semanticLabel: 'Telefon numarasıyla giriş yap',
-              useAsymCorner: true,
-              onTap: onPhoneTap,
-            ),
-          ],
-        ),
-      );
-}
-
-/// Google'ın kendi marka yönergeleri, "Google ile Oturum Aç" düğmesi için
-/// uygulamanın serbest bir renk paleti kullanmasına İZİN VERMEZ — nötr
-/// (beyaz/açık gri) bir zemin üzerinde gerçek çok renkli "G" markası ve
-/// koyu metin şart. Bu kısıt bilinçli olarak korunuyor; sadece köşe/gölge
-/// tokenlarla yeniden giydirildi.
-class _GoogleButton extends StatelessWidget {
+/// Google Giriş Butonu (Özel İkonlu, Vurucu Metinle)
+class _ArtisticGoogleButton extends StatelessWidget {
   final VoidCallback onTap;
 
-  const _GoogleButton({required this.onTap});
+  const _ArtisticGoogleButton({required this.onTap});
 
   @override
   Widget build(final BuildContext context) => Semantics(
-        button: true,
-        label: 'Google ile giriş yap',
+    button: true,
+    label: 'Google ile giriş yap',
+    child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.35),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const GoogleLogo(size: 22),
+              const SizedBox(width: AppSpacing.md),
+              Text(
+                'Google ile Sahneye Adım At',
+                style: const TextStyle(
+                  color: Color(0xFF1F1F1F),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Telefon Giriş Butonu (Cam Dokulu, Özel Ok İkonlu)
+class _ArtisticPhoneButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _ArtisticPhoneButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(final BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Telefon numarasıyla giriş yap',
+      child: Material(
+        color: Colors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           child: Container(
-            width: double.infinity,
-            height: 60,
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: Colors.black.withOpacity(0.12)),
-              boxShadow: AppShadows.level1(Colors.black),
-            ),
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const GoogleLogo(size: 22),
-                  const SizedBox(width: AppSpacing.md),
-                  Text(AppLocalizations.of(context)!.loginGoogleButton,
-                      style: const TextStyle(
-                          color: Color(0xFF1F1F1F),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
-                          fontSize: 15)),
-                ],
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.35),
+                width: 1.5,
               ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withOpacity(0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 12,
+                    color: Color(0xFFF59E0B),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Text(
+                  'Telefon Numarası ile Devam Et',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _FinePrint extends StatelessWidget {
@@ -203,14 +302,15 @@ class _FinePrint extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => Center(
-        child: Text(
-          AppLocalizations.of(context)!.loginTermsNotice,
-          textAlign: TextAlign.center,
-          style: context.textTheme.labelSmall?.copyWith(
-            color: context.colors.onSurface.withOpacity(0.45),
-            letterSpacing: 1.2,
-            fontSize: 9,
-          ),
-        ),
-      );
+    child: Text(
+      AppLocalizations.of(context)!.loginTermsNotice,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Colors.white.withOpacity(0.45),
+        letterSpacing: 0.5,
+        fontSize: 10,
+        height: 1.4,
+      ),
+    ),
+  );
 }

@@ -12,25 +12,9 @@ import '../providers/auth_provider.dart';
 import '../widgets/animated_stage_motif.dart';
 import '../widgets/auth_stage_widgets.dart';
 
-/// `authMutationProvider`'ın `data` state'ine geçmesi iki BAMBAŞKA gerçek
-/// eylemin sonucu olabilir: kod (yeniden) gönderildi mi, yoksa kod
-/// doğrulandı mı? Eskiden bu ayrım `_isCodeSent`e bakılarak tahmin
-/// ediliyordu — ama "Kodu Yeniden Gönder" de `_isCodeSent == true` iken
-/// aynı `verifyPhone`'u tetiklediği için bir yeniden-gönderim başarısı
-/// yanlışlıkla "doğrulandı" sanılıp kullanıcı kodu hiç girmeden ana
-/// sayfaya atılıyordu. Artık HANGİ eylemin başlatıldığı, sonucunu
-/// yorumlamadan hemen önce burada açıkça tutuluyor — Firebase'in kendi
-/// (gecikmeli olabilen) stream state'ine güvenmiyoruz.
 enum _PendingAuthAction { none, sendCode, verifyCode }
 
-/// TELEFON İLE GİRİŞ — `login_screen.dart` ile AYNI "Sahne Kapısı" dilini
-/// paylaşır (`AuthStageScaffold`/`AuthCurtainStage`/`AuthHeadlineBlock`/
-/// `AuthActionButton` — bkz. `auth_stage_widgets.dart`), böylece iki sayfa
-/// arasında geçiş yaparken kompozisyon aniden değişmiyor: aynı sahne
-/// paneli, aynı başlık tipografisi, aynı gradyanlı buton dili — sadece
-/// içerik (form alanları) değişiyor. Gerçek OTP sayacı (`otpTimerProvider`)
-/// ve doğrulama akışı (`_verificationId`, `verifyPhone`/`verifyOtp`)
-/// BİREBİR AYNI kaldı, sadece görsel katman yenilendi.
+/// TELEFON İLE GİRİŞ EKRANI — `login_screen.dart` ile ortak mimari dil.
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
 
@@ -42,11 +26,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
 
-  // UI Kontrolü: Kod gönderildi mi?
   bool _isCodeSent = false;
-
-  // Hangi eylemin sonucunu beklediğimiz — bkz. yukarıdaki _PendingAuthAction
-  // yorumu.
   _PendingAuthAction _pendingAction = _PendingAuthAction.none;
 
   @override
@@ -56,8 +36,6 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     super.dispose();
   }
 
-  // --- MANTIKSAL METODLAR ---
-
   Future<void> _verifyPhone() async {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty || phone.length < 10) {
@@ -66,15 +44,9 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
       return;
     }
 
-    // Numarayı +90 formatına çevir (Eğer kullanıcı girmediyse)
     final formattedPhone = phone.startsWith("+90") ? phone : "+90$phone";
-
     _pendingAction = _PendingAuthAction.sendCode;
-    // Firebase'e istek at
     await ref.read(authMutationProvider.notifier).verifyPhone(formattedPhone);
-
-    // Hata yoksa sayacı başlat ve ekranı değiştir
-    // Not: Hata kontrolünü provider state'i üzerinden listen ile yapıyoruz
   }
 
   Future<void> _signInWithOTP() async {
@@ -100,42 +72,22 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   Widget build(final BuildContext context) {
     final authMutation = ref.watch(authMutationProvider);
 
-    // State Dinleyicisi: Başarılı işlemleri yakala
     ref.listen<AsyncValue<void>>(authMutationProvider,
         (final previous, final next) {
       next.whenOrNull(
         error: (final error, final stack) {
           _showSnackBar("Hata: ${error.toString()}");
-          // Hata olursa ve kod ekranındaysak belki geri atmak isteyebiliriz
-          // Ama genelde kullanıcı tekrar denesin diye kalırız.
         },
         data: (final _) {
-          // 🔥 DÜZELTME: Eskiden burada sadece `_isCodeSent`e bakılıyordu —
-          // ama "Kodu Yeniden Gönder" de `_isCodeSent == true` iken
-          // `verifyPhone()`i tekrar çağırıyor; bu yüzden başarılı bir
-          // yeniden-gönderim yanlışlıkla "doğrulandı" sanılıp kullanıcı
-          // kodu hiç girmeden ana sayfaya atılıyordu. Artık hangi eylemin
-          // sonucunu beklediğimiz (_pendingAction) açıkça biliniyor.
           switch (_pendingAction) {
             case _PendingAuthAction.sendCode:
-              // Kod gönderildi. TEK istisna: Android'in "otomatik/instant
-              // doğrulama"sı (SMS'i kod girilmeden okuyup doğrulaması) bu
-              // AYNI verifyPhone çağrısı sırasında kullanıcıyı zaten
-              // giriş yaptırmış olabilir (bkz. auth_mutation_provider.
-              // dart'taki onVerificationCompleted düzeltmesi) — o
-              // durumda OTP ekranını hiç göstermeden direkt ana sayfaya
-              // geçilir.
               if (ref.read(isLoggedInProvider)) {
                 if (context.mounted) NavigationHandler.goToHome(context);
               } else {
-                // Not: Geri sayım gerçek zamanlayıcısı otpTimerProvider
-                // üzerinden (auth_mutation_provider'daki onCodeSent) zaten
-                // başlatıldı; burada sadece ekranı OTP adımına geçiriyoruz.
                 setState(() => _isCodeSent = true);
               }
               break;
             case _PendingAuthAction.verifyCode:
-              // Kod doğrulandı -> Login bitti.
               if (context.mounted) NavigationHandler.goToHome(context);
               break;
             case _PendingAuthAction.none:
@@ -155,7 +107,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         safeAreaBottom: false,
       ),
       child: PopScope(
-        canPop: !_isCodeSent, // Kod ekranındaysak direkt çıkmasın
+        canPop: !_isCodeSent,
         onPopInvokedWithResult: (final didPop, final result) {
           if (didPop) return;
           if (_isCodeSent) setState(() => _isCodeSent = false);
@@ -192,10 +144,6 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
     );
   }
 
-  // --- UI BİLEŞENLERİ ---
-
-  /// `login_screen`'in `AuthHeadlineBlock`'unu bu adıma taşır; adım
-  /// (telefon <-> OTP) değiştiğinde `AnimatedSwitcher` ile yumuşak geçer.
   Widget _buildHeaderText(final BuildContext context) => AnimatedSwitcher(
         duration: AppMotion.normal,
         switchInCurve: AppMotion.standard,
@@ -214,12 +162,6 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
         ),
       );
 
-  /// Eskiden bulanık cam kart (BackdropFilter), sonra düz izole bir
-  /// Material kutusuydu — artık `login_screen.dart` ile paylaşılan
-  /// `AuthFormPanel` (bkz. `auth_stage_widgets.dart`): sahne panelinden
-  /// sızan ışık + AYNI asimetrik köşe dili + adıma göre değişen bir kicker
-  /// ("Telefon Doğrulama" -> "Kodu Doğrula"). İçerik (telefon/OTP adımı)
-  /// yine `AnimatedSwitcher` ile geçiyor.
   Widget _buildCard(final BuildContext context) => AuthFormPanel(
         eyebrowIcon: _isCodeSent
             ? Icons.mark_email_read_rounded
@@ -229,8 +171,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           duration: AppMotion.normal,
           switchInCurve: AppMotion.standard,
           switchOutCurve: AppMotion.standard,
-          transitionBuilder: (final child, final animation) =>
-              FadeTransition(
+          transitionBuilder: (final child, final animation) => FadeTransition(
             opacity: animation,
             child: SlideTransition(
               position: Tween<Offset>(
@@ -352,11 +293,11 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
   Widget _buildIconHeader(final IconData icon) => Container(
         padding: const EdgeInsets.all(AppSpacing.xxl),
         decoration: BoxDecoration(
-          color: context.colors.primary.withOpacity(0.15),
+          color: context.colors.primary.withOpacity(0.12),
           shape: BoxShape.circle,
           boxShadow: AppShadows.level2(context.colors.primary),
         ),
-        child: Icon(icon, size: 48, color: context.colors.primary),
+        child: Icon(icon, size: 40, color: context.colors.primary),
       );
 
   Widget _buildTextField(
@@ -388,10 +329,10 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
             textField: true,
             child: Container(
               decoration: BoxDecoration(
-                color: context.colors.onSurface.withOpacity(0.05),
+                color: context.colors.onSurface.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 border: Border.all(
-                    color: context.colors.onSurface.withOpacity(0.14)),
+                    color: context.colors.onSurface.withOpacity(0.12)),
               ),
               child: TextField(
                 controller: controller,
@@ -406,13 +347,12 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
                 decoration: InputDecoration(
                   hintText: hint,
                   hintStyle: TextStyle(
-                      color: context.colors.onSurface.withOpacity(0.35)),
+                      color: context.colors.onSurface.withOpacity(0.3)),
                   prefixText: prefix,
                   prefixStyle: TextStyle(
                       color: context.colors.onSurface.withOpacity(0.7),
                       fontWeight: FontWeight.bold),
                   counterText: "",
-                  // Sayacı gizle
                   contentPadding: const EdgeInsets.all(AppSpacing.xl),
                   border: InputBorder.none,
                 ),
