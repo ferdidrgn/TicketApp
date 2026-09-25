@@ -22,32 +22,20 @@ import '../../../../shared/widgets/footers/footer.dart';
 class AppSettingsPage extends ConsumerWidget {
   const AppSettingsPage({super.key});
 
-  // 🎨 Tema Rengi seçicide sunulan hazır vurgu renkleri. `WebColors`/
-  // `AppLightColors`/`AppDarkColors` sabitlerine hiç dokunulmaz — bunlar
-  // `ColorScheme.fromSeed()`'e girecek tamamen ayrı, kullanıcı tercihi
-  // renk seçenekleridir (materialLight/materialDark'ın duvar kağıdından
-  // seed üretme tekniğiyle aynı mantık).
+  // 🎨 Tiyatro Kulisi Hazır Vurgu Renkleri (Monet / Özel Palet)
   static const List<Color> _accentColorPresets = [
-    Colors.deepPurple,
-    Colors.indigo,
-    Colors.blue,
-    Colors.teal,
-    Colors.green,
-    Colors.amber,
-    Colors.deepOrange,
-    Colors.pink,
-    Colors.brown,
-    Colors.blueGrey,
+    Color(0xFFC50337), // Crimson Noir Ana Kırmızı
+    Color(0xFF9C27B0), // Kadife Mor
+    Color(0xFF3F51B5), // Sahne Mavisi
+    Color(0xFF009688), // Kulis Yeşili
+    Color(0xFFFF9800), // Sahne Işığı Amber
+    Color(0xFFE91E63), // Perde Pembesi
+    Color(0xFF795548), // Tahta Sahne Kahvesi
+    Color(0xFF607D8B), // Fırtına Gri
+    Color(0xFFFF5722), // Kırmızı Turuncu
+    Color(0xFF673AB7), // Derin Gece Moru
   ];
 
-  // 🔥 DÜZELTME: Önceden `request()`'ten SONRA koşulsuz `openAppSettings()`
-  // çağrılıyordu — yani izin zaten verilmişse ya da uygulama içi istek
-  // az önce normal şekilde onaylanmışsa bile, "Mekansal Rezonans"
-  // (konum) veya "Sanat Fısıltıları" (bildirim) satırına her dokunuşta
-  // kullanıcı uygulamadan atılıp OS Ayarları'na fırlatılıyordu. Artık
-  // sadece GERÇEKTEN kalıcı olarak reddedilmiş (bir daha uygulama içi
-  // sorulamayan) izinlerde Ayarlar'a yönlendiriliyor; aksi halde normal
-  // uygulama içi izin isteği yeterli.
   Future<void> _handlePermission(final Permission permission) async {
     final status = await permission.status;
     if (status.isGranted) return;
@@ -59,8 +47,7 @@ class AppSettingsPage extends ConsumerWidget {
   }
 
   void _shareApp(final BuildContext context) => Share.share(
-      AppLocalizations.of(context)!
-          .settingsShareMessage(AppConstants.shareUrl),
+      AppLocalizations.of(context)!.settingsShareMessage(AppConstants.shareUrl),
       subject: AppLocalizations.of(context)!.settingsShareSubject);
 
   Future<void> _showAccentColorPicker(
@@ -74,53 +61,86 @@ class AppSettingsPage extends ConsumerWidget {
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg)),
-        title: Text(AppLocalizations.of(context)!.settingsAccentColorPickerTitle),
+        title: Row(
+          children: [
+            Icon(Icons.palette_rounded, color: colors.primary, size: 24),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              AppLocalizations.of(context)!.settingsAccentColorPickerTitle,
+              style: GoogleFonts.playfairDisplay(
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
         content: SizedBox(
-          width: 320,
-          child: Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.md,
-            children: _accentColorPresets.map((final swatch) {
-              final isSelected = currentColor?.value == swatch.value;
-              return Semantics(
-                button: true,
-                label:
-                    AppLocalizations.of(context)!.settingsAccentColorSemanticLabel,
-                selected: isSelected,
-                child: GestureDetector(
-                  onTap: () {
-                    ref
-                        .read(themeProvider.notifier)
-                        .setCustomAccentColor(swatch);
-                    Navigator.of(dialogContext).pop();
-                  },
-                  child: AnimatedContainer(
-                    duration: AppMotion.fast,
-                    curve: AppMotion.standard,
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: swatch,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected ? colors.onSurface : Colors.transparent,
-                        width: 2.5,
-                      ),
-                      boxShadow: AppShadows.level1(swatch),
-                    ),
-                    child: isSelected
-                        ? const Icon(Icons.check_rounded, color: Colors.white)
-                        : null,
-                  ),
+          width: 340,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Sahne atmosferinizi kişiselleştirmek için bir renk fırça darbesi seçin:',
+                style: TextStyle(
+                  color: colors.onSurface.withOpacity(0.7),
+                  fontSize: 13,
                 ),
-              );
-            }).toList(),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Wrap(
+                spacing: AppSpacing.md,
+                runSpacing: AppSpacing.md,
+                children: _accentColorPresets.map((final swatch) {
+                  final isSelected = currentColor?.value == swatch.value;
+                  return Semantics(
+                    button: true,
+                    label: AppLocalizations.of(context)!
+                        .settingsAccentColorSemanticLabel,
+                    selected: isSelected,
+                    child: GestureDetector(
+                      onTap: () {
+                        ref
+                            .read(themeProvider.notifier)
+                            .setCustomAccentColor(swatch);
+                        Navigator.of(dialogContext).pop();
+                      },
+                      child: AnimatedContainer(
+                        duration: AppMotion.fast,
+                        curve: AppMotion.standard,
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: swatch,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? colors.onSurface
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                          boxShadow: AppShadows.level2(swatch),
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check_rounded,
+                                color: Colors.white, size: 24)
+                            : null,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(AppLocalizations.of(context)!.settingsCancel),
+            child: Text(
+              AppLocalizations.of(context)!.settingsCancel,
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: colors.primary),
+            ),
           ),
         ],
       ),
@@ -129,37 +149,21 @@ class AppSettingsPage extends ConsumerWidget {
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    // 🖥️ Masaüstü/web: BasePageWrapper'ın mobil zırhı (gradient başlık, FAB,
-    // parçacık arkaplanı) yerine kendi sade web kabuğunu kullanır. Tema
-    // rengi seçimi bilinçli olarak sadece mobil/app tarafında — web renkleri
-    // (`WebColors`) sabit kalmaya devam eder.
     if (context.isDesktop) return _buildDesktopPage(context, ref);
 
     final theme = context.theme;
     final colors = context.colors;
     final currentThemeStyle = ref.watch(themeProvider);
     final currentAccentColor = ref.watch(customAccentColorProvider);
-
     final l10n = AppLocalizations.of(context)!;
 
     return BasePageWrapper(
-      // 🔥 DÜZELTME: Kullanıcı bu sayfanın "en üst tasarımı"nı açıkça
-      // iğrenç buldu — sorumlusu `BasePageWrapper`'ın title/subtitle
-      // verilince çizdiği PAYLAŞILAN, jenerik `TopHeaderWithBackButton`
-      // (her redesign edilmemiş sayfada birebir aynı ShaderMask serif
-      // başlık) idi. `login_screen.dart`/`profile_page.dart` gibi zaten
-      // redesign edilmiş sayfalar bu paylaşılan başlığı hiç kullanmıyor,
-      // kendi kimliklerini sayfa içeriğinde kuruyor — ayarlar da aynı
-      // yolu izliyor: wrapper'a title/subtitle VERİLMEZ (sadece geri
-      // butonu kalır), gerçek başlık aşağıda `_SettingsHeroHeader` olarak
-      // inşa edilir.
       showBackButton: true,
       showFab: false,
       layoutConfig: BasePageLayoutConfig(
         backgroundColor: colors.surface,
         safeAreaTop: true,
       ),
-      // 💡 İçerik artık doğrudan ListView veya SingleChildScrollView olabilir
       child: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
@@ -170,12 +174,12 @@ class AppSettingsPage extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xxl),
 
-          // 🕊️ İLHAM KARTI
+          // 🎭 İLHAM VERİCİ SANAT KARTI
           InspirationalQuoteView(
             word: l10n.settingsQuoteText,
             author: l10n.settingsQuoteAuthor,
             imageUrl:
-                'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=800&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?q=80&w=800&auto=format&fit=crop',
           ),
 
           const SizedBox(height: AppSpacing.xxxl),
@@ -245,8 +249,9 @@ class AppSettingsPage extends ConsumerWidget {
             child: Text(
               l10n.settingsVersionFooter,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.onSurface.withOpacity(0.3),
-                letterSpacing: 1.5,
+                color: colors.onSurface.withOpacity(0.35),
+                letterSpacing: 2,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -256,7 +261,6 @@ class AppSettingsPage extends ConsumerWidget {
     );
   }
 
-  // Bilet sayfanla uyumlu dikey sidebar'lı liste elemanı
   Widget _buildAtelierTile(
     final BuildContext context, {
     required final String title,
@@ -276,13 +280,12 @@ class AppSettingsPage extends ConsumerWidget {
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
-            boxShadow: AppShadows.level1(color),
+            border: Border.all(color: colors.outlineVariant.withOpacity(0.4)),
+            boxShadow: AppShadows.level2(color.withOpacity(0.15)),
           ),
           child: IntrinsicHeight(
             child: Row(
               children: [
-                // Sanatçı fırçası darbesi gibi dikey bar
                 Container(
                   width: 6,
                   decoration: BoxDecoration(
@@ -296,7 +299,14 @@ class AppSettingsPage extends ConsumerWidget {
                 const SizedBox(width: AppSpacing.lg),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                  child: Icon(icon, color: color, size: 24),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: color, size: 22),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
@@ -307,10 +317,11 @@ class AppSettingsPage extends ConsumerWidget {
                       Text(title,
                           style: const TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 15)),
+                      const SizedBox(height: 2),
                       Text(subtitle,
                           style: TextStyle(
-                              color: colors.onSurface.withOpacity(0.5),
-                              fontSize: 11,
+                              color: colors.onSurface.withOpacity(0.55),
+                              fontSize: 12,
                               fontStyle: FontStyle.italic)),
                     ],
                   ),
@@ -325,8 +336,6 @@ class AppSettingsPage extends ConsumerWidget {
     );
   }
 
-  // "Tema Rengi" satırı — seçili özel rengi (varsa) dairesel bir örnekle
-  // gösterir, dokununca renk ızgarası diyaloğunu açar.
   Widget _buildAccentColorTile(
     final BuildContext context, {
     required final AppThemeStyle currentThemeStyle,
@@ -351,8 +360,8 @@ class AppSettingsPage extends ConsumerWidget {
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
-            boxShadow: AppShadows.level1(swatchColor),
+            border: Border.all(color: colors.outlineVariant.withOpacity(0.4)),
+            boxShadow: AppShadows.level2(swatchColor.withOpacity(0.15)),
           ),
           child: IntrinsicHeight(
             child: Row(
@@ -371,13 +380,17 @@ class AppSettingsPage extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                   child: Container(
-                    width: 24,
-                    height: 24,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: swatchColor,
                       shape: BoxShape.circle,
-                      border: Border.all(color: colors.outlineVariant),
+                      border:
+                          Border.all(color: colors.outlineVariant, width: 2),
+                      boxShadow: AppShadows.level1(swatchColor),
                     ),
+                    child: const Icon(Icons.color_lens_rounded,
+                        color: Colors.white, size: 16),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.lg),
@@ -389,10 +402,11 @@ class AppSettingsPage extends ConsumerWidget {
                       Text(l10n.settingsAccentColorTitle,
                           style: const TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 15)),
+                      const SizedBox(height: 2),
                       Text(subtitle,
                           style: TextStyle(
-                              color: colors.onSurface.withOpacity(0.5),
-                              fontSize: 11,
+                              color: colors.onSurface.withOpacity(0.55),
+                              fontSize: 12,
                               fontStyle: FontStyle.italic)),
                     ],
                   ),
@@ -407,11 +421,6 @@ class AppSettingsPage extends ConsumerWidget {
     );
   }
 
-  // "Uygulama Dili" satırı — `localeControllerProvider` (gerçek, kalıcı
-  // şifreli depolamaya yazan altyapı, bkz. `locale_provider.dart`) ile TR/EN
-  // arasında gerçekten geçiş yapan iki seçenekli bir seçici. Diğer atölye
-  // satırlarıyla aynı tasarım dili (kart + dikey vurgu barı), ama chevron
-  // yerine seçili dili vurgulayan iki pill buton taşıyor.
   Widget _buildLanguageTile(final BuildContext context, final WidgetRef ref) {
     final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
@@ -425,8 +434,8 @@ class AppSettingsPage extends ConsumerWidget {
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: colors.outlineVariant.withOpacity(0.5)),
-          boxShadow: AppShadows.level1(colors.primary),
+          border: Border.all(color: colors.outlineVariant.withOpacity(0.4)),
+          boxShadow: AppShadows.level2(colors.primary.withOpacity(0.15)),
         ),
         child: IntrinsicHeight(
           child: Row(
@@ -444,8 +453,15 @@ class AppSettingsPage extends ConsumerWidget {
               const SizedBox(width: AppSpacing.lg),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                child: Icon(Icons.translate_rounded,
-                    color: colors.primary, size: 24),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.translate_rounded,
+                      color: colors.primary, size: 22),
+                ),
               ),
               const SizedBox(width: AppSpacing.lg),
               Expanded(
@@ -456,10 +472,11 @@ class AppSettingsPage extends ConsumerWidget {
                     Text(l10n.settingsLanguageTitle,
                         style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 15)),
+                    const SizedBox(height: 2),
                     Text(l10n.settingsLanguageSubtitle,
                         style: TextStyle(
-                            color: colors.onSurface.withOpacity(0.5),
-                            fontSize: 11,
+                            color: colors.onSurface.withOpacity(0.55),
+                            fontSize: 12,
                             fontStyle: FontStyle.italic)),
                   ],
                 ),
@@ -511,6 +528,7 @@ class AppSettingsPage extends ConsumerWidget {
           decoration: BoxDecoration(
             color: isSelected ? colors.primary : colors.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(AppRadius.pill),
+            boxShadow: isSelected ? AppShadows.level1(colors.primary) : null,
           ),
           child: Text(
             label,
@@ -548,10 +566,18 @@ class AppSettingsPage extends ConsumerWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: AppShadows.level2(gradient.first),
             ),
             child: Row(
               children: [
-                Icon(icon, color: textColor, size: 28),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: textColor, size: 24),
+                ),
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Column(
@@ -562,15 +588,16 @@ class AppSettingsPage extends ConsumerWidget {
                               color: textColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 16)),
+                      const SizedBox(height: 2),
                       Text(desc,
                           style: TextStyle(
-                              color: textColor.withOpacity(0.8),
+                              color: textColor.withOpacity(0.85),
                               fontSize: 12)),
                     ],
                   ),
                 ),
                 Icon(Icons.open_in_new_rounded,
-                    color: textColor.withOpacity(0.7), size: 18),
+                    color: textColor.withOpacity(0.8), size: 18),
               ],
             ),
           ),
@@ -581,181 +608,170 @@ class AppSettingsPage extends ConsumerWidget {
       Text(
         title,
         style: context.theme.textTheme.labelSmall?.copyWith(
-          letterSpacing: 2,
+          letterSpacing: 2.5,
           fontWeight: FontWeight.w900,
-          color: context.colors.primary.withOpacity(0.7),
+          color: context.colors.primary.withOpacity(0.8),
         ),
       );
 
-  // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
-  // Mobil sohbet chrome'undan (TopHeaderWithBackButton, FAB, parçacıklar)
-  // bağımsız, sade, ortalanmış ve dar bir sütun. Aynı ayarlar/aksiyonlar,
-  // aynı callback'ler; sadece görsel kabuk değişiyor. Sayfanın en altına,
-  // sitenin diğer masaüstü sayfalarıyla aynı tam genişlikte paylaşılan
-  // `Footer` eklenir.
+  // --- 🖥️ MASAÜSTÜ / WEB KABUĞU (Crimson Noir & Velvet Gold Tiyatro Sahnesi) ---
   Widget _buildDesktopPage(final BuildContext context, final WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final currentLanguageCode =
         ref.watch(localeControllerProvider).value?.languageCode ?? 'tr';
 
     return ColoredBox(
-        color: WebColors.darkBlueBackground,
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxxl,
-                      vertical: AppSpacing.section),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 🔥 DÜZELTME: Önceden burası düz, ikon/rozet/kicker'sız
-                      // iki satır metindi — sayfanın geri kalanı (bölüm
-                      // etiketleri, gold gradyanlı aksiyon kartları) görsel
-                      // kimlik taşırken bu başlık "unutulmuş" duruyordu.
-                      // Artık `_buildDesktopSectionLabel`'daki rozet dili
-                      // büyütülmüş hâliyle: gold gradyanlı ikon rozeti +
-                      // eyebrow + Playfair Display başlık.
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              gradient: WebColors.goldButtonGradient,
-                              borderRadius: AppRadius.asymLg,
-                              boxShadow:
-                                  AppShadows.level3(WebColors.primaryGold),
-                            ),
-                            child: const Icon(Icons.tune_rounded,
-                                color: WebColors.darkBlueBackground, size: 26),
+      color: WebColors.darkBlueBackground,
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxxl, vertical: AppSpacing.section),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Mükemmel Tiyatro Sahne Başlığı
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: WebColors.goldButtonGradient,
+                            borderRadius: AppRadius.asymLg,
+                            boxShadow: AppShadows.level3(WebColors.primaryGold),
                           ),
-                          const SizedBox(width: AppSpacing.lg),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'SAHNE ARKASI',
-                                  style: TextStyle(
-                                    color: WebColors.primaryGoldLight,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 3,
-                                    fontSize: 12,
+                          child: const Icon(Icons.theater_comedy_rounded,
+                              color: WebColors.darkBlueBackground, size: 30),
+                        ),
+                        const SizedBox(width: AppSpacing.xl),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'SAHNE KULİSİ & YÖNETİM MERKEZİ',
+                                style: TextStyle(
+                                  color: WebColors.primaryGoldLight,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 3.5,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                l10n.settingsTitle,
+                                style: GoogleFonts.playfairDisplay(
+                                  textStyle: const TextStyle(
+                                    color: WebColors.whiteText,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 38,
+                                    letterSpacing: -0.5,
+                                    height: 1.05,
                                   ),
                                 ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  l10n.settingsTitle,
-                                  style: GoogleFonts.playfairDisplay(
-                                    textStyle: const TextStyle(
-                                      color: WebColors.whiteText,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 34,
-                                      letterSpacing: -0.5,
-                                      height: 1.05,
-                                    ),
-                                  ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              Text(
+                                l10n.settingsSubtitle,
+                                style: const TextStyle(
+                                  color: WebColors.textSecondary,
+                                  fontSize: 15,
+                                  height: 1.4,
                                 ),
-                                const SizedBox(height: AppSpacing.sm),
-                                Text(
-                                  l10n.settingsSubtitle,
-                                  style: const TextStyle(
-                                    color: WebColors.textSecondary,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.huge),
-                      _buildDesktopSectionTitle(l10n.settingsSectionPermissions),
-                      const SizedBox(height: AppSpacing.lg),
-                      _DesktopHoverTile(
-                        icon: Icons.location_searching_rounded,
-                        title: l10n.settingsLocationPermissionTitle,
-                        subtitle: l10n.settingsLocationPermissionSubtitle,
-                        onTap: () => _handlePermission(Permission.location),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _DesktopHoverTile(
-                        icon: Icons.vibration_rounded,
-                        title: l10n.settingsNotificationsPermissionTitle,
-                        subtitle: l10n.settingsNotificationsPermissionSubtitle,
-                        onTap: () =>
-                            _handlePermission(Permission.notification),
-                      ),
-                      const SizedBox(height: AppSpacing.huge),
-                      _buildDesktopSectionTitle(l10n.settingsSectionLanguage),
-                      const SizedBox(height: AppSpacing.lg),
-                      _DesktopLanguageTile(
-                        title: l10n.settingsLanguageTitle,
-                        subtitle: l10n.settingsLanguageSubtitle,
-                        turkishLabel: l10n.settingsLanguageTurkish,
-                        englishLabel: l10n.settingsLanguageEnglish,
-                        currentLanguageCode: currentLanguageCode,
-                        onSelect: (final code) => ref
-                            .read(localeControllerProvider.notifier)
-                            .setLocale(Locale(code)),
-                      ),
-                      const SizedBox(height: AppSpacing.huge),
-                      _buildDesktopSectionTitle(l10n.settingsSectionSupport),
-                      const SizedBox(height: AppSpacing.lg),
-                      _DesktopHoverAction(
-                        icon: Icons.auto_awesome_rounded,
-                        title: l10n.settingsRecommendAppTitle,
-                        desc: l10n.settingsRecommendAppDesc,
-                        onTap: () => TiyatrolDeeplinkService.shareApp(),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _DesktopHoverAction(
-                        icon: Icons.send_rounded,
-                        title: l10n.settingsShareWithFriendsTitle,
-                        desc: l10n.settingsShareWithFriendsDesc,
-                        onTap: () => _shareApp(context),
-                      ),
-                      const SizedBox(height: AppSpacing.massive),
-                      Center(
-                        child: Text(
-                          l10n.settingsVersionFooter,
-                          style: const TextStyle(
-                            color: WebColors.textTertiary,
-                            fontSize: 11,
-                            letterSpacing: 1.5,
+                              ),
+                            ],
                           ),
                         ),
+                      ],
+                    ),
+
+                    const SizedBox(height: AppSpacing.huge),
+                    _buildDesktopSectionTitle(l10n.settingsSectionPermissions),
+                    const SizedBox(height: AppSpacing.lg),
+                    _DesktopHoverTile(
+                      icon: Icons.location_searching_rounded,
+                      title: l10n.settingsLocationPermissionTitle,
+                      subtitle: l10n.settingsLocationPermissionSubtitle,
+                      onTap: () => _handlePermission(Permission.location),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _DesktopHoverTile(
+                      icon: Icons.vibration_rounded,
+                      title: l10n.settingsNotificationsPermissionTitle,
+                      subtitle: l10n.settingsNotificationsPermissionSubtitle,
+                      onTap: () => _handlePermission(Permission.notification),
+                    ),
+
+                    const SizedBox(height: AppSpacing.huge),
+                    _buildDesktopSectionTitle(l10n.settingsSectionLanguage),
+                    const SizedBox(height: AppSpacing.lg),
+                    _DesktopLanguageTile(
+                      title: l10n.settingsLanguageTitle,
+                      subtitle: l10n.settingsLanguageSubtitle,
+                      turkishLabel: l10n.settingsLanguageTurkish,
+                      englishLabel: l10n.settingsLanguageEnglish,
+                      currentLanguageCode: currentLanguageCode,
+                      onSelect: (final code) => ref
+                          .read(localeControllerProvider.notifier)
+                          .setLocale(Locale(code)),
+                    ),
+
+                    const SizedBox(height: AppSpacing.huge),
+                    _buildDesktopSectionTitle(l10n.settingsSectionSupport),
+                    const SizedBox(height: AppSpacing.lg),
+                    _DesktopHoverAction(
+                      icon: Icons.auto_awesome_rounded,
+                      title: l10n.settingsRecommendAppTitle,
+                      desc: l10n.settingsRecommendAppDesc,
+                      onTap: () => TiyatrolDeeplinkService.shareApp(),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _DesktopHoverAction(
+                      icon: Icons.send_rounded,
+                      title: l10n.settingsShareWithFriendsTitle,
+                      desc: l10n.settingsShareWithFriendsDesc,
+                      onTap: () => _shareApp(context),
+                    ),
+
+                    const SizedBox(height: AppSpacing.massive),
+                    Center(
+                      child: Text(
+                        l10n.settingsVersionFooter,
+                        style: const TextStyle(
+                          color: WebColors.textTertiary,
+                          fontSize: 12,
+                          letterSpacing: 2,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const Footer(),
-          ],
-        ),
-      );
+          ),
+          const Footer(),
+        ],
+      ),
+    );
   }
 
   Widget _buildDesktopSectionTitle(final String title) => Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           color: WebColors.primaryGoldLight,
-          letterSpacing: 2,
+          letterSpacing: 2.5,
           fontWeight: FontWeight.w900,
-          fontSize: 12,
+          fontSize: 13,
         ),
       );
 }
 
-/// Masaüstü ayar satırı — fareyle üzerine gelindiğinde ("Sahne Köşesi"
-/// imzası `AppRadius.asymSm` ile) hafifçe parlar. `TheatreShowCard`'daki
-/// aynı hover diliyle (`AppMotion.fast` + `AppShadows`) tutarlı.
 class _DesktopHoverTile extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -796,37 +812,47 @@ class _DesktopHoverTileState extends State<_DesktopHoverTile> {
                 borderRadius: AppRadius.asymSm,
                 border: Border.all(
                   color: _hovered
-                      ? WebColors.primaryGold.withOpacity(0.8)
-                      : WebColors.darkBlueAccent.withOpacity(0.8),
-                  width: 1,
+                      ? WebColors.primaryGold.withOpacity(0.9)
+                      : WebColors.darkBlueAccent.withOpacity(0.9),
+                  width: 1.5,
                 ),
                 boxShadow: _hovered
-                    ? AppShadows.level2(WebColors.primaryGold)
-                    : AppShadows.level0,
+                    ? AppShadows.level3(WebColors.primaryGold)
+                    : AppShadows.level1(WebColors.darkBlueBackground),
               ),
               child: Row(
                 children: [
-                  Icon(widget.icon, color: WebColors.primaryGold, size: 22),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: WebColors.primaryGold.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(widget.icon,
+                        color: WebColors.primaryGold, size: 22),
+                  ),
                   const SizedBox(width: AppSpacing.lg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 color: WebColors.whiteText,
                                 fontWeight: FontWeight.w800,
-                                fontSize: 14)),
-                        const SizedBox(height: AppSpacing.xs),
+                                fontSize: 15)),
+                        const SizedBox(height: 3),
                         Text(widget.subtitle,
-                            style: TextStyle(
-                                color: WebColors.textSecondary,
-                                fontSize: 12)),
+                            style: const TextStyle(
+                                color: WebColors.textSecondary, fontSize: 13)),
                       ],
                     ),
                   ),
                   Icon(Icons.chevron_right_rounded,
-                      color: WebColors.textTertiary, size: 20),
+                      color: _hovered
+                          ? WebColors.primaryGold
+                          : WebColors.textTertiary,
+                      size: 22),
                 ],
               ),
             ),
@@ -835,8 +861,6 @@ class _DesktopHoverTileState extends State<_DesktopHoverTile> {
       );
 }
 
-/// Masaüstü "önerilen aksiyon" kartı — büyük ölçekli "Sahne Köşesi"
-/// (`AppRadius.asymLg`) ve hover'da `AppShadows.level3` ile yükselir.
 class _DesktopHoverAction extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -880,26 +904,35 @@ class _DesktopHoverActionState extends State<_DesktopHoverAction> {
               ),
               child: Row(
                 children: [
-                  Icon(widget.icon, color: WebColors.whiteText, size: 26),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child:
+                        Icon(widget.icon, color: WebColors.whiteText, size: 26),
+                  ),
                   const SizedBox(width: AppSpacing.lg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 color: WebColors.whiteText,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 15)),
+                                fontSize: 16)),
+                        const SizedBox(height: 3),
                         Text(widget.desc,
                             style: TextStyle(
                                 color: WebColors.whiteText.withOpacity(0.85),
-                                fontSize: 12)),
+                                fontSize: 13)),
                       ],
                     ),
                   ),
                   Icon(Icons.open_in_new_rounded,
-                      color: WebColors.whiteText.withOpacity(0.7), size: 18),
+                      color: WebColors.whiteText.withOpacity(0.8), size: 18),
                 ],
               ),
             ),
@@ -908,11 +941,6 @@ class _DesktopHoverActionState extends State<_DesktopHoverAction> {
       );
 }
 
-/// Masaüstü "Uygulama Dili" satırı — `_DesktopHoverTile` ile aynı kart
-/// dilini taşır ama chevron yerine seçili dili vurgulayan iki pill buton
-/// gösterir; dokununca `localeControllerProvider` üzerinden gerçekten dil
-/// değiştirir (`onSelect` callback'i `app_settings.dart`'taki
-/// `_buildDesktopPage`'den geliyor).
 class _DesktopLanguageTile extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -939,12 +967,20 @@ class _DesktopLanguageTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: WebColors.darkBlueSurface,
             borderRadius: AppRadius.asymSm,
-            border: Border.all(color: WebColors.darkBlueAccent.withOpacity(0.8)),
+            border:
+                Border.all(color: WebColors.darkBlueAccent.withOpacity(0.9)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.translate_rounded,
-                  color: WebColors.primaryGold, size: 22),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: WebColors.primaryGold.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.translate_rounded,
+                    color: WebColors.primaryGold, size: 22),
+              ),
               const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
@@ -954,11 +990,11 @@ class _DesktopLanguageTile extends StatelessWidget {
                         style: const TextStyle(
                             color: WebColors.whiteText,
                             fontWeight: FontWeight.w800,
-                            fontSize: 14)),
-                    const SizedBox(height: AppSpacing.xs),
+                            fontSize: 15)),
+                    const SizedBox(height: 3),
                     Text(subtitle,
                         style: const TextStyle(
-                            color: WebColors.textSecondary, fontSize: 12)),
+                            color: WebColors.textSecondary, fontSize: 13)),
                   ],
                 ),
               ),
@@ -991,8 +1027,7 @@ class _DesktopLanguageOption extends StatefulWidget {
   });
 
   @override
-  State<_DesktopLanguageOption> createState() =>
-      _DesktopLanguageOptionState();
+  State<_DesktopLanguageOption> createState() => _DesktopLanguageOptionState();
 }
 
 class _DesktopLanguageOptionState extends State<_DesktopLanguageOption> {
@@ -1013,18 +1048,21 @@ class _DesktopLanguageOptionState extends State<_DesktopLanguageOption> {
               duration: AppMotion.fast,
               curve: AppMotion.standard,
               padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                  horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 gradient: widget.isSelected ? WebColors.goldGradient : null,
                 color: widget.isSelected
                     ? null
                     : (_hovered
-                        ? WebColors.darkBlueAccent.withOpacity(0.6)
+                        ? WebColors.darkBlueAccent.withOpacity(0.8)
                         : Colors.transparent),
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: widget.isSelected
                     ? null
-                    : Border.all(color: WebColors.darkBlueAccent, width: 1),
+                    : Border.all(color: WebColors.darkBlueAccent, width: 1.5),
+                boxShadow: widget.isSelected
+                    ? AppShadows.level2(WebColors.primaryGold)
+                    : null,
               ),
               child: Text(
                 widget.label,
@@ -1033,7 +1071,7 @@ class _DesktopLanguageOptionState extends State<_DesktopLanguageOption> {
                       ? WebColors.veryDarkBlue
                       : WebColors.whiteText,
                   fontWeight: FontWeight.w700,
-                  fontSize: 12,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -1042,19 +1080,6 @@ class _DesktopLanguageOptionState extends State<_DesktopLanguageOption> {
       );
 }
 
-/// 🔥 DÜZELTME: Mobil sayfanın en tepesi önceden `BasePageWrapper`'ın
-/// PAYLAŞILAN, jenerik `TopHeaderWithBackButton`'ıydı — uygulamadaki
-/// redesign edilmemiş HER sayfada birebir aynı görünen bir ShaderMask
-/// serif başlık. Kullanıcı bunu özellikle "settings ... en üst tasarımı
-/// aşırı iğrenç" diye işaretledi. `login_screen.dart`/`profile_page.dart`
-/// gibi zaten redesign edilmiş sayfalar bu paylaşılan başlığı hiç
-/// kullanmıyor, kendi kimliklerini kuruyor — ayarlar sayfası da aynı yolu
-/// izliyor: spot ışığı gölgeli ikon rozeti + küçük harfli "SAHNE ARKASI"
-/// kicker'ı (bu sayfanın izin/görünüm/dil kontrollerini bir tiyatronun
-/// "sahne arkası" kontrol odası gibi çerçeveleyen, uygulamanın kendi
-/// metaforuna sadık bir isimlendirme) + büyük Playfair Display başlık +
-/// ince vurgu çizgisi + alt başlık. Aynı tipografi hiyerarşisi
-/// `AuthHeadlineBlock`/profil hero kimliğinde de kullanılıyor.
 class _SettingsHeroHeader extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -1070,14 +1095,15 @@ class _SettingsHeroHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: colors.primary.withOpacity(0.14),
               shape: BoxShape.circle,
               boxShadow: AppShadows.level2(colors.primary),
             ),
-            child: Icon(Icons.tune_rounded, color: colors.primary, size: 24),
+            child: Icon(Icons.theater_comedy_rounded,
+                color: colors.primary, size: 28),
           ),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
@@ -1085,10 +1111,10 @@ class _SettingsHeroHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'SAHNE ARKASI',
+                  'SAHNE KULİSİ & YÖNETİM MERKEZİ',
                   style: TextStyle(
                     color: colors.primary,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: 2.5,
                     fontSize: 11,
                   ),
@@ -1100,14 +1126,14 @@ class _SettingsHeroHeader extends StatelessWidget {
                     textStyle: TextStyle(
                       color: colors.onSurface,
                       fontWeight: FontWeight.w700,
-                      fontSize: 26,
+                      fontSize: 28,
                       height: 1.05,
                     ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Container(
-                  width: 40,
+                  width: 48,
                   height: 3,
                   decoration: BoxDecoration(
                     color: colors.primary,
@@ -1118,8 +1144,8 @@ class _SettingsHeroHeader extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: colors.onSurface.withOpacity(0.6),
-                    fontSize: 13,
+                    color: colors.onSurface.withOpacity(0.65),
+                    fontSize: 13.5,
                     height: 1.4,
                   ),
                 ),

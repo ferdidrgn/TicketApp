@@ -150,3 +150,5 @@ fastlane/screenshots
 fastlane/test_output
 node_modules/
 .pnpm-store/
+# Widget Preview related
+.widget_preview/

@@ -14,7 +14,7 @@ import '../util/platform_checker.dart';
 import 'firebase_options.dart';
 
 abstract final class AppInitializer {
-  static Future<void> init(WidgetsBinding binding) async {
+  static Future<void> init(final WidgetsBinding binding) async {
     // 1. Web URL Stratejisi
     if (PlatformChecker.isWeb) {
       usePathUrlStrategy();

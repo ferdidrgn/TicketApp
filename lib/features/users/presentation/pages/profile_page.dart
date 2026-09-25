@@ -10,11 +10,9 @@ import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
-import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
-import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/card/theme_selector_card.dart';
@@ -39,9 +37,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ProfilePhoneLinkHandler,
         ProfileGoogleLinkHandler,
         GlobalScrollMixin {
-  // Gölgeler ve renkler için getter'lar tanımlayarak metot parametrelerini azalttık.
-  // Tema paletindeki `surface`/`shadow` tonlarından türetilir — ham
-  // `Colors.grey`/`Colors.black` yok.
   Color get _lightShadow => context.isDarkMode
       ? context.colors.onSurface.withOpacity(0.08)
       : context.colors.surface;
@@ -52,16 +47,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   Color get _bgColor => context.colors.surface;
 
-  // Sahne fotoğrafı — `home_page_web.dart`'taki `_HeroBackdropPhoto` ile
-  // AYNI, doğrulanmış Unsplash hotlink'i (misafir hero'sunun arkaplanı,
-  // giriş yapılmış kullanıcı için kendi `user.imageUrl`'i kullanılır).
-  // Aynı görsel iki hero anında da kullanılarak marka dili tutarlı kalıyor.
   static const String _stageBackdropUrl =
-      'https://images.unsplash.com/photo-1503095396549-807759245b35'
-      '?auto=format&fit=crop&w=1600&q=80';
+      'https://images.unsplash.com/photo-1514525253161-7a46d19cd819'
+      '?auto=format&fit=crop&w=1800&q=85';
 
-  // Hero'nun bir kereye mahsus giriş animasyonu — `_HeroBandState` ile
-  // aynı teknik (fade + hafif kayma).
   late final AnimationController _heroEntranceController = AnimationController(
     vsync: this,
     duration: AppMotion.normal,
@@ -70,21 +59,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Animation<double> get _heroFade => CurvedAnimation(
       parent: _heroEntranceController, curve: AppMotion.standard);
 
-  // 🎨 Masaüstü zemin parçacıkları — show_detail_page_web.dart'taki
-  // `_BackgroundParticles` ile aynı teknik (yavaş, sinüs dalgalı, sahne
-  // tozu hissi veren noktalar). Profil sayfası önceden düz tek renk bir
-  // zemin üzerinde duran, sayfanın geri kalanına göre "yarım kalmış"
-  // hisseden tek web sayfasıydı — bu, diğer detay sayfalarıyla aynı
-  // atmosferi kurar.
   late final AnimationController _particlesController = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 3),
   )..repeat(reverse: true);
 
-  /// `User.createdAt` Sanity'den ISO8601 string olarak gelir
-  /// (`DateFormatter.parseDateString` bunu zaten ISO8601 düşüşüyle
-  /// anlıyor). Ayrıştırılamazsa sessizce null döner — asla uydurma bir
-  /// tarih gösterilmez.
   String? _memberSinceLabel(final String createdAt) {
     final date = DateFormatter.parseDateString(createdAt);
     if (date == null) return null;
@@ -105,8 +84,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget build(final BuildContext context) {
     final userProfileAsync = ref.watch(userProfileProvider);
 
-    // 🖥️ Masaüstü/web: mobil zırhı (gradient başlık, FAB, parçacık
-    // arkaplanı) tamamen atlanır, kendi sade web kabuğu kullanılır.
     if (context.isDesktop) {
       return _buildDesktopPage(context, userProfileAsync);
     }
@@ -142,28 +119,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                             sliver: SliverList(
                               delegate: SliverChildListDelegate([
                                 const SizedBox(height: AppSpacing.lg),
-                                // 🔥 DÜZELTME: Kullanıcı önceki geçişten
-                                // sonra bile sayfanın "en üst"ünü kötü
-                                // buldu — bakınca sebebi net: hero'nun
-                                // ÜSTÜNDE gerçekten hiçbir şey yoktu
-                                // (`BasePageWrapper`'a title/subtitle hiç
-                                // verilmiyor, `TopHeaderWithBackButton`
-                                // boş dönüyor), kullanıcı direkt devasa
-                                // bir fotoğrafın içine düşüyordu. Diğer
-                                // hero'lu sayfalardaki (`AuthHeadlineBlock`
-                                // kicker'ı) dille aynı, sade bir üst
-                                // başlık ekliyoruz — aşağıdaki
-                                // GÖRÜNÜM/GEÇMİŞİM/PROFİLİM bölüm
-                                // etiketleriyle (`_buildSectionLabel`,
-                                // ikon rozetli) KARIŞMASIN diye bilinçli
-                                // olarak daha sade (rozetsiz, tek satır)
-                                // tutuldu.
                                 _buildPageKicker(),
                                 const SizedBox(height: AppSpacing.md),
                                 _buildHeroSection(isLoggedIn, userData),
-
                                 const SizedBox(height: AppSpacing.huge),
-
                                 _buildSectionLabel(
                                     "GÖRÜNÜM", Icons.palette_rounded),
                                 const ThemeSelectorCard(),
@@ -177,9 +136,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   onTap: () =>
                                       NavigationHandler.goToSettings(context),
                                 ),
-
                                 const SizedBox(height: AppSpacing.huge),
-
                                 _buildSectionLabel(
                                     "GEÇMİŞİM", Icons.history_edu_rounded),
                                 _buildSculptedTile(
@@ -203,9 +160,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   onTap: () =>
                                       NavigationHandler.goToFavorites(context),
                                 ),
-
                                 const SizedBox(height: AppSpacing.huge),
-
                                 _buildSectionLabel(
                                     "PROFİLİM", Icons.person_rounded),
                                 _buildSculptedTile(
@@ -228,11 +183,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                       NavigationHandler.goToHelpSupport(
                                           context),
                                 ),
-
                                 const SizedBox(height: AppSpacing.huge),
-
-                                _buildSectionLabel("YASAL YÜKÜMLÜLÜKLER",
-                                    Icons.gavel_rounded),
+                                _buildSectionLabel(
+                                    "YASAL YÜKÜMLÜLÜKLER", Icons.gavel_rounded),
                                 _buildSculptedTile(
                                   icon: Icons.gavel_rounded,
                                   title: 'Yasal Bilgiler',
@@ -242,7 +195,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   onTap: () =>
                                       NavigationHandler.goToContracts(context),
                                 ),
-
                                 if (isLoggedIn) ...[
                                   const SizedBox(height: AppSpacing.huge),
                                   _buildSectionLabel("HESAP İŞLEMLERİ",
@@ -250,8 +202,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   _buildSculptedTile(
                                     icon: Icons.logout_rounded,
                                     title: 'Çıkış Yap',
-                                    subtitle:
-                                        'Hesabından güvenle çıkış yap',
+                                    subtitle: 'Hesabından güvenle çıkış yap',
                                     color: Colors.orange.shade800,
                                     onTap: () =>
                                         showSignOutDialog(context, ref),
@@ -267,10 +218,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                         context, ref, userData.id),
                                   ),
                                 ],
-
                                 _buildSoulReflection(),
                                 const SizedBox(height: 120),
-                                // Scroll rahatlığı için pay
                               ]),
                             ),
                           ),
@@ -279,10 +228,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             }));
   }
 
-  // --- MODÜLER YARDIMCI METOTLAR (Parametresiz ve Optimize) ---
-
-  /// Hero'nun bile üstünde oturan, sayfayı tanıtan minik üst başlık —
-  /// bkz. yukarıdaki 🔥 DÜZELTME yorumu.
   Widget _buildPageKicker() => Row(
         children: [
           Container(height: 2, width: 18, color: context.colors.primary),
@@ -299,10 +244,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ],
       );
 
-  /// Hero kimlik bloğundaki istatistikler (BİLET/OYUN/SANATÇI) arasına
-  /// giren ince ayraç — bir "playbill" kadro listesindeki gibi bölünmüş
-  /// bir kayıt hissi versin diye düz `SizedBox` boşluğunun yerine geçti.
-  /// Hem mobil hem masaüstü hero kimliğinde (aynı sınıf) paylaşılıyor.
   Widget _buildStatDivider() => Container(
         width: 1,
         height: 26,
@@ -328,9 +269,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             borderRadius: BorderRadius.circular(AppRadius.lg),
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              onTap: isLocked
-                  ? () => NavigationHandler.goToLogin(context)
-                  : onTap,
+              onTap:
+                  isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.xl),
                 decoration: _neuBox(borderRadius: AppRadius.lg),
@@ -357,8 +297,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           Text(subtitle,
                               style: TextStyle(
                                   fontSize: 12,
-                                  color: context.colors.onSurface
-                                      .withOpacity(0.7),
+                                  color:
+                                      context.colors.onSurface.withOpacity(0.7),
                                   fontWeight: FontWeight.w500)),
                         ],
                       ),
@@ -377,43 +317,115 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  // --- 🎬 MOBİL HERO — tam boy fotoğraf + karartma + üzerine gerçek
-  // veriyle iğnelenmiş kimlik kartı. Teknik `home_page_web.dart`'taki
-  // `_HeroBand`/`_HeroBackdropPhoto` ile AYNI: gerçek bir fotoğraf zemini
-  // (giriş yapılmışsa kullanıcının kendi `user.imageUrl`'i, misafirse
-  // `_stageBackdropUrl`), üzerine metnin her zaman okunur kalmasını
-  // sağlayan bir karartma (scrim) ve onun üstünde gerçek verilerle
-  // (ad, şehir, üyelik tarihi, bilet/favori sayıları) kurulu bir kimlik
-  // bloğu. Uydurma istatistik YOK — hepsi `entity.User` alanlarından.
-  Widget _buildHeroSection(
-          final bool isLoggedIn, final entity.User? user) =>
+// --- 🎭 ÇOK DAHA CAFCASLI, CANLI VE IŞIKLI MOBİL HERO ---
+  Widget _buildHeroSection(final bool isLoggedIn, final entity.User? user) =>
       FadeTransition(
         opacity: _heroFade,
         child: SlideTransition(
-          position: _heroFade.drive(
-              Tween(begin: const Offset(0, 0.04), end: Offset.zero)),
+          position: _heroFade
+              .drive(Tween(begin: const Offset(0, 0.04), end: Offset.zero)),
           child: Container(
-            height: isLoggedIn && user != null ? 440 : 400,
+            height: isLoggedIn && user != null ? 480 : 440,
             decoration: BoxDecoration(
-              borderRadius: AppRadius.asymLg,
-              boxShadow: AppShadows.level5(
-                  context.isDarkMode ? Colors.black : context.colors.shadow),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.25),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: context.colors.primary.withOpacity(0.4),
+                  blurRadius: 30,
+                  offset: const Offset(0, 12),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: ClipRRect(
-              borderRadius: AppRadius.asymLg,
+              borderRadius: BorderRadius.circular(28),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   _buildHeroBackdrop(
                       isLoggedIn && user != null ? user.imageUrl : null),
                   _buildHeroScrim(),
+                  // Üst Sağ Neon Işık Süzmesi (Dramatik Sahne Efekti)
+                  Positioned(
+                    top: -50,
+                    right: -50,
+                    child: Container(
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: context.colors.primary.withOpacity(0.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: context.colors.primary.withOpacity(0.8),
+                            blurRadius: 90,
+                            spreadRadius: 30,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Sol Alt - Temaya Duyarlı Dinamik Sanatsal Parıltı (Pembe yerine secondary/gold uyumlu)
+                  Positioned(
+                    bottom: -30,
+                    left: -30,
+                    child: Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: context.colors.secondary.withOpacity(0.25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: context.colors.secondary.withOpacity(0.35),
+                            blurRadius: 70,
+                            spreadRadius: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Cam Efektli (Glassmorphism) Alt Kart Taşıyıcısı
                   Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: isLoggedIn && user != null
-                          ? _buildHeroIdentityContent(user)
-                          : _buildHeroGuestContent(),
+                      alignment: Alignment.bottomCenter,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                          child: Container(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.55),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 1,
+                              ),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withOpacity(0.18),
+                                  Colors.black.withOpacity(0.4),
+                                ],
+                              ),
+                            ),
+                            child: isLoggedIn && user != null
+                                ? _buildHeroIdentityContent(user)
+                                : _buildHeroGuestContent(),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -423,45 +435,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  /// Fotoğraf zemini — giriş yapılmışsa kullanıcının kendi fotoğrafı
-  /// (bulanıklaştırılmış, tüm hero'yu dolduran bir atmosfer olarak),
-  /// misafirse sabit bir sahne fotoğrafı. Ağ hatasında sessizce yüzey
-  /// rengine düşer, asla kırık görsel göstermez.
   Widget _buildHeroBackdrop(final String? userPhotoUrl) {
-    final String url =
-        (userPhotoUrl != null && userPhotoUrl.isNotEmpty)
-            ? userPhotoUrl
-            : _stageBackdropUrl;
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-      child: Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (final _, final __, final ___) =>
-            ColoredBox(color: context.colors.surfaceVariant),
-        loadingBuilder: (final _, final child, final progress) =>
-            progress == null
-                ? child
-                : ColoredBox(color: context.colors.surfaceVariant),
-      ),
+    final String url = (userPhotoUrl != null && userPhotoUrl.isNotEmpty)
+        ? userPhotoUrl
+        : _stageBackdropUrl;
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (final _, final __, final ___) =>
+          ColoredBox(color: context.colors.surfaceVariant),
+      loadingBuilder: (final _, final child, final progress) => progress == null
+          ? child
+          : ColoredBox(color: context.colors.surfaceVariant),
     );
   }
 
-  /// Metnin fotoğrafın üzerinde her zaman okunur kalmasını sağlayan
-  /// karartma. Bilerek AÇIK temada bile koyu tutuluyor — altta sayfanın
-  /// kendi (açık temada neredeyse beyaz olan) zeminine erimesine izin
-  /// verilirse, üstündeki beyaz metin açık temada okunmaz hale gelirdi.
   Widget _buildHeroScrim() => DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withOpacity(0.70),
               Colors.black.withOpacity(0.40),
-              Colors.black.withOpacity(0.66),
+              Colors.black.withOpacity(0.65),
+              Colors.black.withOpacity(0.92),
             ],
-            stops: const [0.0, 0.45, 1.0],
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
       );
@@ -472,74 +471,106 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 🔥 DÜZELTME: Önceden ince, düz beyaz bir çerçeveydi — hero'nun
-        // geri kalanındaki gold/gradyan diliyle bağlantısızdı. Artık
-        // gerçek bir "spot ışığı" portre çerçevesi: `primary->secondary`
-        // gradyan halka (uygulamanın zaten `AuthActionButton`'da kullandığı
-        // AYNI gradyan, yeni bir renk icat edilmedi) + arkasında yumuşak
-        // bir glow (`AppShadows.level3`) — sahnedeki bir oyuncunun
-        // spot ışığı altında durması gibi.
-        Semantics(
-          image: true,
-          label: 'Profil fotoğrafı',
-          child: Container(
-            width: 84,
-            height: 84,
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [context.colors.primary, context.colors.secondary],
-              ),
-              boxShadow: AppShadows.level3(context.colors.primary),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(3),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              child: CircleAvatar(
-                backgroundColor: Colors.white.withOpacity(0.15),
-                backgroundImage: user.imageUrl.isNotEmpty
-                    ? NetworkImage(user.imageUrl)
-                    : null,
-                child: user.imageUrl.isEmpty
-                    ? const Icon(Icons.person_rounded, color: Colors.white)
-                    : null,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
         Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(height: 2, width: 22, color: Colors.white70),
-            const SizedBox(width: AppSpacing.sm),
-            Text('HOŞ GELDİN',
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                    letterSpacing: 3)),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [context.colors.primary, Colors.amberAccent],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.colors.primary.withOpacity(0.6),
+                        blurRadius: 15,
+                      )
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black,
+                  ),
+                ),
+                Semantics(
+                  image: true,
+                  label: 'Profil fotoğrafı',
+                  child: Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: user.imageUrl.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(user.imageUrl),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: user.imageUrl.isEmpty
+                        ? const Icon(Icons.person_rounded,
+                            color: Colors.white, size: 26)
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.amberAccent.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: Colors.amberAccent.withOpacity(0.5)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.auto_awesome,
+                            size: 10, color: Colors.amberAccent),
+                        SizedBox(width: 4),
+                        Text('VIP GALA ÜYESİ',
+                            style: TextStyle(
+                                color: Colors.amberAccent,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 9,
+                                letterSpacing: 1.5)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${user.firstName} ${user.lastName}'.trim(),
+                    style: GoogleFonts.playfairDisplay(
+                      textStyle: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 22,
+                          height: 1.1),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        Text(
-          '${user.firstName} ${user.lastName}'.trim(),
-          style: GoogleFonts.playfairDisplay(
-            textStyle: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 30,
-                height: 1.05),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
         Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: AppSpacing.sm,
+          spacing: AppSpacing.md,
           runSpacing: 4,
           children: [
             if (user.city.isNotEmpty)
@@ -549,14 +580,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   Icons.calendar_today_rounded, 'Üyelik: $memberSince'),
           ],
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: Divider(color: Colors.white24, height: 1),
+        ),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildStat(Icons.confirmation_number_rounded, 'BİLET',
                 '${user.ticketsId.length}'),
             _buildStatDivider(),
-            _buildStat(Icons.favorite_rounded, 'OYUN',
-                '${user.favoriteShows.length}'),
+            _buildStat(
+                Icons.favorite_rounded, 'OYUN', '${user.favoriteShows.length}'),
             _buildStatDivider(),
             _buildStat(Icons.star_rounded, 'SANATÇI',
                 '${user.favoritePlayers.length}'),
@@ -569,18 +604,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget _buildHeroMetaChip(final IconData icon, final String label) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: Colors.white70),
+          Icon(icon, size: 12, color: Colors.amberAccent),
           const SizedBox(width: 4),
           Text(label,
               style: const TextStyle(
                   color: Colors.white70,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600)),
         ],
       );
 
   Widget _buildHeroGuestContent() {
-    // Dark modda bile canlı kalacak renk seçimi
     final Color buttonColor = context.isDarkMode
         ? context.colors.primaryContainer
         : context.colors.primary;
@@ -592,55 +626,65 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(height: 2, width: 22, color: Colors.white70),
-            const SizedBox(width: AppSpacing.sm),
-            Text('PROFİLİN',
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                    letterSpacing: 3)),
-          ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: Colors.pinkAccent.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.pinkAccent.withOpacity(0.6)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.theater_comedy_rounded,
+                  size: 11, color: Colors.pinkAccent),
+              SizedBox(width: 5),
+              Text('İLK PERDE',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 9,
+                      letterSpacing: 2)),
+            ],
+          ),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.xs),
         Text(
-          'Henüz Giriş\nYapmadın',
+          'Sahne Senin\nİçin Hazır',
           style: GoogleFonts.playfairDisplay(
             textStyle: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
-                fontSize: 30,
-                height: 1.05),
+                fontSize: 26,
+                height: 1.1),
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        const SizedBox(
-          width: 280,
-          child: Text(
-            'Biletlerini, favori oyunlarını ve profilini görmek için giriş yap.',
-            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
-          ),
+        const SizedBox(height: AppSpacing.xs),
+        const Text(
+          'Biletlerini, favori oyunlarını ve profilini yönetmek için hemen giriş yap.',
+          style: TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.4),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        Semantics(
-          button: true,
-          label: 'Giriş yap',
-          child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(200, 52),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md)),
-                elevation: 0,
-                backgroundColor: buttonColor,
-                foregroundColor: buttonTextColor,
-              ),
-              onPressed: () => NavigationHandler.goToLogin(context),
-              child: const Text('Giriş Yap',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, letterSpacing: 0.5))),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          width: double.infinity,
+          child: Semantics(
+            button: true,
+            label: 'Giriş yap',
+            child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 44),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
+                  elevation: 6,
+                  shadowColor: buttonColor.withOpacity(0.6),
+                  backgroundColor: buttonColor,
+                  foregroundColor: buttonTextColor,
+                ),
+                onPressed: () => NavigationHandler.goToLogin(context),
+                child: const Text('Giriş Yap',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, letterSpacing: 0.5))),
+          ),
         ),
       ],
     );
@@ -648,33 +692,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   Widget _buildStat(
           final IconData icon, final String label, final String value) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: Colors.white70),
-            const SizedBox(width: 4),
+            Icon(icon, size: 13, color: Colors.amberAccent),
+            const SizedBox(width: 3),
             Text(value,
                 style: const TextStyle(
                     fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                    fontSize: 15,
                     color: Colors.white)),
           ],
         ),
+        const SizedBox(height: 2),
         Text(label,
             style: TextStyle(
-                fontSize: 10,
+                fontSize: 9,
                 color: Colors.white.withOpacity(0.7),
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2)),
       ]);
 
-  /// 🔥 DÜZELTME: Önceden sadece küçük, harcanmış bir altın/bordo metindi —
-  /// sayfanın geri kalanı (hero, döşemeler) görsel ağırlık taşırken bu
-  /// başlıklar "unutulmuş" gibi duruyordu. Artık masaüstündeki
-  /// `_buildDesktopSectionLabel` ile aynı dilde: ikon rozeti + başlık +
-  /// sağa doğru solan ince bir vurgu çizgisi — mobilin kendi Material
-  /// temasına (context.colors) uyarlanmış hâli.
   Widget _buildSectionLabel(final String text, final IconData icon) => Padding(
         padding: const EdgeInsets.only(
             left: AppSpacing.xs, bottom: AppSpacing.lg, top: AppSpacing.sm),
@@ -770,9 +809,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  // --- 🖥️ MASAÜSTÜ / WEB KABUĞU ---
-  // Aynı provider verisi, aynı navigasyon/sign-out/delete akışları; sadece
-  // mobil "neumorphic" kabuğun yerini sade, WebColors temalı bir kabuk alır.
   Widget _buildDesktopPage(
     final BuildContext context,
     final AsyncValue<entity.User?> userProfileAsync,
@@ -798,8 +834,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   padding: EdgeInsets.zero,
                   physics: const BouncingScrollPhysics(),
                   children: [
-                    // 🔥 Hero artık 980px'lik sütunun DIŞINDA — tam
-                    // genişlikte, kenardan kenara akan bir banner.
                     _buildDesktopHero(context, userData, isLoggedIn),
                     Center(
                       child: ConstrainedBox(
@@ -869,8 +903,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                   icon: Icons.help_outline_rounded,
                                   title: 'Yardım ve Destek',
                                   subtitle: 'Sorularına hızlıca cevap bul',
-                                  onTap: () => NavigationHandler
-                                      .goToHelpSupport(context),
+                                  onTap: () =>
+                                      NavigationHandler.goToHelpSupport(
+                                          context),
                                 ),
                               ]),
                               const SizedBox(height: AppSpacing.huge),
@@ -928,10 +963,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  /// İki döşemeli (Biletlerim/Favorilerim gibi) bölümleri masaüstünde yan
-  /// yana yerleştirir — önceden hepsi tek sütunda alt alta dizilip 980px'lik
-  /// içerik genişliğinin çoğu boş kalıyordu. Tek döşemeli bölümler (Ayarlar,
-  /// Yasal Bilgiler) olduğu gibi tam genişlikte kalır.
   Widget _buildDesktopTileGrid(final List<Widget> tiles) {
     if (tiles.length == 1) return tiles.first;
     return Row(
@@ -945,28 +976,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // --- 🎬 MASAÜSTÜ HERO — `home_page_web.dart`'taki `_HeroBand`/
-  // `_HeroBackdropPhoto` ile AYNI teknik: tam boy gerçek fotoğraf zemini +
-  // çift yönlü karartma + üzerine gerçek kullanıcı verisiyle kurulu bir
-  // kimlik bloğu. Giriş yapılmışsa zemin kullanıcının kendi fotoğrafı,
-  // misafirse `_stageBackdropUrl` (home hero'suyla AYNI, doğrulanmış
-  // Unsplash görseli — marka dili tutarlı kalsın diye).
-  /// 🔥 DÜZELTME: Önceden 980px'lik içerik sütununun İÇİNDE, yuvarlak
-  /// köşeli, 360-380px yükseklikte küçük bir kart olarak duruyordu —
-  /// "tam ekran görsel kaplasın, yatay olarak" isteğiyle uyuşmuyordu ve
-  /// arkaplan fotoğrafı ağır bulanıklaştırma (sigma 26) yüzünden neredeyse
-  /// soyut bir renk lekesine dönüşüyordu. Artık ekranın tam genişliğinde
-  /// (viewport kenarından kenarına) akan, çok daha uzun boylu, NET
-  /// (bulanıksız) bir fotoğraf banner'ı — `TeamHeroWeb`/`ShowDetailHero`
-  /// ile aynı "tam ekran sahne" dili. İçerik (isim/CTA) yine okunabilir
-  /// genişlikte (1400px) ortalanıyor, ama fotoğrafın kendisi kenarlara
-  /// kadar uzanıyor. `_buildDesktopPage` artık bunu 980px'lik sütunun
-  /// DIŞINDA, doğrudan ListView'in tam genişlikte bir çocuğu olarak
-  /// yerleştiriyor.
-  Widget _buildDesktopHero(final BuildContext context,
-          final entity.User? user, final bool isLoggedIn) =>
+  // --- 🌟 MASAÜSTÜ İÇİN CAFCASLI & CANLI GALA HERO ---
+  Widget _buildDesktopHero(final BuildContext context, final entity.User? user,
+          final bool isLoggedIn) =>
       SizedBox(
-        height: isLoggedIn && user != null ? 640 : 600,
+        height: isLoggedIn && user != null ? 660 : 620,
         width: double.infinity,
         child: Stack(
           fit: StackFit.expand,
@@ -974,15 +988,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             _buildDesktopHeroBackdrop(
                 isLoggedIn && user != null ? user.imageUrl : null),
             _buildDesktopHeroScrim(),
-            // Sahne spotu — TeamHeroWeb'deki ile aynı yumuşak ışık huzmesi,
-            // düz bir fotoğrafın "yassı" durmasını önler.
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
-                  center: Alignment(0, -0.5),
-                  radius: 1.2,
+                  center: Alignment(0, -0.4),
+                  radius: 1.3,
                   colors: [
-                    Color(0x1AE8B84B), // primaryGold @ ~10%
+                    Color(0x55E8B84B),
                     Colors.transparent,
                   ],
                 ),
@@ -1008,10 +1020,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  /// Mobil `_buildHeroBackdrop` ile AYNI kaynak fotoğraf, ama artık
-  /// bulanıklaştırılmıyor — tam ekran bir banner'da net bir fotoğraf çok
-  /// daha etkileyici duruyor, metin okunabilirliği zaten `_buildDesktopHeroScrim`
-  /// ile sağlanıyor.
   Widget _buildDesktopHeroBackdrop(final String? userPhotoUrl) {
     final String url = (userPhotoUrl != null && userPhotoUrl.isNotEmpty)
         ? userPhotoUrl
@@ -1021,10 +1029,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       fit: BoxFit.cover,
       errorBuilder: (final _, final __, final ___) =>
           const ColoredBox(color: WebColors.darkBlueSurface),
-      loadingBuilder: (final _, final child, final progress) =>
-          progress == null
-              ? child
-              : const ColoredBox(color: WebColors.darkBlueSurface),
+      loadingBuilder: (final _, final child, final progress) => progress == null
+          ? child
+          : const ColoredBox(color: WebColors.darkBlueSurface),
     );
   }
 
@@ -1034,9 +1041,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withOpacity(0.72),
-              Colors.black.withOpacity(0.32),
-              WebColors.darkBlueBackground.withOpacity(0.94),
+              Colors.black.withOpacity(0.75),
+              Colors.black.withOpacity(0.35),
+              WebColors.darkBlueBackground.withOpacity(0.96),
             ],
             stops: const [0.0, 0.55, 1.0],
           ),
@@ -1052,12 +1059,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(height: 2, width: 26, color: WebColors.primaryGold),
+            Container(height: 3, width: 30, color: WebColors.primaryGold),
             const SizedBox(width: AppSpacing.sm),
-            const Text('HOŞ GELDİN',
+            const Text('GALA PREMİER LOUNGE',
                 style: TextStyle(
                     color: WebColors.primaryGoldLight,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     fontSize: 12,
                     letterSpacing: 3)),
           ],
@@ -1069,14 +1076,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             textStyle: const TextStyle(
                 color: WebColors.whiteText,
                 fontWeight: FontWeight.w700,
-                fontSize: 38,
+                fontSize: 44,
                 height: 1.05),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: AppSpacing.lg,
+          spacing: AppSpacing.xl,
           runSpacing: 4,
           children: [
             if (user.city.isNotEmpty)
@@ -1092,8 +1099,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             _buildDesktopStat(Icons.confirmation_number_rounded, 'BİLET',
                 '${user.ticketsId.length}'),
             _buildStatDivider(),
-            _buildDesktopStat(Icons.favorite_rounded, 'OYUN',
-                '${user.favoriteShows.length}'),
+            _buildDesktopStat(
+                Icons.favorite_rounded, 'OYUN', '${user.favoriteShows.length}'),
             _buildStatDivider(),
             _buildDesktopStat(Icons.star_rounded, 'SANATÇI',
                 '${user.favoritePlayers.length}'),
@@ -1107,8 +1114,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: WebColors.textSecondary),
-          const SizedBox(width: 4),
+          Icon(icon, size: 15, color: WebColors.primaryGoldLight),
+          const SizedBox(width: 5),
           Text(label,
               style: const TextStyle(
                   color: WebColors.textSecondary,
@@ -1125,22 +1132,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 15, color: WebColors.primaryGoldLight),
-              const SizedBox(width: 4),
+              Icon(icon, size: 16, color: WebColors.primaryGoldLight),
+              const SizedBox(width: 5),
               Text(value,
                   style: const TextStyle(
                       color: WebColors.whiteText,
                       fontWeight: FontWeight.w900,
-                      fontSize: 20)),
+                      fontSize: 22)),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(label,
               style: const TextStyle(
                   color: WebColors.textTertiary,
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1)),
+                  letterSpacing: 1.2)),
         ],
       );
 
@@ -1151,40 +1158,40 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(height: 2, width: 26, color: WebColors.primaryGold),
+              Container(height: 3, width: 30, color: WebColors.primaryGold),
               const SizedBox(width: AppSpacing.sm),
-              const Text('PROFİLİN',
+              const Text('İLK PERDE',
                   style: TextStyle(
                       color: WebColors.primaryGoldLight,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 12,
                       letterSpacing: 3)),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Henüz Giriş Yapmadın',
+            'Sahne Senin İçin Hazır',
             style: GoogleFonts.playfairDisplay(
               textStyle: const TextStyle(
                   color: WebColors.whiteText,
                   fontWeight: FontWeight.w700,
-                  fontSize: 34,
+                  fontSize: 40,
                   height: 1.1),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           const SizedBox(
-            width: 380,
+            width: 420,
             child: Text(
-              'Biletlerini, favori oyunlarını ve profilini görmek için giriş yap.',
+              'Biletlerini, favori oyunlarını ve sahnede yerini almak için hemen giriş yap.',
               style: TextStyle(
                   color: WebColors.textSecondary, fontSize: 14, height: 1.5),
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
           SizedBox(
-            width: 220,
-            height: 50,
+            width: 230,
+            height: 52,
             child: Semantics(
               button: true,
               label: 'Giriş yap',
@@ -1192,24 +1199,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 style: ElevatedButton.styleFrom(
                   shape: const RoundedRectangleBorder(
                       borderRadius: AppRadius.asymSm),
-                  elevation: 0,
+                  elevation: 4,
                   backgroundColor: WebColors.primaryGold,
                   foregroundColor: WebColors.whiteText,
                 ),
                 onPressed: () => NavigationHandler.goToLogin(context),
                 child: const Text('Giriş Yap',
                     style: TextStyle(
-                        fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        letterSpacing: 0.5)),
               ),
             ),
           ),
         ],
       );
 
-  /// 🔥 DÜZELTME: Önceden sadece küçük altın renkli bir metindi — sayfanın
-  /// geri kalanına (show/team detay sayfalarındaki ikon rozetli, gradyan
-  /// çizgili `_SectionTitle` dili) göre "yarım kalmış" duruyordu. Artık
-  /// aynı dili kullanıyor: ikon rozeti + başlık + sağa doğru solan çizgi.
   Widget _buildDesktopSectionLabel(final String text, final IconData icon) =>
       Row(
         children: [
@@ -1224,8 +1229,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     blurRadius: 14),
               ],
             ),
-            child:
-                Icon(icon, color: WebColors.darkBlueBackground, size: 18),
+            child: Icon(icon, color: WebColors.darkBlueBackground, size: 18),
           ),
           const SizedBox(width: AppSpacing.md),
           Text(text,
@@ -1273,8 +1277,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 color: WebColors.darkBlueSurface,
                 borderRadius: AppRadius.asymSm,
                 border: Border.all(
-                    color: WebColors.darkBlueAccent.withOpacity(0.8),
-                    width: 1),
+                    color: WebColors.darkBlueAccent.withOpacity(0.8), width: 1),
               ),
               child: Row(
                 children: [
@@ -1284,8 +1287,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       color: WebColors.primaryGold.withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
-                    child:
-                        Icon(icon, color: WebColors.primaryGold, size: 20),
+                    child: Icon(icon, color: WebColors.primaryGold, size: 20),
                   ),
                   const SizedBox(width: AppSpacing.lg),
                   Expanded(
@@ -1340,8 +1342,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       );
 }
 
-/// show_detail_page_web.dart'taki `_BackgroundParticles` ile aynı teknik —
-/// sabit tohumla (42) üretilen, sinüs dalgasıyla yavaşça salınan 15 nokta.
 class _ProfileAmbientParticles extends StatelessWidget {
   final Animation<double> animation;
 
@@ -1366,8 +1366,7 @@ class _ProfileAmbientParticles extends StatelessWidget {
                     width: 4,
                     height: 4,
                     decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: WebColors.primaryGold)));
+                        shape: BoxShape.circle, color: WebColors.primaryGold)));
           },
         );
       }),
