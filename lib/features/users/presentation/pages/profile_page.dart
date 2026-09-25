@@ -10,6 +10,7 @@ import 'package:ticketapp/core/base/base_page_wrapper.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
+import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/core/util/date_formatter.dart';
 import 'package:ticketapp/core/util/global_scroll_mixin.dart';
@@ -317,119 +318,153 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-// --- 🎭 ÇOK DAHA CAFCASLI, CANLI VE IŞIKLI MOBİL HERO ---
+  // --- 🧊 ARKADA ÇOKLU MOZAİK KARTLARLA 3D DERİNLİKLİ MOBİL HERO ---
   Widget _buildHeroSection(final bool isLoggedIn, final entity.User? user) =>
       FadeTransition(
         opacity: _heroFade,
         child: SlideTransition(
           position: _heroFade
               .drive(Tween(begin: const Offset(0, 0.04), end: Offset.zero)),
-          child: Container(
-            height: isLoggedIn && user != null ? 480 : 440,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.25),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: context.colors.primary.withOpacity(0.4),
-                  blurRadius: 30,
-                  offset: const Offset(0, 12),
-                ),
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _buildHeroBackdrop(
-                      isLoggedIn && user != null ? user.imageUrl : null),
-                  _buildHeroScrim(),
-                  // Üst Sağ Neon Işık Süzmesi (Dramatik Sahne Efekti)
-                  Positioned(
-                    top: -50,
-                    right: -50,
+          child: SizedBox(
+            height: isLoggedIn && user != null ? 560 : 510,
+            child: Stack(
+              children: [
+                // 1. En Arka Katman: Sağ Üst Dekoratif Mozaik Kart
+                Positioned(
+                  top: 10,
+                  right: -5,
+                  width: 210,
+                  height: 230,
+                  child: Transform.rotate(
+                    angle: 0.15,
                     child: Container(
-                      width: 200,
-                      height: 200,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: context.colors.primary.withOpacity(0.5),
+                        color: context.colors.surfaceVariant.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(32),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.15),
+                          width: 1,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: context.colors.primary.withOpacity(0.8),
-                            blurRadius: 90,
-                            spreadRadius: 30,
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 15,
+                            offset: const Offset(5, 10),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  // Sol Alt - Temaya Duyarlı Dinamik Sanatsal Parıltı (Pembe yerine secondary/gold uyumlu)
-                  Positioned(
-                    bottom: -30,
-                    left: -30,
+                ),
+
+                // 2. Arka Katman: Sol Üst Renkli Mozaik Kart
+                Positioned(
+                  top: 40,
+                  left: -10,
+                  width: 170,
+                  height: 190,
+                  child: Transform.rotate(
+                    angle: -0.12,
                     child: Container(
-                      width: 160,
-                      height: 160,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: context.colors.secondary.withOpacity(0.25),
-                        boxShadow: [
-                          BoxShadow(
-                            color: context.colors.secondary.withOpacity(0.35),
-                            blurRadius: 70,
-                            spreadRadius: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Cam Efektli (Glassmorphism) Alt Kart Taşıyıcısı
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                          child: Container(
-                            padding: const EdgeInsets.all(AppSpacing.lg),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.55),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.2),
-                                width: 1,
-                              ),
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white.withOpacity(0.18),
-                                  Colors.black.withOpacity(0.4),
-                                ],
-                              ),
-                            ),
-                            child: isLoggedIn && user != null
-                                ? _buildHeroIdentityContent(user)
-                                : _buildHeroGuestContent(),
-                          ),
+                        gradient: LinearGradient(
+                          colors: [
+                            context.colors.primary.withOpacity(0.3),
+                            context.colors.secondary.withOpacity(0.15),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1.2,
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+
+                // 3. Arka Katman: Sol Alt Destekleyici Mozaik Blok
+                Positioned(
+                  bottom: 15,
+                  left: 20,
+                  width: 190,
+                  height: 150,
+                  child: Transform.rotate(
+                    angle: 0.05,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 4. Ön Katman: Ana Odak Kartı (Cam Efekti ve Zengin 3D Gölgeleme)
+                Align(
+                  alignment: Alignment.center,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                      child: Container(
+                        height: isLoggedIn && user != null ? 515 : 470,
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        decoration: BoxDecoration(
+                          color: context.colors.surface.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.35),
+                            width: 1.8,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.4),
+                              blurRadius: 40,
+                              offset: const Offset(0, 20),
+                            ),
+                            BoxShadow(
+                              color: context.colors.primary.withOpacity(0.2),
+                              blurRadius: 25,
+                              offset: const Offset(0, -5),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Positioned.fill(
+                              child: Opacity(
+                                opacity: 0.1,
+                                child: Image.network(
+                                  isLoggedIn &&
+                                          user != null &&
+                                          user.imageUrl.isNotEmpty
+                                      ? user.imageUrl
+                                      : _stageBackdropUrl,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.bottomCenter,
+                              child: isLoggedIn && user != null
+                                  ? _buildHeroIdentityContent(user)
+                                  : _buildHeroGuestContent(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -439,14 +474,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final String url = (userPhotoUrl != null && userPhotoUrl.isNotEmpty)
         ? userPhotoUrl
         : _stageBackdropUrl;
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      errorBuilder: (final _, final __, final ___) =>
-          ColoredBox(color: context.colors.surfaceVariant),
-      loadingBuilder: (final _, final child, final progress) => progress == null
-          ? child
-          : ColoredBox(color: context.colors.surfaceVariant),
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (final _, final __, final ___) =>
+            ColoredBox(color: context.colors.surfaceVariant),
+        loadingBuilder: (final _, final child, final progress) =>
+            progress == null
+                ? child
+                : ColoredBox(color: context.colors.surfaceVariant),
+      ),
     );
   }
 
@@ -456,11 +495,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
+              Colors.black.withOpacity(0.70),
               Colors.black.withOpacity(0.40),
-              Colors.black.withOpacity(0.65),
-              Colors.black.withOpacity(0.92),
+              Colors.black.withOpacity(0.66),
             ],
-            stops: const [0.0, 0.5, 1.0],
+            stops: const [0.0, 0.45, 1.0],
           ),
         ),
       );
@@ -471,106 +510,67 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [context.colors.primary, Colors.amberAccent],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: context.colors.primary.withOpacity(0.6),
-                        blurRadius: 15,
-                      )
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black,
-                  ),
-                ),
-                Semantics(
-                  image: true,
-                  label: 'Profil fotoğrafı',
-                  child: Container(
-                    width: 58,
-                    height: 58,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: user.imageUrl.isNotEmpty
-                          ? DecorationImage(
-                              image: NetworkImage(user.imageUrl),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: user.imageUrl.isEmpty
-                        ? const Icon(Icons.person_rounded,
-                            color: Colors.white, size: 26)
-                        : null,
-                  ),
-                ),
-              ],
+        Semantics(
+          image: true,
+          label: 'Profil fotoğrafı',
+          child: Container(
+            width: 84,
+            height: 84,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [context.colors.primary, context.colors.secondary],
+              ),
+              boxShadow: AppShadows.level3(context.colors.primary),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.amberAccent.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: Colors.amberAccent.withOpacity(0.5)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome,
-                            size: 10, color: Colors.amberAccent),
-                        SizedBox(width: 4),
-                        Text('VIP GALA ÜYESİ',
-                            style: TextStyle(
-                                color: Colors.amberAccent,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 9,
-                                letterSpacing: 1.5)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${user.firstName} ${user.lastName}'.trim(),
-                    style: GoogleFonts.playfairDisplay(
-                      textStyle: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 22,
-                          height: 1.1),
-                    ),
-                  ),
-                ],
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: CircleAvatar(
+                backgroundColor: Colors.white.withOpacity(0.15),
+                backgroundImage: user.imageUrl.isNotEmpty
+                    ? NetworkImage(user.imageUrl)
+                    : null,
+                child: user.imageUrl.isEmpty
+                    ? const Icon(Icons.person_rounded, color: Colors.white)
+                    : null,
               ),
             ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(height: 2, width: 22, color: context.colors.primary),
+            const SizedBox(width: AppSpacing.sm),
+            Text('HOŞ GELDİN',
+                style: TextStyle(
+                    color: context.colors.onSurface.withOpacity(0.85),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    letterSpacing: 3)),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
+        Text(
+          '${user.firstName} ${user.lastName}'.trim(),
+          style: GoogleFonts.playfairDisplay(
+            textStyle: TextStyle(
+                color: context.colors.onSurface,
+                fontWeight: FontWeight.w700,
+                fontSize: 30,
+                height: 1.05),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
         Wrap(
-          spacing: AppSpacing.md,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.sm,
           runSpacing: 4,
           children: [
             if (user.city.isNotEmpty)
@@ -580,12 +580,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   Icons.calendar_today_rounded, 'Üyelik: $memberSince'),
           ],
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-          child: Divider(color: Colors.white24, height: 1),
-        ),
+        const SizedBox(height: AppSpacing.xl),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildStat(Icons.confirmation_number_rounded, 'BİLET',
                 '${user.ticketsId.length}'),
@@ -604,12 +600,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget _buildHeroMetaChip(final IconData icon, final String label) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: Colors.amberAccent),
+          Icon(icon, size: 13, color: context.colors.primary),
           const SizedBox(width: 4),
           Text(label,
-              style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
+              style: TextStyle(
+                  color: context.colors.onSurface.withOpacity(0.7),
+                  fontSize: 12,
                   fontWeight: FontWeight.w600)),
         ],
       );
@@ -626,65 +622,58 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: Colors.pinkAccent.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.pinkAccent.withOpacity(0.6)),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.theater_comedy_rounded,
-                  size: 11, color: Colors.pinkAccent),
-              SizedBox(width: 5),
-              Text('İLK PERDE',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 9,
-                      letterSpacing: 2)),
-            ],
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(height: 2, width: 22, color: context.colors.primary),
+            const SizedBox(width: AppSpacing.sm),
+            Text('PROFİLİN',
+                style: TextStyle(
+                    color: context.colors.onSurface.withOpacity(0.85),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    letterSpacing: 3)),
+          ],
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: AppSpacing.sm),
         Text(
-          'Sahne Senin\nİçin Hazır',
+          'Henüz Giriş\nYapmadın',
           style: GoogleFonts.playfairDisplay(
-            textStyle: const TextStyle(
-                color: Colors.white,
+            textStyle: TextStyle(
+                color: context.colors.onSurface,
                 fontWeight: FontWeight.w700,
-                fontSize: 26,
-                height: 1.1),
+                fontSize: 30,
+                height: 1.05),
           ),
         ),
-        const SizedBox(height: AppSpacing.xs),
-        const Text(
-          'Biletlerini, favori oyunlarını ve profilini yönetmek için hemen giriş yap.',
-          style: TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.4),
-        ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         SizedBox(
-          width: double.infinity,
-          child: Semantics(
-            button: true,
-            label: 'Giriş yap',
-            child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 44),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md)),
-                  elevation: 6,
-                  shadowColor: buttonColor.withOpacity(0.6),
-                  backgroundColor: buttonColor,
-                  foregroundColor: buttonTextColor,
-                ),
-                onPressed: () => NavigationHandler.goToLogin(context),
-                child: const Text('Giriş Yap',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, letterSpacing: 0.5))),
+          width: 280,
+          child: Text(
+            'Biletlerini, favori oyunlarını ve profilini görmek için giriş yap.',
+            style: TextStyle(
+                color: context.colors.onSurface.withOpacity(0.7),
+                fontSize: 13,
+                height: 1.5),
           ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Semantics(
+          button: true,
+          label: 'Giriş yap',
+          child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(200, 52),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md)),
+                elevation: 0,
+                backgroundColor: buttonColor,
+                foregroundColor: buttonTextColor,
+              ),
+              onPressed: () => NavigationHandler.goToLogin(context),
+              child: const Text('Giriş Yap',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, letterSpacing: 0.5))),
         ),
       ],
     );
@@ -692,24 +681,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   Widget _buildStat(
           final IconData icon, final String label, final String value) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: Colors.amberAccent),
-            const SizedBox(width: 3),
+            Icon(icon, size: 14, color: context.colors.primary),
+            const SizedBox(width: 4),
             Text(value,
-                style: const TextStyle(
+                style: TextStyle(
                     fontWeight: FontWeight.w900,
-                    fontSize: 15,
-                    color: Colors.white)),
+                    fontSize: 18,
+                    color: context.colors.onSurface)),
           ],
         ),
-        const SizedBox(height: 2),
         Text(label,
             style: TextStyle(
-                fontSize: 9,
-                color: Colors.white.withOpacity(0.7),
+                fontSize: 10,
+                color: context.colors.onSurface.withOpacity(0.7),
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2)),
       ]);
@@ -976,7 +964,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
   }
 
-  // --- 🌟 MASAÜSTÜ İÇİN CAFCASLI & CANLI GALA HERO ---
   Widget _buildDesktopHero(final BuildContext context, final entity.User? user,
           final bool isLoggedIn) =>
       SizedBox(
