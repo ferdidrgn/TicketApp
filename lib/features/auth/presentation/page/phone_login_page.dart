@@ -120,7 +120,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
             Positioned.fill(
               child: Image.network(
                 // Klasik, boş ve dramatik ışıklı bir tiyatro salonu görseli
-                'https://images.unsplash.com/photo-1514306191717-452ec28c7814?q=80&w=2070&auto=format&fit=crop',
+                'https://cdn.tickadoo.com/products/xniMf9ZQFWBFkTYzAJabJXk.png',
                 fit: BoxFit.cover,
               ),
             ),
