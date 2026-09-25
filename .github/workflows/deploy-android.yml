@@ -90,6 +90,25 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # google-services.json BİLEREK .gitignore'da (Firebase config dosyası,
+      # repo'ya commit edilmiyor) — bu yüzden CI runner'ında hiç yok ve
+      # Google Services Gradle plugin'i onsuz derleyemiyor ("File
+      # google-services.json is missing" ile Gradle build'i düşürüyordu,
+      # gerçek bir CI eksikliği, kodda bir hata değil). Signing keystore'un
+      # aksine bu adım OPSİYONEL DEĞİL — Firebase olmadan uygulama zaten
+      # derlenemiyor, bu yüzden secret eksikse build burada net bir hatayla
+      # duruyor (aşağıdaki koşul sadece daha okunabilir bir hata mesajı
+      # için, build'i "başarılı" gibi göstermiyor).
+      - name: Write google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON secret'ı tanımlı değil — Firebase config dosyası olmadan Android build'i derlenemez."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+
       # Keystore + key.properties: sadece ANDROID_KEYSTORE_BASE64 secret'ı
       # tanımlıysa çalışır. Secret yoksa bu adım atlanır ve appbundle
       # imzasız derlenir (android/app/build.gradle: keystoreProperties
