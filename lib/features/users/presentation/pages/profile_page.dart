@@ -1,5 +1,3 @@
-// lib/features/profile/presentation/pages/profile_page.dart
-
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -41,16 +39,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ProfilePhoneLinkHandler,
         ProfileGoogleLinkHandler,
         GlobalScrollMixin {
-  Color get _lightShadow => context.isDarkMode
-      ? context.colors.onSurface.withOpacity(0.08)
-      : context.colors.surface;
-
-  Color get _darkShadow => context.isDarkMode
-      ? context.colors.shadow.withOpacity(0.5)
-      : context.colors.shadow.withOpacity(0.35);
-
-  Color get _bgColor => context.colors.surface;
-
   static const String _stageBackdropUrl =
       'https://images.unsplash.com/photo-1514525253161-7a46d19cd819'
       '?auto=format&fit=crop&w=1800&q=85';
@@ -95,141 +83,136 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final bool isLargeScreen = context.isTablet || context.isDesktop;
 
     return BasePageWrapper(
-        showBackButton: false,
-        showFab: true,
-        rightIcon: Icons.auto_awesome,
-        isLoading: userProfileAsync.isLoading,
-        customScrollController: scrollController,
-        layoutConfig: BasePageLayoutConfig(
-            backgroundColor: context.colors.surface,
-            ambientColor: context.colors.shadow.withOpacity(0.05)),
-        child: userProfileAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (final err, final stack) =>
-                Center(child: Text("Hata: $err")),
-            data: (final userData) {
-              final bool isLoggedIn = userData != null;
+      showBackButton: false,
+      showFab: true,
+      rightIcon: Icons.auto_awesome,
+      isLoading: userProfileAsync.isLoading,
+      customScrollController: scrollController,
+      layoutConfig: BasePageLayoutConfig(
+        backgroundColor: context.colors.surface,
+        ambientColor: context.colors.shadow.withOpacity(0.05),
+      ),
+      child: userProfileAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (final err, final stack) => Center(child: Text("Hata: $err")),
+        data: (final userData) {
+          final bool isLoggedIn = userData != null;
 
-              return Center(
-                  child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                          maxWidth: isLargeScreen ? 1100 : double.infinity),
-                      child: CustomScrollView(
-                        controller: scrollController,
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          SliverPadding(
-                            padding: const EdgeInsets.all(AppSpacing.xxl),
-                            sliver: SliverList(
-                              delegate: SliverChildListDelegate([
-                                const SizedBox(height: AppSpacing.lg),
-                                _buildPageKicker(),
-                                const SizedBox(height: AppSpacing.md),
-                                _buildHeroSection(isLoggedIn, userData),
-                                const SizedBox(height: AppSpacing.huge),
-                                _buildSectionLabel(
-                                    "GÖRÜNÜM", Icons.palette_rounded),
-                                const ThemeSelectorCard(),
-                                const SizedBox(height: AppSpacing.lg),
-                                _buildSculptedTile(
-                                  icon: Icons.settings_suggest_rounded,
-                                  title: 'Ayarlar',
-                                  subtitle:
-                                      'İzinlerini ve uygulama tercihlerini yönet',
-                                  color: Colors.blueGrey,
-                                  onTap: () =>
-                                      NavigationHandler.goToSettings(context),
-                                ),
-                                const SizedBox(height: AppSpacing.huge),
-                                _buildSectionLabel(
-                                    "GEÇMİŞİM", Icons.history_edu_rounded),
-                                _buildSculptedTile(
-                                  icon: Icons.confirmation_number_rounded,
-                                  title: 'Biletlerim',
-                                  subtitle:
-                                      'Geçmiş ve gelecek etkinliklerinin tüm biletleri',
-                                  isLocked: !isLoggedIn,
-                                  color: const Color(0xFF6366F1),
-                                  onTap: () => NavigationHandler.goToMyTickets(
-                                      context, userData?.id ?? ""),
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-                                _buildSculptedTile(
-                                  icon: Icons.favorite_rounded,
-                                  title: 'Favorilerim',
-                                  subtitle:
-                                      'Favori oyunların, sahnelerin ve sanatçıların',
-                                  isLocked: !isLoggedIn,
-                                  color: const Color(0xFFEC4899),
-                                  onTap: () =>
-                                      NavigationHandler.goToFavorites(context),
-                                ),
-                                const SizedBox(height: AppSpacing.huge),
-                                _buildSectionLabel(
-                                    "PROFİLİM", Icons.person_rounded),
-                                _buildSculptedTile(
-                                  icon: Icons.edit_rounded,
-                                  title: 'Profili Düzenle',
-                                  subtitle:
-                                      'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle',
-                                  isLocked: !isLoggedIn,
-                                  color: context.colors.primary,
-                                  onTap: () => context.push(
-                                      '/profile-edit/${userData?.id ?? ""}'),
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-                                _buildSculptedTile(
-                                  icon: Icons.help_outline_rounded,
-                                  title: 'Yardım ve Destek',
-                                  subtitle: 'Sorularına hızlıca cevap bul',
-                                  color: const Color(0xFF10B981),
-                                  onTap: () =>
-                                      NavigationHandler.goToHelpSupport(
-                                          context),
-                                ),
-                                const SizedBox(height: AppSpacing.huge),
-                                _buildSectionLabel(
-                                    "YASAL YÜKÜMLÜLÜKLER", Icons.gavel_rounded),
-                                _buildSculptedTile(
-                                  icon: Icons.gavel_rounded,
-                                  title: 'Yasal Bilgiler',
-                                  subtitle:
-                                      'Gizlilik politikası ve kullanım şartları',
-                                  color: Colors.brown.shade400,
-                                  onTap: () =>
-                                      NavigationHandler.goToContracts(context),
-                                ),
-                                if (isLoggedIn) ...[
-                                  const SizedBox(height: AppSpacing.huge),
-                                  _buildSectionLabel("HESAP İŞLEMLERİ",
-                                      Icons.manage_accounts_rounded),
-                                  _buildSculptedTile(
-                                    icon: Icons.logout_rounded,
-                                    title: 'Çıkış Yap',
-                                    subtitle: 'Hesabından güvenle çıkış yap',
-                                    color: Colors.orange.shade800,
-                                    onTap: () =>
-                                        showSignOutDialog(context, ref),
-                                  ),
-                                  const SizedBox(height: AppSpacing.lg),
-                                  _buildSculptedTile(
-                                    icon: Icons.delete_forever_rounded,
-                                    title: 'Hesabı Sil',
-                                    subtitle:
-                                        'Hesabını ve tüm verilerini kalıcı olarak sil',
-                                    color: Colors.red.shade900,
-                                    onTap: () => showDeleteAccountDialog(
-                                        context, ref, userData.id),
-                                  ),
-                                ],
-                                _buildSoulReflection(),
-                                const SizedBox(height: 120),
-                              ]),
-                            ),
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxWidth: isLargeScreen ? 1100 : double.infinity),
+              child: CustomScrollView(
+                controller: scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildPageKicker(),
+                        const SizedBox(height: AppSpacing.md),
+                        _buildHeroSection(isLoggedIn, userData),
+                        const SizedBox(height: AppSpacing.huge),
+                        _buildSectionLabel("GÖRÜNÜM", Icons.palette_rounded),
+                        const ThemeSelectorCard(),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildSculptedTile(
+                          icon: Icons.settings_suggest_rounded,
+                          title: 'Ayarlar',
+                          subtitle: 'İzinlerini ve uygulama tercihlerini yönet',
+                          color: Colors.blueGrey,
+                          onTap: () => NavigationHandler.goToSettings(context),
+                        ),
+                        const SizedBox(height: AppSpacing.huge),
+                        _buildSectionLabel(
+                            "GEÇMİŞİM", Icons.history_edu_rounded),
+                        _buildSculptedTile(
+                          icon: Icons.confirmation_number_rounded,
+                          title: 'Biletlerim',
+                          subtitle:
+                              'Geçmiş ve gelecek etkinliklerinin tüm biletleri',
+                          isLocked: !isLoggedIn,
+                          color: const Color(0xFF6366F1),
+                          onTap: () => NavigationHandler.goToMyTickets(
+                              context, userData?.id ?? ""),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildSculptedTile(
+                          icon: Icons.favorite_rounded,
+                          title: 'Favorilerim',
+                          subtitle:
+                              'Favori oyunların, sahnelerin ve sanatçıların',
+                          isLocked: !isLoggedIn,
+                          color: const Color(0xFFEC4899),
+                          onTap: () => NavigationHandler.goToFavorites(context),
+                        ),
+                        const SizedBox(height: AppSpacing.huge),
+                        _buildSectionLabel("PROFİLİM", Icons.person_rounded),
+                        _buildSculptedTile(
+                          icon: Icons.edit_rounded,
+                          title: 'Profili Düzenle',
+                          subtitle:
+                              'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle',
+                          isLocked: !isLoggedIn,
+                          color: context.colors.primary,
+                          onTap: () => context
+                              .push('/profile-edit/${userData?.id ?? ""}'),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildSculptedTile(
+                          icon: Icons.help_outline_rounded,
+                          title: 'Yardım ve Destek',
+                          subtitle: 'Sorularına hızlıca cevap bul',
+                          color: const Color(0xFF10B981),
+                          onTap: () =>
+                              NavigationHandler.goToHelpSupport(context),
+                        ),
+                        const SizedBox(height: AppSpacing.huge),
+                        _buildSectionLabel(
+                            "YASAL YÜKÜMLÜLÜKLER", Icons.gavel_rounded),
+                        _buildSculptedTile(
+                          icon: Icons.gavel_rounded,
+                          title: 'Yasal Bilgiler',
+                          subtitle: 'Gizlilik politikası ve kullanım şartları',
+                          color: Colors.brown.shade400,
+                          onTap: () => NavigationHandler.goToContracts(context),
+                        ),
+                        if (isLoggedIn) ...[
+                          const SizedBox(height: AppSpacing.huge),
+                          _buildSectionLabel(
+                              "HESAP İŞLEMLERİ", Icons.manage_accounts_rounded),
+                          _buildSculptedTile(
+                            icon: Icons.logout_rounded,
+                            title: 'Çıkış Yap',
+                            subtitle: 'Hesabından güvenle çıkış yap',
+                            color: Colors.orange.shade800,
+                            onTap: () => showSignOutDialog(context, ref),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          _buildSculptedTile(
+                            icon: Icons.delete_forever_rounded,
+                            title: 'Hesabı Sil',
+                            subtitle:
+                                'Hesabını ve tüm verilerini kalıcı olarak sil',
+                            color: Colors.red.shade900,
+                            onTap: () => showDeleteAccountDialog(
+                                context, ref, userData.id),
                           ),
                         ],
-                      )));
-            }));
+                        _buildSoulReflection(),
+                        const SizedBox(height: 120),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildPageKicker() => Row(
@@ -277,13 +260,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   isLocked ? () => NavigationHandler.goToLogin(context) : onTap,
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.xl),
-                decoration: _neuBox(borderRadius: AppRadius.lg),
+                decoration: BoxDecoration(
+                  color: context.colors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  boxShadow: [
+                    BoxShadow(
+                      color: context.colors.shadow.withOpacity(0.15),
+                      offset: const Offset(6, 6),
+                      blurRadius: 15,
+                    ),
+                  ],
+                ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration:
-                          _neuBox(borderRadius: AppRadius.md, invert: true),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
                       child: Icon(icon, color: color, size: 26),
                     ),
                     const SizedBox(width: AppSpacing.xl),
@@ -321,9 +316,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🎨 EDITORIAL HERO — Kart yapısı korundu, tipografi yenilendi
-  // ═══════════════════════════════════════════════════════════════
+  // --- 🎨 TEMİZLENMİŞ & OPTİMİZE EDİLMİŞ 3D BENTO HERO ---
   Widget _buildHeroSection(final bool isLoggedIn, final entity.User? user) =>
       FadeTransition(
         opacity: _heroFade,
@@ -331,10 +324,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           position: _heroFade
               .drive(Tween(begin: const Offset(0, 0.04), end: Offset.zero)),
           child: SizedBox(
-            height: isLoggedIn && user != null ? 560 : 510,
+            height: isLoggedIn && user != null ? 540 : 490,
             child: Stack(
               children: [
-                // 1. Arka Katman: Pastel Mercan/Pembe Mozaik
+                // Arka Mozaik Katman 1 (Turuncu/Pembe)
                 Positioned(
                   top: 10,
                   right: -10,
@@ -346,26 +339,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.orangeAccent.withOpacity(0.55),
-                            Colors.pinkAccent.withOpacity(0.4),
+                            Colors.orangeAccent.withOpacity(0.7),
+                            Colors.pinkAccent.withOpacity(0.5)
                           ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(36),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.pinkAccent.withOpacity(0.2),
-                            blurRadius: 25,
-                            offset: const Offset(10, 15),
-                          ),
-                        ],
                       ),
                     ),
                   ),
                 ),
-
-                // 2. Arka Katman: Pastel Turkuaz/İndigo Mozaik
+                // Arka Mozaik Katman 2 (Turkuaz/Mavi)
                 Positioned(
                   top: 40,
                   left: -15,
@@ -377,26 +360,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.cyan.withOpacity(0.5),
-                            Colors.indigo.withOpacity(0.3),
+                            Colors.cyan.withOpacity(0.6),
+                            Colors.indigo.withOpacity(0.4)
                           ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(32),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.cyan.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(-8, 12),
-                          ),
-                        ],
                       ),
                     ),
                   ),
                 ),
-
-                // 3. Ön Katman: Ana Cam Kart
+                // Ön Odak Kartı
                 Align(
                   alignment: Alignment.center,
                   child: ClipRRect(
@@ -404,20 +377,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                       child: Container(
-                        height: isLoggedIn && user != null ? 520 : 475,
+                        height: isLoggedIn && user != null ? 500 : 455,
                         decoration: BoxDecoration(
-                          color: context.colors.surface.withOpacity(0.94),
+                          color: context.colors.surface.withOpacity(0.92),
                           borderRadius: BorderRadius.circular(32),
                           border: Border.all(
-                            color: context.isDarkMode
-                                ? context.colors.onSurface.withOpacity(0.12)
-                                : Colors.white.withOpacity(0.55),
-                            width: 1.6,
-                          ),
+                              color: Colors.white.withOpacity(0.5), width: 2),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(
-                                  context.isDarkMode ? 0.45 : 0.18),
+                              color: Colors.black.withOpacity(0.2),
                               blurRadius: 30,
                               offset: const Offset(0, 15),
                             ),
@@ -426,7 +394,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            // ── Üst görsel (220px)
                             Positioned(
                               top: 0,
                               left: 0,
@@ -445,11 +412,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                           ? user.imageUrl
                                           : _stageBackdropUrl,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => ColoredBox(
-                                        color: context.colors.surfaceVariant,
-                                      ),
                                     ),
-                                    // Görselin altına tema uyumlu scrim
                                     DecoratedBox(
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
@@ -458,63 +421,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                           colors: [
                                             Colors.transparent,
                                             context.colors.surface
-                                                .withOpacity(0.6),
-                                            context.colors.surface
-                                                .withOpacity(0.98),
+                                                .withOpacity(0.8),
+                                            context.colors.surface,
                                           ],
-                                          stops: const [0.35, 0.85, 1.0],
-                                        ),
-                                      ),
-                                    ),
-                                    // Üst sol: editorial "PROFİL" etiketi
-                                    Positioned(
-                                      top: 16,
-                                      left: 16,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.35),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          border: Border.all(
-                                            color:
-                                                Colors.white.withOpacity(0.2),
-                                          ),
-                                        ),
-                                        child: const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.circle,
-                                              size: 6,
-                                              color: Colors.white,
-                                            ),
-                                            SizedBox(width: 6),
-                                            Text(
-                                              'PROFİL',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w900,
-                                                fontSize: 9,
-                                                letterSpacing: 2.5,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    // Üst sağ: sayfa index
-                                    Positioned(
-                                      top: 16,
-                                      right: 16,
-                                      child: Text(
-                                        isLoggedIn ? '01 / 05' : '00 / 05',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.85),
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 10,
-                                          letterSpacing: 2,
+                                          stops: const [0.3, 0.8, 1.0],
                                         ),
                                       ),
                                     ),
@@ -522,8 +432,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                 ),
                               ),
                             ),
-
-                            // ── Alt içerik
                             Padding(
                               padding: const EdgeInsets.all(AppSpacing.xl),
                               child: Align(
@@ -553,48 +461,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Editorial mini kicker
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              height: 8,
-              width: 8,
-              decoration: BoxDecoration(
-                color: context.colors.primary,
-                shape: BoxShape.circle,
-              ),
-            ),
+                height: 8,
+                width: 8,
+                decoration: BoxDecoration(
+                    color: context.colors.primary, shape: BoxShape.circle)),
             const SizedBox(width: 8),
-            Text(
-              'HOŞ GELDİN',
-              style: TextStyle(
-                color: context.colors.onSurface.withOpacity(0.55),
-                fontWeight: FontWeight.w900,
-                fontSize: 10,
-                letterSpacing: 3,
-              ),
-            ),
+            Text('HOŞ GELDİN',
+                style: TextStyle(
+                    color: context.colors.onSurface.withOpacity(0.55),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                    letterSpacing: 3)),
           ],
         ),
-        const SizedBox(height: 10),
-
-        // Editorial büyük isim — ALL CAPS
+        const SizedBox(height: 6),
         Text(
           fullName.toUpperCase(),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: context.colors.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: 26,
-            height: 0.98,
-            letterSpacing: -0.6,
-          ),
+              color: context.colors.onSurface,
+              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              height: 1.0),
         ),
-        const SizedBox(height: 8),
-
-        // Meta chip'ler
+        const SizedBox(height: 6),
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: AppSpacing.md,
@@ -607,36 +502,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   Icons.calendar_today_rounded, 'Üyelik: $memberSince'),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
-
-        // İnce hairline ayraç
-        Container(
-          height: 1,
-          color: context.colors.onSurface.withOpacity(0.08),
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // İstatistikler — editorial stil
+        const SizedBox(height: AppSpacing.sm),
+        Container(height: 1, color: context.colors.onSurface.withOpacity(0.08)),
+        const SizedBox(height: AppSpacing.sm),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildEditorialStat(
-              icon: Icons.confirmation_number_rounded,
-              label: 'BİLET',
-              value: '${user.ticketsId.length}',
-            ),
+            _buildEditorialStat(Icons.confirmation_number_rounded, 'BİLET',
+                '${user.ticketsId.length}'),
             _buildStatDivider(),
             _buildEditorialStat(
-              icon: Icons.favorite_rounded,
-              label: 'OYUN',
-              value: '${user.favoriteShows.length}',
-            ),
+                Icons.favorite_rounded, 'OYUN', '${user.favoriteShows.length}'),
             _buildStatDivider(),
-            _buildEditorialStat(
-              icon: Icons.star_rounded,
-              label: 'SANATÇI',
-              value: '${user.favoritePlayers.length}',
-            ),
+            _buildEditorialStat(Icons.star_rounded, 'SANATÇI',
+                '${user.favoritePlayers.length}'),
           ],
         ),
       ],
@@ -652,8 +531,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               style: TextStyle(
                   color: context.colors.onSurface.withOpacity(0.7),
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2)),
+                  fontWeight: FontWeight.w600)),
         ],
       );
 
@@ -673,81 +551,56 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              height: 8,
-              width: 8,
-              decoration: BoxDecoration(
-                color: context.colors.primary,
-                shape: BoxShape.circle,
-              ),
-            ),
+                height: 8,
+                width: 8,
+                decoration: BoxDecoration(
+                    color: context.colors.primary, shape: BoxShape.circle)),
             const SizedBox(width: 8),
-            Text(
-              'İLK PERDE',
-              style: TextStyle(
-                color: context.colors.onSurface.withOpacity(0.55),
-                fontWeight: FontWeight.w900,
-                fontSize: 10,
-                letterSpacing: 3,
-              ),
-            ),
+            Text('İLK PERDE',
+                style: TextStyle(
+                    color: context.colors.onSurface.withOpacity(0.55),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                    letterSpacing: 3)),
           ],
         ),
-        const SizedBox(height: 10),
-
-        Text(
-          'SAHNE SENİN\nİÇİN HAZIR',
-          style: TextStyle(
-            color: context.colors.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: 28,
-            height: 0.98,
-            letterSpacing: -0.6,
-          ),
-        ),
-        const SizedBox(height: 10),
-
-        Text(
-          'Biletlerini, favori oyunlarını ve profilini yönetmek için hemen giriş yap.',
-          style: TextStyle(
-            color: context.colors.onSurface.withOpacity(0.62),
-            fontSize: 12.5,
-            height: 1.45,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
-        // Buton — sana verdiğim orijinal kod gibi
+        const SizedBox(height: 6),
+        Text('SAHNE SENİN\nİÇİN HAZIR',
+            style: TextStyle(
+                color: context.colors.onSurface,
+                fontWeight: FontWeight.w900,
+                fontSize: 26,
+                height: 1.0)),
+        const SizedBox(height: 6),
+        Text('Biletlerini ve favori oyunlarını yönetmek için hemen giriş yap.',
+            style: TextStyle(
+                color: context.colors.onSurface.withOpacity(0.62),
+                fontSize: 12,
+                height: 1.4)),
+        const SizedBox(height: AppSpacing.md),
         SizedBox(
           width: double.infinity,
-          child: Semantics(
-            button: true,
-            label: 'Giriş yap',
-            child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md)),
-                  elevation: 0,
-                  backgroundColor: buttonColor,
-                  foregroundColor: buttonTextColor,
-                ),
-                onPressed: () => NavigationHandler.goToLogin(context),
-                child: const Text('Giriş Yap',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, letterSpacing: 0.5))),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md)),
+              elevation: 0,
+              backgroundColor: buttonColor,
+              foregroundColor: buttonTextColor,
+            ),
+            onPressed: () => NavigationHandler.goToLogin(context),
+            child: const Text('Giriş Yap',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
           ),
         ),
       ],
     );
   }
 
-  // Editorial istatistik bloğu
-  Widget _buildEditorialStat({
-    required final IconData icon,
-    required final String label,
-    required final String value,
-  }) =>
+  Widget _buildEditorialStat(
+          final IconData icon, final String label, final String value) =>
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -757,55 +610,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             children: [
               Icon(icon,
                   size: 13, color: context.colors.primary.withOpacity(0.85)),
-              const SizedBox(width: 5),
-              Text(
-                value,
-                style: TextStyle(
-                  color: context.colors.onSurface,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  height: 1.0,
-                  letterSpacing: -0.5,
-                ),
-              ),
+              const SizedBox(width: 4),
+              Text(value,
+                  style: TextStyle(
+                      color: context.colors.onSurface,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16)),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: context.colors.onSurface.withOpacity(0.5),
-              fontWeight: FontWeight.w800,
-              fontSize: 9,
-              letterSpacing: 1.8,
-            ),
-          ),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(
+                  color: context.colors.onSurface.withOpacity(0.5),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 9,
+                  letterSpacing: 1.5)),
         ],
       );
-
-  Widget _buildStat(
-          final IconData icon, final String label, final String value) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: context.colors.primary),
-            const SizedBox(width: 4),
-            Text(value,
-                style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                    color: context.colors.onSurface)),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(label,
-            style: TextStyle(
-                fontSize: 9,
-                color: context.colors.onSurface.withOpacity(0.7),
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2)),
-      ]);
 
   Widget _buildSectionLabel(final String text, final IconData icon) => Padding(
         padding: const EdgeInsets.only(
@@ -845,39 +666,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         ),
       );
 
-  BoxDecoration _neuBox(
-          {final double borderRadius = AppRadius.sm,
-          final bool invert = false}) =>
-      BoxDecoration(
-        color: _bgColor,
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: invert
-            ? [
-                BoxShadow(
-                    color: _darkShadow,
-                    offset: const Offset(3, 3),
-                    blurRadius: 6,
-                    spreadRadius: 1),
-                BoxShadow(
-                    color: _lightShadow,
-                    offset: const Offset(-3, -3),
-                    blurRadius: 6,
-                    spreadRadius: 1),
-              ]
-            : [
-                BoxShadow(
-                    color: _darkShadow,
-                    offset: const Offset(10, 10),
-                    blurRadius: 20,
-                    spreadRadius: 2),
-                BoxShadow(
-                    color: _lightShadow,
-                    offset: const Offset(-10, -10),
-                    blurRadius: 20,
-                    spreadRadius: 2),
-              ],
-      );
-
   Widget _buildSoulReflection() => Padding(
         padding: const EdgeInsets.only(top: 60),
         child: Column(
@@ -891,39 +679,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     height: 1.5)),
             const SizedBox(height: AppSpacing.md),
             Text(
-                "Tanık olduğun her sahne, ruhundaki o büyük yapbozun bir parçasıdır.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    color: context.colors.onSurfaceVariant,
-                    fontSize: 12,
-                    height: 1.5)),
+              "Tanık olduğun her sahne, ruhundaki o büyük yapbozun bir parçasıdır.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: context.colors.onSurfaceVariant,
+                  fontSize: 12,
+                  height: 1.5),
+            ),
           ],
         ),
       );
 
-  // ═══════════════════════════════════════════════════════════════
-  // MASAÜSTÜ SAYFA
-  // ═══════════════════════════════════════════════════════════════
-  Widget _buildDesktopPage(
-    final BuildContext context,
-    final AsyncValue<entity.User?> userProfileAsync,
-  ) =>
+  // --- MASAÜSTÜ GÖRÜNÜMÜ ---
+  Widget _buildDesktopPage(final BuildContext context,
+          final AsyncValue<entity.User?> userProfileAsync) =>
       ColoredBox(
         color: WebColors.darkBlueBackground,
         child: Stack(
           children: [
             Positioned.fill(
-              child: _ProfileAmbientParticles(animation: _particlesController),
-            ),
+                child:
+                    _ProfileAmbientParticles(animation: _particlesController)),
             userProfileAsync.when(
               loading: () => const Center(
                   child:
                       CircularProgressIndicator(color: WebColors.primaryGold)),
               error: (final err, final stack) => Center(
-                child: Text('Hata: $err',
-                    style: const TextStyle(color: WebColors.whiteText)),
-              ),
+                  child: Text('Hata: $err',
+                      style: const TextStyle(color: WebColors.whiteText))),
               data: (final userData) {
                 final bool isLoggedIn = userData != null;
                 return ListView(
@@ -944,102 +728,88 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                               const SizedBox(height: AppSpacing.lg),
                               const ThemeSelectorCard(),
                               const SizedBox(height: AppSpacing.md),
-                              _buildDesktopTile(
-                                context,
-                                icon: Icons.settings_suggest_rounded,
-                                title: 'Ayarlar',
-                                subtitle:
-                                    'İzinlerini ve uygulama tercihlerini yönet',
-                                onTap: () =>
-                                    NavigationHandler.goToSettings(context),
-                              ),
+                              _buildDesktopTile(context,
+                                  icon: Icons.settings_suggest_rounded,
+                                  title: 'Ayarlar',
+                                  subtitle:
+                                      'İzinlerini ve uygulama tercihlerini yönet',
+                                  onTap: () =>
+                                      NavigationHandler.goToSettings(context)),
                               const SizedBox(height: AppSpacing.huge),
                               _buildDesktopSectionLabel(
                                   'GEÇMİŞİM', Icons.history_edu_rounded),
                               const SizedBox(height: AppSpacing.lg),
                               _buildDesktopTileGrid([
-                                _buildDesktopTile(
-                                  context,
-                                  icon: Icons.confirmation_number_rounded,
-                                  title: 'Biletlerim',
-                                  subtitle:
-                                      'Geçmiş ve gelecek etkinliklerinin tüm biletleri',
-                                  isLocked: !isLoggedIn,
-                                  onTap: () => NavigationHandler.goToMyTickets(
-                                      context, userData?.id ?? ""),
-                                ),
-                                _buildDesktopTile(
-                                  context,
-                                  icon: Icons.favorite_rounded,
-                                  title: 'Favorilerim',
-                                  subtitle:
-                                      'Favori oyunların, sahnelerin ve sanatçıların',
-                                  isLocked: !isLoggedIn,
-                                  onTap: () =>
-                                      NavigationHandler.goToFavorites(context),
-                                ),
+                                _buildDesktopTile(context,
+                                    icon: Icons.confirmation_number_rounded,
+                                    title: 'Biletlerim',
+                                    subtitle:
+                                        'Geçmiş ve gelecek etkinliklerinin tüm biletleri',
+                                    isLocked: !isLoggedIn,
+                                    onTap: () =>
+                                        NavigationHandler.goToMyTickets(
+                                            context, userData?.id ?? "")),
+                                _buildDesktopTile(context,
+                                    icon: Icons.favorite_rounded,
+                                    title: 'Favorilerim',
+                                    subtitle:
+                                        'Favori oyunların, sahnelerin ve sanatçıların',
+                                    isLocked: !isLoggedIn,
+                                    onTap: () =>
+                                        NavigationHandler.goToFavorites(
+                                            context)),
                               ]),
                               const SizedBox(height: AppSpacing.huge),
                               _buildDesktopSectionLabel(
                                   'PROFİLİM', Icons.person_rounded),
                               const SizedBox(height: AppSpacing.lg),
                               _buildDesktopTileGrid([
-                                _buildDesktopTile(
-                                  context,
-                                  icon: Icons.edit_rounded,
-                                  title: 'Profili Düzenle',
-                                  subtitle:
-                                      'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle',
-                                  isLocked: !isLoggedIn,
-                                  onTap: () => context.push(
-                                      '/profile-edit/${userData?.id ?? ""}'),
-                                ),
-                                _buildDesktopTile(
-                                  context,
-                                  icon: Icons.help_outline_rounded,
-                                  title: 'Yardım ve Destek',
-                                  subtitle: 'Sorularına hızlıca cevap bul',
-                                  onTap: () =>
-                                      NavigationHandler.goToHelpSupport(
-                                          context),
-                                ),
+                                _buildDesktopTile(context,
+                                    icon: Icons.edit_rounded,
+                                    title: 'Profili Düzenle',
+                                    subtitle:
+                                        'Ad, fotoğraf, şehir ve iletişim bilgilerini güncelle',
+                                    isLocked: !isLoggedIn,
+                                    onTap: () => context.push(
+                                        '/profile-edit/${userData?.id ?? ""}')),
+                                _buildDesktopTile(context,
+                                    icon: Icons.help_outline_rounded,
+                                    title: 'Yardım ve Destek',
+                                    subtitle: 'Sorularına hızlıca cevap bul',
+                                    onTap: () =>
+                                        NavigationHandler.goToHelpSupport(
+                                            context)),
                               ]),
                               const SizedBox(height: AppSpacing.huge),
                               _buildDesktopSectionLabel(
                                   'YASAL YÜKÜMLÜLÜKLER', Icons.gavel_rounded),
                               const SizedBox(height: AppSpacing.lg),
-                              _buildDesktopTile(
-                                context,
-                                icon: Icons.gavel_rounded,
-                                title: 'Yasal Bilgiler',
-                                subtitle:
-                                    'Gizlilik politikası ve kullanım şartları',
-                                onTap: () =>
-                                    NavigationHandler.goToContracts(context),
-                              ),
+                              _buildDesktopTile(context,
+                                  icon: Icons.gavel_rounded,
+                                  title: 'Yasal Bilgiler',
+                                  subtitle:
+                                      'Gizlilik politikası ve kullanım şartları',
+                                  onTap: () =>
+                                      NavigationHandler.goToContracts(context)),
                               if (isLoggedIn) ...[
                                 const SizedBox(height: AppSpacing.huge),
                                 _buildDesktopSectionLabel('HESAP İŞLEMLERİ',
                                     Icons.manage_accounts_rounded),
                                 const SizedBox(height: AppSpacing.lg),
                                 _buildDesktopTileGrid([
-                                  _buildDesktopTile(
-                                    context,
-                                    icon: Icons.logout_rounded,
-                                    title: 'Çıkış Yap',
-                                    subtitle: 'Hesabından güvenle çıkış yap',
-                                    onTap: () =>
-                                        showSignOutDialog(context, ref),
-                                  ),
-                                  _buildDesktopTile(
-                                    context,
-                                    icon: Icons.delete_forever_rounded,
-                                    title: 'Hesabı Sil',
-                                    subtitle:
-                                        'Hesabını ve tüm verilerini kalıcı olarak sil',
-                                    onTap: () => showDeleteAccountDialog(
-                                        context, ref, userData.id),
-                                  ),
+                                  _buildDesktopTile(context,
+                                      icon: Icons.logout_rounded,
+                                      title: 'Çıkış Yap',
+                                      subtitle: 'Hesabından güvenle çıkış yap',
+                                      onTap: () =>
+                                          showSignOutDialog(context, ref)),
+                                  _buildDesktopTile(context,
+                                      icon: Icons.delete_forever_rounded,
+                                      title: 'Hesabı Sil',
+                                      subtitle:
+                                          'Hesabını ve tüm verilerini kalıcı olarak sil',
+                                      onTap: () => showDeleteAccountDialog(
+                                          context, ref, userData.id)),
                                 ]),
                               ],
                               const SizedBox(height: 56),
@@ -1088,10 +858,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 gradient: RadialGradient(
                   center: Alignment(0, -0.4),
                   radius: 1.3,
-                  colors: [
-                    Color(0x55E8B84B),
-                    Colors.transparent,
-                  ],
+                  colors: [Color(0x55E8B84B), Colors.transparent],
                 ),
               ),
             ),
@@ -1122,9 +889,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     return Image.network(
       url,
       fit: BoxFit.cover,
-      errorBuilder: (final _, final __, final ___) =>
+      errorBuilder: (_, __, ___) =>
           const ColoredBox(color: WebColors.darkBlueSurface),
-      loadingBuilder: (final _, final child, final progress) => progress == null
+      loadingBuilder: (_, child, progress) => progress == null
           ? child
           : const ColoredBox(color: WebColors.darkBlueSurface),
     );
@@ -1340,7 +1107,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [
                   WebColors.primaryGold.withOpacity(0.4),
-                  Colors.transparent,
+                  Colors.transparent
                 ]),
               ),
             ),
@@ -1426,13 +1193,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   height: 1.5)),
           SizedBox(height: 10),
           Text(
-              'Tanık olduğun her sahne, ruhundaki o büyük yapbozun bir parçasıdır.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: WebColors.textSecondary,
-                  fontStyle: FontStyle.italic,
-                  fontSize: 12,
-                  height: 1.5)),
+            'Tanık olduğun her sahne, ruhundaki o büyük yapbozun bir parçasıdır.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                color: WebColors.textSecondary,
+                fontStyle: FontStyle.italic,
+                fontSize: 12,
+                height: 1.5),
+          ),
         ],
       );
 }
