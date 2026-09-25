@@ -45,7 +45,7 @@ class LoginScreen extends ConsumerWidget {
           // --- 1. PEXELS HD TİYATRO/SAHNE GÖRSELİ VE SİNEMATİK PERDE ---
           Positioned.fill(
             child: Image.network(
-              'https://images.pexels.com/photos/10880679/pexels-photo-10880679.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+              'https://www.quovadis.com.tr/wp-content/uploads/the-phantom-of-the-opera-turu-4.jpg',
               fit: BoxFit.cover,
             ),
           ),
@@ -87,12 +87,12 @@ class LoginScreen extends ConsumerWidget {
                       color: Colors.white.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                       border: Border.all(
-                        color: const Color(0xFFF59E0B).withOpacity(0.5),
+                        color: const Color(0xFF3C030C).withOpacity(0.5),
                         width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFF59E0B).withOpacity(0.2),
+                          color: const Color(0xFF3C030C).withOpacity(0.2),
                           blurRadius: 15,
                         ),
                       ],
@@ -102,7 +102,7 @@ class LoginScreen extends ConsumerWidget {
                       children: [
                         const Icon(
                           Icons.theater_comedy_rounded,
-                          color: Color(0xFFF59E0B),
+                          color: Color(0xFF3C030C),
                           size: 16,
                         ),
                         const SizedBox(width: AppSpacing.xs),
