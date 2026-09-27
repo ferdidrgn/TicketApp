@@ -117,10 +117,18 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage> {
           fit: StackFit.expand,
           children: [
             // --- 1. YENİ SAHNE / TİYATRO GÖRSELİ (Farklı Bir Atmosfer) ---
+            // 🔥 DÜZELTME: Burada REKABETÇİ bir bilet platformunun
+            // ("Tickadoo") kendi ürün görseli CDN'inden doğrudan hotlink
+            // edilmişti — hem telif/izin hem marka güvenliği sorunu, hem
+            // de o platform hesabını kaldırırsa kıracak bir dış bağımlılık.
+            // Bunun yerine, `animated_stage_motif.dart`'ta zaten kullanılan
+            // ve gerçekten serbest/ücretsiz (Unsplash lisansı) olan aynı
+            // fotoğraf kaynağı — böylece login_screen.dart'ın kendi asset
+            // görselinden (main_theatre.png) farklı, gerçek bir fotoğraf
+            // atmosferi korunuyor.
             Positioned.fill(
               child: Image.network(
-                // Klasik, boş ve dramatik ışıklı bir tiyatro salonu görseli
-                'https://cdn.tickadoo.com/products/xniMf9ZQFWBFkTYzAJabJXk.png',
+                'https://images.unsplash.com/photo-1503095396549-807759245b35',
                 fit: BoxFit.cover,
               ),
             ),

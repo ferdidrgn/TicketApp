@@ -40,10 +40,17 @@ class LoginScreen extends ConsumerWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // --- 1. PEXELS HD TİYATRO/SAHNE GÖRSELİ VE PERDE ---
+          // --- 1. TİYATRO/SAHNE GÖRSELİ VE PERDE ---
+          // 🔥 DÜZELTME: Burada başka bir işletmenin (bir tur/seyahat
+          // acentesinin kendi web sitesine yüklediği bir "Phantom of the
+          // Opera turu" tanıtım fotoğrafı) doğrudan hotlink edilmişti —
+          // hem telif/izin sorunu hem de o site istediği an kaldırırsa/
+          // hotlink engellerse kırılacak bir dış bağımlılık. Bunun yerine
+          // projenin kendi asset'i (assets/images/main_theatre.png)
+          // kullanılıyor.
           Positioned.fill(
-            child: Image.network(
-              'https://www.quovadis.com.tr/wp-content/uploads/the-phantom-of-the-opera-turu-4.jpg',
+            child: Image.asset(
+              'assets/images/main_theatre.png',
               fit: BoxFit.cover,
             ),
           ),
