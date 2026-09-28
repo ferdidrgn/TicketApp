@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../providers/auth_mutation_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_ticket.dart';
@@ -103,6 +105,14 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
     }
   }
 
+  void _handleBack() {
+    if (_isCodeSent) {
+      _setCodeSent(false);
+    } else {
+      NavigationHandler.smartGoBack(context);
+    }
+  }
+
   Future<void> _verifyPhone() async {
     final phone = _phoneController.text.trim();
     if (phone.length != 10) {
@@ -169,66 +179,93 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
       );
     });
 
-    return BasePageWrapper(
-      showBackButton: true,
-      showFab: false,
-      isOverlayLoading: auth.isLoading,
+    // BasePageWrapper KULLANILMIYOR (bkz. login_screen_mobile.dart): temanın
+    // açık üst şeridi koyu sahneyle çakışıyordu.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
       child: PopScope(
-        canPop: !_isCodeSent,
-        onPopInvokedWithResult: (final didPop, final result) {
-          if (!didPop && _isCodeSent) _setCodeSent(false);
+        canPop: false,
+        onPopInvokedWithResult: (final didPop, final _) {
+          if (!didPop) _handleBack();
         },
-        child: TicketStage(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm,
-                AppSpacing.lg, AppSpacing.section),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    FadeTransition(
-                      opacity: _ticketIn,
-                      child: const BoxOfficeCaption(text: 'BİLETİN BASILIYOR'),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    AnimatedBuilder(
-                      animation: _ticketIn,
-                      builder: (final context, final child) => Opacity(
-                        opacity: _ticketIn.value,
-                        child: Transform.translate(
-                          offset: Offset(0, (1 - _ticketIn.value) * 56),
-                          child: child,
+        child: Scaffold(
+          backgroundColor: WebColors.darkBlueBackground,
+          body: TicketStage(
+            child: SafeArea(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                          AppSpacing.section, AppSpacing.lg, AppSpacing.section),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 440),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              FadeTransition(
+                                opacity: _ticketIn,
+                                child: const BoxOfficeCaption(
+                                    text: 'BİLETİN BASILIYOR'),
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              AnimatedBuilder(
+                                animation: _ticketIn,
+                                builder: (final context, final child) =>
+                                    Opacity(
+                                  opacity: _ticketIn.value,
+                                  child: Transform.translate(
+                                    offset:
+                                        Offset(0, (1 - _ticketIn.value) * 56),
+                                    child: child,
+                                  ),
+                                ),
+                                child: AdmitTicket(
+                                  direction: Axis.vertical,
+                                  tear: _tearCurve,
+                                  body: PhoneTicketBody(
+                                    wide: false,
+                                    isCodeSent: _isCodeSent,
+                                    headlineReveal: _headlineReveal,
+                                    detailsFade: _details,
+                                    stamp: _stampCurve,
+                                    phoneController: _phoneController,
+                                    otpController: _otpController,
+                                    onSendCode: _verifyPhone,
+                                    onVerify: _signInWithOTP,
+                                    onEditNumber: () => _setCodeSent(false),
+                                    onResend:
+                                        remaining <= 0 ? _verifyPhone : null,
+                                    timerText: otpTimerText(remaining),
+                                    loading: auth.isLoading,
+                                  ),
+                                  stub: PhoneTicketStub(
+                                    wide: false,
+                                    isCodeSent: _isCodeSent,
+                                    phoneController: _phoneController,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      child: AdmitTicket(
-                        direction: Axis.vertical,
-                        tear: _tearCurve,
-                        body: PhoneTicketBody(
-                          wide: false,
-                          isCodeSent: _isCodeSent,
-                          headlineReveal: _headlineReveal,
-                          detailsFade: _details,
-                          stamp: _stampCurve,
-                          phoneController: _phoneController,
-                          otpController: _otpController,
-                          onSendCode: _verifyPhone,
-                          onVerify: _signInWithOTP,
-                          onEditNumber: () => _setCodeSent(false),
-                          onResend: remaining <= 0 ? _verifyPhone : null,
-                          timerText: otpTimerText(remaining),
-                          loading: auth.isLoading,
-                        ),
-                        stub: PhoneTicketStub(
-                          wide: false,
-                          isCodeSent: _isCodeSent,
-                          phoneController: _phoneController,
-                        ),
+                    ),
+                  ),
+                  Positioned(
+                    top: AppSpacing.sm,
+                    left: AppSpacing.lg,
+                    child: Semantics(
+                      label: _isCodeSent ? 'Numarayı düzenle' : 'Geri dön',
+                      button: true,
+                      child: GlassmorphismBackButton(
+                        onPressed: _handleBack,
+                        size: 44,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

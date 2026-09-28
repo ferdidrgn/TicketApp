@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../providers/auth_mutation_provider.dart';
 import '../widgets/auth_ticket.dart';
 import '../widgets/login_ticket_content.dart';
@@ -109,49 +111,81 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       );
     });
 
-    return BasePageWrapper(
-      showBackButton: true,
-      showFab: false,
-      isOverlayLoading: auth.isLoading,
-      child: TicketStage(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.section),
-          child: Center(
-            // Büyük tablet ekranında bilet gerilmesin; gerçek bir bilet
-            // boyutunda kalıp ortalansın.
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    // BasePageWrapper KULLANILMIYOR: o, arkaya temanın açık zeminini ve
+    // üst başlığını çiziyor; koyu bilet sahnesiyle çakışıp ekranın üstünde
+    // açık renkli bir şerit bırakıyordu. Sahne durum çubuğuna kadar uzanır.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (final didPop, final _) {
+          if (!didPop) NavigationHandler.smartGoBack(context);
+        },
+        child: Scaffold(
+          backgroundColor: WebColors.darkBlueBackground,
+          body: TicketStage(
+            child: SafeArea(
+              child: Stack(
                 children: [
-                  FadeTransition(
-                    opacity: _ticketIn,
-                    child: const BoxOfficeCaption(),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  AnimatedBuilder(
-                    animation: _ticketIn,
-                    builder: (final context, final child) => Opacity(
-                      opacity: _ticketIn.value,
-                      child: Transform.translate(
-                        // Bilet gişe camının altından uzatılıyormuş gibi.
-                        offset: Offset(0, (1 - _ticketIn.value) * 56),
-                        child: child,
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                          AppSpacing.section, AppSpacing.lg, AppSpacing.section),
+                      child: Center(
+                        // Büyük tablet ekranında bilet gerilmesin; gerçek bir
+                        // bilet boyutunda kalıp ortalansın.
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 440),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              FadeTransition(
+                                opacity: _ticketIn,
+                                child: const BoxOfficeCaption(),
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              AnimatedBuilder(
+                                animation: _ticketIn,
+                                builder: (final context, final child) =>
+                                    Opacity(
+                                  opacity: _ticketIn.value,
+                                  child: Transform.translate(
+                                    // Bilet gişe camının altından uzatılıyormuş gibi.
+                                    offset:
+                                        Offset(0, (1 - _ticketIn.value) * 56),
+                                    child: child,
+                                  ),
+                                ),
+                                child: AdmitTicket(
+                                  direction: Axis.vertical,
+                                  tear: _tearCurve,
+                                  body: LoginTicketBody(
+                                    wide: false,
+                                    headlineReveal: _headline,
+                                    detailsFade: _details,
+                                    loading: auth.isLoading,
+                                    onPhone: _goPhone,
+                                    onGoogle: _google,
+                                  ),
+                                  stub: const LoginTicketStub(wide: false),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                    child: AdmitTicket(
-                      direction: Axis.vertical,
-                      tear: _tearCurve,
-                      body: LoginTicketBody(
-                        wide: false,
-                        headlineReveal: _headline,
-                        detailsFade: _details,
-                        loading: auth.isLoading,
-                        onPhone: _goPhone,
-                        onGoogle: _google,
+                  ),
+                  Positioned(
+                    top: AppSpacing.sm,
+                    left: AppSpacing.lg,
+                    child: Semantics(
+                      label: 'Geri dön',
+                      button: true,
+                      child: GlassmorphismBackButton(
+                        onPressed: () => NavigationHandler.smartGoBack(context),
+                        size: 44,
                       ),
-                      stub: const LoginTicketStub(wide: false),
                     ),
                   ),
                 ],

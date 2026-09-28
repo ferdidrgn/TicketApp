@@ -1,9 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/google_logo.dart';
+import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../shows/domain/entities/show.dart';
+import '../../../shows/presentation/providers/show_provider.dart';
 import 'auth_ticket.dart';
 
 /// Giriş biletinin gövdesi. [wide] → geniş web'de yatay bilet düzeni
@@ -93,7 +101,9 @@ class LoginTicketBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const TicketHeaderStrip(kind: 'GİRİŞ BİLETİ · TEK KİŞİLİK'),
-            const SizedBox(height: AppSpacing.huge),
+            const SizedBox(height: AppSpacing.xxl),
+            const TicketPosterBanner(height: 200),
+            const SizedBox(height: AppSpacing.xxl),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -142,7 +152,9 @@ class LoginTicketBody extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const TicketHeaderStrip(kind: 'GİRİŞ BİLETİ'),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.xl),
+          const TicketPosterBanner(height: 164),
+          const SizedBox(height: AppSpacing.xl),
           headline,
           const SizedBox(height: AppSpacing.md),
           FadeTransition(opacity: detailsFade, child: intro),
@@ -272,4 +284,141 @@ class BoxOfficeCaption extends StatelessWidget {
           ),
         ],
       );
+}
+
+/// Biletin üstüne basılı "BU SEZON SAHNEDE" görseli: uygulamanın kendi
+/// GERÇEK, şu an sahnede olan oyunlarının afişleri, birkaç saniyede bir
+/// yumuşakça değişir. Afişler Firebase'den geldiği için web dahil her
+/// platformda yüklenir (dış stok fotoğraf / kırık link yok). Veri yoksa
+/// bant hiç çizilmez.
+class TicketPosterBanner extends ConsumerStatefulWidget {
+  final double height;
+  const TicketPosterBanner({super.key, required this.height});
+
+  @override
+  ConsumerState<TicketPosterBanner> createState() => _TicketPosterBannerState();
+}
+
+class _TicketPosterBannerState extends ConsumerState<TicketPosterBanner> {
+  // Afiş değiştirme aralığı (animasyon süresi değil, bekleme süresi).
+  static const Duration _interval = Duration(seconds: 4);
+
+  Timer? _timer;
+  int _index = 0;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _ensureRotation(final int count) {
+    if (_timer != null || count < 2) return;
+    if (MediaQuery.of(context).disableAnimations) return;
+    _timer = Timer.periodic(_interval, (final _) {
+      if (mounted) setState(() => _index++);
+    });
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final List<Show> shows =
+        (ref.watch(activeShowsProvider(true)).value ?? const <Show>[])
+            .where((final s) => s.imageUrl.trim().isNotEmpty)
+            .take(6)
+            .toList();
+
+    return AnimatedSize(
+      duration: AppMotion.normal,
+      curve: AppMotion.standard,
+      alignment: Alignment.topCenter,
+      child: shows.isEmpty ? const SizedBox(width: double.infinity) : _banner(shows),
+    );
+  }
+
+  Widget _banner(final List<Show> shows) {
+    _ensureRotation(shows.length);
+    final Show show = shows[_index % shows.length];
+
+    return Semantics(
+      label: 'Bu sezon sahnede: ${show.name}',
+      image: true,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        child: SizedBox(
+          height: widget.height,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              AnimatedSwitcher(
+                duration: AppMotion.slow,
+                switchInCurve: AppMotion.standard,
+                switchOutCurve: AppMotion.standard,
+                layoutBuilder: (final current, final previous) => Stack(
+                  fit: StackFit.expand,
+                  children: [...previous, if (current != null) current],
+                ),
+                child: OptimizedCachedImage(
+                  key: ValueKey(show.id),
+                  imageUrl: show.imageUrl,
+                  fit: BoxFit.cover,
+                  borderRadius: 0,
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: widget.height * 0.6,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        TicketInk.ink.withOpacity(0),
+                        TicketInk.ink.withOpacity(0.85),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: AppSpacing.md,
+                right: AppSpacing.md,
+                bottom: AppSpacing.md,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'BU SEZON SAHNEDE',
+                      style: TicketInk.label(
+                          color: TicketInk.paper.withOpacity(0.8)),
+                    ),
+                    const SizedBox(height: 2),
+                    AnimatedSwitcher(
+                      duration: AppMotion.normal,
+                      child: Text(
+                        show.name,
+                        key: ValueKey(show.id),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.playfairDisplay(
+                          color: TicketInk.paper,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
