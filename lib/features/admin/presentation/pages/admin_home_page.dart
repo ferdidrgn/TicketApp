@@ -21,6 +21,7 @@ class AdminHomePage extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => AdminGuard(
+        allowDebugBypass: true,
         child: DefaultTabController(
           length: 5,
           child: Scaffold(

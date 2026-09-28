@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -49,16 +51,17 @@ class AppSettingsPage extends ConsumerWidget {
     await permission.request();
   }
 
-  // 🕵️ GİZLİ ADMİN GİRİŞİ: versiyon metnine uzun basma. Bu, GÜVENLİK
-  // sınırı DEĞİL — sadece admin/küratör hesabı olan birinin admin panelini
-  // menüde bir link aramadan bulabilmesi için bir "keşif kolaylığı".
-  // `isUserPrivilegedProvider` false ise KESİNLİKLE hiçbir şey olmaz —
-  // snackbar yok, dialog yok, bu özelliğin var olduğuna dair hiçbir iz yok
-  // (kullanıcının kendi talimatı: ayrıcalıklı değilse "hiçbir şey olmasın").
-  // Gerçek güvenlik sınırı `AdminGuard` + Firestore `isAdmin()` kuralları.
+  // 🕵️ GİZLİ ADMİN GİRİŞİ: versiyon metnine uzun basma. Güvenlik sınırı
+  // DEĞİL, sadece bir "keşif kolaylığı" — gerçek sınır Firestore `isAdmin()`
+  // kuralları. Release derlemesinde sadece admin/küratör hesabı girer,
+  // diğerleri için hiçbir iz bırakmaz. Geliştirme derlemesinde (`flutter
+  // run`) giriş/rol ayarlamadan test edebilmek için herkes girer;
+  // `AdminGuard(allowDebugBypass: true)` üstte "TEST MODU" şeridi gösterir.
   void _handleVersionFooterLongPress(
       final BuildContext context, final WidgetRef ref) {
-    if (ref.read(isUserPrivilegedProvider)) context.push('/admin');
+    if (!ref.read(isUserPrivilegedProvider) && !kDebugMode) return;
+    HapticFeedback.mediumImpact();
+    context.push('/admin');
   }
 
   void _shareApp(final BuildContext context) => Share.share(
@@ -263,18 +266,24 @@ class AppSettingsPage extends ConsumerWidget {
           const SizedBox(height: AppSpacing.huge),
           Center(
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onLongPress: () => _handleVersionFooterLongPress(context, ref),
-              child: Text(
-                l10n.settingsVersionFooter(versionLabel ?? '…'),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.onSurface.withOpacity(0.35),
-                  letterSpacing: 2,
-                  fontWeight: FontWeight.w700,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl, vertical: AppSpacing.md),
+                child: Text(
+                  l10n.settingsVersionFooter(versionLabel ?? '…'),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.onSurface.withOpacity(0.55),
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.huge),
+          const SizedBox(height: AppSpacing.xl),
         ],
       ),
     );
@@ -761,15 +770,22 @@ class AppSettingsPage extends ConsumerWidget {
                     const SizedBox(height: AppSpacing.massive),
                     Center(
                       child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onLongPress: () =>
                             _handleVersionFooterLongPress(context, ref),
-                        child: Text(
-                          l10n.settingsVersionFooter(versionLabel ?? '…'),
-                          style: const TextStyle(
-                            color: WebColors.textTertiary,
-                            fontSize: 12,
-                            letterSpacing: 2,
-                            fontWeight: FontWeight.w600,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xl,
+                              vertical: AppSpacing.md),
+                          child: Text(
+                            l10n.settingsVersionFooter(versionLabel ?? '…'),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: WebColors.textSecondary,
+                              fontSize: 12,
+                              letterSpacing: 2,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
