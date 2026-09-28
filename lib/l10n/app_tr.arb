@@ -154,7 +154,15 @@
   "settingsRecommendAppDesc": "Mağaza indirme bağlantısını paylaşarak bize destek ol.",
   "settingsShareWithFriendsTitle": "Arkadaşlarınla Paylaş",
   "settingsShareWithFriendsDesc": "TiyatRol'ü mesajla ya da sosyal medyada paylaş.",
-  "settingsVersionFooter": "Versiyon 1.0.4 - Sanatla Tasarlandı",
+  "settingsVersionFooter": "Versiyon {version} - Sanatla Tasarlandı",
+  "@settingsVersionFooter": {
+    "description": "Ayarlar sayfası alt bilgisindeki gerçek, dinamik uygulama sürümü",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "settingsShareMessage": "Ruhunu sanatla besleyecek bu serüvene sen de katıl: {url}",
   "@settingsShareMessage": {
     "description": "Uygulamayı paylaşırken gönderilen mesaj",

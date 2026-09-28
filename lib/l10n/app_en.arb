@@ -154,7 +154,7 @@
   "settingsRecommendAppDesc": "Support us by sharing the store download link.",
   "settingsShareWithFriendsTitle": "Share with Friends",
   "settingsShareWithFriendsDesc": "Share TiyatRol via message or social media.",
-  "settingsVersionFooter": "Version 1.0.4 - Designed with Art",
+  "settingsVersionFooter": "Version {version} - Designed with Art",
   "settingsShareMessage": "Join this adventure that will nourish your soul with art: {url}",
   "@settingsShareMessage": {
     "description": "Message sent when sharing the app",

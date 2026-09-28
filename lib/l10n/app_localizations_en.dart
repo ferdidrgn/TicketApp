@@ -408,7 +408,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Share TiyatRol via message or social media.';
 
   @override
-  String get settingsVersionFooter => 'Version 1.0.4 - Designed with Art';
+  String settingsVersionFooter(String version) {
+    return 'Version $version - Designed with Art';
+  }
 
   @override
   String settingsShareMessage(String url) {

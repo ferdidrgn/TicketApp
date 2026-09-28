@@ -20,6 +20,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
 import '../../../../shared/widgets/footers/footer.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../providers/app_version_provider.dart';
 
 class AppSettingsPage extends ConsumerWidget {
   const AppSettingsPage({super.key});
@@ -170,6 +171,7 @@ class AppSettingsPage extends ConsumerWidget {
     final currentThemeStyle = ref.watch(themeProvider);
     final currentAccentColor = ref.watch(customAccentColorProvider);
     final l10n = AppLocalizations.of(context)!;
+    final versionLabel = ref.watch(appVersionLabelProvider).value;
 
     return BasePageWrapper(
       showBackButton: true,
@@ -263,7 +265,7 @@ class AppSettingsPage extends ConsumerWidget {
             child: GestureDetector(
               onLongPress: () => _handleVersionFooterLongPress(context, ref),
               child: Text(
-                l10n.settingsVersionFooter,
+                l10n.settingsVersionFooter(versionLabel ?? '…'),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.onSurface.withOpacity(0.35),
                   letterSpacing: 2,
@@ -636,6 +638,7 @@ class AppSettingsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final currentLanguageCode =
         ref.watch(localeControllerProvider).value?.languageCode ?? 'tr';
+    final versionLabel = ref.watch(appVersionLabelProvider).value;
 
     return ColoredBox(
       color: WebColors.darkBlueBackground,
@@ -761,7 +764,7 @@ class AppSettingsPage extends ConsumerWidget {
                         onLongPress: () =>
                             _handleVersionFooterLongPress(context, ref),
                         child: Text(
-                          l10n.settingsVersionFooter,
+                          l10n.settingsVersionFooter(versionLabel ?? '…'),
                           style: const TextStyle(
                             color: WebColors.textTertiary,
                             fontSize: 12,
