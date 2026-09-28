@@ -184,12 +184,10 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
                         isCodeSent: _isCodeSent,
                         headlineSize: 32,
                       ),
-                      Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                        child: Container(
-                          margin: const EdgeInsets.only(
-                              top: -(AuthFloatingPillCTA.height / 2)),
+                      Transform.translate(
+                        offset: const Offset(0, -(AuthFloatingPillCTA.height / 2)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                           child: FadeTransition(
                             opacity: _fade(0.2),
                             child: AnimatedSwitcher(

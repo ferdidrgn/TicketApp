@@ -135,12 +135,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 FadeTransition(opacity: _fade(0.0), child: const _BrandRow()),
                 const SizedBox(height: AppSpacing.lg),
                 _PosterCard(fade: _fade, reveal: _reveal),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm),
-                  child: Container(
-                    margin: const EdgeInsets.only(
-                        top: -(AuthFloatingPillCTA.height / 2)),
+                Transform.translate(
+                  offset: const Offset(0, -(AuthFloatingPillCTA.height / 2)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                     child: FadeTransition(
                       opacity: _fade(0.45),
                       child: AuthFloatingPillCTA(

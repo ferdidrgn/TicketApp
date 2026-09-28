@@ -385,11 +385,10 @@ class _StackedPoster extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _PosterCard(fade: fade, isCodeSent: isCodeSent, headlineSize: 36),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: Container(
-              margin:
-                  const EdgeInsets.only(top: -(AuthFloatingPillCTA.height / 2)),
+          Transform.translate(
+            offset: const Offset(0, -(AuthFloatingPillCTA.height / 2)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: FadeTransition(opacity: fade(0.22), child: formSlot),
             ),
           ),
@@ -485,12 +484,10 @@ class _WideSplit extends StatelessWidget {
                     child: AuthHeroPoster(imageUrl: _stageImageUrl),
                   ),
                 ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: Container(
-                    margin: const EdgeInsets.only(
-                        top: -(AuthFloatingPillCTA.height / 2)),
+                Transform.translate(
+                  offset: const Offset(0, -(AuthFloatingPillCTA.height / 2)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                     child: formSlot,
                   ),
                 ),

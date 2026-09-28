@@ -236,11 +236,10 @@ class _StackedPoster extends StatelessWidget {
             reveal: reveal,
             headlineSize: isTablet ? 48 : 40,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Container(
-              margin:
-                  const EdgeInsets.only(top: -(AuthFloatingPillCTA.height / 2)),
+          Transform.translate(
+            offset: const Offset(0, -(AuthFloatingPillCTA.height / 2)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: FadeTransition(
                 opacity: fade(0.45),
                 child: AuthFloatingPillCTA(
@@ -390,12 +389,10 @@ class _WideSplit extends StatelessWidget {
                       child: AuthHeroPoster(imageUrl: _PosterCard._imageUrl),
                     ),
                   ),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                          top: -(AuthFloatingPillCTA.height / 2)),
+                  Transform.translate(
+                    offset: const Offset(0, -(AuthFloatingPillCTA.height / 2)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                       child: AuthFloatingPillCTA(
                         label: l10n.loginPhoneButton,
                         icon: Icons.phone_iphone_rounded,
