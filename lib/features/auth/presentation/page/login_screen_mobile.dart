@@ -136,7 +136,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 const SizedBox(height: AppSpacing.lg),
                 FadeTransition(
                   opacity: _fade(0.35),
-                  child: const ConstrainedBox(
+                  child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: 340),
                     child: Text(
                       'Şehrin en seçkin oyunlarına, konserlerine ve '

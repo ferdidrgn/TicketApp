@@ -239,7 +239,7 @@ class _TypographyPane extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             FadeTransition(
               opacity: fade(0.4),
-              child: const ConstrainedBox(
+              child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: 420),
                 child: Text(
                   'Şehrin en seçkin oyunlarına, konserlerine ve '
