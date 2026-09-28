@@ -113,9 +113,11 @@ firebase-debug.*.log
 !.env.example
 
 # -----------------------
-# CLAUDE CODE (yerel agent worktree'leri — repo içeriği değil)
+# CLAUDE CODE — yerel agent worktree'leri vb. dışlanır, AMA proje
+# skill'leri (.claude/skills/) repoya dahildir.
 # -----------------------
-.claude/
+.claude/*
+!.claude/skills/
 
 # -----------------------
 # IDE & EDİTÖR DOSYALARI
