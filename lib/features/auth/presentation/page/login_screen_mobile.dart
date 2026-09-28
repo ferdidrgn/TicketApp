@@ -1,40 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:ticketapp/core/theme/app_colors.dart';
-import 'package:ticketapp/core/theme/app_motion.dart';
-import 'package:ticketapp/core/theme/app_radius.dart';
-import 'package:ticketapp/core/theme/app_spacing.dart';
-import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
-import '../../../../core/base/base_page_wrapper.dart';
-import '../../../../l10n/app_localizations.dart';
-import '../../../../shared/widgets/google_logo.dart';
-import '../providers/auth_mutation_provider.dart';
-import '../widgets/auth_atmosphere.dart';
 
-/// GİRİŞ EKRANI — MOBİL (5. TASARIM, KULLANICININ PAYLAŞTIĞI SOMUT GÖRSEL
-/// REFERANSA GÖRE)
-///
-/// 3. deneme ("editoryal tipografi + kadro listesi", fotoğrafsız) kullanıcı
-/// tarafından "berbat" olarak reddedildi — sadece `AuthWipeReveal` metin
-/// açılışı beğenildi, o AYNEN korunuyor. Bu 5. tasarım kullanıcının
-/// paylaştığı referans görselin (tek büyük yuvarlak köşeli afiş kartı: dev
-/// başlık → tam-kanama editoryal fotoğraf → fotoğrafın alt kenarını
-/// bindiren tek bir yüzen pill CTA) KOMPOZİSYONUNU alıyor — paletini değil
-/// (uygulamanın koyu + kırmızı/altın kimliği `app_colors.dart`'tan asla
-/// değişmedi).
-///
-/// Bu ekranın birden fazla aksiyonu var (Google + telefon) — referansın
-/// "tek pill" kısıtını şöyle karşılıyor: TELEFONLA DEVAM ET tek yüzen
-/// birincil pill (`AuthFloatingPillCTA`, uygulamanın asıl tercih ettiği
-/// akış — bilet/koltuk telefon numarasına bağlı), Google ise kartın
-/// ALTINDA, sessiz bir ikincil kontrol (`AuthGhostPillButton`) — 3.
-/// denemenin numaralı "marquee" liste dili tekrar KULLANILMIYOR.
-///
-/// `phone_login_page_mobile.dart` bilerek aynı afiş-kartı DİLİNİ paylaşır
-/// (tutarlılık) ama farklı bir fotoğraf + farklı bir aksiyon bloğu
-/// kullanır — "varış" (bu ekran) ile "doğrulama" (o ekran) aynı anın
-/// tekrarı değil.
+import '../../../../core/base/base_page_wrapper.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
+import '../providers/auth_mutation_provider.dart';
+import '../widgets/auth_ticket.dart';
+import '../widgets/login_ticket_content.dart';
+
+/// GİRİŞ — MOBİL. "Bilet gişesi": karanlık sahnede spot altında duran
+/// fiziksel bir bilet; giriş yöntemleri biletin üstüne basılı, birincil
+/// aksiyonda koçan yırtılır.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -43,294 +21,145 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _entrance = AnimationController(
-    vsync: this,
-    duration: AppMotion.slow,
-  )..forward();
+    with TickerProviderStateMixin {
+  late final AnimationController _entrance =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final AnimationController _tear =
+      AnimationController(vsync: this, duration: AppMotion.normal);
 
-  Animation<double> _fade(final double start) => CurvedAnimation(
-        parent: _entrance,
-        curve: Interval(start, 1.0, curve: Curves.easeOut),
-      );
+  late final Animation<double> _ticketIn = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.0, 0.55, curve: AppMotion.standard));
+  late final Animation<double> _headline = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.3, 0.9, curve: AppMotion.dramatic));
+  late final Animation<double> _details = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.55, 1.0, curve: AppMotion.standard));
+  late final Animation<double> _tearCurve =
+      CurvedAnimation(parent: _tear, curve: Curves.easeInCubic);
 
-  Animation<double> _reveal(final double start, final double end) =>
-      CurvedAnimation(
-        parent: _entrance,
-        curve: Interval(start, end, curve: AppMotion.dramatic),
-      );
+  bool _started = false;
+
+  bool get _reduceMotion => MediaQuery.of(context).disableAnimations;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (_reduceMotion) {
+      _entrance.value = 1;
+    } else {
+      _entrance.forward();
+    }
+  }
 
   @override
   void dispose() {
     _entrance.dispose();
+    _tear.dispose();
     super.dispose();
   }
 
-  void _showSnackBar(final BuildContext context, final String msg,
-      {final bool isError = false}) {
+  Future<void> _tearStub() async {
+    if (!_reduceMotion) await _tear.forward(from: 0);
+  }
+
+  Future<void> _goPhone() async {
+    await _tearStub();
+    if (!mounted) return;
+    NavigationHandler.goToPhoneLogin(context);
+  }
+
+  Future<void> _google() async {
+    final tearing = _tearStub();
+    await ref.read(authMutationProvider.notifier).signInWithGoogle();
+    await tearing;
+    // Başarılıysa zaten ana sayfaya gidiliyor; iptal/hata ise koçan geri
+    // yapışır.
+    if (mounted) _tear.reverse();
+  }
+
+  void _showError(final String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError ? Colors.red.shade800 : Colors.green.shade800,
+        backgroundColor: Colors.red.shade800,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
+            borderRadius: BorderRadius.circular(AppRadius.md)),
       ),
     );
   }
 
   @override
   Widget build(final BuildContext context) {
-    final authMutation = ref.watch(authMutationProvider);
+    final auth = ref.watch(authMutationProvider);
 
-    ref.listen<AsyncValue<void>>(
-      authMutationProvider,
-      (final previous, final next) {
-        next.whenOrNull(
-          error: (final error, final stack) =>
-              _showSnackBar(context, error.toString(), isError: true),
-          data: (final _) {
-            if (context.mounted) NavigationHandler.goToHome(context);
-          },
-        );
-      },
-    );
-
-    final l10n = AppLocalizations.of(context)!;
+    ref.listen<AsyncValue<void>>(authMutationProvider, (final prev, final next) {
+      next.whenOrNull(
+        error: (final error, final _) {
+          _showError(error.toString());
+          _tear.reverse();
+        },
+        data: (final _) {
+          if (context.mounted) NavigationHandler.goToHome(context);
+        },
+      );
+    });
 
     return BasePageWrapper(
       showBackButton: true,
       showFab: false,
-      isOverlayLoading: authMutation.isLoading,
-      child: Stack(
-        children: [
-          const Positioned.fill(
-            child: AuthStageBackdrop(
-              glows: [
-                Positioned(
-                  top: -90,
-                  right: -90,
-                  child: AuthAmbientGlow(size: 320, tint: WebColors.primaryGold),
-                ),
-              ],
-            ),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
-            // 🔥 Büyük tablet genişliğindeki bir cihazda (bu dosya native
-            // mobil/tablet derlemesinde kullanılır) kart sonsuza kadar
-            // yatayda GERİLMESİN diye — `ConstrainedBox` afiş kartını
-            // referanstaki gibi kompakt/premium tutuyor, genişlik arttıkça
-            // sadece ortalanıp etrafında zemin "nefes alıyor" (CLAUDE.md:
-            // "mobile'ı büyütüp web diye sunma" — burada tam tersi,
-            // mobil dosyanın kendisi geniş ekranda GERİLMİYOR).
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                FadeTransition(opacity: _fade(0.0), child: const _BrandRow()),
-                const SizedBox(height: AppSpacing.lg),
-                _PosterCard(fade: _fade, reveal: _reveal),
-                Transform.translate(
-                  offset: const Offset(0, -(AuthFloatingPillCTA.height / 2)),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    child: FadeTransition(
-                      opacity: _fade(0.45),
-                      child: AuthFloatingPillCTA(
-                        label: l10n.loginPhoneButton,
-                        icon: Icons.phone_iphone_rounded,
-                        onTap: authMutation.isLoading
-                            ? null
-                            : () => NavigationHandler.goToPhoneLogin(context),
+      isOverlayLoading: auth.isLoading,
+      child: TicketStage(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.section),
+          child: Center(
+            // Büyük tablet ekranında bilet gerilmesin; gerçek bir bilet
+            // boyutunda kalıp ortalansın.
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FadeTransition(
+                    opacity: _ticketIn,
+                    child: const BoxOfficeCaption(),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AnimatedBuilder(
+                    animation: _ticketIn,
+                    builder: (final context, final child) => Opacity(
+                      opacity: _ticketIn.value,
+                      child: Transform.translate(
+                        // Bilet gişe camının altından uzatılıyormuş gibi.
+                        offset: Offset(0, (1 - _ticketIn.value) * 56),
+                        child: child,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                FadeTransition(
-                  opacity: _fade(0.55),
-                  child: Column(
-                    children: [
-                      Text(
-                        'YA DA',
-                        style: TextStyle(
-                          color: WebColors.textTertiary.withOpacity(0.85),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 3,
-                        ),
+                    child: AdmitTicket(
+                      direction: Axis.vertical,
+                      tear: _tearCurve,
+                      body: LoginTicketBody(
+                        wide: false,
+                        headlineReveal: _headline,
+                        detailsFade: _details,
+                        loading: auth.isLoading,
+                        onPhone: _goPhone,
+                        onGoogle: _google,
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      AuthGhostPillButton(
-                        label: l10n.loginGoogleButton,
-                        icon: const GoogleLogo(size: 18),
-                        semanticLabel: 'Google ile giriş yap',
-                        onTap: authMutation.isLoading
-                            ? null
-                            : () => ref
-                                .read(authMutationProvider.notifier)
-                                .signInWithGoogle(),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                FadeTransition(
-                  opacity: _fade(0.62),
-                  child: Text(
-                    l10n.loginTermsNotice,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: WebColors.textTertiary.withOpacity(0.85),
-                      fontSize: 10,
-                      letterSpacing: 0.5,
-                      height: 1.4,
+                      stub: const LoginTicketStub(wide: false),
                     ),
                   ),
-                ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
-}
-
-/// Referans görseldeki tek, büyük yuvarlak köşeli afiş kartı: üstte
-/// (WebColors.darkBlueSurface zemin üzerinde) dev başlık bandı, altında
-/// tam-kanama fotoğraf bandı — İKİSİ de AYNI dış köşe silüetine
-/// (`AppRadius.xl`) kırpılıyor, böylece TEK bir kart gibi okunuyor (kullanıcı
-/// talimatı: "renk olarak renkler kalsın" — fotoğraf + koyu zemin, YENİ hex
-/// yok).
-class _PosterCard extends StatelessWidget {
-  final Animation<double> Function(double start) fade;
-  final Animation<double> Function(double start, double end) reveal;
-
-  const _PosterCard({required this.fade, required this.reveal});
-
-  static const String _imageUrl =
-      'https://images.unsplash.com/photo-1503095396549-807759245b35'
-      '?auto=format&fit=crop&w=1600&q=85';
-
-  @override
-  Widget build(final BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ColoredBox(
-              color: WebColors.darkBlueSurface,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.xl,
-                    AppSpacing.xxl, AppSpacing.xl, AppSpacing.xl),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FadeTransition(
-                      opacity: fade(0.05),
-                      child: const Text(
-                        'PERDE KALKMADAN ÖNCE',
-                        style: TextStyle(
-                          color: WebColors.primaryGoldLight,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 3.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    AuthWipeReveal(
-                      reveal: reveal(0.1, 0.6),
-                      child: Text(
-                        'SAHNEYE\nADIM AT',
-                        style: GoogleFonts.playfairDisplay(
-                          color: WebColors.whiteText,
-                          fontSize: 40,
-                          fontWeight: FontWeight.w700,
-                          height: 1.04,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    FadeTransition(
-                      opacity: fade(0.35),
-                      child: const Text(
-                        'Şehrin en seçkin oyunlarına, konserlerine ve '
-                        'sahnelerine bir tık uzaktasın.',
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: WebColors.textSecondary,
-                          fontSize: 13.5,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            FadeTransition(
-              opacity: fade(0.12),
-              child: const AspectRatio(
-                aspectRatio: 0.9,
-                child: AuthHeroPoster(imageUrl: _imageUrl),
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-class _BrandRow extends StatelessWidget {
-  const _BrandRow();
-
-  @override
-  Widget build(final BuildContext context) => Semantics(
-        header: true,
-        label: 'TİYATROL',
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: WebColors.primaryGold.withOpacity(0.85),
-                  width: 1.2,
-                ),
-              ),
-              child: const Icon(
-                Icons.theater_comedy_rounded,
-                size: 15,
-                color: WebColors.primaryGoldLight,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'TİYATROL',
-              style: GoogleFonts.playfairDisplay(
-                color: WebColors.whiteText,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 3,
-              ),
-            ),
-          ],
-        ),
-      );
 }
