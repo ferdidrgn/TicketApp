@@ -37,6 +37,13 @@
 /android/app/profile/
 /android/app/release/
 
+# R8/ProGuard build çıktıları (release derlemesinde otomatik üretilir,
+# mapping.txt tek başına 60MB+ olabiliyor — repoyu şişirmesin diye asla
+# commit edilmez)
+/android/app/mapping.txt
+/android/app/seeds.txt
+/android/app/unused.txt
+
 # Gizli Anahtarlar (GÜVENLİK İÇİN ÖNEMLİ)
 /android/local.properties
 /android/key.properties
@@ -138,6 +145,7 @@ desktop.ini
 *.log
 *.tmp
 *.temp
+*~
 coverage/
 .lcov.info
 
