@@ -73,220 +73,194 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
           curve: AppMotion.standard,
           transform: Matrix4.translationValues(0, _hovered ? -5 : 0, 0),
           decoration: BoxDecoration(
+            color: WebColors.darkBlueSurface,
+            borderRadius: AppRadius.asymLg,
+            border: Border.all(
+              color: _hovered
+                  ? WebColors.primaryGold.withOpacity(0.45)
+                  : WebColors.darkBlueAccent,
+              width: 1.2,
+            ),
             boxShadow: _hovered
                 ? AppShadows.level3(WebColors.primaryGold)
                 : AppShadows.level2(WebColors.primaryGold),
           ),
-          // 🔥 DÜZELTME: "sen sadece fotoyu öyle yapmışsın, kart
-          // tasarımından bahsetmiştim" — vesica (zeytin yaprağı/göz) şekli
-          // artık sadece iç posteri değil, KARTIN KENDİSİNİ (dış silüeti)
-          // kırpıyor. Poster tüm kartı uçtan uca dolduruyor; rozetler ve
-          // başlık artık ayrı dikdörtgen bantlar yerine görselin üzerine
-          // yerleştiriliyor. Şeklin en dar olduğu tam üst/alt uçlarda metin
-          // OKUNMAZ (genişlik oranı orada sıfıra gider) — bu yüzden içerik,
-          // şeklin genişliğinin en az ~%58'e ulaştığı "gövde" bandına
-          // (üstten/alttan ~%18-20 içeride) hizalanıyor; bkz. `_VesicaClipper`
-          // üzerindeki genişlik formülü notu.
-          child: Stack(
-            children: [
-              ClipPath(
-                clipper: const _VesicaClipper(),
-                child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    color: WebColors.darkBlueSurface,
-                  ),
-                  child: LayoutBuilder(
-                    builder: (final context, final constraints) {
-                      final cardW = constraints.maxWidth;
-                      final cardH = constraints.maxHeight;
-                      // Şeklin gövdesinde (dikey ortada) güvenle sığan
-                      // içerik genişliği — bkz. yukarıdaki not.
-                      final contentInset = cardW * 0.21;
-                      return Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // 1. Ana poster — tüm kartı uçtan uca dolduran
-                          // taban katman.
-                          OptimizedCachedImage(
-                            imageUrl: show.imageUrl,
+          // 🔥 DÜZELTME: vesica (zeytin yaprağı/göz) şekli — hem sadece
+          // posterde hem sonra tüm kartta denendi — dar kartlarda rozet
+          // satırını (özellikle "BAŞKA PLATFORMDA" gibi uzun etiketleri)
+          // sığdıracak yer bırakmıyordu ve gerçek bir RenderFlex overflow
+          // hatasına yol açtı (kullanıcı ekran görüntüsüyle bildirdi).
+          // Şekil tamamen kaldırıldı — yerine uygulamanın zaten ~10 dosyada
+          // tutarlı kullandığı imza asimetrik köşe (`AppRadius.asymLg`,
+          // bkz. `app_radius.dart`) geldi: aynı "sıradan dikdörtgen değil"
+          // hissini, poster/rozet/başlık TAM kart genişliğini kullanarak
+          // (asla dar bir banda sıkışmadan) veriyor.
+          child: ClipRRect(
+            borderRadius: AppRadius.asymLg,
+            child: LayoutBuilder(
+              builder: (final context, final constraints) {
+                final cardH = constraints.maxHeight;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // 1. Ana poster — tüm kartı uçtan uca dolduran taban
+                    // katman.
+                    OptimizedCachedImage(
+                      imageUrl: show.imageUrl,
+                      fit: BoxFit.cover,
+                      borderRadius: 0,
+                    ),
+
+                    // 2. Hover'da "perde açılışı" ile beliren galeri
+                    // fotoğrafı — sadece gerçek galeri verisi varsa.
+                    if (hasReveal)
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(
+                          begin: 0,
+                          end: _hovered ? 1.0 : 0.0,
+                        ),
+                        duration: AppMotion.normal,
+                        curve: AppMotion.dramatic,
+                        builder: (final context, final t, final child) {
+                          if (t <= 0) return const SizedBox.shrink();
+                          return ClipRect(
+                            child: Align(
+                              alignment: Alignment.center,
+                              widthFactor: t,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: SizedBox.expand(
+                          child: OptimizedCachedImage(
+                            imageUrl: _revealImageUrl!,
                             fit: BoxFit.cover,
                             borderRadius: 0,
                           ),
+                        ),
+                      ),
 
-                          // 2. Hover'da "perde açılışı" ile beliren galeri
-                          // fotoğrafı — sadece gerçek galeri verisi varsa.
-                          if (hasReveal)
-                            TweenAnimationBuilder<double>(
-                              tween: Tween<double>(
-                                begin: 0,
-                                end: _hovered ? 1.0 : 0.0,
-                              ),
-                              duration: AppMotion.normal,
-                              curve: AppMotion.dramatic,
-                              builder: (final context, final t, final child) {
-                                if (t <= 0) return const SizedBox.shrink();
-                                return ClipRect(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    widthFactor: t,
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: SizedBox.expand(
-                                child: OptimizedCachedImage(
-                                  imageUrl: _revealImageUrl!,
-                                  fit: BoxFit.cover,
-                                  borderRadius: 0,
-                                ),
-                              ),
-                            ),
+                    // 3. Üst hafif vinyet — rozetlerin her fotoğrafın
+                    // üzerinde okunur kalması için.
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: cardH * 0.32,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.45),
+                              Colors.black.withOpacity(0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
 
-                          // 3. Üst hafif vinyet — rozetlerin her fotoğrafın
-                          // üzerinde okunur kalması için.
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: cardH * 0.4,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withOpacity(0.5),
-                                    Colors.black.withOpacity(0),
-                                  ],
-                                ),
-                              ),
+                    // 4. Alt karartma — başlık/süre metninin her
+                    // fotoğrafın üzerinde okunur kalması için.
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: cardH * 0.46,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0),
+                              Colors.black.withOpacity(0.9),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // 5. Rozetler — kartın TAM genişliğinde, sol hizalı
+                    // (dar kartlarda `Wrap` bir alt satıra sarar, asla
+                    // çakışmaz/taşmaz).
+                    if (badges.isNotEmpty)
+                      Positioned(
+                        top: AppSpacing.sm,
+                        left: AppSpacing.sm,
+                        right: AppSpacing.sm,
+                        child: Wrap(
+                          spacing: AppSpacing.xs,
+                          runSpacing: AppSpacing.xs,
+                          children: badges,
+                        ),
+                      ),
+
+                    // 6. Başlık + süre/yaş sınırı — kartın TAM genişliğinde,
+                    // sol hizalı.
+                    Positioned(
+                      left: AppSpacing.sm,
+                      right: AppSpacing.sm,
+                      bottom: AppSpacing.sm,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            show.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: WebColors.whiteText,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              height: 1.15,
                             ),
                           ),
-
-                          // 4. Alt karartma — başlık/süre metninin her
-                          // fotoğrafın üzerinde okunur kalması için.
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            height: cardH * 0.48,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withOpacity(0),
-                                    Colors.black.withOpacity(0.92),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // 5. Rozetler — şeklin üst gövde bandında,
-                          // ortalanmış tek satır (dar kartlarda `Wrap`
-                          // bir alt satıra sarar, asla çakışmaz).
-                          if (badges.isNotEmpty)
-                            Positioned(
-                              top: cardH * 0.16,
-                              left: contentInset,
-                              right: contentInset,
-                              child: Wrap(
-                                alignment: WrapAlignment.center,
-                                spacing: AppSpacing.xs,
-                                runSpacing: AppSpacing.xs,
-                                children: badges,
-                              ),
-                            ),
-
-                          // 6. Başlık + süre/yaş sınırı — şeklin alt gövde
-                          // bandında, ortalanmış.
-                          Positioned(
-                            left: contentInset,
-                            right: contentInset,
-                            bottom: cardH * 0.15,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  show.name,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
+                          const SizedBox(height: 5),
+                          Row(
+                            children: [
+                              const Icon(Icons.schedule_rounded,
+                                  size: 12, color: WebColors.textTertiary),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  show.duration,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    color: WebColors.whiteText,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.15,
+                                    color: WebColors.textSecondary,
+                                    fontSize: 11,
                                   ),
                                 ),
-                                const SizedBox(height: 5),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.schedule_rounded,
-                                        size: 12,
-                                        color: WebColors.textTertiary),
-                                    const SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text(
-                                        show.duration,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: WebColors.textSecondary,
-                                          fontSize: 11,
-                                        ),
-                                      ),
+                              ),
+                              if (show.ageLimit.trim().isNotEmpty) ...[
+                                const SizedBox(width: 10),
+                                const Icon(Icons.shield_outlined,
+                                    size: 12, color: WebColors.textTertiary),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    show.ageLimit,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: WebColors.textSecondary,
+                                      fontSize: 11,
                                     ),
-                                    if (show.ageLimit.trim().isNotEmpty) ...[
-                                      const SizedBox(width: 10),
-                                      const Icon(Icons.shield_outlined,
-                                          size: 12,
-                                          color: WebColors.textTertiary),
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: Text(
-                                          show.ageLimit,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: WebColors.textSecondary,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
+                                  ),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
                         ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-              // Şeklin dış hattını izleyen ince çerçeve — dikdörtgen bir
-              // `Border.all` yerine, `_VesicaClipper` ile AYNI path üzerine
-              // çizilen bir `CustomPaint` konturu (bkz. `_VesicaBorderPainter`)
-              // — leaf silüetinin etrafında dikdörtgen bir kenarlık
-              // görünmesin diye.
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: _VesicaBorderPainter(
-                      color: _hovered
-                          ? WebColors.primaryGold.withOpacity(0.55)
-                          : WebColors.darkBlueAccent,
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ],
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -381,60 +355,3 @@ class _Chip extends StatelessWidget {
       );
 }
 
-/// 🫒 "Zeytin yaprağı / göz" kırpıcı (vesica piscis) — üstte ve altta tek
-/// bir sivri uçta buluşan, dikey ortada en geniş noktasına ulaşan iki
-/// kavisten oluşan klasik bir şekil. Kesin geometri (iki simetrik
-/// kuadratik Bezier eğrisi, kontrol noktaları kutunun dışına taşacak
-/// şekilde yerleştirilmiş — bkz. aşağıdaki matematik) — elle "çizilmiş"
-/// belirsiz bir path DEĞİL, bu yüzden render önizlemesi olmadan da
-/// güvenle uygulanabilir.
-class _VesicaClipper extends CustomClipper<Path> {
-  const _VesicaClipper();
-
-  // Kontrol noktası w*1.4 / w*-0.4 iken, dikey oranı t (t=y/h, 0..1) olan
-  // bir noktada şeklin genişlik oranı (kartın toplam genişliğine göre)
-  // kapalı formda: width_frac(t) = 3.6 * t * (1-t). Tepe noktası t=0.5'te
-  // %90 (kenara çok yakın, ama tam değmiyor); t=0.16-0.2 civarında
-  // ~%50-58 arası. Kart içeriği (rozetler/başlık) bu yüzden en az
-  // ~%16-20 üstten/alttan içeride, ~%58 genişliği aşmayacak şekilde
-  // yerleştirilir — bkz. `_TheatreShowCardState.build()` içindeki
-  // `contentInset` kullanımı.
-  static Path buildPath(final Size size) {
-    final w = size.width;
-    final h = size.height;
-    return Path()
-      ..moveTo(w / 2, 0)
-      ..quadraticBezierTo(w * 1.4, h / 2, w / 2, h)
-      ..quadraticBezierTo(w * -0.4, h / 2, w / 2, 0)
-      ..close();
-  }
-
-  @override
-  Path getClip(final Size size) => buildPath(size);
-
-  @override
-  bool shouldReclip(covariant final CustomClipper<Path> oldClipper) => false;
-}
-
-/// `_VesicaClipper` ile birebir aynı path üzerine ince bir kontur çizen
-/// ressam — kartın dış çerçevesi artık dikdörtgen bir `Border.all` değil,
-/// leaf silüetinin kendisini izleyen bir hat.
-class _VesicaBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-
-  const _VesicaBorderPainter({required this.color, this.strokeWidth = 1.3});
-
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    canvas.drawPath(_VesicaClipper.buildPath(size), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant final _VesicaBorderPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
-}
