@@ -390,13 +390,13 @@ class _AuthPrimaryButtonState extends State<AuthPrimaryButton> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (widget.icon != null) ...[
-                    Icon(widget.icon, size: 18, color: const Color(0xFF1F1F1F)),
+                    Icon(widget.icon, size: 18, color: WebColors.veryDarkBlue),
                     const SizedBox(width: AppSpacing.sm),
                   ],
                   Text(
                     widget.label,
                     style: const TextStyle(
-                      color: Color(0xFF1F1F1F),
+                      color: WebColors.veryDarkBlue,
                       fontWeight: FontWeight.w800,
                       fontSize: 14.5,
                       letterSpacing: 0.6,
