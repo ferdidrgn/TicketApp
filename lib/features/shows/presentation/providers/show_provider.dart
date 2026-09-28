@@ -260,12 +260,35 @@ final activeShowsProvider =
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
   final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  final active =
-      shows.where((final s) => nearestByShow.containsKey(s.id)).toList();
-  active.sort((final a, final b) =>
-      nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
-  return active;
+  return _splitActiveShows(shows, nearestByShow).active;
 });
+
+/// "Aktif" tanımı TEK yerde: takviminde gelecek bir GERÇEK etkinliği olan
+/// oyunlar VE biletleri başka bir platformda satılan (`hasExternalTicketing`)
+/// oyunlar. İkincilerin bizde Event kaydı olmadığı için eskiden "geçmiş"
+/// sayılıyorlardı — Keşfet "1 aktif oyun" gösteriyordu. Sıralama: önce
+/// gerçek etkinliği olanlar (en yakın tarih önce), sonra yalnızca harici
+/// linki olanlar (en yeni eklenen önce).
+({List<Show> active, List<Show> inactive}) _splitActiveShows(
+    final List<Show> shows, final Map<String, DateTime> nearestByShow) {
+  final withEvents = <Show>[];
+  final externalOnly = <Show>[];
+  final inactive = <Show>[];
+  for (final show in shows) {
+    if (nearestByShow.containsKey(show.id)) {
+      withEvents.add(show);
+    } else if (show.hasExternalTicketing) {
+      externalOnly.add(show);
+    } else {
+      inactive.add(show);
+    }
+  }
+  withEvents.sort((final a, final b) =>
+      nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
+  sortShowsByCreatedAtDescending(externalOnly);
+  sortShowsByCreatedAtDescending(inactive);
+  return (active: [...withEvents, ...externalOnly], inactive: inactive);
+}
 
 /// 🔴 GEÇMİŞ OYUNLAR — tüm etkinlikleri geçmişte kalmış (ya da hiç
 /// etkinliği hiç olmamış) oyunlar. "Geçmiş Oyunlar" arşiv görünümü gibi
@@ -277,10 +300,7 @@ final pastShowsProvider =
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
   final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  final past =
-      shows.where((final s) => !nearestByShow.containsKey(s.id)).toList();
-  sortShowsByCreatedAtDescending(past);
-  return past;
+  return _splitActiveShows(shows, nearestByShow).inactive;
 });
 
 /// 🟢➡️🔴 TÜM OYUNLAR, AKTİF ÖNCE — genel oyun listeleme/keşfet
@@ -298,12 +318,6 @@ final showsActiveFirstProvider =
   final shows = await ref.watch(showsProvider(isLimit: isLimit).future);
   if (shows.isEmpty) return [];
   final nearestByShow = await _nearestFutureEventDatesByShow(ref, shows);
-  final active = <Show>[];
-  final inactive = <Show>[];
-  for (final show in shows)
-    (nearestByShow.containsKey(show.id) ? active : inactive).add(show);
-  active.sort((final a, final b) =>
-      nearestByShow[a.id]!.compareTo(nearestByShow[b.id]!));
-  sortShowsByCreatedAtDescending(inactive);
-  return [...active, ...inactive];
+  final split = _splitActiveShows(shows, nearestByShow);
+  return [...split.active, ...split.inactive];
 });
