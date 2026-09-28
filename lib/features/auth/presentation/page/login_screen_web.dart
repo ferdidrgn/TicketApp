@@ -171,10 +171,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 }
 
 /// SOL PANEL — sahne fotoğrafı, marka, editoryal alıntı. `home_page_web.dart`
-/// `_HeroBackdropPhoto`si ile AYNI teknik (fotoğraf + çift yönlü scrim) —
-/// kopya değil, aynı dilin bu ekrana özel bileşimi (burada gerçek asset,
-/// `main_theatre.png` — hero'nun Unsplash fotoğrafından bilerek farklı,
-/// login/phone-login birbirinden ayırt edilsin diye).
+/// `_HeroBackdropPhoto`si ile AYNI teknik (fotoğraf + çift yönlü scrim).
+/// Kullanıcının kendi seçimi: profil sayfasının misafir durumundaki aynı
+/// "sahne/konser atmosferi" fotoğrafı (bkz. profile_page.dart
+/// `_stageBackdropUrl`) — mobil/web login/telefon-login ekranlarının
+/// hepsinde tutarlılık için kullanılıyor.
 class _StagePanel extends StatelessWidget {
   final Animation<double> Function(double start) fade;
   final bool compact;
@@ -187,7 +188,8 @@ class _StagePanel extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         const Image(
-          image: AssetImage('assets/images/main_theatre.png'),
+          image: NetworkImage(
+              'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85'),
           fit: BoxFit.cover,
           excludeFromSemantics: true,
         ),

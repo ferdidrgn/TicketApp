@@ -94,8 +94,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             child: Stack(
               fit: StackFit.expand,
               children: [
+                // Kullanıcının kendi seçimi: profil sayfasının misafir
+                // durumundaki aynı "sahne/konser atmosferi" fotoğrafı
+                // (bkz. profile_page.dart _stageBackdropUrl) — hem mobil
+                // hem web login/telefon-login ekranlarında tutarlılık
+                // için burada da kullanılıyor.
                 const Image(
-                  image: AssetImage('assets/images/main_theatre.png'),
+                  image: NetworkImage(
+                      'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85'),
                   fit: BoxFit.cover,
                   excludeFromSemantics: true,
                 ),

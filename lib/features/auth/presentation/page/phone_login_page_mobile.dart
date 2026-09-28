@@ -155,9 +155,11 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Kullanıcının kendi seçimi: login_screen ile aynı
+                  // "sahne/konser atmosferi" fotoğrafı — tutarlılık için.
                   const Image(
                     image: NetworkImage(
-                        'https://images.unsplash.com/photo-1503095396549-807759245b35'),
+                        'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85'),
                     fit: BoxFit.cover,
                     excludeFromSemantics: true,
                   ),
