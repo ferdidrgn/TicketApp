@@ -11,12 +11,13 @@ final class TiyatrolCommunicationActions {
   static const String _officialEmail = "iletisim@tiyatrol.com";
 
   // --- 📧 E-POSTA GÖNDER ---
+  // `Uri(queryParameters:)` boşlukları `+` olarak kodluyor ve mail
+  // istemcileri konuyu "TiyatRol+Destek" diye gösteriyordu — mailto için
+  // `%20` gerekiyor.
   static Future<void> sendEmail(
       {final String subject = "TiyatRol Destek"}) async {
-    final Uri uri = Uri(
-        scheme: 'mailto',
-        path: _officialEmail,
-        queryParameters: {'subject': subject});
+    final Uri uri = Uri.parse(
+        'mailto:$_officialEmail?subject=${Uri.encodeComponent(subject)}');
     await _launch(uri);
   }
 
@@ -28,19 +29,18 @@ final class TiyatrolCommunicationActions {
   }
 
   // --- 📸 INSTAGRAM PROFİLİNİ AÇ ---
-  static Future<void> openInstagram() async {
-    final Uri nativeUrl =
-        Uri.parse("instagram://user?username=$_instagramUser");
-    final Uri webUrl = Uri.parse("https://www.instagram.com/$_instagramUser");
-    await _launchWithFallback(nativeUrl, webUrl);
-  }
+  // Eskiden önce `instagram://` / `fb://facename/` gibi özel şemalar
+  // deneniyordu. Web'de bu şemalar hiçbir şey açmadan "başarılı" dönüyordu
+  // (yedek https linkine hiç düşmüyordu), `fb://facename/` ise geçerli bir
+  // Facebook şeması bile değil. Doğrudan https linki açılıyor: web'de yeni
+  // sekme, Android/iOS'ta uygulama yüklüyse işletim sistemi (App Links /
+  // Universal Links) linki zaten uygulamaya yönlendiriyor.
+  static Future<void> openInstagram() async =>
+      _launch(Uri.parse("https://www.instagram.com/$_instagramUser"));
 
   // --- 👥 FACEBOOK SAYFASINI AÇ ---
-  static Future<void> openFacebook() async {
-    final Uri nativeUrl = Uri.parse("fb://facename/$_facebookPage");
-    final Uri webUrl = Uri.parse("https://www.facebook.com/$_facebookPage");
-    await _launchWithFallback(nativeUrl, webUrl);
-  }
+  static Future<void> openFacebook() async =>
+      _launch(Uri.parse("https://www.facebook.com/$_facebookPage"));
 
   // --- 📍 SAHNE KONUMUNU HARİTALARDA AÇ ---
   static Future<void> openStageLocation({
@@ -92,23 +92,16 @@ final class TiyatrolCommunicationActions {
 
   // --- 🛠 YARDIMCI METOTLAR ---
 
-  /// Önce uygulama (native) denemesi yapar, başarısız olursa tarayıcıda açar.
-  static Future<void> _launchWithFallback(
-      final Uri nativeUrl, final Uri webUrl) async {
-    try {
-      final bool launched = await launchUrl(nativeUrl,
-          mode: LaunchMode.externalNonBrowserApplication);
-      if (!launched) await _launch(webUrl);
-    } catch (e) {
-      await _launch(webUrl);
-    }
-  }
-
   /// Genel URL başlatıcı
   static Future<void> _launch(final Uri url) async {
     try {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication))
-        debugPrint("URL başlatılamadı: $url");
+      final launched = await launchUrl(
+        url,
+        mode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+        // mailto yeni sekmede açılırsa arkada boş bir sekme kalıyor.
+        webOnlyWindowName: url.scheme == 'mailto' ? '_self' : '_blank',
+      );
+      if (!launched) debugPrint("URL başlatılamadı: $url");
     } catch (e) {
       debugPrint("Hata: $e");
     }

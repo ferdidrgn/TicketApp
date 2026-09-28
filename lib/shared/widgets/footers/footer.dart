@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/util/comminucation_actions.dart';
 import '../../navigation/widgets/nav_handler.dart';
 import '../../../core/common/extentions/app_context_ui_extension.dart';
@@ -30,9 +31,14 @@ class Footer extends StatelessWidget {
           ],
         ),
       ),
-      child: context.isMobile
-          ? _buildMobileFooter(context)
-          : _buildDesktopFooter(context),
+      // InkWell'ler dalgalanma/hover efektini en yakın Material'a çizer;
+      // bu olmadan efekt gradyanın ALTINDA kalıp hiç görünmüyordu.
+      child: Material(
+        type: MaterialType.transparency,
+        child: context.isMobile
+            ? _buildMobileFooter(context)
+            : _buildDesktopFooter(context),
+      ),
     );
   }
 
@@ -140,9 +146,9 @@ class Footer extends StatelessWidget {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  _socialIcon(context, Icons.facebook,
+                  _socialIcon(context, Icons.facebook, 'Facebook',
                       TiyatrolCommunicationActions.openFacebook),
-                  _socialIcon(context, Icons.camera_alt_outlined,
+                  _socialIcon(context, Icons.camera_alt_outlined, 'Instagram',
                       TiyatrolCommunicationActions.openInstagram),
                 ],
               ),
@@ -228,10 +234,10 @@ class Footer extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            _socialIcon(context, Icons.facebook,
+            _socialIcon(context, Icons.facebook, 'Facebook',
                 TiyatrolCommunicationActions.openFacebook),
             const SizedBox(width: 12),
-            _socialIcon(context, Icons.camera_alt_outlined,
+            _socialIcon(context, Icons.camera_alt_outlined, 'Instagram',
                 TiyatrolCommunicationActions.openInstagram),
           ],
         ),
@@ -270,19 +276,26 @@ class Footer extends StatelessWidget {
         ),
       );
 
-  Widget _socialIcon(
-      final BuildContext context, final IconData icon, final VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(100),
-      child: Container(
-        decoration: BoxDecoration(
-          color: WebColors.primaryGoldLight.withOpacity(0.15),
-          shape: BoxShape.circle,
+  Widget _socialIcon(final BuildContext context, final IconData icon,
+      final String label, final VoidCallback onTap) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            decoration: BoxDecoration(
+              color: WebColors.primaryGoldLight.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            child: Icon(icon,
+                color: WebColors.primaryGoldLight, size: context.iconSmall),
+          ),
         ),
-        padding: const EdgeInsets.all(8),
-        child:
-            Icon(icon, color: WebColors.primaryGoldLight, size: context.iconSmall),
       ),
     );
   }
