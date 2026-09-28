@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pinput/pinput.dart';
-import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
@@ -12,16 +11,24 @@ import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_pro
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/auth_atmosphere.dart';
 
 enum _PendingAuthAction { none, sendCode, verifyCode }
 
-/// TELEFON İLE GİRİŞ / OTP EKRANI — MASAÜSTÜ/WEB
+/// TELEFON İLE GİRİŞ / OTP EKRANI — MASAÜSTÜ/WEB (3. TASARIM)
 ///
-/// `login_screen_web.dart` ile AYNI split-screen iskeleti (sol sahne
-/// paneli, sağ form kartı, kendi `GlassmorphismBackButton`'ı, ~900px iç
-/// kırılma noktası) — ama farklı atmosfer fotoğrafı ve iki-adımlı
-/// (telefon → OTP) form içeriği. `BasePageWrapper` burada da bilerek
-/// kullanılmıyor (bkz. `login_screen_web.dart` başındaki gerekçe).
+/// `login_screen_web.dart`'ın "afiş tipografisi / iki sütun" dilini
+/// BİLEREK TEKRARLAMIYOR — bu ekran "doğrulama" anının kendi mekânı: dar,
+/// dikeyde ortalanmış tek bir sütun (bir "prova sahnesi" gibi), iki
+/// yanında ince, yukarı/aşağı solan birer dikey çizgi (proscenium/kemer
+/// ipucu — gerçek bir kemer GRAFİĞİ değil, gradyan+opaklıkla verilen bir
+/// ima). Üstte `AuthPortholePhoto` (küçük gözetleme deliği fotoğrafı) +
+/// `AuthStepChip` (ADIM 1/ADIM 2), altta `pinput` tabanlı OTP/telefon
+/// formu. Klavye tamamen kullanılabilir (`TextField.onSubmitted`,
+/// `Pinput.autofocus`, `AuthPrimaryButton`'ın `InkWell`'i Tab/Enter ile).
+///
+/// `BasePageWrapper` burada da bilerek kullanılmıyor (bkz.
+/// `login_screen_web.dart` başındaki gerekçe).
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
 
@@ -141,47 +148,101 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
         color: WebColors.veryDarkBlue,
         child: Stack(
           children: [
+            const Positioned.fill(child: _ProsceniumBackdrop()),
             Positioned.fill(
-              child: LayoutBuilder(
-                builder: (final context, final constraints) {
-                  final bool split = constraints.maxWidth >= 900;
-                  final stage = _StagePanel(
-                      fade: _fade, compact: !split, isCodeSent: _isCodeSent);
-                  final form = _FormPanel(
-                    isCodeSent: _isCodeSent,
-                    isLoading: authMutation.isLoading,
-                    phoneController: _phoneController,
-                    otpController: _otpController,
-                    onSendCode: _verifyPhone,
-                    onVerify: _signInWithOTP,
-                    onEditNumber: () => setState(() => _isCodeSent = false),
-                  );
-                  if (split) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(flex: 5, child: stage),
-                        Expanded(flex: 4, child: form),
-                      ],
-                    );
-                  }
-                  return SingleChildScrollView(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl, vertical: AppSpacing.section),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 440),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
-                            height: constraints.maxHeight * 0.4, child: stage),
-                        form,
+                        FadeTransition(
+                          opacity: _fade(0.0),
+                          child: const AuthPortholePhoto(
+                              imageUrl: _stageImageUrl, size: 148),
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+                        FadeTransition(
+                          opacity: _fade(0.08),
+                          child: AuthStepChip(
+                            icon: _isCodeSent
+                                ? Icons.mark_email_read_rounded
+                                : Icons.security_rounded,
+                            label: _isCodeSent
+                                ? 'ADIM 2 · DOĞRULAMA'
+                                : 'ADIM 1 · İLETİŞİM',
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        AnimatedSwitcher(
+                          duration: AppMotion.normal,
+                          switchInCurve: AppMotion.standard,
+                          switchOutCurve: AppMotion.standard,
+                          child: Text(
+                            _isCodeSent
+                                ? 'SON PERDE:\nKODU DOĞRULA.'
+                                : 'NUMARANI PAYLAŞ,\nYERİNİ AYIRALIM.',
+                            key: ValueKey(_isCodeSent),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.playfairDisplay(
+                              color: WebColors.whiteText,
+                              fontSize: 36,
+                              fontWeight: FontWeight.w700,
+                              height: 1.16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          _isCodeSent
+                              ? 'Telefonunuza gönderdiğimiz 6 haneli kodu '
+                                  'girerek perdeyi açın.'
+                              : 'Biletinizi almak ve yerinizi seçmek için '
+                                  'telefon numaranızı girin.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: WebColors.textSecondary,
+                            fontSize: 14.5,
+                            height: 1.55,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xxxl),
+                        FadeTransition(
+                          opacity: _fade(0.22),
+                          child: AnimatedSwitcher(
+                            duration: AppMotion.normal,
+                            switchInCurve: AppMotion.standard,
+                            switchOutCurve: AppMotion.standard,
+                            transitionBuilder: (final child, final animation) =>
+                                FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.04),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            ),
+                            child: _isCodeSent
+                                ? _buildOtpUI(authMutation.isLoading)
+                                : _buildPhoneUI(authMutation.isLoading),
+                          ),
+                        ),
                       ],
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
             ),
             Positioned(
               top: AppSpacing.xl,
               left: AppSpacing.xl,
-              child: GlassmorphismBackButton(onPressed: _handleBack, size: 44),
+              child:
+                  GlassmorphismBackButton(onPressed: _handleBack, size: 44),
             ),
             if (authMutation.isLoading)
               Positioned.fill(
@@ -199,474 +260,269 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
       ),
     );
   }
-}
 
-/// Sol panel — `login_screen_web.dart`'taki `_StagePanel` ile aynı teknik,
-/// BİLEREK farklı atmosfer fotoğrafı (Unsplash — `home_page_web.dart`'ın
-/// hero'sunda da kullanılan, doğrulanmış bir kaynak) kullanıyor ki iki giriş
-/// ekranı görsel olarak ayırt edilsin.
-class _StagePanel extends StatelessWidget {
-  final Animation<double> Function(double start) fade;
-  final bool compact;
-  final bool isCodeSent;
-
-  const _StagePanel(
-      {required this.fade, required this.isCodeSent, this.compact = false});
-
-  @override
-  Widget build(final BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // Kullanıcının kendi seçimi: login_screen_web ile aynı
-        // "sahne/konser atmosferi" fotoğrafı — tutarlılık için.
-        const Image(
-          image: NetworkImage(
-              'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85'),
-          fit: BoxFit.cover,
-          excludeFromSemantics: true,
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                WebColors.veryDarkBlue.withOpacity(0.88),
-                WebColors.darkBlueBackground.withOpacity(0.6),
-                WebColors.darkBlueBackground.withOpacity(0.32),
-              ],
-              stops: const [0.0, 0.55, 1.0],
-            ),
+  Widget _buildPhoneUI(final bool isLoading) => Column(
+        key: const ValueKey('phone_ui'),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PhoneTextField(
+            controller: _phoneController,
+            onSubmitted: (final _) => _verifyPhone(),
           ),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.section,
-            compact ? AppSpacing.xxl : AppSpacing.section,
-            AppSpacing.xxl,
-            AppSpacing.xxl,
+          const SizedBox(height: AppSpacing.xl),
+          AuthPrimaryButton(
+            label: 'KOD GÖNDER',
+            icon: Icons.send_rounded,
+            onTap: isLoading ? null : _verifyPhone,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment:
-                compact ? MainAxisAlignment.center : MainAxisAlignment.end,
-            children: [
-              if (!compact) const Spacer(),
-              AnimatedSwitcher(
-                duration: AppMotion.normal,
-                switchInCurve: AppMotion.standard,
-                switchOutCurve: AppMotion.standard,
-                child: Text(
-                  isCodeSent ? 'Son Bir\nAdım Kaldı.' : 'Sahne Kapısı\nAralanıyor.',
-                  key: ValueKey(isCodeSent),
-                  style: GoogleFonts.playfairDisplay(
-                    color: WebColors.whiteText,
-                    fontSize: compact ? 28 : 42,
-                    fontWeight: FontWeight.w600,
-                    height: 1.14,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Text(
-                  isCodeSent
-                      ? 'Telefonunuza gönderdiğimiz 6 haneli kodu girerek '
-                          'perdeyi açın.'
-                      : 'Biletinizi almak ve yerinizi seçmek için telefon '
-                          'numaranızı girin.',
-                  style: TextStyle(
-                    color: WebColors.textSecondary,
-                    fontSize: 14.5,
-                    height: 1.6,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
+        ],
+      );
 
-/// Sağ panel — form kartı. Telefon/OTP adımları arasında `AnimatedSwitcher`
-/// ile geçiş yapar; kart bütünüyle klavye/Enter ile kullanılabilir
-/// (`TextField.onSubmitted`).
-class _FormPanel extends StatelessWidget {
-  final bool isCodeSent;
-  final bool isLoading;
-  final TextEditingController phoneController;
-  final TextEditingController otpController;
-  final VoidCallback onSendCode;
-  final void Function([String? pin]) onVerify;
-  final VoidCallback onEditNumber;
+  Widget _buildOtpUI(final bool isLoading) {
+    final remainingSeconds = ref.watch(otpTimerProvider);
+    final bool canResend = remainingSeconds <= 0;
+    final timerText = "00:${remainingSeconds.toString().padLeft(2, '0')}";
 
-  const _FormPanel({
-    required this.isCodeSent,
-    required this.isLoading,
-    required this.phoneController,
-    required this.otpController,
-    required this.onSendCode,
-    required this.onVerify,
-    required this.onEditNumber,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    return ColoredBox(
-      color: WebColors.darkBlueBackground,
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xxl, vertical: AppSpacing.xxxl),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.xxxl),
-              decoration: BoxDecoration(
-                color: WebColors.darkBlueSurface,
-                borderRadius: AppRadius.asymLg,
-                border: Border.all(color: WebColors.darkBlueAccent),
-                boxShadow: AppShadows.level2(WebColors.veryDarkBlue),
-              ),
-              child: AnimatedSwitcher(
-                duration: AppMotion.normal,
-                switchInCurve: AppMotion.standard,
-                switchOutCurve: AppMotion.standard,
-                transitionBuilder: (final child, final animation) =>
-                    FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                            begin: const Offset(0, 0.04), end: Offset.zero)
-                        .animate(animation),
-                    child: child,
-                  ),
-                ),
-                child: isCodeSent
-                    ? _OtpStep(
-                        key: const ValueKey('otp'),
-                        controller: otpController,
-                        isLoading: isLoading,
-                        onVerify: onVerify,
-                        onEditNumber: onEditNumber,
-                      )
-                    : _PhoneStep(
-                        key: const ValueKey('phone'),
-                        controller: phoneController,
-                        isLoading: isLoading,
-                        onSendCode: onSendCode,
-                      ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PhoneStep extends StatelessWidget {
-  final TextEditingController controller;
-  final bool isLoading;
-  final VoidCallback onSendCode;
-
-  const _PhoneStep({
-    required super.key,
-    required this.controller,
-    required this.isLoading,
-    required this.onSendCode,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      key: const ValueKey('otp_ui'),
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'GÜVENLİ GİRİŞ',
-          style: TextStyle(
-            color: WebColors.primaryGoldLight,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 3,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Telefon Numaranız',
-          style: context.textTheme.headlineSmall?.copyWith(
-            color: WebColors.whiteText,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Text(
-          'TELEFON NUMARASI',
-          style: TextStyle(
-            color: WebColors.whiteText.withOpacity(0.6),
-            fontSize: 11,
-            letterSpacing: 1.5,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Semantics(
-          label: 'Telefon numarası girişi',
-          textField: true,
-          child: Container(
-            decoration: BoxDecoration(
-              color: WebColors.darkBlueBackground,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: WebColors.darkBlueAccent, width: 1.4),
-            ),
-            child: TextField(
-              controller: controller,
+        Center(
+          child: Semantics(
+            label: 'Doğrulama kodu, 6 hane',
+            textField: true,
+            child: Pinput(
+              length: 6,
+              controller: _otpController,
+              autofocus: true,
               keyboardType: TextInputType.number,
-              maxLength: 10,
-              onSubmitted: (final _) => onSendCode(),
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 17,
-                color: WebColors.whiteText,
-                letterSpacing: 1.4,
+              defaultPinTheme: _pinTheme(
+                background: WebColors.darkBlueBackground,
+                border: WebColors.darkBlueAccent,
               ),
-              decoration: InputDecoration(
-                hintText: '5XX XXX XX XX',
-                hintStyle: TextStyle(color: WebColors.textTertiary),
-                prefixText: '+90  ',
-                prefixStyle: const TextStyle(
-                    color: WebColors.textSecondary, fontWeight: FontWeight.bold),
-                counterText: '',
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
-                border: InputBorder.none,
+              focusedPinTheme: _pinTheme(
+                background: WebColors.darkBlueBackground,
+                border: WebColors.primaryGoldLight,
+                shadow: AppShadows.level2(WebColors.primaryGold),
               ),
+              submittedPinTheme: _pinTheme(
+                background: WebColors.primaryGold.withOpacity(0.18),
+                border: WebColors.primaryGold,
+              ),
+              onCompleted: (final pin) => _signInWithOTP(pin),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Center(
+          child: Text(
+            timerText,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+              color:
+                  canResend ? Colors.red.shade400 : WebColors.primaryGoldLight,
             ),
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        _WebPrimaryButton(
-          label: 'KOD GÖNDER',
-          onTap: isLoading ? null : onSendCode,
+        AuthPrimaryButton(
+          label: 'DOĞRULA VE BAŞLA',
+          icon: Icons.check_circle_outline_rounded,
+          onTap: isLoading ? null : () => _signInWithOTP(),
         ),
-      ],
-    );
-  }
-}
-
-class _OtpStep extends StatelessWidget {
-  final TextEditingController controller;
-  final bool isLoading;
-  final void Function([String? pin]) onVerify;
-  final VoidCallback onEditNumber;
-
-  const _OtpStep({
-    required super.key,
-    required this.controller,
-    required this.isLoading,
-    required this.onVerify,
-    required this.onEditNumber,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    return Consumer(
-      builder: (final context, final ref, final _) {
-        final remainingSeconds = ref.watch(otpTimerProvider);
-        final bool canResend = remainingSeconds <= 0;
-        final timerText = "00:${remainingSeconds.toString().padLeft(2, '0')}";
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'DOĞRULAMA',
-              style: TextStyle(
-                color: WebColors.primaryGoldLight,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 3,
+            TextButton(
+              onPressed: () => setState(() => _isCodeSent = false),
+              style: TextButton.styleFrom(
+                foregroundColor: WebColors.textSecondary,
               ),
+              child: const Text('Numarayı Düzenle',
+                  style: TextStyle(
+                      fontSize: 13, decoration: TextDecoration.underline)),
             ),
-            const SizedBox(height: 8),
-            Text(
-              '6 Haneli Kod',
-              style: context.textTheme.headlineSmall?.copyWith(
-                color: WebColors.whiteText,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            Center(
-              child: Semantics(
-                label: 'Doğrulama kodu, 6 hane',
-                textField: true,
-                child: Pinput(
-                  length: 6,
-                  controller: controller,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  defaultPinTheme: PinTheme(
-                    width: 48,
-                    height: 58,
-                    textStyle: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: WebColors.whiteText),
-                    decoration: BoxDecoration(
-                      color: WebColors.darkBlueBackground,
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      border:
-                          Border.all(color: WebColors.darkBlueAccent, width: 1.4),
-                    ),
-                  ),
-                  focusedPinTheme: PinTheme(
-                    width: 48,
-                    height: 58,
-                    textStyle: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: WebColors.whiteText),
-                    decoration: BoxDecoration(
-                      color: WebColors.darkBlueBackground,
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      border: Border.all(
-                          color: WebColors.primaryGoldLight, width: 1.6),
-                      boxShadow: AppShadows.level2(WebColors.primaryGold),
-                    ),
-                  ),
-                  submittedPinTheme: PinTheme(
-                    width: 48,
-                    height: 58,
-                    textStyle: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: WebColors.whiteText),
-                    decoration: BoxDecoration(
-                      color: WebColors.primaryGold.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      border: Border.all(color: WebColors.primaryGold, width: 1.6),
-                    ),
-                  ),
-                  onCompleted: (final pin) => onVerify(pin),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Center(
-              child: Text(
-                timerText,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                  color:
-                      canResend ? Colors.red.shade400 : WebColors.primaryGoldLight,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            _WebPrimaryButton(
-              label: 'DOĞRULA VE BAŞLA',
-              onTap: isLoading ? null : () => onVerify(),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: onEditNumber,
-                  style: TextButton.styleFrom(
-                    foregroundColor: WebColors.textSecondary,
-                  ),
-                  child: const Text('Numarayı Düzenle',
-                      style: TextStyle(
-                          fontSize: 13, decoration: TextDecoration.underline)),
-                ),
-                AnimatedOpacity(
-                  duration: AppMotion.fast,
-                  opacity: canResend ? 1.0 : 0.4,
-                  child: TextButton(
-                    onPressed: canResend && !isLoading ? () => onEditNumber() : null,
+            AnimatedOpacity(
+              duration: AppMotion.fast,
+              opacity: canResend ? 1.0 : 0.4,
+              child: TextButton(
+                onPressed:
+                    canResend && !isLoading ? () => _verifyPhone() : null,
+                style: TextButton.styleFrom(
+                    foregroundColor: WebColors.primaryGoldLight),
+                child: const Text('Kodu Yeniden Gönder',
                     style:
-                        TextButton.styleFrom(foregroundColor: WebColors.primaryGoldLight),
-                    child: const Text('Kodu Yeniden Gönder',
-                        style:
-                            TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
+
+  PinTheme _pinTheme({
+    required final Color background,
+    required final Color border,
+    final List<BoxShadow>? shadow,
+  }) =>
+      PinTheme(
+        width: 48,
+        height: 58,
+        textStyle: const TextStyle(
+            fontSize: 20, fontWeight: FontWeight.w700, color: WebColors.whiteText),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: border, width: 1.5),
+          boxShadow: shadow,
+        ),
+      );
 }
 
-/// Klavye/fare dostu birincil buton — `login_screen_web.dart`'taki
-/// `_WebAuthButton` ile aynı `InkWell`/`onHover` tekniği.
-class _WebPrimaryButton extends StatefulWidget {
-  final String label;
-  final VoidCallback? onTap;
+/// Kullanıcının kendi seçimi (profil sayfasının misafir durumundaki aynı
+/// "sahne/konser atmosferi" fotoğrafı) — küçük gözetleme deliğinde.
+const String _stageImageUrl =
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85';
 
-  const _WebPrimaryButton({required this.label, required this.onTap});
-
-  @override
-  State<_WebPrimaryButton> createState() => _WebPrimaryButtonState();
-}
-
-class _WebPrimaryButtonState extends State<_WebPrimaryButton> {
-  bool _hovered = false;
+/// Zemin: düz gradyan + TEK spot ışığı (alt-orta) + iki ince, yukarı/aşağı
+/// solan dikey çizgi — bir kemer/kulis ipucu, literal bir grafik değil.
+class _ProsceniumBackdrop extends StatelessWidget {
+  const _ProsceniumBackdrop();
 
   @override
-  Widget build(final BuildContext context) {
-    return MouseRegion(
-      cursor: widget.onTap == null
-          ? SystemMouseCursors.basic
-          : SystemMouseCursors.click,
-      child: Material(
-        color: WebColors.whiteText,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: InkWell(
-          onTap: widget.onTap,
-          onHover: (final v) => setState(() => _hovered = v),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          focusColor: WebColors.primaryGold.withOpacity(0.18),
-          child: AnimatedContainer(
-            duration: AppMotion.fast,
-            curve: AppMotion.standard,
-            height: 52,
-            width: double.infinity,
-            alignment: Alignment.center,
+  Widget build(final BuildContext context) => Stack(
+        fit: StackFit.expand,
+        children: [
+          const DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              boxShadow: AppShadows.level2(WebColors.veryDarkBlue)
-                  .map((final s) => BoxShadow(
-                        color: s.color,
-                        blurRadius: _hovered ? s.blurRadius + 6 : s.blurRadius,
-                        offset: s.offset,
-                      ))
-                  .toList(),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  WebColors.veryDarkBlue,
+                  WebColors.darkBlueBackground,
+                  WebColors.darkBlueSurface,
+                ],
+              ),
             ),
-            child: Text(
-              widget.label,
-              style: const TextStyle(
-                color: Color(0xFF1F1F1F),
-                fontWeight: FontWeight.w800,
-                fontSize: 14.5,
-                letterSpacing: 0.5,
+          ),
+          Positioned(
+            bottom: -180,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: AuthAmbientGlow(
+                  size: 460, tint: WebColors.primaryGold.withOpacity(0.9)),
+            ),
+          ),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: _EdgeHairline(),
+          ),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: _EdgeHairline(),
+          ),
+        ],
+      );
+}
+
+class _EdgeHairline extends StatelessWidget {
+  const _EdgeHairline();
+
+  @override
+  Widget build(final BuildContext context) => FractionallySizedBox(
+        widthFactor: 1,
+        heightFactor: 0.62,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+          child: Container(
+            width: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  WebColors.primaryGold.withOpacity(0),
+                  WebColors.primaryGold.withOpacity(0.16),
+                  WebColors.primaryGold.withOpacity(0),
+                ],
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+}
+
+/// Telefon numarası alanı — ortalanmış, sade bir alt-çizgili giriş.
+class _PhoneTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String>? onSubmitted;
+
+  const _PhoneTextField({required this.controller, this.onSubmitted});
+
+  @override
+  Widget build(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'TELEFON NUMARASI',
+            style: TextStyle(
+              color: WebColors.textTertiary,
+              fontSize: 11,
+              letterSpacing: 2,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Semantics(
+            label: 'Telefon numarası girişi',
+            textField: true,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: WebColors.primaryGold.withOpacity(0.45),
+                    width: 1.4,
+                  ),
+                ),
+              ),
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                maxLength: 10,
+                textAlign: TextAlign.center,
+                onSubmitted: onSubmitted,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                  color: WebColors.whiteText,
+                  letterSpacing: 2,
+                ),
+                decoration: InputDecoration(
+                  hintText: '5XX XXX XX XX',
+                  hintStyle: TextStyle(color: WebColors.textTertiary),
+                  prefixText: '+90  ',
+                  prefixStyle: const TextStyle(
+                    color: WebColors.textSecondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                  counterText: '',
+                  isDense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
 }

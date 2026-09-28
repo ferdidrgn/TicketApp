@@ -1,40 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ticketapp/core/common/extentions/app_context_ui_extension.dart';
 import 'package:ticketapp/core/theme/app_colors.dart';
 import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
-import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
 import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
+import '../widgets/auth_atmosphere.dart';
 
-/// GİRİŞ EKRANI — MASAÜSTÜ/WEB
+/// GİRİŞ EKRANI — MASAÜSTÜ/WEB (3. TASARIM, KULLANICININ AÇIK İSTEĞİ
+/// ÜZERİNE KÖKTEN FARKLI)
 ///
-/// KASITLI OLARAK `BasePageWrapper` KULLANMIYOR (`home_page_web.dart` ile
-/// aynı gerekçe): o wrapper mobil uygulama çatısı (geri tuşu başlığı,
-/// pull-to-refresh, parçacık arka planı) için — bir web sayfasını "Android
-/// uygulaması gibi" gösterirdi. `/login` ve `/phone-login` rotaları
-/// `app_router.dart`'ta bir shell/top-nav içine SARILMIYOR (kimlik
-/// doğrulama öncesi, tam ekran bir an), o yüzden bu sayfa kendi geri
-/// tuşunu (`GlassmorphismBackButton` — glass BURADA meşru: floating
-/// overlay control) sol üstte kendisi sağlıyor.
+/// KASITLI OLARAK `BasePageWrapper` KULLANMIYOR — `login_screen_web.dart`'ın
+/// önceki iki sürümüyle AYNI gerekçe: bu wrapper mobil uygulama çatısı için,
+/// kimlik doğrulama öncesi tam ekran bir an burada bir shell/top-nav'a
+/// SARILMIYOR, o yüzden sayfa kendi geri tuşunu (`GlassmorphismBackButton`
+/// — glass BURADA meşru: floating overlay control) sol üstte kendisi
+/// sağlıyor.
 ///
-/// Kompozisyon: gerçek bir "split-screen" — sol sabit panel tiyatro
-/// fotoğrafı + marka + editoryal alıntı, sağ panel form kartı. Mobildeki
-/// tek sütunun ortada daha çok boşlukla büyütülmüş hali DEĞİL: iki panel
-/// birbirinden farklı görevler taşıyor (atmosfer vs. aksiyon), gerçek
-/// hover durumları var, Tab/Enter ile tamamen klavyeyle kullanılabilir
-/// (butonlar `InkWell` — odaklanabilir + Enter/Space ile tetiklenir).
-///
-/// Dar bir web penceresinde (telefon tarayıcısı) de açılabileceği için
-/// `LayoutBuilder` ile GERÇEK bir iç kırılma noktası var: ~900px altında
-/// sol panel üstte kısalan bir şerde döner, form altta — "aynı widget'ı
-/// büyütüp mobil diye sunma" kuralının web-web ölçeğindeki karşılığı.
+/// ÖNCEKİ İKİ DENEME de "sol fotoğraf paneli / sağ form kartı" ikilisini
+/// tekrarlıyordu. Bu sürüm o ikiliyi tamamen bırakıyor: sol tarafta dev,
+/// asimetrik bir AFİŞ TİPOGRAFİSİ (fotoğraf YOK), sağ tarafta bir tiyatro
+/// programı gibi numaralanmış "marquee" satırları — aralarında tek bir
+/// ince altın çizgi (kural: her yerde border/kart değil, TEK bir çizgi).
+/// ~900px altında (dar tarayıcı penceresi) aynı iki blok dikey akışa
+/// döner — bu GERÇEK bir web-içi kırılma noktası, mobil dosyasının
+/// büyütülmüş hali DEĞİL (mobil dosyası hiç fotoğraf kullanmıyor olsa da
+/// bu ekranın kendi iç mantığı zaten fotoğrafsız; burada tekrarlanan
+/// sadece AYNI web dosyasının kendi içindeki dar-pencere davranışı).
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -52,6 +49,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Animation<double> _fade(final double start) => CurvedAnimation(
         parent: _entrance,
         curve: Interval(start, 1.0, curve: Curves.easeOut),
+      );
+
+  Animation<double> _reveal(final double start, final double end) =>
+      CurvedAnimation(
+        parent: _entrance,
+        curve: Interval(start, end, curve: AppMotion.dramatic),
       );
 
   @override
@@ -95,51 +98,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       color: WebColors.veryDarkBlue,
       child: Stack(
         children: [
+          const Positioned.fill(child: _StageBackdrop()),
           Positioned.fill(
             child: LayoutBuilder(
               builder: (final context, final constraints) {
                 final bool split = constraints.maxWidth >= 900;
+                final typography =
+                    _TypographyPane(fade: _fade, reveal: _reveal);
+                final actions = _ActionPane(
+                  fade: _fade,
+                  isLoading: authMutation.isLoading,
+                  onGoogleTap: () => ref
+                      .read(authMutationProvider.notifier)
+                      .signInWithGoogle(),
+                  onPhoneTap: () => NavigationHandler.goToPhoneLogin(context),
+                );
                 if (split) {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        flex: 5,
-                        child: _StagePanel(fade: _fade),
+                      Expanded(flex: 6, child: typography),
+                      Container(
+                        width: 1,
+                        margin: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.section),
+                        color: WebColors.primaryGold.withOpacity(0.18),
                       ),
-                      Expanded(
-                        flex: 4,
-                        child: _FormPanel(
-                          fade: _fade,
-                          isLoading: authMutation.isLoading,
-                          onGoogleTap: () =>
-                              ref.read(authMutationProvider.notifier)
-                                  .signInWithGoogle(),
-                          onPhoneTap: () =>
-                              NavigationHandler.goToPhoneLogin(context),
-                        ),
-                      ),
+                      Expanded(flex: 5, child: actions),
                     ],
                   );
                 }
                 return SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(
-                        height: constraints.maxHeight * 0.42,
-                        child: _StagePanel(fade: _fade, compact: true),
-                      ),
-                      _FormPanel(
-                        fade: _fade,
-                        isLoading: authMutation.isLoading,
-                        onGoogleTap: () =>
-                            ref.read(authMutationProvider.notifier)
-                                .signInWithGoogle(),
-                        onPhoneTap: () =>
-                            NavigationHandler.goToPhoneLogin(context),
-                      ),
-                    ],
+                    children: [typography, actions],
                   ),
                 );
               },
@@ -170,178 +162,111 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 }
 
-/// SOL PANEL — sahne fotoğrafı, marka, editoryal alıntı. `home_page_web.dart`
-/// `_HeroBackdropPhoto`si ile AYNI teknik (fotoğraf + çift yönlü scrim).
-/// Kullanıcının kendi seçimi: profil sayfasının misafir durumundaki aynı
-/// "sahne/konser atmosferi" fotoğrafı (bkz. profile_page.dart
-/// `_stageBackdropUrl`) — mobil/web login/telefon-login ekranlarının
-/// hepsinde tutarlılık için kullanılıyor.
-class _StagePanel extends StatelessWidget {
-  final Animation<double> Function(double start) fade;
-  final bool compact;
-
-  const _StagePanel({required this.fade, this.compact = false});
+/// Zemin: düz gradyan + TEK spot ışığı — sol üstte, afiş metninin arkasında
+/// asimetrik bir vurgu olarak.
+class _StageBackdrop extends StatelessWidget {
+  const _StageBackdrop();
 
   @override
-  Widget build(final BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const Image(
-          image: NetworkImage(
-              'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85'),
-          fit: BoxFit.cover,
-          excludeFromSemantics: true,
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                WebColors.veryDarkBlue.withOpacity(0.85),
-                WebColors.darkBlueBackground.withOpacity(0.55),
-                WebColors.darkBlueBackground.withOpacity(0.30),
-              ],
-              stops: const [0.0, 0.55, 1.0],
-            ),
-          ),
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                WebColors.veryDarkBlue.withOpacity(0.55),
-                Colors.transparent,
-                WebColors.veryDarkBlue.withOpacity(0.75),
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
-        ),
-        // Tek bir sahne ışığı motifi — hero'daki spotlight dilinin sakin
-        // bir yankısı, süs kalabalığı yaratmamak için sadece bir tane.
-        Positioned(
-          top: -100,
-          right: -80,
-          child: Opacity(
-            opacity: 0.14,
-            child: Container(
-              width: 320,
-              height: 320,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [WebColors.primaryGold, Colors.transparent],
-                ),
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.section,
-            compact ? AppSpacing.xxl : AppSpacing.section,
-            AppSpacing.xxl,
-            AppSpacing.xxl,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment:
-                compact ? MainAxisAlignment.center : MainAxisAlignment.end,
-            children: [
-              if (!compact) ...[
-                FadeTransition(
-                  opacity: fade(0.0),
-                  child: const _BrandMark(),
-                ),
-                const Spacer(),
-              ] else
-                const _BrandMark(),
-              FadeTransition(
-                opacity: fade(0.15),
-                child: SlideTransition(
-                  position: fade(0.15).drive(
-                      Tween(begin: const Offset(0, 0.08), end: Offset.zero)),
-                  child: Text(
-                    'Perde Açılıyor,\nYerin Sizi Bekliyor.',
-                    style: GoogleFonts.playfairDisplay(
-                      color: WebColors.whiteText,
-                      fontSize: compact ? 30 : 44,
-                      fontWeight: FontWeight.w600,
-                      height: 1.14,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              FadeTransition(
-                opacity: fade(0.25),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Text(
-                    'Şehrin en seçkin oyunlarına, konserlerine ve '
-                    'sahnelerine anında kapı arala. Sanata ilk adımı at.',
-                    style: TextStyle(
-                      color: WebColors.textSecondary,
-                      fontSize: 14.5,
-                      height: 1.6,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BrandMark extends StatelessWidget {
-  const _BrandMark();
-
-  @override
-  Widget build(final BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
+  Widget build(final BuildContext context) => Stack(
+        fit: StackFit.expand,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
+          const DecoratedBox(
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: WebColors.primaryGold.withOpacity(0.85), width: 1.2),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  WebColors.veryDarkBlue,
+                  WebColors.darkBlueBackground,
+                  WebColors.darkBlueSurface,
+                ],
+              ),
             ),
-            child: const Icon(Icons.theater_comedy_rounded,
-                size: 16, color: WebColors.primaryGoldLight),
           ),
-          const SizedBox(width: 12),
-          Text(
-            'TİYATROL',
-            style: GoogleFonts.playfairDisplay(
-              color: WebColors.whiteText,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 3,
-            ),
+          const Positioned(
+            top: -140,
+            left: -120,
+            child: AuthAmbientGlow(size: 480, tint: WebColors.primaryGold),
           ),
         ],
       );
 }
 
-/// SAĞ PANEL — form kartı. Sade, gerçek bir web formu gibi: düz kenarlık,
-/// asimetrik köşe TEK burada (kartın kendisinde) — ekranın imza vurgusu.
-class _FormPanel extends StatelessWidget {
+/// SOL BÖLGE — dev, sola hizalı afiş tipografisi. Fotoğraf yok, hiyerarşi
+/// tamamen ölçek/ağırlık/perde-açılışı hareketi ile kuruluyor.
+class _TypographyPane extends StatelessWidget {
+  final Animation<double> Function(double start) fade;
+  final Animation<double> Function(double start, double end) reveal;
+
+  const _TypographyPane({required this.fade, required this.reveal});
+
+  @override
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.section,
+            AppSpacing.section, AppSpacing.xxxl, AppSpacing.section),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FadeTransition(opacity: fade(0.0), child: const _BrandRow()),
+            const SizedBox(height: AppSpacing.massive),
+            FadeTransition(
+              opacity: fade(0.05),
+              child: const Text(
+                'PERDE KALKMADAN ÖNCE',
+                style: TextStyle(
+                  color: WebColors.primaryGoldLight,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 5,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            AuthWipeReveal(
+              reveal: reveal(0.1, 0.6),
+              child: Text(
+                'SAHNEYE\nADIM AT',
+                style: GoogleFonts.playfairDisplay(
+                  color: WebColors.whiteText,
+                  fontSize: 76,
+                  fontWeight: FontWeight.w700,
+                  height: 1.02,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            FadeTransition(
+              opacity: fade(0.4),
+              child: const ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 420),
+                child: Text(
+                  'Şehrin en seçkin oyunlarına, konserlerine ve '
+                  'sahnelerine bir tık uzaktasın.',
+                  style: TextStyle(
+                    color: WebColors.textSecondary,
+                    fontSize: 15.5,
+                    height: 1.6,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+/// SAĞ BÖLGE — numaralı "marquee" satırları, dikeyde ortalanmış. Kural:
+/// klavye tamamen kullanılabilir (`AuthMarqueeRow`'un `InkWell`'i Tab ile
+/// odaklanır, Enter/Space ile tetiklenir).
+class _ActionPane extends StatelessWidget {
   final Animation<double> Function(double start) fade;
   final bool isLoading;
   final VoidCallback onGoogleTap;
   final VoidCallback onPhoneTap;
 
-  const _FormPanel({
+  const _ActionPane({
     required this.fade,
     required this.isLoading,
     required this.onGoogleTap,
@@ -349,186 +274,55 @@ class _FormPanel extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) {
-    return ColoredBox(
-      color: WebColors.darkBlueBackground,
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xxl, vertical: AppSpacing.xxxl),
-          child: FadeTransition(
-            opacity: fade(0.2),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.xxxl),
-                decoration: BoxDecoration(
-                  color: WebColors.darkBlueSurface,
-                  borderRadius: AppRadius.asymLg,
-                  border: Border.all(color: WebColors.darkBlueAccent),
-                  boxShadow: AppShadows.level2(WebColors.veryDarkBlue),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'GİRİŞ',
-                      style: TextStyle(
-                        color: WebColors.primaryGoldLight,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 3,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sahneye Hoş Geldiniz',
-                      style: context.textTheme.headlineSmall?.copyWith(
-                        color: WebColors.whiteText,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _WebAuthButton(
-                      onTap: isLoading ? null : onGoogleTap,
-                      filled: true,
-                      icon: const GoogleLogo(size: 20),
-                      label: 'Google ile Devam Et',
-                      semanticLabel: 'Google ile giriş yap',
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Divider(
-                                color: WebColors.darkBlueAccent, height: 1)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md),
-                          child: Text(
-                            'VEYA',
-                            style: TextStyle(
-                              color: WebColors.textTertiary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                            child: Divider(
-                                color: WebColors.darkBlueAccent, height: 1)),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    _WebAuthButton(
-                      onTap: isLoading ? null : onPhoneTap,
-                      filled: false,
-                      icon: const Icon(Icons.phone_iphone_rounded,
-                          size: 18, color: WebColors.primaryGoldLight),
-                      label: AppLocalizations.of(context)!.loginPhoneButton,
-                      semanticLabel: 'Telefon numarasıyla giriş yap',
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    Text(
-                      AppLocalizations.of(context)!.loginTermsNotice,
-                      style: TextStyle(
-                        color: WebColors.textTertiary.withOpacity(0.85),
-                        fontSize: 10.5,
-                        letterSpacing: 0.4,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Klavye/fare her ikisiyle de tam kullanılabilir buton: `InkWell` (Tab ile
-/// odaklanır, Enter/Space ile tetiklenir, `onHover` ile gerçek fare hover
-/// durumu) — `home_page_web.dart`'taki `_PillButton`'ın aksine burada
-/// bilerek çıplak `GestureDetector` DEĞİL, gerçek `Material`/`InkWell`
-/// kullanılıyor (giriş ekranı klavye erişilebilirliğinin en kritik olduğu
-/// yer).
-class _WebAuthButton extends StatefulWidget {
-  final VoidCallback? onTap;
-  final bool filled;
-  final Widget icon;
-  final String label;
-  final String semanticLabel;
-
-  const _WebAuthButton({
-    required this.onTap,
-    required this.filled,
-    required this.icon,
-    required this.label,
-    required this.semanticLabel,
-  });
-
-  @override
-  State<_WebAuthButton> createState() => _WebAuthButtonState();
-}
-
-class _WebAuthButtonState extends State<_WebAuthButton> {
-  bool _hovered = false;
-
-  @override
-  Widget build(final BuildContext context) {
-    final bool filled = widget.filled;
-    return Semantics(
-      button: true,
-      label: widget.semanticLabel,
-      child: MouseRegion(
-        cursor: widget.onTap == null
-            ? SystemMouseCursors.basic
-            : SystemMouseCursors.click,
-        child: Material(
-          color: filled ? WebColors.whiteText : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          child: InkWell(
-            onTap: widget.onTap,
-            onHover: (final v) => setState(() => _hovered = v),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            focusColor: WebColors.primaryGold.withOpacity(0.18),
-            child: AnimatedContainer(
-              duration: AppMotion.fast,
-              curve: AppMotion.standard,
-              height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: filled
-                    ? null
-                    : Border.all(
-                        color: WebColors.primaryGold
-                            .withOpacity(_hovered ? 0.85 : 0.45),
-                        width: 1.4,
-                      ),
-                boxShadow: filled
-                    ? AppShadows.level2(WebColors.veryDarkBlue)
-                    : null,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+  Widget build(final BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxxl, vertical: AppSpacing.section),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: FadeTransition(
+              opacity: fade(0.3),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  widget.icon,
-                  const SizedBox(width: AppSpacing.md),
-                  Text(
-                    widget.label,
+                  const Text(
+                    'GİRİŞ YAP',
                     style: TextStyle(
-                      color: filled
-                          ? const Color(0xFF1F1F1F)
-                          : WebColors.whiteText,
+                      color: WebColors.textTertiary,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      fontSize: 14.5,
-                      letterSpacing: 0.1,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AuthMarqueeRow(
+                    index: '01',
+                    icon: const GoogleLogo(size: 20),
+                    label: 'Google ile Devam Et',
+                    semanticLabel: 'Google ile giriş yap',
+                    emphasize: true,
+                    onTap: isLoading ? null : onGoogleTap,
+                  ),
+                  AuthMarqueeRow(
+                    index: '02',
+                    icon: const Icon(
+                      Icons.phone_iphone_rounded,
+                      size: 18,
+                      color: WebColors.primaryGoldLight,
+                    ),
+                    label: AppLocalizations.of(context)!.loginPhoneButton,
+                    semanticLabel: 'Telefon numarasıyla giriş yap',
+                    onTap: isLoading ? null : onPhoneTap,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    AppLocalizations.of(context)!.loginTermsNotice,
+                    style: TextStyle(
+                      color: WebColors.textTertiary.withOpacity(0.85),
+                      fontSize: 10.5,
+                      letterSpacing: 0.4,
+                      height: 1.4,
                     ),
                   ),
                 ],
@@ -536,7 +330,47 @@ class _WebAuthButtonState extends State<_WebAuthButton> {
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+}
+
+class _BrandRow extends StatelessWidget {
+  const _BrandRow();
+
+  @override
+  Widget build(final BuildContext context) => Semantics(
+        header: true,
+        label: 'TİYATROL',
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: WebColors.primaryGold.withOpacity(0.85),
+                  width: 1.2,
+                ),
+              ),
+              child: const Icon(
+                Icons.theater_comedy_rounded,
+                size: 16,
+                color: WebColors.primaryGoldLight,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'TİYATROL',
+              style: GoogleFonts.playfairDisplay(
+                color: WebColors.whiteText,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 3,
+              ),
+            ),
+          ],
+        ),
+      );
 }
