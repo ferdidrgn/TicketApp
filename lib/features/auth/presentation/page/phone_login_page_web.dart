@@ -7,6 +7,7 @@ import 'package:ticketapp/core/theme/app_motion.dart';
 import 'package:ticketapp/core/theme/app_radius.dart';
 import 'package:ticketapp/core/theme/app_shadows.dart';
 import 'package:ticketapp/core/theme/app_spacing.dart';
+import 'package:ticketapp/core/util/responsive_utils.dart';
 import 'package:ticketapp/features/auth/presentation/providers/auth_mutation_provider.dart';
 import 'package:ticketapp/shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/button/back_button_glassmorphism.dart';
@@ -15,20 +16,27 @@ import '../widgets/auth_atmosphere.dart';
 
 enum _PendingAuthAction { none, sendCode, verifyCode }
 
-/// TELEFON İLE GİRİŞ / OTP EKRANI — MASAÜSTÜ/WEB (3. TASARIM)
+/// TELEFON İLE GİRİŞ / OTP EKRANI — MASAÜSTÜ/WEB (5. TASARIM)
 ///
-/// `login_screen_web.dart`'ın "afiş tipografisi / iki sütun" dilini
-/// BİLEREK TEKRARLAMIYOR — bu ekran "doğrulama" anının kendi mekânı: dar,
-/// dikeyde ortalanmış tek bir sütun (bir "prova sahnesi" gibi), iki
-/// yanında ince, yukarı/aşağı solan birer dikey çizgi (proscenium/kemer
-/// ipucu — gerçek bir kemer GRAFİĞİ değil, gradyan+opaklıkla verilen bir
-/// ima). Üstte `AuthPortholePhoto` (küçük gözetleme deliği fotoğrafı) +
-/// `AuthStepChip` (ADIM 1/ADIM 2), altta `pinput` tabanlı OTP/telefon
-/// formu. Klavye tamamen kullanılabilir (`TextField.onSubmitted`,
-/// `Pinput.autofocus`, `AuthPrimaryButton`'ın `InkWell`'i Tab/Enter ile).
+/// `login_screen_web.dart` ile AYNI "afiş kartı" dilini paylaşır
+/// (kullanıcının paylaştığı referans görselin kompozisyonu), AMA farklı bir
+/// fotoğraf ve tamamen farklı bir aksiyon bloğu kullanır. Bu ekranın
+/// GERÇEKTEN tek bir birincil aksiyonu var (telefon gönder / kodu
+/// doğrula), o yüzden referansın "tek fotoğraf + tek başlık + tek pill"
+/// iskeletine EN DOĞRUDAN oturan ekran bu.
+///
+/// GERÇEK responsive kırılma noktaları (`ResponsiveUtils`/
+/// `context.responsive` — `home_page_web.dart` ile aynı kural):
+///   - Dar/TABLET (<1024): tek sütun afiş kartı, form+pill fotoğrafın alt
+///     kenarını bindiriyor.
+///   - GENİŞ MASAÜSTÜ (>=1024): sol sütunda saf tipografi (adım rozeti +
+///     başlık + alt metin), sağ sütunda SADECE fotoğraf + form + pill'den
+///     oluşan afiş paneli — tabletin aynı büyütülmüş hali DEĞİL,
+///     kompozisyon gerçekten ikiye ayrılıyor.
 ///
 /// `BasePageWrapper` burada da bilerek kullanılmıyor (bkz.
-/// `login_screen_web.dart` başındaki gerekçe).
+/// `login_screen_web.dart` başındaki gerekçe). Mantık (Firebase Phone
+/// Auth) ÖNCEKİ sürümle BİREBİR AYNI — sadece sunum değişti.
 class PhoneLogInPage extends ConsumerStatefulWidget {
   const PhoneLogInPage({super.key});
 
@@ -138,6 +146,27 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
       },
     );
 
+    final bool isDesktop = ResponsiveUtils.isDesktop(context);
+
+    final formSlot = AnimatedSwitcher(
+      duration: AppMotion.normal,
+      switchInCurve: AppMotion.standard,
+      switchOutCurve: AppMotion.standard,
+      transitionBuilder: (final child, final animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.05),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
+      ),
+      child: _isCodeSent
+          ? _buildOtpUI(authMutation.isLoading)
+          : _buildPhoneUI(authMutation.isLoading),
+    );
+
     return PopScope(
       canPop: !_isCodeSent,
       onPopInvokedWithResult: (final didPop, final result) {
@@ -148,92 +177,39 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
         color: WebColors.veryDarkBlue,
         child: Stack(
           children: [
-            const Positioned.fill(child: _ProsceniumBackdrop()),
+            const Positioned.fill(
+              child: AuthStageBackdrop(
+                glows: [
+                  Positioned(
+                    bottom: -180,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: AuthAmbientGlow(
+                          size: 460, tint: WebColors.primaryGold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Positioned.fill(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.xl, vertical: AppSpacing.section),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 440),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FadeTransition(
-                          opacity: _fade(0.0),
-                          child: const AuthPortholePhoto(
-                              imageUrl: _stageImageUrl, size: 148),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        FadeTransition(
-                          opacity: _fade(0.08),
-                          child: AuthStepChip(
-                            icon: _isCodeSent
-                                ? Icons.mark_email_read_rounded
-                                : Icons.security_rounded,
-                            label: _isCodeSent
-                                ? 'ADIM 2 · DOĞRULAMA'
-                                : 'ADIM 1 · İLETİŞİM',
+                    constraints: BoxConstraints(maxWidth: isDesktop ? 980 : 460),
+                    child: isDesktop
+                        ? _WideSplit(
+                            fade: _fade,
+                            isCodeSent: _isCodeSent,
+                            formSlot: formSlot,
+                          )
+                        : _StackedPoster(
+                            fade: _fade,
+                            isCodeSent: _isCodeSent,
+                            formSlot: formSlot,
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        AnimatedSwitcher(
-                          duration: AppMotion.normal,
-                          switchInCurve: AppMotion.standard,
-                          switchOutCurve: AppMotion.standard,
-                          child: Text(
-                            _isCodeSent
-                                ? 'SON PERDE:\nKODU DOĞRULA.'
-                                : 'NUMARANI PAYLAŞ,\nYERİNİ AYIRALIM.',
-                            key: ValueKey(_isCodeSent),
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.playfairDisplay(
-                              color: WebColors.whiteText,
-                              fontSize: 36,
-                              fontWeight: FontWeight.w700,
-                              height: 1.16,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          _isCodeSent
-                              ? 'Telefonunuza gönderdiğimiz 6 haneli kodu '
-                                  'girerek perdeyi açın.'
-                              : 'Biletinizi almak ve yerinizi seçmek için '
-                                  'telefon numaranızı girin.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: WebColors.textSecondary,
-                            fontSize: 14.5,
-                            height: 1.55,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxxl),
-                        FadeTransition(
-                          opacity: _fade(0.22),
-                          child: AnimatedSwitcher(
-                            duration: AppMotion.normal,
-                            switchInCurve: AppMotion.standard,
-                            switchOutCurve: AppMotion.standard,
-                            transitionBuilder: (final child, final animation) =>
-                                FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0, 0.04),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: child,
-                              ),
-                            ),
-                            child: _isCodeSent
-                                ? _buildOtpUI(authMutation.isLoading)
-                                : _buildPhoneUI(authMutation.isLoading),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),
@@ -271,7 +247,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
             onSubmitted: (final _) => _verifyPhone(),
           ),
           const SizedBox(height: AppSpacing.xl),
-          AuthPrimaryButton(
+          AuthFloatingPillCTA(
             label: 'KOD GÖNDER',
             icon: Icons.send_rounded,
             onTap: isLoading ? null : _verifyPhone,
@@ -329,7 +305,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        AuthPrimaryButton(
+        AuthFloatingPillCTA(
           label: 'DOĞRULA VE BAŞLA',
           icon: Icons.check_circle_outline_rounded,
           onTap: isLoading ? null : () => _signInWithOTP(),
@@ -386,76 +362,233 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
 }
 
 /// Kullanıcının kendi seçimi (profil sayfasının misafir durumundaki aynı
-/// "sahne/konser atmosferi" fotoğrafı) — küçük gözetleme deliğinde.
+/// "sahne/konser atmosferi" fotoğrafı) — artık referans afişteki gibi
+/// kartın TAM-KANAMA fotoğraf bandında.
 const String _stageImageUrl =
     'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85';
 
-/// Zemin: düz gradyan + TEK spot ışığı (alt-orta) + iki ince, yukarı/aşağı
-/// solan dikey çizgi — bir kemer/kulis ipucu, literal bir grafik değil.
-class _ProsceniumBackdrop extends StatelessWidget {
-  const _ProsceniumBackdrop();
+/// DAR/TABLET — tek sütun, tek afiş kartı: başlık bandı + tam-kanama
+/// fotoğraf, altında fotoğrafın alt kenarını bindiren form+pill bloğu.
+class _StackedPoster extends StatelessWidget {
+  final Animation<double> Function(double start) fade;
+  final bool isCodeSent;
+  final Widget formSlot;
+
+  const _StackedPoster({
+    required this.fade,
+    required this.isCodeSent,
+    required this.formSlot,
+  });
 
   @override
-  Widget build(final BuildContext context) => Stack(
-        fit: StackFit.expand,
+  Widget build(final BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  WebColors.veryDarkBlue,
-                  WebColors.darkBlueBackground,
-                  WebColors.darkBlueSurface,
-                ],
-              ),
+          _PosterCard(fade: fade, isCodeSent: isCodeSent, headlineSize: 36),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Container(
+              margin:
+                  const EdgeInsets.only(top: -(AuthFloatingPillCTA.height / 2)),
+              child: FadeTransition(opacity: fade(0.22), child: formSlot),
             ),
-          ),
-          Positioned(
-            bottom: -180,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: AuthAmbientGlow(
-                  size: 460, tint: WebColors.primaryGold.withOpacity(0.9)),
-            ),
-          ),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: _EdgeHairline(),
-          ),
-          const Align(
-            alignment: Alignment.centerRight,
-            child: _EdgeHairline(),
           ),
         ],
       );
 }
 
-class _EdgeHairline extends StatelessWidget {
-  const _EdgeHairline();
+/// GENİŞ MASAÜSTÜ — sol sütun saf tipografi (adım rozeti + başlık + alt
+/// metin), sağ sütun SADECE fotoğraf + form + pill'den oluşan afiş paneli.
+class _WideSplit extends StatelessWidget {
+  final Animation<double> Function(double start) fade;
+  final bool isCodeSent;
+  final Widget formSlot;
+
+  const _WideSplit({
+    required this.fade,
+    required this.isCodeSent,
+    required this.formSlot,
+  });
 
   @override
-  Widget build(final BuildContext context) => FractionallySizedBox(
-        widthFactor: 1,
-        heightFactor: 0.62,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-          child: Container(
-            width: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  WebColors.primaryGold.withOpacity(0),
-                  WebColors.primaryGold.withOpacity(0.16),
-                  WebColors.primaryGold.withOpacity(0),
-                ],
-              ),
+  Widget build(final BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FadeTransition(
+                  opacity: fade(0.0),
+                  child: AuthStepChip(
+                    icon: isCodeSent
+                        ? Icons.mark_email_read_rounded
+                        : Icons.security_rounded,
+                    label: isCodeSent
+                        ? 'ADIM 2 · DOĞRULAMA'
+                        : 'ADIM 1 · İLETİŞİM',
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AnimatedSwitcher(
+                  duration: AppMotion.normal,
+                  switchInCurve: AppMotion.standard,
+                  switchOutCurve: AppMotion.standard,
+                  child: Text(
+                    isCodeSent
+                        ? 'SON PERDE:\nKODU DOĞRULA.'
+                        : 'NUMARANI PAYLAŞ,\nYERİNİ AYIRALIM.',
+                    key: ValueKey(isCodeSent),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.playfairDisplay(
+                      color: WebColors.whiteText,
+                      fontSize: 54,
+                      fontWeight: FontWeight.w700,
+                      height: 1.12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: Text(
+                    isCodeSent
+                        ? 'Telefonunuza gönderdiğimiz 6 haneli kodu girerek '
+                            'perdeyi açın.'
+                        : 'Biletinizi almak ve yerinizi seçmek için telefon '
+                            'numaranızı girin.',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: WebColors.textSecondary,
+                      fontSize: 15,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(width: AppSpacing.section),
+          Expanded(
+            flex: 4,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  child: const AspectRatio(
+                    aspectRatio: 0.8,
+                    child: AuthHeroPoster(imageUrl: _stageImageUrl),
+                  ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Container(
+                    margin: const EdgeInsets.only(
+                        top: -(AuthFloatingPillCTA.height / 2)),
+                    child: formSlot,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+}
+
+/// Referans görseldeki tek, büyük yuvarlak köşeli afiş kartı — dar/tablet
+/// TEK-sütun yerleşiminde kullanılan sürüm.
+class _PosterCard extends StatelessWidget {
+  final Animation<double> Function(double start) fade;
+  final bool isCodeSent;
+  final double headlineSize;
+
+  const _PosterCard({
+    required this.fade,
+    required this.isCodeSent,
+    required this.headlineSize,
+  });
+
+  @override
+  Widget build(final BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ColoredBox(
+              color: WebColors.darkBlueSurface,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.xxl,
+                    AppSpacing.xxxl, AppSpacing.xxl, AppSpacing.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FadeTransition(
+                      opacity: fade(0.0),
+                      child: AuthStepChip(
+                        icon: isCodeSent
+                            ? Icons.mark_email_read_rounded
+                            : Icons.security_rounded,
+                        label: isCodeSent
+                            ? 'ADIM 2 · DOĞRULAMA'
+                            : 'ADIM 1 · İLETİŞİM',
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AnimatedSwitcher(
+                      duration: AppMotion.normal,
+                      switchInCurve: AppMotion.standard,
+                      switchOutCurve: AppMotion.standard,
+                      child: Text(
+                        isCodeSent
+                            ? 'SON PERDE:\nKODU DOĞRULA.'
+                            : 'NUMARANI PAYLAŞ,\nYERİNİ AYIRALIM.',
+                        key: ValueKey(isCodeSent),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.playfairDisplay(
+                          color: WebColors.whiteText,
+                          fontSize: headlineSize,
+                          fontWeight: FontWeight.w700,
+                          height: 1.14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      isCodeSent
+                          ? 'Telefonunuza gönderdiğimiz 6 haneli kodu '
+                              'girerek perdeyi açın.'
+                          : 'Biletinizi almak ve yerinizi seçmek için '
+                              'telefon numaranızı girin.',
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: WebColors.textSecondary,
+                        fontSize: 14.5,
+                        height: 1.55,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            FadeTransition(
+              opacity: fade(0.1),
+              child: const AspectRatio(
+                aspectRatio: 1.5,
+                child: AuthHeroPoster(imageUrl: _stageImageUrl),
+              ),
+            ),
+          ],
         ),
       );
 }

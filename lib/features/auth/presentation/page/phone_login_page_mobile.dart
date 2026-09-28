@@ -15,15 +15,20 @@ import '../widgets/auth_atmosphere.dart';
 
 enum _PendingAuthAction { none, sendCode, verifyCode }
 
-/// TELEFON İLE GİRİŞ / OTP EKRANI — MOBİL (3. TASARIM)
+/// TELEFON İLE GİRİŞ / OTP EKRANI — MOBİL (5. TASARIM)
 ///
-/// `login_screen_mobile.dart`'ın "afiş tipografisi + kadro listesi" dilini
-/// BİLEREK TEKRARLAMIYOR — kullanıcının talep ettiği "arayış" (o ekran) ile
-/// "doğrulama" (bu ekran) farklı anlar hissettirsin diye ayrı bir görsel
-/// motif kullanılıyor: sahne kapısındaki küçük bir "gözetleme deliği"
-/// (`AuthPortholePhoto` — büyük bir fotoğraf PANELİ değil, tek bir
-/// dairesel porthole + ışık halkası) ve altında ADIM 1/ADIM 2 rozetiyle
-/// (`AuthStepChip`) ayrışan, dikeyde ortalanmış tek bir form akışı.
+/// `login_screen_mobile.dart` ile AYNI "afiş kartı" dilini paylaşır
+/// (tutarlılık — kullanıcının paylaştığı referans görselin kompozisyonu:
+/// dev başlık → tam-kanama fotoğraf → fotoğrafın alt kenarını bindiren
+/// yüzen pill CTA), AMA farklı bir fotoğraf ve TAMAMEN farklı bir aksiyon
+/// bloğu kullanır — "varış" (login ekranı) ile "doğrulama" (bu ekran) aynı
+/// anın tekrarı değil.
+///
+/// Bu ekranın GERÇEKTEN tek bir birincil aksiyonu var (telefon gönder /
+/// kodu doğrula), o yüzden referansın "tek fotoğraf + tek başlık + tek
+/// pill" iskeletine EN DOĞRUDAN oturan ekran bu: form alanı (telefon/OTP)
+/// + yüzen pill CTA, fotoğrafın alt kenarını bindiren TEK bir "aksiyon
+/// bloğu" olarak birleşiyor.
 ///
 /// Mantık (Firebase Phone Auth: `verifyPhone`/`verifyOtp`, OTP zamanlayıcı,
 /// yeniden gönderme, `_isCodeSent`/`_pendingAction` durum makinesi) ÖNCEKİ
@@ -142,92 +147,79 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
         },
         child: Stack(
           children: [
-            const Positioned.fill(child: _StageDoorBackdrop()),
+            const Positioned.fill(
+              child: AuthStageBackdrop(
+                glows: [
+                  Positioned(
+                    bottom: -120,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: AuthAmbientGlow(
+                          size: 340, tint: WebColors.primaryGold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             // 🔥 NOT: `BasePageWrapper` zaten kendi `SafeArea`'sını
             // (varsayılan `safeAreaTop`/`safeAreaBottom: true`) uyguluyor —
             // burada İKİNCİ bir `SafeArea` sarmalamaya GEREK YOK (bkz.
             // CLAUDE.md'deki daha önceki çift-SafeArea/geri-tuşu çakışması
-            // bug'ı notu — o hatanın kökeni tam olarak gereksiz iç içe
-            // SafeArea/`safeAreaTop: false` zorlamasıydı).
+            // bug'ı notu).
             SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg,
-                  AppSpacing.xl, AppSpacing.xxl),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    FadeTransition(
-                      opacity: _fade(0.0),
-                      child: const AuthPortholePhoto(imageUrl: _stageImageUrl),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    FadeTransition(
-                      opacity: _fade(0.08),
-                      child: AuthStepChip(
-                        icon: _isCodeSent
-                            ? Icons.mark_email_read_rounded
-                            : Icons.security_rounded,
-                        label: _isCodeSent
-                            ? 'ADIM 2 · DOĞRULAMA'
-                            : 'ADIM 1 · İLETİŞİM',
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
+              // Büyük tablet genişliğinde bu dosya (native mobil/tablet
+              // derlemesi) sonsuza kadar yatayda gerilmesin diye — kart
+              // ortalanıp etrafında zemin nefes alıyor.
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _PosterCard(
+                        fade: _fade,
+                        isCodeSent: _isCodeSent,
+                        headlineSize: 32,
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    AnimatedSwitcher(
-                      duration: AppMotion.normal,
-                      switchInCurve: AppMotion.standard,
-                      switchOutCurve: AppMotion.standard,
-                      child: Text(
-                        _isCodeSent
-                            ? 'SON PERDE:\nKODU DOĞRULA.'
-                            : 'NUMARANI PAYLAŞ,\nYERİNİ AYIRALIM.',
-                        key: ValueKey(_isCodeSent),
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.playfairDisplay(
-                          color: WebColors.whiteText,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          height: 1.16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      _isCodeSent
-                          ? 'Telefonunuza gönderdiğimiz 6 haneli kodu '
-                              'girerek perdeyi açın.'
-                          : 'Biletinizi almak ve yerinizi seçmek için '
-                              'telefon numaranızı girin.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: WebColors.textSecondary,
-                        fontSize: 13.5,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    FadeTransition(
-                      opacity: _fade(0.2),
-                      child: AnimatedSwitcher(
-                        duration: AppMotion.normal,
-                        switchInCurve: AppMotion.standard,
-                        switchOutCurve: AppMotion.standard,
-                        transitionBuilder:
-                            (final child, final animation) => FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.05),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                        child: Container(
+                          margin: const EdgeInsets.only(
+                              top: -(AuthFloatingPillCTA.height / 2)),
+                          child: FadeTransition(
+                            opacity: _fade(0.2),
+                            child: AnimatedSwitcher(
+                              duration: AppMotion.normal,
+                              switchInCurve: AppMotion.standard,
+                              switchOutCurve: AppMotion.standard,
+                              transitionBuilder:
+                                  (final child, final animation) =>
+                                      FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 0.05),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              ),
+                              child: _isCodeSent
+                                  ? _buildOtpUI()
+                                  : _buildPhoneUI(),
+                            ),
                           ),
                         ),
-                        child: _isCodeSent ? _buildOtpUI() : _buildPhoneUI(),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -244,7 +236,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
             onSubmitted: (final _) => _verifyPhone(),
           ),
           const SizedBox(height: AppSpacing.xl),
-          AuthPrimaryButton(
+          AuthFloatingPillCTA(
             label: 'KOD GÖNDER',
             icon: Icons.send_rounded,
             onTap: _verifyPhone,
@@ -301,7 +293,7 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        AuthPrimaryButton(
+        AuthFloatingPillCTA(
           label: 'DOĞRULA VE BAŞLA',
           icon: Icons.check_circle_outline_rounded,
           onTap: () => _signInWithOTP(),
@@ -364,52 +356,108 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
 }
 
 /// Kullanıcının kendi seçimi (profil sayfasının misafir durumundaki aynı
-/// "sahne/konser atmosferi" fotoğrafı) — burada büyük bir panel değil,
-/// `AuthPortholePhoto`'nun küçük gözetleme deliğinde kullanılıyor.
+/// "sahne/konser atmosferi" fotoğrafı) — artık küçük bir porthole DEĞİL,
+/// referans afişteki gibi kartın TAM-KANAMA fotoğraf bandı.
 const String _stageImageUrl =
     'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85';
 
-/// Zemin: düz gradyan + TEK spot ışığı — alt-orta, sanki sahne ışıkları
-/// (footlights) aşağıdan yukarı doğru aydınlatıyormuş gibi asimetrik değil
-/// merkezî bir konum (bu ekranın kompozisyonu zaten dikeyde ortalı olduğu
-/// için ışık da merkeze yakın duruyor — `login_screen_mobile.dart`'taki
-/// sağ-üst asimetrik konumdan BİLEREK farklı).
-class _StageDoorBackdrop extends StatelessWidget {
-  const _StageDoorBackdrop();
+/// Referans görseldeki tek, büyük yuvarlak köşeli afiş kartı — üstte
+/// (`ADIM 1/2` rozeti + başlık + alt metin), altta tam-kanama fotoğraf.
+/// Fotoğrafın alt kenarını bindiren form+pill bloğu bilerek kartın DIŞINDA
+/// (bir sonraki widget'ta) — böylece fotoğraf gerçekten "bindirilen" bir
+/// yüzey olarak okunuyor.
+class _PosterCard extends StatelessWidget {
+  final Animation<double> Function(double start) fade;
+  final bool isCodeSent;
+  final double headlineSize;
+
+  const _PosterCard({
+    required this.fade,
+    required this.isCodeSent,
+    required this.headlineSize,
+  });
 
   @override
-  Widget build(final BuildContext context) => Stack(
-        fit: StackFit.expand,
-        children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  WebColors.veryDarkBlue,
-                  WebColors.darkBlueBackground,
-                  WebColors.darkBlueSurface,
-                ],
+  Widget build(final BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ColoredBox(
+              color: WebColors.darkBlueSurface,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.xl,
+                    AppSpacing.xxl, AppSpacing.xl, AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FadeTransition(
+                      opacity: fade(0.0),
+                      child: AuthStepChip(
+                        icon: isCodeSent
+                            ? Icons.mark_email_read_rounded
+                            : Icons.security_rounded,
+                        label: isCodeSent
+                            ? 'ADIM 2 · DOĞRULAMA'
+                            : 'ADIM 1 · İLETİŞİM',
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AnimatedSwitcher(
+                      duration: AppMotion.normal,
+                      switchInCurve: AppMotion.standard,
+                      switchOutCurve: AppMotion.standard,
+                      child: Text(
+                        isCodeSent
+                            ? 'SON PERDE:\nKODU DOĞRULA.'
+                            : 'NUMARANI PAYLAŞ,\nYERİNİ AYIRALIM.',
+                        key: ValueKey(isCodeSent),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.playfairDisplay(
+                          color: WebColors.whiteText,
+                          fontSize: headlineSize,
+                          fontWeight: FontWeight.w700,
+                          height: 1.14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      isCodeSent
+                          ? 'Telefonunuza gönderdiğimiz 6 haneli kodu '
+                              'girerek perdeyi açın.'
+                          : 'Biletinizi almak ve yerinizi seçmek için '
+                              'telefon numaranızı girin.',
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: WebColors.textSecondary,
+                        fontSize: 13.5,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: -140,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: AuthAmbientGlow(
-                  size: 360, tint: WebColors.primaryGold.withOpacity(0.9)),
+            FadeTransition(
+              opacity: fade(0.1),
+              child: const AspectRatio(
+                aspectRatio: 1.3,
+                child: AuthHeroPoster(imageUrl: _stageImageUrl),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
 }
 
 /// Telefon numarası alanı — "bilet gişesi" hissi veren, ortalanmış, sade
-/// bir alt-çizgili giriş (dolu/kenarlıklı kutu DEĞİL — `AuthMarqueeRow`'un
-/// çizgi dilini burada da sürdürüyor).
+/// bir alt-çizgili giriş (dolu/kenarlıklı kutu DEĞİL).
 class _PhoneTextField extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String>? onSubmitted;

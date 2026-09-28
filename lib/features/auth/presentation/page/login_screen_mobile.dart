@@ -12,25 +12,29 @@ import '../../../../shared/widgets/google_logo.dart';
 import '../providers/auth_mutation_provider.dart';
 import '../widgets/auth_atmosphere.dart';
 
-/// GİRİŞ EKRANI — MOBİL (3. TASARIM, KULLANICININ AÇIK İSTEĞİ ÜZERİNE
-/// KÖKTEN FARKLI)
+/// GİRİŞ EKRANI — MOBİL (5. TASARIM, KULLANICININ PAYLAŞTIĞI SOMUT GÖRSEL
+/// REFERANSA GÖRE)
 ///
-/// Önceki iki deneme de aynı iskeleti tekrarlıyordu: tam ekran/panel
-/// fotoğraf + üzerine bindirilmiş ya da altına oturan buton grubu. Bu
-/// üçüncü tasarım o iskeleti TAMAMEN terk ediyor — hiç fotoğraf YOK.
-/// Araştırmanın işaret ettiği yön (2025/2026 login trendleri: minimalizm,
-/// pasif ışık/derinlik, sadece geri bildirime hizmet eden mikro-
-/// etkileşimler — "kart üstüne kart" login şablonlarının tam tersi) ve
-/// kullanıcının kendi talebi ("bambaşka, devrimsel") ile örtüşen bir
-/// EDİTORYAL TİPOGRAFİ + TİYATRO PROGRAMI dili:
-///   - Zemin: düz gradyan + TEK bir nefes alan spot ışığı (`AuthAmbientGlow`)
-///   - Perde açılışıyla AYNI teknikle (bkz. `AuthWipeReveal`) soldan sağa
-///     açılan dev bir başlık — kart/form kutusu değil, afiş tipografisi.
-///   - Giriş yöntemleri bir "kadro listesi" gibi numaralı, alt çizgili
-///     satırlar (`AuthMarqueeRow`) — pill buton/kart YOK.
-/// `phone_login_page_mobile.dart` bilerek FARKLI bir görsel motif kullanır
-/// (porthole fotoğraf + adım rozeti) — "varış" (bu ekran) ile "doğrulama"
-/// (o ekran) aynı kalıbın tekrarı değil, iki ayrı an.
+/// 3. deneme ("editoryal tipografi + kadro listesi", fotoğrafsız) kullanıcı
+/// tarafından "berbat" olarak reddedildi — sadece `AuthWipeReveal` metin
+/// açılışı beğenildi, o AYNEN korunuyor. Bu 5. tasarım kullanıcının
+/// paylaştığı referans görselin (tek büyük yuvarlak köşeli afiş kartı: dev
+/// başlık → tam-kanama editoryal fotoğraf → fotoğrafın alt kenarını
+/// bindiren tek bir yüzen pill CTA) KOMPOZİSYONUNU alıyor — paletini değil
+/// (uygulamanın koyu + kırmızı/altın kimliği `app_colors.dart`'tan asla
+/// değişmedi).
+///
+/// Bu ekranın birden fazla aksiyonu var (Google + telefon) — referansın
+/// "tek pill" kısıtını şöyle karşılıyor: TELEFONLA DEVAM ET tek yüzen
+/// birincil pill (`AuthFloatingPillCTA`, uygulamanın asıl tercih ettiği
+/// akış — bilet/koltuk telefon numarasına bağlı), Google ise kartın
+/// ALTINDA, sessiz bir ikincil kontrol (`AuthGhostPillButton`) — 3.
+/// denemenin numaralı "marquee" liste dili tekrar KULLANILMIYOR.
+///
+/// `phone_login_page_mobile.dart` bilerek aynı afiş-kartı DİLİNİ paylaşır
+/// (tutarlılık) ama farklı bir fotoğraf + farklı bir aksiyon bloğu
+/// kullanır — "varış" (bu ekran) ile "doğrulama" (o ekran) aynı anın
+/// tekrarı değil.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -93,111 +97,98 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       },
     );
 
+    final l10n = AppLocalizations.of(context)!;
+
     return BasePageWrapper(
       showBackButton: true,
       showFab: false,
       isOverlayLoading: authMutation.isLoading,
       child: Stack(
         children: [
-          const Positioned.fill(child: _StageBackdrop()),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FadeTransition(opacity: _fade(0.0), child: const _BrandRow()),
-                const Spacer(flex: 3),
-                FadeTransition(
-                  opacity: _fade(0.05),
-                  child: const Text(
-                    'PERDE KALKMADAN ÖNCE',
-                    style: TextStyle(
-                      color: WebColors.primaryGoldLight,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 4,
-                    ),
-                  ),
+          const Positioned.fill(
+            child: AuthStageBackdrop(
+              glows: [
+                Positioned(
+                  top: -90,
+                  right: -90,
+                  child: AuthAmbientGlow(size: 320, tint: WebColors.primaryGold),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                AuthWipeReveal(
-                  reveal: _reveal(0.08, 0.6),
-                  child: Text(
-                    'SAHNEYE\nADIM AT',
-                    style: GoogleFonts.playfairDisplay(
-                      color: WebColors.whiteText,
-                      fontSize: 46,
-                      fontWeight: FontWeight.w700,
-                      height: 1.05,
+              ],
+            ),
+          ),
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
+            // 🔥 Büyük tablet genişliğindeki bir cihazda (bu dosya native
+            // mobil/tablet derlemesinde kullanılır) kart sonsuza kadar
+            // yatayda GERİLMESİN diye — `ConstrainedBox` afiş kartını
+            // referanstaki gibi kompakt/premium tutuyor, genişlik arttıkça
+            // sadece ortalanıp etrafında zemin "nefes alıyor" (CLAUDE.md:
+            // "mobile'ı büyütüp web diye sunma" — burada tam tersi,
+            // mobil dosyanın kendisi geniş ekranda GERİLMİYOR).
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                FadeTransition(opacity: _fade(0.0), child: const _BrandRow()),
+                const SizedBox(height: AppSpacing.lg),
+                _PosterCard(fade: _fade, reveal: _reveal),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm),
+                  child: Container(
+                    margin: const EdgeInsets.only(
+                        top: -(AuthFloatingPillCTA.height / 2)),
+                    child: FadeTransition(
+                      opacity: _fade(0.45),
+                      child: AuthFloatingPillCTA(
+                        label: l10n.loginPhoneButton,
+                        icon: Icons.phone_iphone_rounded,
+                        onTap: authMutation.isLoading
+                            ? null
+                            : () => NavigationHandler.goToPhoneLogin(context),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 FadeTransition(
-                  opacity: _fade(0.35),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 340),
-                    child: Text(
-                      'Şehrin en seçkin oyunlarına, konserlerine ve '
-                      'sahnelerine bir tık uzaktasın.',
-                      style: TextStyle(
-                        color: WebColors.textSecondary,
-                        fontSize: 14,
-                        height: 1.55,
-                      ),
-                    ),
-                  ),
-                ),
-                const Spacer(flex: 4),
-                FadeTransition(
-                  opacity: _fade(0.45),
+                  opacity: _fade(0.55),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'GİRİŞ YAP',
+                      Text(
+                        'YA DA',
                         style: TextStyle(
-                          color: WebColors.textTertiary,
-                          fontSize: 11,
+                          color: WebColors.textTertiary.withOpacity(0.85),
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 2.5,
+                          letterSpacing: 3,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xs),
-                      AuthMarqueeRow(
-                        index: '01',
-                        icon: const GoogleLogo(size: 20),
-                        label: 'Google ile Devam Et',
+                      const SizedBox(height: AppSpacing.sm),
+                      AuthGhostPillButton(
+                        label: l10n.loginGoogleButton,
+                        icon: const GoogleLogo(size: 18),
                         semanticLabel: 'Google ile giriş yap',
-                        emphasize: true,
                         onTap: authMutation.isLoading
                             ? null
                             : () => ref
                                 .read(authMutationProvider.notifier)
                                 .signInWithGoogle(),
                       ),
-                      AuthMarqueeRow(
-                        index: '02',
-                        icon: const Icon(
-                          Icons.phone_iphone_rounded,
-                          size: 18,
-                          color: WebColors.primaryGoldLight,
-                        ),
-                        label: AppLocalizations.of(context)!.loginPhoneButton,
-                        semanticLabel: 'Telefon numarasıyla giriş yap',
-                        onTap: authMutation.isLoading
-                            ? null
-                            : () => NavigationHandler.goToPhoneLogin(context),
-                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 FadeTransition(
-                  opacity: _fade(0.55),
+                  opacity: _fade(0.62),
                   child: Text(
-                    AppLocalizations.of(context)!.loginTermsNotice,
+                    l10n.loginTermsNotice,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: WebColors.textTertiary.withOpacity(0.85),
                       fontSize: 10,
@@ -206,7 +197,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -215,35 +208,90 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 }
 
-/// Zemin: düz üç tonlu gradyan + TEK bir nefes alan spot ışığı (sağ üstte,
-/// asimetrik). Fotoğraf yok — "Perde Açıldı" dilinin bu ekrandaki karşılığı
-/// artık tipografi + ışık, gösterişli bir görsel panel değil.
-class _StageBackdrop extends StatelessWidget {
-  const _StageBackdrop();
+/// Referans görseldeki tek, büyük yuvarlak köşeli afiş kartı: üstte
+/// (WebColors.darkBlueSurface zemin üzerinde) dev başlık bandı, altında
+/// tam-kanama fotoğraf bandı — İKİSİ de AYNI dış köşe silüetine
+/// (`AppRadius.xl`) kırpılıyor, böylece TEK bir kart gibi okunuyor (kullanıcı
+/// talimatı: "renk olarak renkler kalsın" — fotoğraf + koyu zemin, YENİ hex
+/// yok).
+class _PosterCard extends StatelessWidget {
+  final Animation<double> Function(double start) fade;
+  final Animation<double> Function(double start, double end) reveal;
+
+  const _PosterCard({required this.fade, required this.reveal});
+
+  static const String _imageUrl =
+      'https://images.unsplash.com/photo-1503095396549-807759245b35'
+      '?auto=format&fit=crop&w=1600&q=85';
 
   @override
-  Widget build(final BuildContext context) => Stack(
-        fit: StackFit.expand,
-        children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  WebColors.veryDarkBlue,
-                  WebColors.darkBlueBackground,
-                  WebColors.darkBlueSurface,
-                ],
+  Widget build(final BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ColoredBox(
+              color: WebColors.darkBlueSurface,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.xl,
+                    AppSpacing.xxl, AppSpacing.xl, AppSpacing.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FadeTransition(
+                      opacity: fade(0.05),
+                      child: const Text(
+                        'PERDE KALKMADAN ÖNCE',
+                        style: TextStyle(
+                          color: WebColors.primaryGoldLight,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 3.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    AuthWipeReveal(
+                      reveal: reveal(0.1, 0.6),
+                      child: Text(
+                        'SAHNEYE\nADIM AT',
+                        style: GoogleFonts.playfairDisplay(
+                          color: WebColors.whiteText,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w700,
+                          height: 1.04,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    FadeTransition(
+                      opacity: fade(0.35),
+                      child: const Text(
+                        'Şehrin en seçkin oyunlarına, konserlerine ve '
+                        'sahnelerine bir tık uzaktasın.',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: WebColors.textSecondary,
+                          fontSize: 13.5,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const Positioned(
-            top: -70,
-            right: -80,
-            child: AuthAmbientGlow(size: 300, tint: WebColors.primaryGold),
-          ),
-        ],
+            FadeTransition(
+              opacity: fade(0.12),
+              child: const AspectRatio(
+                aspectRatio: 0.9,
+                child: AuthHeroPoster(imageUrl: _imageUrl),
+              ),
+            ),
+          ],
+        ),
       );
 }
 

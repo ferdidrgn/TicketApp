@@ -6,24 +6,48 @@ import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/optimized_cached_image.dart';
 
-/// GİRİŞ EKRANLARININ PAYLAŞILAN "SAHNE ATMOSFERİ" MALZEME KUTUSU.
+/// GİRİŞ EKRANLARININ PAYLAŞILAN "SAHNE ATMOSFERİ" MALZEME KUTUSU — 5. TASARIM
+/// (kullanıcının paylaştığı somut görsel referans — tek büyük yuvarlak köşeli
+/// afiş kartı: üstte dev başlık, ortada/altta tam-kanama bir editoryal
+/// fotoğraf, fotoğrafın alt kenarını bindiren tek bir yüzen pill CTA).
 ///
-/// Kullanıcının açık talebi üzerine (`login_screen_*`/`phone_login_page_*`
-/// — 3. deneme) ikisi de daha önce "fotoğraf paneli + form" iskeletini
-/// tekrarlıyordu. Bu üçüncü tasarım kökten farklı bir yapı kullanıyor:
-/// fotoğraf yerine EDİTORYAL TİPOGRAFİ + tek bir "nefes alan" spot ışığı +
-/// bir tiyatro programı gibi numaralanmış "marquee" satırları (bkz.
-/// araştırma: 2025/2026 login/OTP trendleri minimalizm, pasif ışık/derinlik,
-/// sadece geri bildirime hizmet eden mikro-etkileşimleri işaret ediyor —
-/// Dribbble/Mobbin'deki "kart üstüne kart" login şablonlarının TERSİ).
+/// 3. tasarımın "fotoğrafsız editoryal tipografi + kadro listesi" dili
+/// KÖKTEN terk edildi (kullanıcı "berbat" dedi) — bu sürüm fotoğrafı
+/// yeniden ana anlatıcı yapıyor, AMA kullanıcının BEĞENDİĞİ tek şeyi
+/// (`AuthWipeReveal` — perde açılışıyla AYNI teknik: `ClipRect` +
+/// `Align(widthFactor: ...)`) aynen koruyor.
 ///
-/// Buradaki parçalar platforma özgü DEĞİL — `GlassmorphismBackButton`/
-/// `GoogleLogo`/`TheatreShowCard`'ın zaten web+mobil arasında paylaşıldığı
-/// gibi, bu da sadece ortak bir görsel malzeme kutusu. Her sayfanın
-/// gerçek İSKELETİ (`login_screen_web.dart` vs `login_screen_mobile.dart`,
+/// Referansın açık pastel paleti KOPYALANMADI — uygulamanın kendi koyu
+/// (near-black) + kırmızı/altın mücevher tonu kimliği (`WebColors`)
+/// korunuyor; sadece KOMPOZİSYON (tek afiş kartı → dev başlık → tam-kanama
+/// fotoğraf → yüzen pill CTA) referanstan alındı.
+///
+/// Buradaki parçalar platforma özgü DEĞİL — her sayfanın gerçek İSKELETİ
+/// (`login_screen_web.dart` vs `login_screen_mobile.dart`,
 /// `phone_login_page_web.dart` vs `phone_login_page_mobile.dart`) tamamen
-/// ayrı kalıyor — CLAUDE.md'nin "mobile'ı büyütüp web diye sunma" kuralı bu
-/// dosyanın kapsamı DIŞINDA, sayfa dosyalarının kendisinde korunuyor.
+/// ayrı kalıyor, bu sadece ortak bir görsel malzeme kutusu.
+
+/// Paylaşılan zemin: uygulamanın kendi çok-durak koyu gradyanı
+/// (`WebColors.backgroundGradient` — YENİ bir hex icat edilmedi, zaten var
+/// olan sabit gradyan token'ı kullanılıyor) + çağıranın konumlandırdığı
+/// (0-2 adet) `AuthAmbientGlow` ışığı. 4 sayfanın da az önce elle tekrar
+/// tekrar yazdığı neredeyse birebir aynı 3 renkli gradyanın yerini alıyor.
+class AuthStageBackdrop extends StatelessWidget {
+  final List<Widget> glows;
+
+  const AuthStageBackdrop({super.key, this.glows = const []});
+
+  @override
+  Widget build(final BuildContext context) => Stack(
+        fit: StackFit.expand,
+        children: [
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: WebColors.backgroundGradient),
+          ),
+          ...glows,
+        ],
+      );
+}
 
 /// Tek, sakin "nefes alan" spot ışığı — sayfa başına TEK bir tane (kural:
 /// "süs kalabalığı yaratma"). Azaltılmış hareket (`disableAnimations`)
@@ -91,8 +115,8 @@ class _AuthAmbientGlowState extends State<AuthAmbientGlow>
 /// Sahne perdesi açılışıyla AYNI teknik (`page_transitions.dart`
 /// `curtainTransition`, `theatre_show_card.dart`'ın hover reveal'i —
 /// `ClipRect` + ortadan/kenardan büyüyen `Align(widthFactor: ...)`).
-/// Burada bir görsel değil, bir metin bloğu bu şekilde "açılıyor" — aynı
-/// dilin yeni bir uygulaması, kopyala-yapıştır değil.
+/// Burada bir görsel değil, bir metin bloğu bu şekilde "açılıyor" —
+/// kullanıcının 3. denemeden AÇIKÇA BEĞENDİĞİ tek teknik, aynen korunuyor.
 class AuthWipeReveal extends StatelessWidget {
   final Animation<double> reveal;
   final Alignment alignment;
@@ -164,96 +188,117 @@ class AuthStepChip extends StatelessWidget {
       );
 }
 
-/// "Sahne kapısındaki gözetleme deliği" — telefon/OTP ekranının imza
-/// görseli. Büyük bir fotoğraf PANELİ değil, tek bir dairesel "porthole" +
-/// çevresindeki `AuthAmbientGlow` halkası. Fotoğraf `OptimizedCachedImage`
-/// (`isCircular: true`) üzerinden — çıplak `Image(NetworkImage(...))`
-/// yerine artık gerçek önbellekleme + shimmer yükleme durumu var.
-class AuthPortholePhoto extends StatelessWidget {
+/// "Afiş kartı"nın fotoğraf bandı — referans görseldeki tam-kanama editoryal
+/// fotoğrafın karşılığı. `home_page_web.dart`'taki `_HeroBackdropPhoto` ile
+/// AYNI teknik: gerçek bir fotoğraf + okunabilirliği garanti eden çift
+/// yönlü koyu "scrim" gradyanı (üstte kart dikişiyle kaynaşması için hafif,
+/// altta üzerine bindirilecek pill CTA'nın her zaman net okunması için
+/// güçlü). `OptimizedCachedImage` üzerinden — gerçek önbellekleme + shimmer
+/// yükleme durumu var, kırık görsel asla çıplak gösterilmiyor.
+class AuthHeroPoster extends StatelessWidget {
   final String imageUrl;
-  final double size;
 
-  const AuthPortholePhoto({
+  /// Fotoğrafın üzerine bindirilen, isteğe bağlı küçük bir rozet (ör.
+  /// `AuthStepChip`) — afişin köşesindeki bir "tür etiketi" gibi.
+  final Widget? topOverlay;
+  final Alignment topOverlayAlignment;
+
+  const AuthHeroPoster({
     super.key,
     required this.imageUrl,
-    this.size = 132,
+    this.topOverlay,
+    this.topOverlayAlignment = Alignment.topLeft,
   });
 
   @override
-  Widget build(final BuildContext context) => ExcludeSemantics(
-        child: SizedBox(
-          width: size + 40,
-          height: size + 40,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              AuthAmbientGlow(size: size + 40, tint: WebColors.primaryGold),
-              Container(
-                width: size,
-                height: size,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: WebColors.primaryGold.withOpacity(0.55),
-                    width: 1.6,
-                  ),
-                  boxShadow: AppShadows.level3(WebColors.veryDarkBlue),
-                ),
-                child: OptimizedCachedImage(
-                  imageUrl: imageUrl,
-                  width: size - 8,
-                  height: size - 8,
-                  isCircular: true,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ],
+  Widget build(final BuildContext context) => Stack(
+        fit: StackFit.expand,
+        children: [
+          OptimizedCachedImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            borderRadius: 0,
           ),
-        ),
+          // Üst scrim: başlık bandından fotoğrafa geçen dikişi yumuşatır.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  WebColors.veryDarkBlue.withOpacity(0.5),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.32],
+              ),
+            ),
+          ),
+          // Alt scrim: yüzen pill CTA'nın hangi fotoğrafın üzerine
+          // bindirilirse bindirilsin her zaman net okunması için.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  WebColors.veryDarkBlue.withOpacity(0.88),
+                ],
+                stops: const [0.5, 1.0],
+              ),
+            ),
+          ),
+          if (topOverlay != null)
+            Positioned(
+              top: AppSpacing.md,
+              left: topOverlayAlignment == Alignment.topLeft
+                  ? AppSpacing.md
+                  : null,
+              right: topOverlayAlignment == Alignment.topRight
+                  ? AppSpacing.md
+                  : null,
+              child: topOverlay!,
+            ),
+        ],
       );
 }
 
-/// "Marquee" (program) satırı — pill/kart buton yerine, bir tiyatro
-/// programındaki kadro listesi gibi numaralı, alt çizgili bir satır. Kart
-/// çerçevesi/gölgesi/arka planı yok — hiyerarşi tamamen tipografi + tek
-/// çizgi kalınlığı ile kuruluyor (kural: "her elemanda shadow/border
-/// olmasın"). `InkWell` kullanıldığı için hem web'de Tab/Enter ile hem
-/// mobilde dokunuşla tam çalışır.
-class AuthMarqueeRow extends StatefulWidget {
-  final String index;
-  final Widget icon;
-  final String label;
-  final String semanticLabel;
-  final VoidCallback? onTap;
-  final bool emphasize;
+/// Referans afişteki TEK, yüzen, tam-yuvarlak (pill) birincil aksiyon
+/// butonu — ekranın her zaman TEK net birincil aksiyonu. `AppRadius.pill`
+/// (kural 7'nin açıkça izin verdiği "pill okunaklıysa kullan" seçeneği) +
+/// uygulamanın kendi altın gradyanı (`WebColors.goldButtonGradient`) ile
+/// dolduruluyor — near-black fotoğrafın üzerinde yüksek kontrast, "mücevher
+/// tonu" kimliğiyle uyumlu. `height` sabiti (54) hem gerçek dokunma hedefi
+/// (>=48px) hem de kartların üzerine bindiği "yarım pill" taşma hesabı
+/// (`height / 2`) için tek doğruluk kaynağı.
+class AuthFloatingPillCTA extends StatefulWidget {
+  static const double height = 54;
 
-  const AuthMarqueeRow({
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+
+  const AuthFloatingPillCTA({
     super.key,
-    required this.index,
-    required this.icon,
     required this.label,
-    required this.semanticLabel,
     required this.onTap,
-    this.emphasize = false,
+    this.icon,
   });
 
   @override
-  State<AuthMarqueeRow> createState() => _AuthMarqueeRowState();
+  State<AuthFloatingPillCTA> createState() => _AuthFloatingPillCTAState();
 }
 
-class _AuthMarqueeRowState extends State<AuthMarqueeRow> {
+class _AuthFloatingPillCTAState extends State<AuthFloatingPillCTA> {
   bool _hovered = false;
 
   @override
   Widget build(final BuildContext context) {
     final bool enabled = widget.onTap != null;
-    final Color lineColor =
-        _hovered ? WebColors.primaryGoldLight : WebColors.darkBlueAccent;
 
     return Semantics(
       button: true,
-      label: widget.semanticLabel,
+      label: widget.label,
       enabled: enabled,
       child: MouseRegion(
         cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
@@ -261,66 +306,53 @@ class _AuthMarqueeRowState extends State<AuthMarqueeRow> {
         onExit: (final _) => setState(() => _hovered = false),
         child: Material(
           color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           child: InkWell(
             onTap: widget.onTap,
-            focusColor: WebColors.primaryGold.withOpacity(0.08),
-            splashColor: WebColors.primaryGold.withOpacity(0.08),
-            highlightColor: WebColors.primaryGold.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            focusColor: WebColors.whiteText.withOpacity(0.18),
+            splashColor: WebColors.veryDarkBlue.withOpacity(0.12),
+            highlightColor: WebColors.veryDarkBlue.withOpacity(0.06),
             child: AnimatedContainer(
               duration: AppMotion.fast,
               curve: AppMotion.standard,
-              padding: const EdgeInsets.symmetric(
-                vertical: AppSpacing.lg,
-                horizontal: AppSpacing.xs,
-              ),
+              height: AuthFloatingPillCTA.height,
+              width: double.infinity,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom:
-                      BorderSide(color: lineColor, width: _hovered ? 1.6 : 1),
-                ),
+                gradient: enabled ? WebColors.goldButtonGradient : null,
+                color: enabled ? null : WebColors.darkBlueAccent,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                boxShadow: enabled
+                    ? (_hovered ? AppShadows.level5 : AppShadows.level4)(
+                        WebColors.primaryGold)
+                    : AppShadows.level0,
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
-                    width: 26,
-                    child: Text(
-                      widget.index,
-                      style: TextStyle(
-                        color: WebColors.primaryGoldLight
-                            .withOpacity(enabled ? 0.9 : 0.4),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  widget.icon,
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
+                  if (widget.icon != null) ...[
+                    Icon(widget.icon,
+                        size: 19,
+                        color: enabled
+                            ? WebColors.veryDarkBlue
+                            : WebColors.textTertiary),
+                    const SizedBox(width: AppSpacing.sm),
+                  ],
+                  Flexible(
                     child: Text(
                       widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color:
-                            WebColors.whiteText.withOpacity(enabled ? 1 : 0.4),
-                        fontWeight: widget.emphasize
-                            ? FontWeight.w800
-                            : FontWeight.w700,
-                        fontSize: 15.5,
-                        letterSpacing: 0.2,
+                        color: enabled
+                            ? WebColors.veryDarkBlue
+                            : WebColors.textTertiary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        letterSpacing: 0.6,
                       ),
-                    ),
-                  ),
-                  AnimatedSlide(
-                    duration: AppMotion.fast,
-                    curve: AppMotion.standard,
-                    offset:
-                        _hovered ? const Offset(0.06, -0.06) : Offset.zero,
-                    child: Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 14,
-                      color: WebColors.textTertiary
-                          .withOpacity(enabled ? 1 : 0.4),
                     ),
                   ),
                 ],
@@ -333,73 +365,81 @@ class _AuthMarqueeRowState extends State<AuthMarqueeRow> {
   }
 }
 
-/// Büyük birincil CTA butonu — telefon/OTP ekranının aksiyon anı için.
-/// Ekranın TEK imza asimetrik köşe (`AppRadius.asymLg`) vurgu noktası
-/// burada (kural: "bir-iki vurgu noktasında kullan, her yerde değil").
-class AuthPrimaryButton extends StatefulWidget {
+/// İkincil, "sessiz" aksiyon — ekranın TEK yüzen pill'ini
+/// (`AuthFloatingPillCTA`) hiçbir zaman gölgede bırakmayan, dolgusuz/
+/// gölgesiz bir çerçeve-pill. 3. denemenin numaralı "marquee" satır
+/// listesinin YERİNE geçmiyor (o dil tamamen kaldırıldı) — tek ikincil yol
+/// için tek, sakin bir kontrol.
+class AuthGhostPillButton extends StatefulWidget {
   final String label;
+  final Widget icon;
   final VoidCallback? onTap;
-  final IconData? icon;
+  final String semanticLabel;
 
-  const AuthPrimaryButton({
+  const AuthGhostPillButton({
     super.key,
     required this.label,
+    required this.icon,
     required this.onTap,
-    this.icon,
+    required this.semanticLabel,
   });
 
   @override
-  State<AuthPrimaryButton> createState() => _AuthPrimaryButtonState();
+  State<AuthGhostPillButton> createState() => _AuthGhostPillButtonState();
 }
 
-class _AuthPrimaryButtonState extends State<AuthPrimaryButton> {
+class _AuthGhostPillButtonState extends State<AuthGhostPillButton> {
   bool _hovered = false;
 
   @override
   Widget build(final BuildContext context) {
     final bool enabled = widget.onTap != null;
+    final Color borderColor = _hovered
+        ? WebColors.primaryGoldLight.withOpacity(0.6)
+        : WebColors.primaryGold.withOpacity(0.3);
+
     return Semantics(
       button: true,
-      label: widget.label,
+      label: widget.semanticLabel,
       enabled: enabled,
       child: MouseRegion(
         cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
         onEnter: (final _) => setState(() => _hovered = true),
         onExit: (final _) => setState(() => _hovered = false),
         child: Material(
-          color: WebColors.whiteText,
-          borderRadius: AppRadius.asymLg,
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           child: InkWell(
             onTap: widget.onTap,
-            borderRadius: AppRadius.asymLg,
-            focusColor: WebColors.primaryGold.withOpacity(0.18),
-            splashColor: Colors.black.withOpacity(0.08),
-            highlightColor: Colors.black.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            splashColor: WebColors.primaryGold.withOpacity(0.08),
+            highlightColor: WebColors.primaryGold.withOpacity(0.05),
             child: AnimatedContainer(
               duration: AppMotion.fast,
               curve: AppMotion.standard,
-              height: 54,
-              width: double.infinity,
-              alignment: Alignment.center,
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               decoration: BoxDecoration(
-                borderRadius: AppRadius.asymLg,
-                boxShadow: (_hovered ? AppShadows.level3 : AppShadows.level2)(
-                    WebColors.veryDarkBlue),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(color: borderColor, width: 1.2),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (widget.icon != null) ...[
-                    Icon(widget.icon, size: 18, color: WebColors.veryDarkBlue),
-                    const SizedBox(width: AppSpacing.sm),
-                  ],
-                  Text(
-                    widget.label,
-                    style: const TextStyle(
-                      color: WebColors.veryDarkBlue,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14.5,
-                      letterSpacing: 0.6,
+                  widget.icon,
+                  const SizedBox(width: AppSpacing.sm),
+                  Flexible(
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color:
+                            WebColors.whiteText.withOpacity(enabled ? 0.92 : 0.4),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ),
                 ],
