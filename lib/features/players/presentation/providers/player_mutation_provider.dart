@@ -4,6 +4,8 @@ import '../../../../core/errors/failures.dart';
 import '../../data/repositories/player_repository_provider.dart';
 import '../../domain/entities/player.dart';
 import '../../domain/usecases/add_player_use_case_impl.dart';
+import '../../domain/usecases/delete_player_use_case_impl.dart';
+import '../../domain/usecases/update_player_use_case_impl.dart';
 import 'player_provider.dart';
 
 // 🔧 KODLAMA NOTU: `player_provider.dart` `@riverpod` codegen kullanıyor ve
@@ -15,6 +17,14 @@ import 'player_provider.dart';
 
 final addPlayerUseCaseProvider = Provider<AddPlayerUseCase>(
     (final ref) => AddPlayerUseCaseImpl(ref.watch(playerRepositoryProvider)));
+
+final updatePlayerUseCaseProvider = Provider<UpdatePlayerUseCase>(
+    (final ref) =>
+        UpdatePlayerUseCaseImpl(ref.watch(playerRepositoryProvider)));
+
+final deletePlayerUseCaseProvider = Provider<DeletePlayerUseCase>(
+    (final ref) =>
+        DeletePlayerUseCaseImpl(ref.watch(playerRepositoryProvider)));
 
 final playerMutationProvider =
     NotifierProvider<PlayerMutationNotifier, AsyncValue<void>>(
@@ -32,6 +42,31 @@ class PlayerMutationNotifier extends Notifier<AsyncValue<void>> {
           .read(addPlayerUseCaseProvider)
           .call(player, imageFile)
           .getOrThrow();
+      ref.invalidate(playersProvider);
+    });
+  }
+
+  /// 🔄 Admin panelinden bir oyuncuyu (Phase 2: edit) günceller.
+  Future<void> updatePlayer({
+    required final String playerId,
+    required final Map<String, dynamic> updatedData,
+    final File? imageFile,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(updatePlayerUseCaseProvider)
+          .call(playerId, updatedData, imageFile)
+          .getOrThrow();
+      ref.invalidate(playersProvider);
+    });
+  }
+
+  /// 🗑️ Admin panelinden bir oyuncuyu (Phase 2) siler.
+  Future<void> deletePlayer(final String playerId) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(deletePlayerUseCaseProvider).call(playerId).getOrThrow();
       ref.invalidate(playersProvider);
     });
   }

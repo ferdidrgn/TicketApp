@@ -74,4 +74,11 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
     return execute(
         () => remoteDataSource.confirmPurchase(eventId, seatIds, customerId));
   }
+
+  @override
+  Future<Either<Failure, bool>> adminSetSeatBlocked(
+      final String eventId, final String seatId, final bool blocked) async {
+    return execute(
+        () => remoteDataSource.adminSetSeatBlocked(eventId, seatId, blocked));
+  }
 }

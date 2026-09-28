@@ -96,11 +96,19 @@ service cloud.firestore {
     // event_provider.dart -> confirmPurchase sonrası createTicket çağrısı).
     // -------------------------------------------------------------------
     match /Ticket/{ticketId} {
-      // Okuma: sadece kendi bileti. getTicketsByCustomerId sorgusu zaten
-      // customerId == auth.uid ile filtrelediği için bu kural query
-      // sonuçlarıyla uyumludur (Firestore, `where` sorgularında dönen HER
-      // dokümanın da read kuralını sağlamasını ister).
-      allow read: if isSignedIn() && resource.data.customerId == request.auth.uid;
+      // Okuma: kendi bileti YA DA admin. getTicketsByCustomerId sorgusu
+      // customerId == auth.uid ile filtrelediği için normal kullanıcı
+      // akışı bu kuralla uyumludur (Firestore, `where` sorgularında dönen
+      // HER dokümanın da read kuralını sağlamasını ister).
+      // 🔥 PHASE 2 EKLEMESİ: admin panelinin bilet/koltuk denetim sekmesi
+      // (`getTicketsByEventId` — `where('eventId', ...)`) BAŞKA
+      // kullanıcılara ait biletleri de döndürür; bu sorgu aynı "her
+      // dokümanın read kuralını sağlaması" zorunluluğu yüzünden
+      // `|| isAdmin()` olmadan HER ZAMAN permission-denied ile patlardı.
+      // Diğer koleksiyonlardaki (`Show`/`Stage`/...) AYNI `isAdmin()`
+      // deseni mirror edildi — yeni bir yetki kavramı icat edilmedi.
+      allow read: if isSignedIn() &&
+        (resource.data.customerId == request.auth.uid || isAdmin());
 
       // Create: fiyat/koltuk gibi kritik alanlar client'tan geliyor ve bu
       // proje bir Cloud Function/backend katmanı içermiyor (functions/

@@ -5,6 +5,7 @@ import '../widgets/admin_players_tab.dart';
 import '../widgets/admin_shows_tab.dart';
 import '../widgets/admin_stages_tab.dart';
 import '../widgets/admin_teams_tab.dart';
+import '../widgets/admin_tickets_tab.dart';
 
 /// Admin panelinin tek giriş noktası ("Sahne Arkası" konseptinin ötesinde,
 /// bilinçli olarak sade/işlevsel bir iç araç — bkz. CLAUDE.md: internal bir
@@ -21,7 +22,7 @@ class AdminHomePage extends StatelessWidget {
   @override
   Widget build(final BuildContext context) => AdminGuard(
         child: DefaultTabController(
-          length: 4,
+          length: 5,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Sahne Arkası — Yönetim'),
@@ -32,6 +33,9 @@ class AdminHomePage extends StatelessWidget {
                   Tab(icon: Icon(Icons.location_city_rounded), text: 'Sahneler'),
                   Tab(icon: Icon(Icons.groups_rounded), text: 'Topluluklar'),
                   Tab(icon: Icon(Icons.person_rounded), text: 'Oyuncular'),
+                  Tab(
+                      icon: Icon(Icons.confirmation_number_rounded),
+                      text: 'Biletler'),
                 ],
               ),
             ),
@@ -42,6 +46,7 @@ class AdminHomePage extends StatelessWidget {
                 AdminStagesTab(),
                 AdminTeamsTab(),
                 AdminPlayersTab(),
+                AdminTicketsTab(),
               ],
             ),
           ),

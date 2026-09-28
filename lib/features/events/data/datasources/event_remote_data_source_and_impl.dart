@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ticketapp/features/events/data/models/event_model.dart';
 import '../../../seat/data/datasources/seat_remote_data_source_and_impl.dart';
+import '../../domain/repositories/event_repository.dart' show kAdminBlockCustomerId;
 
 abstract class EventRemoteDataSource {
   Future<void> initializeAndGetEventSeats(final String eventId);
@@ -27,6 +28,10 @@ abstract class EventRemoteDataSource {
 
   Future<bool> confirmPurchase(final String eventId, final List<String> seatIds,
       final String customerId);
+
+  /// 🛠️ Admin koltuk denetimi (Phase 2).
+  Future<bool> adminSetSeatBlocked(
+      final String eventId, final String seatId, final bool blocked);
 }
 
 class EventRemoteDataSourceImpl implements EventRemoteDataSource {
@@ -341,6 +346,58 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       return true;
     } catch (e) {
       print('confirmPurchase failed: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> adminSetSeatBlocked(
+      final String eventId, final String seatId, final bool blocked) async {
+    _validateParams({'Event ID': eventId, 'Seat ID': seatId});
+
+    final ref = _eventCollection.doc(eventId);
+
+    try {
+      await firestore.runTransaction((final transaction) async {
+        final snapshot = await transaction.get(ref);
+        if (!snapshot.exists) throw Exception('Etkinlik bulunamadı.');
+
+        final data = snapshot.data();
+        final seat = _getSeatData(data!, seatId);
+
+        if (blocked) {
+          // Sadece gerçekten boş/müsait bir koltuk bloke edilebilir —
+          // gerçek bir müşterinin 'reserved'/'sold' koltuğunun üzerine asla
+          // yazılmaz (satış verisini bozmamak için).
+          if (seat['status'] != 'available')
+            throw Exception(
+                'Sadece müsait koltuklar bloke edilebilir (bu koltuk '
+                '"${seat['status']}" durumunda).');
+
+          transaction.update(ref, {
+            'seats.$seatId.status': 'sold',
+            'seats.$seatId.customerId': kAdminBlockCustomerId,
+            'seats.$seatId.soldAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          // Sadece BİZİM koyduğumuz admin bloğu geri alınabilir — gerçek bir
+          // satışı (gerçek customerId'li 'sold') yanlışlıkla asla serbest
+          // bırakmaz.
+          if (seat['customerId'] != kAdminBlockCustomerId)
+            throw Exception(
+                'Bu koltuk bir admin bloğu değil, gerçek bir satış/'
+                'rezervasyon içeriyor — buradan serbest bırakılamaz.');
+
+          transaction.update(ref, {
+            'seats.$seatId.status': 'available',
+            'seats.$seatId.customerId': null,
+            'seats.$seatId.soldAt': null,
+          });
+        }
+      });
+      return true;
+    } catch (e) {
+      print('adminSetSeatBlocked failed: $e');
       rethrow;
     }
   }

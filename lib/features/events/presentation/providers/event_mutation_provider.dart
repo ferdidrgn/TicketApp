@@ -4,6 +4,8 @@ import '../../../shows/presentation/providers/show_provider.dart';
 import '../../data/repositories/event_repository_provider.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/usecases/add_event_use_case_impl.dart';
+import '../../domain/usecases/admin_set_seat_blocked_use_case_impl.dart';
+import 'event_provider.dart';
 
 // 🔧 KODLAMA NOTU (Event Mutation — codegen'siz):
 // `event_provider.dart` zaten `@riverpod` (build_runner) codegen kullanıyor
@@ -16,6 +18,10 @@ import '../../domain/usecases/add_event_use_case_impl.dart';
 
 final addEventUseCaseProvider = Provider<AddEventUseCase>(
     (final ref) => AddEventUseCaseImpl(ref.watch(eventRepositoryProvider)));
+
+final adminSetSeatBlockedUseCaseProvider =
+    Provider<AdminSetSeatBlockedUseCase>((final ref) =>
+        AdminSetSeatBlockedUseCaseImpl(ref.watch(eventRepositoryProvider)));
 
 final eventMutationProvider =
     NotifierProvider<EventMutationNotifier, AsyncValue<void>>(
@@ -34,6 +40,25 @@ class EventMutationNotifier extends Notifier<AsyncValue<void>> {
       // `eventsByShowIdsProvider` üzerinden besleniyor (bkz.
       // `show_provider.dart`) — family'nin tamamı invalidate edilir.
       ref.invalidate(eventsByShowIdsProvider);
+    });
+  }
+
+  /// 🛠️ Admin koltuk denetimi (Phase 2): bir koltuğu operasyonel
+  /// gerekçeyle bloke eder/serbest bırakır (bkz. `EventRepository.
+  /// adminSetSeatBlocked` — 'blocked' YENİ bir enum değeri değil, mevcut
+  /// 'available'/'sold' durumlarının admin işaretli bir kullanımı).
+  Future<void> adminSetSeatBlocked(
+      final String eventId, final String seatId, final bool blocked) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(adminSetSeatBlockedUseCaseProvider)
+          .call(eventId, seatId, blocked)
+          .getOrThrow();
+      // Real-time stream zaten kendi kendine güncellenir (bkz.
+      // `getEventSeatStatusStream`) ama emin olmak için family'yi de
+      // invalidate ediyoruz.
+      ref.invalidate(eventSeatsProvider);
     });
   }
 }

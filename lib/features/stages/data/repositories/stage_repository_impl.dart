@@ -43,4 +43,17 @@ class StageRepositoryImpl extends BaseRepository implements StageRepository {
         final model = stage.toModel();
         return remoteDataSource.addStage(model, imageFile);
       });
+
+  @override
+  Future<Either<Failure, bool>> updateStage(final String stageId,
+          final Map<String, dynamic> updatedData, final File? imageFile) =>
+      execute(
+          () => remoteDataSource.updateStage(stageId, updatedData, imageFile));
+
+  @override
+  Future<Either<Failure, bool>> deleteStage(final String stageId) {
+    if (stageId.isEmpty)
+      return Future.value(const Left(ServerFailure('Invalid ID')));
+    return execute(() => remoteDataSource.deleteStage(stageId));
+  }
 }

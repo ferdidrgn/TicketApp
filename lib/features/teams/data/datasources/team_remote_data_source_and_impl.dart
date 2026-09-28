@@ -10,6 +10,13 @@ abstract class TeamRemoteDataSource {
 
   /// ➕ Admin panelinden yeni bir topluluk (Team) oluşturur.
   Future<bool> addTeam(final TeamModel team, final File? imageFile);
+
+  /// 🔄 Admin panelinden bir topluluğu günceller (Phase 2).
+  Future<bool> updateTeam(final String teamId,
+      final Map<String, dynamic> updatedData, final File? imageFile);
+
+  /// 🗑️ Admin panelinden bir topluluğu siler (Phase 2).
+  Future<bool> deleteTeam(final String teamId);
 }
 
 class TeamRemoteDataSourceImpl implements TeamRemoteDataSource {
@@ -81,6 +88,43 @@ class TeamRemoteDataSourceImpl implements TeamRemoteDataSource {
       return true;
     } catch (e) {
       throw Exception('Error adding team: $e');
+    }
+  }
+
+  @override
+  Future<bool> updateTeam(final String teamId,
+      final Map<String, dynamic> updatedData, final File? imageFile) async {
+    try {
+      final data = Map<String, dynamic>.from(updatedData);
+
+      if (imageFile != null) {
+        final ref = storage.ref('TeamImages/$teamId.jpg');
+        await ref.putFile(imageFile);
+        data['imageUrl'] = await ref.getDownloadURL();
+      }
+
+      await _teamCollection.doc(teamId).update({
+        ...data,
+        '_updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      throw Exception('Error updating team: $e');
+    }
+  }
+
+  @override
+  Future<bool> deleteTeam(final String teamId) async {
+    try {
+      try {
+        await storage.ref('TeamImages/$teamId.jpg').delete();
+      } catch (_) {
+        // Resim yoksa hatayı yut, sorun değil.
+      }
+      await _teamCollection.doc(teamId).delete();
+      return true;
+    } catch (e) {
+      throw Exception('Error deleting team: $e');
     }
   }
 

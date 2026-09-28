@@ -5,6 +5,10 @@ abstract class TicketRemoteDataSource {
   Future<List<TicketModel>> getTicketsByIds(final List<String> ticketIds);
   Future<List<TicketModel>> getTicketsByCustomerId(final String customerId);
   Future<bool> createTicket(final TicketModel ticket);
+
+  /// 🎫 Admin bilet/koltuk denetimi (Phase 2): `eventId` alanına göre
+  /// doğrudan Firestore sorgusu.
+  Future<List<TicketModel>> getTicketsByEventId(final String eventId);
 }
 
 class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
@@ -76,6 +80,22 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
       return true;
     } catch (e) {
       throw Exception('Failed to create ticket: $e');
+    }
+  }
+
+  @override
+  Future<List<TicketModel>> getTicketsByEventId(final String eventId) async {
+    if (eventId.isEmpty) throw Exception('Event ID cannot be empty.');
+
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('eventId', isEqualTo: eventId)
+          .get();
+
+      return _mapSnapshot(snapshot);
+    } catch (e) {
+      throw Exception('Failed to fetch tickets by eventId: $e');
     }
   }
 

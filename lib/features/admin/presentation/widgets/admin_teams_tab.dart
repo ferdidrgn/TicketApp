@@ -1,167 +1,146 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../../../core/common/extentions/app_context_ui_extension.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../teams/domain/entities/team.dart';
-import '../../../teams/presentation/providers/team_mutation_provider.dart';
 import '../../../teams/presentation/providers/team_provider.dart';
+import '../pages/admin_team_form_page.dart';
 import 'admin_form_widgets.dart';
 
-/// "Topluluklar" sekmesi — Phase 1 kapsamı: sadece YENİ topluluk (Team)
-/// ekleme. Üstte mevcut topluluklar (salt-okunur, referans), altında
-/// gerçek bir ekleme formu.
-class AdminTeamsTab extends ConsumerStatefulWidget {
+/// "Topluluklar" sekmesi — Phase 2: GERÇEK `teamsProvider(isLimit: false)`
+/// verisiyle beslenen, düzenlemeye/silmeye giden tıklanabilir bir liste +
+/// üstte "Yeni Topluluk" butonu (bkz. `AdminShowsTab`'daki AYNI desen).
+class AdminTeamsTab extends ConsumerWidget {
   const AdminTeamsTab({super.key});
 
   @override
-  ConsumerState<AdminTeamsTab> createState() => _AdminTeamsTabState();
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final teamsAsync = ref.watch(teamsProvider(isLimit: false));
+    final colors = context.colors;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+          child: SizedBox(
+            width: double.infinity,
+            child: Semantics(
+              button: true,
+              label: 'Yeni topluluk ekle',
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (final _) => const AdminTeamFormPage())),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Yeni Topluluk'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: teamsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (final e, final st) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child:
+                    AdminInlineBanner(message: 'Topluluklar yüklenemedi: $e'),
+              ),
+            ),
+            data: (final teams) {
+              if (teams.isEmpty)
+                return Center(
+                    child: Text('Henüz topluluk eklenmemiş.',
+                        style: TextStyle(color: colors.onSurfaceVariant)));
+              return ListView.separated(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                itemCount: teams.length,
+                separatorBuilder: (final _, final __) =>
+                    const SizedBox(height: AppSpacing.sm),
+                itemBuilder: (final context, final index) =>
+                    _TeamRow(team: teams[index]),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _AdminTeamsTabState extends ConsumerState<AdminTeamsTab> {
-  final _formKey = GlobalKey<FormState>();
-  final ImagePicker _picker = ImagePicker();
+class _TeamRow extends StatelessWidget {
+  final Team team;
 
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-
-  File? _selectedImageFile;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickImage() async {
-    final picked = await _picker.pickImage(
-        source: ImageSource.gallery, maxWidth: 1280, imageQuality: 80);
-    if (picked != null) setState(() => _selectedImageFile = File(picked.path));
-  }
-
-  Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    final team = Team(
-      id: '',
-      createdAt: '',
-      updatedAt: '',
-      name: _nameController.text.trim(),
-      description: _descriptionController.text.trim(),
-      imageUrl: '',
-      photosId: const [],
-      showsId: const [],
-    );
-
-    await ref
-        .read(teamMutationProvider.notifier)
-        .addTeam(team, _selectedImageFile);
-
-    if (!mounted) return;
-    final state = ref.read(teamMutationProvider);
-    if (state.hasError) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Topluluk eklenemedi: ${state.error}'),
-        backgroundColor: Colors.red,
-      ));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Topluluk eklendi.'),
-        backgroundColor: Colors.green,
-      ));
-      _formKey.currentState?.reset();
-      _nameController.clear();
-      _descriptionController.clear();
-      setState(() => _selectedImageFile = null);
-    }
-  }
+  const _TeamRow({required this.team});
 
   @override
   Widget build(final BuildContext context) {
-    final teamsAsync = ref.watch(teamsProvider(isLimit: false));
-    final isSaving = ref.watch(teamMutationProvider).isLoading;
     final colors = context.colors;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const AdminSectionTitle(
-              title: 'Mevcut Topluluklar', icon: Icons.groups_rounded),
-          teamsAsync.when(
-            loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                child: LinearProgressIndicator()),
-            error: (final e, final st) =>
-                AdminInlineBanner(message: 'Topluluklar yüklenemedi: $e'),
-            data: (final teams) => teams.isEmpty
-                ? Text('Henüz topluluk eklenmemiş.',
-                    style: TextStyle(color: colors.onSurfaceVariant))
-                : Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    children: teams
-                        .map((final t) => Chip(
-                              label: Text(t.name),
-                              avatar: const Icon(Icons.groups_rounded, size: 16),
-                            ))
-                        .toList(),
-                  ),
+    return Semantics(
+      button: true,
+      label: '${team.name}, düzenlemek için dokun',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (final _) => AdminTeamFormPage(team: team))),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            border: Border.all(color: colors.outlineVariant),
           ),
-          const AdminSectionTitle(
-              title: 'Yeni Topluluk Ekle', icon: Icons.group_add_rounded),
-          Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AdminImagePickerField(
-                  selectedFile: _selectedImageFile,
-                  existingImageUrl: null,
-                  onPick: _pickImage,
-                  semanticLabel: 'Topluluk görseli, dokun ve seç',
-                ),
-                CustomTextField(
-                    controller: _nameController, label: 'Topluluk Adı'),
-                CustomTextField(
-                    controller: _descriptionController,
-                    label: 'Açıklama',
-                    maxLines: 4),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: Semantics(
-                    button: true,
-                    label: 'Topluluğu kaydet',
-                    child: ElevatedButton.icon(
-                      onPressed: isSaving ? null : _submit,
-                      icon: isSaving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.save_rounded),
-                      label: const Text('Topluluğu Kaydet'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colors.primary,
-                        foregroundColor: colors.onPrimary,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                      ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+                child: team.imageUrl.isNotEmpty
+                    ? Image.network(team.imageUrl,
+                        width: 44, height: 44, fit: BoxFit.cover,
+                        errorBuilder: (final c, final e, final s) =>
+                            _placeholderIcon(colors))
+                    : _placeholderIcon(colors),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(team.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      team.description.isNotEmpty
+                          ? team.description
+                          : 'Açıklama yok',
+                      style: TextStyle(
+                          fontSize: 12, color: colors.onSurfaceVariant),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: colors.outline),
+            ],
           ),
-          const SizedBox(height: AppSpacing.huge),
-        ],
+        ),
       ),
     );
   }
+
+  Widget _placeholderIcon(final ColorScheme colors) => Container(
+        width: 44,
+        height: 44,
+        color: colors.surfaceContainerHighest,
+        child:
+            Icon(Icons.groups_rounded, color: colors.onSurfaceVariant, size: 20),
+      );
 }

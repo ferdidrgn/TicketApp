@@ -12,6 +12,13 @@ abstract class PlayerRemoteDataSource {
 
   /// ➕ Admin panelinden yeni bir oyuncu oluşturur.
   Future<bool> addPlayer(final PlayerModel player, final File? imageFile);
+
+  /// 🔄 Admin panelinden bir oyuncuyu günceller (Phase 2).
+  Future<bool> updatePlayer(final String playerId,
+      final Map<String, dynamic> updatedData, final File? imageFile);
+
+  /// 🗑️ Admin panelinden bir oyuncuyu siler (Phase 2).
+  Future<bool> deletePlayer(final String playerId);
 }
 
 class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
@@ -98,6 +105,47 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
       throw Exception('Firestore hatası (addPlayer): ${e.message}');
     } catch (e) {
       throw Exception('Oyuncu eklenemedi: $e');
+    }
+  }
+
+  @override
+  Future<bool> updatePlayer(final String playerId,
+      final Map<String, dynamic> updatedData, final File? imageFile) async {
+    try {
+      final data = Map<String, dynamic>.from(updatedData);
+
+      if (imageFile != null) {
+        final ref = _storage.ref('PlayerImages/$playerId.jpg');
+        await ref.putFile(imageFile);
+        data['imageUrl'] = await ref.getDownloadURL();
+      }
+
+      await _collectionPath.doc(playerId).update({
+        ...data,
+        '_updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (updatePlayer): ${e.message}');
+    } catch (e) {
+      throw Exception('Oyuncu güncellenemedi: $e');
+    }
+  }
+
+  @override
+  Future<bool> deletePlayer(final String playerId) async {
+    try {
+      try {
+        await _storage.ref('PlayerImages/$playerId.jpg').delete();
+      } catch (_) {
+        // Resim yoksa hatayı yut, sorun değil.
+      }
+      await _collectionPath.doc(playerId).delete();
+      return true;
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (deletePlayer): ${e.message}');
+    } catch (e) {
+      throw Exception('Oyuncu silinemedi: $e');
     }
   }
 

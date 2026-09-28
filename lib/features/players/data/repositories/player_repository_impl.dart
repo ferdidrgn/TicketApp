@@ -52,4 +52,17 @@ class PlayerRepositoryImpl extends BaseRepository implements PlayerRepository {
         final model = player.toModel();
         return remoteDataSource.addPlayer(model, imageFile);
       });
+
+  @override
+  Future<Either<Failure, bool>> updatePlayer(final String playerId,
+          final Map<String, dynamic> updatedData, final File? imageFile) async =>
+      execute(() =>
+          remoteDataSource.updatePlayer(playerId, updatedData, imageFile));
+
+  @override
+  Future<Either<Failure, bool>> deletePlayer(final String playerId) async {
+    if (playerId.isEmpty)
+      return Future.value(const Left(ServerFailure('Invalid ID')));
+    return execute(() => remoteDataSource.deletePlayer(playerId));
+  }
 }
