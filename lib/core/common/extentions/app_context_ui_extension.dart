@@ -47,14 +47,22 @@ extension ThemeContextExtension on BuildContext {
       theme.bottomNavigationBarTheme;
 
   // --- Özel Gradient Mantığın ---
-  /// [isActive]: Eğer true ise temanın aktif renklerini (Kırmızı veya Mor),
-  /// false ise pasif gri renkleri döndürür.
+  /// [isActive]: Eğer true ise temanın aktif renklerini, false ise pasif
+  /// gri renkleri döndürür.
+  /// 🔥 DÜZELTME: Burada sabit `Colors.pink`/`Colors.purple`/`Colors.red`
+  /// kullanılıyordu — kullanıcı Ayarlar > Tema Rengi'nden `custom` bir
+  /// vurgu rengi seçse, Material You (`materialLight`/`materialDark`)
+  /// dinamik rengini kullansa ya da `appDark`/`appLight` arasında geçiş
+  /// yapsa BİLE bu gradyan hep aynı sabit kırmızı/pembe-mor kalıyordu —
+  /// geri butonu olan her ekranın başlığı seçili temayla alakasız
+  /// görünüyordu. Artık `ThemeManager`'ın ürettiği GERÇEK `ColorScheme`
+  /// (`colors.primary`/`colors.tertiary` — `ColorScheme.fromSeed` ile
+  /// kullanıcının seçtiği seed renkten türetiliyor) kullanılıyor, böylece
+  /// hangi tema/vurgu rengi seçilirse seçilsin başlık onunla eşleşiyor.
   List<Color> appGradient({final bool isActive = true}) {
     if (!isActive) return [Colors.grey[500]!, Colors.grey[800]!];
 
-    return isDarkMode
-        ? [Colors.pink[500]!, Colors.purple[600]!] // Dark Mode Gradient
-        : [Colors.red.shade300, Colors.red.shade900]; // Light Mode Gradient
+    return [colors.primary, colors.tertiary];
   }
 
   // --- Opacity / Overlay Gradient ---
