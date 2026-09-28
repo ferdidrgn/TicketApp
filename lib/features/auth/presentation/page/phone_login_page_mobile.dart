@@ -132,8 +132,12 @@ class _PhoneLogInPageState extends ConsumerState<PhoneLogInPage>
       showBackButton: true,
       showFab: false,
       isOverlayLoading: authMutation.isLoading,
+      // 🔥 DÜZELTME: login_screen_mobile.dart'taki AYNI hata — `safeAreaTop:
+      // false`, BasePageWrapper'ın kendi geri butonunu/header'ını da aynı
+      // SafeArea'nın içinde bırakıp durum çubuğunun/çentiğin altına değil
+      // üstüne çiziyordu. İçerideki SafeArea zaten kendi varsayılan
+      // top:true'suyla güvenle iç içe çalışıyor (çift boşluk oluşmaz).
       layoutConfig: const BasePageLayoutConfig(
-        safeAreaTop: false,
         safeAreaBottom: false,
       ),
       child: PopScope(

@@ -73,8 +73,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       showBackButton: true,
       showFab: false,
       isOverlayLoading: authMutation.isLoading,
+      // 🔥 DÜZELTME: `safeAreaTop: false` BasePageWrapper'ın KENDİ geri
+      // butonunu/header'ını (TopHeaderWithBackButton) da aynı SafeArea'nın
+      // İÇİNDE bırakıyordu — bu yüzden geri butonu ve (varsa) sağ üst ikon
+      // durum çubuğunun/çentiğin ALTINA değil, TAM ÜSTÜNE/İÇİNE
+      // çiziliyordu (ekran görüntüsündeki üst üste binme). Alttaki
+      // `SafeArea(bottom: false, ...)` zaten kendi top:true varsayılanıyla
+      // iç içe güvenle çalışıyor (dıştaki SafeArea top inset'i tükettiği
+      // için içteki sıfır ek boşluk ekler, çift boşluk OLUŞMAZ) — bu
+      // yüzden burada `safeAreaTop`'u false'a zorlamaya hiç gerek yoktu.
       layoutConfig: const BasePageLayoutConfig(
-        safeAreaTop: false,
         safeAreaBottom: false,
       ),
       child: Column(
