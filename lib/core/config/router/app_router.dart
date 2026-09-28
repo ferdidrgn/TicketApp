@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ticketapp/core/config/seo/seo_route_observer.dart';
+import 'package:ticketapp/features/admin/presentation/pages/admin_home_page.dart';
 import 'package:ticketapp/features/players/presentation/pages/player_details.dart';
 import 'package:ticketapp/features/shows/presentation/pages/show_detail_page.dart';
 import 'package:ticketapp/features/stages/presentation/pages/stage_details.dart';
@@ -262,6 +263,24 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: AppSettingsPage(),
+          transitionsBuilder: fadeTransition,
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      ),
+
+      // 🕵️ GİZLİ ADMİN PANELİ GİRİŞİ:
+      // Menüde/nav'da GÖRÜNMÜYOR — tek erişim yolu Ayarlar sayfasındaki
+      // versiyon metnine UZUN BASMA (bkz. `app_settings.dart`), ve o da
+      // sadece `isUserPrivilegedProvider` true ise buraya yönlendiriyor.
+      // Bu route'un kendisi güvenlik sınırı DEĞİL — gerçek yetki kontrolü
+      // `AdminGuard` (bkz. `admin_home_page.dart`) + Firestore `isAdmin()`
+      // kuralları (server-side) tarafından yapılıyor.
+      GoRoute(
+        path: '/admin',
+        name: 'admin',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AdminHomePage(),
           transitionsBuilder: fadeTransition,
           transitionDuration: const Duration(milliseconds: 500),
         ),

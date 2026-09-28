@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
@@ -42,5 +43,13 @@ class PlayerRepositoryImpl extends BaseRepository implements PlayerRepository {
         final List<PlayerModel> models =
             await remoteDataSource.searchPlayers(query);
         return models.map((final model) => model.toEntity()).toList();
+      });
+
+  @override
+  Future<Either<Failure, bool>> addPlayer(
+          final Player player, final File? imageFile) async =>
+      execute(() async {
+        final model = player.toModel();
+        return remoteDataSource.addPlayer(model, imageFile);
       });
 }

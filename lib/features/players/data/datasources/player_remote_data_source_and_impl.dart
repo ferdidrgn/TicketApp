@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/player_model.dart';
 
 abstract class PlayerRemoteDataSource {
@@ -7,13 +9,20 @@ abstract class PlayerRemoteDataSource {
   Future<List<PlayerModel>> getPlayersByIds(final List<String> playerIds);
 
   Future<List<PlayerModel>> searchPlayers(final String query);
+
+  /// ➕ Admin panelinden yeni bir oyuncu oluşturur.
+  Future<bool> addPlayer(final PlayerModel player, final File? imageFile);
 }
 
 class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
 
-  const PlayerRemoteDataSourceImpl({required final FirebaseFirestore firestore})
-      : _firestore = firestore;
+  const PlayerRemoteDataSourceImpl({
+    required final FirebaseFirestore firestore,
+    required final FirebaseStorage storage,
+  })  : _firestore = firestore,
+        _storage = storage;
 
   CollectionReference<Map<String, dynamic>> get _collectionPath =>
       _firestore.collection('Player');
@@ -67,6 +76,29 @@ class PlayerRemoteDataSourceImpl implements PlayerRemoteDataSource {
         .get();
 
     return _mapSnapshot(snapshot);
+  }
+
+  @override
+  Future<bool> addPlayer(final PlayerModel player, final File? imageFile) async {
+    try {
+      final data = player.toFirestore()
+        ..['_createdAt'] = FieldValue.serverTimestamp()
+        ..['_updatedAt'] = FieldValue.serverTimestamp();
+      final docRef = await _collectionPath.add(data);
+      await docRef.update({'_id': docRef.id});
+
+      if (imageFile != null) {
+        final ref = _storage.ref('PlayerImages/${docRef.id}.jpg');
+        await ref.putFile(imageFile);
+        final downloadUrl = await ref.getDownloadURL();
+        await docRef.update({'imageUrl': downloadUrl});
+      }
+      return true;
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (addPlayer): ${e.message}');
+    } catch (e) {
+      throw Exception('Oyuncu eklenemedi: $e');
+    }
   }
 
   /// 🔥 KRİTİK METOT: Firestore dökümanlarını modele çevirirken

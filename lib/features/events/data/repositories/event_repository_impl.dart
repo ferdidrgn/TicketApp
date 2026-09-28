@@ -19,6 +19,13 @@ class EventRepositoryImpl extends BaseRepository implements EventRepository {
   }
 
   @override
+  Future<Either<Failure, bool>> addEvent(final Event event) async =>
+      execute(() async {
+        final model = event.toModel();
+        return remoteDataSource.addEvent(model);
+      });
+
+  @override
   Future<Either<Failure, List<Event>>> getEventsByIds(
           final List<String> eventIds) async =>
       execute(() async {

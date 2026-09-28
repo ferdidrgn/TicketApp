@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
@@ -29,4 +30,12 @@ class TeamRepositoryImpl extends BaseRepository implements TeamRepository {
       return models.map((final model) => model.toEntity()).toList();
     });
   }
+
+  @override
+  Future<Either<Failure, bool>> addTeam(
+          final Team team, final File? imageFile) =>
+      execute(() async {
+        final model = team.toModel();
+        return remoteDataSource.addTeam(model, imageFile);
+      });
 }

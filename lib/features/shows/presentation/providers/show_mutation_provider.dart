@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/services/storage_provider.dart';
 import '../../domain/entities/show.dart';
 import 'show_provider.dart';
 
@@ -53,6 +54,42 @@ class ShowMutation extends _$ShowMutation {
 
       ref.invalidate(showsProvider);
       ref.invalidate(showsByIdsProvider); // Detay sayfası açıksa yenilensin
+    });
+  }
+
+  /// 🖼️ GÖRSEL DESTEKLİ GÜNCELLEME (Admin panelinden düzenleme)
+  ///
+  /// Yukarıdaki `updateShow`'un kullandığı `UpdateShowUseCase` ->
+  /// `ShowRepository.updateShow` zinciri (aksine `addShow`'un `File?`
+  /// parametresi) görsel yüklemeyi hiç desteklemiyor — sadece bir
+  /// `Map<String, dynamic>` alıyor. Admin panelinde bir oyunun görselini
+  /// DÜZENLERKEN değiştirmek gerçek bir ihtiyaç olduğu için, bu METOT
+  /// (mevcut `@riverpod` sınıfına — wiring'i değiştirmeyen, sadece yeni bir
+  /// metot eklenen bir değişiklik, bkz. CLAUDE.md codegen kısıtı) `addShow`
+  /// akışının Storage'a yüklediği AYNI yolu (`ShowImages/$showId.jpg`)
+  /// kullanarak gerçek bir yükleme yapar, sonra normal `updateShow`
+  /// zincirine (`updateShowUseCaseProvider`) devam eder.
+  Future<void> updateShowWithImage({
+    required final String showId,
+    required final Map<String, dynamic> updatedData,
+    required final File? imageFile,
+  }) async {
+    state = const AsyncLoading();
+
+    state = await AsyncValue.guard(() async {
+      final data = Map<String, dynamic>.from(updatedData);
+
+      if (imageFile != null) {
+        final storageRef =
+            ref.read(storageProvider).ref('ShowImages/$showId.jpg');
+        await storageRef.putFile(imageFile);
+        data['imageUrl'] = await storageRef.getDownloadURL();
+      }
+
+      await ref.read(updateShowUseCaseProvider).call(showId, data).getOrThrow();
+
+      ref.invalidate(showsProvider);
+      ref.invalidate(showsByIdsProvider);
     });
   }
 }

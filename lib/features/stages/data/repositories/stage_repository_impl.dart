@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/base/base_repo.dart';
@@ -33,5 +34,13 @@ class StageRepositoryImpl extends BaseRepository implements StageRepository {
         if (stagesIds.isEmpty) return <Stage>[];
         final models = await remoteDataSource.getStagesByIds(stagesIds);
         return models.map((final m) => m.toEntity()).toList();
+      });
+
+  @override
+  Future<Either<Failure, bool>> addStage(
+          final Stage stage, final File? imageFile) =>
+      execute(() async {
+        final model = stage.toModel();
+        return remoteDataSource.addStage(model, imageFile);
       });
 }

@@ -6,6 +6,9 @@ abstract class EventRepository {
   Future<Either<Failure, void>> initializeAndGetEventSeats(
       final String eventId);
 
+  /// ➕ Admin panelinden yeni bir seans (Event) oluşturur.
+  Future<Either<Failure, bool>> addEvent(final Event event);
+
   // 🔥 Model yerine temiz Entity (Event) listesi döndürür
   Future<Either<Failure, List<Event>>> getEventsByIds(
       final List<String> eventIds);

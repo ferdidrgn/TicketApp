@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
@@ -18,6 +19,7 @@ import '../../../../core/theme/theme_notifier.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/custom_art_inspirational_quote_view.dart';
 import '../../../../shared/widgets/footers/footer.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class AppSettingsPage extends ConsumerWidget {
   const AppSettingsPage({super.key});
@@ -44,6 +46,18 @@ class AppSettingsPage extends ConsumerWidget {
       return;
     }
     await permission.request();
+  }
+
+  // 🕵️ GİZLİ ADMİN GİRİŞİ: versiyon metnine uzun basma. Bu, GÜVENLİK
+  // sınırı DEĞİL — sadece admin/küratör hesabı olan birinin admin panelini
+  // menüde bir link aramadan bulabilmesi için bir "keşif kolaylığı".
+  // `isUserPrivilegedProvider` false ise KESİNLİKLE hiçbir şey olmaz —
+  // snackbar yok, dialog yok, bu özelliğin var olduğuna dair hiçbir iz yok
+  // (kullanıcının kendi talimatı: ayrıcalıklı değilse "hiçbir şey olmasın").
+  // Gerçek güvenlik sınırı `AdminGuard` + Firestore `isAdmin()` kuralları.
+  void _handleVersionFooterLongPress(
+      final BuildContext context, final WidgetRef ref) {
+    if (ref.read(isUserPrivilegedProvider)) context.push('/admin');
   }
 
   void _shareApp(final BuildContext context) => Share.share(
@@ -246,12 +260,15 @@ class AppSettingsPage extends ConsumerWidget {
 
           const SizedBox(height: AppSpacing.huge),
           Center(
-            child: Text(
-              l10n.settingsVersionFooter,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.onSurface.withOpacity(0.35),
-                letterSpacing: 2,
-                fontWeight: FontWeight.w700,
+            child: GestureDetector(
+              onLongPress: () => _handleVersionFooterLongPress(context, ref),
+              child: Text(
+                l10n.settingsVersionFooter,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurface.withOpacity(0.35),
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -740,13 +757,17 @@ class AppSettingsPage extends ConsumerWidget {
 
                     const SizedBox(height: AppSpacing.massive),
                     Center(
-                      child: Text(
-                        l10n.settingsVersionFooter,
-                        style: const TextStyle(
-                          color: WebColors.textTertiary,
-                          fontSize: 12,
-                          letterSpacing: 2,
-                          fontWeight: FontWeight.w600,
+                      child: GestureDetector(
+                        onLongPress: () =>
+                            _handleVersionFooterLongPress(context, ref),
+                        child: Text(
+                          l10n.settingsVersionFooter,
+                          style: const TextStyle(
+                            color: WebColors.textTertiary,
+                            fontSize: 12,
+                            letterSpacing: 2,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),

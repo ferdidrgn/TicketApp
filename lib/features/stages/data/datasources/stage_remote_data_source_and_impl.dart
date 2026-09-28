@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/stage_model.dart';
 
 abstract class StageRemoteDataSource {
@@ -7,13 +9,23 @@ abstract class StageRemoteDataSource {
   Future<List<StageModel>> getStages(final bool isLimit);
 
   Future<List<StageModel>> getStagesByIds(final List<String> stageIds);
+
+  /// ➕ Admin panelinden yeni bir sahne (mekân) oluşturur. `imageFile`
+  /// verilirse `show_remote_data_source_and_impl.dart`'taki `addShow` ile
+  /// AYNI desende (önce döküman, sonra Storage'a yükleyip `imageUrl`'i
+  /// güncelleme) gerçekten Firebase Storage'a yüklenir.
+  Future<bool> addStage(final StageModel stage, final File? imageFile);
 }
 
 class StageRemoteDataSourceImpl implements StageRemoteDataSource {
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
 
-  const StageRemoteDataSourceImpl({required final FirebaseFirestore firestore})
-      : _firestore = firestore;
+  const StageRemoteDataSourceImpl({
+    required final FirebaseFirestore firestore,
+    required final FirebaseStorage storage,
+  })  : _firestore = firestore,
+        _storage = storage;
 
   CollectionReference<Map<String, dynamic>> get _stageCollection =>
       _firestore.collection('Stage');
@@ -78,6 +90,29 @@ class StageRemoteDataSourceImpl implements StageRemoteDataSource {
       throw Exception('Firestore hatası (getStagesByIds): ${e.message}');
     } catch (e) {
       throw Exception('Belirtilen sahneler alınamadı: $e');
+    }
+  }
+
+  @override
+  Future<bool> addStage(final StageModel stage, final File? imageFile) async {
+    try {
+      final data = stage.toFirestore()
+        ..['_createdAt'] = FieldValue.serverTimestamp()
+        ..['_updatedAt'] = FieldValue.serverTimestamp();
+      final docRef = await _stageCollection.add(data);
+      await docRef.update({'_id': docRef.id});
+
+      if (imageFile != null) {
+        final ref = _storage.ref('StageImages/${docRef.id}.jpg');
+        await ref.putFile(imageFile);
+        final downloadUrl = await ref.getDownloadURL();
+        await docRef.update({'imageUrl': downloadUrl});
+      }
+      return true;
+    } on FirebaseException catch (e) {
+      throw Exception('Firestore hatası (addStage): ${e.message}');
+    } catch (e) {
+      throw Exception('Sahne eklenemedi: $e');
     }
   }
 

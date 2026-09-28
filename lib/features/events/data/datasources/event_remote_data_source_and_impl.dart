@@ -5,6 +5,13 @@ import '../../../seat/data/datasources/seat_remote_data_source_and_impl.dart';
 abstract class EventRemoteDataSource {
   Future<void> initializeAndGetEventSeats(final String eventId);
 
+  /// ➕ Admin panelinden yeni bir seans (Event) oluşturur — `showId`,
+  /// `stageId`, `date`, `price` gerçek alanlardır; `seats` boş map olarak
+  /// başlar ve ilk koltuk seçimi ekranı açıldığında
+  /// `initializeAndGetEventSeats` tarafından sahnenin gerçek koltuk
+  /// düzeninden doldurulur (bkz. `_ensureSeatsInitialized`).
+  Future<bool> addEvent(final EventModel event);
+
   Future<List<EventModel>> getEventsByIds(final List<String> eventIds);
 
   Future<List<EventModel>> getEventsByShowIds(final List<String> showIds);
@@ -61,6 +68,20 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   // ---------- Interface Methods ----------
+
+  @override
+  Future<bool> addEvent(final EventModel event) async {
+    try {
+      // Show'daki addShow ile aynı desen: önce dökümanı oluştur, sonra
+      // Firestore'un verdiği gerçek ID'yi dökümanın kendisine yazar.
+      final data = event.toFirestore()..remove('_id');
+      final docRef = await _eventCollection.add(data);
+      await docRef.update({'_id': docRef.id});
+      return true;
+    } catch (e) {
+      throw Exception('Add event failed: $e');
+    }
+  }
 
   @override
   Future<void> initializeAndGetEventSeats(final String eventId) async {
