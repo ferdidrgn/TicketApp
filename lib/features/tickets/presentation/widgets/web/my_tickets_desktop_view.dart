@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skeletonizer/skeletonizer.dart';
-import '../../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../../core/theme/app_colors.dart';
-import '../../../../../core/util/date_formatter.dart';
-import '../../../../../shared/widgets/section_header.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../../../core/theme/app_motion.dart';
+import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/navigation/widgets/nav_handler.dart';
+import '../../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../../providers/my_ticket_provider.dart';
+import '../wallet_ticket.dart';
 
 // =============================================================================
-// MASAÜSTÜ (WEB) "SANAT AJANDAN" (BİLETLERİM) SAYFASI
+// MASAÜSTÜ (WEB) BİLETLERİM
 // =============================================================================
 //
-// `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR — mobil uygulama çatısıdır
-// (geri tuşu başlık çubuğu, "yukarı kaydır" FAB'ı, pull-to-refresh,
-// `CustomAppBackground`'ın rastgele renkli parçacık noktaları). Bkz.
-// `nearby_events_page.dart`'taki `_NearbyEventsDesktopPage` — aynı gerekçe.
+// `BasePageWrapper` KASITLI OLARAK KULLANILMIYOR (mobil çatısı: geri tuşlu
+// başlık, "yukarı kaydır" FAB'ı, parçacık zemin). Bu yüzden sayfa kendi
+// `Scaffold`'unu kurar — önceden kurmuyordu ve rota bir kabuğun (shell)
+// içinde olmadığı için metinler Material atası olmadan (sarı çift alt
+// çizgili) çiziliyordu.
 //
-// Veri kaynağı mobille BİREBİR aynı: `myTicketsProvider(userId)` ve onun
-// `DetailedTicketListX.upcoming`/`.past` uzantısı — gerçek Firestore bileti +
-// gerçek etkinlik tarihine göre hesaplanan `isPast`. Uydurma bilet/sayı yok.
+// Yerleşim: "kenar çubuğu + sütun" — solda yaklaşan biletler (büyük
+// koçanlar, en yakın seans en üstte), sağda dar sütunda geçmiş biletler
+// (kopuk koçan + OYNANDI damgası). Veri mobille BİREBİR aynı:
+// `myTicketsProvider(userId)` + `.upcoming` / `.past`.
 class MyTicketsDesktopPage extends StatelessWidget {
   final String userId;
   final void Function(DetailedTicket ticket) onTicketTap;
@@ -30,305 +34,185 @@ class MyTicketsDesktopPage extends StatelessWidget {
   });
 
   @override
-  Widget build(final BuildContext context) => ColoredBox(
-        // NOT: Gövde kendi `ListView`'ı ile zaten kaydırılabilir — burada
-        // ikinci bir SingleChildScrollView SARMAK "unbounded height"
-        // hatasına yol açar, bilerek eklenmedi.
-        color: WebColors.darkBlueBackground,
-        child: Center(
-          child: ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: context.isLargeDesktop ? 1360 : 1180),
-            child: _MyTicketsDesktopBody(userId: userId, onTicketTap: onTicketTap),
+  Widget build(final BuildContext context) => Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: TicketStage(
+          themed: true,
+          child: SafeArea(
+            child: _MyTicketsDesktopBody(
+                userId: userId, onTicketTap: onTicketTap),
           ),
         ),
       );
 }
 
-class _MyTicketsDesktopBody extends ConsumerWidget {
+class _MyTicketsDesktopBody extends ConsumerStatefulWidget {
   final String userId;
   final void Function(DetailedTicket ticket) onTicketTap;
 
   const _MyTicketsDesktopBody({required this.userId, required this.onTicketTap});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
-    final ticketsAsync = ref.watch(myTicketsProvider(userId));
+  ConsumerState<_MyTicketsDesktopBody> createState() =>
+      _MyTicketsDesktopBodyState();
+}
 
-    return ticketsAsync.when(
-      loading: () => _TicketsLoadingState(enabled: ticketsAsync.isLoading),
-      error: (final err, final stack) => _TicketsErrorNotice(error: err),
+class _MyTicketsDesktopBodyState extends ConsumerState<_MyTicketsDesktopBody>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _reveal =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final Animation<double> _headline =
+      CurvedAnimation(parent: _reveal, curve: AppMotion.dramatic);
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (MediaQuery.of(context).disableAnimations) {
+      _reveal.value = 1;
+    } else {
+      _reveal.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final ticketsAsync = ref.watch(myTicketsProvider(widget.userId));
+    final cs = Theme.of(context).colorScheme;
+    final tickets = ticketsAsync.value;
+
+    String? summary;
+    if (tickets != null && tickets.isNotEmpty) {
+      final int up = tickets.upcoming.length, past = tickets.past.length;
+      summary = up == 0
+          ? 'Yaklaşan biletin yok; $past geçmiş bilet.'
+          : '$up yaklaşan, $past geçmiş bilet.';
+    }
+
+    final Widget header = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        IconButton(
+          tooltip: 'Geri',
+          onPressed: () => NavigationHandler.smartGoBack(context),
+          icon: Icon(Icons.arrow_back_rounded, color: cs.onSurface),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                header: true,
+                child: AuthWipeReveal(
+                  reveal: _headline,
+                  child: Text(
+                    'Biletlerim',
+                    style: GoogleFonts.playfairDisplay(
+                      color: cs.onSurface,
+                      fontSize: 44,
+                      fontWeight: FontWeight.w800,
+                      height: 1.05,
+                    ),
+                  ),
+                ),
+              ),
+              if (summary != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  summary,
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final Widget content = ticketsAsync.when(
+      loading: () => const _DesktopColumns(
+        upcoming: [
+          WalletTicketSkeleton(large: true),
+          SizedBox(height: AppSpacing.xl),
+          WalletTicketSkeleton(large: true),
+        ],
+        past: [WalletTicketSkeleton()],
+      ),
+      error: (final err, final stack) => Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.section),
+        child: TicketsErrorState(
+          onRetry: () => ref.invalidate(myTicketsProvider(widget.userId)),
+        ),
+      ),
       data: (final tickets) {
-        if (tickets.isEmpty) return const _TicketsEmptyState();
-
+        if (tickets.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.only(top: AppSpacing.section),
+            child: TicketsEmptyState(),
+          );
+        }
         final upcoming = tickets.upcoming;
         final past = tickets.past;
-
-        return ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: 36),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _TicketsDesktopBanner(
-                  upcomingCount: upcoming.length, pastCount: past.length),
-            ),
-            const SizedBox(height: 48),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SectionHeader(
-                title: 'Sıradaki Biletlerin',
-                subtitle: upcoming.isEmpty ? null : '${upcoming.length} etkinlik',
-                titleColor: Colors.white,
-                accentColor: WebColors.primaryGold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            upcoming.isEmpty
-                ? const _SectionEmptyNotice(
-                    message: 'Şu anda sırada bekleyen bir bilet yok.')
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _TicketsGrid(tickets: upcoming, onTap: onTicketTap),
-                  ),
-            const SizedBox(height: 56),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SectionHeader(
-                title: 'Anılar',
-                subtitle: past.isEmpty ? null : '${past.length} geçmiş etkinlik',
-                titleColor: Colors.white,
-                accentColor: WebColors.primaryGold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            past.isEmpty
-                ? const _SectionEmptyNotice(
-                    message: 'Henüz sahnelenmiş bir etkinliğin yok.')
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _TicketsGrid(
-                        tickets: past, onTap: onTicketTap, isPast: true),
-                  ),
-            const SizedBox(height: 100),
+        return _DesktopColumns(
+          upcoming: [
+            if (upcoming.isEmpty)
+              const TicketsEmptyState(
+                title: 'Yaklaşan biletin yok',
+                message: 'Yeni bir oyun seçtiğinde biletin burada, QR '
+                    'koduyla seni bekler.',
+              )
+            else
+              for (int i = 0; i < upcoming.length; i++) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.xl),
+                WalletTicket(
+                  key: ValueKey('ticket-${upcoming[i].ticket.id}'),
+                  ticket: upcoming[i],
+                  large: true,
+                  onTap: () => widget.onTicketTap(upcoming[i]),
+                ),
+              ],
+          ],
+          past: [
+            if (past.isEmpty)
+              Text(
+                'Seansı geçen biletlerin burada saklanır.',
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
+              )
+            else
+              for (int i = 0; i < past.length; i++) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.lg),
+                WalletTicket(
+                  key: ValueKey('ticket-${past[i].ticket.id}'),
+                  ticket: past[i],
+                  onTap: () => widget.onTicketTap(past[i]),
+                ),
+              ],
           ],
         );
       },
     );
-  }
-}
 
-class _TicketsGrid extends StatelessWidget {
-  final List<DetailedTicket> tickets;
-  final void Function(DetailedTicket ticket) onTap;
-  final bool isPast;
-
-  const _TicketsGrid(
-      {required this.tickets, required this.onTap, this.isPast = false});
-
-  @override
-  Widget build(final BuildContext context) => GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 380,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 1.05,
-        ),
-        itemCount: tickets.length,
-        itemBuilder: (final context, final index) => _DesktopTicketCard(
-          key: ValueKey('ticket-${tickets[index].ticket.id}'),
-          detailedTicket: tickets[index],
-          isPast: isPast,
-          onTap: () => onTap(tickets[index]),
-        ),
-      );
-}
-
-class _DesktopTicketCard extends StatelessWidget {
-  final DetailedTicket detailedTicket;
-  final bool isPast;
-  final VoidCallback onTap;
-
-  const _DesktopTicketCard(
-      {super.key,
-      required this.detailedTicket,
-      required this.onTap,
-      this.isPast = false});
-
-  @override
-  Widget build(final BuildContext context) {
-    final dateInfo =
-        DateFormatter.formatForEventCard(detailedTicket.event?.date ?? '');
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface,
-          // Asimetrik köşeler — nearby/discovery kartlarıyla aynı "premium"
-          // imza.
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(28),
-            topRight: Radius.circular(12),
-            bottomLeft: Radius.circular(12),
-            bottomRight: Radius.circular(28),
-          ),
-          border: Border.all(
-              color: (isPast ? Colors.white : WebColors.primaryGold)
-                  .withOpacity(0.18)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.35),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1280),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl, AppSpacing.xxxl,
+              AppSpacing.xxxl, AppSpacing.section),
           children: [
-            // Tarih Şeridi
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-              decoration: BoxDecoration(
-                gradient: isPast
-                    ? null
-                    : LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          WebColors.primaryGold.withOpacity(0.16),
-                          Colors.transparent,
-                        ],
-                      ),
-                color: isPast ? Colors.white.withOpacity(0.04) : null,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(28),
-                  topRight: Radius.circular(12),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dateInfo['day'] ?? '00',
-                        style: TextStyle(
-                          color: isPast ? Colors.white54 : Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          height: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        (dateInfo['monthName'] ?? '---').toUpperCase(),
-                        style: TextStyle(
-                          color: isPast
-                              ? Colors.white38
-                              : WebColors.primaryGoldLight,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: isPast
-                          ? Colors.white.withOpacity(0.08)
-                          : WebColors.primaryGold.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      isPast ? 'SERGİLENDİ' : 'SAHNELENİYOR',
-                      style: TextStyle(
-                        color: isPast ? Colors.white60 : WebColors.primaryGoldLight,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      detailedTicket.show?.name ?? 'Sanat Eseri',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: isPast ? Colors.white70 : Colors.white,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                        height: 1.15,
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.castle_rounded,
-                                size: 15,
-                                color: isPast
-                                    ? Colors.white38
-                                    : WebColors.primaryGoldLight),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                detailedTicket.stage?.name ?? 'Sahne',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: WebColors.textSecondary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1, color: Colors.white12),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              dateInfo['time'] ?? '--:--',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Icon(Icons.arrow_forward_rounded,
-                                size: 16, color: Colors.white38),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            header,
+            const SizedBox(height: AppSpacing.huge),
+            content,
           ],
         ),
       ),
@@ -336,196 +220,50 @@ class _DesktopTicketCard extends StatelessWidget {
   }
 }
 
-class _TicketsDesktopBanner extends StatelessWidget {
-  final int upcomingCount;
-  final int pastCount;
+/// Solda yaklaşan (geniş), sağda geçmiş (dar) sütun.
+class _DesktopColumns extends StatelessWidget {
+  final List<Widget> upcoming;
+  final List<Widget> past;
 
-  const _TicketsDesktopBanner(
-      {required this.upcomingCount, required this.pastCount});
+  const _DesktopColumns({required this.upcoming, required this.past});
 
-  @override
-  Widget build(final BuildContext context) => Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: WebColors.cardGradient,
-          border: Border.all(color: WebColors.primaryGold.withOpacity(0.25)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Sanat Ajandan',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: context.h3Size,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                      height: 1.15,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    upcomingCount == 0
-                        ? 'Sırada bekleyen bir biletin yok, geçmişte $pastCount anın var.'
-                        : '$upcomingCount yaklaşan biletin, $pastCount de geçmiş anın var.',
-                    style: TextStyle(
-                      color: WebColors.textSecondary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                gradient: WebColors.goldGradient,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.theater_comedy_rounded,
-                color: Colors.white,
-                size: 30,
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-/// Gerçek bilet ızgarası (banner + "Sıradaki Biletlerin" + "Anılar"
-/// bölümleri) yüklenene kadar gösterilen iskelet. `Skeletonizer` gerçek
-/// widget ağacını otomatik olarak parıldayan bir yer tutucuya çevirdiği
-/// için burada tam kart tasarımını değil, aynı kaba oranlarda birkaç
-/// köşeleri yuvarlatılmış `Container` çiziyoruz.
-class _TicketsLoadingState extends StatelessWidget {
-  final bool enabled;
-
-  const _TicketsLoadingState({this.enabled = true});
-
-  @override
-  Widget build(final BuildContext context) => Skeletonizer(
-        enabled: enabled,
-        child: ListView(
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: 36),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _skeletonBar(height: 140, radius: 28),
-            ),
-            const SizedBox(height: 48),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _skeletonBar(width: 220, height: 24),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _ticketGridPlaceholder(),
-            ),
-            const SizedBox(height: 56),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _skeletonBar(width: 140, height: 24),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _ticketGridPlaceholder(),
-            ),
-          ],
-        ),
-      );
-
-  Widget _ticketGridPlaceholder() => GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 380,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 1.05,
-        ),
-        itemCount: 3,
-        itemBuilder: (final context, final index) => Container(
-          decoration: BoxDecoration(
-            color: WebColors.darkBlueSurface,
-            borderRadius: BorderRadius.circular(20),
+  Widget _heading(final BuildContext context, final String text) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Semantics(
+        header: true,
+        child: Text(
+          text,
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
           ),
         ),
-      );
-
-  Widget _skeletonBar(
-          {final double? width,
-          required final double height,
-          final double radius = 12}) =>
-      Container(
-        width: width ?? double.infinity,
-        height: height,
-        decoration: BoxDecoration(
-          color: WebColors.darkBlueSurface,
-          borderRadius: BorderRadius.circular(radius),
-        ),
-      );
-}
-
-class _TicketsErrorNotice extends StatelessWidget {
-  final Object error;
-
-  const _TicketsErrorNotice({required this.error});
+      ),
+    );
+  }
 
   @override
-  Widget build(final BuildContext context) => Center(
-        child: Text(
-          'Biletlerin yüklenemedi: $error',
-          style: TextStyle(color: WebColors.textSecondary, fontSize: 15),
-          textAlign: TextAlign.center,
-        ),
-      );
-}
-
-class _TicketsEmptyState extends StatelessWidget {
-  const _TicketsEmptyState();
-
-  @override
-  Widget build(final BuildContext context) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.palette_outlined,
-                size: 60, color: WebColors.textSecondary),
-            const SizedBox(height: 16),
-            Text(
-              'Sahne henüz boş...',
-              style: TextStyle(
-                color: WebColors.textSecondary,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+  Widget build(final BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 7,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [_heading(context, 'Yaklaşan'), ...upcoming],
             ),
-          ],
-        ),
-      );
-}
-
-class _SectionEmptyNotice extends StatelessWidget {
-  final String message;
-
-  const _SectionEmptyNotice({required this.message});
-
-  @override
-  Widget build(final BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        child: Text(
-          message,
-          style: TextStyle(color: WebColors.textSecondary, fontSize: 15),
-        ),
+          ),
+          const SizedBox(width: AppSpacing.section),
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [_heading(context, 'Geçmiş'), ...past],
+            ),
+          ),
+        ],
       );
 }

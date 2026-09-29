@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ticketapp/features/events/presentation/providers/event_provider.dart';
 import 'package:ticketapp/shared/widgets/admin_guard.dart';
-import 'package:ticketapp/shared/widgets/background/custom_app_background.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
-import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/util/date_formatter.dart';
+import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/background/shimmer_components.dart';
+import '../../../../shared/widgets/ticket/seat_plan.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
+import '../../../events/domain/repositories/event_repository.dart'
+    show kAdminBlockCustomerId;
 import '../../../users/presentation/providers/user_provider.dart';
 import '../providers/seats_provider.dart';
 
+/// Küratör/yönetici koltuk denetimi: bir seansın basılı oturma planı
+/// üzerinde satılan, tutulan ve kapatılan koltuklar; bir koltuğa dokununca
+/// sahibinin bilgisi. Kullanıcı tarafındaki koltuk planıyla aynı görsel
+/// dil (`seat_plan.dart`).
 class CuratorSeatingAuditPage extends ConsumerStatefulWidget {
   final String? eventId;
   final String? showId;
@@ -28,8 +37,12 @@ class _CuratorSeatingAuditPageState
 
   @override
   Widget build(final BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     if (widget.eventId == null || widget.showId == null)
-      return Scaffold(body: _buildEmptyState());
+      return Scaffold(
+        backgroundColor: cs.surface,
+        body: SafeArea(child: _buildEmptyState()),
+      );
 
     final seatingAsync = ref.watch(
         eventSeatingProvider(eventId: widget.eventId!, showId: widget.showId!));
@@ -37,29 +50,45 @@ class _CuratorSeatingAuditPageState
 
     return AdminGuard(
       child: Scaffold(
-        body: CustomAppBackground(
+        backgroundColor: cs.surface,
+        body: TicketStage(
+          themed: true,
           child: SafeArea(
             child: seatingAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (final err, final _) => Center(child: Text("Hata: $err")),
-              data: (final state) =>
-                  seatsStatusAsync.when(
-                    loading: () => const ShimmerLoading(),
-                    error: (final err, final _) => Text("Hata: $err"),
-                    data: (final seatsStatus) =>
-                        Column(
-                          children: [
-                            _buildHeader(context, state),
-                            _buildOccupancyStats(seatsStatus),
-                            Expanded(child: _buildInteractiveMap(
-                                state, seatsStatus)),
-                            if (_focusedSeatId != null)
-                              _buildSeatDetailPanel(seatsStatus)
-                            else
-                              _buildLegend(),
-                          ],
-                        ),
+              loading: () => const _AuditSkeleton(),
+              error: (final err, final _) => _AuditError(
+                message: 'Seans ve salon bilgisi yüklenemedi.',
+                error: err,
+                onRetry: () => ref.invalidate(eventSeatingProvider(
+                    eventId: widget.eventId!, showId: widget.showId!)),
+              ),
+              data: (final state) => seatsStatusAsync.when(
+                loading: () => const _AuditSkeleton(),
+                error: (final err, final _) => _AuditError(
+                  message: 'Canlı koltuk durumu alınamadı.',
+                  error: err,
+                  onRetry: () =>
+                      ref.invalidate(eventSeatsProvider(widget.eventId!)),
+                ),
+                data: (final seatsStatus) => Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1100),
+                    child: Column(
+                      children: [
+                        _buildHeader(context, state),
+                        _buildOccupancyStats(seatsStatus),
+                        const SizedBox(height: AppSpacing.md),
+                        Expanded(
+                            child: _buildInteractiveMap(state, seatsStatus)),
+                        const SizedBox(height: AppSpacing.md),
+                        if (_focusedSeatId != null)
+                          _buildSeatDetailPanel(seatsStatus),
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
+                    ),
                   ),
+                ),
+              ),
             ),
           ),
         ),
@@ -69,168 +98,316 @@ class _CuratorSeatingAuditPageState
 
   // --- UI BİLEŞENLERİ ---
 
+  SeatVisual _visualOf(
+          final Map<String, Map<String, dynamic>> status, final String id) =>
+      seatVisualOf(
+        status: status[id]?['status']?.toString() ?? 'available',
+        ownerId: status[id]?['customerId']?.toString(),
+        customerId: '',
+      );
+
   Widget _buildInteractiveMap(final EventSeatingState state,
-      final dynamic eventStatus) =>
-      Container(
-        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        decoration: BoxDecoration(
-            color: Colors.black26,
-            borderRadius: BorderRadius.circular(AppRadius.lg)),
-        child: InteractiveViewer(
-          boundaryMargin: const EdgeInsets.all(AppSpacing.xl),
-          minScale: 0.5,
-          maxScale: 2.5,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildStageVisual(),
-                const SizedBox(height: AppSpacing.xl),
-                _buildGrid(state.layout, eventStatus),
-              ],
-            ),
-          ),
-        ),
-      );
+      final Map<String, Map<String, dynamic>> seatsStatus) {
+    // Salon planı sahne düzeninden gelir; yoksa seansın kendi koltukları.
+    final Iterable<String> ids = state.layout.isNotEmpty
+        ? state.layout.values.expand((final r) => r)
+        : seatsStatus.keys;
+    final rows = groupSeatsByRow(ids);
 
-  Widget _buildGrid(final Map<String, List<String>> layout,
-      final dynamic eventStatus) =>
-      Column(
-        children: layout.entries
-            .map((final entry) =>
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                    width: 25,
-                    child: Text(entry.key,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12))),
-                ...entry.value.map((final seatId) {
-                  final info = eventStatus.seatStatus[seatId];
-                  final isSold = info?['status'] == 'sold';
-                  final isFocused = _focusedSeatId == seatId;
+    final Set<SeatVisual> present = {
+      for (final id in rows.values.expand((final r) => r))
+        _visualOf(seatsStatus, id),
+    };
 
-                  return Semantics(
-                    button: true,
-                    selected: isFocused,
-                    label: '$seatId koltuğu, '
-                        '${isSold ? 'satılmış' : 'müsait'}'
-                        '${isFocused ? ', incelemede' : ''}',
-                    child: GestureDetector(
-                      onTap: () => setState(() => _focusedSeatId = seatId),
-                      child: AnimatedContainer(
-                        duration: AppMotion.fast,
-                        curve: AppMotion.standard,
-                        width: 35,
-                        height: 35,
-                        margin: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: isSold ? Colors.redAccent : Colors.white10,
-                          borderRadius: BorderRadius.circular(AppRadius.xs),
-                          border: Border.all(
-                              color: isFocused
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              width: 2),
-                        ),
-                        child: Center(
-                            child: Text(seatId.substring(1),
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold))),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ))
-            .toList(),
-      );
-
-  Widget _buildHeader(final BuildContext context,
-      final EventSeatingState state) =>
-      Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Row(
-          children: [
-            IconButton(
-                tooltip: 'Geri',
-                icon: const Icon(Icons.arrow_back_ios),
-                onPressed: () => Navigator.pop(context)),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: TicketPiece(
+        perforated: TicketEdge.bottom,
+        shadows: AppShadows.level2(Theme.of(context).colorScheme.shadow),
+        child: rows.isEmpty
+            ? Center(
+                child: Text('Bu sahne için koltuk planı tanımlı değil.',
+                    style: TicketInk.value()),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(state.show.name.toUpperCase(),
-                      style: context.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w900)),
-                  Text(state.event.date,
-                      style: TextStyle(
-                          color: context.colors.primary, fontSize: 11)),
+                  Expanded(
+                    child: SeatHallPlan(
+                      rows: rows,
+                      minSeat: 32,
+                      maxSeat: 42,
+                      seatBuilder: (final context, final seatId, final size) {
+                        final bool isFocused = _focusedSeatId == seatId;
+                        return TicketSeat(
+                          seatId: seatId,
+                          visual: _visualOf(seatsStatus, seatId),
+                          size: size,
+                          outlined: isFocused,
+                          semanticLabel: '$seatId koltuğu, '
+                              '${_visualOf(seatsStatus, seatId).label.toLowerCase()}'
+                              '${isFocused ? ', incelemede' : ''}',
+                          onTap: () =>
+                              setState(() => _focusedSeatId = seatId),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                    child: SeatLegend(visible: [
+                      SeatVisual.available,
+                      SeatVisual.held,
+                      SeatVisual.sold,
+                      if (present.contains(SeatVisual.blocked))
+                        SeatVisual.blocked,
+                    ]),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _buildSeatDetailPanel(final dynamic eventStatus) {
-    final seatData = eventStatus.seatStatus[_focusedSeatId];
-    final uid = seatData?['customerId'];
-    final color = context.colors;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-          color: color.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border:
-          Border.all(color: color.primary.withOpacity(0.2))),
-      child: uid != null
-          ? _UserDetailFetcher(uid: uid)
-          : const Center(child: Text("Bu koltuk şu an müsait.")),
+      ),
     );
   }
 
-  Widget _buildOccupancyStats(final dynamic eventStatus) {
-    final int sold = eventStatus.seatStatus.values
-        .where((final s) => s != null && s['status'] == 'sold')
-        .length;
-    final double percent = eventStatus.seatStatus.isEmpty
-        ? 0
-        : (sold / eventStatus.seatStatus.length) * 100;
-
+  Widget _buildHeader(
+      final BuildContext context, final EventSeatingState state) {
+    final cs = Theme.of(context).colorScheme;
+    final parsed = DateFormatter.parseDateString(state.event.date);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xs, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text("Doluluk: %${percent.toStringAsFixed(0)}",
-              style: TextStyle(
-                  fontSize: 12, color: context.colors.onSurfaceVariant)),
-          Text("$sold / ${eventStatus.seatStatus.length} Bilet",
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          IconButton(
+            tooltip: 'Geri',
+            icon: Icon(Icons.arrow_back_rounded, color: cs.onSurface),
+            onPressed: () => NavigationHandler.smartGoBack(context),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(
+                  header: true,
+                  child: Text(
+                    state.show.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.playfairDisplay(
+                      color: cs.onSurface,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  parsed != null
+                      ? 'Koltuk denetimi, ${ticketDate(parsed)} ${ticketTime(parsed)}'
+                      : 'Koltuk denetimi',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState() =>
-      const Center(child: Text("Lütfen bir seans seçiniz"));
+  Widget _buildSeatDetailPanel(
+      final Map<String, Map<String, dynamic>> seatsStatus) {
+    final seatId = _focusedSeatId!;
+    final visual = _visualOf(seatsStatus, seatId);
+    final String? uid = seatsStatus[seatId]?['customerId']?.toString();
+    final bool hasCustomer = uid != null &&
+        uid.isNotEmpty &&
+        uid != kAdminBlockCustomerId &&
+        (visual == SeatVisual.sold || visual == SeatVisual.held);
 
-  Widget _buildStageVisual() =>
-      const Column(children: [
-        Divider(indent: 50, endIndent: 50),
-        Text("SAHNE", style: TextStyle(letterSpacing: 5, fontSize: 10))
-      ]);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: TicketPiece(
+        perforated: TicketEdge.top,
+        shadows: AppShadows.level2(Theme.of(context).colorScheme.shadow),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl, AppSpacing.lg, AppSpacing.sm, AppSpacing.lg),
+          child: Row(
+            children: [
+              TicketField(label: 'KOLTUK', value: seatId),
+              const SizedBox(width: AppSpacing.xl),
+              TicketField(label: 'DURUM', value: visual.label),
+              const SizedBox(width: AppSpacing.xl),
+              Expanded(
+                child: hasCustomer
+                    ? _UserDetailFetcher(uid: uid!)
+                    : Text(
+                        visual == SeatVisual.blocked
+                            ? 'Yönetici tarafından satışa kapatıldı.'
+                            : 'Bu koltuk şu an müsait.',
+                        style: TextStyle(
+                            color: TicketInk.inkSoft(0.7), fontSize: 13.5),
+                      ),
+              ),
+              IconButton(
+                tooltip: 'Kapat',
+                icon: Icon(Icons.close_rounded, color: TicketInk.inkSoft()),
+                onPressed: () => setState(() => _focusedSeatId = null),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-  Widget _buildLegend() =>
-      const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.square, color: Colors.redAccent, size: 12),
-        SizedBox(width: AppSpacing.xs),
-        Text("Dolu", style: TextStyle(fontSize: 12))
-      ]);
+  /// 🔥 DÜZELTME: Önceden `eventSeatsProvider`'ın döndürdüğü
+  /// `Map<String, Map<String, dynamic>>` `dynamic` olarak alınıp üzerinde
+  /// var olmayan bir `.seatStatus` alanı okunuyordu — sayfa açılır açılmaz
+  /// `NoSuchMethodError` ile çöküyordu. Artık doğrudan harita kullanılıyor.
+  Widget _buildOccupancyStats(
+      final Map<String, Map<String, dynamic>> seatsStatus) {
+    final cs = Theme.of(context).colorScheme;
+    int sold = 0, held = 0, blocked = 0;
+    for (final id in seatsStatus.keys) {
+      switch (_visualOf(seatsStatus, id)) {
+        case SeatVisual.sold:
+        case SeatVisual.owned:
+          sold++;
+        case SeatVisual.held:
+        case SeatVisual.selected:
+          held++;
+        case SeatVisual.blocked:
+          blocked++;
+        case SeatVisual.available:
+          break;
+      }
+    }
+    final int total = seatsStatus.length;
+    final double percent = total == 0 ? 0 : (sold / total) * 100;
+
+    Widget stat(final String label, final String value) => Padding(
+          padding: const EdgeInsets.only(right: AppSpacing.xxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2)),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: TextStyle(
+                      color: cs.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800)),
+            ],
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(
+          runSpacing: AppSpacing.sm,
+          children: [
+            stat('DOLULUK', '%${percent.toStringAsFixed(0)}'),
+            stat('SATILAN', '$sold / $total'),
+            stat('TUTULAN', '$held'),
+            if (blocked > 0) stat('KAPALI', '$blocked'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Denetlemek için bir seans seç.',
+                  textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.lg),
+              OutlinedButton(
+                onPressed: () => NavigationHandler.smartGoBack(context),
+                child: const Text('Geri dön'),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _AuditSkeleton extends StatelessWidget {
+  const _AuditSkeleton();
+
+  @override
+  Widget build(final BuildContext context) => const Padding(
+        padding: EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ShimmerLoading(height: 28, width: 240, borderRadius: AppRadius.xs),
+            SizedBox(height: AppSpacing.lg),
+            ShimmerLoading(height: 40, width: 320, borderRadius: AppRadius.xs),
+            SizedBox(height: AppSpacing.lg),
+            Expanded(
+              child: ShimmerLoading(
+                  height: double.infinity,
+                  width: double.infinity,
+                  borderRadius: AppRadius.md),
+            ),
+          ],
+        ),
+      );
+}
+
+class _AuditError extends StatelessWidget {
+  final String message;
+  final Object error;
+  final VoidCallback onRetry;
+
+  const _AuditError(
+      {required this.message, required this.error, required this.onRetry});
+
+  @override
+  Widget build(final BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: AppSpacing.sm),
+            Text('$error',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Tekrar dene'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _UserDetailFetcher extends ConsumerWidget {
@@ -243,19 +420,41 @@ class _UserDetailFetcher extends ConsumerWidget {
     final userAsync = ref.watch(userByIdProvider(uid));
 
     return userAsync.when(
-      loading: () => const ShimmerLoading(),
-      error: (final e, final _) => Text("Hata: $e"),
+      loading: () => const ShimmerLoading(height: 40, width: 220),
+      error: (final e, final _) => Text("Kullanıcı bilgisi alınamadı: $e",
+          style: TextStyle(color: TicketInk.inkSoft(0.7), fontSize: 13)),
       data: (final user) {
-        if (user == null) return const Text("Kullanıcı bulunamadı.");
+        if (user == null)
+          return Text("Kullanıcı bulunamadı.",
+              style: TextStyle(color: TicketInk.inkSoft(0.7), fontSize: 13));
 
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundImage:
-            user.imageUrl.isNotEmpty ? NetworkImage(user.imageUrl) : null,
-            child: user.imageUrl.isEmpty ? const Icon(Icons.person) : null,
-          ),
-          title: Text("${user.firstName} ${user.lastName}"),
-          subtitle: Text(user.eMail),
+        return Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundImage:
+                  user.imageUrl.isNotEmpty ? NetworkImage(user.imageUrl) : null,
+              child: user.imageUrl.isEmpty ? const Icon(Icons.person) : null,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("${user.firstName} ${user.lastName}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TicketInk.value()),
+                  Text(user.eMail,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: TicketInk.inkSoft(0.6), fontSize: 12.5)),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );

@@ -1,67 +1,194 @@
-import 'dart:ui';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../../../../core/common/extentions/app_context_ui_extension.dart';
+
+import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_radius.dart';
-import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/util/calendar_actions.dart';
 import '../../../../core/util/date_formatter.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
-import '../../../../shared/widgets/magic_box.dart';
+import '../../../../shared/widgets/optimized_cached_image.dart';
+import '../../../../shared/widgets/ticket/ticket_kit.dart';
 import '../providers/my_ticket_provider.dart';
+import '../widgets/wallet_ticket.dart';
 
+/// BİLET ANI — satın alınmış bilet, karanlık sahnede gerçek bir giriş
+/// bileti olarak açılır: gövdede afiş, oyun, tarih, saat, sahne, koltuk,
+/// tutar; koçanda girişte gösterilecek QR kodu (sahneye gelince yavaşça
+/// belirir). Seansı geçmiş biletlerde koçan kopuk, QR soluk ve üstünde
+/// "OYNANDI" damgası.
+///
+/// Mobil/tablet: alttan açılan tam boy sayfa (`TicketDetailsModal`, dikey
+/// bilet, koçan altta). Masaüstü: tam ekran sahne (`TicketDetailsDialog`,
+/// yatay bilet, koçan sağda).
 class TicketDetailsModal extends StatelessWidget {
   final DetailedTicket ticket;
 
   const TicketDetailsModal({super.key, required this.ticket});
 
   @override
-  Widget build(final BuildContext context) {
-    return DraggableScrollableSheet(
+  Widget build(final BuildContext context) => DraggableScrollableSheet(
         initialChildSize: 0.95,
         minChildSize: 0.5,
         maxChildSize: 0.98,
-        builder: (final _, final scrollController) =>
-            _LuxuryTicketDetails(controller: scrollController, ticket: ticket));
-  }
+        builder: (final _, final scrollController) => ClipRRect(
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+          child: TicketStage(
+            child: _TicketMoment(
+              ticket: ticket,
+              wide: false,
+              controller: scrollController,
+            ),
+          ),
+        ),
+      );
 }
 
-class _LuxuryTicketDetails extends StatelessWidget {
-  final ScrollController controller;
+/// Masaüstü: bilet tam ekran karanlık sahnede, ortada yatay.
+/// `showDialog(builder: (_) => TicketDetailsDialog(ticket: t))`.
+class TicketDetailsDialog extends StatelessWidget {
   final DetailedTicket ticket;
 
-  const _LuxuryTicketDetails({required this.controller, required this.ticket});
+  const TicketDetailsDialog({super.key, required this.ticket});
+
+  @override
+  Widget build(final BuildContext context) => Material(
+        type: MaterialType.transparency,
+        child: TicketStage(
+          child: _TicketMoment(ticket: ticket, wide: true, controller: null),
+        ),
+      );
+}
+
+class _TicketMoment extends StatefulWidget {
+  final DetailedTicket ticket;
+  final bool wide;
+  final ScrollController? controller;
+
+  const _TicketMoment({
+    required this.ticket,
+    required this.wide,
+    required this.controller,
+  });
+
+  @override
+  State<_TicketMoment> createState() => _TicketMomentState();
+}
+
+class _TicketMomentState extends State<_TicketMoment>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entrance =
+      AnimationController(vsync: this, duration: AppMotion.slow);
+  late final Animation<double> _ticketIn = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.0, 0.55, curve: AppMotion.standard));
+  late final Animation<double> _headline = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.25, 0.85, curve: AppMotion.dramatic));
+  late final Animation<double> _qr = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.5, 1.0, curve: AppMotion.standard));
+
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (MediaQuery.of(context).disableAnimations) {
+      _entrance.value = 1;
+    } else {
+      _entrance.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _entrance.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(final BuildContext context) {
-    final themeColors = context.colors;
-    final dateInfo = DateFormatter.formatForEventCard(ticket.event?.date ?? '');
-    // 🔥 DÜZELTME: Burada her zaman DateTime.now().year kullanılıyordu —
-    // yani bu yılın dışındaki (geçen yıldan kalma, ya da ocak ayında
-    // aralık için alınmış) HER bilette, kullanıcının kimlik/QR kanıtı olan
-    // bu ekranda YANLIŞ yıl gösteriliyordu. Artık gerçek etkinlik
-    // tarihinden ayrıştırılan yıl kullanılıyor; ayrıştırılamazsa (bozuk/
-    // eksik veri) sessizce şu anki yıla düşülüyor.
-    final parsedEventDate =
-        DateFormatter.parseDateString(ticket.event?.date ?? '');
-    final dateText =
-        "${dateInfo['day']} ${dateInfo['monthName']} ${parsedEventDate?.year ?? DateTime.now().year}";
+    final t = widget.ticket;
+    final bool wide = widget.wide;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: themeColors.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+    final Widget ticket = AdmitTicket(
+      direction: wide ? Axis.horizontal : Axis.vertical,
+      // Geçmiş seans: koçan delikten biraz kopmuş.
+      tear: AlwaysStoppedAnimation<double>(t.isPast ? 0.06 : 0.0),
+      stubExtent: 300,
+      body: _MomentBody(ticket: t, wide: wide, headline: _headline),
+      stub: _MomentStub(ticket: t, wide: wide, reveal: _qr),
+    );
+
+    final Widget animatedTicket = AnimatedBuilder(
+      animation: _ticketIn,
+      builder: (final context, final child) => Opacity(
+        opacity: _ticketIn.value,
+        child: Transform.translate(
+          offset: Offset(0, (1 - _ticketIn.value) * 48),
+          child: child,
+        ),
       ),
-      child: Stack(
+      child: ticket,
+    );
+
+    final Widget close = Semantics(
+      label: 'Bileti kapat',
+      button: true,
+      excludeSemantics: true,
+      child: IconButton(
+        tooltip: 'Kapat',
+        onPressed: () => Navigator.of(context).maybePop(),
+        icon: const Icon(Icons.close_rounded, color: TicketInk.paper),
+        style: IconButton.styleFrom(
+          backgroundColor: TicketInk.paper.withOpacity(0.08),
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+    );
+
+    if (wide) {
+      return Stack(
         children: [
-          ListView(
-            controller: controller,
-            padding: EdgeInsets.zero,
-            children: [
-              Center(
+          // Sahneye (biletin dışına) tıklamak da kapatır.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+          Positioned.fill(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.section, vertical: AppSpacing.section),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: animatedTicket,
+                ),
+              ),
+            ),
+          ),
+          Positioned(top: AppSpacing.xl, right: AppSpacing.xl, child: close),
+        ],
+      );
+    }
+
+    return ListView(
+      controller: widget.controller,
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.massive),
+      children: [
+        Row(
+          children: [
+            const SizedBox(width: 48),
+            Expanded(
+              child: Center(
                 child: Semantics(
                   label: 'Bileti kapatmak için aşağı sürükleyin',
                   child: Container(
@@ -69,340 +196,21 @@ class _LuxuryTicketDetails extends StatelessWidget {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: themeColors.outlineVariant.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(2),
+                      color: TicketInk.paper.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                   ),
                 ),
               ),
-              _LargeEventImage(
-                  imageUrl: ticket.show?.imageUrl ?? '',
-                  title: ticket.show?.name ?? 'Gösteri'),
-              const SizedBox(height: AppSpacing.xxxl),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                child: Column(
-                  children: [
-                    _LargeQRCodeSection(ticketId: ticket.ticket.id),
-                    const SizedBox(height: AppSpacing.xxxl),
-                    _DetailsSection(
-                        ticket: ticket,
-                        dateText: dateText,
-                        timeText: dateInfo['time'] ?? '--:--'),
-                    if (ticket.show != null || ticket.stage != null) ...[
-                      const SizedBox(height: AppSpacing.xxl),
-                      _NavigationActionsSection(ticket: ticket),
-                    ],
-                    const SizedBox(height: AppSpacing.huge),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LargeQRCodeSection extends StatelessWidget {
-  final String ticketId;
-
-  const _LargeQRCodeSection({required this.ticketId});
-
-  @override
-  Widget build(final BuildContext context) {
-    final themeColors = context.colors;
-
-    // 1. ÜST KATMAN (Sadece saf buzlu cam, üzerinde yazı yok!)
-    final Widget foreground = ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          width: 140,
-          height: 140,
-          color: themeColors.primary.withOpacity(0.15),
-        ),
-      ),
-    );
-
-    // 2. ALT KATMAN (Net QR Kod)
-    // Not: QR kodun arka planı burada kasıtlı olarak sabit beyaz kalıyor —
-    // QR tarayıcıların güvenilir okuması için yüksek kontrast (siyah
-    // modül / beyaz zemin) şart, temaya göre değişemez.
-    final Widget background = Container(
-      width: 140,
-      height: 140,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.lg)),
-      child: QrImageView(
-        data: ticketId,
-        version: QrVersions.auto,
-        size: 116,
-        eyeStyle:
-            QrEyeStyle(eyeShape: QrEyeShape.square, color: themeColors.primary),
-      ),
-    );
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: themeColors.surfaceVariant.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Row(
-        children: [
-          // SİHİRLİ QR ALANI
-          Semantics(
-            label: 'Bilet QR kodu, giriş için görevliye gösterin',
-            image: true,
-            child: SizedBox(
-              width: 140,
-              height: 140,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  MagicBox(
-                      radius: 0.28,
-                      foreground: foreground,
-                      background: background),
-                  // YAZI VE İKONU BURAYA, MASKEDEN BAĞIMSIZ KOYUYORUZ
-                  // Dokunma başladığında bunu gizlemek istersen bir ValueNotifier kullanabilirsin
-                  // ama şu an orta kısım silineceği için bu ikonlar zaten kenara itilmiş olacak.
-                  IgnorePointer(
-                    // Dokunmayı engellememesi için
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.qr_code_2_rounded,
-                            color: themeColors.primary.withOpacity(0.4),
-                            size: 32),
-                        const SizedBox(height: 4),
-                        Text("TARAMAK İÇİN\nKEŞFEDİN",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 8,
-                                fontWeight: FontWeight.w900,
-                                color: themeColors.primary.withOpacity(0.5))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.xl),
-          const Expanded(
-              child: Text(
-                  "Biletinizi okutmak için QR kodun üzerini parmağınızla temizleyin.",
-                  style: TextStyle(fontSize: 12))),
-        ],
-      ),
-    );
-  }
-}
-
-class _LargeEventImage extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-
-  const _LargeEventImage({required this.imageUrl, required this.title});
-
-  @override
-  Widget build(final BuildContext context) {
-    final themeColors = context.colors;
-
-    return Container(
-      height: 240,
-      margin: EdgeInsets.zero,
-      // Biletin en dramatik, tek seferlik "hero" görseli — marka rengine
-      // eğilen premium bir parlama.
-      decoration: BoxDecoration(
-        boxShadow: AppShadows.level5(themeColors.primary),
-      ),
-      child: Stack(
-        children: [
-          // Image - FULL WIDTH
-          CachedNetworkImage(
-            imageUrl: imageUrl,
-            width: double.infinity,
-            height: double.infinity,
-            fit: BoxFit.cover,
-            placeholder: (final context, final url) => Container(
-                height: 240,
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    themeColors.surfaceVariant,
-                    themeColors.surfaceContainer,
-                  ],
-                ))),
-            errorWidget: (final context, final url, final error) => Container(
-              height: 240,
-              decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                themeColors.surfaceVariant,
-                themeColors.surfaceContainer
-              ])),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.broken_image_rounded,
-                      size: 64, color: themeColors.onSurfaceVariant),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('Görsel yüklenemedi',
-                      style: context.textTheme.titleMedium
-                          ?.copyWith(color: themeColors.onSurfaceVariant)),
-                ],
-              ),
-            ),
-          ),
-
-          // Gradient overlay
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.3),
-                    Colors.black.withOpacity(0.6),
-                  ],
-                  stops: const [0.0, 0.4, 0.6, 0.8, 1.0],
-                ),
-              ),
-            ),
-          ),
-
-          // BAŞLIK - ALT SOL KÖŞE
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 24,
-            child: Text(title,
-                style: context.textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 28,
-                  shadows: [
-                    Shadow(
-                        color: Colors.black.withOpacity(0.5),
-                        blurRadius: 10,
-                        offset: const Offset(2, 2)),
-                  ],
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Modal içindeki bilet detaylarını (koltuk, sahne, tarih vb.)
-/// tek bir çerçeve içinde dikey bir liste olarak gösterir.
-class _DetailsSection extends StatelessWidget {
-  final DetailedTicket ticket;
-  final String dateText;
-  final String timeText;
-
-  const _DetailsSection({
-    required this.ticket,
-    required this.dateText,
-    required this.timeText,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    final themeColors = context.colors;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Başlık
-        Row(
-          children: [
-            Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        themeColors.primary,
-                        themeColors.primaryContainer,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(AppRadius.xs)),
-                child: Icon(Icons.info_outline_rounded,
-                    color: Colors.white, size: 24)),
-            const SizedBox(width: AppSpacing.md),
-            Text('Bilet Bilgileri',
-                style: context.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700, fontSize: 22))
+            close,
           ],
         ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // QR Kod stiline sahip yeni liste çerçevesi
-        Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                themeColors.surfaceContainer.withOpacity(0.8),
-                themeColors.surfaceContainer.withOpacity(0.4),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: themeColors.primary, width: 1),
-            boxShadow: AppShadows.level2(themeColors.shadow),
-          ),
-          child: Column(
-            children: [
-              _InfoListTile(
-                  icon: Icons.event_seat_rounded,
-                  title: 'Koltuk Numaraları',
-                  subtitle: ticket.ticket.buySeats.join(", "),
-                  isHighlighted: true),
-              const _CustomDivider(),
-              _InfoListTile(
-                  icon: Icons.location_on_rounded,
-                  title: 'Sahne',
-                  subtitle: ticket.stage?.name ?? 'Yükleniyor...'),
-              const _CustomDivider(),
-              _InfoListTile(
-                  icon: Icons.calendar_month_rounded,
-                  title: 'Tarih',
-                  subtitle: dateText),
-              const _CustomDivider(),
-              _InfoListTile(
-                  icon: Icons.access_time_filled_rounded,
-                  title: 'Saat',
-                  subtitle: timeText),
-              const _CustomDivider(),
-              _InfoListTile(
-                  icon: Icons.payments_rounded,
-                  title: 'Ödenen Tutar',
-                  subtitle: '${ticket.ticket.orderPrice} TL',
-                  isHighlighted: true),
-              const _CustomDivider(),
-              _InfoListTile(
-                  icon: Icons.credit_card_rounded,
-                  title: 'Ödeme Yöntemi',
-                  subtitle: ticket.ticket.orderMethod,
-                  isLast: true)
-            ],
+        const SizedBox(height: AppSpacing.sm),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: animatedTicket,
           ),
         ),
       ],
@@ -410,142 +218,215 @@ class _DetailsSection extends StatelessWidget {
   }
 }
 
-/// Çerçeve içindeki listede kullanılacak ayırıcı (divider) widget'ı.
-class _CustomDivider extends StatelessWidget {
-  const _CustomDivider();
+// ─────────────────────────────────────────────────────────────────────────
+// Gövde
+// ─────────────────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(final BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-      child: Divider(
-          height: 1,
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2)));
-}
+class _MomentBody extends StatelessWidget {
+  final DetailedTicket ticket;
+  final bool wide;
+  final Animation<double> headline;
 
-/// Dikey liste içindeki her bir yatay bilgi satırı.
-class _InfoListTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool isHighlighted;
-  final bool isLast;
-
-  const _InfoListTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.isHighlighted = false,
-    this.isLast = false,
+  const _MomentBody({
+    required this.ticket,
+    required this.wide,
+    required this.headline,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final themeColors = context.colors;
-    final themeText = context.textTheme;
+    final t = ticket;
+    final TicketSchedule s = TicketSchedule.of(t);
+    final String image = t.show?.imageUrl.trim() ?? '';
+    final String stageName = t.stage?.name.trim() ?? '';
+    final String address = t.stage?.address.trim() ?? '';
+    final int count = t.ticket.buySeats.length;
 
-    // İkonun "arka plan" rengini belirler
-    final iconBackgroundColor =
-        isHighlighted ? themeColors.primary : themeColors.tertiary;
+    final Widget title = Semantics(
+      header: true,
+      child: AuthWipeReveal(
+        reveal: headline,
+        child: Text(
+          ticketShowName(t),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: TicketInk.headline(wide ? 40 : 30),
+        ),
+      ),
+    );
 
-    // Alt başlığın (değerin) rengini belirler
-    final subtitleColor =
-        isHighlighted ? themeColors.primary : themeColors.onSurface;
-
-    return MergeSemantics(
-      child: Semantics(
-        label: '$title: $subtitle',
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+    final Widget fields = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            // İkon
-            Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                    color: iconBackgroundColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(AppRadius.sm)),
-                child: Icon(icon, color: themeColors.primary, size: 24)),
-            const SizedBox(width: AppSpacing.lg),
-
-            // Başlık ve Alt Başlık
             Expanded(
+              flex: 3,
+              child: TicketField(
+                label: s.weekday.isEmpty ? 'TARİH' : trUpper(s.weekday),
+                value: s.date,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: TicketField(label: 'SAAT', value: s.time),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title.toUpperCase(),
-                      style: themeText.labelMedium?.copyWith(
-                          color: themeColors.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text(subtitle,
-                      style: themeText.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: subtitleColor,
-                          height: 1.2),
+                  TicketField(
+                    label: 'SAHNE',
+                    value: stageName.isEmpty ? '—' : stageName,
+                  ),
+                  if (address.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      address,
                       maxLines: 2,
-                      overflow: TextOverflow.ellipsis),
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: TicketInk.inkSoft(0.6),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
                 ],
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: TicketField(
+                label: ticketSeatsLabel(t),
+                value: ticketSeatsValue(t),
               ),
             ),
           ],
         ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: TicketField(
+                label: 'ÖDENEN',
+                value: ticketPaidLabel(t.ticket.orderPrice),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: TicketField(
+                label: 'ÖDEME',
+                value: ticketPaymentLabel(t.ticket.orderMethod),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: wide
+          ? const EdgeInsets.fromLTRB(AppSpacing.huge, AppSpacing.huge,
+              AppSpacing.huge, AppSpacing.xxl)
+          : const EdgeInsets.fromLTRB(
+              AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TicketHeaderStrip(
+            kind: count > 1 ? 'GİRİŞ BİLETİ · $count KİŞİ' : 'GİRİŞ BİLETİ',
+          ),
+          if (image.isNotEmpty) ...[
+            SizedBox(height: wide ? AppSpacing.xxl : AppSpacing.xl),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+              child: SizedBox(
+                height: wide ? 180 : 150,
+                width: double.infinity,
+                child: ColoredBox(
+                  color: TicketInk.inkSoft(0.08),
+                  child: OptimizedCachedImage(
+                    imageUrl: image,
+                    fit: BoxFit.cover,
+                    borderRadius: 0,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          SizedBox(height: wide ? AppSpacing.xxl : AppSpacing.xl),
+          title,
+          SizedBox(height: wide ? AppSpacing.xxl : AppSpacing.xl),
+          fields,
+          const SizedBox(height: AppSpacing.lg),
+          _TicketLinks(ticket: t, schedule: s),
+        ],
       ),
     );
   }
 }
 
-/// Biletten ilgili gösteriye ve/veya mekana geçiş yapılabilen aksiyon
-/// bölümü. `show` ve/veya `stage` null olduğunda ilgili buton hiç
-/// render edilmez; ikisi de null ise bölüm tamamen gizlenir (bkz.
-/// [_LuxuryTicketDetails] içindeki koşullu render).
-class _NavigationActionsSection extends StatelessWidget {
+/// Biletin altındaki sessiz bağlantılar (buton yığını yerine): oyun, mekân,
+/// takvim. Sadece verisi olanlar görünür.
+class _TicketLinks extends StatelessWidget {
   final DetailedTicket ticket;
+  final TicketSchedule schedule;
 
-  const _NavigationActionsSection({required this.ticket});
+  const _TicketLinks({required this.ticket, required this.schedule});
 
   @override
   Widget build(final BuildContext context) {
     final show = ticket.show;
     final stage = ticket.stage;
-    final event = ticket.event;
+    final DateTime? eventDate = ticket.event != null
+        ? DateFormatter.parseDateString(ticket.event!.date)
+        : null;
     // Geçmiş bir etkinliği takvime eklemenin bir anlamı yok — sadece
     // yaklaşan, gerçek bir tarihi olan biletlerde gösterilir.
-    final eventDate =
-        event != null ? DateFormatter.parseDateString(event.date) : null;
-    final canAddToCalendar = !ticket.isPast && show != null && eventDate != null;
+    final bool canAddToCalendar =
+        !ticket.isPast && show != null && eventDate != null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    if (show == null && stage == null) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: AppSpacing.xs,
+      runSpacing: 0,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         if (show != null)
-          _NavigationActionButton(
-            icon: Icons.theater_comedy_rounded,
-            label: 'Etkinliği Görüntüle',
+          TicketTextLink(
+            label: 'Oyunu gör',
             onTap: () {
               Navigator.pop(context);
               NavigationHandler.goToShow(context, show.id, show.name);
             },
           ),
-        if (show != null && stage != null) const SizedBox(height: AppSpacing.md),
         if (stage != null)
-          _NavigationActionButton(
-            icon: Icons.location_on_rounded,
-            label: 'Mekanı Görüntüle',
+          TicketTextLink(
+            label: 'Mekânı gör',
             onTap: () {
               Navigator.pop(context);
               NavigationHandler.goToStage(context, stage.id, stage.name);
             },
           ),
-        if (canAddToCalendar) const SizedBox(height: AppSpacing.md),
         if (canAddToCalendar)
-          _NavigationActionButton(
-            icon: Icons.calendar_month_rounded,
-            label: 'Takvime Ekle',
+          TicketTextLink(
+            label: 'Takvime ekle',
+            emphasize: true,
             onTap: () => TiyatrolCalendarActions.addShowEventToCalendar(
-              showName: show.name,
-              eventStart: eventDate,
+              showName: show!.name,
+              eventStart: eventDate!,
               location: stage?.address ?? '',
               showDuration: show.duration,
               description: stage != null && stage.name.isNotEmpty
@@ -558,63 +439,124 @@ class _NavigationActionsSection extends StatelessWidget {
   }
 }
 
-/// [_NavigationActionsSection] içinde kullanılan, modalın diğer
-/// bölümleriyle aynı "lüks" gradyan/ikon diline sahip tek bir aksiyon
-/// butonu.
-class _NavigationActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+// ─────────────────────────────────────────────────────────────────────────
+// Koçan: QR
+// ─────────────────────────────────────────────────────────────────────────
 
-  const _NavigationActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
+class _MomentStub extends StatelessWidget {
+  final DetailedTicket ticket;
+  final bool wide;
+  final Animation<double> reveal;
+
+  const _MomentStub({
+    required this.ticket,
+    required this.wide,
+    required this.reveal,
   });
 
   @override
   Widget build(final BuildContext context) {
-    final themeColors = context.colors;
+    final bool past = ticket.isPast;
+    final String id = ticket.ticket.id;
+    final String serial =
+        id.length > 10 ? id.substring(0, 10).toUpperCase() : id.toUpperCase();
+    final double qrSize = wide ? 196 : 184;
 
-    return Semantics(
-      button: true,
-      label: label,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  themeColors.primary,
-                  themeColors.primaryContainer,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              boxShadow: AppShadows.level2(themeColors.primary),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: Colors.white, size: 22),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(label,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15)),
+    // QR: siyah modül / beyaz zemin — tarayıcıların güvenilir okuması için
+    // temadan bağımsız, en yüksek kontrast. Yük (payload) değişmedi:
+    // biletin kimliği.
+    final Widget qr = Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        border: Border.all(color: TicketInk.inkSoft(0.15)),
+      ),
+      child: QrImageView(
+        data: id,
+        version: QrVersions.auto,
+        size: qrSize,
+        padding: EdgeInsets.zero,
+        backgroundColor: Colors.white,
+        eyeStyle: const QrEyeStyle(
+            eyeShape: QrEyeShape.square, color: TicketInk.ink),
+        dataModuleStyle: const QrDataModuleStyle(
+            dataModuleShape: QrDataModuleShape.square, color: TicketInk.ink),
+      ),
+    );
+
+    final Widget revealedQr = AnimatedBuilder(
+      animation: reveal,
+      builder: (final context, final child) => Opacity(
+        opacity: reveal.value,
+        child: Transform.scale(scale: 0.86 + 0.14 * reveal.value, child: child),
+      ),
+      child: Semantics(
+        image: true,
+        label: past
+            ? 'Bilet QR kodu. Bu seans geçti.'
+            : 'Bilet QR kodu, girişte görevliye göster',
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Opacity(opacity: past ? 0.3 : 1, child: qr),
+            if (past)
+              const ExcludeSemantics(
+                child: TicketInkStamp(
+                  text: 'OYNANDI',
+                  appear: AlwaysStoppedAnimation<double>(1),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    color: Colors.white, size: 16),
-              ],
-            ),
-          ),
+              ),
+          ],
         ),
       ),
+    );
+
+    final Widget content = Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(past ? 'SEANS GEÇTİ' : 'GİRİŞTE GÖSTER',
+              style: TicketInk.label()),
+          const SizedBox(height: AppSpacing.md),
+          revealedQr,
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            past
+                ? 'Bu bilet artık bir hatıra.'
+                : 'Görevli bu kodu okutur; ekran parlaklığını açık tut.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: TicketInk.inkSoft(0.65),
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SelectableText(
+            'No. $serial',
+            style: GoogleFonts.robotoMono(
+              color: TicketInk.inkSoft(0.7),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      );
+
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      // Yatay bilette koçanın yüksekliği gövdeden gelir; kısa gövdede
+      // taşmak yerine orantılı küçülür.
+      child: wide
+          ? Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(width: 260, child: content),
+              ),
+            )
+          : content,
     );
   }
 }
