@@ -4,6 +4,28 @@ Sahibi Türkçe ve doğrudan konuşur; "berbat", "iğrenç", "kullanışsız"
 geri bildirimleri ciddi ret demektir. Beğendiği şeyler de not edildi —
 onları koru.
 
+## ✅ ONAYLANAN YÖN: "BİLET DİLİ" (29.09.2026)
+
+Giriş ekranındaki "bilet gişesi" tasarımı için sahibi: **"çok çok çok
+harika… bunu her sayfaya her logice bağla… İŞTE BÖYLE DEVAM ET… webLERE DE
+EKLE"**. Bu artık uygulamanın imza dilidir:
+- Önemli nesneler fiziksel tiyatro biletidir: fildişi kağıt, delikli koçan
+  (yarım daire çentikler), barkod, mürekkep damgası (YENİ, KOD GÖNDERİLDİ),
+  birincil aksiyon "damga butonu", aksiyonda koçanın yırtılması.
+- Başlıklar Playfair Display ile ve soldan sağa perde açılışı (wipe).
+- Bilgi, bilet alanları gibi (küçük etiket + basılı değer: TARİH, SEANS,
+  KOLTUK) verilir.
+- Kit: `lib/shared/widgets/ticket/ticket_kit.dart` (`TicketPiece`,
+  `TicketPerforation`, `AdmitTicket`, `TicketStampButton`, `TicketField`,
+  `TicketBarcode`, `TicketInkStamp`, `TicketHeaderStrip`, `TicketStage`,
+  `AuthWipeReveal`). Vurgu rengi temadan (`TicketInk.accentOf`); kağıt ve
+  mürekkep sabit. Giriş gibi "an" ekranları koyu sahnede
+  (`TicketStage()`), genel sayfalar temanın zemininde
+  (`TicketStage(themed: true)`).
+- Not: skill'in "BÜYÜK HARF etiket / monospace" uyarıları bu dilde
+  bilinçli olarak kullanılıyor (sahibinin onayı, gerçek biletin
+  dili) — ama ölçülü: bilet alanlarında, her başlığın üstünde değil.
+
 ## Beğenilenler (koru)
 - **Metin perde açılışı (wipe reveal):** başlığın soldan sağa `ClipRect +
   Align(widthFactor)` ile açılması — "yazı animasyonu çok iyi".
@@ -42,10 +64,8 @@ onları koru.
    → negatif margin çökmesi; mobilde üstte temanın açık şeridi; web'de
    Scaffold yok → çöktü; dış foto web'de yüklenmedi.
 5. "Bilet gişesi" (fildişi fiziksel bilet, delikli koçan, yırtılma,
-   koltuk sırası SMS kodu, gerçek afiş bandı) — sahibinin henüz net
-   yorumu yok. NOT: bu tasarım da bu skill'in yapay zekâ işaretlerinden
-   birkaçını taşıyor (her yerde BÜYÜK HARF aralıklı etiket, "A · B",
-   monospace küçük etiketler) — yeniden ele alınırken bunlar temizlenmeli.
+   koltuk sırası SMS kodu, gerçek afiş bandı) → **ONAYLANDI, çok beğenildi**
+   (bkz. en üst).
 
 ### Diğer
 - Geri butonlu ortak başlıkta sabit pembe/kırmızı gradyan yazı → temaya

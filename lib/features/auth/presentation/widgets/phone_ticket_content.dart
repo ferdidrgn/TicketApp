@@ -82,7 +82,7 @@ class PhoneTicketBody extends StatelessWidget {
           child: child,
         ),
       ),
-      child: isCodeSent ? _codeStep() : _phoneStep(),
+      child: isCodeSent ? _codeStep(context) : _phoneStep(),
     );
 
     final Widget titleBlock = Stack(
@@ -165,8 +165,7 @@ class PhoneTicketBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.xxl),
           TicketStampButton(
             label: 'KOD GÖNDER',
-            leading: const Icon(Icons.sms_outlined,
-                size: 18, color: TicketInk.paper),
+            leading: const Icon(Icons.sms_outlined),
             onTap: onSendCode,
             loading: loading,
             loadingLabel: 'GÖNDERİLİYOR…',
@@ -174,7 +173,7 @@ class PhoneTicketBody extends StatelessWidget {
         ],
       );
 
-  Widget _codeStep() => Column(
+  Widget _codeStep(final BuildContext context) => Column(
         key: const ValueKey('code-step'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -212,7 +211,7 @@ class PhoneTicketBody extends StatelessWidget {
                       style: GoogleFonts.robotoMono(
                         color: onResend != null
                             ? TicketInk.inkSoft(0.4)
-                            : TicketInk.accent,
+                            : TicketInk.accentOf(context),
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                       ),
@@ -230,8 +229,7 @@ class PhoneTicketBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           TicketStampButton(
             label: 'DOĞRULA VE İÇERİ GİR',
-            leading: const Icon(Icons.login_rounded,
-                size: 18, color: TicketInk.paper),
+            leading: const Icon(Icons.login_rounded),
             onTap: () => onVerify(null),
             loading: loading,
             loadingLabel: 'KAPI AÇILIYOR…',

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_motion.dart';
@@ -9,22 +10,19 @@ import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../features/shows/domain/entities/show.dart';
 import 'optimized_cached_image.dart';
+import 'ticket/ticket_kit.dart';
 
-/// Tek, paylaşılan "tiyatro gösterisi" poster kartı.
+/// Paylaşılan oyun kartı — "bilet dili": kart, koçanı delik çizgisiyle
+/// ayrılmış bir tiyatro biletidir.
 ///
-/// Hem web ana sayfasının "Sahnede Bu Sezon" ızgarasında hem de keşif
-/// sayfasının kart ızgarasında kullanılan, iki ayrı-ama-neredeyse-aynı
-/// kart uygulamasının yerine geçen TEK kaynak. Amaç: iki ızgara da aynı
-/// görünüp aynı davransın.
+/// Gövde: afiş (gerçek, kırpılmadan üstte) + oyun adı. Koçan: türü ya da
+/// "Başka platformda" + süre, ve oyuna özgü barkod. Yeni eklenen oyunlarda
+/// afişin köşesine küçük bir "YENİ" mürekkep damgası basılır; başka rozet
+/// yığını yok.
 ///
-/// Hover'da (masaüstü/fare) `show.photosShowId` doluysa, kart bağlanırken
-/// bir kez rastgele seçilmiş (mount süresince sabit kalan — her hover'da
-/// yeniden ZAR ATILMAZ) bir galeri fotoğrafını, `page_transitions.dart`
-/// içindeki `curtainTransition`'ın aynı "perde açılışı" tekniğiyle
-/// (`ClipRect` + ortadan büyüyen `Align(widthFactor: ...)`) posterin
-/// üzerine açar. `photosShowId` boşsa sadece kaldırma/parlama/kenarlık
-/// hover efektleri uygulanır, görsel değişmez — asla kırık/boş görsel
-/// göstermez ya da uydurma bir yedek kullanmaz.
+/// Hover/klavye odağında (web) kart hafifçe kalkar ve `show.photosShowId`
+/// doluysa bir kez rastgele seçilen gerçek galeri fotoğrafı afişin üstüne
+/// ortadan açılır. Galeri yoksa sadece kalkma olur, görsel uydurulmaz.
 class TheatreShowCard extends StatefulWidget {
   final Show show;
   final VoidCallback onTap;
@@ -40,10 +38,9 @@ class TheatreShowCard extends StatefulWidget {
 }
 
 class _TheatreShowCardState extends State<TheatreShowCard> {
-  bool _hovered = false;
+  bool _active = false;
 
-  /// Bu kart örneği bağlı kaldığı sürece sabit kalan, bir kez seçilmiş
-  /// "sürpriz" galeri fotoğrafı. `photosShowId` boşsa null kalır.
+  /// Kart bağlı kaldığı sürece sabit, bir kez seçilmiş galeri fotoğrafı.
   String? _revealImageUrl;
 
   @override
@@ -55,207 +52,82 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
     }
   }
 
+  void _setActive(final bool value) {
+    if (_active != value) setState(() => _active = value);
+  }
+
   @override
   Widget build(final BuildContext context) {
     final show = widget.show;
-    final hasReveal =
+    final bool hasReveal =
         _revealImageUrl != null && _revealImageUrl != show.imageUrl;
-    final badges = _buildBadgeChips(show);
+    final List<BoxShadow> shadows = _active
+        ? AppShadows.level4(WebColors.veryDarkBlue)
+        : AppShadows.level2(WebColors.veryDarkBlue);
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (final _) => setState(() => _hovered = true),
-      onExit: (final _) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: AppMotion.fast,
-          curve: AppMotion.standard,
-          transform: Matrix4.translationValues(0, _hovered ? -5 : 0, 0),
-          decoration: BoxDecoration(
-            color: WebColors.darkBlueSurface,
-            borderRadius: AppRadius.asymLg,
-            border: Border.all(
-              color: _hovered
-                  ? WebColors.primaryGold.withOpacity(0.45)
-                  : WebColors.darkBlueAccent,
-              width: 1.2,
-            ),
-            boxShadow: _hovered
-                ? AppShadows.level3(WebColors.primaryGold)
-                : AppShadows.level2(WebColors.primaryGold),
-          ),
-          // 🔥 DÜZELTME: vesica (zeytin yaprağı/göz) şekli — hem sadece
-          // posterde hem sonra tüm kartta denendi — dar kartlarda rozet
-          // satırını (özellikle "BAŞKA PLATFORMDA" gibi uzun etiketleri)
-          // sığdıracak yer bırakmıyordu ve gerçek bir RenderFlex overflow
-          // hatasına yol açtı (kullanıcı ekran görüntüsüyle bildirdi).
-          // Şekil tamamen kaldırıldı — yerine uygulamanın zaten ~10 dosyada
-          // tutarlı kullandığı imza asimetrik köşe (`AppRadius.asymLg`,
-          // bkz. `app_radius.dart`) geldi: aynı "sıradan dikdörtgen değil"
-          // hissini, poster/rozet/başlık TAM kart genişliğini kullanarak
-          // (asla dar bir banda sıkışmadan) veriyor.
-          child: ClipRRect(
-            borderRadius: AppRadius.asymLg,
+    return Semantics(
+      button: true,
+      label: [
+        show.name,
+        if (show.category.trim().isNotEmpty) show.category,
+        if (show.hasExternalTicketing) 'biletler başka platformda',
+      ].join(', '),
+      excludeSemantics: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: widget.onTap,
+          onHover: _setActive,
+          onFocusChange: _setActive,
+          mouseCursor: SystemMouseCursors.click,
+          splashFactory: NoSplash.splashFactory,
+          highlightColor: Colors.transparent,
+          hoverColor: Colors.transparent,
+          focusColor: Colors.transparent,
+          child: AnimatedSlide(
+            offset: _active ? const Offset(0, -0.015) : Offset.zero,
+            duration: AppMotion.fast,
+            curve: AppMotion.standard,
             child: LayoutBuilder(
               builder: (final context, final constraints) {
-                final cardH = constraints.maxHeight;
-                return Stack(
-                  fit: StackFit.expand,
+                final bool compact = constraints.maxWidth < 200;
+                final double notch = compact ? 8 : 11;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. Ana poster — tüm kartı uçtan uca dolduran taban
-                    // katman.
-                    OptimizedCachedImage(
-                      imageUrl: show.imageUrl,
-                      fit: BoxFit.cover,
-                      borderRadius: 0,
-                    ),
-
-                    // 2. Hover'da "perde açılışı" ile beliren galeri
-                    // fotoğrafı — sadece gerçek galeri verisi varsa.
-                    if (hasReveal)
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(
-                          begin: 0,
-                          end: _hovered ? 1.0 : 0.0,
-                        ),
-                        duration: AppMotion.normal,
-                        curve: AppMotion.dramatic,
-                        builder: (final context, final t, final child) {
-                          if (t <= 0) return const SizedBox.shrink();
-                          return ClipRect(
-                            child: Align(
-                              alignment: Alignment.center,
-                              widthFactor: t,
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: SizedBox.expand(
-                          child: OptimizedCachedImage(
-                            imageUrl: _revealImageUrl!,
-                            fit: BoxFit.cover,
-                            borderRadius: 0,
-                          ),
-                        ),
-                      ),
-
-                    // 3. Üst hafif vinyet — rozetlerin her fotoğrafın
-                    // üzerinde okunur kalması için.
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: cardH * 0.32,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.45),
-                              Colors.black.withOpacity(0),
-                            ],
-                          ),
+                    Expanded(
+                      child: TicketPiece(
+                        perforated: TicketEdge.bottom,
+                        notch: notch,
+                        corner: AppRadius.sm,
+                        shadows: shadows,
+                        child: _Body(
+                          show: show,
+                          compact: compact,
+                          revealUrl: hasReveal ? _revealImageUrl : null,
+                          revealed: _active,
                         ),
                       ),
                     ),
-
-                    // 4. Alt karartma — başlık/süre metninin her
-                    // fotoğrafın üzerinde okunur kalması için.
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: cardH * 0.46,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0),
-                              Colors.black.withOpacity(0.9),
-                            ],
-                          ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      fit: StackFit.passthrough,
+                      children: [
+                        TicketPiece(
+                          perforated: TicketEdge.top,
+                          notch: notch,
+                          corner: AppRadius.sm,
+                          shadows: shadows,
+                          child: _Stub(show: show, compact: compact),
                         ),
-                      ),
-                    ),
-
-                    // 5. Rozetler — kartın TAM genişliğinde, sol hizalı
-                    // (dar kartlarda `Wrap` bir alt satıra sarar, asla
-                    // çakışmaz/taşmaz).
-                    if (badges.isNotEmpty)
-                      Positioned(
-                        top: AppSpacing.sm,
-                        left: AppSpacing.sm,
-                        right: AppSpacing.sm,
-                        child: Wrap(
-                          spacing: AppSpacing.xs,
-                          runSpacing: AppSpacing.xs,
-                          children: badges,
+                        const Positioned(
+                          top: -1,
+                          left: 0,
+                          right: 0,
+                          height: 2,
+                          child: TicketPerforation(),
                         ),
-                      ),
-
-                    // 6. Başlık + süre/yaş sınırı — kartın TAM genişliğinde,
-                    // sol hizalı.
-                    Positioned(
-                      left: AppSpacing.sm,
-                      right: AppSpacing.sm,
-                      bottom: AppSpacing.sm,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            show.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: WebColors.whiteText,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              height: 1.15,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              const Icon(Icons.schedule_rounded,
-                                  size: 12, color: WebColors.textTertiary),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  show.duration,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: WebColors.textSecondary,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ),
-                              if (show.ageLimit.trim().isNotEmpty) ...[
-                                const SizedBox(width: 10),
-                                const Icon(Icons.shield_outlined,
-                                    size: 12, color: WebColors.textTertiary),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    show.ageLimit,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: WebColors.textSecondary,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
                   ],
                 );
@@ -266,92 +138,201 @@ class _TheatreShowCardState extends State<TheatreShowCard> {
       ),
     );
   }
-
-  /// Rozetleri (harici bilet / yeni / kategori) tek bir listeye toplar —
-  /// hiçbiri yoksa boş liste döner ve rozet şeridi hiç render edilmez.
-  List<Widget> _buildBadgeChips(final Show show) => [
-        // 🔗 Biletleri başka bir platformda satılan "konuk" oyunlar için
-        // ayırt edici rozet (mavi).
-        if (show.hasExternalTicketing)
-          _Chip(
-            icon: Icons.open_in_new_rounded,
-            label: 'BAŞKA PLATFORMDA',
-            background: WebColors.info.withOpacity(0.85),
-            border: WebColors.info,
-            foreground: Colors.white,
-          ),
-        // ✨ Son eklenen (son 21 gün) oyunlar için — `show.isRecentlyAdded`
-        // gerçek `createdAt`'tan türetilir, uydurma bir "trend" bayrağı
-        // yok.
-        if (show.isRecentlyAdded)
-          _Chip(
-            icon: Icons.bolt_rounded,
-            label: 'YENİ',
-            gradient: const LinearGradient(
-                colors: [WebColors.warning, WebColors.primaryGoldLight]),
-            foreground: WebColors.veryDarkBlue,
-          ),
-        if (show.category.isNotEmpty)
-          _Chip(
-            label: show.category.toUpperCase(),
-            background: WebColors.veryDarkBlue.withOpacity(0.72),
-            border: WebColors.primaryGold.withOpacity(0.5),
-            foreground: WebColors.primaryGoldLight,
-          ),
-      ];
 }
 
-/// Küçük, tek satırlık rozet — ikon opsiyonel, ya düz renk ya gradyan
-/// zemin alabilir. `TheatreShowCard`'ın rozet şeridindeki 3 rozet türü
-/// (harici bilet/yeni/kategori) bunu paylaşır.
-class _Chip extends StatelessWidget {
-  final IconData? icon;
-  final String label;
-  final Color? background;
-  final LinearGradient? gradient;
-  final Color? border;
-  final Color foreground;
+class _Body extends StatelessWidget {
+  final Show show;
+  final bool compact;
+  final String? revealUrl;
+  final bool revealed;
 
-  const _Chip({
-    this.icon,
-    required this.label,
-    this.background,
-    this.gradient,
-    this.border,
-    required this.foreground,
+  const _Body({
+    required this.show,
+    required this.compact,
+    required this.revealUrl,
+    required this.revealed,
   });
 
   @override
-  Widget build(final BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: background,
-          gradient: gradient,
-          borderRadius: AppRadius.asymSm,
-          border: border != null ? Border.all(color: border!) : null,
-          boxShadow: gradient != null
-              ? AppShadows.level1(gradient!.colors.first)
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 11, color: foreground),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                color: foreground,
-                fontSize: 9.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
+  Widget build(final BuildContext context) {
+    final double inset = compact ? AppSpacing.sm - 2 : AppSpacing.sm;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(inset, inset, inset, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ColoredBox(
+                    color: TicketInk.inkSoft(0.08),
+                    child: OptimizedCachedImage(
+                      imageUrl: show.imageUrl,
+                      fit: BoxFit.cover,
+                      borderRadius: 0,
+                    ),
+                  ),
+                  if (revealUrl != null)
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: revealed ? 1 : 0),
+                      duration: AppMotion.normal,
+                      curve: AppMotion.dramatic,
+                      builder: (final context, final t, final child) {
+                        if (t <= 0) return const SizedBox.shrink();
+                        return ClipRect(
+                          child: Align(
+                            widthFactor: t,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: SizedBox.expand(
+                        child: OptimizedCachedImage(
+                          imageUrl: revealUrl!,
+                          fit: BoxFit.cover,
+                          borderRadius: 0,
+                        ),
+                      ),
+                    ),
+                  if (show.isRecentlyAdded)
+                    Positioned(
+                      top: AppSpacing.sm,
+                      right: AppSpacing.sm,
+                      child: _NewStamp(compact: compact),
+                    ),
+                ],
               ),
             ),
-          ],
-        ),
-      );
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(
+                vertical: compact ? AppSpacing.sm : AppSpacing.md),
+            child: Text(
+              show.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.playfairDisplay(
+                color: TicketInk.ink,
+                fontSize: compact ? 14 : 17,
+                fontWeight: FontWeight.w800,
+                height: 1.15,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
+class _Stub extends StatelessWidget {
+  final Show show;
+  final bool compact;
+
+  const _Stub({required this.show, required this.compact});
+
+  @override
+  Widget build(final BuildContext context) {
+    final String kind = show.hasExternalTicketing
+        ? 'BAŞKA PLATFORMDA'
+        : (show.category.trim().isEmpty
+            ? 'OYUN'
+            : show.category.trim().toUpperCase());
+    final String detail = show.duration.trim().isNotEmpty
+        ? show.duration.trim()
+        : show.ageLimit.trim();
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          compact ? AppSpacing.sm + 2 : AppSpacing.md,
+          compact ? AppSpacing.sm : AppSpacing.md,
+          compact ? AppSpacing.sm + 2 : AppSpacing.md,
+          compact ? AppSpacing.sm : AppSpacing.md),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    if (show.hasExternalTicketing) ...[
+                      Icon(Icons.open_in_new_rounded,
+                          size: 10, color: TicketInk.accentOf(context)),
+                      const SizedBox(width: 3),
+                    ],
+                    Flexible(
+                      child: Text(
+                        kind,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TicketInk.label(
+                          color: show.hasExternalTicketing
+                              ? TicketInk.accentOf(context)
+                              : null,
+                        ).copyWith(fontSize: compact ? 8.5 : 9.5),
+                      ),
+                    ),
+                  ],
+                ),
+                if (detail.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    detail,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TicketInk.value(size: compact ? 11.5 : 13),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          SizedBox(
+            width: compact ? 30 : 44,
+            child: TicketBarcode(seed: show.id, height: compact ? 22 : 28),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Afişin köşesine basılan küçük "YENİ" damgası (son 21 gün — gerçek
+/// `createdAt`'tan).
+class _NewStamp extends StatelessWidget {
+  final bool compact;
+  const _NewStamp({required this.compact});
+
+  @override
+  Widget build(final BuildContext context) {
+    final Color accent = TicketInk.accentOf(context);
+    return Transform.rotate(
+      angle: -0.12,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: TicketInk.paper.withOpacity(0.92),
+          border: Border.all(color: accent, width: 1.6),
+          borderRadius: BorderRadius.circular(AppRadius.xs / 2),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: compact ? 5 : AppSpacing.sm - 1, vertical: 2),
+          child: Text(
+            'YENİ',
+            style: TextStyle(
+              color: accent,
+              fontSize: compact ? 9 : 10.5,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.6,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -76,8 +76,7 @@ class LoginTicketBody extends StatelessWidget {
       children: [
         TicketStampButton(
           label: l10n.loginPhoneButton,
-          leading: const Icon(Icons.phone_iphone_rounded,
-              size: 18, color: TicketInk.paper),
+          leading: const Icon(Icons.phone_iphone_rounded),
           onTap: onPhone,
           loading: loading,
           loadingLabel: 'BİLET KESİLİYOR…',
@@ -270,8 +269,8 @@ class BoxOfficeCaption extends StatelessWidget {
   Widget build(final BuildContext context) => Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.local_activity_outlined,
-              size: 16, color: TicketInk.accent),
+          Icon(Icons.local_activity_outlined,
+              size: 16, color: TicketInk.stageAccentOf(context)),
           const SizedBox(width: AppSpacing.sm),
           Text(
             text,
