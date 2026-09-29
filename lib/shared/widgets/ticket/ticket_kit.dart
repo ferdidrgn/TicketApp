@@ -97,11 +97,16 @@ class TicketStage extends StatelessWidget {
   final bool showCurtains;
   final bool themed;
 
+  /// Yukarıdan düşen spot ışığı. Sade kalması gereken yardımcı sayfalarda
+  /// (arama, ayarlar gibi) kapatılır.
+  final bool spotlight;
+
   const TicketStage({
     super.key,
     required this.child,
     this.showCurtains = false,
     this.themed = false,
+    this.spotlight = true,
   });
 
   @override
@@ -115,6 +120,7 @@ class TicketStage extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // Spot ışığı: sahnenin üstünden bilete düşen dar bir koni.
+            if (spotlight)
             IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -342,20 +348,28 @@ class AdmitTicket extends StatelessWidget {
   final Animation<double> tear;
   final double stubExtent;
 
+  /// Parçaların gölgesi. Varsayılan (null) tek başına duran "an" biletleri
+  /// için ağır gölge; listelerde `AppShadows.level2(...)` gibi hafif olanı ver.
+  final List<BoxShadow>? shadows;
+
+  /// Yırtılma istenmeyen yerler için sabit (hiç oynamayan) animasyon.
+  static const Animation<double> noTear = AlwaysStoppedAnimation<double>(0);
+
   const AdmitTicket({
     super.key,
     required this.direction,
     required this.body,
     required this.stub,
-    required this.tear,
+    this.tear = noTear,
     this.stubExtent = 220,
+    this.shadows,
   });
 
   static const double _perforation = 2;
 
   Widget _piece(final TicketEdge edge, final Widget child) => TicketPiece(
         perforated: edge,
-        shadows: AppShadows.level5(WebColors.veryDarkBlue),
+        shadows: shadows ?? AppShadows.level5(WebColors.veryDarkBlue),
         child: child,
       );
 
@@ -676,8 +690,9 @@ class TicketInkStamp extends StatelessWidget {
       );
 }
 
-/// Bilete basılı aksiyon. `primary` → kırmızı damga (uygulamanın imza
-/// asimetrik köşesiyle), değilse mürekkep çerçeveli ikincil satır.
+/// Bilete basılı aksiyon. `primary` → temanın vurgu renginde damga,
+/// değilse mürekkep çerçeveli ikincil satır. `onTap` null ise (ve yükleme
+/// yoksa) soluk görünür — pasif olduğu belli olur.
 class TicketStampButton extends StatefulWidget {
   final String label;
   final Widget? leading;
@@ -750,7 +765,10 @@ class _TicketStampButtonState extends State<TicketStampButton> {
       enabled: enabled,
       label: widget.label,
       excludeSemantics: true,
-      child: MouseRegion(
+      child: AnimatedOpacity(
+        opacity: widget.onTap == null && !widget.loading ? 0.45 : 1,
+        duration: AppMotion.fast,
+        child: MouseRegion(
         onEnter: (final _) => setState(() => _hovered = true),
         onExit: (final _) => setState(() => _hovered = false),
         child: AnimatedScale(
@@ -784,6 +802,7 @@ class _TicketStampButtonState extends State<TicketStampButton> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

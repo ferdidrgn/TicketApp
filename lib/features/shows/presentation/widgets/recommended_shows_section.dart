@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/navigation/widgets/nav_handler.dart';
 import '../../../../shared/widgets/theatre_show_card.dart';
@@ -32,13 +31,14 @@ class RecommendedShowsSection extends ConsumerWidget {
                     const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
                 child: Row(
                   children: [
-                    const Icon(Icons.auto_awesome_rounded,
-                        size: 18, color: WebColors.primaryGold),
+                    Icon(Icons.auto_awesome_rounded,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: AppSpacing.sm),
-                    const Text(
+                    Text(
                       'SANA ÖZEL',
                       style: TextStyle(
-                        color: WebColors.whiteText,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w900,
                         fontSize: 15,
                         letterSpacing: 0.5,
