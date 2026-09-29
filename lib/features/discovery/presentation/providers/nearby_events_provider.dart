@@ -93,9 +93,15 @@ final upcomingNearbyEventsProvider =
     }
   }
 
+  // `Event.showId` doluysa TEK doğruluk kaynağı odur (bkz.
+  // `show_provider.dart` `_mergedEventsByShow`). Eskiden, `showId` dolu ama
+  // o oyun bu listede yoksa `Show.eventsId` dizisine düşülüyordu — dizisi
+  // bayat kalmış BAŞKA bir oyunun adı altında yanlış seans gösterilebiliyordu.
+  // Dizi artık sadece `showId` BOŞSA yedek.
   String? resolveShowId(final Event event) {
-    if (event.showId.isNotEmpty && showsById.containsKey(event.showId))
-      return event.showId;
+    if (event.showId.isNotEmpty) {
+      return showsById.containsKey(event.showId) ? event.showId : null;
+    }
     return showIdsByEventId[event.id]?.first;
   }
 
